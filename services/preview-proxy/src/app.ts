@@ -481,6 +481,89 @@ export function sanitizePreviewFramingHeader(name: string, value: string): strin
  * the header is absent or the named cookie is not present. Tolerant of the
  * surrounding `; ` separators and missing values.
  */
+/*
+ * En-tête interne portant le MÊME jeton que le cookie `vc_preview`.
+ *
+ * Pourquoi un en-tête en plus du cookie : le screenshotter (vignettes de projet)
+ * rend un preview depuis un contexte navigateur volontairement vierge — « fresh,
+ * isolated context so cookies/storage never leak between projects » — et il
+ * RÉÉCRIT l'URL vers le Service in-cluster du proxy en conservant le Host. Un
+ * cookie devrait donc être posé sur l'hôte de preview puis survivre à la
+ * réécriture http (donc non-`Secure`), ce qui multiplie les pièges. Le jeton est
+ * la même chaîne signée : le transporter dans un en-tête explicite n'affaiblit
+ * rien, et c'est même plus sûr côté CSRF qu'un cookie envoyé automatiquement.
+ *
+ * L'en-tête est retiré avant tout forward vers l'amont (voir les boucles de
+ * construction d'en-têtes) : le serveur de dev du tenant ne doit jamais le voir.
+ */
+export const PREVIEW_TENANT_HEADER = 'x-vibecore-preview-tenant';
+
+/*
+ * En-tête d'appel INTERNE (screenshotter in-cluster). Il ouvre le routage par
+ * CHEMIN des publications, `/d/<id>` et `/s/<id>`, qui n'est pas une seconde
+ * adresse publique : servir deux publications sur une même origine supprimerait
+ * l'isolation d'origine que les hôtes `d-`/`s-` existent pour donner. Préfixé
+ * `x-vibecore-` donc retiré par les trois boucles d'en-têtes avant tout forward,
+ * comme le jeton tenant.
+ */
+export const PREVIEW_INTERNAL_HEADER = 'x-vibecore-preview-internal';
+
+/**
+ * Retire le préfixe `/d/<id>` ou `/s/<id>` d'une URL de routage interne et rend le
+ * chemin applicatif réel (query comprise). C'est le pendant de
+ * `computeHostPreviewSubpath` pour les publications : sans lui, l'amont recevrait
+ * `/d/<id>/assets/app.js`, qu'il ne connaît pas.
+ *
+ * Exporté pour être testé seul — c'est de l'arithmétique de chaînes, et c'est
+ * exactement là que se logent les erreurs de découpage.
+ */
+export function deployPathSubPath(request: { url: string }, kind: 'd' | 's'): string {
+  const url = request.url.startsWith('/') ? request.url : `/${request.url}`;
+  const match = new RegExp(`^/${kind}/[^/?#]+`).exec(url);
+
+  if (!match) {
+    return url;
+  }
+
+  const rest = url.slice(match[0].length);
+
+  // `/d/<id>` sans rien après => la racine de l'app, pas la chaîne vide (une URL
+  // amont `http://svc` sans chemin part sur `/` chez certains clients et sur rien
+  // du tout chez d'autres : on ne laisse pas ce choix à l'implémentation).
+  if (rest === '' || rest.startsWith('?') || rest.startsWith('#')) {
+    return `/${rest}`;
+  }
+
+  return rest;
+}
+
+/** Comparaison à temps constant de deux secrets présentés sous forme de chaîne. */
+export function timingSafeEqualString(presented: string, expected: string): boolean {
+  const a = Buffer.from(presented);
+  const b = Buffer.from(expected);
+
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/** Jeton tenant présenté par la requête, cookie ou en-tête interne. */
+export function readPreviewTenantToken(headers: {
+  cookie?: string | string[] | undefined;
+  [key: string]: unknown;
+}): string | undefined {
+  const raw = headers[PREVIEW_TENANT_HEADER];
+  const fromHeader = Array.isArray(raw) ? raw[0] : typeof raw === 'string' ? raw : undefined;
+
+  if (fromHeader && fromHeader.trim()) {
+    return fromHeader.trim();
+  }
+
+  const cookieHeader = Array.isArray(headers.cookie) ? headers.cookie[0] : headers.cookie;
+
+  return readCookie(cookieHeader, PREVIEW_TENANT_COOKIE_NAME);
+}
+
+export const PREVIEW_TENANT_COOKIE_NAME = 'vc_preview';
+
 export function readCookie(cookieHeader: string | undefined, name: string): string | undefined {
   if (!cookieHeader) {
     return undefined;
@@ -564,27 +647,6 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     );
   }
 
-  /* Is this workspace's port marked private? Fail-open on any lookup error. */
-  const isPortPrivate = async (workspaceId: string, port: string): Promise<boolean> => {
-    if (!enforcePrivatePorts || !apiBaseUrl || !proxySharedSecret) {
-      return false;
-    }
-
-    try {
-      const response = await fetchImpl(
-        `${apiBaseUrl}/internal/preview/port-access?workspaceId=${encodeURIComponent(workspaceId)}&port=${encodeURIComponent(port)}`,
-        { headers: { authorization: `Bearer ${proxySharedSecret}` } },
-      );
-
-      if (!response.ok) {
-        return false;
-      }
-
-      return ((await response.json()) as { private?: boolean })?.private === true;
-    } catch {
-      return false;
-    }
-  };
 
   /* Login-required page shown when a private port is hit without a session. */
   const app = Fastify({ logger: options.logger ?? false });
@@ -596,6 +658,75 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * without it, POST/PUT/PATCH bodies are silently dropped.
    */
   app.addContentTypeParser('*', (_req, _payload, done) => done(null, undefined));
+
+  /*
+   * Is this workspace's port marked private?
+   *
+   * FAIL-CLOSED. This used to `return false` — i.e. "public" — on every failure
+   * path: a non-2xx answer, a malformed body, a timeout, a DNS blip, the api
+   * being down. That made the private-port gate an availability-dependent
+   * control: anything that broke the lookup silently PUBLISHED every private
+   * port on the internet, and did so without a trace in the logs. It is exactly
+   * how the duplicate API_BASE_URL bug (port :80 vs 3001) went unnoticed for
+   * weeks — every lookup was failing, so every port read as public.
+   *
+   * A gate whose failure mode is "allow" is not a gate. When enforcement is on
+   * and we cannot establish that a port is public, we now treat it as PRIVATE,
+   * which costs a login page on a real outage and leaks nothing. The trade is
+   * deliberate: the alternative trades tenant isolation for uptime.
+   *
+   * When enforcement is OFF the answer is `false` as before — the flag is the
+   * single switch, and an environment that has not opted in is untouched.
+   */
+  const isPortPrivate = async (workspaceId: string, port: string): Promise<boolean> => {
+    if (!enforcePrivatePorts) {
+      return false;
+    }
+
+    // Enforcement on but misconfigured: deny. The boot guard above already
+    // rejects this combination, so reaching here means the config changed under
+    // us — still not a reason to serve a possibly-private port.
+    if (!apiBaseUrl || !proxySharedSecret) {
+      app.log?.error?.({ workspaceId, port }, 'preview private-port lookup unconfigured — failing closed');
+
+      return true;
+    }
+
+    try {
+      const response = await fetchImpl(
+        `${apiBaseUrl}/internal/preview/port-access?workspaceId=${encodeURIComponent(workspaceId)}&port=${encodeURIComponent(port)}`,
+        { headers: { authorization: `Bearer ${proxySharedSecret}` } },
+      );
+
+      if (!response.ok) {
+        app.log?.error?.(
+          { workspaceId, port, status: response.status },
+          'preview private-port lookup failed — failing closed (treating port as private)',
+        );
+
+        return true;
+      }
+
+      const body = (await response.json()) as { private?: boolean };
+
+      // Only an explicit `private: false` proves the port is public. A body
+      // missing the field is an unknown answer, not a public one.
+      if (typeof body?.private !== 'boolean') {
+        app.log?.error?.({ workspaceId, port }, 'preview private-port lookup malformed — failing closed');
+
+        return true;
+      }
+
+      return body.private;
+    } catch (error) {
+      app.log?.error?.(
+        { workspaceId, port, err: error instanceof Error ? error.message : String(error) },
+        'preview private-port lookup threw — failing closed (treating port as private)',
+      );
+
+      return true;
+    }
+  };
 
   /*
    * The IDE (app.e-code.ai) is cross-origin isolated — it sends
@@ -962,12 +1093,21 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     request: FastifyRequest,
     reply: FastifyReply,
     deploymentId: string,
+
+    /*
+     * Chemin applicatif à demander à l'amont. Vaut `request.url` sur l'hôte
+     * `s-<id>` (le chemin de l'URL EST celui de l'app), et le reste après
+     * `/s/<id>` sur le routage interne par chemin — sinon l'amont recevrait
+     * `/s/<id>/index.html`, qu'il ne connaît pas.
+     */
+    subPath?: string,
   ): Promise<unknown> => {
     if (!apiBaseUrl) {
       return sendPreviewProxyError(request, reply, 500, 'STATIC_DEPLOY_UPSTREAM_INVALID');
     }
 
-    const rawPath = request.url.startsWith('/') ? request.url : `/${request.url}`;
+    const requested = subPath ?? request.url;
+    const rawPath = requested.startsWith('/') ? requested : `/${requested}`;
     const upstreamBase = `${apiBaseUrl}/static-deployments/${encodeURIComponent(deploymentId)}`;
 
     let upstream: URL;
@@ -1090,6 +1230,9 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
      * total could still outlive the ingress read timeout (BUG-DEPLOY-003).
      */
     deadlineAt = Date.now() + requestTimeoutMs + serverDeployWakeWaitMs,
+
+    /** Voir handleStaticDeployRequest : chemin applicatif réel, hors préfixe. */
+    subPath?: string,
   ): Promise<unknown> => {
     const upstreamBase = serverDeployUpstreamUrl(deploymentId, serverDeployUpstreamTemplate);
 
@@ -1097,7 +1240,8 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       return sendPreviewProxyError(request, reply, 500, 'SERVER_DEPLOY_UPSTREAM_INVALID');
     }
 
-    const rawPath = request.url.startsWith('/') ? request.url : `/${request.url}`;
+    const requested = subPath ?? request.url;
+    const rawPath = requested.startsWith('/') ? requested : `/${requested}`;
 
     let upstream: URL;
 
@@ -1132,6 +1276,29 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         lower === 'content-length' ||
         lower === 'upgrade' ||
         lower === 'forwarded' ||
+        /*
+         * `cookie` et `authorization` NE DOIVENT JAMAIS atteindre l'amont ici.
+         *
+         * Cet amont est le workload DÉPLOYÉ PAR UN UTILISATEUR : du code arbitraire,
+         * sur un hôte public `d-<id>.<previewDomain>`. Or le cookie de tenant
+         * `vc_preview` est posé avec `Domain=.e-code.ai` et vit 12 h, donc le
+         * navigateur l'envoie AUSSI à cet hôte. Le transmettre livrait le jeton
+         * tenant à l'application publiée, qui n'avait plus qu'à le rejouer pour
+         * accéder aux previews de son propriétaire. Même raisonnement pour
+         * `authorization` : tout bearer que le navigateur porte pour ce domaine.
+         *
+         * Le chemin statique `s-<id>` les retirait déjà (même boucle, ~40 lignes
+         * plus haut) ; celui-ci ne le faisait pas. L'asymétrie entre deux chemins
+         * qui exposent tous deux du code utilisateur était le défaut : un
+         * mécanisme d'exfiltration de credential, pas une simple négligence
+         * d'en-tête.
+         *
+         * Relevé au contre-audit du SHA 3c7c775f. Le test
+         * `services/preview-proxy/src/server-deploy-header-leak.spec.ts` échoue si
+         * l'un des deux réapparaît.
+         */
+        lower === 'cookie' ||
+        lower === 'authorization' ||
         lower.startsWith('x-forwarded-') ||
         lower.startsWith('x-vibecore-')
       ) {
@@ -1233,7 +1400,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         const woke = await wakeServerDeploy(deploymentId);
 
         if (woke === 'ready') {
-          return handleServerDeployRequest(request, reply, deploymentId, true, deadlineAt);
+          return handleServerDeployRequest(request, reply, deploymentId, true, deadlineAt, subPath);
         }
 
         if (woke === 'gone') {
@@ -1305,7 +1472,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
     if (enforceTenant) {
       requesterOrgId = verifyPreviewTenantToken(
-        readCookie(request.headers.cookie, 'vc_preview'),
+        readPreviewTenantToken(request.headers),
         tenantSecret,
         Date.now(),
       );
@@ -1324,7 +1491,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       const sessionOrgId =
         requesterOrgId ??
         (tenantSecret
-          ? verifyPreviewTenantToken(readCookie(request.headers.cookie, 'vc_preview'), tenantSecret, Date.now())
+          ? verifyPreviewTenantToken(readPreviewTenantToken(request.headers), tenantSecret, Date.now())
           : undefined);
 
       if (!sessionOrgId) {
@@ -1391,6 +1558,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         lower === 'host' ||
         lower === 'authorization' ||
         lower === 'cookie' ||
+        lower === PREVIEW_TENANT_HEADER ||
         lower === 'connection' ||
         lower === 'keep-alive' ||
         lower === 'transfer-encoding' ||
@@ -1747,6 +1915,101 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   app.all('/p/:workspaceId/:port/*', handlePreviewRequest);
 
   /*
+   * Routage par CHEMIN des publications — `/d/<id>/…` et `/s/<id>/…`.
+   *
+   * POURQUOI. Le screenshotter ne peut pas fabriquer un `Host` : Chromium interdit
+   * de modifier cet en-tête et le RECALCULE depuis l'URL. Le routage par chemin
+   * `/p/<ws>/<port>` a été ajouté pour cette raison, mais il ne couvrait QUE les
+   * previews de workspace — alors que l'API planifie aussi les vignettes des
+   * publications, dont les URL sont `d-<id>.<domaine>` / `s-<id>.<domaine>`. Ces
+   * captures partaient donc avec un Host que le proxy ne route pas.
+   *
+   * RÉSERVÉ AUX APPELANTS INTERNES. Sans ce garde, deux publications distinctes
+   * deviendraient joignables sur UNE MÊME origine (`https://<proxy>/d/a` et
+   * `/d/b`), ce qui supprimerait l'isolation d'origine que `d-`/`s-` existent
+   * précisément pour donner (cookies, localStorage, same-origin scripting). Le
+   * chemin n'est donc pas une seconde adresse publique : il n'est ouvert qu'au
+   * porteur du secret partagé, c'est-à-dire au screenshotter in-cluster.
+   */
+  const requireInternalCaller = async (request: FastifyRequest, reply: FastifyReply): Promise<boolean> => {
+    const presented = request.headers[PREVIEW_INTERNAL_HEADER];
+
+    // Fail-closed : pas de secret configuré => la route n'existe pas, plutôt que
+    // d'être ouverte à tous.
+    if (!proxySharedSecret) {
+      await sendPreviewProxyError(request, reply, 404, 'PREVIEW_INTERNAL_ONLY');
+
+      return false;
+    }
+
+    if (typeof presented !== 'string' || !timingSafeEqualString(presented, proxySharedSecret)) {
+      reply.header('cache-control', 'no-store');
+      await sendPreviewProxyError(request, reply, 403, 'PREVIEW_INTERNAL_ONLY');
+
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleDeployPathRequest = async (
+    request: FastifyRequest<{ Params: { deploymentId: string } }>,
+    reply: FastifyReply,
+  ) => {
+    if (!(await requireInternalCaller(request, reply))) {
+      return;
+    }
+
+    const deploymentId = request.params.deploymentId;
+
+    // Même garde d'extinction que sur l'hôte `d-<id>` : un chemin interne ne doit
+    // pas servir ce qu'une publication expirée n'a plus le droit de servir.
+    const verdict = await resolveServingVerdict(deploymentId);
+
+    if (verdict === 'expired') {
+      reply.header('cache-control', 'no-store');
+      await sendPreviewProxyError(request, reply, 410, 'PUBLISHED_DEPLOYMENT_EXPIRED');
+
+      return;
+    }
+
+    if (verdict === 'unknown') {
+      applyPreviewProxyLocale(reply, request);
+      reply.header('cache-control', 'no-store');
+      await reply.code(503).header('retry-after', '5').send({
+        error: getPreviewProxyCopy(request.headers).PUBLICATION_STATE_UNAVAILABLE,
+        code: 'PUBLICATION_STATE_UNAVAILABLE',
+        retryable: true,
+      });
+
+      return;
+    }
+
+    await handleServerDeployRequest(request, reply, deploymentId, false, undefined, deployPathSubPath(request, 'd'));
+  };
+
+  const handleStaticPathRequest = async (
+    request: FastifyRequest<{ Params: { deploymentId: string } }>,
+    reply: FastifyReply,
+  ) => {
+    if (!(await requireInternalCaller(request, reply))) {
+      return;
+    }
+
+    await handleStaticDeployRequest(
+      request,
+      reply,
+      request.params.deploymentId,
+      deployPathSubPath(request, 's'),
+    );
+  };
+
+  app.all('/d/:deploymentId', handleDeployPathRequest);
+  app.all('/d/:deploymentId/*', handleDeployPathRequest);
+  app.all('/s/:deploymentId', handleStaticPathRequest);
+  app.all('/s/:deploymentId/*', handleStaticPathRequest);
+
+  /*
    * Host-based preview routing. Runs before route matching so that, on a
    * per-preview host `<ws>-<port>.<previewDomain>`, EVERY path is proxied to the
    * workspace dev server — the workspace + port come from the host, not the URL.
@@ -1890,6 +2153,11 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   attachPreviewWebSocketProxy(app.server, {
     previewDomain,
     resolveAgent,
+    // Same policy as the HTTP door — see PreviewWsProxyDeps for why this is not
+    // optional: without it, UPGRADE bypassed the tenant gate that GET enforces.
+    enforceTenant,
+    resolveRequesterOrgId: (headers) =>
+      tenantSecret ? verifyPreviewTenantToken(readPreviewTenantToken(headers), tenantSecret, Date.now()) : undefined,
     logger: { warn: (message) => app.log.warn(message) },
   });
 
