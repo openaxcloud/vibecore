@@ -18171,7 +18171,16 @@ function ProjectMonitoringPanel({
   reload?: () => void | Promise<void>;
   busy: boolean;
 }) {
-  const { t } = useTranslation();
+  /*
+   * `i18n` was missing here while the body already called
+   * `formatBaseChatAstDateTime(language, …)` and `formatBaseChatAstNumber(language, …)`
+   * in five places — so the panel threw `ReferenceError: language is not defined`
+   * on every render and the Monitoring tab crashed 100 % of the time
+   * (BUG-QA-MONITORING-CRASH-001). The sibling components below already resolve
+   * it exactly this way.
+   */
+  const { t, i18n } = useTranslation();
+  const language = resolvedBaseChatLanguage(i18n);
   const [windowSize, setWindowSize] = useState<'15m' | '1h' | '24h'>('1h');
   const deployments: any[] = Array.isArray(data.deployments) ? data.deployments : [];
   const allActivity: any[] = Array.isArray(data.recentActivity) ? data.recentActivity : [];

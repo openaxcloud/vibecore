@@ -1,5 +1,5 @@
 import { ChevronRight, RefreshCw, Table2 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { DatabaseSettings } from './DatabaseSettings';
@@ -152,18 +152,51 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
 
-  useEffect(() => {
-    if (fetcher.state === 'idle' && !fetcher.data) {
-      fetcher.load(base);
-    }
-  }, [fetcher, base]);
+  /*
+   * BUG-QA-DB-REFETCH-LOOP-001 — deux boucles de rechargement infinies vivaient ici.
+   *
+   * `useFetcher()` renvoie un objet d'identité NOUVELLE à chaque rendu. Le mettre
+   * en dépendance relançait donc l'effet à chaque rendu, et la garde `!fetcher.data`
+   * ne retenait rien dès que le chargement n'aboutissait à aucune donnée — le cas
+   * exact d'un provisionnement échoué. Mesuré par la QA : ~110 requêtes / 30 s
+   * depuis UN SEUL onglet, CPU de l'API à 212 %, HPA de 2 à 10 réplicas.
+   *
+   * Le second effet bouclait pour une raison voisine : `provisionFetcher.data.ok`
+   * reste vrai APRÈS un provisionnement réussi, donc `fetcher.load()` repartait à
+   * chaque rendu.
+   *
+   * Les deux sont désormais gardés par une ref, et `fetcher` sort des dépendances :
+   * l'identité qui compte est `base` (le projet), pas l'objet fetcher.
+   */
+  const loadedBaseRef = useRef<string | null>(null);
 
-  // After a successful managed provision, reload the panel so the new DB shows.
   useEffect(() => {
-    if (provisionFetcher.state === 'idle' && provisionFetcher.data?.ok) {
-      fetcher.load(base);
+    if (loadedBaseRef.current === base) {
+      return;
     }
-  }, [provisionFetcher.state, provisionFetcher.data, fetcher, base]);
+
+    loadedBaseRef.current = base;
+    fetcher.load(base);
+
+    // `fetcher` est volontairement absent : son identité change à chaque rendu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [base]);
+
+  // Après un provisionnement réussi, recharger le panneau UNE fois.
+  const handledProvisionRef = useRef<unknown>(null);
+
+  useEffect(() => {
+    const data = provisionFetcher.data;
+
+    if (provisionFetcher.state !== 'idle' || !data?.ok || handledProvisionRef.current === data) {
+      return;
+    }
+
+    handledProvisionRef.current = data;
+    fetcher.load(base);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [provisionFetcher.state, provisionFetcher.data, base]);
 
   const provisioning = provisionFetcher.state !== 'idle';
 
@@ -171,11 +204,30 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
   const active = environments.find((e) => e.key === openKey) ?? null;
   const loading = fetcher.state !== 'idle';
 
+  /*
+   * BUG-QA-DB-IDE-BRICK-001 — un provisionnement échoué rendait l'IDE inutilisable.
+   * L'onglet `database` est persisté côté serveur : à chaque ouverture du projet il
+   * se remontait, relançait la boucle ci-dessus et l'IDE ne finissait jamais de
+   * monter, sans aucune issue par l'interface.
+   *
+   * L'échec n'était reconnu que si la réponse portait un `error` — donc un
+   * chargement qui n'aboutit à AUCUNE donnée (route en échec, 5xx, réseau coupé)
+   * laissait le panneau en squelette perpétuel. On traite désormais aussi ce cas :
+   * l'utilisateur voit une erreur et un bouton Réessayer, l'onglet reste
+   * fermable, et le montage de l'IDE n'est plus retenu.
+   */
+  const loadAttempted = loadedBaseRef.current === base;
+
   const loadFailed =
     fetcher.state === 'idle' &&
-    Boolean(fetcher.data) &&
-    typeof container(fetcher.data).error === 'string' &&
-    environments.length === 0;
+    /*
+     * Une réponse qui PORTE une erreur est un échec en soi : elle doit s'afficher
+     * dès le premier rendu, sans attendre qu'on ait nous-mêmes déclenché le
+     * chargement. Seul le cas « aucune donnée du tout » a besoin de la garde
+     * `loadAttempted`, pour distinguer « pas encore essayé » de « essayé, rien reçu ».
+     */
+    ((Boolean(fetcher.data) && typeof container(fetcher.data).error === 'string' && environments.length === 0) ||
+      (loadAttempted && fetcher.data === undefined));
 
   // Root view — Dev/Prod usage cards.
   if (!active) {
