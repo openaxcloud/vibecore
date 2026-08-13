@@ -216,6 +216,17 @@ mauvais arbitrage.
 
 Suite de durcissement : **20/20**.
 
+### La même route passée aux DEUX autres classes — et elle est saine
+
+Avoir trouvé P1 ici obligeait à demander si P0 et P2 y étaient aussi. Vérifié, la réponse est
+non, et pour des raisons précises plutôt que par absence de preuve du contraire :
+
+| classe | verdict sur la route sœur |
+|---|---|
+| **P0** (workload obsolète laissé actif) | **sans objet.** Les deux refus (`ROLLBACK_NO_RETAINED_DIGEST`, `ROLLBACK_SECRET_POLICY_UNSATISFIABLE`) sont levés **avant** tout appel au manager : aucun workload n'existe. Si la convergence échoue, la ligne reste `BUILDING` — pas un `FAILED` menteur — et le reconciler de lecture la reprend. Si l'écriture du manifeste échoue **après** READY, le workload sert réellement et la ligne le dit ; le sceau a déjà posé `rollbackable:false` + `manifest_pending`, donc c'est le dispositif d'atomicité de la 1ʳᵉ réserve qui prend le relais. |
+| **P2** (snapshot orphelin) | **sans objet.** Le rollback statique y est créé READY d'emblée en recopiant l'URL/metadata de la CIBLE, sans matérialiser de snapshot sous son propre id — il n'y a donc aucun octet à orpheliner. |
+| **P1** (idempotence) | la seule qui s'appliquait. Corrigée ci-dessus. |
+
 ### Aucune suite laissée non exécutée
 
 Une régression sans `DATABASE_URL` **saute 7 fichiers** — silencieusement, en affichant
