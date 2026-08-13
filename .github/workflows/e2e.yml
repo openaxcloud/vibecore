@@ -111,8 +111,22 @@ jobs:
       # `@runtime` tests need a live workspace pod + dev server + preview iframe,
       # which this stack does not provide (postgres/redis/mailpit + API + web).
       # They run in the separate, non-blocking `E2E Runtime` workflow.
+      #
+      # The run itself is allowed to exit non-zero; the gate step below is what
+      # decides, applying the bounded waiver in tests/e2e/e2e-waivers.json.
       - name: Playwright auth, project, IDE, terminal, billing mock flows
-        run: pnpm exec playwright test tests/e2e --project=chromium --grep-invert @runtime
+        run: |
+          set +e
+          PLAYWRIGHT_JSON_OUTPUT_NAME=playwright-results.json \
+            pnpm exec playwright test tests/e2e --project=chromium \
+              --grep-invert @runtime --reporter=list,json
+          echo "playwright exit: $?"
+
+      # Fails on any failure that is NOT waived, on an expired waiver, and on a
+      # waived test that has started passing. The policy path is hard-coded in
+      # the script, so this cannot be widened from the workflow.
+      - name: E2E gate (bounded waiver)
+        run: node scripts/e2e-gate.mjs playwright-results.json
 
       - name: IDE panel live audit
         run: |
@@ -129,6 +143,7 @@ jobs:
           name: playwright-report
           path: |
             playwright-report
+            playwright-results.json
             test-results
             tmp/ide-panel-audit.json
             /tmp/vibecore-api.log
