@@ -302,6 +302,74 @@ integrationDescribe('purge lease expiry is linearized with stale-barrier release
     });
   });
 
+  it('the plan reconciler keeps a DB-live lease when the API clock is ahead', async () => {
+    const planId = uniqueId('plan-reconcile-live');
+    planIds.push(planId);
+
+    await prismaA!.$executeRawUnsafe(
+      `INSERT INTO "PurgePlan" (id, "userId", "ownerToken", "leaseExpiresAt", version, status)
+       VALUES (
+         $1,
+         $2,
+         $3,
+         date_trunc('milliseconds', transaction_timestamp()) + interval '5 minutes',
+         0,
+         'ACTIVE'
+       )`,
+      planId,
+      uniqueId('user'),
+      uniqueId('owner'),
+    );
+
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(Date.now() + 24 * 60 * 60 * 1000));
+
+    let result: Awaited<ReturnType<PrismaApiStore['reconcilePurgeFreezes']>>;
+
+    try {
+      result = await apiStore(prismaA!).reconcilePurgeFreezes();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(result.reclaimedPlanIds).not.toContain(planId);
+    expect(await prismaB!.purgePlan.findUnique({ where: { id: planId } })).toMatchObject({ version: 0 });
+  });
+
+  it('the plan reconciler reclaims a DB-expired lease when the API clock is behind', async () => {
+    const planId = uniqueId('plan-reconcile-expired');
+    planIds.push(planId);
+
+    await prismaA!.$executeRawUnsafe(
+      `INSERT INTO "PurgePlan" (id, "userId", "ownerToken", "leaseExpiresAt", version, status)
+       VALUES (
+         $1,
+         $2,
+         $3,
+         date_trunc('milliseconds', transaction_timestamp()) - interval '5 minutes',
+         0,
+         'ACTIVE'
+       )`,
+      planId,
+      uniqueId('user'),
+      uniqueId('owner'),
+    );
+
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(Date.now() - 24 * 60 * 60 * 1000));
+
+    let result: Awaited<ReturnType<PrismaApiStore['reconcilePurgeFreezes']>>;
+
+    try {
+      result = await apiStore(prismaA!).reconcilePurgeFreezes();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect(result.reclaimedPlanIds).toContain(planId);
+    expect(await prismaB!.purgePlan.findUnique({ where: { id: planId } })).toBeNull();
+  });
+
   it('an in-flight renewal holds the plan lock until commit, so the reconciler observes the renewed owner', async () => {
     const planId = uniqueId('plan-renew-first');
     const workspaceId = uniqueId('ws-renew-first');
