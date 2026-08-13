@@ -207,7 +207,6 @@ function resolveRelative(fromDir, specifier) {
 export function stripCommentsAndStrings(source) {
   const out = source.split('');
   const n = source.length;
-  let i = 0;
   const blank = (from, to) => {
     for (let k = from; k < to && k < n; k += 1) {
       if (out[k] !== '\n') {
@@ -216,11 +215,55 @@ export function stripCommentsAndStrings(source) {
     }
   };
 
+  /*
+   * A regex literal and a division both start with `/`. Decide by the previous
+   * significant character: after a value (identifier, digit, `)`, `]`) a slash
+   * divides; anywhere else it opens a regex. Without this, `/process.env.X !== /`
+   * survives stripping and CERTIFIES A CONTROL THAT DOES NOT EXIST.
+   */
+  const regexCanStartAfter = (ch) => ch === '' || !/[A-Za-z0-9_$)\]]/.test(ch);
+
+  let i = 0;
+  let mode = 'code';
+  let templateStart = -1;
+  let braceDepth = 0;
+  const templateReturnDepth = [];
+  let lastSignificant = '';
+
   while (i < n) {
     const c = source[i];
-    const next = source[i + 1];
+    const d = source[i + 1];
 
-    if (c === '/' && next === '/') {
+    if (mode === 'template') {
+      if (c === '\\') {
+        i += 2;
+        continue;
+      }
+
+      if (c === '`') {
+        blank(templateStart, i);
+        mode = 'code';
+        lastSignificant = '`';
+        i += 1;
+        continue;
+      }
+
+      // `${` opens real CODE inside the template — and it may contain another
+      // template, which is why this is a stack and not a boolean.
+      if (c === '$' && d === '{') {
+        blank(templateStart, i);
+        templateReturnDepth.push(braceDepth);
+        braceDepth += 1;
+        mode = 'code';
+        i += 2;
+        continue;
+      }
+
+      i += 1;
+      continue;
+    }
+
+    if (c === '/' && d === '/') {
       let j = i + 2;
       while (j < n && source[j] !== '\n') j += 1;
       blank(i, j);
@@ -228,7 +271,7 @@ export function stripCommentsAndStrings(source) {
       continue;
     }
 
-    if (c === '/' && next === '*') {
+    if (c === '/' && d === '*') {
       let j = i + 2;
       while (j < n && !(source[j] === '*' && source[j + 1] === '/')) j += 1;
       blank(i, Math.min(j + 2, n));
@@ -236,50 +279,80 @@ export function stripCommentsAndStrings(source) {
       continue;
     }
 
-    if (c === "'" || c === '"' || c === '`') {
-      const quote = c;
+    if (c === '/' && regexCanStartAfter(lastSignificant)) {
       let j = i + 1;
+      let inClass = false;
+
       while (j < n) {
         if (source[j] === '\\') {
           j += 2;
           continue;
         }
 
-        if (source[j] === quote) break;
-
-        // `${...}` inside a template is real code — keep it, blank the rest.
-        if (quote === '`' && source[j] === '$' && source[j + 1] === '{') {
-          blank(i + 1, j);
-          let depth = 1;
-          let k = j + 2;
-          while (k < n && depth > 0) {
-            if (source[k] === '{') depth += 1;
-            else if (source[k] === '}') depth -= 1;
-            k += 1;
-          }
-          i = k;
-          j = k;
-          // Continue scanning the remainder of this template from the new cursor.
-          let m = k;
-          while (m < n) {
-            if (source[m] === '\\') { m += 2; continue; }
-            if (source[m] === '`') break;
-            m += 1;
-          }
-          blank(k, m);
-          i = m + 1;
-          j = -1;
-          break;
-        }
+        if (source[j] === '[') inClass = true;
+        else if (source[j] === ']') inClass = false;
+        else if (source[j] === '/' && !inClass) break;
+        else if (source[j] === '\n') break;
 
         j += 1;
       }
 
-      if (j === -1) continue;
-
-      blank(i + 1, j);
+      blank(i, Math.min(j + 1, n));
+      lastSignificant = '/';
       i = j + 1;
       continue;
+    }
+
+    if (c === "'" || c === '"') {
+      let j = i + 1;
+
+      while (j < n) {
+        if (source[j] === '\\') {
+          j += 2;
+          continue;
+        }
+
+        if (source[j] === c || source[j] === '\n') break;
+
+        j += 1;
+      }
+
+      blank(i + 1, j);
+      lastSignificant = '"';
+      i = j + 1;
+      continue;
+    }
+
+    if (c === '`') {
+      mode = 'template';
+      templateStart = i + 1;
+      i += 1;
+      continue;
+    }
+
+    if (c === '{') {
+      braceDepth += 1;
+      lastSignificant = c;
+      i += 1;
+      continue;
+    }
+
+    if (c === '}') {
+      braceDepth -= 1;
+
+      if (templateReturnDepth.length > 0 && braceDepth === templateReturnDepth[templateReturnDepth.length - 1]) {
+        templateReturnDepth.pop();
+        mode = 'template';
+        templateStart = i + 1;
+      }
+
+      lastSignificant = c;
+      i += 1;
+      continue;
+    }
+
+    if (!/\s/.test(c)) {
+      lastSignificant = c;
     }
 
     i += 1;

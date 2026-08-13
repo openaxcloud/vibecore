@@ -340,6 +340,27 @@ describe('SEC-9 — hasExecutableEnvGuard discriminates control from text', () =
     expect(guard(`process.env.${T} = '1';`)).toBe(false);
   });
 
+  it('ADVERSARIAL: constructs that merely LOOK like a guard must not certify', () => {
+    /*
+     * These are the two false positives the first cut of the scanner had. A regex
+     * literal and a NESTED template both survived stripping, so text that is not
+     * executable at all certified a control that did not exist — the exact defect
+     * this hardening was supposed to remove, reintroduced by the fix itself.
+     */
+    expect(guard(`const re = /process.env.${T} !== /;`)).toBe(false);
+    expect(guard(`const re = /[/]process.env.${T} !== /;`)).toBe(false);
+    expect(guard('const s = `a ${`b process.env.' + T + ' !== 1`} c`;')).toBe(false);
+    expect(guard('const s = `a ${`b ${`c process.env.' + T + ' !== 1`}`}`;')).toBe(false);
+    expect(guard('const s = `x \\` process.env.' + T + ' !== 1`;')).toBe(false);
+
+    // ...while a genuine read inside a template EXPRESSION is real code.
+    expect(guard('const s = `v=${process.env.' + T + " === Q ? 1 : 0}`;")).toBe(true);
+    // ...and division must not be mistaken for a regex, swallowing later code.
+    expect(guard(`const a = b / c; if (process.env.${T} !== Q) {}`)).toBe(true);
+    // ...nor may a preceding template hide a guard that follows it.
+    expect(guard('const s = `x`; if (process.env.' + T + ' !== Q) return 503;')).toBe(true);
+  });
+
   it('is not fooled by a decoy sitting next to a genuine guard elsewhere', () => {
     const src = [`// ${T} used to be checked here`, `const label = '${T}';`, `if (process.env.${T} !== '1') return 503;`].join('\n');
 
