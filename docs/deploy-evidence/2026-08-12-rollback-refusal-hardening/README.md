@@ -61,19 +61,38 @@ plutôt qu'avalé.
 Rouge obtenu en ramenant **`app.ts` seul** à l'état d'avant, spec inchangée :
 
 ```
- Tests  7 failed | 1 passed (8)
+ Tests  9 failed | 1 passed (10)
 
-P0 stop 500          → expected 409 to be 500
-P0 stop timeout      → expected 409 to be 500
+P0 stop 500            → the strict stop must have been attempted: expected 0 to be greater than 0
+P0 stop timeout        → expected 201 to be 500
+P0 stop CRASH (socket) → expected 0 to be greater than 0
+P0 constat injoignable → expected 0 to be greater than 0
 P0 stop 200 mais actif → disappearance must actually be verified: expected 0 to be greater than 0
-P0 arrêt réel        → expected 0 to be greater than 0        (le /status n'était jamais appelé)
-P2 orphelin          → no directory may be left behind: expected […(3)] to deeply equal […(2)]
-P1 rejeu             → expected undefined to be 'true'        (aucun en-tête de rejeu)
-P1 concurrence       → exactly one rollback row may exist for one key: got 2
+P0 arrêt réel          → expected 0 to be greater than 0
+P2 orphelin            → expected 201 to be 409
+P1 rejeu               → expected undefined to be 'true'   (aucun en-tête de rejeu)
+P1 concurrence         → exactly one rollback row may exist for one key: got 2
 ```
 
 Le seul test vert en rouge est « une clé différente n'est pas dédupliquée » — normal, c'est
-le comportement d'avant. Avec le correctif : **8/8**.
+le comportement d'avant. Avec le correctif : **10/10**.
+
+Les quatre cas d'arrêt exigés sont couverts, plus un cinquième que la réserve implique sans
+le nommer :
+
+| cas | comportement attendu |
+|---|---|
+| `/stop` → **500** | incident, 500 `ROLLBACK_STALE_WORKLOAD_ACTIVE` |
+| `/stop` → **timeout** | idem |
+| `/stop` → **crash** (socket coupé, aucun statut HTTP) | idem |
+| `/stop` → 200 **mais le workload est encore là** | idem — un 200 n'est pas une preuve |
+| **le constat lui-même est injoignable** | idem — « je n'ai pas pu vérifier » n'est pas « c'est parti » |
+| `/stop` → 200 **et disparition constatée** | refus normal : 409 + ligne `FAILED` |
+
+Le cas « constat injoignable » est la moitié subtile de la réserve :
+`getServerDeploymentStatusViaManager` avale ses propres erreurs et renvoie `undefined`, donc
+un contrôle naïf lirait ça comme « aucun workload trouvé » et déclarerait victoire — le même
+fail-open, un cran plus bas que celui qui était signalé.
 
 Sur **vrai Postgres**, quatre connexions **indépendantes** revendiquent la même clé au même
 instant :
@@ -95,11 +114,15 @@ Suite `services/api` complète : **189 fichiers, 1640 tests, 0 échec** (1 skip)
 ## Rejeu
 
 ```bash
-# rouge/vert des trois réserves
-BASELINE=origin/main bash -c 'git stash push -- services/api/src/app.ts && \
-  (cd services/api && npx vitest --run --config vitest.config.ts \
-     --pool=forks --poolOptions.forks.singleFork=true src/tests/rollback-refusal-hardening.spec.ts); \
-  git stash pop'
+# rouge/vert des trois réserves.
+#
+# ⚠️ NE PAS utiliser `git stash push -- <fichier>` ici : sur un fichier COMMITÉ et non
+# modifié il ne remise rien, le correctif n'est jamais retiré, et le « rouge » ressort
+# vert 10/10 en donnant l'illusion d'une preuve. Ramener explicitement à l'avant-lot :
+git checkout origin/main -- services/api/src/app.ts
+(cd services/api && npx vitest --run --config vitest.config.ts \
+   --pool=forks --poolOptions.forks.singleFork=true src/tests/rollback-refusal-hardening.spec.ts)
+git checkout HEAD -- services/api/src/app.ts   # restaurer le correctif
 
 # idempotence sur vrai Postgres
 docker run -d --name vc-rollback-pgv -e POSTGRES_PASSWORD=vc -e POSTGRES_USER=vc \

@@ -184,7 +184,12 @@ describe('rollback refusal — what the loser leaves behind', () => {
      * Manager stub. `stopBehaviour` decides what the /stop call does, and `existsAfterStop`
      * what /status then reports — the two knobs the reserve is about.
      */
-    function stubManager(opts: { stopBehaviour: 'ok' | 'http500' | 'timeout'; existsAfterStop: boolean }) {
+    function stubManager(opts: {
+      stopBehaviour: 'ok' | 'http500' | 'timeout' | 'crash';
+      existsAfterStop: boolean;
+      /** When true the /status probe itself fails — we cannot CHECK whether it is gone. */
+      statusUnavailable?: boolean;
+    }) {
       const calls = { stop: 0, status: 0 };
 
       globalThis.fetch = vi.fn(async (url: unknown, init?: { body?: string }) => {
@@ -210,11 +215,26 @@ describe('rollback refusal — what the loser leaves behind', () => {
             throw Object.assign(new Error('The operation was aborted due to timeout'), { name: 'TimeoutError' });
           }
 
+          if (opts.stopBehaviour === 'crash') {
+            // The manager died mid-request: the socket dies, no HTTP status is ever produced.
+            throw Object.assign(new Error('fetch failed'), {
+              name: 'TypeError',
+              cause: Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' }),
+            });
+          }
+
           return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
         }
 
         if (href.includes('/status')) {
           calls.status += 1;
+
+          if (opts.statusUnavailable) {
+            throw Object.assign(new Error('fetch failed'), {
+              name: 'TypeError',
+              cause: Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' }),
+            });
+          }
 
           return new Response(
             JSON.stringify({ exists: opts.existsAfterStop, readyReplicas: opts.existsAfterStop ? 1 : 0, replicas: 1 }),
@@ -305,6 +325,57 @@ describe('rollback refusal — what the loser leaves behind', () => {
 
       expect(res.statusCode).toBe(500);
       expect((res.json() as Record<string, unknown>).code).toBe('ROLLBACK_STALE_WORKLOAD_ACTIVE');
+
+      await app.close();
+    });
+
+    it('stop CRASHES mid-request (socket dies, no HTTP status) → incident, never a silent success', async () => {
+      const store = new PausingSerializingStore();
+      const { app, token, projectId } = await setup(store);
+      const calls = stubManager({ stopBehaviour: 'crash', existsAfterStop: true });
+
+      const v1 = await publishServer(store, projectId, 1, 'd-v1.test');
+      await publishServer(store, projectId, 2, 'd-v2.test');
+
+      const res = await losingServerRollback(store, app, token, projectId);
+
+      expect(calls.stop).toBeGreaterThan(0);
+      expect(res.statusCode).toBe(500);
+      expect((res.json() as Record<string, unknown>).code).toBe('ROLLBACK_STALE_WORKLOAD_ACTIVE');
+
+      const row = (await store.listDeployments(projectId)).find((d) => d.rolledBackFromId === v1.id)!;
+      expect(row.status).not.toBe('FAILED');
+      expect((row.metadata as Record<string, unknown>).staleWorkloadActive).toBe(true);
+
+      await app.close();
+    });
+
+    it('the STATUS probe itself is unreachable → "cannot check" is NOT "it is gone"', async () => {
+      const store = new PausingSerializingStore();
+      const { app, token, projectId } = await setup(store);
+
+      /*
+       * The stop succeeded, but the confirmation call fails. This is the subtle half of the
+       * reserve: `getServerDeploymentStatusViaManager` swallows its own errors and returns
+       * undefined, so a naive check would read that as "no workload found" and declare
+       * victory — fail-open one level below the one that was reported. Only an explicit
+       * `exists === false` may count as proof.
+       */
+      const calls = stubManager({ stopBehaviour: 'ok', existsAfterStop: false, statusUnavailable: true });
+
+      const v1 = await publishServer(store, projectId, 1, 'd-v1.test');
+      await publishServer(store, projectId, 2, 'd-v2.test');
+
+      const res = await losingServerRollback(store, app, token, projectId);
+
+      expect(calls.stop).toBeGreaterThan(0);
+      expect(calls.status, 'the probe must have been attempted').toBeGreaterThan(0);
+      expect(res.statusCode).toBe(500);
+      expect((res.json() as Record<string, unknown>).code).toBe('ROLLBACK_STALE_WORKLOAD_ACTIVE');
+
+      const row = (await store.listDeployments(projectId)).find((d) => d.rolledBackFromId === v1.id)!;
+      expect(row.status, 'unverified disappearance must not be recorded as a clean failure').not.toBe('FAILED');
+      expect((row.metadata as Record<string, unknown>).staleWorkloadActive).toBe(true);
 
       await app.close();
     });

@@ -407,33 +407,49 @@ runDbTests('rollback concurrency — real Postgres, both interleavings', () => {
 
       try {
         const otherStore = new PrismaApiStore(other);
-        let secondEntered = false;
+
+        /*
+         * Mutual exclusion is asserted on the ORDER of events, not on a stopwatch.
+         *
+         * The previous shape slept 500ms and asserted "the second has not entered yet",
+         * which is only true if the machine is not busy — it went red under a loaded
+         * parallel run. A timing-based proof of a locking primitive is worthless precisely
+         * when the machine is loaded, i.e. when locking matters. Recording the sequence
+         * instead is deterministic: whatever the scheduling, `second:enter` may not appear
+         * before `first:exit`.
+         */
+        const events: string[] = [];
         let releaseFirst!: () => void;
         const firstHolds = new Promise<void>((resolve) => {
           releaseFirst = resolve;
         });
 
         const first = store.withSerializedMutation(key, async () => {
+          events.push('first:enter');
           await firstHolds;
+          events.push('first:exit');
+
           return 'first';
         });
 
-        // Give the first holder a moment to actually take the lock.
-        await new Promise((resolve) => setTimeout(resolve, 250));
+        // Wait for the first holder to be provably inside the section (no sleep guessing).
+        while (!events.includes('first:enter')) {
+          await new Promise((resolve) => setTimeout(resolve, 10));
+        }
 
         const second = otherStore.withSerializedMutation(key, async () => {
-          secondEntered = true;
+          events.push('second:enter');
+
           return 'second';
         });
-
-        // While the first still holds it, the second must not have entered.
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        expect(secondEntered).toBe(false);
 
         releaseFirst();
         expect(await first).toBe('first');
         expect(await second).toBe('second');
-        expect(secondEntered).toBe(true);
+
+        // THE invariant: the second connection entered only after the first left.
+        expect(events).toEqual(['first:enter', 'first:exit', 'second:enter']);
+        expect(events.indexOf('second:enter')).toBeGreaterThan(events.indexOf('first:exit'));
       } finally {
         await other.$disconnect();
       }
