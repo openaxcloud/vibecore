@@ -316,8 +316,19 @@ export function ProjectWorkspaceProvider({
            * Mark seeded only AFTER a successful cold seed (a failed seed returns
            * above, so a retry still reseeds), so a later remount within this page-
            * session reattaches to a genuinely-seeded, warm pod.
+           *
+           * La révision est RELUE ici, elle n'est pas celle d'avant le seed.
+           * Mesuré en réel : enregistrer la valeur pré-seed créait une seconde
+           * boucle auto-entretenue. Le seed et l'hydratation qui le suit font
+           * bouger le stockage ; le marqueur portait alors une révision déjà
+           * périmée à l'instant où il était écrit, si bien que la réouverture
+           * suivante concluait « le stockage a changé » et reseedait — ce qui
+           * refaisait bouger le stockage, indéfiniment. Une relecture coûte un
+           * GET déjà bon marché, au moment précis où l'état est stabilisé.
            */
-          writeSeedMarker(sessionId, currentRevision, Date.now());
+          const seededRevisionNow = (await fetchPersistedProjectRevision(projectId)) ?? currentRevision;
+
+          writeSeedMarker(sessionId, seededRevisionNow, Date.now());
         }
 
         /*
