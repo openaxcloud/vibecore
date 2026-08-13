@@ -93,9 +93,10 @@ run itself is how you see it go green and can then delete the waiver with eviden
    concurrency group. The sanctioned manual path is `deploy-main.yml`'s `target_sha`
    dispatch, which is gated exactly like a push.
 
-1. **Merge the lint fix first** (PR #133). Two `@blitz/lines-around-comment` errors in
-   `app/root.tsx` and `EcodeExactShell.tsx` are what currently keep `main`'s CI red;
-   until they are gone the gate correctly refuses every push. Nothing else in that PR.
+1. ~~Merge the lint fix first (PR #133).~~ **Done by another route.** The two
+   `@blitz/lines-around-comment` errors that kept `main` red are fixed on `main`
+   (`eslint app` → 0 errors); PR #133 was closed as superseded rather than merged,
+   since it applied a different fix to the same lines.
 
 2. **Confirm `main` is green** after that merge — `Production CI`, `Security Analysis`
    and `Code Quality` on the merge commit. This is the state the gate needs.

@@ -164,6 +164,7 @@ SETS=(
   --set global.dns01.enabled=false   # ClusterIssuer needs cert-manager CRDs
   --set migrations.enabled=false     # the migrations Job needs a real database
 )
+PROOF_SOURCE_SHA="$(printf 'f%.0s' {1..40})"
 MANIFEST_SERVICES='[]'
 for entry in "${SERVICES[@]}"; do
   key="${entry%%:*}"; rest="${entry#*:}"; image="${rest%%:*}"
@@ -176,9 +177,15 @@ for entry in "${SERVICES[@]}"; do
     --set "services.${key}.resources.limits.cpu=200m"
     --set "services.${key}.resources.limits.memory=192Mi"
   )
+  # The manifest builder is STRICT (provenance, SBOM digest, gate verdict, no dupes),
+  # so the harness supplies the same shape the deploy does — a proof that fed it a
+  # laxer manifest than production uses would be proving the wrong thing.
   MANIFEST_SERVICES="$(printf '%s' "${MANIFEST_SERVICES}" | jq \
-    --arg s "${key}" --arg i "${image}" --arg d "${digest}" \
+    --arg s "${key}" --arg i "${image}" --arg d "${digest}" --arg src "${PROOF_SOURCE_SHA}" \
+    --arg sbom "$(printf 'sbom-%s' "${image}" | shasum -a 256 | cut -d" " -f1)" \
     '. += [{service:$s, image:$i, digest:$d, rebuilt:true, cloudBuildId:"proof-local",
+            sourceSha:$src,
+            sbom:{format:"cyclonedx-json", sha256:$sbom},
             signature:{verified:true, key:"proof-local"}}]')"
 done
 
@@ -200,8 +207,10 @@ echo "  helm upgrade --atomic completed"
 
 # ---------------------------------------------------------------------------
 log "5/9  the SAME post-rollout verification the deploy workflow runs"
-jq -n --argjson services "${MANIFEST_SERVICES}" \
-  '{schemaVersion:1, targetSha:"'"$(printf 'f%.0s' {1..40})"'", registry:"proof",
+jq -n --argjson services "${MANIFEST_SERVICES}" --arg src "${PROOF_SOURCE_SHA}" \
+  --arg verdict "$(printf 'proof-verdict' | shasum -a 256 | cut -d' ' -f1)" \
+  '{schemaVersion:1, targetSha:$src, registry:"proof", gateVerdictSha256:$verdict,
+    expectedServices: ($services | map(.service)),
     services:$services}' > "${WORK}/manifest-input.json"
 node "${REPO_ROOT}/scripts/release-gate/release-manifest.mjs" build \
   --input "${WORK}/manifest-input.json" --out "${WORK}/manifest.json" >/dev/null
