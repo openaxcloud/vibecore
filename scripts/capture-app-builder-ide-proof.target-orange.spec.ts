@@ -20,7 +20,7 @@ type TargetOrangeAuditFixture = {
 const captureSource = readFileSync(resolve(process.cwd(), 'scripts/capture-app-builder-ide-proof.ts'), 'utf8');
 
 function targetOrangeAuditExpression() {
-  const match = captureSource.match(/const TARGET_ORANGE_AUDIT_EXPRESSION = `([\s\S]*?)`;/u);
+  const match = captureSource.match(/const TARGET_ORANGE_AUDIT_EXPRESSION = String\.raw`([\s\S]*?)`;/u);
 
   if (!match?.[1]) {
     throw new Error('Unable to read TARGET_ORANGE_AUDIT_EXPRESSION from the capture harness');

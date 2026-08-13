@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { access, chmod, cp, mkdir, mkdtemp, readFile, rename, rm, unlink, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { chromium, expect, type FrameLocator, type Locator, type Page, type Request } from '@playwright/test';
 import sharp from 'sharp';
@@ -3188,7 +3189,7 @@ type TargetOrangeAudit = {
   visible: true;
 };
 
-const TARGET_ORANGE_AUDIT_EXPRESSION = `(element) => {
+const TARGET_ORANGE_AUDIT_EXPRESSION = String.raw`(element) => {
   const ownerDocument = element.ownerDocument;
   const view = ownerDocument.defaultView;
 
@@ -5671,29 +5672,35 @@ async function main() {
   }
 }
 
-try {
-  await main();
-} catch (error) {
-  const failure = errorStackChain(error);
+const invokedAsCaptureEntrypoint = Boolean(
+  process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href,
+);
 
-  const redactedFailure = failure
-    .replace(/Bearer\s+[^\s]+/gi, 'Bearer [REDACTED]')
-    .replace(/^\s*- cookie:.*$/gim, '    - cookie: [REDACTED]')
-    .replace(/session_[A-Za-z0-9_-]+/g, 'session_[REDACTED]');
-
+if (invokedAsCaptureEntrypoint) {
   try {
-    const failureSlug = readSlug();
-    const failureLocale = readLocale();
-    const failureRoot = resolve(process.cwd(), 'outputs/solutions', failureSlug, 'ide-proof', failureLocale);
+    await main();
+  } catch (error) {
+    const failure = errorStackChain(error);
 
-    await mkdir(failureRoot, { recursive: true });
-    await unlink(resolve(failureRoot, 'capture-result.json')).catch(() => undefined);
-    await writeFile(resolve(failureRoot, 'capture-failure.txt'), `${redactedFailure}\n`, 'utf8');
-  } catch {
-    // The stderr output below remains authoritative if even failure persistence cannot be initialized.
+    const redactedFailure = failure
+      .replace(/Bearer\s+[^\s]+/gi, 'Bearer [REDACTED]')
+      .replace(/^\s*- cookie:.*$/gim, '    - cookie: [REDACTED]')
+      .replace(/session_[A-Za-z0-9_-]+/g, 'session_[REDACTED]');
+
+    try {
+      const failureSlug = readSlug();
+      const failureLocale = readLocale();
+      const failureRoot = resolve(process.cwd(), 'outputs/solutions', failureSlug, 'ide-proof', failureLocale);
+
+      await mkdir(failureRoot, { recursive: true });
+      await unlink(resolve(failureRoot, 'capture-result.json')).catch(() => undefined);
+      await writeFile(resolve(failureRoot, 'capture-failure.txt'), `${redactedFailure}\n`, 'utf8');
+    } catch {
+      // The stderr output below remains authoritative if even failure persistence cannot be initialized.
+    }
+
+    process.stderr.write(`${redactedFailure}\n`);
+
+    process.exitCode = 1;
   }
-
-  process.stderr.write(`${redactedFailure}\n`);
-
-  process.exitCode = 1;
 }
