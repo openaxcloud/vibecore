@@ -47,9 +47,12 @@ items:
     source: "outputs/BOLT_BACKEND_FRONTEND_GAP.md:105"
     priority: 1
     owner: platform
-    status: NON_FAIT
+    status: FAIT_PROUVE
     nextAction: "Câbler la liste des factures dans la page billing"
     conditionDeCloture: "Factures réelles affichées depuis l'endpoint, prouvé à l'écran"
+    evidenceId: "docs/audit/evidence/bd-04/PROOF.md"
+    provenAt: "2026-08-13"
+    provenNote: "Lien 'Invoices/Factures' ajoute a la page /billing -> /invoices (endpoint GET /orgs/:id/billing/invoices). Prouve live (web 9c372ebd33): /billing affiche a[href=/invoices] 'Factures', clic -> page /invoices qui rend l'endpoint."
     targetDate: "2026-08-31"
   - id: BD-05
     title: "Feed notifications sans cloche/badge dans le shell"

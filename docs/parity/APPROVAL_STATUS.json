@@ -366,8 +366,8 @@
     },
     "boltDebt": {
       "total": 29,
-      "nonFait": 29,
-      "faitProuve": 0
+      "nonFait": 28,
+      "faitProuve": 1
     },
     "prodReadiness": {
       "total": 50,
