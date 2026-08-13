@@ -885,6 +885,164 @@ describe('SEC-13 publishing a new version preserves password protection', () => 
     expect(((created?.metadata as Record<string, unknown> | undefined)?.access as { mode?: string })?.mode).toBe('password');
   });
 
+  it('SEC-14 redeploying an OLD unprotected build must not unprotect the site', async () => {
+    /*
+     * `POST /deployments/:id/redeploy` spreads the SOURCE deployment's metadata,
+     * so it carries `access` — but from the build being redeployed, not from the
+     * site's current state. Redeploy a build that predates the password while the
+     * site is protected and the new release is public: the same silent
+     * de-protection as SEC-12/SEC-13, reached from a third direction.
+     *
+     * Unlike publish, this route AWAITS the static build inline, so the runner is
+     * stubbed — otherwise the request blocks on a real workspace build.
+     */
+    const store = new TestApiStore();
+    const app = await buildApiApp({
+      emailProvider: new QuietEmailProvider(),
+      store,
+      staticBuildRunner: async () => ({
+        ok: false,
+        error: 'BUILD_FAILED',
+        logs: [{ timestamp: new Date().toISOString(), level: 'error' as const, message: '[build] stubbed' }],
+      }),
+    });
+    const reg = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: 'redep@example.com', password: 'password123', name: 'R', organizationName: 'R Org' },
+    });
+    const auth = reg.json() as { token: string; organization: { id: string } };
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+    const proj = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'R Project' },
+    });
+    const projectId = (proj.json() as { project: { id: string } }).project.id;
+
+    // Old build: never protected — the one we redeploy.
+    const oldBuild = await store.createDeployment({
+      projectId,
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+      url: 'https://example.test/old',
+    });
+
+    // Current release: protected by the owner.
+    const current = await store.createDeployment({
+      projectId,
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+      url: 'https://example.test/current',
+    });
+    const dir = staticDeploymentSnapshotDir(current.id);
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, 'index.html'), '<!doctype html><body>SECRET CONTENT</body>', 'utf8');
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/projects/${projectId}/deployments/${current.id}/access`,
+          headers: { authorization: `Bearer ${auth.token}` },
+          payload: { mode: 'password', password: 'letmein' },
+        })
+      ).statusCode,
+    ).toBe(200);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${oldBuild.id}/redeploy`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {},
+    });
+    expect([200, 201, 202]).toContain(res.statusCode);
+
+    const created = await store.getDeployment(projectId, (res.json() as { deployment: { id: string } }).deployment.id);
+    const access = (created?.metadata as Record<string, unknown> | undefined)?.access as { mode?: string } | undefined;
+
+    expect(access?.mode).toBe('password');
+  });
+
+  it('SEC-14 negative: redeploy does NOT resurrect protection the owner removed', async () => {
+    /*
+     * The mirror of the case above, and the reason "current intent wins" is
+     * stated in BOTH directions: the source build carries an access config in its
+     * metadata, but the owner has since un-protected the site. Blindly spreading
+     * the source would bring the password back — trapping the owner behind a
+     * password they deliberately removed.
+     */
+    const store = new TestApiStore();
+    const app = await buildApiApp({
+      emailProvider: new QuietEmailProvider(),
+      store,
+      staticBuildRunner: async () => ({
+        ok: false,
+        error: 'BUILD_FAILED',
+        logs: [{ timestamp: new Date().toISOString(), level: 'error' as const, message: '[build] stubbed' }],
+      }),
+    });
+    const reg = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: 'redep2@example.com', password: 'password123', name: 'R', organizationName: 'R2 Org' },
+    });
+    const auth = reg.json() as { token: string; organization: { id: string } };
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+    const proj = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'R2' },
+    });
+    const projectId = (proj.json() as { project: { id: string } }).project.id;
+
+    // A build that WAS protected...
+    const oldBuild = await store.createDeployment({
+      projectId,
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+      url: 'https://example.test/old',
+    });
+    const oldDir = staticDeploymentSnapshotDir(oldBuild.id);
+    await mkdir(oldDir, { recursive: true });
+    await writeFile(join(oldDir, 'index.html'), '<!doctype html><body>SECRET CONTENT</body>', 'utf8');
+    await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${oldBuild.id}/access`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { mode: 'password', password: 'letmein' },
+    });
+
+    // ...and a NEWER release where the owner un-protected the site.
+    const current = await store.createDeployment({
+      projectId,
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+      url: 'https://example.test/current',
+    });
+    await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${current.id}/access`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { mode: 'public' },
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${oldBuild.id}/redeploy`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {},
+    });
+    const created = await store.getDeployment(projectId, (res.json() as { deployment: { id: string } }).deployment.id);
+
+    expect((created?.metadata as Record<string, unknown> | undefined)?.access).toBeUndefined();
+  });
+
   it('does NOT invent protection when the site was never protected', async () => {
     const store = new TestApiStore();
     const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store });

@@ -8377,6 +8377,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const projectStorage = options.projectStorage ?? new LocalProjectStorage();
   const gitProvider = options.gitProvider ?? new GitCliProvider();
   const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
+  /**
+   * The access config currently in force for a site (project + environment).
+   *
+   * Every path that creates a SUCCESSOR deployment must carry this forward, or it
+   * silently unprotects the site: `metadata.access` has exactly one writer (the
+   * /access route), so any new row built from a fresh literal is PUBLIC by
+   * construction while the owner still believes a password is set. That defect
+   * was found on three separate paths — publish (SEC-13), rollback (SEC-12) and
+   * redeploy (SEC-14) — which is why the rule lives here once instead of being
+   * re-derived at each call site.
+   *
+   * "Current" = newest release of the same project+environment, i.e. the owner's
+   * last expressed intent. If they un-protected the site there is nothing to
+   * inherit and the successor stays public — intent still wins, in both
+   * directions.
+   *
+   * STATIC only: it is the only provider whose serve path enforces the gate, and
+   * SEC-11 refuses to set protection anywhere else, so there is never anything to
+   * inherit for the others.
+   *
+   * Sorted explicitly rather than trusting the store: prisma-store lists
+   * `createdAt: 'desc'` while the in-memory test double returns insertion order,
+   * so `[0]` would mean "newest" in production and "oldest" under test.
+   */
+  const currentSiteAccessConfig = async (
+    deploymentStore: ApiStore,
+    projectId: string,
+    provider: string | undefined,
+    environment: string | undefined,
+  ): Promise<unknown> => {
+    if (provider !== 'static') {
+      return undefined;
+    }
+
+    const releases = (await deploymentStore.listDeployments(projectId).catch(() => []))
+      .filter((d) => d.provider === 'static' && d.environment === environment)
+      .sort((a, b) => Date.parse(b.createdAt ?? '') - Date.parse(a.createdAt ?? ''));
+
+    return (releases.at(0)?.metadata as Record<string, unknown> | undefined)?.access;
+  };
+
+
 
   /*
    * When a caller injects its own staticBuildRunner (unit/integration tests), it
@@ -33340,30 +33382,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * by project+workspace (concurrent same-project builds share the build CWD).
      */
     /*
-     * SEC-13: the access config of the release this publish supersedes, so
-     * protection travels with the site instead of being dropped on every
-     * re-publish (see the metadata block below). Only STATIC is considered —
-     * that is the only provider where the gate is enforced, and SEC-11 refuses
-     * to set protection anywhere else, so there is never anything to inherit.
-     * Read before the serialized mutation: it is a plain read and must not
-     * lengthen the org-wide deploy lock.
-     *
-     * Sorted by createdAt HERE rather than trusting the store's order. The two
-     * implementations disagree: prisma-store orders `createdAt: 'desc'`, the test
-     * store returns Map insertion order (oldest first). Taking `[0]` would mean
-     * "newest" in production and "oldest" in tests — inheriting a stale access
-     * config, and a test that passes only while there is exactly one prior
-     * release. Being explicit makes the semantic true under both.
+     * SEC-13: inherit the site's CURRENT access config so publishing a new
+     * version cannot silently unprotect it. See currentSiteAccessConfig.
      */
-    const inheritedAccess =
-      body.provider === 'static'
-        ? (
-            (await store.listDeployments(project.id).catch(() => []))
-              .filter((d) => d.provider === 'static' && d.environment === body.environment)
-              .sort((a, b) => Date.parse(b.createdAt ?? '') - Date.parse(a.createdAt ?? ''))
-              .at(0)?.metadata as Record<string, unknown> | undefined
-          )?.access
-        : undefined;
+    const inheritedAccess = await currentSiteAccessConfig(store, project.id, body.provider, body.environment);
 
     const createResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
       await ensureQuota(request, project.organizationId, 'deployments.count');
@@ -34663,6 +34685,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * create) both pass the org quota / per-project in-flight check via TOCTOU and
      * clobber the shared build CWD / double-consume quota.
      */
+    /*
+     * SEC-14: the site's current access config, read before the serialized
+     * mutation (a plain read must not lengthen the org-wide deploy lock).
+     */
+    const redeployInheritedAccess = await currentSiteAccessConfig(
+      store,
+      project.id,
+      source.provider,
+      source.environment,
+    );
+
     const redeployResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
@@ -34688,7 +34721,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           // A redeploy runs on the SAME machine the original was priced for.
           machineSize: source.machineSize,
-          metadata: { ...source.metadata, redeployedFromId: source.id },
+          /*
+           * SEC-14: the spread carries the SOURCE build's access config, which is
+           * the wrong source of truth. Redeploying a build that predates the
+           * password, while the site IS protected, produced a public release —
+           * the same silent de-protection as SEC-12/SEC-13, by a third door.
+           *
+           * The site's CURRENT config wins in both directions: it protects when
+           * the owner has a password set, and it does NOT resurrect protection
+           * they removed after the source build was made. Assigned after the
+           * spread so it overrides, and deleted (not left stale) when the site is
+           * currently public.
+           */
+          metadata: (() => {
+            const carried = { ...source.metadata, redeployedFromId: source.id } as Record<string, unknown>;
+
+            if (redeployInheritedAccess === undefined) {
+              delete carried.access;
+            } else {
+              carried.access = redeployInheritedAccess;
+            }
+
+            return carried;
+          })(),
           startedAt: new Date().toISOString(),
           logs: [
             {
