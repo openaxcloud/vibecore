@@ -1,0 +1,1550 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-12T07:10:35.111Z",
+  "scope": {
+    "assetRoot": "public/assets/solutions",
+    "importedCombinations": ["website-builder/en", "game-builder/en", "game-builder/fr", "dashboard-builder/fr"],
+    "expectedAssetCount": 96,
+    "observedAssetCount": 96,
+    "variantsPerCombination": {
+      "themes": ["dark", "light"],
+      "slots": [
+        "ide-agent-files",
+        "ide-agent-iteration",
+        "ide-agent-preview",
+        "ide-agent-prompt",
+        "ide-webview-iteration",
+        "ide-webview-overview"
+      ],
+      "widths": [720, 1440]
+    }
+  },
+  "verdict": {
+    "integrity": "PASS",
+    "visualSemantics": "FAIL",
+    "provenance": "FAIL",
+    "finalProofEligible": false,
+    "reason": "All files are healthy WebP derivatives, but 28 paths fail visible-state review and all 96 lack a successful capture manifest; each historical run directory instead contains capture-failure.txt."
+  },
+  "integrity": {
+    "decodableWebpCount": 96,
+    "dimensions": {
+      "1440x900": 48,
+      "720x450": 48
+    },
+    "totalBytes": 5880334,
+    "minBytes": 19566,
+    "maxBytes": 110022,
+    "averageBytes": 61253,
+    "entropy": {
+      "minimum": 2.764786,
+      "maximum": 6.058706,
+      "average": 4.878652,
+      "blankSuspicionThreshold": 0.5,
+      "countBelowThreshold": 0
+    },
+    "sha256": {
+      "uniqueCount": 96,
+      "duplicateGroups": []
+    },
+    "historicalSource": {
+      "worktree": "/Users/hb/dev/vibecore-solutions-real-proof-20260802",
+      "commit": "5c75f9b9c1c0067071747b06ecdb458248b339a5",
+      "gitBlobMatches": 96,
+      "gitBlobMismatches": 0
+    }
+  },
+  "themePairs": {
+    "pairCount": 48,
+    "distinctShaPairs": 48,
+    "minimumPixelMae": 90.3751,
+    "maximumPixelMae": 219.6051,
+    "averagePixelMae": 127.7777,
+    "threshold": 1,
+    "failedPairs": []
+  },
+  "responsiveDerivatives": {
+    "pairCount": 48,
+    "minimumPixelMae": 1.8382,
+    "maximumPixelMae": 3.7188,
+    "averagePixelMae": 3.1285,
+    "interpretation": "The independently encoded 720px files closely match 1440px files resized to 720x450."
+  },
+  "manualVisualReview": {
+    "reviewed1440Assets": 48,
+    "derivative720PairsChecked": 48,
+    "groupSummary": [
+      {
+        "key": "dashboard-builder/fr",
+        "count": 24,
+        "bytes": 1432224,
+        "minBytes": 19566,
+        "maxBytes": 108074,
+        "minEntropy": 2.764786,
+        "maxEntropy": 5.691681,
+        "avgEntropy": 4.613107,
+        "visualStatus": "FAIL (4 paths)",
+        "finalProofStatus": "REJECTED_NO_SUCCESS_MANIFEST"
+      },
+      {
+        "key": "game-builder/en",
+        "count": 24,
+        "bytes": 1427498,
+        "minBytes": 25994,
+        "maxBytes": 101090,
+        "minEntropy": 4.52716,
+        "maxEntropy": 5.79577,
+        "avgEntropy": 5.043728,
+        "visualStatus": "PASS",
+        "finalProofStatus": "REJECTED_NO_SUCCESS_MANIFEST"
+      },
+      {
+        "key": "game-builder/fr",
+        "count": 24,
+        "bytes": 1460010,
+        "minBytes": 25294,
+        "maxBytes": 103406,
+        "minEntropy": 4.278372,
+        "maxEntropy": 5.930183,
+        "avgEntropy": 4.94248,
+        "visualStatus": "FAIL",
+        "finalProofStatus": "REJECTED_NO_SUCCESS_MANIFEST"
+      },
+      {
+        "key": "website-builder/en",
+        "count": 24,
+        "bytes": 1560602,
+        "minBytes": 26426,
+        "maxBytes": 110022,
+        "minEntropy": 3.869827,
+        "maxEntropy": 6.058706,
+        "avgEntropy": 4.915293,
+        "visualStatus": "PASS",
+        "finalProofStatus": "REJECTED_NO_SUCCESS_MANIFEST"
+      }
+    ],
+    "failures": [
+      {
+        "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-files-1440.webp",
+        "issues": ["Selected vite.config.ts editor/work area is blank; this slot is not meaningful project evidence"]
+      },
+      {
+        "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-files-720.webp",
+        "issues": ["Selected vite.config.ts editor/work area is blank; this slot is not meaningful project evidence"]
+      },
+      {
+        "path": "public/assets/solutions/dashboard-builder/fr/light/ide-agent-files-1440.webp",
+        "issues": ["Selected vite.config.ts editor/work area is blank; this slot is not meaningful project evidence"]
+      },
+      {
+        "path": "public/assets/solutions/dashboard-builder/fr/light/ide-agent-files-720.webp",
+        "issues": ["Selected vite.config.ts editor/work area is blank; this slot is not meaningful project evidence"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-files-1440.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-files-720.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-iteration-1440.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-iteration-720.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-preview-1440.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-preview-720.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-prompt-1440.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-prompt-720.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/dark/ide-webview-iteration-1440.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/dark/ide-webview-iteration-720.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/dark/ide-webview-overview-1440.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/dark/ide-webview-overview-720.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/light/ide-agent-files-1440.webp",
+        "issues": [
+          "IDE status visibly shows Reconnecting; not a stable final-proof state",
+          "Webview startup/loading panel captured instead of the project"
+        ]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/light/ide-agent-files-720.webp",
+        "issues": [
+          "IDE status visibly shows Reconnecting; not a stable final-proof state",
+          "Webview startup/loading panel captured instead of the project"
+        ]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/light/ide-agent-iteration-1440.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/light/ide-agent-iteration-720.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/light/ide-agent-preview-1440.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/light/ide-agent-preview-720.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/light/ide-agent-prompt-1440.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/light/ide-agent-prompt-720.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/light/ide-webview-iteration-1440.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/light/ide-webview-iteration-720.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/light/ide-webview-overview-1440.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      },
+      {
+        "path": "public/assets/solutions/game-builder/fr/light/ide-webview-overview-720.webp",
+        "issues": ["IDE status visibly shows Reconnecting; not a stable final-proof state"]
+      }
+    ]
+  },
+  "provenance": {
+    "manifestsOrSuccessProvenanceFound": 0,
+    "secretBearingSessionFilesFound": 4,
+    "note": "Only project IDs were retained in this report; email/password values from .capture-session.json were not copied.",
+    "sourceCaptureCommit": "5c75f9b9c1c0067071747b06ecdb458248b339a5",
+    "sourceAssetsMatchCommit": 96,
+    "captureRuns": [
+      {
+        "combo": "website-builder/en",
+        "projectId": "cmsh6simb04gb0oeltvt0wf3r",
+        "workspaceId": "ws-1a9a3d5fa5f7b995",
+        "runtime": "running; port 5173 ready; process present",
+        "failure": "Preview stayed empty. Visible status: No visible preview status. Underlying failure: The native Webview stayed empty after refresh and official runtime URL recovery"
+      },
+      {
+        "combo": "game-builder/en",
+        "projectId": "cmsh63sae043q0oelnyzt2j6a",
+        "workspaceId": null,
+        "runtime": "not recorded in a failure diagnostic JSON",
+        "failure": "The E-Code proof emitted 1 console errors: /api/projects/cmsh63sae043q0oelnyzt2j6a/ide-state returned HTTP 412"
+      },
+      {
+        "combo": "game-builder/fr",
+        "projectId": "cmsh8alpr04y00ndj2th4ak4q",
+        "workspaceId": "ws-7ad42964fda58a1a",
+        "runtime": "running; port 5173 ready; process present",
+        "failure": "The IDE shell did not stabilize before capture: 1 runtime error — Dependency sync skipped before preview: Remote runtime request failed: 404"
+      },
+      {
+        "combo": "dashboard-builder/fr",
+        "projectId": "cmsh63r6q043p0oelk3pgn9ql",
+        "workspaceId": "ws-a65a0017fc695e7b",
+        "runtime": "running; port 5173 ready; process present",
+        "failure": "Preview stayed empty. Visible status: No visible preview status. Underlying failure: The native Webview stayed empty after refresh and official runtime URL recovery"
+      }
+    ],
+    "rejectedAssetPaths": [
+      "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-files-1440.webp",
+      "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-files-720.webp",
+      "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-iteration-1440.webp",
+      "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-iteration-720.webp",
+      "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-preview-1440.webp",
+      "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-preview-720.webp",
+      "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-prompt-1440.webp",
+      "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-prompt-720.webp",
+      "public/assets/solutions/dashboard-builder/fr/dark/ide-webview-iteration-1440.webp",
+      "public/assets/solutions/dashboard-builder/fr/dark/ide-webview-iteration-720.webp",
+      "public/assets/solutions/dashboard-builder/fr/dark/ide-webview-overview-1440.webp",
+      "public/assets/solutions/dashboard-builder/fr/dark/ide-webview-overview-720.webp",
+      "public/assets/solutions/dashboard-builder/fr/light/ide-agent-files-1440.webp",
+      "public/assets/solutions/dashboard-builder/fr/light/ide-agent-files-720.webp",
+      "public/assets/solutions/dashboard-builder/fr/light/ide-agent-iteration-1440.webp",
+      "public/assets/solutions/dashboard-builder/fr/light/ide-agent-iteration-720.webp",
+      "public/assets/solutions/dashboard-builder/fr/light/ide-agent-preview-1440.webp",
+      "public/assets/solutions/dashboard-builder/fr/light/ide-agent-preview-720.webp",
+      "public/assets/solutions/dashboard-builder/fr/light/ide-agent-prompt-1440.webp",
+      "public/assets/solutions/dashboard-builder/fr/light/ide-agent-prompt-720.webp",
+      "public/assets/solutions/dashboard-builder/fr/light/ide-webview-iteration-1440.webp",
+      "public/assets/solutions/dashboard-builder/fr/light/ide-webview-iteration-720.webp",
+      "public/assets/solutions/dashboard-builder/fr/light/ide-webview-overview-1440.webp",
+      "public/assets/solutions/dashboard-builder/fr/light/ide-webview-overview-720.webp",
+      "public/assets/solutions/game-builder/en/dark/ide-agent-files-1440.webp",
+      "public/assets/solutions/game-builder/en/dark/ide-agent-files-720.webp",
+      "public/assets/solutions/game-builder/en/dark/ide-agent-iteration-1440.webp",
+      "public/assets/solutions/game-builder/en/dark/ide-agent-iteration-720.webp",
+      "public/assets/solutions/game-builder/en/dark/ide-agent-preview-1440.webp",
+      "public/assets/solutions/game-builder/en/dark/ide-agent-preview-720.webp",
+      "public/assets/solutions/game-builder/en/dark/ide-agent-prompt-1440.webp",
+      "public/assets/solutions/game-builder/en/dark/ide-agent-prompt-720.webp",
+      "public/assets/solutions/game-builder/en/dark/ide-webview-iteration-1440.webp",
+      "public/assets/solutions/game-builder/en/dark/ide-webview-iteration-720.webp",
+      "public/assets/solutions/game-builder/en/dark/ide-webview-overview-1440.webp",
+      "public/assets/solutions/game-builder/en/dark/ide-webview-overview-720.webp",
+      "public/assets/solutions/game-builder/en/light/ide-agent-files-1440.webp",
+      "public/assets/solutions/game-builder/en/light/ide-agent-files-720.webp",
+      "public/assets/solutions/game-builder/en/light/ide-agent-iteration-1440.webp",
+      "public/assets/solutions/game-builder/en/light/ide-agent-iteration-720.webp",
+      "public/assets/solutions/game-builder/en/light/ide-agent-preview-1440.webp",
+      "public/assets/solutions/game-builder/en/light/ide-agent-preview-720.webp",
+      "public/assets/solutions/game-builder/en/light/ide-agent-prompt-1440.webp",
+      "public/assets/solutions/game-builder/en/light/ide-agent-prompt-720.webp",
+      "public/assets/solutions/game-builder/en/light/ide-webview-iteration-1440.webp",
+      "public/assets/solutions/game-builder/en/light/ide-webview-iteration-720.webp",
+      "public/assets/solutions/game-builder/en/light/ide-webview-overview-1440.webp",
+      "public/assets/solutions/game-builder/en/light/ide-webview-overview-720.webp",
+      "public/assets/solutions/game-builder/fr/dark/ide-agent-files-1440.webp",
+      "public/assets/solutions/game-builder/fr/dark/ide-agent-files-720.webp",
+      "public/assets/solutions/game-builder/fr/dark/ide-agent-iteration-1440.webp",
+      "public/assets/solutions/game-builder/fr/dark/ide-agent-iteration-720.webp",
+      "public/assets/solutions/game-builder/fr/dark/ide-agent-preview-1440.webp",
+      "public/assets/solutions/game-builder/fr/dark/ide-agent-preview-720.webp",
+      "public/assets/solutions/game-builder/fr/dark/ide-agent-prompt-1440.webp",
+      "public/assets/solutions/game-builder/fr/dark/ide-agent-prompt-720.webp",
+      "public/assets/solutions/game-builder/fr/dark/ide-webview-iteration-1440.webp",
+      "public/assets/solutions/game-builder/fr/dark/ide-webview-iteration-720.webp",
+      "public/assets/solutions/game-builder/fr/dark/ide-webview-overview-1440.webp",
+      "public/assets/solutions/game-builder/fr/dark/ide-webview-overview-720.webp",
+      "public/assets/solutions/game-builder/fr/light/ide-agent-files-1440.webp",
+      "public/assets/solutions/game-builder/fr/light/ide-agent-files-720.webp",
+      "public/assets/solutions/game-builder/fr/light/ide-agent-iteration-1440.webp",
+      "public/assets/solutions/game-builder/fr/light/ide-agent-iteration-720.webp",
+      "public/assets/solutions/game-builder/fr/light/ide-agent-preview-1440.webp",
+      "public/assets/solutions/game-builder/fr/light/ide-agent-preview-720.webp",
+      "public/assets/solutions/game-builder/fr/light/ide-agent-prompt-1440.webp",
+      "public/assets/solutions/game-builder/fr/light/ide-agent-prompt-720.webp",
+      "public/assets/solutions/game-builder/fr/light/ide-webview-iteration-1440.webp",
+      "public/assets/solutions/game-builder/fr/light/ide-webview-iteration-720.webp",
+      "public/assets/solutions/game-builder/fr/light/ide-webview-overview-1440.webp",
+      "public/assets/solutions/game-builder/fr/light/ide-webview-overview-720.webp",
+      "public/assets/solutions/website-builder/en/dark/ide-agent-files-1440.webp",
+      "public/assets/solutions/website-builder/en/dark/ide-agent-files-720.webp",
+      "public/assets/solutions/website-builder/en/dark/ide-agent-iteration-1440.webp",
+      "public/assets/solutions/website-builder/en/dark/ide-agent-iteration-720.webp",
+      "public/assets/solutions/website-builder/en/dark/ide-agent-preview-1440.webp",
+      "public/assets/solutions/website-builder/en/dark/ide-agent-preview-720.webp",
+      "public/assets/solutions/website-builder/en/dark/ide-agent-prompt-1440.webp",
+      "public/assets/solutions/website-builder/en/dark/ide-agent-prompt-720.webp",
+      "public/assets/solutions/website-builder/en/dark/ide-webview-iteration-1440.webp",
+      "public/assets/solutions/website-builder/en/dark/ide-webview-iteration-720.webp",
+      "public/assets/solutions/website-builder/en/dark/ide-webview-overview-1440.webp",
+      "public/assets/solutions/website-builder/en/dark/ide-webview-overview-720.webp",
+      "public/assets/solutions/website-builder/en/light/ide-agent-files-1440.webp",
+      "public/assets/solutions/website-builder/en/light/ide-agent-files-720.webp",
+      "public/assets/solutions/website-builder/en/light/ide-agent-iteration-1440.webp",
+      "public/assets/solutions/website-builder/en/light/ide-agent-iteration-720.webp",
+      "public/assets/solutions/website-builder/en/light/ide-agent-preview-1440.webp",
+      "public/assets/solutions/website-builder/en/light/ide-agent-preview-720.webp",
+      "public/assets/solutions/website-builder/en/light/ide-agent-prompt-1440.webp",
+      "public/assets/solutions/website-builder/en/light/ide-agent-prompt-720.webp",
+      "public/assets/solutions/website-builder/en/light/ide-webview-iteration-1440.webp",
+      "public/assets/solutions/website-builder/en/light/ide-webview-iteration-720.webp",
+      "public/assets/solutions/website-builder/en/light/ide-webview-overview-1440.webp",
+      "public/assets/solutions/website-builder/en/light/ide-webview-overview-720.webp"
+    ]
+  },
+  "assets": [
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-files-1440.webp",
+      "bytes": 70444,
+      "width": 1440,
+      "height": 900,
+      "entropy": 2.893461,
+      "sha256": "50adb58392f5d9fa4350440abe57cce070f336cb2506b7b0c1fd3bb45c052574",
+      "integrity": "PASS",
+      "visualReview": [
+        "Selected vite.config.ts editor/work area is blank; this slot is not meaningful project evidence"
+      ],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-files-720.webp",
+      "bytes": 20024,
+      "width": 720,
+      "height": 450,
+      "entropy": 3.256766,
+      "sha256": "07df8294b8f108795674815f62c95cd5c04115fded9bde3eee086d56f642f9c7",
+      "integrity": "PASS",
+      "visualReview": [
+        "Selected vite.config.ts editor/work area is blank; this slot is not meaningful project evidence"
+      ],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-iteration-1440.webp",
+      "bytes": 108074,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.519472,
+      "sha256": "35eeb58af21bb4fce4af1989d5b4027157f25eb0b556caf356416bb2a9896fa5",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-iteration-720.webp",
+      "bytes": 33662,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.10781,
+      "sha256": "5c4f19ccba035a0cdbf7f6615ab06b1f20b3f36c578a08b2e86d52cdcf3f3b15",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-preview-1440.webp",
+      "bytes": 85234,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.248672,
+      "sha256": "16371ba5ce518511ea87a3f997bc6be85ad4650439f29e5e44dd28f6b6ae004c",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-preview-720.webp",
+      "bytes": 28230,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.846596,
+      "sha256": "936cbd538b209ca05126444b2457f13e660955709aa2b55595a234ccb13a7963",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-prompt-1440.webp",
+      "bytes": 107250,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.513797,
+      "sha256": "9de93e7ab259f6d2e90fb8dc47238a7553bef9399a7cb50e83ced740942151bb",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-agent-prompt-720.webp",
+      "bytes": 33376,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.119643,
+      "sha256": "06174257169cd1569e23229737855119707064824726cc401921f98a3b63f168",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-webview-iteration-1440.webp",
+      "bytes": 88798,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.465091,
+      "sha256": "acfbc685a791f56ec2e62920d6b4f3646b6edcb9e2f11f019af25d5e604cd5be",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-webview-iteration-720.webp",
+      "bytes": 25748,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.704864,
+      "sha256": "fd443d5624ad3b0b37183ac85df0102ec97c12aec55dc8dd0d3eae8be4f69f66",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-webview-overview-1440.webp",
+      "bytes": 92666,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.62152,
+      "sha256": "d38c271dad4a17e5dfdcd05cb1a25fba1d13020b413379060445c8a9a43f9f68",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/dark/ide-webview-overview-720.webp",
+      "bytes": 27560,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.063896,
+      "sha256": "752d9ddc9ddcd867201244e81426cc089727827796b237a7a20e801d6aa0e31f",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/light/ide-agent-files-1440.webp",
+      "bytes": 66090,
+      "width": 1440,
+      "height": 900,
+      "entropy": 2.764786,
+      "sha256": "e3aebeab31d86af15d355d866dda660058b500d0172ad6466c7d1cbfb8fd51e2",
+      "integrity": "PASS",
+      "visualReview": [
+        "Selected vite.config.ts editor/work area is blank; this slot is not meaningful project evidence"
+      ],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/light/ide-agent-files-720.webp",
+      "bytes": 19566,
+      "width": 720,
+      "height": 450,
+      "entropy": 3.180293,
+      "sha256": "62dd5827b50169a769f91a78c52a8e45bc013bfacf891450981817cf41bc5577",
+      "integrity": "PASS",
+      "visualReview": [
+        "Selected vite.config.ts editor/work area is blank; this slot is not meaningful project evidence"
+      ],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/light/ide-agent-iteration-1440.webp",
+      "bytes": 105312,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.777654,
+      "sha256": "a679327e9910f4ee4c1089095a23aae4b38e30c07de91f7847f8872536795f2e",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/light/ide-agent-iteration-720.webp",
+      "bytes": 33824,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.614595,
+      "sha256": "c3b3e321a481bfe5f83a97d9240215de54fbb8b837e5d8e697eca7a9305f1934",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/light/ide-agent-preview-1440.webp",
+      "bytes": 88536,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.529215,
+      "sha256": "b8b44cda5fdf183d69c02137f4e8175e1a9b63b8b9c15367aad26a3c7643a55c",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/light/ide-agent-preview-720.webp",
+      "bytes": 29632,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.394053,
+      "sha256": "16f807f2d794110d2a4da98fdbf04e5e789db0e12fc718ce6def7bd74ca8a8e6",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/light/ide-agent-prompt-1440.webp",
+      "bytes": 104680,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.754908,
+      "sha256": "e5f116a5ef6c5d52bbfb8d5666ae797327b4ec799213d92d3478ebce5737d7b5",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/light/ide-agent-prompt-720.webp",
+      "bytes": 33566,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.597334,
+      "sha256": "9d88a8ab3deb0a166057a55fdc0a9e145e3bfe0f9beb42d954bd2cffd74968a2",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/light/ide-webview-iteration-1440.webp",
+      "bytes": 85964,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.639826,
+      "sha256": "5431c74daa57a77675a344f202222ccab11b4fbcfff5dee3eb6f12e31bb928ad",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/light/ide-webview-iteration-720.webp",
+      "bytes": 26276,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.512542,
+      "sha256": "58c8fea83ea333ff724ac5420b7ab67331d39fa1f67d4b517be88b0a6e9784f2",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/light/ide-webview-overview-1440.webp",
+      "bytes": 89856,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.896092,
+      "sha256": "51996701c5952573886f1cbbe4cc1b4e818a1f6ea6ac5c47d793ca5ad448b33e",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/dashboard-builder/fr/light/ide-webview-overview-720.webp",
+      "bytes": 27856,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.691681,
+      "sha256": "9c07e2c985c0500b7922339cb21f3ce0717c920167f48d8f061341723b4491c0",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/dark/ide-agent-files-1440.webp",
+      "bytes": 100768,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.546623,
+      "sha256": "c4c9207f41c5401b61428e0e06df92bfb885b60356f99263c33687ba47d2fb73",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/dark/ide-agent-files-720.webp",
+      "bytes": 30406,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.992894,
+      "sha256": "d60ee2980dddaca1c4880aa8f73d4bc16c940313dfc6775e43f0a22f725a79d6",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/dark/ide-agent-iteration-1440.webp",
+      "bytes": 94308,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.761091,
+      "sha256": "86504250160d9db49d7f05f1af6b102042ac6e506e6c40111a68936f32673fab",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/dark/ide-agent-iteration-720.webp",
+      "bytes": 27804,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.189213,
+      "sha256": "78f17223bea7b5224f335a4155cc1fda2d86ce6a71e44eebd2da51372eddb558",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/dark/ide-agent-preview-1440.webp",
+      "bytes": 78822,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.604218,
+      "sha256": "d7809676021c45b638a01f3fa8ec8fc82e78cf1f69e2614ca8801732bc2c4ba2",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/dark/ide-agent-preview-720.webp",
+      "bytes": 25994,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.01436,
+      "sha256": "06f9099273099aac047f262ed606edb05837928a9406faa1099d07f2693a9107",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/dark/ide-agent-prompt-1440.webp",
+      "bytes": 79480,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.52716,
+      "sha256": "3729503feac9fe24f113a7b6e73f8b5bb2b405ef15b28cb6f87818500c1685a7",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/dark/ide-agent-prompt-720.webp",
+      "bytes": 26260,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.962447,
+      "sha256": "8571e6e698b1f06097a329947a668830778203b6837f35eb933611fd60d53e1e",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/dark/ide-webview-iteration-1440.webp",
+      "bytes": 91654,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.541536,
+      "sha256": "9590dcf160532fe951d300c06e41a6170b114f4ab3ae0fb37c906ccf2c48d10d",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/dark/ide-webview-iteration-720.webp",
+      "bytes": 26692,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.766787,
+      "sha256": "e697aeaae25d8d1c86dffbbe00f78a79c3f39655783f0c618481e3c22b47c5f0",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/dark/ide-webview-overview-1440.webp",
+      "bytes": 101090,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.848286,
+      "sha256": "dbf3232ccc2ec4e35f26d14ba233a70f87233bee0e7d498db07ebc39068104f7",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/dark/ide-webview-overview-720.webp",
+      "bytes": 30872,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.235018,
+      "sha256": "46a7b9ae4430b5e6a49b8a7a18ad8e407f37a9f147c7d3eee901f598e0fe8724",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/light/ide-agent-files-1440.webp",
+      "bytes": 97662,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.766486,
+      "sha256": "29a0493cffb9067353824218bc4af16510d194f4ac2489e0d9d1d1bd76fa6abf",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/light/ide-agent-files-720.webp",
+      "bytes": 30400,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.354458,
+      "sha256": "d7b9dea514b2378837e041536e4e704cef3e9cd8b6254e2b54e89833aacf18d8",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/light/ide-agent-iteration-1440.webp",
+      "bytes": 91572,
+      "width": 1440,
+      "height": 900,
+      "entropy": 5.111788,
+      "sha256": "044a10ea3aa02a2bdfeeac2d9381e5bcdd1bac588759bc39cdd92b6e4a27a372",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/light/ide-agent-iteration-720.webp",
+      "bytes": 28046,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.641915,
+      "sha256": "bccd38d5d69be8c1d56f7f9af167cce09042f74cd08ac43e10eac74c0d25622b",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/light/ide-agent-preview-1440.webp",
+      "bytes": 81796,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.958524,
+      "sha256": "bf7a9346ad34becd059b6e2685a34a09dd65a532db435fccd7589f4302fdea11",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/light/ide-agent-preview-720.webp",
+      "bytes": 27240,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.601597,
+      "sha256": "10411c48071dbf7df1779b2670873fbfa154a6636d88736971f79d89579bef3b",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/light/ide-agent-prompt-1440.webp",
+      "bytes": 83750,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.796154,
+      "sha256": "d9ee714ba47844bf54cbfc6ba747bae641b0ecdb50820e1627210e9a226ee885",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/light/ide-agent-prompt-720.webp",
+      "bytes": 27396,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.447171,
+      "sha256": "d5c9c404a00d4cab57d79fe28d39a15b2235d1c3ff130c5eed4ea4cb01f97a0a",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/light/ide-webview-iteration-1440.webp",
+      "bytes": 88310,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.833124,
+      "sha256": "38a9bc2d7707b51a3b71ea9c496bb55e695c4b73b4c875103c0f51c348d0ed35",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/light/ide-webview-iteration-720.webp",
+      "bytes": 27142,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.568905,
+      "sha256": "e4447c17c9fe7427577e6a1c5ab7a7aede37842fda77fe57608e4413f6356d09",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/light/ide-webview-overview-1440.webp",
+      "bytes": 98784,
+      "width": 1440,
+      "height": 900,
+      "entropy": 5.183955,
+      "sha256": "e82e4a65029a7f6ca5409c68cbbab2b73f8de42fe380afa1dfa25fbdd972f122",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/en/light/ide-webview-overview-720.webp",
+      "bytes": 31250,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.79577,
+      "sha256": "21a7622c4661e48c8fbea81897d633976cc3fc039727f2a4b83646fcd3e537fc",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-files-1440.webp",
+      "bytes": 103406,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.315316,
+      "sha256": "5b30139e3844c35047523d68fe288818cd654ec3fbdf95a35b26405ae05cb6d8",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-files-720.webp",
+      "bytes": 31526,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.825413,
+      "sha256": "4a6ff9a37a5f5b182968d36902284ef0dcb83dda5930f97d501138a0773601c4",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-iteration-1440.webp",
+      "bytes": 97550,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.488501,
+      "sha256": "1995c94c4cbf119fda4ae724344a0fee1bf9348836ce67476ee4678086d60ede",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-iteration-720.webp",
+      "bytes": 29006,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.937547,
+      "sha256": "61ef4404ed7f0d580c019d85095a0ff1e5aab6c0badb586dae34cbea8a6b8c03",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-preview-1440.webp",
+      "bytes": 97398,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.643924,
+      "sha256": "0eedad46820e42076ce651fcbf2231282fc7f1a5654890b849ac473a510d6079",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-preview-720.webp",
+      "bytes": 29074,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.081501,
+      "sha256": "b9827529f467909685c334e3a26857127e19c980f9cccfadde09955f7c2c139a",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-prompt-1440.webp",
+      "bytes": 98848,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.493173,
+      "sha256": "afd6ec9c6bbe9a1637ccf91e655d69a5743b6588ad683593214e409df68c0095",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/dark/ide-agent-prompt-720.webp",
+      "bytes": 29856,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.050819,
+      "sha256": "8e60bac862121ba64a5bf37b3b4fc920da8111714ac8a5c953b1aeb67039a087",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/dark/ide-webview-iteration-1440.webp",
+      "bytes": 87754,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.429286,
+      "sha256": "79b11d9e341c0b112e4c2055287e5d2350046f49fcd5f667d0bda1aa7c68589f",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/dark/ide-webview-iteration-720.webp",
+      "bytes": 25536,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.675348,
+      "sha256": "a880accef544b866b33c5342f56a6976517d95353b8a4727aba1680b14b859da",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/dark/ide-webview-overview-1440.webp",
+      "bytes": 91836,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.471957,
+      "sha256": "b1fec055651837e2e9555b7c3741f40d6c23b5d17b62f2750a867aad4f3c65dd",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/dark/ide-webview-overview-720.webp",
+      "bytes": 27092,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.745397,
+      "sha256": "3305ef88309a7f21aa53e6d7fe13b39b8d3a6e256d470639d97f484d9acdecc4",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/light/ide-agent-files-1440.webp",
+      "bytes": 83276,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.278372,
+      "sha256": "fa8ea2e7091cec020eee6a181f2da4e44da9780e57738d7a4f6f05ffa9f069fc",
+      "integrity": "PASS",
+      "visualReview": [
+        "IDE status visibly shows Reconnecting; not a stable final-proof state",
+        "Webview startup/loading panel captured instead of the project"
+      ],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/light/ide-agent-files-720.webp",
+      "bytes": 25294,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.724442,
+      "sha256": "ff7505f76c1a999930a0186ee7976af041c8b2ebee1a8c777c3dd290db8cbe87",
+      "integrity": "PASS",
+      "visualReview": [
+        "IDE status visibly shows Reconnecting; not a stable final-proof state",
+        "Webview startup/loading panel captured instead of the project"
+      ],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/light/ide-agent-iteration-1440.webp",
+      "bytes": 94264,
+      "width": 1440,
+      "height": 900,
+      "entropy": 5.019005,
+      "sha256": "857c592fbbc67255f71be6bd8bc2fbcda0040497fae85a8ac219056a8d0f38ff",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/light/ide-agent-iteration-720.webp",
+      "bytes": 29334,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.664312,
+      "sha256": "a4f2d92aa44b15cb3983572208ef34de970ffbd84a271a5dbc0c9119980f9da7",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/light/ide-agent-preview-1440.webp",
+      "bytes": 94748,
+      "width": 1440,
+      "height": 900,
+      "entropy": 5.198032,
+      "sha256": "1ee8d8c2b550312b0648177b7b83c7d335db5dc74cbeb73854902322ac659ef7",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/light/ide-agent-preview-720.webp",
+      "bytes": 29372,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.930183,
+      "sha256": "72ecbb03f37bd541f3c2b822ae064d28309ce8237b019fde021b91e3e12e52e9",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/light/ide-agent-prompt-1440.webp",
+      "bytes": 97276,
+      "width": 1440,
+      "height": 900,
+      "entropy": 5.037436,
+      "sha256": "db4d57b72508ba660883dfb64cb920c8b93ca823c5b4cddffcb0a71cfdbcd66b",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/light/ide-agent-prompt-720.webp",
+      "bytes": 29924,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.763344,
+      "sha256": "d45bb1f918bc805f636bf2f5dc8efe903fc1825a7371340bdfd567146bfc4553",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/light/ide-webview-iteration-1440.webp",
+      "bytes": 85062,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.79551,
+      "sha256": "0940f8aab06bc73732a1e07a500d14c11c09b5b4de87b45c451c52080c35f032",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/light/ide-webview-iteration-720.webp",
+      "bytes": 25600,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.556749,
+      "sha256": "b5218dbcf99007266e3d48637cfba504a5b23a1c295ae4c1ae8bb4f65de149c0",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/light/ide-webview-overview-1440.webp",
+      "bytes": 89382,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.851429,
+      "sha256": "14e4f87413bd3ddeefae0d60fbc8ef745eef68d853589a902863989b1cd76c67",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/game-builder/fr/light/ide-webview-overview-720.webp",
+      "bytes": 27596,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.642533,
+      "sha256": "e4d18064c269f3e64fa9050452f46e460c61590bbefc422cb93804de6cdb0c74",
+      "integrity": "PASS",
+      "visualReview": ["IDE status visibly shows Reconnecting; not a stable final-proof state"],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/dark/ide-agent-files-1440.webp",
+      "bytes": 109762,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.082417,
+      "sha256": "cb1cbda82a1e1367bb30336740342c7ee1ec39f1125480689a47d2f45778e705",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/dark/ide-agent-files-720.webp",
+      "bytes": 33306,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.712801,
+      "sha256": "b1ff4c0cd068144b2dd2f26cf0042a1c10c06f2038274d332acb04d25eb8ae45",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/dark/ide-agent-iteration-1440.webp",
+      "bytes": 103462,
+      "width": 1440,
+      "height": 900,
+      "entropy": 3.869827,
+      "sha256": "bb51b85c2c9bcd14533e352c69ae277942453cdf4ccccf7ae5e745008a038bfa",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/dark/ide-agent-iteration-720.webp",
+      "bytes": 30982,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.433179,
+      "sha256": "a7906d981f24dfa877644d0be4f2f90d454436edb21b21bc555e60d0b9cc754c",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/dark/ide-agent-preview-1440.webp",
+      "bytes": 88270,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.891779,
+      "sha256": "42c1afcdcbddc08d2dc40950b6b632e580aba94c3e55d89d8fbf2f8f93448ed8",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/dark/ide-agent-preview-720.webp",
+      "bytes": 29748,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.411572,
+      "sha256": "32a4dc896725eaba99c502300ea515e79f96c07bf3230fa78a513ed0157a5fe6",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/dark/ide-agent-prompt-1440.webp",
+      "bytes": 92982,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.84719,
+      "sha256": "cca476c7b30b767aa0fd52047ef15834361904bf393939e1bc46c95c483ec1cc",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/dark/ide-agent-prompt-720.webp",
+      "bytes": 31624,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.414623,
+      "sha256": "e7bb1a86f4b8429527b61275a892ea0d7f291338c58ba6ca438591f6539fca0a",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/dark/ide-webview-iteration-1440.webp",
+      "bytes": 90224,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.273656,
+      "sha256": "5433fa091503953ea590fe1ea5bdfbc4fc0d9d2cdf88c227af2235340ecba28d",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/dark/ide-webview-iteration-720.webp",
+      "bytes": 26426,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.631709,
+      "sha256": "b2f52d50c38569b5a6b7420e46902e4e1e43c315528ccbc4e29258d04e54ac1e",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/dark/ide-webview-overview-1440.webp",
+      "bytes": 110022,
+      "width": 1440,
+      "height": 900,
+      "entropy": 5.164894,
+      "sha256": "e6693b8580d7dae59b4f4d37fd87716a70ebddecd53b15c97e89a6cea9bcc8e9",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/dark/ide-webview-overview-720.webp",
+      "bytes": 33700,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.595707,
+      "sha256": "71c40fa4e6fd81457a0bab0a8d0c19494b352587e222a0d2582826235c983b32",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/light/ide-agent-files-1440.webp",
+      "bytes": 106028,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.154425,
+      "sha256": "b43517e1bd41c35142275a1009b8bebcee457ff61ba3986be4a14b3d9a12bf4e",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/light/ide-agent-files-720.webp",
+      "bytes": 33200,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.983763,
+      "sha256": "037a027ac7da1f5ab68cb812a75a3e3567ddbd4a20ae61a99a8179d4ed6a2df4",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/light/ide-agent-iteration-1440.webp",
+      "bytes": 101424,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.00693,
+      "sha256": "2ebd37c35bdaab869c4d8a160dd0eac26536ee3a70f7ee7a849b42589f84b38b",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/light/ide-agent-iteration-720.webp",
+      "bytes": 31146,
+      "width": 720,
+      "height": 450,
+      "entropy": 4.830527,
+      "sha256": "21b354522809471f3f58d2749fe28fce436f590fb891fa2da408e585af678ed0",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/light/ide-agent-preview-1440.webp",
+      "bytes": 92038,
+      "width": 1440,
+      "height": 900,
+      "entropy": 5.084629,
+      "sha256": "64f52cc509ea9f3720be6915b43cd669836b33e096ae0dac0664833a7963c572",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/light/ide-agent-preview-720.webp",
+      "bytes": 31162,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.802744,
+      "sha256": "2aa3889daf64b050411d9e983dd3d105c8e67f4e849c3eb8166f968db79feedb",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/light/ide-agent-prompt-1440.webp",
+      "bytes": 96926,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.967779,
+      "sha256": "17a05366a15ac2fcaa2f8dc865edf904cc355d0aa389f350cabd6aa8effa8883",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/light/ide-agent-prompt-720.webp",
+      "bytes": 32400,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.692366,
+      "sha256": "e6e38186084974227caf7fa5539aac063d1238f382eef2c08bd907a1e0c97432",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/light/ide-webview-iteration-1440.webp",
+      "bytes": 87466,
+      "width": 1440,
+      "height": 900,
+      "entropy": 4.449317,
+      "sha256": "c35daa9fffb2a532d5f226762340dfe4af937f4ec090509e28a0ddb7b7f220a4",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/light/ide-webview-iteration-720.webp",
+      "bytes": 27032,
+      "width": 720,
+      "height": 450,
+      "entropy": 5.269106,
+      "sha256": "868b7304768188a08300384c767bc3fe9b3854edd02e035791ab1b233a548ee9",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/light/ide-webview-overview-1440.webp",
+      "bytes": 106854,
+      "width": 1440,
+      "height": 900,
+      "entropy": 5.337385,
+      "sha256": "77d1a2b20b629683e6fdaba39144b578075407d96442c7063fdb7d79ac263f4a",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    },
+    {
+      "path": "public/assets/solutions/website-builder/en/light/ide-webview-overview-720.webp",
+      "bytes": 34418,
+      "width": 720,
+      "height": 450,
+      "entropy": 6.058706,
+      "sha256": "c0a027048a755cf87f34e1bd689eda3fee7c2c8097f993052ae68d8c959c20ca",
+      "integrity": "PASS",
+      "visualReview": [],
+      "provenance": "REJECTED_NO_SUCCESS_MANIFEST",
+      "finalProofEligible": false
+    }
+  ]
+}

@@ -66,6 +66,7 @@ Tant qu’un de ces gates manque, le statut final reste **NON FAIT**.
 - Game EN : requête `ide-state` en HTTP `412`.
 - Game FR : `Dependency sync skipped before preview: Remote runtime request failed: 404`.
 - Certaines reprises affichent `Reconnecting` ou échouent sur la bascule de thème avec `Timeout 5000ms exceeded` ; aucune capture issue de ces états n’est acceptée.
+- Le pilote PeopleOps EN du 13 août a retrouvé le projet réel, ses 7 fichiers et un runtime synchronisé, puis a été rejeté avant capture : le contrôle `More agent actions` n’était pas présent dans la variante du header IDE déployée (timeout 60 s). Aucun asset n’a été promu.
 
 ## Commandes de contrôle
 
