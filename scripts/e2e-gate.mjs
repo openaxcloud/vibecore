@@ -121,6 +121,7 @@ const waivedKeys = new Set(waived.map((entry) => normaliseKey(entry.test)));
 /* ---- 3. Decide. ---- */
 
 const unwaivedFailures = failed.filter((key) => !waivedKeys.has(key));
+
 /*
  * A waiver must not outlive its problem, so a waived test that PASSES fails the
  * gate until it is removed. The exception is entries explicitly marked
@@ -131,6 +132,7 @@ const unwaivedFailures = failed.filter((key) => !waivedKeys.has(key));
 const staleWaivers = waived
   .filter((entry) => !entry.unstable && results.get(normaliseKey(entry.test)) === 'passed')
   .map((entry) => entry.test);
+
 const unknownWaivers = waived.filter((entry) => !results.has(normaliseKey(entry.test))).map((entry) => entry.test);
 
 console.log(`E2E gate — waiver expires ${expires} (${daysLeft} day(s) left)`);
