@@ -617,7 +617,6 @@ export class PrismaApiStore implements ApiStore {
    */
   private async acquirePurgeGuarantee(userId: string): Promise<PurgeGuarantee> {
     const ownerToken = randomUUID();
-    const leaseExpiresAt = new Date(Date.now() + this.purgeLease.ttlMs);
     const graceSec = Math.max(0, Math.ceil(this.purgeLease.reclaimGraceMs / 1000));
 
     return this.prisma.$transaction(async (tx) => {
@@ -644,7 +643,8 @@ export class PrismaApiStore implements ApiStore {
 
         const reclaimed = await tx.$executeRawUnsafe(
           `DELETE FROM "PurgePlan" WHERE id = $1 AND version = $2 AND status = $3 ` +
-            `AND "leaseExpiresAt" < (now() - make_interval(secs => $4))`,
+            `AND "leaseExpiresAt" < (` +
+            `date_trunc('milliseconds', transaction_timestamp()) - make_interval(secs => $4))`,
           existing.id,
           existing.version,
           existing.status,
@@ -660,9 +660,18 @@ export class PrismaApiStore implements ApiStore {
       }
 
       const topology = await this.resolveStorageTopology(tx, userId);
+      const [leaseClock] = await tx.$queryRawUnsafe<Array<{ leaseExpiresAt: Date }>>(
+        `SELECT date_trunc('milliseconds', transaction_timestamp())
+                  + ($1::bigint * interval '1 millisecond') AS "leaseExpiresAt"`,
+        this.purgeLease.ttlMs,
+      );
+
+      if (!leaseClock) {
+        throw new Error('PURGE_LEASE_CLOCK_UNAVAILABLE: PostgreSQL returned no lease timestamp');
+      }
 
       const plan = await tx.purgePlan.create({
-        data: { userId, ownerToken, leaseExpiresAt, status: PURGE_PLAN_ACTIVE },
+        data: { userId, ownerToken, leaseExpiresAt: leaseClock.leaseExpiresAt, status: PURGE_PLAN_ACTIVE },
       });
 
       const freezeRows = [
@@ -843,7 +852,17 @@ export class PrismaApiStore implements ApiStore {
    * erasure whose heartbeat renews — is never a candidate.
    */
   async reconcilePurgeFreezes(): Promise<{ reconciled: number; reclaimedPlanIds: string[] }> {
-    const cutoff = new Date(Date.now() - this.purgeLease.reclaimGraceMs);
+    const [leaseClock] = await this.prisma.$queryRawUnsafe<Array<{ cutoff: Date }>>(
+      `SELECT date_trunc('milliseconds', transaction_timestamp())
+                - ($1::bigint * interval '1 millisecond') AS cutoff`,
+      this.purgeLease.reclaimGraceMs,
+    );
+
+    if (!leaseClock) {
+      throw new Error('PURGE_RECONCILE_CLOCK_UNAVAILABLE: PostgreSQL returned no reclaim cutoff');
+    }
+
+    const cutoff = leaseClock.cutoff;
     const stale = await this.prisma.purgePlan.findMany({ where: { leaseExpiresAt: { lt: cutoff } } });
     // reclaimedPlanIds lets callers/tests attribute reclaims to the SPECIFIC plan
     // (pollution-proof: the count alone conflates unrelated expired plans).
