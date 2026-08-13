@@ -110,8 +110,18 @@ async function assertNoHorizontalOverflow(page: Page) {
 
 async function openOptionsMenu(page: Page, paneIndex = 0) {
   const pane = page.locator('.bolt-project-pane-leaf').nth(paneIndex);
-  await pane.click({ position: { x: 30, y: 8 } }).catch(() => {});
 
+  /*
+   * Deliberately NOT clicking the pane first to "activate" it.
+   *
+   * That click lands on the tab strip and runs `selectPaneTab`, which writes the
+   * `?panel=` search param; the resulting navigation remounts the Project Editor
+   * and restores the persisted layout, racing whatever layout change the test is
+   * about to make. It cost a full investigation: the .4 move looked like it
+   * created a tab (2 → 3) when measured through this helper, and is exact
+   * without it ([[preview],[editor]] → [[editor,preview]], source pane
+   * collapsed). Clicking the ⋮ trigger alone already activates the pane.
+   */
   const trigger = pane.locator('[data-testid="tab-options"]').first();
   const menu = page.locator('[data-testid="tab-options-menu"]').first();
 
