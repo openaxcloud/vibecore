@@ -148,8 +148,12 @@ test('project creation exposes templates and import paths', async ({ page }) => 
   await expect(page.getByLabel('Describe your idea')).toBeVisible();
   await expect(page.getByLabel('Artifact type')).toBeVisible();
   await expect(page.locator('.vc-new-project-chip', { hasText: 'Web' })).toBeVisible();
-  await expect(page.getByTestId('agent-provider-dropdown')).toBeVisible();
-  await expect(page.getByTestId('agent-model-dropdown')).toBeVisible();
+  /*
+   * No provider/model dropdown here any more: 84c860b5 ("plus AUCUN sélecteur
+   * de modèle — 3 modes en segmented control dans l'IDE uniquement") removed
+   * model selection from project creation on purpose. app/routes/
+   * projects.new.tsx carries no data-testid at all today.
+   */
   await expect(page.getByRole('link', { name: /Import an existing GitHub repository/ })).toHaveAttribute(
     'href',
     '/import-github',
@@ -274,98 +278,21 @@ test('app shell form buttons stay visible in light theme', async ({ page }) => {
   expect(portalButtonProbe.borderColor).not.toBe('rgba(0, 0, 0, 0)');
 });
 
-test('project creation syncs AI providers and models from settings', async ({ page }) => {
-  await authenticate(page);
-
-  const providerNames = [
-    'AmazonBedrock',
-    'Anthropic',
-    'Cerebras',
-    'Cohere',
-    'Deepseek',
-    'Fireworks',
-    'Github',
-    'Google',
-    'Groq',
-    'HuggingFace',
-    'Hyperbolic',
-    'LMStudio',
-    'Mistral',
-    'Moonshot',
-    'Ollama',
-    'OpenAILike',
-    'OpenRouter',
-    'OpenAI',
-    'Perplexity',
-    'Together',
-    'xAI',
-    'Z.ai',
-  ];
-
-  await page.addInitScript((names) => {
-    const settings = Object.fromEntries(names.map((name) => [name, { settings: { enabled: name === 'OpenAI' } }]));
-    localStorage.setItem('provider_settings', JSON.stringify(settings));
-  }, providerNames);
-
-  await page.route('**/api/models', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        defaultProvider: {
-          name: 'OpenAI',
-          staticModels: [],
-        },
-        providers: [
-          {
-            name: 'Anthropic',
-            staticModels: [
-              { name: 'claude-disabled', label: 'Claude Disabled', provider: 'Anthropic', maxTokenAllowed: 200000 },
-            ],
-          },
-          {
-            name: 'OpenAI',
-            staticModels: [
-              { name: 'gpt-settings-live', label: 'GPT Settings Live', provider: 'OpenAI', maxTokenAllowed: 128000 },
-              { name: 'gpt-settings-small', label: 'GPT Settings Small', provider: 'OpenAI', maxTokenAllowed: 64000 },
-            ],
-          },
-        ],
-        modelList: [
-          { name: 'claude-disabled', label: 'Claude Disabled', provider: 'Anthropic', maxTokenAllowed: 200000 },
-          { name: 'gpt-settings-live', label: 'GPT Settings Live', provider: 'OpenAI', maxTokenAllowed: 128000 },
-          { name: 'gpt-settings-small', label: 'GPT Settings Small', provider: 'OpenAI', maxTokenAllowed: 64000 },
-        ],
-      }),
-    });
-  });
-
-  await page.goto('/projects/new', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: 'What do you want to build?' })).toBeVisible();
-  /*
-   * The "N provider synced from Settings" badge was removed from the create
-   * page — the string exists nowhere in app/ any more. The behaviour it stood
-   * for is still asserted below and more directly: the provider dropdown
-   * offers exactly the providers configured in Settings.
-   */
-
-  const providerDropdown = page.getByTestId('agent-provider-dropdown');
-  const providerCombobox = providerDropdown.getByRole('combobox', { name: 'AI provider' });
-  await expect(providerCombobox).toContainText('OpenAI');
-  await providerCombobox.click();
-  await expect(page.getByRole('option', { name: /OpenAI/ })).toBeVisible();
-  await expect(page.getByRole('option', { name: /Anthropic/ })).toHaveCount(0);
-
-  await page.keyboard.press('Escape');
-
-  const modelDropdown = page.getByTestId('agent-model-dropdown');
-  const modelCombobox = modelDropdown.getByRole('combobox', { name: 'AI model' });
-  await expect(modelCombobox).toContainText('GPT Settings Live');
-  await modelCombobox.click();
-  await expect(page.getByRole('option', { name: /GPT Settings Live/ })).toBeVisible();
-  await expect(page.getByRole('option', { name: /GPT Settings Small/ })).toBeVisible();
-});
-
+/*
+ * REMOVED — `project creation syncs AI providers and models from settings`.
+ *
+ * The whole test drove the provider/model dropdown on /projects/new
+ * (`ai-provider-dropdown`, `combobox "AI provider"`, the "N provider synced
+ * from Settings" badge). Commit 84c860b5 — "plus AUCUN sélecteur de modèle —
+ * 3 modes en segmented control dans l'IDE uniquement, réglages par
+ * utilisateur" — deleted that selector as a product decision: model choice now
+ * lives in the IDE's segmented mode control, not in project creation.
+ *
+ * None of the selectors it used exist anywhere in app/ any more, and the
+ * behaviour it covered moved to a different surface, so there is nothing to
+ * rewrite it against here. Provider/model selection in the IDE is covered by
+ * the ModelSelector tests (`agent-provider-dropdown`).
+ */
 test('private templates create a project instead of opening the public gallery', { tag: '@runtime' }, async ({ page }) => {
   await authenticate(page);
   await page.goto('/dashboard/templates');
@@ -526,8 +453,12 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByText('Agent', { exact: true })).toBeVisible();
-
+  /*
+   * `getByText('Agent', exact)` also matches hidden copies of the label (the
+   * compact shell's tab strip is present but display:none on desktop), and
+   * Playwright resolves to the first match — which was the hidden one. Assert
+   * the agent landmark itself; its region name is the stable contract.
+   */
   const agentPanel = page.getByRole('region', { name: 'AI agent' });
   await expect(agentPanel).toBeVisible();
   await expect(page.getByLabel('Resize AI agent panel')).toBeVisible();
