@@ -41,12 +41,24 @@ REPO="$(cd "$HERE/../.." && pwd)"
 source "$REPO/scripts/audit-env/lib.sh"
 
 EXPECTED_TAG="${1:?usage: replay-preview-doors.sh <tag-image-attendu>}"
-NS=vibecore
-RUNTIME_NS=workspaces
-ORG_OK='org_porte'
-ORG_PIRATE='org_pirate'
-PROJ='proj_porte'
-WS='ws-porte'
+
+# Cible du rejeu. Par defaut la release partagee de l'env d'audit ; une release
+# ISOLEE se cible en passant RELEASE/NS/RUNTIME_NS (voir
+# scripts/audit-env/deploy-isolated.sh). Le nom des Services derive du fullname du
+# chart, `<release>-<chart>` — c'est pour cela que le nom de release doit etre
+# parametrable ici : cable en dur, le rejeu interrogerait les pods d'une AUTRE
+# release que celle qu'il pretend mesurer.
+RELEASE="${RELEASE:-vibecore}"
+NS="${NS:-vibecore}"
+RUNTIME_NS="${RUNTIME_NS:-workspaces}"
+FULLNAME="$RELEASE-vibecore-platform"
+
+ORG_OK="${ORG_OK:-org_porte}"
+ORG_PIRATE="${ORG_PIRATE:-org_pirate}"
+PROJ="${PROJ:-proj_porte}"
+# Workspace distinct par release : deux rejeux concurrents sur le meme cluster ne
+# doivent pas se disputer le meme pod.
+WS="${WS_ID:-ws-porte}"
 # Le POD ne porte pas l'id du workspace : le manager le préfixe. Attendre
 # `pod/ws-porte` échouait donc silencieusement (« pod introuvable »).
 WS_POD="workspace-$WS"
@@ -95,6 +107,7 @@ attendu() {
 say "############ REJEU LIVE DES 4 PORTES ############"
 say "date: $(date -u +%FT%TZ)   tag attendu: $EXPECTED_TAG"
 say "cluster: $AUDIT_KUBE_CONTEXT"
+say "release: $RELEASE   ns: $NS   runtime: $RUNTIME_NS   workspace: $WS"
 say
 
 # --- 1. la flotte tourne-t-elle TOUTE le tag attendu ? ----------------------
@@ -136,9 +149,9 @@ if ((echecs > 0)); then
 fi
 
 API_POD="$(k get pods -l app.kubernetes.io/component=api -o jsonpath='{.items[0].metadata.name}')"
-PROXY_SVC="http://vibecore-vibecore-platform-preview-proxy.$NS.svc.cluster.local:3020"
-WSM_SVC="http://vibecore-vibecore-platform-workspace-manager.$NS.svc.cluster.local:3010"
-SHOT_SVC="http://vibecore-vibecore-platform-screenshotter.$NS.svc.cluster.local:3030"
+PROXY_SVC="http://$FULLNAME-preview-proxy.$NS.svc.cluster.local:3020"
+WSM_SVC="http://$FULLNAME-workspace-manager.$NS.svc.cluster.local:3010"
+SHOT_SVC="http://$FULLNAME-screenshotter.$NS.svc.cluster.local:3030"
 
 # --- 3. semer org + projet (les FK l'exigent) -------------------------------
 say
@@ -165,7 +178,7 @@ const [org, orgPirate, proj] = process.argv.slice(1);
 # --- 4. démarrer le workspace par le workspace-manager (chemin réel) -------
 say
 say "== demarrage du workspace $WS (pod gVisor) =="
-AGENT_IMAGE="$(k get configmap vibecore-vibecore-platform-platform-env -o jsonpath='{.data.WORKSPACE_AGENT_IMAGE}')"
+AGENT_IMAGE="$(k get configmap "$FULLNAME-platform-env" -o jsonpath='{.data.WORKSPACE_AGENT_IMAGE}')"
 say "  image agent: $AGENT_IMAGE"
 start_code="$(k exec "$API_POD" -- sh -lc "curl -sS -m 300 -o /tmp/start.json -w '%{http_code}' \
   -X POST '$WSM_SVC/workspaces/start' \
@@ -238,7 +251,7 @@ eval "$TOKENS"
 say "  jeton legitime : ${LEGIT%%.*}.<exp>.<sig tronquee>"
 say "  jeton intrus   : ${PIRATE%%.*}.<exp>.<sig tronquee>"
 
-PREVIEW_SUFFIX="$(k get configmap vibecore-vibecore-platform-platform-env -o jsonpath='{.data.PREVIEW_DOMAIN}')"
+PREVIEW_SUFFIX="$(k get configmap "$FULLNAME-platform-env" -o jsonpath='{.data.PREVIEW_DOMAIN}')"
 say "  domaine preview: $PREVIEW_SUFFIX"
 
 say
@@ -382,7 +395,7 @@ const attempt = (label, cookie) => new Promise((resolve) => {
   console.log(await attempt("cookie-BIDON", tokBidon));
   console.log(await attempt("cookie-LEGITIME", tokLegit));
 })();
-' vibecore-vibecore-platform-preview-proxy."$NS".svc.cluster.local "$WS" "$LEGIT" "$PIRATE" "$BIDON" "$PREVIEW_SUFFIX")"
+' "$FULLNAME-preview-proxy.$NS.svc.cluster.local" "$WS" "$LEGIT" "$PIRATE" "$BIDON" "$PREVIEW_SUFFIX")"
 printf '%s\n' "$ws_out" | sed 's/^/  /' | tee -a "$OUT"
 
 # Assertions : les trois premiers doivent être REFUSÉS (aucun 101), le dernier doit
