@@ -2,20 +2,30 @@ import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
 
 /**
- * Pin the surface to the light theme.
+ * Pin the surface to the light theme before the first navigation.
  *
  * Theme resolution order is cookie -> localStorage -> server-seeded attribute.
- * Writing `document.cookie` from `addInitScript` does NOT work: that script
- * runs before navigation, on `about:blank`, so the cookie never reaches the app
- * origin and a stale `ecode_theme` kept winning — which is why these
- * light-theme assertions were reading the dark palette. Set the cookie on the
- * browser context instead, and keep the localStorage seed as the fallback.
+ * `document.cookie` written from `addInitScript` cannot influence the *first*
+ * response (the script runs on about:blank, and the server seeds
+ * `<html data-theme>` from the request cookie), so callers that need the server
+ * itself to render light must follow up with `forceLightTheme` once navigated.
  */
 async function seedLightTheme(page: import('@playwright/test').Page) {
-  const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
+  await page.addInitScript(() => {
+    localStorage.setItem('bolt_theme', 'light');
+  });
+}
 
-  await page.context().addCookies([{ name: 'ecode_theme', value: 'light', url: baseUrl }]);
-  await seedLightTheme(page);
+/**
+ * Apply the light theme on an already-navigated page and reload, so the server
+ * re-renders with `ecode_theme` present in the request.
+ */
+async function forceLightTheme(page: import('@playwright/test').Page) {
+  await page.evaluate(() => {
+    document.cookie = 'ecode_theme=light; path=/; SameSite=Lax';
+    localStorage.setItem('bolt_theme', 'light');
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
 }
 
 async function waitForApiHealth(page: import('@playwright/test').Page, apiBaseUrl: string) {
@@ -183,7 +193,12 @@ test('project creation exposes templates and import paths', async ({ page }) => 
   );
   await expect(page.getByRole('link', { name: /Upload a zip archive/ })).toHaveAttribute('href', '/import-zip');
   await expect(page.getByRole('heading', { name: 'Start from the existing catalog' })).toBeVisible();
-  await expect(page.getByText('Authenticated template flow already wired to project creation.')).toBeVisible();
+  /*
+   * The "Authenticated template flow already wired to project creation."
+   * blurb was removed from the create page — app/routes/projects.new.ui.spec.ts
+   * now asserts the route source must NOT contain it, so this can never come
+   * back. The catalog heading above is the surviving contract.
+   */
 });
 
 test('project creation light theme uses light containers and readable image previews', async ({ page }) => {
@@ -1240,7 +1255,8 @@ test('IDE applies section 12 UI detail styles', async ({ page, isMobile }) => {
   expect(details.radiusButton).toBe('4px');
   expect(details.radiusModal).toBe('8px');
   expect(details.radiusPopover).toBe('12px');
-  expect(details.shadowXl).toBe('0 24px 64px rgb(0 4 20 / 0.7)');
+  // Custom properties echo the author's spelling (`.7`); compare the value.
+  expect(details.shadowXl.replace(/(^|[^0-9a-zA-Z])\.(\d)/g, '$10.$2')).toBe('0 24px 64px rgb(0 4 20 / 0.7)');
   expect(details.focusRing).toBe('#0099ff');
   expect(details.toolMenuRadius).toBe('12px');
   expect(details.toolMenuShadow).toBe('rgba(0, 4, 20, 0.7) 0px 24px 64px 0px');
@@ -1592,6 +1608,10 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
   expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 60_000 });
+  // The server seeds <html data-theme> from the cookie, so force it and reload
+  // before measuring light-theme surfaces.
+  await forceLightTheme(page);
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.bolt-project-tab').first()).toBeVisible({ timeout: 30_000 });
   const filesPanel = page.locator('[aria-label="Project library panel"]');
