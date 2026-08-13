@@ -703,10 +703,38 @@ export class PrismaApiStore implements ApiStore {
    * no longer ours.
    */
   async renewPurgeLease(planId: string, ownerToken: string, expectedVersion: number): Promise<number | null> {
+    /*
+     * RR-CODEX-14 v8 (R-P5-01): the CAS matched on (id, ownerToken, version, status)
+     * but NOT on the lease still being alive — so an ALREADY-EXPIRED lease could be
+     * renewed back into the future. That reachable state is forbidden: once
+     * `leaseExpiresAt <= now`, workspace-manager's `isPurgeFenceOwnerLive` reports the
+     * owner dead and its stale-freeze reconciler may lift the purge barrier. A renewal
+     * landing after that resurrects the lease while the barrier is already down —
+     * "lease valid again + barrier lifted", i.e. an erasure believing it still owns a
+     * runtime that is once more reprovisionable.
+     *
+     * `leaseExpiresAt: { gt: now }` closes it INSIDE the same conditional UPDATE:
+     * Postgres evaluates it against the row under the update's lock, so there is no
+     * window between "is it alive?" and "extend it". A dead lease matches 0 rows and
+     * the caller gets null — exactly like losing the version CAS. Recovery is the
+     * reclaim path (a fresh plan), never a resurrection.
+     *
+     * ONE `now` for both the guard and the new expiry, so the boundary is a single
+     * instant rather than two clock reads: `now === leaseExpiresAt` is EXPIRED, the
+     * same strict `>` used by validatePurgeLease and by the manager's liveness lookup.
+     * All three agree, which is what makes the state machine consistent across tiers.
+     */
+    const now = new Date();
     const nextVersion = expectedVersion + 1;
     const won = await this.prisma.purgePlan.updateMany({
-      where: { id: planId, ownerToken, version: expectedVersion, status: PURGE_PLAN_ACTIVE },
-      data: { leaseExpiresAt: new Date(Date.now() + this.purgeLease.ttlMs), version: nextVersion },
+      where: {
+        id: planId,
+        ownerToken,
+        version: expectedVersion,
+        status: PURGE_PLAN_ACTIVE,
+        leaseExpiresAt: { gt: now },
+      },
+      data: { leaseExpiresAt: new Date(now.getTime() + this.purgeLease.ttlMs), version: nextVersion },
     });
 
     return won.count === 1 ? nextVersion : null;

@@ -1,6 +1,6 @@
 import { hashPassword } from '@vibecore/auth';
 import { createDatabaseClient } from '@vibecore/database';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { ErasureProof, PurgeStorageInventory } from '../account-purge.js';
 import { eraseSubjectStorage } from '../account-storage-purge.js';
@@ -1001,6 +1001,145 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
     } finally {
       await Promise.allSettled([prismaO.$disconnect(), prismaR.$disconnect()]);
     }
+  });
+
+  /*
+   * RR-CODEX-14 v8 (R-P5-01) — a lease may never be renewed back from the dead.
+   *
+   * Why this is a correctness boundary and not a nicety: workspace-manager decides a
+   * fence owner is alive with `leaseExpiresAt > now`. The moment a lease lapses, its
+   * stale-freeze reconciler is entitled to lift the purge barrier. If the api can then
+   * renew that same lease, the pair reaches the forbidden state "lease valid again +
+   * barrier lifted" — an erasure that believes it still owns a runtime which is once
+   * more reprovisionable.
+   *
+   * The two orderings are driven deterministically with a frozen clock (Date only, so
+   * Prisma's I/O is untouched), and the exact instant `now === leaseExpiresAt` is
+   * pinned as EXPIRED — the same strict `>` used by validatePurgeLease and by the
+   * manager's liveness lookup, so the three tiers cannot disagree.
+   */
+  describe('(22) purge lease renewal is refused once the lease has lapsed (R-P5-01)', () => {
+    const T = new Date('2026-08-12T12:00:00.000Z');
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    /** RENEW BEFORE DEATH: the lease is still alive → renewal wins and extends it. */
+    it('renew-before-death: an ALIVE lease renews, bumping version and pushing the expiry out', async () => {
+      const prisma = createDatabaseClient();
+
+      try {
+        const store = newStore(prisma);
+        const { user, org } = await seedAccount(store);
+        // Alive by exactly one millisecond — the tightest passing case.
+        const plan = await seedPlan(prisma, user.id, [org.id], [], {
+          leaseExpiresAt: new Date(T.getTime() + 1),
+        });
+
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(T);
+
+        const next = await store.renewPurgeLease(plan.id, plan.ownerToken, plan.version);
+
+        expect(next).toBe(plan.version + 1);
+
+        const after = (await prisma.purgePlan.findUnique({ where: { id: plan.id } }))!;
+        expect(after.version).toBe(plan.version + 1);
+        expect(after.leaseExpiresAt.getTime()).toBeGreaterThan(T.getTime());
+      } finally {
+        await prisma.$disconnect();
+      }
+    });
+
+    /** DEATH BEFORE RENEW: the lease already lapsed → renewal is refused, row untouched. */
+    it('death-before-renew: an EXPIRED lease is NOT resurrected and the row is left untouched', async () => {
+      const prisma = createDatabaseClient();
+
+      try {
+        const store = newStore(prisma);
+        const { user, org } = await seedAccount(store);
+        const expiredAt = new Date(T.getTime() - 10_000);
+        const plan = await seedPlan(prisma, user.id, [org.id], [], { leaseExpiresAt: expiredAt });
+
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(T);
+
+        const next = await store.renewPurgeLease(plan.id, plan.ownerToken, plan.version);
+
+        // Refused exactly like losing the version CAS — the caller must stop, not retry.
+        expect(next).toBeNull();
+
+        const after = (await prisma.purgePlan.findUnique({ where: { id: plan.id } }))!;
+        expect(after.version).toBe(plan.version);
+        expect(after.leaseExpiresAt.getTime()).toBe(expiredAt.getTime());
+
+        // And it stays dead by the very predicate workspace-manager uses.
+        expect(after.leaseExpiresAt.getTime() > T.getTime()).toBe(false);
+      } finally {
+        await prisma.$disconnect();
+      }
+    });
+
+    /** THE EXACT BOUNDARY: now === leaseExpiresAt is EXPIRED, not alive. */
+    it('boundary: now === leaseExpiresAt counts as EXPIRED (strict >, consistent across tiers)', async () => {
+      const prisma = createDatabaseClient();
+
+      try {
+        const store = newStore(prisma);
+        const { user, org } = await seedAccount(store);
+        // Expiry set to the EXACT instant the renewal will read as "now".
+        const plan = await seedPlan(prisma, user.id, [org.id], [], { leaseExpiresAt: T });
+
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(T);
+
+        expect(await store.renewPurgeLease(plan.id, plan.ownerToken, plan.version)).toBeNull();
+
+        const after = (await prisma.purgePlan.findUnique({ where: { id: plan.id } }))!;
+        expect(after.leaseExpiresAt.getTime()).toBe(T.getTime());
+        expect(after.version).toBe(plan.version);
+      } finally {
+        await prisma.$disconnect();
+      }
+    });
+
+    /*
+     * The forbidden pair, end to end: once the lease has lapsed the manager's liveness
+     * predicate reports the owner dead (so the barrier becomes liftable), and no
+     * renewal may flip it back to alive behind that decision.
+     */
+    it('the forbidden state is unreachable: a lapsed lease stays dead for the manager', async () => {
+      const prisma = createDatabaseClient();
+
+      try {
+        const store = newStore(prisma);
+        const { user, org } = await seedAccount(store);
+        const plan = await seedPlan(prisma, user.id, [org.id], [], {
+          leaseExpiresAt: new Date(T.getTime() - 1),
+        });
+
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(T);
+
+        // What workspace-manager's isPurgeFenceOwnerLive asks of the same row.
+        const liveBefore = await prisma.purgePlan.findFirst({
+          where: { ownerToken: plan.ownerToken, leaseExpiresAt: { gt: new Date() } },
+          select: { id: true },
+        });
+        expect(liveBefore).toBeNull(); // owner already dead → barrier is liftable
+
+        expect(await store.renewPurgeLease(plan.id, plan.ownerToken, plan.version)).toBeNull();
+
+        const liveAfter = await prisma.purgePlan.findFirst({
+          where: { ownerToken: plan.ownerToken, leaseExpiresAt: { gt: new Date() } },
+          select: { id: true },
+        });
+        expect(liveAfter).toBeNull(); // still dead — no resurrection behind the manager
+      } finally {
+        await prisma.$disconnect();
+      }
+    });
   });
 
   it('(22) lease lost mid-erasure: after 1 resource, NO further delete, NO tombstone, recoverable', async () => {
