@@ -13,6 +13,7 @@ import {
   CHART_VALUES,
   DEPLOY_WORKFLOW,
   POLICY_FILE,
+  STAGING_WORKFLOW,
   checkGateWiring,
   parseChartServiceKeys,
   parseNeeds,
@@ -28,6 +29,7 @@ function realFiles() {
     breakGlassWorkflow: fs.readFileSync(BREAK_GLASS_WORKFLOW, 'utf8'),
     policy: JSON.parse(fs.readFileSync(POLICY_FILE, 'utf8')),
     chartValues: fs.readFileSync(CHART_VALUES, 'utf8'),
+    stagingWorkflow: fs.readFileSync(STAGING_WORKFLOW, 'utf8'),
   };
 }
 
@@ -101,6 +103,15 @@ describe('deploy gate wiring', () => {
     const files = realFiles();
     files.breakGlassWorkflow = files.breakGlassWorkflow.replace(/production-break-glass-1/g, 'production-break-glass-2');
     expect(checkGateWiring(files).join('\n')).toMatch(/missing sequential approval environment/);
+  });
+
+  it('keeps staging from becoming a second production path', () => {
+    // deploy-staging.yml deploys the SAME release name and namespace as production,
+    // inside the production GCP project; only an undefined variable separates them.
+    const files = realFiles();
+    expect(files.stagingWorkflow).toMatch(/Refuse to target the production cluster/);
+    files.stagingWorkflow = files.stagingWorkflow.replace(/Refuse to target the production cluster/g, 'Deploy');
+    expect(checkGateWiring(files).join('\n')).toMatch(/must refuse to run against the production cluster/);
   });
 
   it('catches a break-glass path that could build and ship new code', () => {

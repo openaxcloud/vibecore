@@ -34,6 +34,7 @@ export const BREAK_GLASS_WORKFLOW = '.github/workflows/deploy-break-glass.yml';
 export const POLICY_FILE = 'scripts/release-gate/required-checks.json';
 export const CHART_VALUES = 'infra/helm/platform/values.yaml';
 export const SIGNING_BUILD_CONFIG = 'infra/cloudbuild/runtime-tier.yaml';
+export const STAGING_WORKFLOW = '.github/workflows/deploy-staging.yml';
 
 /**
  * Parse the deploy workflow's `SERVICES=` line into structured entries.
@@ -183,7 +184,7 @@ export function grantsIdToken(region, indent) {
  * @param {{deployWorkflow: string, breakGlassWorkflow: string, policy: object}} files
  * @returns {string[]} problems (empty = wired correctly)
  */
-export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues, signingBuildConfig }) {
+export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues, signingBuildConfig, stagingWorkflow }) {
   const problems = [];
   const { topLevel, jobs } = parseWorkflowRegions(deployWorkflow);
   breakGlassWorkflow = breakGlassWorkflow ? stripComments(breakGlassWorkflow) : breakGlassWorkflow;
@@ -344,6 +345,22 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, ch
     }
   }
 
+  // --- staging must not be able to become a production path ---
+  //
+  // deploy-staging.yml runs `helm upgrade --install vibecore --namespace vibecore` —
+  // the SAME release and namespace as production — inside the production GCP project.
+  // Only `vars.STAGING_APP_CLUSTER` separates the two, and that variable is defined
+  // nowhere today: staging fails by accident, not by design. Removing this guard would
+  // restore a second, ungated, tag-based path to the production release.
+  if (stagingWorkflow) {
+    if (!/Refuse to target the production cluster/.test(stagingWorkflow)) {
+      problems.push(`${STAGING_WORKFLOW}: must refuse to run against the production cluster`);
+    }
+    if (!/PROD_CLUSTER/.test(stagingWorkflow)) {
+      problems.push(`${STAGING_WORKFLOW}: the production cluster name must be named explicitly in the guard`);
+    }
+  }
+
   // --- the policy must still require the four pipelines ---
   const names = (policy.requiredWorkflows ?? []).map((w) => w.displayName);
   for (const required of ['Production CI', 'Production E2E', 'Security Analysis', 'Code Quality']) {
@@ -400,6 +417,7 @@ function selfTest() {
   const policy = JSON.parse(fs.readFileSync(POLICY_FILE, 'utf8'));
   const chartValues = fs.readFileSync(CHART_VALUES, 'utf8');
   const signingBuildConfig = fs.readFileSync(SIGNING_BUILD_CONFIG, 'utf8');
+  const stagingWorkflow = fs.readFileSync(STAGING_WORKFLOW, 'utf8');
 
   // Prove the validator can actually FAIL — a checker that only ever passes is
   // indistinguishable from no checker at all.
@@ -413,6 +431,7 @@ function selfTest() {
       policy,
       chartValues,
       signingBuildConfig,
+      stagingWorkflow,
     })],
     ['id-token granted workflow-wide', () => ({
       deployWorkflow: deployWorkflow.replace('permissions:\n  contents: read', 'permissions:\n  contents: read\n  id-token: write'),
@@ -420,6 +439,7 @@ function selfTest() {
       policy,
       chartValues,
       signingBuildConfig,
+      stagingWorkflow,
     })],
     ['E2E dropped from the policy', () => ({
       deployWorkflow,
@@ -427,6 +447,7 @@ function selfTest() {
       policy: { ...policy, requiredWorkflows: policy.requiredWorkflows.filter((w) => w.displayName !== 'Production E2E') },
       chartValues,
       signingBuildConfig,
+      stagingWorkflow,
     })],
     ['verification keyring drifting from the signing keyring', () => ({
       deployWorkflow: deployWorkflow.replace('KMS_KEYRING: ecode-supply-chain', 'KMS_KEYRING: vibecore-supply-chain'),
@@ -434,6 +455,7 @@ function selfTest() {
       policy,
       chartValues,
       signingBuildConfig,
+      stagingWorkflow,
     })],
     ['break-glass losing its second approval gate', () => ({
       deployWorkflow,
@@ -441,6 +463,15 @@ function selfTest() {
       policy,
       chartValues,
       signingBuildConfig,
+      stagingWorkflow,
+    })],
+    ['staging losing its refuse-production-cluster guard', () => ({
+      deployWorkflow,
+      breakGlassWorkflow,
+      policy,
+      chartValues,
+      signingBuildConfig,
+      stagingWorkflow: stagingWorkflow.replace(/Refuse to target the production cluster/g, 'Deploy'),
     })],
     ['break-glass allowed to build', () => ({
       deployWorkflow,
@@ -448,6 +479,7 @@ function selfTest() {
       policy,
       chartValues,
       signingBuildConfig,
+      stagingWorkflow,
     })],
     ['a chart service left out of the digest matrix', () => ({
       deployWorkflow: deployWorkflow.replace('api:api:runtime:true:true ', ''),
@@ -455,6 +487,7 @@ function selfTest() {
       policy,
       chartValues,
       signingBuildConfig,
+      stagingWorkflow,
     })],
     ['a service waited on but no longer verified', () => ({
       deployWorkflow: deployWorkflow.replace('for svc in web api', 'for svc in web admin api'),
@@ -462,6 +495,7 @@ function selfTest() {
       policy,
       chartValues,
       signingBuildConfig,
+      stagingWorkflow,
     })],
   ];
 
@@ -475,7 +509,7 @@ function selfTest() {
     }
   }
 
-  const clean = checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues, signingBuildConfig });
+  const clean = checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues, signingBuildConfig, stagingWorkflow });
   console.log(`${clean.length === 0 ? 'ok  ' : 'FAIL'}  accepts the real, unmutated workflow`);
   if (clean.length > 0) {
     clean.forEach((p) => console.log(`        ${p}`));
@@ -495,6 +529,7 @@ function main() {
     policy: JSON.parse(fs.readFileSync(POLICY_FILE, 'utf8')),
     chartValues: fs.existsSync(CHART_VALUES) ? fs.readFileSync(CHART_VALUES, 'utf8') : null,
     signingBuildConfig: fs.existsSync(SIGNING_BUILD_CONFIG) ? fs.readFileSync(SIGNING_BUILD_CONFIG, 'utf8') : null,
+    stagingWorkflow: fs.existsSync(STAGING_WORKFLOW) ? fs.readFileSync(STAGING_WORKFLOW, 'utf8') : null,
   });
 
   if (problems.length > 0) {
