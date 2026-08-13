@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  observeRuntimeWriteFence,
   reconcileRuntimeFileSnapshot,
   verifyRuntimeFileSnapshotStable,
   type RuntimeFileSnapshot,
@@ -34,6 +35,48 @@ const quiescenceDiagnostic = (quietForMs: number) => ({
 });
 
 describe('runtime file reconciliation', () => {
+  it('does not accept a 30.205s runtime-write pause while the chat stream is still in flight', () => {
+    const paused = observeRuntimeWriteFence({
+      chatInflight: 1,
+      lastChatActivityAtMs: 0,
+      lastRuntimeActivityAtMs: 0,
+      minimumQuietForMs: 30_000,
+      observedAtMs: 30_205,
+      runtimeMutationInflight: 0,
+      waitStartedAtMs: 0,
+    });
+
+    expect(paused).toEqual({ quietForMs: 30_205, ready: false });
+
+    const chatFinishedAtMs = 40_000;
+
+    const afterChatQuiet = observeRuntimeWriteFence({
+      chatInflight: 0,
+      lastChatActivityAtMs: chatFinishedAtMs,
+      lastRuntimeActivityAtMs: 0,
+      minimumQuietForMs: 30_000,
+      observedAtMs: chatFinishedAtMs + 30_000,
+      runtimeMutationInflight: 0,
+      waitStartedAtMs: 0,
+    });
+
+    expect(afterChatQuiet).toEqual({ quietForMs: 30_000, ready: true });
+  });
+
+  it('resets the quiet window after the last runtime mutation completes', () => {
+    expect(
+      observeRuntimeWriteFence({
+        chatInflight: 0,
+        lastChatActivityAtMs: 10_000,
+        lastRuntimeActivityAtMs: 35_000,
+        minimumQuietForMs: 12_000,
+        observedAtMs: 46_999,
+        runtimeMutationInflight: 0,
+        waitStartedAtMs: 20_000,
+      }),
+    ).toEqual({ quietForMs: 11_999, ready: false });
+  });
+
   it('adopts a late persisted-file revision and writes that immutable snapshot in the next cycle', async () => {
     let nowMs = 0;
     let persisted = snapshot('revision-a');

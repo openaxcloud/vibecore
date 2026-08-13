@@ -41,8 +41,9 @@ describe('Solutions proof runtime reconciliation order', () => {
   it('fences the complete chat stream and runtime mutations before reconciliation', () => {
     expect(activityTrackerSource).toContain("request.method() !== 'POST'");
     expect(activityTrackerSource).toContain('/^\\/api\\/chat\\/?$/');
-    expect(activityTrackerSource).toContain('chatInflight.size === 0');
-    expect(activityTrackerSource).toContain('(state?.inflight.size ?? 0) === 0');
+    expect(activityTrackerSource).toContain('observeRuntimeWriteFence({');
+    expect(activityTrackerSource).toContain('chatInflight: chatInflight.size');
+    expect(activityTrackerSource).toContain('runtimeMutationInflight: state?.inflight.size ?? 0');
     expect(activityTrackerSource).toContain('lastChatActivityAtMs');
     expect(activityTrackerSource).toContain('state?.lastActivityAtMs');
 

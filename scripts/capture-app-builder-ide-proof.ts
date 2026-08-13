@@ -24,6 +24,7 @@ import {
   type RuntimePreviewProvenance,
 } from './solution-runtime-preview-proof.js';
 import {
+  observeRuntimeWriteFence,
   reconcileRuntimeFileSnapshot,
   verifyRuntimeFileSnapshotStable,
   type RuntimeFileSnapshot,
@@ -265,26 +266,28 @@ function registerRuntimeWriteActivityTracker(page: Page) {
       while (Date.now() < deadlineMs) {
         const state = states.get(workspaceId);
 
-        const quietSinceMs = Math.max(
-          waitStartedAtMs,
+        const fence = observeRuntimeWriteFence({
+          chatInflight: chatInflight.size,
           lastChatActivityAtMs,
-          state?.lastActivityAtMs ?? waitStartedAtMs,
-        );
+          lastRuntimeActivityAtMs: state?.lastActivityAtMs ?? waitStartedAtMs,
+          minimumQuietForMs: quietForMs,
+          observedAtMs: Date.now(),
+          runtimeMutationInflight: state?.inflight.size ?? 0,
+          waitStartedAtMs,
+        });
 
-        const quietForObservedMs = Date.now() - quietSinceMs;
-
-        if (chatInflight.size === 0 && (state?.inflight.size ?? 0) === 0 && quietForObservedMs >= quietForMs) {
+        if (fence.ready) {
           return {
             chatInflight: 0,
             chatRequestCount,
-            quietForMs: quietForObservedMs,
+            quietForMs: fence.quietForMs,
             runtimeMutationCount: state?.mutationCount ?? 0,
             runtimeMutationInflight: 0,
           };
         }
 
         const remainingBudgetMs = deadlineMs - Date.now();
-        const remainingQuietMs = Math.max(1, quietForMs - quietForObservedMs);
+        const remainingQuietMs = Math.max(1, quietForMs - fence.quietForMs);
 
         await new Promise((resolveDelay) =>
           setTimeout(resolveDelay, Math.min(1_000, remainingQuietMs, remainingBudgetMs)),

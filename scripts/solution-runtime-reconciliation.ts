@@ -36,10 +36,7 @@ export function observeRuntimeWriteFence(input: RuntimeWriteFenceObservation) {
 
   return {
     quietForMs,
-    ready:
-      input.chatInflight === 0 &&
-      input.runtimeMutationInflight === 0 &&
-      quietForMs >= input.minimumQuietForMs,
+    ready: input.chatInflight === 0 && input.runtimeMutationInflight === 0 && quietForMs >= input.minimumQuietForMs,
   };
 }
 
