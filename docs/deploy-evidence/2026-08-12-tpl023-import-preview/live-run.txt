@@ -3,14 +3,44 @@
 == 1. staging (POST /orgs/:orgId/imports) ==
    202 state=AWAITING_USER_ACTION requiresConsent=True
    stagedFiles = [{"path": ".env", "sizeBytes": 67}, {"path": "README.md", "sizeBytes": 11}, {"path": "src/index.js", "sizeBytes": 18}]
-== 2. relecture (GET) — même aperçu, lecture seule ==
+== 2. relecture (GET) — même aperçu, lecture seule, TOUS réplicas ==
+   8 lectures consécutives -> ['preview', 'preview', 'preview', 'preview', 'preview', 'preview', 'preview', 'preview']
    state=AWAITING_USER_ACTION findings=1 preview stable=True
 == 3. la porte tient : commit SANS décision ==
    409 code=IMPORT_UNRESOLVED_FINDINGS
 == 4. commit AVEC décision « redact » ==
    consent = {".env:2": "redact"}
-!! POST /orgs/cmspxdz2a00029da3nqdz4adl/imports/cmspxexz800040na3z8yo8x80/commit -> 409
+   201 projet=cmsr2iffi00040ngw4v9p13pi redacted=1
+== 5. octets réels du projet créé ==
+   fichiers = ['.env', 'README.md', 'src/index.js']
+   .env après masquage :
+PORT=3000
+API_SECRET=65ea…9aa
+DEBUG=true
+
+== 6. après commit : preview null ET réservation SETTLED ==
+   preview=None state=COMMITTED reservation={'state': 'SETTLED', 'reservedCredits': 3, 'debitedCredits': 3}
+
 {
-  "error": "Import staging expired or already committed",
-  "code": "IMPORT_STAGING_GONE"
+  "verdict": "PASS",
+  "checks": {
+    "stagedFilesPresent": true,
+    "pathsSorted": true,
+    "envSizeExact": true,
+    "noSecretInStaging": true,
+    "noContentInStaging": true,
+    "everyReplicaSeesPreview": true,
+    "previewOnRead": true,
+    "readIsStable": true,
+    "readDoesNotAdvanceState": true,
+    "findingsRecomputed": true,
+    "noSecretInRead": true,
+    "commitBlockedWithoutConsent": true,
+    "secretAbsentFromProject": true,
+    "envFilePresent": true,
+    "previewNullAfterCommit": true,
+    "reservationSettled": true,
+    "debitOnlyAfterCommit": true
+  },
+  "failed": []
 }

@@ -93,7 +93,20 @@ results["envSizeExact"] = any(
 results["noSecretInStaging"] = SECRET not in json.dumps(imp)
 results["noContentInStaging"] = "console.log" not in json.dumps(staged_files)
 
-print("== 2. relecture (GET) — même aperçu, lecture seule ==")
+print("== 2. relecture (GET) — même aperçu, lecture seule, TOUS réplicas ==")
+
+# BUG-IMPORT-001 : avec le staging en mémoire du processus, ces lectures
+# alternaient aperçu / vide au gré du load balancer. On en fait assez pour
+# toucher les deux pods.
+previews = []
+
+for _ in range(8):
+    _, probe = call("GET", f"/orgs/{org}/imports/{job_id}", expect=(200,))
+    previews.append("preview" if probe["import"].get("preview") else "NULL")
+
+print(f"   8 lectures consécutives -> {previews}")
+results["everyReplicaSeesPreview"] = all(p == "preview" for p in previews)
+
 _, read1 = call("GET", f"/orgs/{org}/imports/{job_id}", expect=(200,))
 _, read2 = call("GET", f"/orgs/{org}/imports/{job_id}", expect=(200,))
 p1, p2 = read1["import"].get("preview"), read2["import"].get("preview")
@@ -130,10 +143,13 @@ results["envFilePresent"] = ".env" in contents
 print(f"   fichiers = {sorted(contents)}")
 print(f"   .env après masquage :\n{contents.get('.env', '<ABSENT>')}")
 
-print("== 6. après commit, preview = null ==")
+print("== 6. après commit : preview null ET réservation SETTLED ==")
 _, after = call("GET", f"/orgs/{org}/imports/{job_id}", expect=(200,))
 results["previewNullAfterCommit"] = after["import"].get("preview") is None
-print(f"   preview = {after['import'].get('preview')}  state={after['import']['state']}")
+reservation = after["import"].get("reservation") or {}
+results["reservationSettled"] = reservation.get("state") == "SETTLED"
+results["debitOnlyAfterCommit"] = (reservation.get("debitedCredits") or 0) > 0
+print(f"   preview={after['import'].get('preview')} state={after['import']['state']} reservation={reservation}")
 
 print()
 failed = [k for k, v in results.items() if not v]

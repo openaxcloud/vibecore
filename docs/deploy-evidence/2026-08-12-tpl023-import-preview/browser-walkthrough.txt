@@ -1,0 +1,53 @@
+Parcours NAVIGATEUR — /import-zip → aperçu → projet créé
+=======================================================
+Env de test, 2026-08-13. api:91aff568ad + web:a1e893abe2.
+Connexion par le VRAI formulaire (/login), cookie vc_session httpOnly.
+
+1) /import-zip?source=base44 — archive réelle déposée dans le champ fichier
+   (3 fichiers dont un .env porteur d'une valeur de forme secrète).
+
+2) Redirection vers /import/preview/cmsr41kku00040ng368cjnpeg
+   Titre : « Vérifier l'import - E-Code »   <html lang="fr">
+
+   Texte rendu (extrait littéral) :
+   ------------------------------------------------------------------
+   Aller au contenu | Menu | Vérifier avant d'importer | EN FR
+   CONSOLE DE L'ESPACE DE TRAVAIL
+   Vérifier avant d'importer
+   Rien n'a encore été écrit. Ces fichiers sont préparés dans un espace
+   jetable ; vérifiez-les puis confirmez pour créer le projet.
+   Source — Base44 · Depuis base44-export-1786600893738.zip
+   Fichiers qui seraient importés (3)
+     .env         67 octets
+     README.md    28 octets
+     src/app.js   47 octets
+   Analyse des secrets
+   1 détection(s) attendent une décision. L'import ne peut pas être validé
+   tant qu'une détection reste sans décision.
+     Secret d'environnement
+     .env, ligne 2
+     API_SECRET=fadf…888          <- aperçu DÉJÀ MASQUÉ, jamais la valeur
+     ( ) Masquer cette ligne   ( ) La conserver telle quelle
+   Le masquage ne réécrit que la copie préparée — votre source n'est jamais
+   modifiée.
+   [ Créer le projet ]  [ Annuler cet import ]
+   ------------------------------------------------------------------
+
+   Champs de décision réellement présents dans le DOM :
+     name="consent:.env:2" value="redact" (coché par défaut)
+     name="consent:.env:2" value="keep"
+
+3) Clic « Créer le projet » → IDE du projet créé
+   /@tpl023-ui-org/base44-export-1786600893738-zip-cjnpeg
+   Arborescence : src/app.js, .env, README.md
+
+4) Octets réels du projet créé (GET /projects/:id/export/zip) :
+   .env =
+     PORT=3000
+     API_SECRET=fadf…888
+     DEBUG=true
+   Secret brut présent dans le projet : FALSE
+
+Note i18n : « Aller au contenu » est en français ici. Il disait « Skip to
+content » avant le correctif de ce lot (le prop `label` de SkipLink est
+désormais obligatoire).
