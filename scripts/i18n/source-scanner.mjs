@@ -425,6 +425,22 @@ function visibleMapCallCandidates(node) {
   return callbackReturnExpressions(callback).flatMap((expression) => visibleStringCandidates(expression));
 }
 
+/*
+ * A SCREAMING_SNAKE literal is an enum/reason code, never copy shown to a user.
+ * `reason`, `error` and `status` are visible object keys because they OFTEN hold
+ * copy — the standalone-variable list already excludes them for being "mostly
+ * machine data" (see VISIBLE_VARIABLE_NAMES). This applies the same judgement to
+ * the value rather than the key: `{ reason: 'SHARED_TENANT_UNAVAILABLE' }` is a
+ * protocol constant; `{ reason: 'Your database is not ready yet' }` is not.
+ */
+export function isMachineCode(node) {
+  if (!node || node.type !== 'StringLiteral') {
+    return false;
+  }
+
+  return /^[A-Z][A-Z0-9]*(_[A-Z0-9]+)+$/.test(node.value);
+}
+
 export function normalizeVisibleText(value) {
   return value.replace(/\s+/g, ' ').trim();
 }
@@ -819,7 +835,7 @@ export function scanSource(source, file = 'source.tsx') {
     if (node.type === 'ObjectProperty') {
       const key = objectKey(node);
 
-      if (VISIBLE_OBJECT_KEYS.has(key) || isSeoContentProperty(node, parent)) {
+      if ((VISIBLE_OBJECT_KEYS.has(key) || isSeoContentProperty(node, parent)) && !isMachineCode(node.value)) {
         addExpressionFindings(findings, {
           file,
           node: node.value,

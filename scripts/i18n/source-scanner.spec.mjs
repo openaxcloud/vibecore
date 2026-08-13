@@ -191,6 +191,30 @@ describe('i18n source scanner', () => {
     );
   });
 
+  it('does not mistake a SCREAMING_SNAKE protocol code for copy, but still catches real copy on the same key', () => {
+    /*
+     * `reason` is a visible object key because it often carries a sentence. It also
+     * carries enum-like failure codes that no user ever reads. Production CI was red
+     * on main for exactly this: `{ reason: 'SHARED_TENANT_UNAVAILABLE' }` in
+     * services/api/src/database-provisioner.ts counted as new hardcoded-copy debt.
+     */
+    const source = `
+      const machine = { reason: 'SHARED_TENANT_UNAVAILABLE' };
+      const alsoMachine = { error: 'DB_TIMEOUT' };
+      const copy = { reason: 'Your database is not ready yet' };
+      const notACode = { reason: 'SHARED' };
+    `;
+
+    const rules = scanSource(source, 'services/api/src/example.ts').findings.map((f) => [f.rule, f.text]);
+
+    expect(rules).not.toContainEqual(['visible-object-copy', 'SHARED_TENANT_UNAVAILABLE']);
+    expect(rules).not.toContainEqual(['visible-object-copy', 'DB_TIMEOUT']);
+    expect(rules).toContainEqual(['visible-object-copy', 'Your database is not ready yet']);
+
+    // A single all-caps word is not a code — no underscore, and it reads as copy.
+    expect(rules).toContainEqual(['visible-object-copy', 'SHARED']);
+  });
+
   it('finds platform copy staged in semantically visible variables and assignments', () => {
     const source = `
       const description = 'Installed from the public repository';
