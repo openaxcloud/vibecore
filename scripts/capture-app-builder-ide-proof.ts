@@ -7,10 +7,13 @@ import sharp from 'sharp';
 
 import {
   EMPTY_PROJECT_FILE_STABILITY,
+  findPersistedPromptEvidence,
   normalizeCaptureProofText,
   observeProjectFileRevision,
   projectFilesAreStable,
   projectFilesRevisionFromEntries,
+  type PersistedPromptChatState,
+  type PersistedPromptEvidence,
   type ProjectFileEntry,
 } from './solution-capture-state.js';
 import {
@@ -876,6 +879,7 @@ async function waitForGeneratedFiles(
 }
 
 type ProjectIdeState = {
+  chat?: PersistedPromptChatState;
   files: ProjectFileEntry[];
   version?: number;
 };
@@ -895,6 +899,7 @@ async function readProjectIdeState(page: Page, projectId: string, token: string)
       ideState?: {
         version?: number;
         state?: {
+          chat?: PersistedPromptChatState;
           files?: {
             entries?: ProjectFileEntry[];
           };
@@ -907,6 +912,7 @@ async function readProjectIdeState(page: Page, projectId: string, token: string)
     }
 
     return {
+      chat: payload.ideState.state?.chat,
       version: payload.ideState.version,
       files: payload.ideState.state?.files?.entries ?? [],
     };
@@ -2939,6 +2945,189 @@ async function verifyScenarioAppearance(page: Page, scenario: SolutionScenario) 
   }
 }
 
+type ResumedPromptProvenance = {
+  evidence: PersistedPromptEvidence;
+  ideStateVersion?: number;
+};
+
+async function waitForExactAgentUserPromptBubble(
+  agentPanel: ReturnType<Page['getByTestId']>,
+  creationPrompt: string,
+  timeout: number,
+  required: boolean,
+) {
+  const userBubbles = agentPanel.locator('.bolt-chat-message-row-user');
+  const expectedPrompt = normalizeCaptureProofText(creationPrompt);
+
+  let matchingBubbleIndex = -1;
+
+  try {
+    await expect
+      .poll(
+        async () => {
+          const bubbleTexts = await userBubbles.allInnerTexts().catch(() => []);
+
+          matchingBubbleIndex = bubbleTexts.findIndex(
+            (bubbleText) => normalizeCaptureProofText(bubbleText) === expectedPrompt,
+          );
+
+          return matchingBubbleIndex >= 0;
+        },
+        {
+          message: 'The Agent must render a real user-message row containing the complete submitted prompt',
+          intervals: [250, 500, 1_000],
+          timeout,
+        },
+      )
+      .toBe(true);
+  } catch (error) {
+    if (required) {
+      throw error;
+    }
+
+    return undefined;
+  }
+
+  const promptBubble = userBubbles.nth(matchingBubbleIndex);
+
+  await expect(promptBubble).toBeVisible({ timeout: Math.min(timeout, 30_000) });
+
+  return promptBubble;
+}
+
+async function resolveResumedPromptProvenance(
+  page: Page,
+  projectId: string,
+  token: string,
+  creationPrompt: string,
+): Promise<ResumedPromptProvenance> {
+  const projectState = await readProjectIdeState(page, projectId, token);
+
+  if (!projectState) {
+    throw new Error(
+      'The resumed Agent transcript is absent from the DOM and authenticated ide-state is unavailable. ' +
+        'Rerun without --resume; the harness will not invent a prompt surface.',
+    );
+  }
+
+  const evidence = findPersistedPromptEvidence(projectState.chat, creationPrompt);
+
+  if (!evidence) {
+    throw new Error(
+      'The resumed Agent transcript is absent from the DOM and authenticated ide-state does not contain the complete submitted user prompt. ' +
+        'Rerun without --resume; a product-name match or generated files alone are not prompt provenance.',
+    );
+  }
+
+  return { evidence, ideStateVersion: projectState.version };
+}
+
+async function restoreResumedPromptBubbleFromHistory(
+  page: Page,
+  creationPrompt: string,
+  provenance: ResumedPromptProvenance,
+) {
+  const historyButton = page
+    .getByRole('button', { name: /^(?:Conversation history|Historique des conversations)$/i })
+    .first();
+
+  await expect(
+    historyButton,
+    `Authenticated ide-state proves the prompt through ${provenance.evidence.source}, but the real Conversation history control must be available to restore its Agent bubble`,
+  ).toBeVisible({ timeout: 60_000 });
+  await historyButton.click();
+
+  const historyDialog = page
+    .getByRole('dialog', { name: /^(?:Project agent history|Historique des agents de projet)$/i })
+    .first();
+
+  await expect(historyDialog).toBeVisible({ timeout: 60_000 });
+
+  const historySearch = historyDialog.getByRole('searchbox', {
+    name: /^(?:Search agent checkpoints|Points de contrôle des agents de recherche)$/i,
+  });
+
+  const searchFragment = creationPrompt.trim().split(/\r?\n/u)[0]?.slice(0, 160) ?? '';
+
+  if (searchFragment.length < 40) {
+    throw new Error('The submitted prompt is too short to restore unambiguously from Conversation history');
+  }
+
+  await expect(historySearch).toBeVisible({ timeout: 30_000 });
+  await historySearch.fill(searchFragment);
+
+  const checkpointTitleFragment = normalizeCaptureProofText(creationPrompt).slice(0, 100);
+
+  const matchingCheckpoints = historyDialog.locator('.bolt-project-history-checkpoint').filter({
+    has: page.locator('strong').filter({
+      hasText: new RegExp(`^${escapedPattern(checkpointTitleFragment)}`, 'i'),
+    }),
+  });
+
+  await expect(
+    matchingCheckpoints.first(),
+    `Authenticated ide-state proves the resumed prompt through ${provenance.evidence.source}, but Conversation history exposes no checkpoint containing the submitted prompt. Rerun without --resume.`,
+  ).toBeVisible({ timeout: 60_000 });
+
+  const viewChatButton = matchingCheckpoints.first().getByRole('button', {
+    name: /^(?:View Chat|Afficher le chat|View chat at checkpoint .+|Afficher le chat au point de contrôle .+)$/i,
+  });
+
+  await expect(viewChatButton).toBeVisible({ timeout: 30_000 });
+
+  const mainFrameNavigation = page
+    .waitForEvent('framenavigated', {
+      predicate: (frame) => frame === page.mainFrame(),
+      timeout: 15_000,
+    })
+    .then(() => true)
+    .catch(() => false);
+
+  const [, restoredWithNavigation] = await Promise.all([viewChatButton.click(), mainFrameNavigation]);
+
+  if (restoredWithNavigation) {
+    await page.waitForLoadState('domcontentloaded');
+  }
+
+  const restoredAgentPanel = page.getByTestId('ide-agent-panel');
+
+  await expect(restoredAgentPanel).toBeVisible({ timeout: 60_000 });
+
+  const promptBubble = await waitForExactAgentUserPromptBubble(restoredAgentPanel, creationPrompt, 60_000, true).catch(
+    (error) => {
+      throw new Error(
+        `Conversation history did not restore a real user bubble containing the complete submitted prompt ` +
+          `(ide-state source=${provenance.evidence.source}). Rerun without --resume; no substitute surface is publishable as ide-agent-prompt.`,
+        { cause: error },
+      );
+    },
+  );
+
+  if (!promptBubble) {
+    throw new Error(
+      `Conversation history did not restore a real user bubble containing the complete submitted prompt ` +
+        `(ide-state source=${provenance.evidence.source}). Rerun without --resume; no substitute surface is publishable as ide-agent-prompt.`,
+    );
+  }
+
+  await expect(promptBubble).toBeVisible({ timeout: 30_000 });
+  await expect(
+    promptBubble,
+    'The restored Agent prompt must be a persisted message row with a stable message id',
+  ).toHaveAttribute('data-message-id', /\S+/u);
+  await promptBubble.scrollIntoViewIfNeeded();
+
+  process.stdout.write(
+    `${JSON.stringify({
+      status: 'resumed-agent-prompt-restored-from-history',
+      source: provenance.evidence.source,
+      ideStateVersion: provenance.ideStateVersion,
+    })}\n`,
+  );
+
+  return promptBubble;
+}
+
 async function prepareIdeCapture(page: Page, bubble: ReturnType<Page['locator']>) {
   const dismissPreviewError = page.getByTestId('ide-agent-panel').getByRole('button', { name: 'Dismiss' }).last();
 
@@ -3907,7 +4096,6 @@ async function main() {
     process.stdout.write(`${JSON.stringify({ status: 'project-ready', slug, locale, projectId })}\n`);
 
     const agentPanel = page.getByTestId('ide-agent-panel');
-    const originalPromptBubble = agentPanel.getByText(creationPrompt, { exact: true }).first();
 
     const agentPanelVisible = await agentPanel
       .waitFor({ state: 'visible', timeout: 180_000 })
@@ -3939,55 +4127,59 @@ async function main() {
 
     await selectCreationModel(page);
 
-    const originalPromptVisible = await originalPromptBubble
-      .waitFor({ state: 'visible', timeout: 10_000 })
-      .then(() => true)
-      .catch(() => false);
+    const initialPromptBubble = await waitForExactAgentUserPromptBubble(agentPanel, creationPrompt, 10_000, false);
 
-    let promptBubble = originalPromptVisible
-      ? originalPromptBubble
-      : agentPanel.locator('.bolt-chat-message-row-user').first();
-
-    if (!(await promptBubble.isVisible().catch(() => false))) {
-      const conversationBranchesButton = agentPanel.getByRole('button', {
-        name: /^Conversation branches \(\d+\)$/,
-      });
-
-      const conversationBranchesAvailable = await conversationBranchesButton
-        .waitFor({ state: 'visible', timeout: 30_000 })
-        .then(() => true)
-        .catch(() => false);
-
-      if (conversationBranchesAvailable) {
-        await conversationBranchesButton.click();
-
-        const archivedConversationButton = agentPanel
-          .locator('.bolt-branches-menu-popover button[title^="Switch to "]')
-          .first();
-
-        await expect(archivedConversationButton).toBeVisible({ timeout: 60_000 });
-        await archivedConversationButton.click();
-        process.stdout.write(`${JSON.stringify({ status: 'archived-agent-conversation-restored' })}\n`);
-
-        const restoredOriginalPrompt = agentPanel.getByText(creationPrompt, { exact: true }).first();
-
-        const restoredExactPromptVisible = await restoredOriginalPrompt
-          .waitFor({ state: 'visible', timeout: 60_000 })
-          .then(() => true)
-          .catch(() => false);
-
-        promptBubble = restoredExactPromptVisible
-          ? restoredOriginalPrompt
-          : agentPanel.locator('.bolt-chat-message-row-user').first();
-      }
-    }
-
-    const promptBubbleAvailable = await promptBubble.isVisible().catch(() => false);
+    let promptBubble = initialPromptBubble ?? agentPanel.locator('.bolt-chat-message-row-user').first();
+    let promptBubbleAvailable = Boolean(initialPromptBubble);
 
     if (!promptBubbleAvailable && !iterationOnly) {
-      await expect(promptBubble).toBeVisible({ timeout: 180_000 });
+      if (!resume) {
+        const generatedPromptBubble = await waitForExactAgentUserPromptBubble(
+          agentPanel,
+          creationPrompt,
+          180_000,
+          true,
+        );
+
+        if (!generatedPromptBubble) {
+          throw new Error('The fresh Agent run did not render its persisted user prompt row');
+        }
+
+        promptBubble = generatedPromptBubble;
+        promptBubbleAvailable = true;
+      } else {
+        const resumedPromptProvenance = await resolveResumedPromptProvenance(page, projectId, token, creationPrompt);
+
+        promptBubble = await restoreResumedPromptBubbleFromHistory(page, creationPrompt, resumedPromptProvenance);
+        promptBubbleAvailable = true;
+        await selectCreationModel(page);
+      }
     } else if (!promptBubbleAvailable) {
       process.stdout.write(`${JSON.stringify({ status: 'agent-conversation-restarts-with-iteration' })}\n`);
+    }
+
+    const verifyPromptBubbleSurface = async () => {
+      await expect(promptBubble).toBeVisible({ timeout: 60_000 });
+      await expect(
+        promptBubble,
+        'The publishable Agent prompt capture must retain a persisted user-message id',
+      ).toHaveAttribute('data-message-id', /\S+/u);
+
+      const visiblePrompt = normalizeCaptureProofText(await promptBubble.innerText());
+      const expectedPrompt = normalizeCaptureProofText(creationPrompt);
+
+      if (visiblePrompt !== expectedPrompt) {
+        throw new Error(
+          `The publishable Agent prompt bubble does not contain the complete submitted prompt ` +
+            `(visible length=${visiblePrompt.length}, expected length=${expectedPrompt.length})`,
+        );
+      }
+
+      await promptBubble.scrollIntoViewIfNeeded();
+    };
+
+    if (!iterationOnly) {
+      await verifyPromptBubbleSurface();
     }
 
     await mkdir(evidenceRoot, { recursive: true });
@@ -4166,7 +4358,11 @@ async function main() {
       responsiveStateAudits.push(await verifyPreviewResponsiveState(page, copy, evidenceRoot, 'initial', 'desktop'));
       await prepareIdeCapture(page, promptBubble);
       themedCaptureAudits.push(
-        await captureThemedIdeState(page, stagingRoot, promptFilename, { scenario: copy, evidenceRoot }),
+        await captureThemedIdeState(page, stagingRoot, promptFilename, {
+          scenario: copy,
+          evidenceRoot,
+          verifySurface: verifyPromptBubbleSurface,
+        }),
       );
       verifiedCaptureFilenames.push(promptFilename);
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 // eslint-disable-next-line no-restricted-imports -- this unit test exercises a standalone capture-script module.
 import {
   EMPTY_PROJECT_FILE_STABILITY,
+  findPersistedPromptEvidence,
   normalizeCaptureProofText,
   observeProjectFileRevision,
   projectFilesRevisionFromEntries,
@@ -74,5 +75,66 @@ describe('Solutions capture persistence state', () => {
 
   it('normalizes prompt and bubble whitespace without changing their wording', () => {
     expect(normalizeCaptureProofText('  Build\n\tPeopleOps   with HR-04.  ')).toBe('Build PeopleOps with HR-04.');
+  });
+
+  it('accepts a complete persisted user submission after the server project contract', () => {
+    const prompt = 'PeopleOps: build the HR-04 procedure search. Keep the demo local and explicit.';
+
+    const chat = {
+      messages: [
+        { role: 'assistant', content: `Implemented ${prompt}` },
+        {
+          role: 'user',
+          content: `Artifact type: web\nPreferred framework: React + Vite + TypeScript\n\nProduction quality bar:\n- Build a complete app.\n\nUser prompt:\n${prompt}`,
+        },
+      ],
+    };
+
+    expect(findPersistedPromptEvidence(chat, prompt)).toEqual({
+      source: 'ide-state-message',
+      candidateLength: normalizeCaptureProofText(chat.messages[1].content).length,
+      expectedLength: normalizeCaptureProofText(prompt).length,
+    });
+  });
+
+  it('checks archived and branched messages without accepting assistant prose', () => {
+    const prompt = 'Build Meridian Studio with five working architectural views.';
+
+    expect(
+      findPersistedPromptEvidence(
+        {
+          messages: [{ role: 'assistant', content: `I built this: ${prompt}` }],
+          archivedMessages: [{ role: 'user', content: prompt }],
+        },
+        prompt,
+      )?.source,
+    ).toBe('ide-state-archived-message');
+
+    expect(
+      findPersistedPromptEvidence(
+        {
+          messages: [{ role: 'assistant', content: prompt }],
+          conversations: [{ messages: [{ role: 'user', content: prompt }] }],
+        },
+        prompt,
+      )?.source,
+    ).toBe('ide-state-conversation-message');
+  });
+
+  it('rejects snippets, pending prompts, arbitrary wrappers, and appended content', () => {
+    const prompt = 'Build PeopleOps with the complete HR-04 workflow and local feedback state.';
+
+    const chatWithPendingPromptOnly = {
+      messages: [
+        { role: 'user', content: 'Build PeopleOps' },
+        { role: 'assistant', content: prompt },
+        { role: 'user', content: `Untrusted wrapper ending with the same value: ${prompt}` },
+        { role: 'user', content: `User prompt: ${prompt}` },
+        { role: 'user', content: `${prompt} Also add an unrequested external integration.` },
+      ],
+      pendingPrompt: { prompt },
+    };
+
+    expect(findPersistedPromptEvidence(chatWithPendingPromptOnly, prompt)).toBeUndefined();
   });
 });
