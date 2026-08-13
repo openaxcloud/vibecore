@@ -16623,9 +16623,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     } catch (error) {
       request.log.warn({ err: error, workspaceId: authorized.workspaceId }, 'workspace resources unavailable');
 
+      /*
+       * Localised through the shared public-copy catalogue like every other
+       * user-facing API error: the i18n source guard treats a hardcoded string
+       * here as new debt, and rightly so — this message reaches the IDE.
+       */
+      const message = appPublicCopy('WORKSPACE_RESOURCES_UNAVAILABLE', transactionalLocaleForRequest(request));
+
       return reply.code(503).send({
-        error: 'WORKSPACE_RESOURCES_UNAVAILABLE',
-        message: 'Workspace resource metrics are not available right now.',
+        error: message,
+        message,
         code: 'WORKSPACE_RESOURCES_UNAVAILABLE',
       });
     }
