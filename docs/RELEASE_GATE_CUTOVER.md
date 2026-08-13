@@ -85,6 +85,31 @@ today.
 Do not "fix" a red E2E by narrowing the `push` trigger this lot added. A required check
 that never runs is a check that is vacuously satisfied — that is the original defect.
 
+### The two lots compose — verified, not assumed
+
+Both edit `.github/workflows/e2e.yml`, so this was trial-merged rather than hoped for:
+
+```bash
+git merge origin/fix/e2e-production-green      # 0 conflicts
+```
+
+On the merged tree: the `push` trigger is `[main, stable, product/saas-platform-production]`
+(this lot) **and** the `E2E gate (bounded waiver)` step plus the `@runtime` split are
+present (their lot); the job is still named `Playwright local stack`, which is what
+`required-checks.json` pins; `validate-deploy-gate-wired` passes and the 79 gate tests
+pass. So merging both, in that order, yields a policy that is actually satisfiable.
+
+Two residual notes, neither blocking:
+
+- `Playwright mobile viewport tests` runs **after** the gate step, so it is *not* covered
+  by the inner waiver — a failure there fails the job outright, and therefore refuses the
+  deploy. Today that is safe: **0** of the 20 waived entries are in `responsive-ide.spec.ts`.
+  It is strict rather than lax, which is the right side to err on.
+- The inner waiver expires **2026-08-27**. Past that date `e2e-gate.mjs` fails on the
+  waiver itself, the workflow goes red, and this gate refuses every deploy. That is the
+  intended fail-closed behaviour of both layers — but it is a date to put in the diary,
+  not to discover.
+
 ## Steps
 
 0. **Note:** `deploy-prod.yml` has been **deleted** by this lot. It was a second,
