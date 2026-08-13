@@ -2410,6 +2410,47 @@ export class TestApiStore implements ApiStore {
     return rest as typeof row;
   }
 
+  /*
+   * Réservations de crédits d'import. Le store de test est PARTAGÉ entre deux
+   * instances de l'app dans les tests multi-réplicas : c'est exactement ce qui
+   * rend le défaut reproductible ici.
+   */
+  private readonly importReservations = new Map<
+    string,
+    {
+      key: string;
+      organizationId: string;
+      importJobId: string;
+      reservedCredits: number;
+      debitedCredits: number;
+      state: 'RESERVED' | 'SETTLED' | 'COMPENSATED';
+    }
+  >();
+
+  async getImportReservationByKey(organizationId: string, key: string) {
+    return [...this.importReservations.values()].find(
+      (row) => row.organizationId === organizationId && row.key === key,
+    );
+  }
+
+  async getImportReservationByJob(importJobId: string) {
+    return this.importReservations.get(importJobId);
+  }
+
+  async saveImportReservation(reservation: {
+    key: string;
+    organizationId: string;
+    importJobId: string;
+    reservedCredits: number;
+    debitedCredits: number;
+    state: string;
+  }) {
+    this.importReservations.set(reservation.importJobId, {
+      ...reservation,
+      state: reservation.state as 'RESERVED' | 'SETTLED' | 'COMPENSATED',
+    });
+  }
+
   async getImportStagedFiles(id: string) {
     return (this.importJobs.get(id) as { stagedFiles?: Array<{ path: string; content: string; encoding?: string }> })
       ?.stagedFiles;

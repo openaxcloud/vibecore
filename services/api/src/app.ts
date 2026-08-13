@@ -195,7 +195,7 @@ import {
   type ImportFile,
   type ImportState,
 } from './import-pipeline.js';
-import { ImportCreditLedger, estimateImportReservation } from './import-billing.js';
+import { PersistentImportCreditLedger, estimateImportReservation } from './import-billing.js';
 import {
   REMIX_CONSENT_VERSION,
   RemixInvariantError,
@@ -8408,14 +8408,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .sort((a, b) => a.path.localeCompare(b.path));
 
   /*
-   * SAFETY billing ledger (in-process, mirrors importStaging): idempotent credit
-   * reservation reserved BEFORE any paid work, settled ONLY on COMMITTED, and
-   * compensated on every non-committed exit (cancel/timeout/rollback/failure).
-   * `importIdemIndex` maps a client idempotency key → jobId so a retried create
-   * replays the same import instead of double-creating + double-reserving.
+   * SAFETY billing ledger, PERSISTÉ (comme importStaging) : réservation prise
+   * AVANT tout travail payant, réglée UNIQUEMENT sur COMMITTED, et compensée à
+   * zéro sur toute sortie non-committée (annulation/timeout/rollback/échec).
+   * La réservation PORTE le jobId, donc elle sert aussi d'index d'idempotence :
+   * un POST rejoué avec la même clé retrouve le même import, depuis n'importe
+   * quel réplica. La clé est scopée par organisation (elle vient du client).
    */
-  const importLedger = new ImportCreditLedger();
-  const importIdemIndex = new Map<string, string>();
+  const importLedger = new PersistentImportCreditLedger(store);
 
   const app = Fastify({
     bodyLimit: Number(process.env.API_BODY_LIMIT_BYTES ?? 25 * 1024 * 1024),
@@ -19845,7 +19845,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const cleanupImport = async (importJobId: string, terminal: ImportState, error?: string) => {
     await importStaging.delete(importJobId); // dispose the staging — target never mounted
-    importLedger.compensateByJob(importJobId); // release the reservation, zero debit
+    await importLedger.compensateByJob(importJobId); // release the reservation, zero debit
     await store.updateImportJob(importJobId, { state: terminal, ...(error ? { error } : {}) }).catch(() => undefined);
   };
 
@@ -19862,7 +19862,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     for (const id of expired) {
       await importStaging.delete(id);
-      importLedger.compensateByJob(id); // timeout is a non-committed exit → release, zero debit
+      await importLedger.compensateByJob(id); // timeout is a non-committed exit → release, zero debit
     }
 
     return expired;
@@ -19898,8 +19898,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * (re-fetched current status) instead of creating a second job + a second
      * reservation. In-process index; durable idempotency = UsageReservation follow-up.
      */
-    const idemMapKey = `${orgId}:${body.idempotencyKey}`;
-    const existingJobId = importIdemIndex.get(idemMapKey);
+    const existingJobId = (await importLedger.getReservationByKey(orgId, body.idempotencyKey))?.importJobId;
 
     if (existingJobId) {
       const existing = await store.getImportJob(existingJobId);
@@ -19932,7 +19931,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       sourceRef: body.sourceRef,
       expiresAt,
     });
-    importIdemIndex.set(idemMapKey, job.id);
 
     let state: ImportState = 'RECEIVED';
 
@@ -19952,7 +19950,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const stagedFiles: ImportFile[] = body.zipBase64
         ? (await filesFromZipBase64(body.zipBase64)).map((file) => ({ path: file.path, content: file.content }))
         : (body.files ?? []);
-      importLedger.reserve({
+      await importLedger.reserve({
         key: body.idempotencyKey,
         organizationId: orgId,
         importJobId: job.id,
@@ -20170,7 +20168,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * recorded, and only now that the import actually COMMITTED. `settleByJob`
        * enforces "committed === true" and the no-debit-without-commit invariant.
        */
-      const settled = importLedger.settleByJob(importJobId, true, estimateImportReservation(finalFiles.length));
+      const settled = await importLedger.settleByJob(importJobId, true, estimateImportReservation(finalFiles.length));
       request.log?.info?.(
         { event: 'import.billing.settle', importJobId, debitedCredits: settled.debitedCredits },
         'import reservation settled',
@@ -20252,7 +20250,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * reservation lifecycle is observable: RESERVED before commit, SETTLED with a
      * positive debit only on COMMITTED, COMPENSATED (zero debit) on any cleanup.
      */
-    const reservation = importLedger.getByJob(importJobId);
+    const reservation = await importLedger.getByJob(importJobId);
     const localizedJobError = job.error
       ? localizeAppPublicMessage(job.error, transactionalLocaleForRequest(request))
       : undefined;

@@ -1494,6 +1494,18 @@ exports.Prisma.RemixJobScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ImportCreditReservationScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  key: 'key',
+  importJobId: 'importJobId',
+  reservedCredits: 'reservedCredits',
+  debitedCredits: 'debitedCredits',
+  state: 'state',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.ImportJobScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -1948,6 +1960,7 @@ exports.Prisma.ModelName = {
   AgentRoutingCard: 'AgentRoutingCard',
   AgentCallLog: 'AgentCallLog',
   RemixJob: 'RemixJob',
+  ImportCreditReservation: 'ImportCreditReservation',
   ImportJob: 'ImportJob',
   GalleryListing: 'GalleryListing',
   LedgerAccount: 'LedgerAccount',

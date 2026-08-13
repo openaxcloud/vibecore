@@ -502,23 +502,18 @@ describe('import preview — what the review screen reads before anything is wri
     expect(projectStorage.writeCalls).toEqual([]);
   });
 
-  it('le staging survit au load balancer : stagé sur une instance, relu sur une AUTRE (BUG-IMPORT-001)', async () => {
+  it("survit au load balancer : stagé sur une instance, relu ET COMMITTÉ sur une AUTRE (BUG-IMPORT-001)", async () => {
     const { app, store, projectStorage, org } = await setup();
 
     /*
      * Deuxième instance de l'app sur LE MÊME store : c'est exactement ce que
-     * voit un second réplica derrière le load balancer. Avec le staging en
-     * mémoire du processus, cette instance-ci ne voyait rien — l'aperçu
-     * revenait vide et le commit échouait en IMPORT_STAGING_GONE.
+     * voit un second réplica derrière le load balancer.
      *
-     * Constaté en réel le 2026-08-12 sur l'env de test (2 réplicas api) :
-     * 8 lectures consécutives du MÊME import → 5 aperçus, 3 vides.
-     *
-     * ⚠️ Ce test couvre la LECTURE. Le commit cross-réplica reste cassé pour
-     * une SECONDE raison, encore ouverte : le registre de crédits
-     * (`ImportCreditLedger`) est lui aussi en mémoire du processus, donc un
-     * commit servi par un autre réplica répond `BILLING_RESERVATION_MISSING`.
-     * Voir BUG-IMPORT-001 dans BUG_INVENTORY_LIVE.md.
+     * DEUX choses vivaient en mémoire du processus et cassaient ce parcours :
+     * le staging (aperçu vide, puis commit en IMPORT_STAGING_GONE) PUIS le
+     * registre de crédits (commit en BILLING_RESERVATION_MISSING). Constaté en
+     * réel le 2026-08-12 sur l'env de test (2 réplicas api) : 8 lectures
+     * consécutives du MÊME import → 5 aperçus, 3 vides.
      */
     const otherReplica = await buildApiApp({ store, projectStorage, emailProvider: new QuietEmailProvider() });
 
@@ -528,7 +523,6 @@ describe('import preview — what the review screen reads before anything is wri
       headers: auth('imp-token'),
       payload: { idempotencyKey: 'idem-p-lb', provider: 'github', files: stagedFiles() },
     });
-
     const importJobId = created.json().import.importJobId;
 
     const read = await otherReplica.inject({
@@ -544,8 +538,72 @@ describe('import preview — what the review screen reads before anything is wri
       'README.md',
       'src/index.js',
     ]);
-    expect(read.json().import.preview.findings.length).toBeGreaterThan(0);
     expect(JSON.stringify(read.json())).not.toContain(IMPORTED_SECRET);
+
+    // L'écran exige une décision PAR détection ; le test fait pareil.
+    const consent: Record<string, 'redact'> = {};
+
+    for (const finding of read.json().import.preview.findings) {
+      consent[`${finding.path}:${finding.line}`] = 'redact';
+    }
+
+    const committed = await otherReplica.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports/${importJobId}/commit`,
+      headers: auth('imp-token'),
+      payload: { consent },
+    });
+
+    expect(committed.statusCode).toBe(201);
+
+    // Le secret n'a pas atterri dans la cible.
+    const target = committed.json().project.id;
+    const written = [...(projectStorage.files.get(target)?.values() ?? [])].join('\n');
+    expect(written).not.toContain(IMPORTED_SECRET);
+
+    // Copie jetable disparue, et le débit enregistré — vus depuis l'instance d'origine.
+    const after = await app.inject({
+      method: 'GET',
+      url: `/orgs/${org.id}/imports/${importJobId}`,
+      headers: auth('imp-token'),
+    });
+    expect(after.json().import.preview).toBeNull();
+    expect(after.json().import.reservation).toMatchObject({ state: 'SETTLED' });
+  });
+
+  it("la cle d'idempotence est scopee par ORGANISATION, jamais globale", async () => {
+    const { app, store, org } = await setup();
+
+    /*
+     * La clé vient du CLIENT, donc elle est devinable (« import-1 »). L'ancien
+     * registre l'indexait globalement : une seconde organisation employant la
+     * même clé recevait la réservation de la PREMIÈRE — organizationId et
+     * crédits compris — et son commit débitait la ligne d'autrui.
+     */
+    const outsider = await store.createUser({ email: 'iso@example.com', name: 'Iso', passwordHash: hashPassword('x') });
+    const otherOrg = await store.createOrganization({ name: 'Iso', slug: 'iso-org', ownerUserId: outsider.id });
+    await store.createSession({ userId: outsider.id, token: 'iso-token', expiresAt: new Date(Date.now() + 3600_000) });
+
+    const first = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('imp-token'),
+      payload: { idempotencyKey: 'shared-key', provider: 'github', files: stagedFiles() },
+    });
+
+    const second = await app.inject({
+      method: 'POST',
+      url: `/orgs/${otherOrg.id}/imports`,
+      headers: auth('iso-token'),
+      payload: { idempotencyKey: 'shared-key', provider: 'github', files: stagedFiles() },
+    });
+
+    // Deux imports DISTINCTS, pas un replay de celui du voisin.
+    expect(second.json().import.importJobId).not.toBe(first.json().import.importJobId);
+    expect(second.json().import.replayed).toBeUndefined();
+
+    const reservation = await store.getImportReservationByJob(second.json().import.importJobId);
+    expect(reservation?.organizationId).toBe(otherOrg.id);
   });
 
   it('another org gets 404, not a different error that would confirm the job exists', async () => {

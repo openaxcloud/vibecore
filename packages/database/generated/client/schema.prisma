@@ -2446,6 +2446,32 @@ model RemixJob {
 /// (never a raw value); `consent` records the per-finding keep/redact decision.
 /// `targetProjectId` is set ONLY at the atomic COMMIT — it is null on every
 /// non-committed terminal state (proving the target was never touched).
+/// Réservation de crédits d'un import (BUG-IMPORT-001). Persistée parce que
+/// l'API tourne en plusieurs réplicas : en mémoire du processus, un commit
+/// servi par un autre pod ne retrouvait pas la réservation et répondait
+/// BILLING_RESERVATION_MISSING.
+///
+/// La clé d'idempotence est CHOISIE PAR LE CLIENT, donc devinable : elle est
+/// unique PAR ORGANISATION, jamais globalement. Sans ce scope, deux orgs
+/// choisissant « import-1 » partageaient la même réservation.
+model ImportCreditReservation {
+  id              String   @id @default(cuid())
+  organizationId  String
+  /// Clé d'idempotence fournie par le client, scopée par organisation.
+  key             String
+  importJobId     String   @unique
+  reservedCredits Int
+  /// Positif UNIQUEMENT à l'état SETTLED : pas de commit, pas de débit.
+  debitedCredits  Int      @default(0)
+  /// RESERVED | SETTLED | COMPENSATED
+  state           String   @default("RESERVED")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+}
+
 model ImportJob {
   id              String    @id @default(cuid())
   organizationId  String

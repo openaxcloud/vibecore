@@ -653,7 +653,7 @@ export type AgentCallLog = $Result.DefaultSelection<Prisma.$AgentCallLogPayload>
  */
 export type RemixJob = $Result.DefaultSelection<Prisma.$RemixJobPayload>
 /**
- * Model ImportJob
+ * Model ImportCreditReservation
  * A secure project import run (DOMAIN_MODEL §2). Tracks the normative state
  * machine (RECEIVED → STAGING_ISOLATED → SCANNING → QUARANTINED →
  * AWAITING_USER_ACTION → COMMITTING → COMMITTED, with ROLLING_BACK / EXPIRED /
@@ -661,6 +661,19 @@ export type RemixJob = $Result.DefaultSelection<Prisma.$RemixJobPayload>
  * (never a raw value); `consent` records the per-finding keep/redact decision.
  * `targetProjectId` is set ONLY at the atomic COMMIT — it is null on every
  * non-committed terminal state (proving the target was never touched).
+ * Réservation de crédits d'un import (BUG-IMPORT-001). Persistée parce que
+ * l'API tourne en plusieurs réplicas : en mémoire du processus, un commit
+ * servi par un autre pod ne retrouvait pas la réservation et répondait
+ * BILLING_RESERVATION_MISSING.
+ * 
+ * La clé d'idempotence est CHOISIE PAR LE CLIENT, donc devinable : elle est
+ * unique PAR ORGANISATION, jamais globalement. Sans ce scope, deux orgs
+ * choisissant « import-1 » partageaient la même réservation.
+ */
+export type ImportCreditReservation = $Result.DefaultSelection<Prisma.$ImportCreditReservationPayload>
+/**
+ * Model ImportJob
+ * 
  */
 export type ImportJob = $Result.DefaultSelection<Prisma.$ImportJobPayload>
 /**
@@ -2269,6 +2282,16 @@ export class PrismaClient<
   get remixJob(): Prisma.RemixJobDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.importCreditReservation`: Exposes CRUD operations for the **ImportCreditReservation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ImportCreditReservations
+    * const importCreditReservations = await prisma.importCreditReservation.findMany()
+    * ```
+    */
+  get importCreditReservation(): Prisma.ImportCreditReservationDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.importJob`: Exposes CRUD operations for the **ImportJob** model.
     * Example usage:
     * ```ts
@@ -2922,6 +2945,7 @@ export namespace Prisma {
     AgentRoutingCard: 'AgentRoutingCard',
     AgentCallLog: 'AgentCallLog',
     RemixJob: 'RemixJob',
+    ImportCreditReservation: 'ImportCreditReservation',
     ImportJob: 'ImportJob',
     GalleryListing: 'GalleryListing',
     LedgerAccount: 'LedgerAccount',
@@ -2948,7 +2972,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importCreditReservation" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -11150,6 +11174,80 @@ export namespace Prisma {
           }
         }
       }
+      ImportCreditReservation: {
+        payload: Prisma.$ImportCreditReservationPayload<ExtArgs>
+        fields: Prisma.ImportCreditReservationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ImportCreditReservationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ImportCreditReservationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>
+          }
+          findFirst: {
+            args: Prisma.ImportCreditReservationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ImportCreditReservationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>
+          }
+          findMany: {
+            args: Prisma.ImportCreditReservationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>[]
+          }
+          create: {
+            args: Prisma.ImportCreditReservationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>
+          }
+          createMany: {
+            args: Prisma.ImportCreditReservationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ImportCreditReservationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>[]
+          }
+          delete: {
+            args: Prisma.ImportCreditReservationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>
+          }
+          update: {
+            args: Prisma.ImportCreditReservationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>
+          }
+          deleteMany: {
+            args: Prisma.ImportCreditReservationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ImportCreditReservationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ImportCreditReservationUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>[]
+          }
+          upsert: {
+            args: Prisma.ImportCreditReservationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>
+          }
+          aggregate: {
+            args: Prisma.ImportCreditReservationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateImportCreditReservation>
+          }
+          groupBy: {
+            args: Prisma.ImportCreditReservationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ImportCreditReservationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ImportCreditReservationCountArgs<ExtArgs>
+            result: $Utils.Optional<ImportCreditReservationCountAggregateOutputType> | number
+          }
+        }
+      }
       ImportJob: {
         payload: Prisma.$ImportJobPayload<ExtArgs>
         fields: Prisma.ImportJobFieldRefs
@@ -12183,6 +12281,7 @@ export namespace Prisma {
     agentRoutingCard?: AgentRoutingCardOmit
     agentCallLog?: AgentCallLogOmit
     remixJob?: RemixJobOmit
+    importCreditReservation?: ImportCreditReservationOmit
     importJob?: ImportJobOmit
     galleryListing?: GalleryListingOmit
     ledgerAccount?: LedgerAccountOmit
@@ -141938,6 +142037,1105 @@ export namespace Prisma {
 
 
   /**
+   * Model ImportCreditReservation
+   */
+
+  export type AggregateImportCreditReservation = {
+    _count: ImportCreditReservationCountAggregateOutputType | null
+    _avg: ImportCreditReservationAvgAggregateOutputType | null
+    _sum: ImportCreditReservationSumAggregateOutputType | null
+    _min: ImportCreditReservationMinAggregateOutputType | null
+    _max: ImportCreditReservationMaxAggregateOutputType | null
+  }
+
+  export type ImportCreditReservationAvgAggregateOutputType = {
+    reservedCredits: number | null
+    debitedCredits: number | null
+  }
+
+  export type ImportCreditReservationSumAggregateOutputType = {
+    reservedCredits: number | null
+    debitedCredits: number | null
+  }
+
+  export type ImportCreditReservationMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    key: string | null
+    importJobId: string | null
+    reservedCredits: number | null
+    debitedCredits: number | null
+    state: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ImportCreditReservationMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    key: string | null
+    importJobId: string | null
+    reservedCredits: number | null
+    debitedCredits: number | null
+    state: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ImportCreditReservationCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    key: number
+    importJobId: number
+    reservedCredits: number
+    debitedCredits: number
+    state: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ImportCreditReservationAvgAggregateInputType = {
+    reservedCredits?: true
+    debitedCredits?: true
+  }
+
+  export type ImportCreditReservationSumAggregateInputType = {
+    reservedCredits?: true
+    debitedCredits?: true
+  }
+
+  export type ImportCreditReservationMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    key?: true
+    importJobId?: true
+    reservedCredits?: true
+    debitedCredits?: true
+    state?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ImportCreditReservationMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    key?: true
+    importJobId?: true
+    reservedCredits?: true
+    debitedCredits?: true
+    state?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ImportCreditReservationCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    key?: true
+    importJobId?: true
+    reservedCredits?: true
+    debitedCredits?: true
+    state?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ImportCreditReservationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportCreditReservation to aggregate.
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportCreditReservations to fetch.
+     */
+    orderBy?: ImportCreditReservationOrderByWithRelationInput | ImportCreditReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ImportCreditReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportCreditReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportCreditReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ImportCreditReservations
+    **/
+    _count?: true | ImportCreditReservationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ImportCreditReservationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ImportCreditReservationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ImportCreditReservationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ImportCreditReservationMaxAggregateInputType
+  }
+
+  export type GetImportCreditReservationAggregateType<T extends ImportCreditReservationAggregateArgs> = {
+        [P in keyof T & keyof AggregateImportCreditReservation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateImportCreditReservation[P]>
+      : GetScalarType<T[P], AggregateImportCreditReservation[P]>
+  }
+
+
+
+
+  export type ImportCreditReservationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportCreditReservationWhereInput
+    orderBy?: ImportCreditReservationOrderByWithAggregationInput | ImportCreditReservationOrderByWithAggregationInput[]
+    by: ImportCreditReservationScalarFieldEnum[] | ImportCreditReservationScalarFieldEnum
+    having?: ImportCreditReservationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ImportCreditReservationCountAggregateInputType | true
+    _avg?: ImportCreditReservationAvgAggregateInputType
+    _sum?: ImportCreditReservationSumAggregateInputType
+    _min?: ImportCreditReservationMinAggregateInputType
+    _max?: ImportCreditReservationMaxAggregateInputType
+  }
+
+  export type ImportCreditReservationGroupByOutputType = {
+    id: string
+    organizationId: string
+    key: string
+    importJobId: string
+    reservedCredits: number
+    debitedCredits: number
+    state: string
+    createdAt: Date
+    updatedAt: Date
+    _count: ImportCreditReservationCountAggregateOutputType | null
+    _avg: ImportCreditReservationAvgAggregateOutputType | null
+    _sum: ImportCreditReservationSumAggregateOutputType | null
+    _min: ImportCreditReservationMinAggregateOutputType | null
+    _max: ImportCreditReservationMaxAggregateOutputType | null
+  }
+
+  type GetImportCreditReservationGroupByPayload<T extends ImportCreditReservationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ImportCreditReservationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ImportCreditReservationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ImportCreditReservationGroupByOutputType[P]>
+            : GetScalarType<T[P], ImportCreditReservationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ImportCreditReservationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    key?: boolean
+    importJobId?: boolean
+    reservedCredits?: boolean
+    debitedCredits?: boolean
+    state?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["importCreditReservation"]>
+
+  export type ImportCreditReservationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    key?: boolean
+    importJobId?: boolean
+    reservedCredits?: boolean
+    debitedCredits?: boolean
+    state?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["importCreditReservation"]>
+
+  export type ImportCreditReservationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    key?: boolean
+    importJobId?: boolean
+    reservedCredits?: boolean
+    debitedCredits?: boolean
+    state?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["importCreditReservation"]>
+
+  export type ImportCreditReservationSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    key?: boolean
+    importJobId?: boolean
+    reservedCredits?: boolean
+    debitedCredits?: boolean
+    state?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ImportCreditReservationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "key" | "importJobId" | "reservedCredits" | "debitedCredits" | "state" | "createdAt" | "updatedAt", ExtArgs["result"]["importCreditReservation"]>
+
+  export type $ImportCreditReservationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ImportCreditReservation"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      /**
+       * Clé d'idempotence fournie par le client, scopée par organisation.
+       */
+      key: string
+      importJobId: string
+      reservedCredits: number
+      /**
+       * Positif UNIQUEMENT à l'état SETTLED : pas de commit, pas de débit.
+       */
+      debitedCredits: number
+      /**
+       * RESERVED | SETTLED | COMPENSATED
+       */
+      state: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["importCreditReservation"]>
+    composites: {}
+  }
+
+  type ImportCreditReservationGetPayload<S extends boolean | null | undefined | ImportCreditReservationDefaultArgs> = $Result.GetResult<Prisma.$ImportCreditReservationPayload, S>
+
+  type ImportCreditReservationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ImportCreditReservationFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ImportCreditReservationCountAggregateInputType | true
+    }
+
+  export interface ImportCreditReservationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ImportCreditReservation'], meta: { name: 'ImportCreditReservation' } }
+    /**
+     * Find zero or one ImportCreditReservation that matches the filter.
+     * @param {ImportCreditReservationFindUniqueArgs} args - Arguments to find a ImportCreditReservation
+     * @example
+     * // Get one ImportCreditReservation
+     * const importCreditReservation = await prisma.importCreditReservation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ImportCreditReservationFindUniqueArgs>(args: SelectSubset<T, ImportCreditReservationFindUniqueArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ImportCreditReservation that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ImportCreditReservationFindUniqueOrThrowArgs} args - Arguments to find a ImportCreditReservation
+     * @example
+     * // Get one ImportCreditReservation
+     * const importCreditReservation = await prisma.importCreditReservation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ImportCreditReservationFindUniqueOrThrowArgs>(args: SelectSubset<T, ImportCreditReservationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportCreditReservation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationFindFirstArgs} args - Arguments to find a ImportCreditReservation
+     * @example
+     * // Get one ImportCreditReservation
+     * const importCreditReservation = await prisma.importCreditReservation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ImportCreditReservationFindFirstArgs>(args?: SelectSubset<T, ImportCreditReservationFindFirstArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportCreditReservation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationFindFirstOrThrowArgs} args - Arguments to find a ImportCreditReservation
+     * @example
+     * // Get one ImportCreditReservation
+     * const importCreditReservation = await prisma.importCreditReservation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ImportCreditReservationFindFirstOrThrowArgs>(args?: SelectSubset<T, ImportCreditReservationFindFirstOrThrowArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ImportCreditReservations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ImportCreditReservations
+     * const importCreditReservations = await prisma.importCreditReservation.findMany()
+     * 
+     * // Get first 10 ImportCreditReservations
+     * const importCreditReservations = await prisma.importCreditReservation.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const importCreditReservationWithIdOnly = await prisma.importCreditReservation.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ImportCreditReservationFindManyArgs>(args?: SelectSubset<T, ImportCreditReservationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ImportCreditReservation.
+     * @param {ImportCreditReservationCreateArgs} args - Arguments to create a ImportCreditReservation.
+     * @example
+     * // Create one ImportCreditReservation
+     * const ImportCreditReservation = await prisma.importCreditReservation.create({
+     *   data: {
+     *     // ... data to create a ImportCreditReservation
+     *   }
+     * })
+     * 
+     */
+    create<T extends ImportCreditReservationCreateArgs>(args: SelectSubset<T, ImportCreditReservationCreateArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ImportCreditReservations.
+     * @param {ImportCreditReservationCreateManyArgs} args - Arguments to create many ImportCreditReservations.
+     * @example
+     * // Create many ImportCreditReservations
+     * const importCreditReservation = await prisma.importCreditReservation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ImportCreditReservationCreateManyArgs>(args?: SelectSubset<T, ImportCreditReservationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ImportCreditReservations and returns the data saved in the database.
+     * @param {ImportCreditReservationCreateManyAndReturnArgs} args - Arguments to create many ImportCreditReservations.
+     * @example
+     * // Create many ImportCreditReservations
+     * const importCreditReservation = await prisma.importCreditReservation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ImportCreditReservations and only return the `id`
+     * const importCreditReservationWithIdOnly = await prisma.importCreditReservation.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ImportCreditReservationCreateManyAndReturnArgs>(args?: SelectSubset<T, ImportCreditReservationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ImportCreditReservation.
+     * @param {ImportCreditReservationDeleteArgs} args - Arguments to delete one ImportCreditReservation.
+     * @example
+     * // Delete one ImportCreditReservation
+     * const ImportCreditReservation = await prisma.importCreditReservation.delete({
+     *   where: {
+     *     // ... filter to delete one ImportCreditReservation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ImportCreditReservationDeleteArgs>(args: SelectSubset<T, ImportCreditReservationDeleteArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ImportCreditReservation.
+     * @param {ImportCreditReservationUpdateArgs} args - Arguments to update one ImportCreditReservation.
+     * @example
+     * // Update one ImportCreditReservation
+     * const importCreditReservation = await prisma.importCreditReservation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ImportCreditReservationUpdateArgs>(args: SelectSubset<T, ImportCreditReservationUpdateArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ImportCreditReservations.
+     * @param {ImportCreditReservationDeleteManyArgs} args - Arguments to filter ImportCreditReservations to delete.
+     * @example
+     * // Delete a few ImportCreditReservations
+     * const { count } = await prisma.importCreditReservation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ImportCreditReservationDeleteManyArgs>(args?: SelectSubset<T, ImportCreditReservationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportCreditReservations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ImportCreditReservations
+     * const importCreditReservation = await prisma.importCreditReservation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ImportCreditReservationUpdateManyArgs>(args: SelectSubset<T, ImportCreditReservationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportCreditReservations and returns the data updated in the database.
+     * @param {ImportCreditReservationUpdateManyAndReturnArgs} args - Arguments to update many ImportCreditReservations.
+     * @example
+     * // Update many ImportCreditReservations
+     * const importCreditReservation = await prisma.importCreditReservation.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ImportCreditReservations and only return the `id`
+     * const importCreditReservationWithIdOnly = await prisma.importCreditReservation.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ImportCreditReservationUpdateManyAndReturnArgs>(args: SelectSubset<T, ImportCreditReservationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ImportCreditReservation.
+     * @param {ImportCreditReservationUpsertArgs} args - Arguments to update or create a ImportCreditReservation.
+     * @example
+     * // Update or create a ImportCreditReservation
+     * const importCreditReservation = await prisma.importCreditReservation.upsert({
+     *   create: {
+     *     // ... data to create a ImportCreditReservation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ImportCreditReservation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ImportCreditReservationUpsertArgs>(args: SelectSubset<T, ImportCreditReservationUpsertArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ImportCreditReservations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationCountArgs} args - Arguments to filter ImportCreditReservations to count.
+     * @example
+     * // Count the number of ImportCreditReservations
+     * const count = await prisma.importCreditReservation.count({
+     *   where: {
+     *     // ... the filter for the ImportCreditReservations we want to count
+     *   }
+     * })
+    **/
+    count<T extends ImportCreditReservationCountArgs>(
+      args?: Subset<T, ImportCreditReservationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ImportCreditReservationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ImportCreditReservation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ImportCreditReservationAggregateArgs>(args: Subset<T, ImportCreditReservationAggregateArgs>): Prisma.PrismaPromise<GetImportCreditReservationAggregateType<T>>
+
+    /**
+     * Group by ImportCreditReservation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ImportCreditReservationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ImportCreditReservationGroupByArgs['orderBy'] }
+        : { orderBy?: ImportCreditReservationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ImportCreditReservationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetImportCreditReservationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ImportCreditReservation model
+   */
+  readonly fields: ImportCreditReservationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ImportCreditReservation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ImportCreditReservationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ImportCreditReservation model
+   */
+  interface ImportCreditReservationFieldRefs {
+    readonly id: FieldRef<"ImportCreditReservation", 'String'>
+    readonly organizationId: FieldRef<"ImportCreditReservation", 'String'>
+    readonly key: FieldRef<"ImportCreditReservation", 'String'>
+    readonly importJobId: FieldRef<"ImportCreditReservation", 'String'>
+    readonly reservedCredits: FieldRef<"ImportCreditReservation", 'Int'>
+    readonly debitedCredits: FieldRef<"ImportCreditReservation", 'Int'>
+    readonly state: FieldRef<"ImportCreditReservation", 'String'>
+    readonly createdAt: FieldRef<"ImportCreditReservation", 'DateTime'>
+    readonly updatedAt: FieldRef<"ImportCreditReservation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ImportCreditReservation findUnique
+   */
+  export type ImportCreditReservationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which ImportCreditReservation to fetch.
+     */
+    where: ImportCreditReservationWhereUniqueInput
+  }
+
+  /**
+   * ImportCreditReservation findUniqueOrThrow
+   */
+  export type ImportCreditReservationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which ImportCreditReservation to fetch.
+     */
+    where: ImportCreditReservationWhereUniqueInput
+  }
+
+  /**
+   * ImportCreditReservation findFirst
+   */
+  export type ImportCreditReservationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which ImportCreditReservation to fetch.
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportCreditReservations to fetch.
+     */
+    orderBy?: ImportCreditReservationOrderByWithRelationInput | ImportCreditReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportCreditReservations.
+     */
+    cursor?: ImportCreditReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportCreditReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportCreditReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportCreditReservations.
+     */
+    distinct?: ImportCreditReservationScalarFieldEnum | ImportCreditReservationScalarFieldEnum[]
+  }
+
+  /**
+   * ImportCreditReservation findFirstOrThrow
+   */
+  export type ImportCreditReservationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which ImportCreditReservation to fetch.
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportCreditReservations to fetch.
+     */
+    orderBy?: ImportCreditReservationOrderByWithRelationInput | ImportCreditReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportCreditReservations.
+     */
+    cursor?: ImportCreditReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportCreditReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportCreditReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportCreditReservations.
+     */
+    distinct?: ImportCreditReservationScalarFieldEnum | ImportCreditReservationScalarFieldEnum[]
+  }
+
+  /**
+   * ImportCreditReservation findMany
+   */
+  export type ImportCreditReservationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Filter, which ImportCreditReservations to fetch.
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportCreditReservations to fetch.
+     */
+    orderBy?: ImportCreditReservationOrderByWithRelationInput | ImportCreditReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ImportCreditReservations.
+     */
+    cursor?: ImportCreditReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportCreditReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportCreditReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportCreditReservations.
+     */
+    distinct?: ImportCreditReservationScalarFieldEnum | ImportCreditReservationScalarFieldEnum[]
+  }
+
+  /**
+   * ImportCreditReservation create
+   */
+  export type ImportCreditReservationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * The data needed to create a ImportCreditReservation.
+     */
+    data: XOR<ImportCreditReservationCreateInput, ImportCreditReservationUncheckedCreateInput>
+  }
+
+  /**
+   * ImportCreditReservation createMany
+   */
+  export type ImportCreditReservationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ImportCreditReservations.
+     */
+    data: ImportCreditReservationCreateManyInput | ImportCreditReservationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ImportCreditReservation createManyAndReturn
+   */
+  export type ImportCreditReservationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * The data used to create many ImportCreditReservations.
+     */
+    data: ImportCreditReservationCreateManyInput | ImportCreditReservationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ImportCreditReservation update
+   */
+  export type ImportCreditReservationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * The data needed to update a ImportCreditReservation.
+     */
+    data: XOR<ImportCreditReservationUpdateInput, ImportCreditReservationUncheckedUpdateInput>
+    /**
+     * Choose, which ImportCreditReservation to update.
+     */
+    where: ImportCreditReservationWhereUniqueInput
+  }
+
+  /**
+   * ImportCreditReservation updateMany
+   */
+  export type ImportCreditReservationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ImportCreditReservations.
+     */
+    data: XOR<ImportCreditReservationUpdateManyMutationInput, ImportCreditReservationUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportCreditReservations to update
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * Limit how many ImportCreditReservations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportCreditReservation updateManyAndReturn
+   */
+  export type ImportCreditReservationUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * The data used to update ImportCreditReservations.
+     */
+    data: XOR<ImportCreditReservationUpdateManyMutationInput, ImportCreditReservationUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportCreditReservations to update
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * Limit how many ImportCreditReservations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportCreditReservation upsert
+   */
+  export type ImportCreditReservationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * The filter to search for the ImportCreditReservation to update in case it exists.
+     */
+    where: ImportCreditReservationWhereUniqueInput
+    /**
+     * In case the ImportCreditReservation found by the `where` argument doesn't exist, create a new ImportCreditReservation with this data.
+     */
+    create: XOR<ImportCreditReservationCreateInput, ImportCreditReservationUncheckedCreateInput>
+    /**
+     * In case the ImportCreditReservation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ImportCreditReservationUpdateInput, ImportCreditReservationUncheckedUpdateInput>
+  }
+
+  /**
+   * ImportCreditReservation delete
+   */
+  export type ImportCreditReservationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Filter which ImportCreditReservation to delete.
+     */
+    where: ImportCreditReservationWhereUniqueInput
+  }
+
+  /**
+   * ImportCreditReservation deleteMany
+   */
+  export type ImportCreditReservationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportCreditReservations to delete
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * Limit how many ImportCreditReservations to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportCreditReservation without action
+   */
+  export type ImportCreditReservationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Model ImportJob
    */
 
@@ -156439,6 +157637,21 @@ export namespace Prisma {
   export type RemixJobScalarFieldEnum = (typeof RemixJobScalarFieldEnum)[keyof typeof RemixJobScalarFieldEnum]
 
 
+  export const ImportCreditReservationScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    key: 'key',
+    importJobId: 'importJobId',
+    reservedCredits: 'reservedCredits',
+    debitedCredits: 'debitedCredits',
+    state: 'state',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ImportCreditReservationScalarFieldEnum = (typeof ImportCreditReservationScalarFieldEnum)[keyof typeof ImportCreditReservationScalarFieldEnum]
+
+
   export const ImportJobScalarFieldEnum: {
     id: 'id',
     organizationId: 'organizationId',
@@ -166083,6 +167296,81 @@ export namespace Prisma {
     error?: StringNullableWithAggregatesFilter<"RemixJob"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"RemixJob"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"RemixJob"> | Date | string
+  }
+
+  export type ImportCreditReservationWhereInput = {
+    AND?: ImportCreditReservationWhereInput | ImportCreditReservationWhereInput[]
+    OR?: ImportCreditReservationWhereInput[]
+    NOT?: ImportCreditReservationWhereInput | ImportCreditReservationWhereInput[]
+    id?: StringFilter<"ImportCreditReservation"> | string
+    organizationId?: StringFilter<"ImportCreditReservation"> | string
+    key?: StringFilter<"ImportCreditReservation"> | string
+    importJobId?: StringFilter<"ImportCreditReservation"> | string
+    reservedCredits?: IntFilter<"ImportCreditReservation"> | number
+    debitedCredits?: IntFilter<"ImportCreditReservation"> | number
+    state?: StringFilter<"ImportCreditReservation"> | string
+    createdAt?: DateTimeFilter<"ImportCreditReservation"> | Date | string
+    updatedAt?: DateTimeFilter<"ImportCreditReservation"> | Date | string
+  }
+
+  export type ImportCreditReservationOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    importJobId?: SortOrder
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
+    state?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportCreditReservationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    importJobId?: string
+    organizationId_key?: ImportCreditReservationOrganizationIdKeyCompoundUniqueInput
+    AND?: ImportCreditReservationWhereInput | ImportCreditReservationWhereInput[]
+    OR?: ImportCreditReservationWhereInput[]
+    NOT?: ImportCreditReservationWhereInput | ImportCreditReservationWhereInput[]
+    organizationId?: StringFilter<"ImportCreditReservation"> | string
+    key?: StringFilter<"ImportCreditReservation"> | string
+    reservedCredits?: IntFilter<"ImportCreditReservation"> | number
+    debitedCredits?: IntFilter<"ImportCreditReservation"> | number
+    state?: StringFilter<"ImportCreditReservation"> | string
+    createdAt?: DateTimeFilter<"ImportCreditReservation"> | Date | string
+    updatedAt?: DateTimeFilter<"ImportCreditReservation"> | Date | string
+  }, "id" | "importJobId" | "organizationId_key">
+
+  export type ImportCreditReservationOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    importJobId?: SortOrder
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
+    state?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ImportCreditReservationCountOrderByAggregateInput
+    _avg?: ImportCreditReservationAvgOrderByAggregateInput
+    _max?: ImportCreditReservationMaxOrderByAggregateInput
+    _min?: ImportCreditReservationMinOrderByAggregateInput
+    _sum?: ImportCreditReservationSumOrderByAggregateInput
+  }
+
+  export type ImportCreditReservationScalarWhereWithAggregatesInput = {
+    AND?: ImportCreditReservationScalarWhereWithAggregatesInput | ImportCreditReservationScalarWhereWithAggregatesInput[]
+    OR?: ImportCreditReservationScalarWhereWithAggregatesInput[]
+    NOT?: ImportCreditReservationScalarWhereWithAggregatesInput | ImportCreditReservationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ImportCreditReservation"> | string
+    organizationId?: StringWithAggregatesFilter<"ImportCreditReservation"> | string
+    key?: StringWithAggregatesFilter<"ImportCreditReservation"> | string
+    importJobId?: StringWithAggregatesFilter<"ImportCreditReservation"> | string
+    reservedCredits?: IntWithAggregatesFilter<"ImportCreditReservation"> | number
+    debitedCredits?: IntWithAggregatesFilter<"ImportCreditReservation"> | number
+    state?: StringWithAggregatesFilter<"ImportCreditReservation"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"ImportCreditReservation"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ImportCreditReservation"> | Date | string
   }
 
   export type ImportJobWhereInput = {
@@ -176954,6 +178242,90 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ImportCreditReservationCreateInput = {
+    id?: string
+    organizationId: string
+    key: string
+    importJobId: string
+    reservedCredits: number
+    debitedCredits?: number
+    state?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportCreditReservationUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    key: string
+    importJobId: string
+    reservedCredits: number
+    debitedCredits?: number
+    state?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportCreditReservationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    importJobId?: StringFieldUpdateOperationsInput | string
+    reservedCredits?: IntFieldUpdateOperationsInput | number
+    debitedCredits?: IntFieldUpdateOperationsInput | number
+    state?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportCreditReservationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    importJobId?: StringFieldUpdateOperationsInput | string
+    reservedCredits?: IntFieldUpdateOperationsInput | number
+    debitedCredits?: IntFieldUpdateOperationsInput | number
+    state?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportCreditReservationCreateManyInput = {
+    id?: string
+    organizationId: string
+    key: string
+    importJobId: string
+    reservedCredits: number
+    debitedCredits?: number
+    state?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportCreditReservationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    importJobId?: StringFieldUpdateOperationsInput | string
+    reservedCredits?: IntFieldUpdateOperationsInput | number
+    debitedCredits?: IntFieldUpdateOperationsInput | number
+    state?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportCreditReservationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    importJobId?: StringFieldUpdateOperationsInput | string
+    reservedCredits?: IntFieldUpdateOperationsInput | number
+    debitedCredits?: IntFieldUpdateOperationsInput | number
+    state?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ImportJobCreateInput = {
     id?: string
     organizationId: string
@@ -184193,6 +185565,57 @@ export namespace Prisma {
   export type RemixJobSumOrderByAggregateInput = {
     scrubbedCount?: SortOrder
     piiMaskedCount?: SortOrder
+  }
+
+  export type ImportCreditReservationOrganizationIdKeyCompoundUniqueInput = {
+    organizationId: string
+    key: string
+  }
+
+  export type ImportCreditReservationCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    importJobId?: SortOrder
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
+    state?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportCreditReservationAvgOrderByAggregateInput = {
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
+  }
+
+  export type ImportCreditReservationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    importJobId?: SortOrder
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
+    state?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportCreditReservationMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    importJobId?: SortOrder
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
+    state?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportCreditReservationSumOrderByAggregateInput = {
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
   }
 
   export type ImportJobCountOrderByAggregateInput = {

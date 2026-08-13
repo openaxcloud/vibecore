@@ -135,6 +135,25 @@ function isPrismaKnownRequestError(error: unknown): error is PrismaKnownRequestE
 
 // Database point-in-time rollback (Phase-1 scaffold) row → record mappers.
 // sizeBytes is a Postgres BIGINT (Prisma `bigint`); narrow to number for the API.
+/** Ligne Prisma → forme `ImportReservation` attendue par les fonctions pures. */
+function mapImportReservation(row: {
+  key: string;
+  organizationId: string;
+  importJobId: string;
+  reservedCredits: number;
+  debitedCredits: number;
+  state: string;
+}) {
+  return {
+    key: row.key,
+    organizationId: row.organizationId,
+    importJobId: row.importJobId,
+    reservedCredits: row.reservedCredits,
+    debitedCredits: row.debitedCredits,
+    state: row.state as 'RESERVED' | 'SETTLED' | 'COMPENSATED',
+  };
+}
+
 function mapDatabaseInstance(row: {
   id: string;
   projectId: string;
@@ -1502,6 +1521,46 @@ export class PrismaApiStore implements ApiStore {
    * deviendrait une seconde façon de lire le secret que le scan vient de
    * signaler. Seul le serveur appelle ceci.
    */
+  /*
+   * Réservation de crédits d'import — persistée (BUG-IMPORT-001). La clé est
+   * unique PAR ORGANISATION : elle vient du client, donc elle est devinable.
+   */
+  async getImportReservationByKey(organizationId: string, key: string) {
+    const row = await this.prisma.importCreditReservation.findUnique({
+      where: { organizationId_key: { organizationId, key } },
+    });
+
+    return row ? mapImportReservation(row) : undefined;
+  }
+
+  async getImportReservationByJob(importJobId: string) {
+    const row = await this.prisma.importCreditReservation.findUnique({ where: { importJobId } });
+
+    return row ? mapImportReservation(row) : undefined;
+  }
+
+  async saveImportReservation(reservation: {
+    key: string;
+    organizationId: string;
+    importJobId: string;
+    reservedCredits: number;
+    debitedCredits: number;
+    state: string;
+  }) {
+    await this.prisma.importCreditReservation.upsert({
+      where: { importJobId: reservation.importJobId },
+      create: {
+        organizationId: reservation.organizationId,
+        key: reservation.key,
+        importJobId: reservation.importJobId,
+        reservedCredits: reservation.reservedCredits,
+        debitedCredits: reservation.debitedCredits,
+        state: reservation.state,
+      },
+      update: { debitedCredits: reservation.debitedCredits, state: reservation.state },
+    });
+  }
+
   async getImportStagedFiles(id: string) {
     const row = await this.prisma.importJob.findUnique({ where: { id }, select: { stagedFiles: true } });
 

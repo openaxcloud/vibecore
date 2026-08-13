@@ -24,8 +24,10 @@ export interface ImportReservation {
   key: string;
   organizationId: string;
   importJobId: string;
+
   /** Credits held up-front (estimate). */
   reservedCredits: number;
+
   /** Credits actually charged. > 0 ONLY once SETTLED (i.e. the import committed). */
   debitedCredits: number;
   state: ReservationState;
@@ -108,7 +110,10 @@ export function settleReservation(
   }
 
   if (reservation.state === 'COMPENSATED') {
-    throw new ImportBillingError('Cannot settle a compensated (released) reservation', 'BILLING_SETTLE_AFTER_COMPENSATE');
+    throw new ImportBillingError(
+      'Cannot settle a compensated (released) reservation',
+      'BILLING_SETTLE_AFTER_COMPENSATE',
+    );
   }
 
   if (reservation.state === 'SETTLED') {
@@ -169,15 +174,22 @@ export function assertNoDebitWithoutCommit(reservation: ImportReservation): void
  */
 export class ImportCreditLedger {
   private readonly byKey = new Map<string, ImportReservation>();
+
   /** Secondary index so the endpoint can settle/compensate with only the jobId. */
   private readonly keyByJob = new Map<string, string>();
 
   /** Idempotent reserve. Returns the reservation (existing one on key replay). */
-  reserve(input: { key: string; organizationId: string; importJobId: string; reservedCredits: number }): ImportReservation {
+  reserve(input: {
+    key: string;
+    organizationId: string;
+    importJobId: string;
+    reservedCredits: number;
+  }): ImportReservation {
     const existing = this.byKey.get(input.key);
     const next = reserveReservation(existing, input);
     this.byKey.set(next.key, next);
     this.keyByJob.set(input.importJobId, next.key);
+
     return next;
   }
 
@@ -196,6 +208,7 @@ export class ImportCreditLedger {
     const next = settleReservation(reservation, committed, actualCredits);
     assertNoDebitWithoutCommit(next);
     this.byKey.set(key, next);
+
     return next;
   }
 
@@ -229,6 +242,7 @@ export class ImportCreditLedger {
     const next = compensateReservation(reservation);
     assertNoDebitWithoutCommit(next);
     this.byKey.set(key, next);
+
     return next;
   }
 
@@ -269,4 +283,96 @@ export function estimateImportReservation(stagedFileCount: number): number {
   }
 
   return Math.max(1, Math.ceil(stagedFileCount));
+}
+
+/**
+ * Le même cycle de vie, mais ADOSSÉ À UN STORE PARTAGÉ (BUG-IMPORT-001).
+ *
+ * `ImportCreditLedger` ci-dessus garde ses deux `Map` en mémoire du processus.
+ * L'API tourne en plusieurs réplicas : le commit d'un import est servi par un
+ * autre pod que sa création, qui ne trouvait alors aucune réservation et
+ * répondait `BILLING_RESERVATION_MISSING`. Prouvé en réel le 2026-08-12.
+ *
+ * Les invariants ne sont pas réécrits : cette classe délègue exactement aux
+ * mêmes fonctions pures (`reserveReservation` / `settleReservation` /
+ * `compensateReservation` / `assertNoDebitWithoutCommit`), déjà couvertes par
+ * `import-billing.spec.ts`. Seul le lieu de stockage change.
+ *
+ * Différence VOULUE avec la version en mémoire : la clé d'idempotence est
+ * scopée PAR ORGANISATION. Elle est choisie par le client, donc devinable ;
+ * l'index global laissait deux organisations utilisant « import-1 » partager
+ * une seule réservation — la seconde recevait celle de la première, crédits et
+ * `organizationId` compris.
+ */
+export interface ImportReservationStore {
+  getImportReservationByKey(organizationId: string, key: string): Promise<ImportReservation | undefined>;
+  getImportReservationByJob(importJobId: string): Promise<ImportReservation | undefined>;
+  saveImportReservation(reservation: ImportReservation): Promise<void>;
+}
+
+export class PersistentImportCreditLedger {
+  constructor(private readonly _store: ImportReservationStore) {}
+
+  /** Réservation idempotente : rejouer la même clé ne réserve pas deux fois. */
+  async reserve(input: {
+    key: string;
+    organizationId: string;
+    importJobId: string;
+    reservedCredits: number;
+  }): Promise<ImportReservation> {
+    const existing = await this._store.getImportReservationByKey(input.organizationId, input.key);
+    const next = reserveReservation(existing, input);
+
+    if (!existing) {
+      await this._store.saveImportReservation(next);
+    }
+
+    return next;
+  }
+
+  /**
+   * Lecture par (organisation, clé client). C'est aussi ce qui remplace l'index
+   * d'idempotence en mémoire : la ligne de réservation PORTE le jobId, donc un
+   * POST rejoué depuis n'importe quel réplica retrouve le même import.
+   */
+  async getReservationByKey(organizationId: string, key: string): Promise<ImportReservation | undefined> {
+    return this._store.getImportReservationByKey(organizationId, key);
+  }
+
+  async getByJob(importJobId: string): Promise<ImportReservation | undefined> {
+    return this._store.getImportReservationByJob(importJobId);
+  }
+
+  /** Enregistre le débit. Seule voie possible, et seulement si l'import a commité. */
+  async settleByJob(importJobId: string, committed: boolean, actualCredits: number): Promise<ImportReservation> {
+    const reservation = await this._store.getImportReservationByJob(importJobId);
+
+    if (!reservation) {
+      throw new ImportBillingError(`No reservation found for import ${importJobId}`, 'BILLING_RESERVATION_MISSING');
+    }
+
+    const next = settleReservation(reservation, committed, actualCredits);
+    assertNoDebitWithoutCommit(next);
+    await this._store.saveImportReservation(next);
+
+    return next;
+  }
+
+  /**
+   * Libère la réservation, débit zéro. Idempotent, et NO-OP quand rien n'a été
+   * réservé — un échec survenu AVANT la réservation doit rester nettoyable.
+   */
+  async compensateByJob(importJobId: string): Promise<ImportReservation | undefined> {
+    const reservation = await this._store.getImportReservationByJob(importJobId);
+
+    if (!reservation) {
+      return undefined;
+    }
+
+    const next = compensateReservation(reservation);
+    assertNoDebitWithoutCommit(next);
+    await this._store.saveImportReservation(next);
+
+    return next;
+  }
 }
