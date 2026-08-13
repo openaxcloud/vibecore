@@ -152,6 +152,21 @@ Rouge **13/14** contre l'avant-lot, vert **14/14**.
 Suite `services/api` : **188 fichiers, 1523 tests, 0 échec** (1 skip ; `api.spec.ts` exclu — modifié dans ce worktree par une autre session).
 `tsc` strict : **0 erreur**.
 
+### Deux erreurs de type que la CI ne pouvait pas montrer
+
+En repassant `tsc -p tsconfig.json` pour ce lot, deux erreurs sont sorties dans **mon propre**
+fichier de spec : `losingServerRollback` déclarait `SerializingStore` alors qu'il utilise les
+seams du sous-classe `PausingSerializingStore`. Elles étaient masquées **deux fois** :
+
+1. `pnpm build` compile depuis `src/server.ts` et suit les imports — il ne typecheck donc
+   jamais les specs ;
+2. en CI, le step `Typecheck` était **`skipped`** : la garde i18n échouait avant lui. Et le
+   typecheck racine s'arrête au *web app* (2 erreurs héritées dans `app/root.tsx` et
+   `app/utils/shell.ts`, hors de ce lot), sans jamais atteindre `services/api`.
+
+Signature corrigée en `PausingSerializingStore` ; `tsc -p tsconfig.json` repasse à **0**.
+Un « tsc strict 0 » rapporté plus tôt dans ce lot mesurait le build, pas les specs.
+
 ## Rejeu
 
 ```bash
@@ -174,10 +189,53 @@ cd services/api && DATABASE_URL=postgresql://vc:vc@127.0.0.1:55444/vibecore \
   src/tests/rollback-concurrency-postgres.spec.ts
 ```
 
-## Réserve honnête sur la portée
+## La réserve de portée, refermée : les mêmes cas contre un VRAI socket
 
-Les scénarios P0 sont prouvés avec un **manager stubé** (500 / timeout / « 200 mais toujours
-présent »), pas contre un vrai workspace-manager en panne : provoquer un 500 réel du manager
-demanderait de le casser volontairement sur le cluster de test, ce qui perturberait la
-release partagée qui y tourne. Ce qui est exercé en réel, c'est le code de décision — quelle
-réponse, quel état de ligne, quel log — pour chacun des quatre cas d'arrêt.
+La version précédente de ce document s'arrêtait à « scénarios P0 prouvés avec un manager
+**stubé** ». Le trou n'était pas le manager : c'était que les tests remplacent
+`globalThis.fetch` et **fabriquent** les pannes qu'ils jugent — un `TimeoutError` fait main,
+un `TypeError{cause.code:'ECONNRESET'}` fait main. Ces formes sont une hypothèse sur ce que
+produit undici, assertée nulle part.
+
+Cinq tests supplémentaires gardent donc le **vrai** client et pointent `WORKSPACE_MANAGER_URL`
+sur un vrai serveur `node:http` qui se comporte mal. Aucun cluster requis :
+
+| cas sur le fil | ce que ça prouve en plus du stub |
+|---|---|
+| **500 réel** | un `Response` non-OK réel pilote bien `response.ok === false` |
+| **socket détruit** (`req.destroy()`) | une erreur réseau réelle **remonte en throw**, pas en `undefined` silencieux — c'est exactement le fail-open sous audit |
+| **sonde `/status` en 500 réel** | « je n'ai pas pu vérifier » reste distinct de « c'est parti », sur du vrai HTTP |
+| **200 réel + JSON réel `exists:false`** | le chemin de parsing nominal → refus 409 normal |
+| **le serveur ACCEPTE puis ne répond JAMAIS** | celui qu'un stub ne peut structurellement pas produire |
+
+Le dernier est le plus important. Le stub lève **instantanément** : il ne dit rien d'un
+manager muet. Or l'appel tourne pendant que le rollback tient sa section sérialisée — si
+`AbortSignal.timeout(30_000)` ne se déclenchait pas, la requête épinglerait le verrou
+advisory au lieu d'échouer proprement. Mesuré : **30 402 ms**, donc l'abort tire réellement.
+Le test encadre des deux côtés (`> 25 s` : il a bien attendu l'abort et n'a pas échoué plus
+tôt pour une autre raison ; `< 70 s` : il ne pend pas).
+
+Rouge obtenu contre `cf002d9c` — la base **chirurgicale** : CAS déjà présent, arrêt strict
+pas encore. Les messages sont littéralement la réserve :
+
+```
+500 réel          → expected 409 to be 500     (un 409 PROPRE pendant que le manager explose)
+socket détruit    → expected 409 to be 500
+manager muet      → expected 409 to be 500     en 30 438 ms : il attendait l'abort… puis l'avalait
+sonde /status 500 → calls.status = 0           la disparition n'était jamais constatée
+200 + gone        → calls.status = 0
+```
+
+Un premier rouge pris contre le point de divergence donnait `calls.stop = 0` sur les cinq :
+juste, mais c'est le rouge du **lot entier** (le CAS n'existe pas encore), pas celui de la
+réserve P0. D'où la base chirurgicale ci-dessus.
+
+Suite : **19/19**.
+
+### Ce qui reste hors de portée, dit franchement
+
+Le workspace-manager n'est pas un vrai manager Kubernetes en panne : c'est un vrai serveur
+HTTP qui produit de vraies pannes de transport. Ce qui n'est donc toujours pas couvert, c'est
+un manager qui répondrait `200` **en mentant** sur l'état réel du cluster — le cas
+« `exists:false` alors que le pod tourne encore ». Ce mensonge-là ne peut être démenti que
+par le cluster lui-même, pas par le client.

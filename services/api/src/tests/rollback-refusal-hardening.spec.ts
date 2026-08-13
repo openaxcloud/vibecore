@@ -253,7 +253,12 @@ describe('rollback refusal — what the loser leaves behind', () => {
      * between its head read and its compare-and-set.
      */
     async function losingServerRollback(
-      store: SerializingStore,
+      // PausingSerializingStore, not SerializingStore: this helper drives the pause seam
+      // (`pauseAfterRollbackRowCreated` / `rollbackRowCreated`) that only the pausing
+      // subclass exposes. The looser type compiled only because `-p tsconfig.json` is not
+      // what `pnpm build` runs (build follows imports from src/server.ts, so it never
+      // typechecks the specs).
+      store: PausingSerializingStore,
       app: Awaited<ReturnType<typeof setup>>['app'],
       token: string,
       projectId: string,
