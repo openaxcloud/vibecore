@@ -70,20 +70,34 @@ echo "==> release isolee '$RELEASE' (ns $NS, runtime $RUNTIME_NS), tag $TAG"
 # services de la release partagée — et la preuve porterait sur les mauvais pods.
 LB_IP="$(audit_kubectl -n ingress-nginx get svc ingress-nginx-controller \
   -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
-OVERLAY="$(mktemp -t values-isolated-XXXXXX.yaml)"
-trap 'rm -f "$OVERLAY"' EXIT
+BASE_REWRITTEN="$(mktemp -t values-isolated-base-XXXXXX.yaml)"
+OVERRIDES="$(mktemp -t values-isolated-over-XXXXXX.yaml)"
+trap 'rm -f "$BASE_REWRITTEN" "$OVERRIDES"' EXIT
 
 sed \
   -e "s|vibecore-vibecore-platform-|${RELEASE}-vibecore-platform-|g" \
   -e "s|\.vibecore\.svc|.${NS}.svc|g" \
-  "$BASE_VALUES" > "$OVERLAY"
+  "$BASE_VALUES" > "$BASE_REWRITTEN"
 
-# Hôtes distincts : deux Ingress qui revendiquent le même host se marchent dessus.
-# Le rejeu passe par les Services in-cluster, mais un Ingress en conflit rendrait
-# la release isolée visiblement cassée pour rien.
-cat >> "$OVERLAY" <<YAML
-
-# --- surcharges propres a la release isolee (ajoutees par deploy-isolated.sh) ---
+# Les surcharges vont dans un fichier SÉPARÉ, passé en second `-f`.
+#
+# POURQUOI PAS EN LES AJOUTANT À LA FIN DU PREMIER (ce que faisait ce script, à
+# tort) : `global:` existe déjà dans les valeurs d'audit. Ajouter un second
+# `global:` dans le MÊME document YAML ne fusionne rien — c'est la même clé de
+# mapping, et le dernier gagne : tout le reste de `global` disparaissait
+# silencieusement, dont `dns01.enabled: false`, `workloadIdentity` et `labels`.
+# Effet observé : le ClusterIssuer DNS-01 du chart se rendait à nouveau, sous le
+# nom déjà pris par celui qu'installe addons.sh, et Helm refusait l'install. Le
+# reste aurait été pire car silencieux (les pods auraient perdu leurs annotations
+# Workload Identity, donc des 403 GCS ressemblant à un souci de droits bucket).
+# Helm, lui, fusionne EN PROFONDEUR plusieurs `-f` : `global.appDomain` se
+# surcharge alors sans toucher à `global.dns01`.
+#
+# Hôtes distincts par ailleurs : deux Ingress qui revendiquent le même host se
+# marchent dessus. Le rejeu passe par les Services in-cluster, mais un Ingress en
+# conflit rendrait la release isolée visiblement cassée pour rien.
+cat > "$OVERRIDES" <<YAML
+# --- surcharges propres a la release isolee (ecrites par deploy-isolated.sh) ---
 global:
   appDomain: '${RELEASE}.${LB_IP}.sslip.io'
   apiDomain: 'api-${RELEASE}.${LB_IP}.sslip.io'
@@ -143,7 +157,8 @@ echo "==> helm upgrade --install $RELEASE (ns $NS)"
 audit_helm upgrade --install "$RELEASE" "$REPO/infra/helm/platform" \
   --namespace "$NS" \
   -f "$REPO/infra/helm/platform/values.yaml" \
-  -f "$OVERLAY" \
+  -f "$BASE_REWRITTEN" \
+  -f "$OVERRIDES" \
   --set global.imageTag="$TAG" \
   --set platformEnv.runtime.workspaceAgentImage="$REGISTRY/workspace-agent:sha-$TAG" \
   --timeout 15m
