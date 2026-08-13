@@ -64,7 +64,7 @@ export function SolutionSalesPage({ copy, language }: { copy: SolutionCopy; lang
         lang={language}
         dir={direction}
       >
-        <Hero copy={copy} language={language} />
+        <Hero copy={copy} />
         <ProblemSection copy={copy} />
         <BuildSection copy={copy} />
         <ProofLinkBand copy={copy} language={language} />
@@ -78,13 +78,12 @@ export function SolutionSalesPage({ copy, language }: { copy: SolutionCopy; lang
   );
 }
 
-function Hero({ copy, language }: { copy: SolutionCopy; language: SupportedLanguage }) {
+function Hero({ copy }: { copy: SolutionCopy }) {
   return (
     <section className="sol-hero" aria-label={copy.aria.heroLabel} data-testid="solution-hero">
       <div className="sol-hero__grid" aria-hidden />
       <div className="container-responsive sol-hero__layout">
         <div className="sol-hero__copy">
-          <LanguageSwitch copy={copy} language={language} />
           <p className="sol-eyebrow">
             <Sparkles aria-hidden />
             {copy.hero.eyebrow}
@@ -483,19 +482,6 @@ function FinalCta({ copy }: { copy: SolutionCopy }) {
         </div>
       </div>
     </section>
-  );
-}
-
-function LanguageSwitch({ copy, language }: { copy: SolutionCopy; language: SupportedLanguage }) {
-  return (
-    <nav className="sol-language-switch" aria-label={copy.languageSwitch.label}>
-      <Link to="?lang=en" lang="en" hrefLang="en" reloadDocument aria-current={language === 'en' ? 'page' : undefined}>
-        {copy.languageSwitch.english}
-      </Link>
-      <Link to="?lang=fr" lang="fr" hrefLang="fr" reloadDocument aria-current={language === 'fr' ? 'page' : undefined}>
-        {copy.languageSwitch.french}
-      </Link>
-    </nav>
   );
 }
 
