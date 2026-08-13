@@ -61,7 +61,7 @@ plutôt qu'avalé.
 Rouge obtenu en ramenant **`app.ts` seul** à l'état d'avant, spec inchangée :
 
 ```
- Tests  9 failed | 1 passed (10)
+ Tests  11 failed | 1 passed (12)
 
 P0 stop 500            → the strict stop must have been attempted: expected 0 to be greater than 0
 P0 stop timeout        → expected 201 to be 500
@@ -75,7 +75,7 @@ P1 concurrence         → exactly one rollback row may exist for one key: got 2
 ```
 
 Le seul test vert en rouge est « une clé différente n'est pas dédupliquée » — normal, c'est
-le comportement d'avant. Avec le correctif : **10/10**.
+le comportement d'avant. Avec le correctif : **12/12**.
 
 Les quatre cas d'arrêt exigés sont couverts, plus un cinquième que la réserve implique sans
 le nommer :
@@ -105,6 +105,26 @@ instant :
 Un `Unique constraint failed on the fields: ("projectId", environment, key)` apparaît dans
 la sortie : c'est le `P2002` attrapé, autrement dit la base qui arbitre — ce qu'un modèle en
 mémoire ne peut pas établir.
+
+## Trois trous des mêmes classes, trouvés en relisant mon propre correctif
+
+| trou | conséquence | correctif |
+|---|---|---|
+| `releaseRollbackIdempotency` déclaré mais **jamais appelé** | une clé laissée `IN_FLIGHT` par un process mort en plein vol restait bloquée **à jamais** — aucun TTL, ce couple projet+clé devenait inutilisable | reprise d'une revendication abandonnée au-delà de 15 min (fenêtre très large devant la borne de 200 s du manager, donc une exécution vivante n'est jamais volée) |
+| un **5xx devenait la réponse rejouée** | chaque retry se voyait resservir le même incident sans jamais retenter : échec rendu permanent | `onSend` libère la revendication sur 5xx ; seuls les résultats délibérés (2xx/4xx) sont rejoués |
+| deux autres branches de refus statique laissaient l'orphelin | dont `ROLLBACK_DEST_DIGEST_FAILED`, où la restauration a **réussi** (snapshot complet) et seul le digest a échoué — le plus gros orphelin des trois branches | balayage sur les trois branches |
+
+## Deux erreurs de méthode, corrigées
+
+**Un test devinait le format de clé interne d'une Map** au lieu de passer par une seam
+explicite : il écrivait donc un enregistrement malformé (sans `state`) au lieu d'échouer, et
+le takeover ne se déclenchait jamais. `TestApiStore` expose désormais `backdateRollbackIdempotency`
+et `peekRollbackIdempotency`.
+
+**Un test P2 « digest » a été RETIRÉ plutôt que rafistolé** : il faisait du `vi.spyOn` sur un
+module ESM, son `mockRestore` fuyait et cassait les deux tests suivants sous parallélisme. Un
+test fragile qui casse ses voisins est exactement ce qui est reproché ailleurs dans ce lot. Le
+correctif de cette branche reste ; sa couverture automatisée, non — dit plutôt que masqué.
 
 ## Régression
 

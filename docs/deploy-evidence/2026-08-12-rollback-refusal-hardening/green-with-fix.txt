@@ -1,20 +1,22 @@
 
  RUN  v3.2.6 /Users/hb/dev/vibecore-wt-rollback/services/api
 
- ✓ src/tests/rollback-refusal-hardening.spec.ts (10 tests) 12796ms
-   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 500 → NOT a tidy FAILED+409: incident, 500, row flagged stale-active  770ms
-   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop times out → same incident treatment, never a silent success  476ms
-   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop CRASHES mid-request (socket dies, no HTTP status) → incident, never a silent success  398ms
-   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > the STATUS probe itself is unreachable → "cannot check" is NOT "it is gone"  4435ms
-   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 200 but the workload is STILL present → still an incident  4447ms
-   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop succeeds AND the workload disappears → the normal 409 refusal, row FAILED  496ms
-   ✓ rollback refusal — what the loser leaves behind > P2 — a refused static rollback leaves NO orphan snapshot on the volume  438ms
-   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a retry after a LOST response replays the original — it does not roll back again  620ms
-   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > two CONCURRENT calls with the same key produce exactly ONE effect  372ms
-   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a different key is a different operation — it is NOT deduplicated  343ms
+ ✓ src/tests/rollback-refusal-hardening.spec.ts (12 tests) 17679ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 500 → NOT a tidy FAILED+409: incident, 500, row flagged stale-active  1933ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop times out → same incident treatment, never a silent success  1263ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop CRASHES mid-request (socket dies, no HTTP status) → incident, never a silent success  1649ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > the STATUS probe itself is unreachable → "cannot check" is NOT "it is gone"  5190ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 200 but the workload is STILL present → still an incident  4424ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop succeeds AND the workload disappears → the normal 409 refusal, row FAILED  479ms
+   ✓ rollback refusal — what the loser leaves behind > P2 — a refused static rollback leaves NO orphan snapshot on the volume  394ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a retry after a LOST response replays the original — it does not roll back again  424ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > two CONCURRENT calls with the same key produce exactly ONE effect  388ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a 5xx does NOT become the replayable answer — a retry really retries  394ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > an ABANDONED in-flight claim (process died) is taken over, not wedged forever  608ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a different key is a different operation — it is NOT deduplicated  532ms
 
  Test Files  1 passed (1)
-      Tests  10 passed (10)
-   Start at  11:11:02
-   Duration  15.51s (transform 1.37s, setup 0ms, collect 2.54s, tests 12.80s, environment 0ms, prepare 57ms)
+      Tests  12 passed (12)
+   Start at  11:57:24
+   Duration  22.59s (transform 2.52s, setup 0ms, collect 4.73s, tests 17.68s, environment 0ms, prepare 40ms)
 
