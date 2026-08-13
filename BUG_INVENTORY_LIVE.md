@@ -402,3 +402,25 @@ En posant la garde générique de `ed2b1022`, un balayage du dépôt a montré q
 **Effet de bord utile.** Le quota de sauvegardes a été atteint pendant ces essais et a produit un **vrai 429** : le panneau a répondu « Un quota est atteint… » (`PANEL_QUOTA_EXCEEDED`) au lieu du générique — ce qui **lève la réserve** posée sur `ed2b1022`, faute de 429 authentique jusque-là.
 
 **Note lint.** `services/api/src/app.ts` porte **155 problèmes préexistants sur `main`**. Les trois commits ci-dessus en ajoutent **zéro** (155 avant, 155 après, vérifié règle par règle) ; aucun `--fix` n'a été lancé sur ce fichier, un passage automatique y produisant ~250 lignes de réordonnancement d'imports sans rapport.
+
+### 2026-08-13 (suite) — #2 : ce que A corrige vraiment, et la cause qui RESTE
+
+Vérification **à l'écran** dans l'isolement, sur une vraie réouverture à chaud (témoin planté dans le pod, PID du serveur de dev, `mtime` d'un fichier source) : **le reseed a quand même eu lieu** — témoin supprimé, PID vite 66→118, `App.tsx` réécrit. `f037001a` ne suffisait donc pas.
+
+Deux causes trouvées à cette occasion, dont **une introduite par moi** :
+
+| ID | Constat | 📤 | 💻 | ✅ | Preuve |
+|---|---|:---:|:---:|:---:|---|
+| BUG-A-REVISION-ROUTE-SHADOWED | **Ma route de révision n'était jamais atteinte.** Le client visait `/api/projects/:id/files/revision`, or la route splat `api.projects.$id.files.$` capture ce chemin et interprète « revision » comme un **nom de fichier** → 404 `PROJECT_FILE_NOT_FOUND`. Le signal 3 n'était donc pas câblé du tout. | ✅ | ✅ `99015dca` | ✅ | Point d'entrée déplacé **hors** de `files/` (`/files-revision`) — un projet a le droit d'avoir un fichier nommé `revision`. Vérifié live : 200 `{revision:"2bf7df29…"}`, et le marqueur porte enfin la révision. |
+| BUG-A-PORT-READY-STRICT | `hasLivePreviewPort` exigeait `ready === true` **strictement**, là où le code voisin qui pose la même question accepte `ready !== false`. | ✅ | ✅ `99015dca` | 🟠 | Variante `hasAdoptablePreviewPort` **locale** à la décision de reattach ; le prédicat partagé n'est pas touché (il sert aussi à `isWorkspaceReallyRunning` et `preview-recovery`, où la sévérité est voulue). N'a pas suffi — voir ci-dessous. |
+
+**La cause qui reste, désormais PROUVÉE et non plus supposée.** Une trace permanente des entrées de la décision a été ajoutée (`99015dca`) ; elle donne, au montage :
+
+```
+reused: true, seededThisSession: true, portProbeSucceeded: true,
+seededRevision: 2bf7df29…, hasLivePort: FALSE
+```
+
+Trois signaux sur quatre sont donc **réparés et vrais**. Le blocage est ailleurs : **`workbenchStore.previews` est VIDE à l'instant de la décision**, alors qu'au même moment l'API répond `port 5173, ready: true, url: https://ws-02bf241a…-5173.…`. La sonde `refreshRuntimePorts()` « réussit » — elle ne lève pas — mais `listPorts()` résout **à vide**. Assouplir `ready` ne peut donc rien changer : il n'y a aucun port du tout dans le magasin, pas un port mal étiqueté.
+
+**Conclusion pour l'arbitrage.** L'option A a supprimé trois des quatre causes ; la quatrième est un défaut de l'adaptateur runtime au montage (`listPorts` rend une liste vide alors que le pod écoute), qui demande son propre diagnostic. Tant qu'il subsiste, la réouverture continue de reseeder — mais le défaut est maintenant **observable en une ligne de journal** au lieu d'exiger une instrumentation ad hoc, ce qui était le premier obstacle de l'enquête initiale.
