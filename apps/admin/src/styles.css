@@ -28,8 +28,11 @@
   --bolt-elements-textPrimary: var(--vc-ide-text-primary);
   --vc-font-interface:
     'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --vc-font-code:
-    'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  /* Platform code font. The web app moved to IBM Plex Mono so the IDE mono
+     matches the e-code theme (see app/root.tsx + --vc-font-code in
+     app/styles/index.scss); the admin console had been left on the legacy
+     JetBrains Mono, which broke the shared typography system. */
+  --vc-font-code: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --vc-type-interface-size: 13px;
   --vc-type-interface-compact-size: 12px;
   --vc-type-code-size: 13px;

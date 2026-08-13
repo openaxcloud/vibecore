@@ -96,7 +96,7 @@ async function expectProjectCreationForm(page: import('@playwright/test').Page) 
   }
 }
 
-test('project preview boots a real app and renders inside the webview', async ({ page }) => {
+test('project preview boots a real app and renders inside the webview', { tag: '@runtime' }, async ({ page }) => {
   test.setTimeout(240_000);
 
   const auth = await authenticate(page);
@@ -137,7 +137,7 @@ test('project preview boots a real app and renders inside the webview', async ({
   );
 });
 
-test('project preview boots a package-script Vite app and renders inside the webview', async ({ page }) => {
+test('project preview boots a package-script Vite app and renders inside the webview', { tag: '@runtime' }, async ({ page }) => {
   test.setTimeout(300_000);
 
   const auth = await authenticate(page);
@@ -187,7 +187,7 @@ test('project preview boots a package-script Vite app and renders inside the web
   ).toContainText('VibeCore package preview runtime smoke', { timeout: 180_000 });
 });
 
-test('template-created project boots and renders the generated app in preview', async ({ page }) => {
+test('template-created project boots and renders the generated app in preview', { tag: '@runtime' }, async ({ page }) => {
   test.setTimeout(240_000);
 
   await authenticate(page);
@@ -208,7 +208,7 @@ test('template-created project boots and renders the generated app in preview', 
   ).toBeVisible();
 });
 
-test('AI-created project starts the agent with a valid default model', async ({ page }) => {
+test('AI-created project starts the agent with a valid default model', { tag: '@runtime' }, async ({ page }) => {
   test.setTimeout(240_000);
 
   await authenticate(page);
@@ -232,7 +232,7 @@ test('AI-created project starts the agent with a valid default model', async ({ 
   });
 });
 
-test('preview window options stay readable and interactive in light theme', async ({ page, isMobile }) => {
+test('preview window options stay readable and interactive in light theme', { tag: '@runtime' }, async ({ page, isMobile }) => {
   test.skip(isMobile, 'Preview toolbar window menu is part of the desktop/tablet IDE shell.');
   test.setTimeout(240_000);
 

@@ -44,7 +44,7 @@ async function createZipBase64(files: Record<string, string>) {
   return zip.generateAsync({ type: 'base64' });
 }
 
-test('critical path: preview iframe loads imported app content', async ({ page }) => {
+test('critical path: preview iframe loads imported app content', { tag: '@runtime' }, async ({ page }) => {
   test.setTimeout(120_000);
 
   const auth = await authenticate(page);
