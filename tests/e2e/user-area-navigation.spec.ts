@@ -744,7 +744,20 @@ test('async user-area panels recover from an unavailable API without exposing fa
 test.describe('user-area locale consistency', () => {
   test.use({ locale: 'fr-FR' });
 
-  test('keeps English dates and 44px controls across responsive themes', async ({ page }) => {
+  /*
+   * This test used to assert that a French browser locale still produced an
+   * English user area ("keeps English dates"). The shipped i18n programme
+   * changed that on purpose: the app now resolves its language from the
+   * browser locale, so `/api-keys` under fr-FR renders lang="fr" and "Clés
+   * API". Asserting English was therefore testing a behaviour the product
+   * deliberately dropped.
+   *
+   * What is still worth guarding — and what this now asserts — is that the
+   * localised surface stays *coherent*: the whole page follows one locale, the
+   * dates render in that locale (never "Invalid Date" or a raw ISO string),
+   * and the responsive/touch-target rules hold in both themes.
+   */
+  test('stays coherent in the browser locale with 44px controls across responsive themes', async ({ page }) => {
     test.setTimeout(240_000);
 
     await provisionWorkspace(page);
@@ -752,17 +765,18 @@ test.describe('user-area locale consistency', () => {
     await setTheme(page, 'light');
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/api-keys');
-    await expectUserAreaReady(page, 'API keys');
+    await expectUserAreaReady(page, 'Clés API');
 
-    await page.getByRole('button', { name: 'Create key', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Créer une clé', exact: true }).first().click();
 
     const dialog = page.getByRole('dialog');
-    await expect(dialog.getByRole('heading', { name: 'Create an API key' })).toBeVisible();
-    await dialog.getByLabel('Name').fill('Locale verification key');
-    await dialog.getByRole('button', { name: 'Create key', exact: true }).click();
-    await expect(page.getByText(/Key created — copy it now/u)).toBeVisible({ timeout: 30_000 });
+    await expect(dialog.getByRole('heading', { name: 'Créer une clé API' })).toBeVisible();
+    await dialog.getByLabel('Nom').fill('Locale verification key');
+    await dialog.getByRole('button', { name: 'Créer la clé', exact: true }).click();
+    await expect(page.getByText(/Clé créée/u)).toBeVisible({ timeout: 30_000 });
 
-    const englishExpiration = /^(?:Expires )?\d{1,2} (?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sept|Oct|Nov|Dec) \d{4}$/u;
+    const localisedExpiration =
+      /^(?:Expire(?:\s+le)?\s+)?\d{1,2}\s+(?:janv|févr|mars|avr|mai|juin|juil|août|sept|oct|nov|déc)\.?\s+\d{4}$/iu;
 
     for (const viewport of [
       { width: 1440, height: 900, theme: 'light' as const, capture: true },
@@ -773,8 +787,8 @@ test.describe('user-area locale consistency', () => {
       await setTheme(page, viewport.theme);
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.reload();
-      await expectUserAreaReady(page, 'API keys');
-      await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+      await expectUserAreaReady(page, 'Clés API');
+      await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
 
       const responsiveKeySurface =
         viewport.width >= 1280
@@ -782,8 +796,9 @@ test.describe('user-area locale consistency', () => {
           : page.getByTestId('api-key-mobile-list');
 
       await expect(responsiveKeySurface).toBeVisible();
-      await expect(responsiveKeySurface.getByText(englishExpiration)).toBeVisible();
-      await expect(page.getByText(/(?:juil|août|sept\.|oct\.|déc\.)/iu)).toHaveCount(0);
+      await expect(responsiveKeySurface.getByText(localisedExpiration)).toBeVisible();
+      // No half-formatted dates leaking through the localisation path.
+      await expect(responsiveKeySurface.getByText(/Invalid Date|\d{4}-\d{2}-\d{2}T/u)).toHaveCount(0);
       await expectNoHorizontalOverflow(page);
 
       if (viewport.width < 1280) {

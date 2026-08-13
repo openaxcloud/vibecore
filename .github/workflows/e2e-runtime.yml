@@ -1,26 +1,34 @@
-name: Production E2E
+name: E2E Runtime
+
+# Tests tagged `@runtime` need a *live workspace runtime*: a provisioned
+# workspace pod, a booted dev server and a rendered preview iframe. The
+# Production E2E stack only brings up postgres/redis/mailpit + the API + the
+# built web app, so those tests can never pass there — they were a permanent
+# red in a blocking gate, which is why Production E2E had never been green.
+#
+# They are split out here rather than deleted: the coverage is real and we want
+# it back in a blocking position once the runtime is provisioned in CI (see
+# docs/audit/E2E_SUITE_SPLIT.md). Until then this workflow is deliberately
+# NON-BLOCKING — nightly + on demand — so it reports the gap without pretending
+# the gap is fixed.
 
 on:
-  pull_request:
   workflow_dispatch:
-  push:
-    branches: [stable, product/saas-platform-production]
+  schedule:
+    # 04:20 UTC daily — after the nightly parity collector, before EU morning.
+    - cron: '20 4 * * *'
 
 concurrency:
-  group: production-e2e-${{ github.ref }}
+  group: e2e-runtime-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  e2e:
-    name: Playwright local stack
+  e2e-runtime:
+    name: Playwright @runtime (non-blocking)
     runs-on: ubuntu-latest
-    timeout-minutes: 75
-    # Forked PRs can't read the AI provider secrets (so the run would hard-fail
-    # on the secret-validation step anyway), and same-repo PR branches run
-    # arbitrary code with the real prod keys injected. Restrict to non-fork
-    # events so external contributors aren't blocked by an unsatisfiable gate
-    # and prod keys aren't exposed to untrusted fork code.
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    timeout-minutes: 90
+    # Reporting-only until a workspace runtime is available in CI.
+    continue-on-error: true
 
     env:
       CI: true
@@ -34,13 +42,7 @@ jobs:
       API_BASE_URL: http://127.0.0.1:3001
       SAAS_API_URL: http://127.0.0.1:3001
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
-      # The WORKFLOW owns the servers (prod web below + admin below); without
-      # this flag Playwright's webServer would try to boot a dev server on the
-      # same port and hard-fail now that reuseExistingServer=false in CI.
       PLAYWRIGHT_SKIP_WEB_SERVER: '1'
-      # Local-stack admin used by gallery-remix-license.spec.ts (curation step).
-      # ADMIN_MFA_REQUIRED=false is the API's own harness escape hatch — the
-      # admin-MFA gate stays ON everywhere else (prod keeps enforcing TOTP).
       PLATFORM_ADMIN_EMAILS: e2e-platform-admin@local.test
       ADMIN_MFA_REQUIRED: 'false'
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -65,13 +67,6 @@ jobs:
 
       - name: Install Playwright browsers
         run: pnpm exec playwright install --with-deps chromium
-
-      - name: Validate AI provider secret for E2E
-        run: |
-          if [ -z "${ANTHROPIC_API_KEY:-}" ]; then
-            echo "Production E2E requires ANTHROPIC_API_KEY because the default IDE model is Anthropic."
-            exit 1
-          fi
 
       - name: Start local dependencies
         run: |
@@ -100,37 +95,23 @@ jobs:
           echo $! > /tmp/vibecore-web.pid
           npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5173
 
-      # PLAYWRIGHT_SKIP_WEB_SERVER means Playwright no longer boots the admin
-      # dev server (5174) either — the workflow provides it, like the web app.
       - name: Start admin app
         run: |
           pnpm --filter @vibecore/admin dev > /tmp/vibecore-admin.log 2>&1 &
           echo $! > /tmp/vibecore-admin.pid
           npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5174
 
-      # `@runtime` tests need a live workspace pod + dev server + preview iframe,
-      # which this stack does not provide (postgres/redis/mailpit + API + web).
-      # They run in the separate, non-blocking `E2E Runtime` workflow.
-      - name: Playwright auth, project, IDE, terminal, billing mock flows
-        run: pnpm exec playwright test tests/e2e --project=chromium --grep-invert @runtime
-
-      - name: IDE panel live audit
-        run: |
-          PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 SAAS_API_URL=http://127.0.0.1:3001 pnpm run ide:panel-audit
-          pnpm run ide:panel-audit:validate
-
-      - name: Playwright mobile viewport tests
-        run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium --grep-invert @runtime
+      - name: Playwright @runtime suite
+        run: pnpm exec playwright test tests/e2e --project=chromium --grep @runtime
 
       - name: Upload E2E traces
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-runtime
           path: |
             playwright-report
             test-results
-            tmp/ide-panel-audit.json
             /tmp/vibecore-api.log
             /tmp/vibecore-web.log
           if-no-files-found: ignore

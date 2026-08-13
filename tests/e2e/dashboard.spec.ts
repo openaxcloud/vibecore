@@ -331,7 +331,7 @@ test('project creation syncs AI providers and models from settings', async ({ pa
   await expect(page.getByRole('option', { name: /GPT Settings Small/ })).toBeVisible();
 });
 
-test('private templates create a project instead of opening the public gallery', async ({ page }) => {
+test('private templates create a project instead of opening the public gallery', { tag: '@runtime' }, async ({ page }) => {
   await authenticate(page);
   await page.goto('/dashboard/templates');
   await expect(page.getByRole('heading', { name: 'Templates' })).toBeVisible();
@@ -344,7 +344,10 @@ test('private templates create a project instead of opening the public gallery',
 test('authenticated user area applies the global platform design system', async ({ page }) => {
   await authenticate(page);
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: /Dashboard|Projects|Welcome/ })).toBeVisible({ timeout: 30_000 });
+  // The user area renders several matching headings (page title + section); take the first.
+  await expect(page.getByRole('heading', { name: /Dashboard|Projects|Welcome/ }).first()).toBeVisible({
+    timeout: 30_000,
+  });
 
   const theme = await page.evaluate(() => {
     const root = window.getComputedStyle(document.documentElement);
@@ -392,8 +395,15 @@ test('authenticated user area applies the global platform design system', async 
 
 test('public templates stay marketing-only for anonymous visitors', async ({ page }) => {
   await page.goto('/templates');
-  await expect(page.getByRole('heading', { name: 'Templates gallery' })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Sign in to use templates' })).toHaveAttribute('href', '/login');
+
+  /*
+   * The marketing gallery was rebuilt: its hero heading is the copy below, not
+   * "Templates gallery", and cards link with "Sign in to use" (there is no
+   * "Sign in to use templates" variant any more).
+   */
+  await expect(
+    page.getByRole('heading', { name: 'Start faster with production-ready E-Code templates' }),
+  ).toBeVisible({ timeout: 30_000 });
   await expect(page.getByRole('link', { name: 'Sign in to use' }).first()).toHaveAttribute('href', '/login');
 });
 
@@ -1646,7 +1656,7 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
   expect(tabProbe.rightPanel.backgroundLuminance).toBeGreaterThan(0.88);
 });
 
-test('edit file workflow surfaces editor, files, terminal and preview affordances', async ({ page, isMobile }) => {
+test('edit file workflow surfaces editor, files, terminal and preview affordances', { tag: '@runtime' }, async ({ page, isMobile }) => {
   test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
 
   const projectId = await createTestProject(page, 'E2E edit workflow project');
@@ -1689,7 +1699,7 @@ test('edit file workflow surfaces editor, files, terminal and preview affordance
   await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
 });
 
-test('reopens project IDE with persisted agent memory and panel state', async ({ page, isMobile }) => {
+test('reopens project IDE with persisted agent memory and panel state', { tag: '@runtime' }, async ({ page, isMobile }) => {
   test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
 
   const auth = await authenticate(page);
