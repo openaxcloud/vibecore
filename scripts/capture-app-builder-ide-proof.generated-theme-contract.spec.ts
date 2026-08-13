@@ -16,7 +16,15 @@ const sourceSection = (start: string, end: string) => {
 };
 
 describe('generated Solutions project theme contract', () => {
-  const contractSource = sourceSection('function generatedAppThemeContractFor', '\nfunction creationPromptFor');
+  const contractSource = sourceSection(
+    'function generatedAppThemeContractFor',
+    '\nfunction generatedOrangeActionContractFor',
+  );
+  const orangeActionContractSource = sourceSection(
+    'function generatedOrangeActionContractFor',
+    '\nfunction creationPromptFor',
+  );
+
   const creationPromptSource = sourceSection('function creationPromptFor', '\nfunction repairPromptFor');
   const themeRepairPromptSource = sourceSection('function themeRepairPromptFor', '\nfunction escapedPattern');
   const gameScenarioSource = sourceSection("  'game-builder': {", "  'dashboard-builder': {");
@@ -24,7 +32,10 @@ describe('generated Solutions project theme contract', () => {
   it('adds the common contract to every EN and FR creation prompt', () => {
     expect(creationPromptSource).toContain('const appThemeContract = generatedAppThemeContractFor(locale, scenario);');
     expect(creationPromptSource).toContain(
-      '`${scenario.prompt}${interactionContract}${authenticityContract}${appThemeContract}${runtimeContract}`',
+      'const orangeActionContract = generatedOrangeActionContractFor(locale, scenario);',
+    );
+    expect(creationPromptSource).toContain(
+      '`${scenario.prompt}${interactionContract}${authenticityContract}${orangeActionContract}${appThemeContract}${runtimeContract}`',
     );
 
     expect(contractSource).toContain('two complete, genuinely distinct application themes, light and dark');
@@ -33,6 +44,21 @@ describe('generated Solutions project theme contract', () => {
     expect(contractSource).toContain('fonds clairs et texte sombre en mode clair');
     expect(contractSource).toContain('Never fake the variant by inverting, filtering, recoloring');
     expect(contractSource).toContain('Ne simulez jamais la variante en inversant, filtrant, recolorant');
+  });
+
+  it('requires the named scenario interaction to be an enabled orange action on first render', () => {
+    expect(orangeActionContractSource).toContain('const { name, role } = scenario.interaction;');
+    expect(orangeActionContractSource).toContain('whose exact accessible name is “${name}”');
+    expect(orangeActionContractSource).toContain('dont le nom accessible exact est « ${name} »');
+    expect(orangeActionContractSource).toContain('inside the initial viewport, visible, enabled');
+    expect(orangeActionContractSource).toContain('dans la fenêtre initiale, être visible, activée');
+    expect(orangeActionContractSource).toContain('computed CSS background-color, border-color, or color');
+    expect(orangeActionContractSource).toContain('propriétés CSS calculées background-color, border-color ou color');
+    expect(orangeActionContractSource).toContain('disabled state, or hover/focus-only style does not satisfy');
+    expect(orangeActionContractSource).toContain('état désactivé, ou un style uniquement :hover/:focus');
+    expect(orangeActionContractSource).toContain('at least one visible, enabled, usable orange action');
+    expect(orangeActionContractSource).toContain('au moins une action orange visible, activée et utilisable');
+    expect(orangeActionContractSource).toContain('WCAG AA');
   });
 
   it('requires system preference plus a real localized accessible application control', () => {
@@ -74,7 +100,10 @@ describe('generated Solutions project theme contract', () => {
     expect(themeRepairPromptSource).toContain(
       'const appThemeContract = generatedAppThemeContractFor(locale, scenario);',
     );
-    expect(themeRepairPromptSource).toContain('${darkCanvasInstruction}${appThemeContract}');
+    expect(themeRepairPromptSource).toContain(
+      'const orangeActionContract = generatedOrangeActionContractFor(locale, scenario);',
+    );
+    expect(themeRepairPromptSource).toContain('${darkCanvasInstruction}${orangeActionContract}${appThemeContract}');
     expect(themeRepairPromptSource).toContain('In dark mode, render the entire application');
     expect(themeRepairPromptSource).toContain('En mode sombre, affichez toute l’application');
     expect(themeRepairPromptSource).toContain('Verify both themes in the rendered Webview');

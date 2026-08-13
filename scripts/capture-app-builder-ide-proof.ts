@@ -500,6 +500,14 @@ function generatedAppThemeContractFor(locale: CaptureLocale, scenario: SolutionS
     : ` Implement two complete, genuinely distinct application themes, light and dark, across every surface and control, using theme-specific CSS variables or rules: light backgrounds with dark text in light mode, and dark backgrounds with light text in dark mode. Never fake the variant by inverting, filtering, recoloring, or changing the opacity of a capture. On load, initialize the theme from window.matchMedia('(prefers-color-scheme: dark)').matches. On every view, render a real button element with type="button" and data-testid="app-theme-toggle" that is visible and keyboard accessible, with visible text, aria-label, and title set exactly to Switch to light mode while dark theme is active, then Switch to dark mode while light theme is active. Clicking it must switch this application’s theme without a reload, immediately set document.documentElement.dataset.theme to exactly light or dark, update its label and aria-pressed, and keep the control visible without clipping on desktop, tablet, and mobile.${gameDirection}`;
 }
 
+function generatedOrangeActionContractFor(locale: CaptureLocale, scenario: SolutionScenario) {
+  const { name, role } = scenario.interaction;
+
+  return locale === 'fr'
+    ? ` Dès le premier rendu, avant toute saisie, tout clic, survol ou focus, l’action métier de rôle ${role} dont le nom accessible exact est « ${name} » doit se trouver dans la fenêtre initiale, être visible, activée et réellement exécuter le parcours demandé. Appliquez un accent orange saturé directement sur cet élément interactif dans son état initial activé : au moins une de ses propriétés CSS calculées background-color, border-color ou color doit être orange. Une variable CSS déclarée mais non rendue, un parent ou enfant décoratif, un pseudo-élément, un état désactivé, ou un style uniquement :hover/:focus ne satisfait pas ce contrat. Il doit donc exister au premier rendu au moins une action orange visible, activée et utilisable, tout en conservant un contraste WCAG AA.`
+    : ` On the first render, before any typing, click, hover, or focus, the ${role} whose exact accessible name is “${name}” must be inside the initial viewport, visible, enabled, and actually perform the required workflow. Apply a saturated orange accent directly to that interactive element in its initial enabled state: at least one of its computed CSS background-color, border-color, or color properties must be orange. A declared-but-unrendered CSS variable, decorative parent or child, pseudo-element, disabled state, or hover/focus-only style does not satisfy this contract. The first render must therefore expose at least one visible, enabled, usable orange action while retaining WCAG AA contrast.`;
+}
+
 function creationPromptFor(
   slug: CaptureSlug,
   locale: CaptureLocale,
@@ -527,8 +535,9 @@ function creationPromptFor(
         : ' Do not leave a generic starter or reuse unrelated template copy; the visible product name, content, and workflows must match this brief. Write every visible interface string in professional English, except brands, code, and explicitly requested technical terms. Draw interface visuals in code or use bundled local assets only. Do not hotlink remote images, stock-photo services, fonts, scripts, or stylesheets.';
 
   const appThemeContract = generatedAppThemeContractFor(locale, scenario);
+  const orangeActionContract = generatedOrangeActionContractFor(locale, scenario);
 
-  return `${scenario.prompt}${interactionContract}${authenticityContract}${appThemeContract}${runtimeContract}`;
+  return `${scenario.prompt}${interactionContract}${authenticityContract}${orangeActionContract}${appThemeContract}${runtimeContract}`;
 }
 
 function repairPromptFor(slug: CaptureSlug, locale: CaptureLocale, scenario: SolutionScenario, attempt: number) {
@@ -567,10 +576,11 @@ function themeRepairPromptFor(locale: CaptureLocale, scenario: SolutionScenario,
     : '';
 
   const appThemeContract = generatedAppThemeContractFor(locale, scenario);
+  const orangeActionContract = generatedOrangeActionContractFor(locale, scenario);
 
   return locale === 'fr'
-    ? `${iterationBrief}La Webview réelle de ${scenario.expectedTerms[0]} ne respecte pas la palette demandée. Préservez chaque parcours existant et chaque limite locale, retirez tout accent violet, mauve ou rose et utilisez l’orange pour les actions principales visibles.${darkCanvasInstruction}${appThemeContract} Gardez toutes les images, polices, scripts et feuilles de style en local. Vérifiez les deux thèmes dans la Webview rendue avant d’annoncer la réussite.`
-    : `${iterationBrief}The actual Webview for ${scenario.expectedTerms[0]} does not match the requested palette. Preserve every existing workflow and local-only limitation, remove every purple, violet, mauve, and pink accent, and use orange for visible primary actions.${darkCanvasInstruction}${appThemeContract} Keep all images, fonts, scripts, and styles local. Verify both themes in the rendered Webview before reporting success.`;
+    ? `${iterationBrief}La Webview réelle de ${scenario.expectedTerms[0]} ne respecte pas la palette demandée. Préservez chaque parcours existant et chaque limite locale, retirez tout accent violet, mauve ou rose et utilisez l’orange pour les actions principales visibles.${darkCanvasInstruction}${orangeActionContract}${appThemeContract} Gardez toutes les images, polices, scripts et feuilles de style en local. Vérifiez les deux thèmes dans la Webview rendue avant d’annoncer la réussite.`
+    : `${iterationBrief}The actual Webview for ${scenario.expectedTerms[0]} does not match the requested palette. Preserve every existing workflow and local-only limitation, remove every purple, violet, mauve, and pink accent, and use orange for visible primary actions.${darkCanvasInstruction}${orangeActionContract}${appThemeContract} Keep all images, fonts, scripts, and styles local. Verify both themes in the rendered Webview before reporting success.`;
 }
 
 function escapedPattern(value: string) {
