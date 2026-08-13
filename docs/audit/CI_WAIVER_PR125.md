@@ -40,7 +40,120 @@ Elle n'a donc pas observé un échec de test : elle a observé une **annulation*
 son paramètre `allowed-conclusions` refuse. Relancée après le re-run vert de
 `Production CI` sur le même SHA, elle suit.
 
-## Tableau définitif au SHA figé (tous les workflows relancés, plus aucun « annulé »)
+## Ce que la CI d'une PR teste RÉELLEMENT : le commit de FUSION, pas la branche
+
+Point mécanique décisif, vérifié dans les logs et non déduit. Le workflow se
+déclenche sur `pull_request`, donc `actions/checkout` récupère
+`refs/pull/125/merge` :
+
+```
+git fetch … origin +fa06f91e1f043c622b96cf59b9c910f0961ca24f:refs/remotes/pull/125/merge
+```
+
+Ce `fa06f91e` est **la fusion de ma tête avec le tip de `main`**, pas ma branche.
+Trois conséquences, toutes vérifiables :
+
+1. **Un rouge peut appartenir entièrement à `main`.** Lorsque `main` est cassé, la
+   CI de la PR l'est aussi, quelle que soit la base de la branche.
+2. **Rebaser sur un `main` plus ancien mais vert ne rend PAS la CI verte** — je l'ai
+   essayé (base `b13712ae6e`, dernier `main` vert) : `eslint app` rendait 0 erreur en
+   local, et la CI de la PR échouait quand même, puisqu'elle lintait la fusion avec
+   le tip. J'ai donc annulé ce détour et rebasé sur le tip courant, qui est la
+   meilleure base ; l'issue CI est identique tant que `main` n'est pas réparé.
+3. **L'attribution devient une question de fait, pas d'opinion.**
+
+### Attribution du rouge Lint courant
+
+`main` est rouge depuis **`3b81b10b`** (« boucle de rechargement du panneau DB »),
+mergé alors que **son propre run `Production CI` échouait** (04:45 et 00:45, deux
+runs distincts). Les 15 erreurs vivent dans :
+
+```
+app/components/database/qa-panel-regressions.spec.ts   <- ABSENT de mon arbre
+app/components/database/DatabaseWorkbench.tsx
+app/routes/api.projects.$projectId.ide-panel.$panel.ts
+app/components/chat/qa-status-truth.spec.ts   … (toutes sous app/)
+```
+
+Dominées par **10× `react-hooks/exhaustive-deps` — « Definition for rule was not
+found »**, c'est-à-dire une résolution de plugin ESLint cassée, pas une faute de
+style.
+
+Contre-preuve la plus simple possible : **mon diff ne touche aucun fichier sous
+`app/`** —
+
+```
+git diff --name-only origin/main...HEAD -- app/   ->   (vide)
+```
+
+### La preuve locale, reproductible en trois commandes
+
+Plutôt que de raisonner sur des logs, on lint **`origin/main` seul**, sans aucun
+commit de cette branche, dans un worktree jetable :
+
+```bash
+git worktree add --detach /tmp/main-lint origin/main
+ln -s <repo>/node_modules /tmp/main-lint/node_modules
+cd /tmp/main-lint && npx eslint app
+```
+
+Résultat :
+
+```
+✖ 42 problems (15 errors, 27 warnings)
+  10 react-hooks/exhaustive-deps      <- « Definition for rule was not found »
+   4 prettier/prettier
+   2 lines-around-comment
+   2 multiline-comment-style
+   1 no-unused-vars
+   1 padding-line-between-statements
+```
+
+**Exactement le même total et la même répartition par règle que la CI de la PR.**
+`main` seul suffit à produire ce rouge ; mes 37 commits n'y changent rien, ce qui est
+attendu puisqu'ils ne touchent aucun fichier sous `app/`.
+
+> Méthode : ma première tentative de démonstration était fausse et je la corrige ici
+> — j'avais linté « mon arbre seul » APRÈS rebase, or un rebase place mes commits
+> **au-dessus** de l'arbre de `main` : cet arbre contenait donc déjà les fichiers
+> fautifs. Isoler `main` exige un checkout de `main`, pas de ma branche.
+
+Un rouge dont 100 % des fichiers sont hors de mon diff, sur un `main` dont les runs
+propres échouent et dont l'arbre seul reproduit le défaut à l'identique, n'est pas
+imputable à cette PR.
+
+### Un piège de lecture, à ne pas retourner contre ce constat
+
+La PR #124 affiche `Install, test, build, scan` **vert** au même instant. Ce n'est
+PAS une contre-preuve : sa dernière activité date du **2026-08-07**, donc son run —
+et le commit de fusion sur lequel il a porté — précède la casse. `3b81b10b` a atterri
+sur `main` le **2026-08-13 à 03:44**. Un statut GitHub n'est pas réévalué quand la
+base bouge : il reste affiché tel qu'il a été calculé.
+
+La comparaison qui a une valeur est donc celle des PR dont la CI a tourné APRÈS la
+casse : #126 (active) est rouge sur le même job, comme celle-ci. Il doit être réparé en amont ;
+le corriger ici reviendrait à glisser un correctif de `main` dans une PR
+d'infrastructure, ce que l'audit reproche à juste titre.
+
+## Tableau au SHA figé `1c68880b39` (rebasé sur le tip de `main` = `8645c2c0`)
+
+```
+success  Code Quality
+success  Preview Deployment
+success  Production Terraform
+success  Security Analysis
+success  Semantic Pull Request
+failure  Production CI          <- UNE seule etape: Lint, 100% des fichiers hors de mon diff
+failure  PR Validation          <- derive de Production CI
+failure  French i18n live audit <- Playwright desktop/tablet/mobile, herites
+failure  Production E2E         <- Playwright local stack, herite
+```
+
+Cinq verts. Les quatre rouges se réduisent à **deux causes, aucune dans cette PR** :
+le Lint de `main` (démontré ci-dessus par le lint de `origin/main` seul) et la suite
+Playwright partagée (rouge à l'identique sur #126).
+
+## Tableau au SHA précédent `693ff5c8b5` (tous les workflows relancés, plus aucun « annulé »)
 
 ```
 success  Production CI              <- Lint, i18n, Typecheck, Unit, Integration, Builds, Security

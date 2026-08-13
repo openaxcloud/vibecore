@@ -1,0 +1,63 @@
+############ REJEU LIVE DES 4 PORTES ############
+date: 2026-08-13T05:52:35Z   tag attendu: 1c68880b39
+cluster: gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster
+
+== flotte (composants traverses par les portes) ==
+  api: 2 replique(s), tag(s)=1c68880b39 
+  preview-proxy: 2 replique(s), tag(s)=1c68880b39 
+  workspace-manager: 1 replique(s), tag(s)=1c68880b39 
+  screenshotter: 1 replique(s), tag(s)=1c68880b39 
+
+== drapeaux (lus dans CHAQUE pod du proxy, pas dans le configmap) ==
+  vibecore-vibecore-platform-preview-proxy-67d7844cdf-5wtkr: TENANT=true PRIVATE=true
+  vibecore-vibecore-platform-preview-proxy-67d7844cdf-mg4n2: TENANT=true PRIVATE=true
+
+== seed org/projet ==
+orgs: org_porte,org_pirate
+
+== demarrage du workspace ws-porte (pod gVisor) ==
+  image agent: europe-west9-docker.pkg.dev/vibecore-audit-test-20260807/vibecore-audit-containers/workspace-agent:sha-1c68880b39
+  POST /workspaces/start -> 200
+pod/workspace-ws-porte condition met
+  runtimeClass du pod: gvisor
+
+== serveur de dev dans le pod (5173 HTTP, 5174 HTTP+WebSocket) ==
+  ports: 5173:ouvert 5174:ouvert
+
+== jetons vc_preview forges dans le pod api (le secret ne sort pas) ==
+  jeton legitime : b3JnX3BvcnRl.<exp>.<sig tronquee>
+  jeton intrus   : b3JnX3BpcmF0ZQ.<exp>.<sig tronquee>
+  domaine preview: preview.34.163.208.161.sslip.io
+
+== PORTE 1 — lien de preview DIRECT (forme HOTE + cookie) ==
+  cookie LEGITIME                                200  <!doctype html><html><head><script data-ecode-hmr-shim>(function(){i
+  cookie INTRUS                                  404  {"error":"The workspace preview is not reachable yet. Please try aga
+  cookie BIDON                                   403  {"error":"You do not have access to this preview.","code":"PREVIEW_T
+  SANS cookie                                    403  {"error":"You do not have access to this preview.","code":"PREVIEW_T
+
+== PORTE 2 — publications: le chemin interne /d/<id> n'est pas public ==
+  sans en-tete interne                           403  {"error":"This address is reserved for internal callers.","code":"PR
+  en-tete interne BIDON                          403  {"error":"This address is reserved for internal callers.","code":"PR
+  en-tete interne VALIDE                         503  {"error":"This publication’s state could not be verified. Please t
+
+== PORTE 3 — chemin /p (forme utilisee par le screenshotter) ==
+  jeton LEGITIME                                 200  <!doctype html><html><head><script data-ecode-hmr-shim>(function(){i
+  jeton INTRUS                                   404  {"error":"The workspace preview is not reachable yet. Please try aga
+  jeton BIDON                                    403  {"error":"You do not have access to this preview.","code":"PREVIEW_T
+  SANS jeton                                     403  {"error":"You do not have access to this preview.","code":"PREVIEW_T
+
+== PORTE 3bis — E2E REEL: screenshotter -> preview-proxy -> workspace ==
+  POST /capture (jeton LEGITIME) -> HTTP 200, 9648 octets
+  entete du fichier rendu: 89504e470d0a1a0a
+  POST /capture (SANS jeton)     -> HTTP 200, 11048 octets
+  ip du pod screenshotter: 10.20.1.149
+  statuts du proxy sur /p/ws-porte/5173/ pour les requetes VENANT du screenshotter: 200x1 403x1
+
+== PORTE 4 — upgrade WebSocket (HMR) sur un port qui sert vraiment une socket ==
+  SANS-cookie|REFUSE:HTTP/1.1 403 Bad Request
+  cookie-INTRUS|REFUSE:HTTP/1.1 502 Bad Request
+  cookie-BIDON|REFUSE:HTTP/1.1 403 Bad Request
+  cookie-LEGITIME|101+DONNEES
+
+############ 4 PORTES VERIFIEES (assertions, pas description) ############
+journal complet: /private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/portes-live-1c68880b39.txt
