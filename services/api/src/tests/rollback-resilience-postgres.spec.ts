@@ -1,4 +1,4 @@
-import { createServer, type Server, type ServerResponse } from 'node:http';
+import { createServer, request as httpRequest, type Server, type ServerResponse } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import type { Socket } from 'node:net';
 import { createDatabaseClient } from '@vibecore/database';
@@ -280,6 +280,46 @@ function rollback(
   });
 }
 
+/**
+ * Send the real HTTP request, observe only its status line, then tear down the
+ * client socket before consuming a single response-body byte. Fastify's onSend
+ * hook has already made the replay record durable when Node emits `response`.
+ */
+async function rollbackAndDropResponse(
+  apiUrl: string,
+  token: string,
+  projectId: string,
+  idempotencyKey: string,
+): Promise<{ statusCode: number; bodyBytesReceived: number }> {
+  const payload = JSON.stringify({ environment: 'preview' });
+
+  return new Promise((resolve, reject) => {
+    const request = httpRequest(
+      `${apiUrl}/projects/${projectId}/deployments/rollback-to-previous`,
+      {
+        method: 'POST',
+        headers: {
+          authorization: `Bearer ${token}`,
+          'content-type': 'application/json',
+          'content-length': Buffer.byteLength(payload),
+          'idempotency-key': idempotencyKey,
+        },
+      },
+      (response) => {
+        let bodyBytesReceived = 0;
+        response.on('data', (chunk: Buffer) => {
+          bodyBytesReceived += chunk.byteLength;
+        });
+        const statusCode = response.statusCode ?? 0;
+        response.destroy();
+        resolve({ statusCode, bodyBytesReceived });
+      },
+    );
+    request.once('error', reject);
+    request.end(payload);
+  });
+}
+
 async function cleanProject(
   prisma: DatabaseClient,
   input: { projectId: string; organization: { id: string }; user: { id: string } },
@@ -432,13 +472,21 @@ runDbTests('rollback resilience — real PostgreSQL + real HTTP manager/proxy', 
     try {
       seeded = await seedProject(appA, storeA, 'lost-response');
       const key = unique('lost-201');
-      const first = await rollback(appA, seeded.token, seeded.projectId, key);
-      expect(first.statusCode).toBe(201);
-      const firstBody = first.json();
+      await appA.listen({ host: '127.0.0.1', port: 0 });
+      const apiAddress = appA.server.address() as AddressInfo;
+      const dropped = await rollbackAndDropResponse(
+        `http://127.0.0.1:${apiAddress.port}`,
+        seeded.token,
+        seeded.projectId,
+        key,
+      );
+      expect(dropped).toEqual({ statusCode: 201, bodyBytesReceived: 0 });
       const committedId = String(manager.starts[0].deploymentId);
+      const durable = await storeA.getRollbackIdempotency(seeded.projectId, key);
+      expect(durable).toMatchObject({ status: 'COMPLETED', responseStatus: 201, deploymentId: committedId });
 
-      // Simulate the client losing the response and the serving API process being
-      // replaced. The replay gets no state from appA, only PostgreSQL.
+      // Replace the serving API process. The replay gets no state from appA,
+      // only the response that onSend committed to PostgreSQL before socket I/O.
       await appA.close();
       await prismaA.$disconnect();
 
@@ -450,7 +498,7 @@ runDbTests('rollback resilience — real PostgreSQL + real HTTP manager/proxy', 
         const replay = await rollback(appB, seeded.token, seeded.projectId, key);
         expect(replay.statusCode).toBe(201);
         expect(replay.headers['idempotency-replayed']).toBe('true');
-        expect(replay.json()).toEqual(firstBody);
+        expect(replay.json()).toEqual(durable?.responseBody);
         expect(replay.json().deployment.id).toBe(committedId);
         expect(manager.starts).toHaveLength(1);
         expect(
