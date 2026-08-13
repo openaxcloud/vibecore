@@ -526,6 +526,8 @@ export const Menu = () => {
               </div>
             )}
           </div>
+          {/* BD-29: standalone chats live in this device's IndexedDB only, never synced across devices. Say so. */}
+          <p className="px-4 pb-2 text-xs text-bolt-elements-textTertiary">{copy.history.localOnlyNote}</p>
           <div
             className="min-h-0 flex-1 overflow-auto px-3 pb-3"
             aria-busy={historyLoadState === 'loading'}

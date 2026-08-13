@@ -28,6 +28,7 @@ interface SidebarMenuCopy {
     history: {
       startNewChat: string;
       title: string;
+      localOnlyNote: string;
       searchPlaceholder: string;
       selectAll: string;
       deselectAll: string;
@@ -108,6 +109,7 @@ export const sidebarMenuEn = {
     history: {
       startNewChat: 'Start new chat',
       title: 'Your chats',
+      localOnlyNote: 'Stored on this device only — standalone chats are not synced across devices.',
       searchPlaceholder: 'Search chats…',
       selectAll: 'Select all',
       deselectAll: 'Deselect all',
@@ -197,6 +199,8 @@ export const sidebarMenuFr = {
     history: {
       startNewChat: 'Nouvelle discussion',
       title: 'Vos discussions',
+      localOnlyNote:
+        'Stocké uniquement sur cet appareil — les discussions autonomes ne sont pas synchronisées entre appareils.',
       searchPlaceholder: 'Rechercher une discussion…',
       selectAll: 'Tout sélectionner',
       deselectAll: 'Tout désélectionner',
