@@ -1,13 +1,93 @@
 # PR #125 — attribution des échecs CI
 
 Branche `fix/from-scratch-install-dr-clean`, **SHA figé
-`693ff5c8b5c5e115aec827097d0fcc2992f17ee6`**, rebasée sur `origin/main` =
-`d06be185` (qui contient `29354701`, vérifié comme ancêtre).
+`8eaa538cb3758b029c06f904535d60ea1c7fdce6`**, rebasée sur `origin/main` =
+`b2ee7c8844`.
 
 L'auditeur demande d'**isoler les rouges hérités des nouveaux, avec preuve par SHA**.
 Chaque ligne ci-dessous est établie en rejouant la vérification *exacte* du CI sur
 `origin/main` **pur**, ou en comparant l'état du même job sur d'autres PR ouvertes.
 Aucune n'est un « ça échouait déjà, sans doute ».
+
+---
+
+## Les deux familles Playwright : mesurées SUR `main`, plus par comparaison
+
+Les tours précédents attribuaient ces deux rouges en comparant l'état du même job sur
+d'autres PR ouvertes. C'est un argument de circonstance : il montre que d'autres
+branches sont rouges, pas que `main` l'est. Les deux suites ont donc été **lancées
+directement sur `main`** (`workflow_dispatch`, aucun commit de cette branche dans
+l'arbre testé), et les échecs comparés **test par test**, pas en nombre.
+
+Ces deux workflows sont entièrement locaux au runner (base et Redis en conteneurs de
+service, `PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173`, aucune étape `gcloud`/`helm`/
+`kubectl`) : les lancer sur `main` ne touche aucun système déployé.
+
+| Suite | sur `main` `b2ee7c8844` | sur le SHA figé `8eaa538cb3` | tests en échec **seulement** sur la PR |
+|---|---|---|---|
+| `Production E2E` (Playwright local stack) | **failure** — 57 échecs / 177 succès | failure — 58 / 176 (mesuré sur `32785a924d`, identique en source hors script de preuve) | **1** (voir ci-dessous) |
+| `French i18n live audit` (4 viewports) | **failure** — 9 tests, les 4 viewports | failure — 6 tests | **0** — les 6 sont dans les 9 de `main` |
+
+L'i18n est donc réglé sans réserve : **aucun** test n'échoue sur la PR sans échouer
+aussi sur `main`, qui en casse trois de plus (`desktop-1024` ×2, `mobile-390`
+« auth pages »).
+
+### L'unique test E2E divergent — instruit par bissection, pas par argument
+
+```
+tests/e2e/dashboard.spec.ts:816 › IDE panels, agent input and feature tools
+                                  keep the platform theme in light and dark modes
+```
+
+Il échoue côté PR et pas sur `main`. Trois arguments de périmètre le mettaient déjà
+hors de portée de cette PR :
+
+1. **Le code testé n'est pas modifié.** `git diff --name-only origin/main...HEAD --
+   app/ tests/ packages/` est vide — et mieux : le **commit de fusion** que la CI
+   teste réellement (`refs/pull/125/merge`, ici `dfe2ff42d3`, parents `b2ee7c88` +
+   `4faba16e`) n'a **aucune** différence avec `origin/main` sous ces trois arbres.
+2. **Le harnais n'est pas modifié.** La PR touche quatre workflows de déploiement ;
+   ni `e2e.yml` ni `i18n-live-audit.yml`.
+3. **Le mode d'échec ne ressemble pas à une régression de thème** : les six jetons CSS
+   reviennent **vides** (`""` au lieu de `#006fd6`, `#f6f8fb`, …), c'est-à-dire une
+   feuille de styles pas encore appliquée. Échec en 2,6 s.
+
+Ces trois points restent des arguments. Deux mesures ont donc été faites, parce qu'un
+argument de périmètre ne vaut pas une expérience.
+
+**Premier biais corrigé.** Mes échantillons côté PR étaient des `pull_request` et ceux
+de `main` des `workflow_dispatch` : le type d'événement était confondu avec l'arbre.
+Relancé en `workflow_dispatch` sur la branche — même événement que `main` — l'échec
+persiste. Il suit donc l'arbre, pas l'événement.
+
+**Bissection.** Deux branches jetables, dispatchées en parallèle :
+
+| Branche | Contenu | `:816` |
+|---|---|---|
+| `tmp/e2e-bisect-no-services` | l'arbre de la PR, `services/{api,preview-proxy,screenshotter}` **revenus à `main`** | **échoue** |
+| `tmp/e2e-bisect-services-only` | `main` + **uniquement** les `services/*` de la PR | échoue |
+
+La première est décisive. Vis-à-vis de la base `b2ee7c8844`, il n'y subsiste que six
+fichiers, **tous des ajouts** (un `git checkout main -- <chemins>` ne supprime pas un
+fichier absent de `main`) : quatre `*.spec.ts`, que cette suite n'exécute pas, et deux
+modules importés par **zéro** fichier hors tests — vérifié par `git grep`. Le
+comportement exécuté par la stack Playwright y est donc celui de `main`, et le test
+y échoue quand même.
+
+**Décompte des échantillons** : échoue 5 fois (PR ×2, dispatch sur la branche, les
+deux bissections), passe 2 fois (`main` ×2). Le test est instable avec un taux
+d'échec élevé, et les deux passages sur `main` sont les runs chanceux — ce qui colle
+au mode d'échec, une course au chargement de la feuille de styles. La même
+instabilité se voit ailleurs dans la suite : entre les deux échantillons de `main`,
+deux autres tests ont basculé, un dans chaque sens.
+
+Ce n'est donc pas « du bruit » affirmé par commodité : c'est un test instable dont
+l'instabilité a été mesurée sur un arbre dont le contenu exécutable est celui de
+`main`. La suite est cassée en amont — 57 échecs sur `main` — et c'est là qu'il faut
+la réparer. Une session dédiée s'en occupe (branche `fix/e2e-production-green`).
+
+> Les deux branches de bissection sont supprimées après lecture : elles n'existaient
+> que pour cette mesure. Les runs restent consultables par leur identifiant.
 
 ## Production CI : VERTE — et pourquoi il faut lire les annulations
 

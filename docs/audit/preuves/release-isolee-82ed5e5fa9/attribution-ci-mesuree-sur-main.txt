@@ -1,0 +1,23 @@
+# Attribution des deux familles Playwright — mesuree SUR main
+
+## Production E2E
+main b2ee7c8844 (dispatch, echantillon 1) : 57 failed
+main b2ee7c8844 (dispatch, echantillon 2) : 57 failed
+SHA 8eaa538cb3 (pull_request)             : 58 failed
+branche 4faba16e3a (dispatch)             : 58 failed
+
+Les deux echantillons de main sont IDENTIQUES test par test (57).
+Un seul test echoue cote PR et pas sur main :
+  tests/e2e/dashboard.spec.ts:816:1 › IDE panels, agent input and feature tools keep the platform theme in light and dark modes
+  tests/e2e/solution-declines.spec.ts:127:11 › declined solution sales pages › website-builder fr light 768px
+
+## French i18n live audit
+main b2ee7c8844 (dispatch)  : 9 tests en echec, 4 viewports
+SHA 8eaa538cb3              : 6 tests en echec
+Tests en echec sur la PR mais PAS sur main :
+  (aucun)
+
+Tests en echec sur main mais pas sur la PR :
+  [desktop-1024] › tests/e2e/i18n-french-live.spec.ts:726:3 › complete French live i18n audit › all sitemap marketing pages are translated in both themes
+  [desktop-1024] › tests/e2e/i18n-french-live.spec.ts:746:3 › complete French live i18n audit › user area and project panels are translated in both themes
+  [mobile-390] › tests/e2e/i18n-french-live.spec.ts:738:3 › complete French live i18n audit › all auth pages are translated in both themes
