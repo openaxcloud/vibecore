@@ -417,14 +417,15 @@ test('public homepage light theme keeps the media section readable', async ({ pa
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 
   /*
-   * The video section mounts below the fold; scroll the window rather than
-   * using scrollIntoViewIfNeeded, which hangs when the element is not attached
-   * yet, then wait for it to attach.
+   * LandingVideo is lazy: it mounts through IntersectionObserver + Suspense, so
+   * neither scrollIntoViewIfNeeded nor a one-shot window.scrollTo reliably
+   * brings it in (the page height changes as other sections mount). Use the
+   * product's own reveal path — the "Watch demo" CTA performs a
+   * reveal-and-retry smooth scroll until the section exists.
    */
   const videoSection = page.getByTestId('section-video-demo');
-  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await page.getByTestId('button-watch-demo').first().click();
   await expect(videoSection).toBeVisible({ timeout: 30_000 });
-  await videoSection.scrollIntoViewIfNeeded();
 
   const probe = await page.evaluate(() => {
     const section = document.querySelector('[data-testid="section-video-demo"]')!;
