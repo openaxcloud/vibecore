@@ -6,7 +6,9 @@ import sharp from 'sharp';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import {
+  auditPromptBubbleViewport,
   auditNativeIdeWebview,
+  compareInterSlotProofImages,
   compareProofImages,
   composeDirectRuntimeCapture,
   SOLUTION_PROOF_CAPTURE_CANVAS,
@@ -44,6 +46,38 @@ describe('capture harness truth wiring', () => {
     );
     expect(shellBranch.indexOf('auditNativeIdeWebview(page, options.scenario.expectedTerms[0])')).toBeLessThan(
       shellBranch.indexOf('page.screenshot({'),
+    );
+  });
+
+  it('allows only the exact contracted interaction role and accessible name', () => {
+    const scenarioBranch = captureSource.slice(
+      captureSource.indexOf('async function verifyScenarioPreview'),
+      captureSource.indexOf('\nasync function verifyScenarioIdentity'),
+    );
+
+    expect(scenarioBranch).toContain(
+      'getByRole(scenario.interaction.role, { name: scenario.interaction.name, exact: true })',
+    );
+    expect(scenarioBranch).toContain('exactTargetCount');
+    expect(scenarioBranch).toContain('resultMatchCount');
+    expect(scenarioBranch).toContain('stateChanged');
+    expect(scenarioBranch).not.toContain('alternateRole');
+    expect(scenarioBranch).not.toContain('WithDecoration');
+  });
+
+  it('compares all staged slot pixels before any public asset promotion', () => {
+    const comparisonIndex = captureSource.indexOf('const interSlotDifferences: InterSlotDifferenceAudit[]');
+    const promotionIndex = captureSource.indexOf('const promotedAssets = await promoteVerifiedThemedAssets');
+
+    expect(comparisonIndex).toBeGreaterThan(0);
+    expect(promotionIndex).toBeGreaterThan(comparisonIndex);
+  });
+
+  it('compares unpadded direct-runtime pixels rather than composed theme padding', () => {
+    expect(themedCaptureSource).toContain('directRuntimeThemeScreenshots.set(theme, nativeScreenshot)');
+    expect(themedCaptureSource).toContain('compareProofImages(lightDirectRuntime, darkDirectRuntime)');
+    expect(themedCaptureSource.indexOf('directRuntimeThemeScreenshots.set(theme, nativeScreenshot)')).toBeLessThan(
+      themedCaptureSource.indexOf('composeDirectRuntimeCapture(nativeScreenshot, selectedDevice, theme)'),
     );
   });
 });
@@ -179,5 +213,192 @@ describe.sequential('native IDE Webview proof audit', () => {
     await frame.setContent(`<main role="alert">Internal server error ${'PeopleOps '.repeat(30)}</main>`);
 
     await expect(auditNativeIdeWebview(page, 'PeopleOps')).rejects.toThrow('errors=');
+  });
+
+  it('rejects an identity that exists only below the native viewport', async () => {
+    await page.setContent('<iframe data-testid="preview-iframe" style="width:900px;height:600px"></iframe>');
+
+    const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
+
+    if (!frame) {
+      throw new Error('Expected iframe');
+    }
+
+    await frame.setContent(`
+      <style>body{margin:0;background:#123;color:white;font:24px sans-serif}.spacer{height:900px}</style>
+      <main><div class="spacer">${'Visible application content '.repeat(20)}</div><h1>PeopleOps</h1></main>
+    `);
+
+    await expect(auditNativeIdeWebview(page, 'PeopleOps')).rejects.toThrow('identity=false');
+  });
+
+  it('does not treat generic error vocabulary in ordinary app copy as a runtime failure', async () => {
+    await page.setContent('<iframe data-testid="preview-iframe" style="width:900px;height:600px"></iframe>');
+
+    const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
+
+    if (!frame) {
+      throw new Error('Expected iframe');
+    }
+
+    await frame.setContent(`
+      <style>body{margin:0;min-height:100vh;background:linear-gradient(135deg,#164e63,#f97316);color:white;font:24px sans-serif}</style>
+      <main><h1>PeopleOps</h1><p role="alert">Error budget healthy and erreur-handling guidance. ${'Local policy content '.repeat(20)}</p></main>
+    `);
+
+    await expect(auditNativeIdeWebview(page, 'PeopleOps')).resolves.toBeDefined();
+  });
+
+  it('rejects a visible Vite overlay whose diagnostic exists only in Shadow DOM', async () => {
+    await page.setContent('<iframe data-testid="preview-iframe" style="width:900px;height:600px"></iframe>');
+
+    const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
+
+    if (!frame) {
+      throw new Error('Expected iframe');
+    }
+
+    await frame.setContent(`
+      <style>body{margin:0;min-height:100vh;background:linear-gradient(135deg,#164e63,#f97316);color:white;font:24px sans-serif}</style>
+      <main><h1>PeopleOps</h1><p>${'Local policy content '.repeat(20)}</p></main>
+      <vite-error-overlay style="position:fixed;inset:0;display:block"></vite-error-overlay>
+      <script>
+        const overlay = document.querySelector('vite-error-overlay');
+        overlay.attachShadow({mode:'open'}).innerHTML = '<div>Arbitrary shadow diagnostic</div>';
+      </script>
+    `);
+
+    await expect(auditNativeIdeWebview(page, 'PeopleOps')).rejects.toThrow('Arbitrary shadow diagnostic');
+  });
+});
+
+describe.sequential('Agent prompt viewport proof', () => {
+  let browser: Browser;
+  let page: Page;
+
+  beforeAll(async () => {
+    browser = await chromium.launch({ headless: true });
+  });
+
+  beforeEach(async () => {
+    page = await browser.newPage({ viewport: { height: 900, width: 1440 } });
+  });
+
+  afterAll(async () => {
+    await browser?.close();
+  });
+
+  it('binds a substantially visible exact persisted bubble and identity Range', async () => {
+    await page.setContent(`
+      <main style="height:900px;overflow:auto">
+        <article data-message-id="message-1" style="margin:120px;width:600px;padding:24px;background:#222;color:white;font:20px sans-serif">
+          Build PeopleOps as a genuine local project with a working interaction and verified preview.
+        </article>
+      </main>
+    `);
+
+    const audit = await auditPromptBubbleViewport(
+      page,
+      page.locator('[data-message-id="message-1"]'),
+      'PeopleOps',
+      'message-1',
+    );
+
+    expect(audit.identityVisible).toBe(true);
+    expect(audit.messageIdMatchesProvenance).toBe(true);
+    expect(audit.viewport).toEqual({ height: 900, width: 1440 });
+  });
+
+  it('scrolls a long prompt until its exact identity is inside the captured viewport', async () => {
+    await page.setContent(`
+      <main data-testid="prompt-scrollport" style="height:300px;overflow:auto;margin:100px">
+        <article data-message-id="message-1" style="width:600px;min-height:1000px;padding:24px;background:#222;color:white;font:20px sans-serif">
+          <span>Visible prompt introduction.</span><span style="display:block;margin-top:700px">PeopleOps</span>
+        </article>
+      </main>
+    `);
+
+    expect(await page.getByTestId('prompt-scrollport').evaluate((element) => element.scrollTop)).toBe(0);
+
+    const audit = await auditPromptBubbleViewport(
+      page,
+      page.locator('[data-message-id="message-1"]'),
+      'PeopleOps',
+      'message-1',
+    );
+
+    expect(audit.identityVisible).toBe(true);
+    expect(await page.getByTestId('prompt-scrollport').evaluate((element) => element.scrollTop)).toBeGreaterThan(0);
+  });
+
+  it('rejects an identity that cannot be scrolled into the captured viewport', async () => {
+    await page.setContent(`
+      <article data-message-id="message-1" style="margin:100px;width:600px;height:160px;padding:24px;background:#222;color:white;font:20px sans-serif">
+        <span>Visible prompt introduction with enough substantial bubble content for capture.</span>
+        <span style="position:fixed;top:1800px;left:100px">PeopleOps</span>
+      </article>
+    `);
+
+    await expect(
+      auditPromptBubbleViewport(page, page.locator('[data-message-id="message-1"]'), 'PeopleOps', 'message-1'),
+    ).rejects.toThrow('Agent prompt viewport proof failed');
+  });
+
+  it('rejects a message id that does not match persisted prompt provenance', async () => {
+    await page.setContent(`
+      <article data-message-id="message-2" style="margin:120px;width:600px;padding:24px;background:#222;color:white;font:20px sans-serif">
+        Build PeopleOps as a genuine local project.
+      </article>
+    `);
+
+    await expect(
+      auditPromptBubbleViewport(page, page.locator('[data-message-id="message-2"]'), 'PeopleOps', 'message-1'),
+    ).rejects.toThrow('Agent prompt viewport proof failed');
+  });
+});
+
+describe('inter-slot visual differences', () => {
+  it('emits all fifteen unordered pairs for one six-slot theme', async () => {
+    const captures = await Promise.all(
+      Array.from({ length: 6 }, async (_, index) => ({
+        filename: `slot-${index}.png`,
+        image: await sharp({
+          create: {
+            background: { b: index * 35, g: 220 - index * 25, r: 20 + index * 40 },
+            channels: 3,
+            height: 100,
+            width: 160,
+          },
+        })
+          .png()
+          .toBuffer(),
+      })),
+    );
+
+    const audits = await compareInterSlotProofImages('light', captures);
+
+    expect(audits).toHaveLength(15);
+    expect(new Set(audits.map(({ firstFilename, secondFilename }) => `${firstFilename}/${secondFilename}`)).size).toBe(
+      15,
+    );
+  });
+
+  it('fails closed when any two slots reuse effectively identical pixels', async () => {
+    const distinct = await Promise.all(
+      Array.from({ length: 5 }, (_, index) =>
+        sharp({
+          create: { background: `rgb(${index * 45},${200 - index * 30},30)`, channels: 3, height: 100, width: 160 },
+        })
+          .png()
+          .toBuffer(),
+      ),
+    );
+
+    await expect(
+      compareInterSlotProofImages('dark', [
+        ...distinct.map((image, index) => ({ filename: `slot-${index}.png`, image })),
+        { filename: 'slot-5.png', image: distinct[0] },
+      ]),
+    ).rejects.toThrow('are not visually distinct');
   });
 });

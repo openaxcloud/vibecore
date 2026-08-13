@@ -4,8 +4,17 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
-// eslint-disable-next-line no-restricted-imports -- the asset gate reuses the standalone capture provenance matcher.
+// eslint-disable-next-line no-restricted-imports -- capture and manifest gates share one exact interaction contract.
 import { matchCompleteSubmittedPrompt, SERVER_PROJECT_WEB_CONTRACT } from '../../../../scripts/solution-capture-state';
+// eslint-disable-next-line no-restricted-imports -- capture and manifest gates share one exact interaction contract.
+import {
+  SOLUTION_PROOF_INTERACTION_CONTRACTS,
+  SOLUTION_PROOF_INTER_SLOT_THRESHOLDS,
+  serializedInteractionExpectedResult,
+  solutionProofInterSlotPairs,
+  type SolutionProofInteractionContract,
+} from '../../../../scripts/solution-proof-capture-truth';
+
 import { CHATBOT_BUILDER_COPY } from './chatbot-builder.copy';
 import { DASHBOARD_BUILDER_COPY } from './dashboard-builder.copy';
 import { ENTERPRISE_COPY } from './enterprise.copy';
@@ -291,8 +300,288 @@ function expectDirectCaptureComposition(
 function expectVisualDifference(value: unknown, label: string) {
   const difference = asRecord(value, label);
 
-  expect(difference.changedPixelRatio, label).toBeGreaterThanOrEqual(0.02);
-  expect(difference.meanAbsoluteDifference, label).toBeGreaterThanOrEqual(2);
+  expect(difference.changedPixelRatio, label).toBeGreaterThanOrEqual(
+    SOLUTION_PROOF_INTER_SLOT_THRESHOLDS.changedPixelRatio,
+  );
+  expect(difference.meanAbsoluteDifference, label).toBeGreaterThanOrEqual(
+    SOLUTION_PROOF_INTER_SLOT_THRESHOLDS.meanAbsoluteDifference,
+  );
+}
+
+function expectAccentAudit(value: unknown, label: string, requireOrangeAction = false) {
+  const audit = asRecord(value, label);
+
+  expect(audit.purpleCount, `${label}.purpleCount`).toBe(0);
+  expect(audit.orangeCount, `${label}.orangeCount`).toBeGreaterThanOrEqual(audit.orangeActionCount as number);
+
+  if (requireOrangeAction) {
+    expect(audit.orangeActionCount, `${label}.orangeActionCount`).toBeGreaterThanOrEqual(1);
+    expect(audit.orangeCount, `${label}.orangeCount`).toBeGreaterThanOrEqual(1);
+  }
+
+  return audit;
+}
+
+function expectResponsiveAccentCoverage(
+  value: unknown,
+  label: string,
+  language: SolutionProofLanguage,
+  initialAccentAudit: JsonRecord,
+  interactionAccentAudit: JsonRecord,
+) {
+  const audits = asArray(value, label);
+  const expected = RESPONSIVE_STATE_AUDIT_EXPECTATIONS[language];
+
+  expect(audits, label).toHaveLength(expected.length);
+
+  for (const [index, auditValue] of audits.entries()) {
+    const auditLabel = `${label}[${index}]`;
+    const entry = asRecord(auditValue, auditLabel);
+    const expectedState = expected[index];
+
+    expect({ stage: entry.stage, device: entry.device }, auditLabel).toEqual(expectedState);
+    expectAccentAudit(entry.audit, `${auditLabel}.audit`, index === 0);
+  }
+
+  expect(asRecord(asRecord(audits[0], `${label}[0]`).audit, `${label}[0].audit`), label).toEqual(initialAccentAudit);
+
+  const desktopInteraction = audits.find((auditValue, index) => {
+    const entry = asRecord(auditValue, `${label}[${index}]`);
+
+    return entry.stage === 'interaction' && entry.device === 'desktop';
+  });
+
+  expect(desktopInteraction, `${label} desktop interaction`).toBeDefined();
+  expect(
+    asRecord(asRecord(desktopInteraction, `${label}.desktopInteraction`).audit, `${label}.desktopInteraction.audit`),
+    label,
+  ).toEqual(interactionAccentAudit);
+}
+
+const TARGET_ORANGE_COLOR_PROPERTIES = [
+  'backgroundColor',
+  'borderBottomColor',
+  'borderLeftColor',
+  'borderRightColor',
+  'borderTopColor',
+  'color',
+] as const;
+
+const TARGET_ORANGE_BORDER_PROPERTIES = [
+  'borderBottomColor',
+  'borderLeftColor',
+  'borderRightColor',
+  'borderTopColor',
+] as const;
+
+function asFiniteNumber(value: unknown, label: string) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new TypeError(`${label} must be a finite number`);
+  }
+
+  return value;
+}
+
+function cssRgbIsOrange(value: unknown, label: string) {
+  const color = asString(value, label);
+
+  const match = color.match(
+    /^rgba?\(\s*(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)(?:\s*\/\s*([\d.]+)|[,\s]+([\d.]+))?\s*\)$/i,
+  );
+
+  if (!match || Number(match[4] ?? match[5] ?? 1) === 0) {
+    return false;
+  }
+
+  const red = Number(match[1]) / 255;
+  const green = Number(match[2]) / 255;
+  const blue = Number(match[3]) / 255;
+  const maximum = Math.max(red, green, blue);
+  const minimum = Math.min(red, green, blue);
+  const delta = maximum - minimum;
+
+  if (delta === 0) {
+    return false;
+  }
+
+  let hue = 0;
+
+  if (maximum === red) {
+    hue = ((green - blue) / delta) % 6;
+  } else if (maximum === green) {
+    hue = (blue - red) / delta + 2;
+  } else {
+    hue = (red - green) / delta + 4;
+  }
+
+  hue = Math.round(hue * 60);
+
+  if (hue < 0) {
+    hue += 360;
+  }
+
+  const lightness = (maximum + minimum) / 2;
+  const saturation = delta / (1 - Math.abs(2 * lightness - 1));
+
+  return saturation >= 0.38 && lightness >= 0.2 && lightness <= 0.82 && hue >= 10 && hue <= 42;
+}
+
+function expectTargetOrangeAudit(value: unknown, label: string) {
+  const audit = asRecord(value, label);
+  const ownColors = asRecord(audit.ownColors, `${label}.ownColors`);
+  const rect = asRecord(audit.rect, `${label}.rect`);
+  const viewport = asRecord(audit.viewport, `${label}.viewport`);
+
+  const ownOrangeProperties = asArray(audit.ownOrangeProperties, `${label}.ownOrangeProperties`).map(
+    (property, index) => asString(property, `${label}.ownOrangeProperties[${index}]`),
+  );
+  const renderedOwnBorderProperties = asArray(
+    audit.renderedOwnBorderProperties,
+    `${label}.renderedOwnBorderProperties`,
+  ).map((property, index) => asString(property, `${label}.renderedOwnBorderProperties[${index}]`));
+
+  expect(Object.keys(audit).sort(), `${label} exact fields`).toEqual(
+    [
+      'colorMatchesParent',
+      'disabled',
+      'effectivelyVisible',
+      'elementTag',
+      'enabled',
+      'focused',
+      'intersectionRatio',
+      'inViewport',
+      'orange',
+      'ownColors',
+      'ownOrangeProperties',
+      'rect',
+      'renderedOwnBorderProperties',
+      'unoccluded',
+      'viewport',
+      'visible',
+    ].sort(),
+  );
+  expect(Object.keys(ownColors).sort(), `${label}.ownColors exact fields`).toEqual(
+    [...TARGET_ORANGE_COLOR_PROPERTIES].sort(),
+  );
+  expect(Object.keys(rect).sort(), `${label}.rect exact fields`).toEqual([
+    'bottom',
+    'height',
+    'left',
+    'right',
+    'top',
+    'width',
+  ]);
+  expect(Object.keys(viewport).sort(), `${label}.viewport exact fields`).toEqual(['height', 'width']);
+  expect(audit.visible, label).toBe(true);
+  expect(audit.effectivelyVisible, label).toBe(true);
+  expect(audit.inViewport, label).toBe(true);
+  expect(audit.unoccluded, label).toBe(true);
+  expect(audit.enabled, label).toBe(true);
+  expect(audit.disabled, label).toBe(false);
+  expect(audit.focused, label).toBe(false);
+  expect(audit.orange, label).toBe(true);
+  expect(typeof audit.colorMatchesParent, `${label}.colorMatchesParent`).toBe('boolean');
+  expect(asString(audit.elementTag, `${label}.elementTag`), label).toMatch(/^[a-z][a-z0-9-]*$/u);
+
+  const intersectionRatio = asFiniteNumber(audit.intersectionRatio, `${label}.intersectionRatio`);
+  const viewportWidth = asFiniteNumber(viewport.width, `${label}.viewport.width`);
+  const viewportHeight = asFiniteNumber(viewport.height, `${label}.viewport.height`);
+  const rectLeft = asFiniteNumber(rect.left, `${label}.rect.left`);
+  const rectTop = asFiniteNumber(rect.top, `${label}.rect.top`);
+  const rectRight = asFiniteNumber(rect.right, `${label}.rect.right`);
+  const rectBottom = asFiniteNumber(rect.bottom, `${label}.rect.bottom`);
+  const rectWidth = asFiniteNumber(rect.width, `${label}.rect.width`);
+  const rectHeight = asFiniteNumber(rect.height, `${label}.rect.height`);
+
+  expect(intersectionRatio, label).toBeGreaterThanOrEqual(0.98);
+  expect(intersectionRatio, label).toBeLessThanOrEqual(1);
+  expect(viewportWidth, label).toBeGreaterThan(0);
+  expect(viewportHeight, label).toBeGreaterThan(0);
+  expect(rectWidth, label).toBeGreaterThan(0);
+  expect(rectHeight, label).toBeGreaterThan(0);
+  expect(rectLeft, label).toBeGreaterThanOrEqual(0);
+  expect(rectTop, label).toBeGreaterThanOrEqual(0);
+  expect(rectRight, label).toBeLessThanOrEqual(viewportWidth);
+  expect(rectBottom, label).toBeLessThanOrEqual(viewportHeight);
+  expect(rectRight - rectLeft, label).toBeCloseTo(rectWidth, 3);
+  expect(rectBottom - rectTop, label).toBeCloseTo(rectHeight, 3);
+  expect(ownOrangeProperties.length, label).toBeGreaterThanOrEqual(1);
+  expect(new Set(ownOrangeProperties).size, label).toBe(ownOrangeProperties.length);
+  expect(new Set(renderedOwnBorderProperties).size, label).toBe(renderedOwnBorderProperties.length);
+
+  for (const property of renderedOwnBorderProperties) {
+    expect(TARGET_ORANGE_BORDER_PROPERTIES, `${label}.${property} rendered border`).toContain(property);
+  }
+
+  for (const property of ownOrangeProperties) {
+    expect(TARGET_ORANGE_COLOR_PROPERTIES, `${label}.${property} own property`).toContain(property);
+    expect(cssRgbIsOrange(ownColors[property], `${label}.ownColors.${property}`), label).toBe(true);
+
+    if ((TARGET_ORANGE_BORDER_PROPERTIES as readonly string[]).includes(property)) {
+      expect(renderedOwnBorderProperties, `${label}.${property} rendered border`).toContain(property);
+    }
+
+    if (property === 'color') {
+      expect(audit.colorMatchesParent, `${label}.color must be owned by the target`).toBe(false);
+    }
+  }
+}
+
+function expectScenarioAudit(value: unknown, label: string, contract: SolutionProofInteractionContract) {
+  const audit = asRecord(value, label);
+
+  expect(audit.role, `${label}.role`).toBe(contract.role);
+  expect(audit.name, `${label}.name`).toBe(contract.name);
+  expect(audit.expectedResult, `${label}.expectedResult`).toBe(serializedInteractionExpectedResult(contract));
+  expect(audit.exactTargetCount, `${label}.exactTargetCount`).toBe(1);
+  expect(audit.resultMatchCount, `${label}.resultMatchCount`).toBeGreaterThanOrEqual(1);
+  expect(audit.interactiveCount, `${label}.interactiveCount`).toBeGreaterThanOrEqual(3);
+  expect(audit.stateChanged, `${label}.stateChanged`).toBe(true);
+  expectTargetOrangeAudit(audit.targetOrangeAudit, `${label}.targetOrangeAudit`);
+}
+
+function expectPromptViewportAudit(value: unknown, label: string, expectedIdentity: string, expectedMessageId: string) {
+  const audit = asRecord(value, label);
+  const viewport = asRecord(audit.viewport, `${label}.viewport`);
+  const identityVisibleRect = asRecord(audit.identityVisibleRect, `${label}.identityVisibleRect`);
+
+  expect(audit.exactBubbleCount, label).toBe(1);
+  expect(audit.bubbleMessageId, label).toBe(expectedMessageId);
+  expect(audit.expectedMessageId, label).toBe(expectedMessageId);
+  expect(audit.messageIdMatchesProvenance, label).toBe(true);
+  expect(audit.expectedIdentity, label).toBe(expectedIdentity);
+  expect(audit.identityExactText, label).toBe(expectedIdentity);
+  expect(audit.identityVisible, label).toBe(true);
+  expect(audit.identityVisibleRatio, label).toBeGreaterThanOrEqual(0.8);
+  expect(identityVisibleRect.width, label).toBeGreaterThan(0);
+  expect(identityVisibleRect.height, label).toBeGreaterThan(0);
+  expect(audit.substantialBubbleIntersection, label).toBe(true);
+  expect(audit.bubbleIntersectionArea, label).toBeGreaterThanOrEqual(8_000);
+  expect(viewport, label).toEqual({ height: 900, width: 1440 });
+}
+
+function expectInterSlotDifferenceCoverage(value: unknown, label: string) {
+  const audits = asArray(value, label);
+
+  const expectedPairs = SOLUTION_PROOF_VISUAL_THEMES.flatMap((theme) =>
+    solutionProofInterSlotPairs(CAPTURE_FILENAMES).map((pair) => ({ ...pair, theme })),
+  );
+
+  expect(audits, label).toHaveLength(30);
+  expect(
+    audits.map((auditValue, index) => {
+      const audit = asRecord(auditValue, `${label}[${index}]`);
+
+      expectVisualDifference(audit, `${label}[${index}]`);
+
+      return {
+        firstFilename: audit.firstFilename,
+        secondFilename: audit.secondFilename,
+        theme: audit.theme,
+      };
+    }),
+    `${label} exact pairs`,
+  ).toEqual(expectedPairs);
 }
 
 function expectResponsiveAudit(value: unknown, label: string, expected?: ResponsiveAuditExpectation) {
@@ -628,6 +917,95 @@ describe('theme-aware solution proof visual registry', () => {
     ).toThrow();
   });
 
+  it('requires the exact interaction target itself to be a normal-state visible orange action', () => {
+    const contract = SOLUTION_PROOF_INTERACTION_CONTRACTS['website-builder'].en;
+
+    const targetOrangeAudit = () => ({
+      colorMatchesParent: false,
+      disabled: false,
+      effectivelyVisible: true,
+      elementTag: 'a',
+      enabled: true,
+      focused: false,
+      intersectionRatio: 1,
+      inViewport: true,
+      orange: true,
+      ownColors: {
+        backgroundColor: 'rgb(249, 115, 22)',
+        borderBottomColor: 'rgb(249, 115, 22)',
+        borderLeftColor: 'rgb(249, 115, 22)',
+        borderRightColor: 'rgb(249, 115, 22)',
+        borderTopColor: 'rgb(249, 115, 22)',
+        color: 'rgb(255, 255, 255)',
+      },
+      ownOrangeProperties: ['backgroundColor'],
+      rect: { bottom: 148, height: 48, left: 100, right: 300, top: 100, width: 200 },
+      renderedOwnBorderProperties: [],
+      unoccluded: true,
+      viewport: { height: 900, width: 1440 },
+      visible: true,
+    });
+    const scenarioAudit = (target: unknown) => ({
+      role: contract.role,
+      name: contract.name,
+      expectedResult: serializedInteractionExpectedResult(contract),
+      exactTargetCount: 1,
+      resultMatchCount: 1,
+      interactiveCount: 4,
+      stateChanged: true,
+      targetOrangeAudit: target,
+    });
+
+    expect(() => expectScenarioAudit(scenarioAudit(targetOrangeAudit()), 'valid-target', contract)).not.toThrow();
+
+    for (const [caseName, target] of [
+      ['missing', undefined],
+      ['not-visible', { ...targetOrangeAudit(), visible: false }],
+      ['not-effectively-visible', { ...targetOrangeAudit(), effectivelyVisible: false }],
+      ['outside-viewport', { ...targetOrangeAudit(), inViewport: false, intersectionRatio: 0.5 }],
+      ['occluded', { ...targetOrangeAudit(), unoccluded: false }],
+      ['not-enabled', { ...targetOrangeAudit(), enabled: false }],
+      ['disabled', { ...targetOrangeAudit(), disabled: true }],
+      ['focus-only', { ...targetOrangeAudit(), focused: true }],
+      ['not-orange', { ...targetOrangeAudit(), orange: false }],
+      ['no-own-orange', { ...targetOrangeAudit(), ownOrangeProperties: [] }],
+      ['decorated-parent-only', { ...targetOrangeAudit(), parentColor: 'rgb(249, 115, 22)', ownOrangeProperties: [] }],
+      [
+        'inherited-parent-color',
+        {
+          ...targetOrangeAudit(),
+          colorMatchesParent: true,
+          ownColors: {
+            ...targetOrangeAudit().ownColors,
+            backgroundColor: 'rgb(37, 99, 235)',
+            color: 'rgb(249, 115, 22)',
+          },
+          ownOrangeProperties: ['color'],
+        },
+      ],
+      [
+        'forged-orange-property',
+        {
+          ...targetOrangeAudit(),
+          ownColors: { ...targetOrangeAudit().ownColors, backgroundColor: 'rgb(37, 99, 235)' },
+        },
+      ],
+      [
+        'unrendered-orange-border',
+        {
+          ...targetOrangeAudit(),
+          ownOrangeProperties: ['borderTopColor'],
+          renderedOwnBorderProperties: [],
+        },
+      ],
+    ] as const) {
+      expect(
+        () => expectScenarioAudit(scenarioAudit(target), `invalid-target-${caseName}`, contract),
+        caseName,
+      ).toThrow();
+    }
+  });
+
   it('rejects incomplete or mislabeled top-level responsive manifest coverage', () => {
     const fixture = (language: SolutionProofLanguage) =>
       RESPONSIVE_STATE_AUDIT_EXPECTATIONS[language].map((expected) => ({
@@ -826,6 +1204,34 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
         expectCleanRuntimeProvenance(manifest.previewProvenance, `${label}.previewProvenance`);
         expectPromptSurfaceProvenance(manifest.promptSurfaceProvenance, `${label}.promptSurfaceProvenance`, prompt);
 
+        const promptSurfaceProvenance = asRecord(manifest.promptSurfaceProvenance, `${label}.promptSurfaceProvenance`);
+
+        const promptMessageId = asString(
+          promptSurfaceProvenance.messageId,
+          `${label}.promptSurfaceProvenance.messageId`,
+        );
+
+        const initialAccentAudit = expectAccentAudit(manifest.accentAudit, `${label}.accentAudit`, true);
+
+        const interactionAccentAudit = expectAccentAudit(
+          manifest.interactionAccentAudit,
+          `${label}.interactionAccentAudit`,
+        );
+
+        expectResponsiveAccentCoverage(
+          manifest.responsiveAccentAudits,
+          `${label}.responsiveAccentAudits`,
+          language,
+          initialAccentAudit,
+          interactionAccentAudit,
+        );
+        expectInterSlotDifferenceCoverage(manifest.interSlotDifferences, `${label}.interSlotDifferences`);
+        expectScenarioAudit(
+          manifest.scenarioAudit,
+          `${label}.scenarioAudit`,
+          SOLUTION_PROOF_INTERACTION_CONTRACTS[slug][language],
+        );
+
         const runtimePromotionProof = asRecord(manifest.runtimePromotionProof, `${label}.runtimePromotionProof`);
 
         expect(
@@ -869,14 +1275,17 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
 
           if (usesShellCapture) {
             expectVisualDifference(audit.nativeWebviewThemeDifference, `${auditLabel}.nativeWebviewThemeDifference`);
+            expect(audit.directRuntimeThemeDifference, auditLabel).toBeUndefined();
           } else {
             expect(audit.nativeWebviewThemeDifference, auditLabel).toBeUndefined();
+            expectVisualDifference(audit.directRuntimeThemeDifference, `${auditLabel}.directRuntimeThemeDifference`);
           }
 
           for (const [stateIndex, stateValue] of states.entries()) {
             const stateLabel = `${auditLabel}.states[${stateIndex}]`;
             const state = asRecord(stateValue, stateLabel);
             const applicationTheme = asRecord(state.applicationTheme, `${stateLabel}.applicationTheme`);
+            expectAccentAudit(state.accent, `${stateLabel}.accent`);
             expectCleanShell(state.shell, `${stateLabel}.shell`);
             expect(applicationTheme.activeTheme, stateLabel).toBe(state.theme);
             expect(applicationTheme.strategy, stateLabel).toMatch(
@@ -916,6 +1325,14 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
 
             if (filename === 'ide-agent-prompt.png') {
               expect(state.captureSurface, stateLabel).not.toBe('official-runtime-direct');
+              expectPromptViewportAudit(
+                state.promptViewportAudit,
+                `${stateLabel}.promptViewportAudit`,
+                expectedIdentity,
+                promptMessageId,
+              );
+            } else {
+              expect(state.promptViewportAudit, stateLabel).toBeUndefined();
             }
           }
         }

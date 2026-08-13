@@ -129,9 +129,26 @@ describe('Solutions proof capture theme control', () => {
     expect(applyCaptureThemeSource).toContain('iframeHandle?.contentFrame()');
     expect(applyCaptureThemeSource).toContain('applyOfficialRuntimeCaptureTheme(nativePreviewFrame, theme');
     expect(applyCaptureThemeSource).toContain('requireVisibleControl: true');
-    expect(captureSource).toContain('let applicationTheme = await applyCaptureTheme(page, theme)');
+    expect(captureSource).toContain('let applicationTheme = await applyCaptureTheme(page, theme, options.locale)');
     expect(captureSource).toContain('applicationTheme = await applyOfficialRuntimeCaptureTheme(nativeFrame, theme');
+    expect(captureSource).toContain('expectedLocale: options.locale');
     expect(captureSource).toContain('applicationTheme,');
+  });
+
+  it('keeps every production recovery locator bilingual', () => {
+    for (const contract of [
+      'Refresh preview|Actualiser l’aperçu',
+      'Run to preview your app|Exécuter pour afficher l’application',
+      'Reinstall dependencies|Réinstaller les dépendances',
+      'Dismiss|Fermer',
+      "Hide workspace logs|Masquer les journaux de l'espace de travail",
+      'Close right panel|Fermer le panneau de droite',
+      'Not now|Plus tard',
+      "AI provider|Fournisseur d[’']IA",
+      "AI model|Modèle d[’']IA",
+    ]) {
+      expect(captureSource).toContain(contract);
+    }
   });
 
   it('audits the Game full-canvas palette against the captured application theme', () => {
@@ -181,7 +198,11 @@ describe.sequential('official runtime direct theme control', () => {
     await page.setContent(interactiveThemeFixture('en'));
 
     await expect(
-      applyOfficialRuntimeCaptureTheme(page, 'light', { requireVisibleControl: true, timeoutMs: 2_000 }),
+      applyOfficialRuntimeCaptureTheme(page, 'light', {
+        expectedLocale: 'en',
+        requireVisibleControl: true,
+        timeoutMs: 2_000,
+      }),
     ).resolves.toEqual({ activeTheme: 'light', strategy: 'visible-runtime-control' });
     expect(await page.locator('html').getAttribute('data-theme')).toBe('light');
     expect(await page.getByTestId('app-theme-toggle').textContent()).toBe(fixtureLabels.en.light);
@@ -190,7 +211,11 @@ describe.sequential('official runtime direct theme control', () => {
     expect(await page.getByTestId('app-theme-toggle').getAttribute('aria-pressed')).toBe('false');
     expect(await page.evaluate(`window.themeClickCount`)).toBe(1);
 
-    await applyOfficialRuntimeCaptureTheme(page, 'dark', { requireVisibleControl: true, timeoutMs: 2_000 });
+    await applyOfficialRuntimeCaptureTheme(page, 'dark', {
+      expectedLocale: 'en',
+      requireVisibleControl: true,
+      timeoutMs: 2_000,
+    });
     expect(await page.locator('html').getAttribute('data-theme')).toBe('dark');
     expect(await page.getByTestId('app-theme-toggle').textContent()).toBe(fixtureLabels.en.dark);
     expect(await page.getByTestId('app-theme-toggle').getAttribute('aria-label')).toBe(fixtureLabels.en.dark);
@@ -278,7 +303,11 @@ describe.sequential('official runtime direct theme control', () => {
     await frame.setContent(interactiveThemeFixture('fr'));
 
     await expect(
-      applyOfficialRuntimeCaptureTheme(frame, 'light', { requireVisibleControl: true, timeoutMs: 2_000 }),
+      applyOfficialRuntimeCaptureTheme(frame, 'light', {
+        expectedLocale: 'fr',
+        requireVisibleControl: true,
+        timeoutMs: 2_000,
+      }),
     ).resolves.toEqual({
       activeTheme: 'light',
       strategy: 'visible-runtime-control',
@@ -291,7 +320,11 @@ describe.sequential('official runtime direct theme control', () => {
     expect(await frame.evaluate(`window.matchMedia('(prefers-color-scheme: light)').matches`)).toBe(true);
     expect(await frame.evaluate(`window.themeClickCount`)).toBe(1);
 
-    await applyOfficialRuntimeCaptureTheme(frame, 'dark', { requireVisibleControl: true, timeoutMs: 2_000 });
+    await applyOfficialRuntimeCaptureTheme(frame, 'dark', {
+      expectedLocale: 'fr',
+      requireVisibleControl: true,
+      timeoutMs: 2_000,
+    });
     expect(await frame.locator('html').getAttribute('data-theme')).toBe('dark');
     expect(await frame.getByTestId('app-theme-toggle').textContent()).toBe(fixtureLabels.fr.dark);
     expect(await frame.getByTestId('app-theme-toggle').getAttribute('aria-label')).toBe(fixtureLabels.fr.dark);
@@ -346,6 +379,34 @@ describe.sequential('official runtime direct theme control', () => {
     ).rejects.toThrow(
       'Generated theme control contract violation for dark: expected exactly one visible [data-testid="app-theme-toggle"], found 2',
     );
+  });
+
+  it('rejects a correctly labeled theme control that is transparent', async () => {
+    await page.setContent(
+      `<html data-theme="dark"><body><div style="opacity:0">${staticThemeControl()}</div></body></html>`,
+    );
+
+    await expect(
+      applyOfficialRuntimeCaptureTheme(page, 'dark', {
+        expectedLocale: 'en',
+        requireVisibleControl: true,
+        timeoutMs: 250,
+      }),
+    ).rejects.toThrow(
+      'Generated theme control contract violation for dark: expected exactly one visible [data-testid="app-theme-toggle"], found 0',
+    );
+  });
+
+  it('rejects an English theme control in a French generated project', async () => {
+    await page.setContent(`<html data-theme="dark"><body>${staticThemeControl()}</body></html>`);
+
+    await expect(
+      applyOfficialRuntimeCaptureTheme(page, 'dark', {
+        expectedLocale: 'fr',
+        requireVisibleControl: true,
+        timeoutMs: 250,
+      }),
+    ).rejects.toThrow('visible text must remain FR after the theme switch, received EN');
   });
 
   it('rejects stale label and pressed state after a real theme click', async () => {

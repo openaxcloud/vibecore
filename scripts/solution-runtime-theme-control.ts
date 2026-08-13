@@ -34,7 +34,7 @@ const THEME_CONTROL_LABELS = {
   },
 } as const;
 
-type RuntimeThemeLocale = keyof typeof THEME_CONTROL_LABELS;
+export type RuntimeThemeLocale = keyof typeof THEME_CONTROL_LABELS;
 
 export const OFFICIAL_RUNTIME_THEME_CONTROL_LABEL =
   /^(?:Switch to light mode|Switch to dark mode|Passer en mode clair|Passer en mode sombre)$/u;
@@ -104,9 +104,50 @@ async function runtimeThemeSnapshot(surface: RuntimeThemeSurface): Promise<Runti
   return surface.evaluate(`(() => {
     const isVisible = (element) => {
       const bounds = element.getBoundingClientRect();
-      const style = window.getComputedStyle(element);
+      const viewportWidth = document.documentElement.clientWidth;
+      const viewportHeight = document.documentElement.clientHeight;
 
-      return bounds.width > 0 && bounds.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+      if (
+        bounds.width <= 0 ||
+        bounds.height <= 0 ||
+        bounds.right <= 0 ||
+        bounds.bottom <= 0 ||
+        bounds.left >= viewportWidth ||
+        bounds.top >= viewportHeight
+      ) {
+        return false;
+      }
+
+      for (let current = element; current; current = current.parentElement) {
+        const style = window.getComputedStyle(current);
+
+        if (
+          style.display === 'none' ||
+          style.visibility === 'hidden' ||
+          Number(style.opacity) <= 0 ||
+          style.contentVisibility === 'hidden'
+        ) {
+          return false;
+        }
+      }
+
+      if (
+        typeof element.checkVisibility === 'function' &&
+        !element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })
+      ) {
+        return false;
+      }
+
+      const visibleLeft = Math.max(0, bounds.left);
+      const visibleTop = Math.max(0, bounds.top);
+      const visibleRight = Math.min(viewportWidth, bounds.right);
+      const visibleBottom = Math.min(viewportHeight, bounds.bottom);
+      const topElement = document.elementFromPoint(
+        visibleLeft + (visibleRight - visibleLeft) / 2,
+        visibleTop + (visibleBottom - visibleTop) / 2,
+      );
+
+      return Boolean(topElement && (topElement === element || element.contains(topElement)));
     };
 
     const themeControls = Array.from(document.querySelectorAll('[data-testid="app-theme-toggle"]')).map((element) => ({
@@ -132,19 +173,10 @@ async function runtimeThemeSnapshot(surface: RuntimeThemeSurface): Promise<Runti
   })()`);
 }
 
-async function firstVisibleThemeControl(surface: RuntimeThemeSurface): Promise<Locator | undefined> {
-  const candidates = surface.getByTestId('app-theme-toggle');
-  const count = await candidates.count();
+function firstVisibleThemeControl(surface: RuntimeThemeSurface, snapshot: RuntimeThemeSnapshot): Locator | undefined {
+  const visibleIndex = snapshot.themeControls.findIndex((candidate) => candidate.visible);
 
-  for (let index = 0; index < count; index += 1) {
-    const candidate = candidates.nth(index);
-
-    if (await candidate.isVisible()) {
-      return candidate;
-    }
-  }
-
-  return undefined;
+  return visibleIndex >= 0 ? surface.getByTestId('app-theme-toggle').nth(visibleIndex) : undefined;
 }
 
 function expectedThemeControlPressed(theme: RuntimeCaptureTheme) {
@@ -267,7 +299,11 @@ async function runtimeThemeControlLabel(control: Locator) {
 export async function applyOfficialRuntimeCaptureTheme(
   surface: RuntimeThemeSurface,
   theme: RuntimeCaptureTheme,
-  { requireVisibleControl = false, timeoutMs = 30_000 }: { requireVisibleControl?: boolean; timeoutMs?: number } = {},
+  {
+    expectedLocale,
+    requireVisibleControl = false,
+    timeoutMs = 30_000,
+  }: { expectedLocale?: RuntimeThemeLocale; requireVisibleControl?: boolean; timeoutMs?: number } = {},
 ) {
   /*
    * Keep the browser-level signal for generated apps that follow
@@ -281,11 +317,11 @@ export async function applyOfficialRuntimeCaptureTheme(
 
   const before = await runtimeThemeSnapshot(surface);
   const activeTheme = explicitRuntimeTheme(before);
-  const control = await firstVisibleThemeControl(surface);
+  const control = firstVisibleThemeControl(surface, before);
 
   if (!activeTheme) {
     if (requireVisibleControl && before.themeControls.filter((candidate) => candidate.visible).length !== 1) {
-      assertRuntimeThemeControlContract(before, theme);
+      assertRuntimeThemeControlContract(before, theme, expectedLocale);
     }
 
     if (requireVisibleControl) {
@@ -300,7 +336,7 @@ export async function applyOfficialRuntimeCaptureTheme(
 
   const beforeControlContract =
     requireVisibleControl || before.themeControls.some((candidate) => candidate.visible)
-      ? assertRuntimeThemeControlContract(before, activeTheme)
+      ? assertRuntimeThemeControlContract(before, activeTheme, expectedLocale)
       : undefined;
 
   if (activeTheme === theme) {
@@ -343,7 +379,7 @@ export async function applyOfficialRuntimeCaptureTheme(
 
   const after = await runtimeThemeSnapshot(surface);
 
-  assertRuntimeThemeControlContract(after, theme, beforeControlContract?.locale);
+  assertRuntimeThemeControlContract(after, theme, expectedLocale ?? beforeControlContract?.locale);
 
   return { activeTheme: theme, strategy: 'visible-runtime-control' as const };
 }

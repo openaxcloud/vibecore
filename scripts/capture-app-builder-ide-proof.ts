@@ -22,12 +22,18 @@ import {
   validateGeneratedSolutionPackageJson,
 } from './solution-generated-package-policy.js';
 import {
+  auditPromptBubbleViewport,
   auditNativeIdeWebview,
+  compareInterSlotProofImages,
   compareProofImages,
   composeDirectRuntimeCapture,
   SOLUTION_PROOF_DEVICE_VIEWPORTS,
+  SOLUTION_PROOF_INTERACTION_CONTRACTS,
+  serializedInteractionExpectedResult,
   type DirectCaptureCompositionAudit,
+  type InterSlotDifferenceAudit,
   type NativeWebviewAudit,
+  type PromptViewportAudit,
 } from './solution-proof-capture-truth.js';
 import {
   buildRuntimePreviewProvenance,
@@ -602,7 +608,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'App Builder proof EN',
       organizationName: 'App Builder proof EN',
       expectedTerms: ['SalonFlow', 'Fictional local demo'],
-      interaction: { role: 'link', name: 'Appointments', expectedResult: 'Upcoming appointments' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS['app-builder'].en,
     },
     fr: {
       prompt:
@@ -612,7 +618,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'Preuve App Builder FR',
       organizationName: 'Preuve App Builder FR',
       expectedTerms: ['SalonFlow', 'Démo locale fictive'],
-      interaction: { role: 'link', name: 'Rendez-vous', expectedResult: 'Prochains rendez-vous' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS['app-builder'].fr,
     },
   },
   'website-builder': {
@@ -624,7 +630,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'Website proof EN',
       organizationName: 'Website proof EN',
       expectedTerms: ['Meridian Studio', 'Fictional local demo', 'Contact'],
-      interaction: { role: 'link', name: 'Projects', expectedResult: 'Selected work' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS['website-builder'].en,
     },
     fr: {
       prompt:
@@ -634,7 +640,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'Preuve Website FR',
       organizationName: 'Preuve Website FR',
       expectedTerms: ['Meridian Studio', 'Démo locale fictive', 'Contact'],
-      interaction: { role: 'link', name: 'Projets', expectedResult: 'Projets sélectionnés' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS['website-builder'].fr,
     },
   },
   'game-builder': {
@@ -648,11 +654,7 @@ const SOLUTION_SCENARIOS = {
       expectedTerms: ['TriviaClash', 'local'],
       requiredSourceTerms: ['Leaderboard'],
       requiresDarkCanvas: true,
-      interaction: {
-        role: 'button',
-        name: 'Start quiz',
-        expectedResult: /(?:question\s*1|1\s*\/\s*\d|what planet)/i,
-      },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS['game-builder'].en,
     },
     fr: {
       prompt:
@@ -664,11 +666,7 @@ const SOLUTION_SCENARIOS = {
       expectedTerms: ['TriviaClash', 'local'],
       requiredSourceTerms: ['Classement'],
       requiresDarkCanvas: true,
-      interaction: {
-        role: 'button',
-        name: 'Démarrer le quiz',
-        expectedResult: /(?:question\s*1|1\s*\/\s*\d|quelle planète)/i,
-      },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS['game-builder'].fr,
     },
   },
   'dashboard-builder': {
@@ -680,7 +678,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'Dashboard proof EN',
       organizationName: 'Dashboard proof EN',
       expectedTerms: ['PipelineIQ', 'Revenue', 'local sample'],
-      interaction: { role: 'button', name: 'Apply filters', expectedResult: 'Filters applied' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS['dashboard-builder'].en,
     },
     fr: {
       prompt:
@@ -690,7 +688,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'Preuve Dashboard FR',
       organizationName: 'Preuve Dashboard FR',
       expectedTerms: ['PipelineIQ', 'Données locales'],
-      interaction: { role: 'button', name: 'Appliquer les filtres', expectedResult: 'Filtres appliqués' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS['dashboard-builder'].fr,
     },
   },
   'chatbot-builder': {
@@ -702,7 +700,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'Chatbot proof EN',
       organizationName: 'Chatbot proof EN',
       expectedTerms: ['HelpDesk Copilot', 'Sources', 'local'],
-      interaction: { role: 'button', name: 'How do I reset my password?', expectedResult: 'Account access' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS['chatbot-builder'].en,
     },
     fr: {
       prompt:
@@ -712,11 +710,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'Preuve Chatbot FR',
       organizationName: 'Preuve Chatbot FR',
       expectedTerms: ['HelpDesk Copilot', 'Sources', 'local'],
-      interaction: {
-        role: 'button',
-        name: 'Comment réinitialiser mon mot de passe ?',
-        expectedResult: 'Accès au compte',
-      },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS['chatbot-builder'].fr,
     },
   },
   'internal-ai-builder': {
@@ -728,7 +722,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'Internal AI proof EN',
       organizationName: 'Internal AI proof EN',
       expectedTerms: ['PeopleOps', 'HR-04', 'local'],
-      interaction: { role: 'button', name: 'Annual leave policy', expectedResult: 'HR-04' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS['internal-ai-builder'].en,
     },
     fr: {
       prompt:
@@ -738,7 +732,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'Preuve Internal AI FR',
       organizationName: 'Preuve Internal AI FR',
       expectedTerms: ['PeopleOps', 'RH-04', 'locale'],
-      interaction: { role: 'button', name: 'Politique de congés annuels', expectedResult: 'RH-04' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS['internal-ai-builder'].fr,
     },
   },
   startups: {
@@ -750,7 +744,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'Startups proof EN',
       organizationName: 'Startups proof EN',
       expectedTerms: ['Launchpad', 'Experiments', 'local'],
-      interaction: { role: 'button', name: 'Add experiment', expectedResult: 'New experiment' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS.startups.en,
     },
     fr: {
       prompt:
@@ -760,7 +754,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'Preuve Startups FR',
       organizationName: 'Preuve Startups FR',
       expectedTerms: ['Launchpad', 'Expériences', 'locales'],
-      interaction: { role: 'button', name: 'Ajouter une expérience', expectedResult: 'Nouvelle expérience' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS.startups.fr,
     },
   },
   freelancers: {
@@ -772,7 +766,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'Freelancers proof EN',
       organizationName: 'Freelancers proof EN',
       expectedTerms: ['Studio Ferro', 'Deliverables', 'local'],
-      interaction: { role: 'button', name: 'Review delivery', expectedResult: 'Approval requested' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS.freelancers.en,
     },
     fr: {
       prompt:
@@ -782,7 +776,7 @@ const SOLUTION_SCENARIOS = {
       accountName: 'Preuve Freelancers FR',
       organizationName: 'Preuve Freelancers FR',
       expectedTerms: ['Studio Ferro', 'Livrables', 'locales'],
-      interaction: { role: 'button', name: 'Examiner le livrable', expectedResult: 'Validation demandée' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS.freelancers.fr,
     },
   },
   enterprise: {
@@ -795,7 +789,7 @@ const SOLUTION_SCENARIOS = {
       organizationName: 'Enterprise proof EN',
       expectedTerms: ['Northwind Control', 'Audit', 'local'],
       requiredSourceTerms: ['SSO', 'SCIM'],
-      interaction: { role: 'button', name: 'Export audit log', expectedResult: 'Export ready' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS.enterprise.en,
     },
     fr: {
       prompt:
@@ -806,7 +800,7 @@ const SOLUTION_SCENARIOS = {
       organizationName: 'Preuve Enterprise FR',
       expectedTerms: ['Northwind Control', 'Audit', 'locales'],
       requiredSourceTerms: ['SSO', 'SCIM'],
-      interaction: { role: 'button', name: 'Exporter le journal', expectedResult: 'Export prêt' },
+      interaction: SOLUTION_PROOF_INTERACTION_CONTRACTS.enterprise.fr,
     },
   },
 } as const satisfies Record<CaptureSlug, Record<CaptureLocale, SolutionScenario>>;
@@ -2458,7 +2452,9 @@ async function waitForPreview(
       return false;
     }
 
-    const refreshPreviewButton = page.getByRole('button', { name: 'Refresh preview' }).first();
+    const refreshPreviewButton = page
+      .getByRole('button', { name: /^(?:Refresh preview|Actualiser l’aperçu)$/i })
+      .first();
 
     if (!(await refreshPreviewButton.isVisible().catch(() => false))) {
       return false;
@@ -2630,7 +2626,9 @@ async function waitForPreview(
         return false;
       }
 
-      const previewRunButton = previewNotRunningState.getByRole('button', { name: 'Run to preview your app' }).first();
+      const previewRunButton = previewNotRunningState
+        .getByRole('button', { name: /^(?:Run to preview your app|Exécuter pour afficher l’application)$/i })
+        .first();
 
       if (await previewRunButton.isVisible().catch(() => false)) {
         await previewRunButton.click({ noWaitAfter: true });
@@ -2649,7 +2647,7 @@ async function waitForPreview(
 
     if (!attachedAfterStart) {
       const reinstallDependenciesButton = previewNotRunningState
-        .getByRole('button', { name: 'Reinstall dependencies' })
+        .getByRole('button', { name: /^(?:Reinstall dependencies|Réinstaller les dépendances)$/i })
         .first();
 
       if (await reinstallDependenciesButton.isVisible().catch(() => false)) {
@@ -2662,7 +2660,9 @@ async function waitForPreview(
           async () =>
             (await iframe.isVisible().catch(() => false)) ||
             (await previewNotRunningState
-              .getByRole('button', { name: 'Run to preview your app' })
+              .getByRole('button', {
+                name: /^(?:Run to preview your app|Exécuter pour afficher l’application)$/i,
+              })
               .isVisible()
               .catch(() => false)),
           {
@@ -2707,7 +2707,9 @@ async function waitForPreview(
         await startPreviewFromTerminal();
       }
 
-      const refreshPreviewButton = page.getByRole('button', { name: 'Refresh preview' }).first();
+      const refreshPreviewButton = page
+        .getByRole('button', { name: /^(?:Refresh preview|Actualiser l’aperçu)$/i })
+        .first();
 
       if (await refreshPreviewButton.isVisible().catch(() => false)) {
         await refreshPreviewButton.click({ noWaitAfter: true });
@@ -2727,7 +2729,9 @@ async function waitForPreview(
         await throwIfVisiblePreviewError();
         process.stdout.write(`${JSON.stringify({ status: 'preview-final-attach-wait-requested' })}\n`);
 
-        const refreshedAfterReloadButton = page.getByRole('button', { name: 'Refresh preview' }).first();
+        const refreshedAfterReloadButton = page
+          .getByRole('button', { name: /^(?:Refresh preview|Actualiser l’aperçu)$/i })
+          .first();
 
         if (await refreshedAfterReloadButton.isVisible().catch(() => false)) {
           await refreshedAfterReloadButton.click({ noWaitAfter: true });
@@ -3158,6 +3162,165 @@ async function waitForOrangePreview(
   return lastAudit;
 }
 
+type TargetOrangeAudit = {
+  colorMatchesParent: boolean;
+  disabled: false;
+  effectivelyVisible: true;
+  elementTag: string;
+  enabled: true;
+  focused: false;
+  intersectionRatio: number;
+  inViewport: true;
+  orange: true;
+  ownColors: {
+    backgroundColor: string;
+    borderBottomColor: string;
+    borderLeftColor: string;
+    borderRightColor: string;
+    borderTopColor: string;
+    color: string;
+  };
+  ownOrangeProperties: Array<keyof TargetOrangeAudit['ownColors']>;
+  rect: { bottom: number; height: number; left: number; right: number; top: number; width: number };
+  renderedOwnBorderProperties: Array<'borderBottomColor' | 'borderLeftColor' | 'borderRightColor' | 'borderTopColor'>;
+  unoccluded: true;
+  viewport: { height: number; width: number };
+  visible: true;
+};
+
+const TARGET_ORANGE_AUDIT_EXPRESSION = `(element) => {
+  const ownerDocument = element.ownerDocument;
+  const view = ownerDocument.defaultView;
+
+  if (!view) throw new Error('The exact action target is detached from its browser window');
+
+  const style = view.getComputedStyle(element);
+  const bounds = element.getBoundingClientRect();
+  const rect = {
+    bottom: bounds.bottom,
+    height: bounds.height,
+    left: bounds.left,
+    right: bounds.right,
+    top: bounds.top,
+    width: bounds.width,
+  };
+  const viewport = { height: view.innerHeight, width: view.innerWidth };
+  const intersectionLeft = Math.max(0, bounds.left);
+  const intersectionTop = Math.max(0, bounds.top);
+  const intersectionRight = Math.min(view.innerWidth, bounds.right);
+  const intersectionBottom = Math.min(view.innerHeight, bounds.bottom);
+  const intersectionWidth = Math.max(0, intersectionRight - intersectionLeft);
+  const intersectionHeight = Math.max(0, intersectionBottom - intersectionTop);
+  const targetArea = Math.max(1, bounds.width * bounds.height);
+  const intersectionRatio = (intersectionWidth * intersectionHeight) / targetArea;
+  const checkVisibility =
+    typeof element.checkVisibility === 'function'
+      ? element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })
+      : true;
+  const visible =
+    bounds.width > 0 &&
+    bounds.height > 0 &&
+    style.display !== 'none' &&
+    style.visibility !== 'hidden' &&
+    Number(style.opacity) > 0;
+  const effectivelyVisible = visible && checkVisibility;
+  const inViewport = intersectionRatio >= 0.98;
+  const centreX = intersectionLeft + intersectionWidth / 2;
+  const centreY = intersectionTop + intersectionHeight / 2;
+  const topElement =
+    intersectionWidth > 0 && intersectionHeight > 0 ? ownerDocument.elementFromPoint(centreX, centreY) : null;
+  const unoccluded = Boolean(topElement && (topElement === element || element.contains(topElement)));
+  const disabled =
+    element.matches(':disabled, [aria-disabled="true"]') || Boolean(element.closest('[inert], [aria-disabled="true"]'));
+  const enabled = !disabled;
+  const focused = element.matches(':focus');
+  const ownColors = {
+    color: style.color,
+    backgroundColor: style.backgroundColor,
+    borderTopColor: style.borderTopColor,
+    borderRightColor: style.borderRightColor,
+    borderBottomColor: style.borderBottomColor,
+    borderLeftColor: style.borderLeftColor,
+  };
+  const colorMatchesParent = Boolean(
+    element.parentElement && view.getComputedStyle(element.parentElement).color === ownColors.color,
+  );
+  const renderedBorderProperties = new Set(
+    [
+      ['borderTopColor', style.borderTopStyle, style.borderTopWidth],
+      ['borderRightColor', style.borderRightStyle, style.borderRightWidth],
+      ['borderBottomColor', style.borderBottomStyle, style.borderBottomWidth],
+      ['borderLeftColor', style.borderLeftStyle, style.borderLeftWidth],
+    ]
+      .filter(([, borderStyle, borderWidth]) =>
+        borderStyle !== 'none' && borderStyle !== 'hidden' && Number.parseFloat(borderWidth) > 0,
+      )
+      .map(([property]) => property),
+  );
+  const isOrange = (value) => {
+    const match = value.match(
+      /^rgba?\(\s*(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)[,\s]+(\d+(?:\.\d+)?)(?:\s*\/\s*([\d.]+)|[,\s]+([\d.]+))?\s*\)$/i,
+    );
+
+    if (!match || Number(match[4] || match[5] || 1) === 0) return false;
+
+    const red = Number(match[1]) / 255;
+    const green = Number(match[2]) / 255;
+    const blue = Number(match[3]) / 255;
+    const max = Math.max(red, green, blue);
+    const min = Math.min(red, green, blue);
+    const delta = max - min;
+
+    if (delta === 0) return false;
+
+    let hue = 0;
+
+    if (max === red) hue = ((green - blue) / delta) % 6;
+    else if (max === green) hue = (blue - red) / delta + 2;
+    else hue = (red - green) / delta + 4;
+
+    hue = Math.round(hue * 60);
+    if (hue < 0) hue += 360;
+
+    const lightness = (max + min) / 2;
+    const saturation = delta / (1 - Math.abs(2 * lightness - 1));
+
+    return saturation >= 0.38 && lightness >= 0.2 && lightness <= 0.82 && hue >= 10 && hue <= 42;
+  };
+  const ownOrangeProperties = Object.entries(ownColors)
+    .filter(([property, value]) => {
+      if (property.startsWith('border') && !renderedBorderProperties.has(property)) return false;
+      if (property === 'color' && colorMatchesParent) return false;
+      return isOrange(value);
+    })
+    .map(([property]) => property);
+  const orange = ownOrangeProperties.length > 0;
+
+  return {
+    colorMatchesParent,
+    disabled,
+    effectivelyVisible,
+    elementTag: element.tagName.toLocaleLowerCase(),
+    enabled,
+    focused,
+    intersectionRatio,
+    inViewport,
+    orange,
+    ownColors,
+    ownOrangeProperties,
+    rect,
+    renderedOwnBorderProperties: [...renderedBorderProperties],
+    unoccluded,
+    viewport,
+    visible,
+  };
+}`;
+
+const TARGET_ORANGE_AUDIT_PAGE_FUNCTION = new Function(
+  'element',
+  `return (${TARGET_ORANGE_AUDIT_EXPRESSION})(element);`,
+) as (element: unknown) => TargetOrangeAudit;
+
 async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evidenceRoot: string) {
   const frame = previewScope(page);
   const body = frame.locator('body');
@@ -3174,62 +3337,45 @@ async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evi
     throw new Error(`Generated Preview is missing its theme-specific identity: ${identity}`);
   }
 
-  const alternateRole = scenario.interaction.role === 'button' ? 'link' : 'button';
-
-  const preferredTarget = frame
+  const exactTargets = frame
     .getByRole(scenario.interaction.role, { name: scenario.interaction.name, exact: true })
-    .first();
+    .filter({ visible: true });
 
-  const alternateTarget = frame.getByRole(alternateRole, { name: scenario.interaction.name, exact: true }).first();
+  await expect(
+    exactTargets,
+    `${scenario.interaction.name} must expose exactly one visible ${scenario.interaction.role} with that exact accessible name`,
+  ).toHaveCount(1, { timeout: 60_000 });
 
-  const preferredTargetWithDecoration = frame
-    .getByRole(scenario.interaction.role, { name: scenario.interaction.name })
-    .first();
+  const exactTargetCount = await exactTargets.count();
+  const target = exactTargets.first();
 
-  const alternateTargetWithDecoration = frame.getByRole(alternateRole, { name: scenario.interaction.name }).first();
+  await expect(target, `${scenario.interaction.name} must be enabled before the proof click`).toBeEnabled();
 
-  let actualRole: 'button' | 'link' | undefined;
-  let target = preferredTarget;
+  const previewState = previewSurfaceState(page);
 
-  await expect
-    .poll(
-      async () => {
-        if (await preferredTarget.isVisible().catch(() => false)) {
-          actualRole = scenario.interaction.role;
-          target = preferredTarget;
+  const pointerPage =
+    previewState.mode === 'official-runtime-direct' && previewState.directPage ? previewState.directPage : page;
 
-          return true;
-        }
+  await pointerPage.mouse.move(-10, -10);
 
-        if (await alternateTarget.isVisible().catch(() => false)) {
-          actualRole = alternateRole;
-          target = alternateTarget;
+  const targetOrangeAudit = await target.evaluate<TargetOrangeAudit>(TARGET_ORANGE_AUDIT_PAGE_FUNCTION);
 
-          return true;
-        }
-
-        if (await preferredTargetWithDecoration.isVisible().catch(() => false)) {
-          actualRole = scenario.interaction.role;
-          target = preferredTargetWithDecoration;
-
-          return true;
-        }
-
-        if (await alternateTargetWithDecoration.isVisible().catch(() => false)) {
-          actualRole = alternateRole;
-          target = alternateTargetWithDecoration;
-
-          return true;
-        }
-
-        return false;
-      },
-      {
-        message: `${scenario.interaction.name} must be exposed as an accessible link or button`,
-        timeout: 60_000,
-      },
-    )
-    .toBe(true);
+  if (
+    !targetOrangeAudit.visible ||
+    !targetOrangeAudit.effectivelyVisible ||
+    !targetOrangeAudit.inViewport ||
+    !targetOrangeAudit.unoccluded ||
+    !targetOrangeAudit.enabled ||
+    targetOrangeAudit.disabled ||
+    targetOrangeAudit.focused ||
+    !targetOrangeAudit.orange ||
+    targetOrangeAudit.ownOrangeProperties.length === 0
+  ) {
+    throw new Error(
+      `The exact ${scenario.interaction.role} ${scenario.interaction.name} must be an unoccluded, enabled, ` +
+        `normal-state orange action inside the initial viewport: ${JSON.stringify(targetOrangeAudit)}`,
+    );
+  }
 
   const beforeInteraction = await body.evaluate((previewBody) => ({
     html: previewBody.innerHTML,
@@ -3237,7 +3383,18 @@ async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evi
   }));
 
   await target.click();
-  await expect(body).toContainText(scenario.interaction.expectedResult, { timeout: 60_000 });
+
+  const resultMatches =
+    typeof scenario.interaction.expectedResult === 'string'
+      ? frame.getByText(scenario.interaction.expectedResult, { exact: true }).filter({ visible: true })
+      : frame.getByText(scenario.interaction.expectedResult).filter({ visible: true });
+
+  await expect
+    .poll(() => resultMatches.count(), {
+      message: `Clicking ${scenario.interaction.name} must render the exact contracted result`,
+      timeout: 60_000,
+    })
+    .toBeGreaterThan(0);
 
   await expect
     .poll(
@@ -3253,6 +3410,9 @@ async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evi
       },
     )
     .toBe(true);
+
+  const stateChanged = true;
+  const resultMatchCount = await resultMatches.count();
 
   const interactedBodyText = (await body.innerText()).replace(/\s+/g, ' ').trim();
 
@@ -3277,12 +3437,14 @@ async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evi
   }
 
   return {
-    interaction: `${actualRole}:${scenario.interaction.name}`,
-    expectedResult:
-      typeof scenario.interaction.expectedResult === 'string'
-        ? scenario.interaction.expectedResult
-        : scenario.interaction.expectedResult.source,
+    role: scenario.interaction.role,
+    name: scenario.interaction.name,
+    expectedResult: serializedInteractionExpectedResult(scenario.interaction),
+    exactTargetCount,
+    resultMatchCount,
     interactiveCount,
+    stateChanged,
+    targetOrangeAudit,
   };
 }
 
@@ -3640,7 +3802,10 @@ async function restoreResumedPromptBubbleFromHistory(
 }
 
 async function prepareIdeCapture(page: Page, bubble: ReturnType<Page['locator']>) {
-  const dismissPreviewError = page.getByTestId('ide-agent-panel').getByRole('button', { name: 'Dismiss' }).last();
+  const dismissPreviewError = page
+    .getByTestId('ide-agent-panel')
+    .getByRole('button', { name: /^(?:Dismiss|Fermer)$/i })
+    .last();
 
   if (await dismissPreviewError.isVisible().catch(() => false)) {
     const alert = dismissPreviewError.locator('xpath=ancestor::*[@role="alert"][1]');
@@ -3649,13 +3814,17 @@ async function prepareIdeCapture(page: Page, bubble: ReturnType<Page['locator']>
     throw new Error(`IDE error alert must be resolved before capture: ${detail}`);
   }
 
-  const hideLogsButton = page.getByRole('button', { name: /Hide workspace logs/i }).first();
+  const hideLogsButton = page
+    .getByRole('button', { name: /^(?:Hide workspace logs|Masquer les journaux de l'espace de travail)$/i })
+    .first();
 
   if (await hideLogsButton.isVisible().catch(() => false)) {
     await hideLogsButton.click();
   }
 
-  const closePreviewLogsButton = page.getByRole('button', { name: 'Close right panel' }).first();
+  const closePreviewLogsButton = page
+    .getByRole('button', { name: /^(?:Close right panel|Fermer le panneau de droite)$/i })
+    .first();
 
   if (await closePreviewLogsButton.isVisible().catch(() => false)) {
     await closePreviewLogsButton.click();
@@ -3766,7 +3935,7 @@ async function activateThemeCommand(page: Page, expectedTheme: CaptureTheme) {
   }
 }
 
-async function applyCaptureTheme(page: Page, theme: CaptureTheme) {
+async function applyCaptureTheme(page: Page, theme: CaptureTheme, expectedLocale: CaptureLocale) {
   const html = page.locator('html');
 
   await expect
@@ -3848,6 +4017,7 @@ async function applyCaptureTheme(page: Page, theme: CaptureTheme) {
 
   if (state.mode === 'official-runtime-direct' && state.directPage) {
     applicationTheme = await applyOfficialRuntimeCaptureTheme(state.directPage, theme, {
+      expectedLocale,
       requireVisibleControl: true,
     });
     assertDirectRuntimeStayedClean(page);
@@ -3864,6 +4034,7 @@ async function applyCaptureTheme(page: Page, theme: CaptureTheme) {
     }
 
     applicationTheme = await applyOfficialRuntimeCaptureTheme(nativePreviewFrame, theme, {
+      expectedLocale,
       requireVisibleControl: true,
     });
   }
@@ -3891,6 +4062,7 @@ type ThemedCaptureAudit = {
     directCaptureComposition?: DirectCaptureCompositionAudit;
     device: 'desktop' | 'tablet' | 'mobile';
     nativeWebviewAudit?: NativeWebviewAudit;
+    promptViewportAudit?: PromptViewportAudit;
     provenance?: RuntimePreviewProvenance;
     responsive: Awaited<ReturnType<typeof verifyPreviewResponsiveState>>;
     shell: IdeShellAudit;
@@ -3901,6 +4073,10 @@ type ThemedCaptureAudit = {
     meanAbsoluteDifference: number;
   };
   nativeWebviewThemeDifference?: {
+    changedPixelRatio: number;
+    meanAbsoluteDifference: number;
+  };
+  directRuntimeThemeDifference?: {
     changedPixelRatio: number;
     meanAbsoluteDifference: number;
   };
@@ -4207,17 +4383,20 @@ async function captureThemedIdeState(
   filename: string,
   options: {
     evidenceRoot: string;
+    locale: CaptureLocale;
+    promptViewport?: { bubble: Locator; expectedMessageId: string };
     scenario: SolutionScenario;
     verifySurface?: () => Promise<void>;
   },
 ): Promise<ThemedCaptureAudit> {
   const states: ThemedCaptureAudit['states'] = [];
   const nativeWebviewThemeScreenshots = new Map<CaptureTheme, Buffer>();
+  const directRuntimeThemeScreenshots = new Map<CaptureTheme, Buffer>();
 
   const directRuntimePreviewFilenames = new Set(['ide-webview-overview.png', 'ide-webview-iteration.png']);
 
   for (const theme of CAPTURE_THEMES) {
-    let applicationTheme = await applyCaptureTheme(page, theme);
+    let applicationTheme = await applyCaptureTheme(page, theme, options.locale);
     await options.verifySurface?.();
 
     const shell = await waitForStableIdeCaptureShell(page);
@@ -4254,6 +4433,22 @@ async function captureThemedIdeState(
     let captureSurface: ThemedCaptureAudit['states'][number]['captureSurface'];
     let directCaptureComposition: DirectCaptureCompositionAudit | undefined;
     let nativeWebviewAudit: NativeWebviewAudit | undefined;
+    let promptViewportAudit: PromptViewportAudit | undefined;
+
+    if (filename === 'ide-agent-prompt.png') {
+      if (!options.promptViewport) {
+        throw new Error('The ide-agent-prompt capture requires an exact persisted-bubble viewport contract');
+      }
+
+      promptViewportAudit = await auditPromptBubbleViewport(
+        page,
+        options.promptViewport.bubble,
+        options.scenario.expectedTerms[0],
+        options.promptViewport.expectedMessageId,
+      );
+    } else if (options.promptViewport) {
+      throw new Error(`Prompt viewport evidence cannot be attached to non-prompt slot ${filename}`);
+    }
 
     if (captureDirectRuntime) {
       const directPage = surfaceState.directPage!;
@@ -4270,6 +4465,7 @@ async function captureThemedIdeState(
         caret: 'hide',
         type: 'png',
       });
+      directRuntimeThemeScreenshots.set(theme, nativeScreenshot);
 
       const composedCapture = await composeDirectRuntimeCapture(nativeScreenshot, selectedDevice, theme);
       const screenshot = composedCapture.png;
@@ -4296,6 +4492,7 @@ async function captureThemedIdeState(
       }
 
       applicationTheme = await applyOfficialRuntimeCaptureTheme(nativeFrame, theme, {
+        expectedLocale: options.locale,
         requireVisibleControl: true,
       });
 
@@ -4331,6 +4528,7 @@ async function captureThemedIdeState(
       ...(directCaptureComposition ? { directCaptureComposition } : {}),
       device: selectedDevice,
       ...(nativeWebviewAudit ? { nativeWebviewAudit } : {}),
+      ...(promptViewportAudit ? { promptViewportAudit } : {}),
       ...(captureSurface === 'official-runtime-direct' ? { provenance: surfaceState.provenance } : {}),
       responsive,
       shell,
@@ -4348,6 +4546,7 @@ async function captureThemedIdeState(
   }
 
   const usesShellCapture = states.some(({ captureSurface }) => captureSurface !== 'official-runtime-direct');
+  const usesDirectRuntimeCapture = states.some(({ captureSurface }) => captureSurface === 'official-runtime-direct');
   const lightNativeWebview = nativeWebviewThemeScreenshots.get('light');
   const darkNativeWebview = nativeWebviewThemeScreenshots.get('dark');
 
@@ -4358,6 +4557,18 @@ async function captureThemedIdeState(
   const nativeWebviewThemeDifference =
     lightNativeWebview && darkNativeWebview
       ? await compareProofImages(lightNativeWebview, darkNativeWebview)
+      : undefined;
+
+  const lightDirectRuntime = directRuntimeThemeScreenshots.get('light');
+  const darkDirectRuntime = directRuntimeThemeScreenshots.get('dark');
+
+  if (usesDirectRuntimeCapture && (!lightDirectRuntime || !darkDirectRuntime)) {
+    throw new Error(`Both unpadded light and dark official runtime pixels are required for ${filename}`);
+  }
+
+  const directRuntimeThemeDifference =
+    lightDirectRuntime && darkDirectRuntime
+      ? await compareProofImages(lightDirectRuntime, darkDirectRuntime)
       : undefined;
 
   if (
@@ -4371,17 +4582,29 @@ async function captureThemedIdeState(
     );
   }
 
+  if (
+    directRuntimeThemeDifference &&
+    (directRuntimeThemeDifference.changedPixelRatio < 0.02 || directRuntimeThemeDifference.meanAbsoluteDifference < 2)
+  ) {
+    throw new Error(
+      `Unpadded official runtime light and dark pixels for ${filename} are not visually distinct ` +
+        `(changed pixels=${directRuntimeThemeDifference.changedPixelRatio.toFixed(4)}, ` +
+        `mean difference=${directRuntimeThemeDifference.meanAbsoluteDifference.toFixed(3)})`,
+    );
+  }
+
   /*
    * The production IDE defaults to dark. Restore it so subsequent assertions
    * and interactions run against the same deterministic state as generation.
    */
-  await applyCaptureTheme(page, 'dark');
+  await applyCaptureTheme(page, 'dark', options.locale);
 
   return {
     filename,
     states,
     themeDifference,
     ...(nativeWebviewThemeDifference ? { nativeWebviewThemeDifference } : {}),
+    ...(directRuntimeThemeDifference ? { directRuntimeThemeDifference } : {}),
   };
 }
 
@@ -4654,18 +4877,20 @@ async function main() {
 
       await expect(promptField).toBeVisible({ timeout: 120_000 });
 
-      const dismissOnboarding = page.getByRole('button', { name: 'Not now' });
+      const dismissOnboarding = page.getByRole('button', { name: /^(?:Not now|Plus tard)$/i });
 
       if (await dismissOnboarding.isVisible().catch(() => false)) {
         await dismissOnboarding.click();
       }
 
-      const providerDropdown = page.getByTestId('ai-provider-dropdown').getByRole('combobox', { name: 'AI provider' });
+      const providerDropdown = page
+        .getByTestId('ai-provider-dropdown')
+        .getByRole('combobox', { name: /^(?:AI provider|Fournisseur d[’']IA)$/i });
 
       if (await providerDropdown.isVisible().catch(() => false)) {
         await expect(providerDropdown).toContainText(/Anthropic|OpenAI|Google/, { timeout: 30_000 });
         await expect(
-          page.getByTestId('ai-model-dropdown').getByRole('combobox', { name: 'AI model' }),
+          page.getByTestId('ai-model-dropdown').getByRole('combobox', { name: /^(?:AI model|Modèle d[’']IA)$/i }),
         ).not.toContainText('No option available');
       }
 
@@ -4994,10 +5219,19 @@ async function main() {
       await selectPreviewDevice(page, 'desktop');
       responsiveStateAudits.push(await verifyPreviewResponsiveState(page, copy, evidenceRoot, 'initial', 'desktop'));
       await prepareIdeCapture(page, promptBubble);
+
+      const promptViewportMessageId = promptSurfaceProvenance?.messageId;
+
+      if (!promptViewportMessageId) {
+        throw new Error('The prompt viewport capture requires the verified prompt provenance message id');
+      }
+
       themedCaptureAudits.push(
         await captureThemedIdeState(page, stagingRoot, promptFilename, {
-          scenario: copy,
           evidenceRoot,
+          locale,
+          promptViewport: { bubble: promptBubble, expectedMessageId: promptViewportMessageId },
+          scenario: copy,
           verifySurface: verifyPromptBubbleSurface,
         }),
       );
@@ -5025,7 +5259,7 @@ async function main() {
 
       await prepareIdeCapture(page, previewBubble);
       themedCaptureAudits.push(
-        await captureThemedIdeState(page, stagingRoot, previewFilename, { scenario: copy, evidenceRoot }),
+        await captureThemedIdeState(page, stagingRoot, previewFilename, { scenario: copy, evidenceRoot, locale }),
       );
       verifiedCaptureFilenames.push(previewFilename);
 
@@ -5044,8 +5278,9 @@ async function main() {
       await prepareIdeCapture(page, promptBubble);
       themedCaptureAudits.push(
         await captureThemedIdeState(page, stagingRoot, webviewOverviewFilename, {
-          scenario: copy,
           evidenceRoot,
+          locale,
+          scenario: copy,
         }),
       );
       verifiedCaptureFilenames.push(webviewOverviewFilename);
@@ -5113,7 +5348,7 @@ async function main() {
       const iterationFilename = 'ide-agent-iteration.png';
       iterationOutput = resolve(outputRoot, 'dark', 'ide-agent-iteration-1440.webp');
       themedCaptureAudits.push(
-        await captureThemedIdeState(page, stagingRoot, iterationFilename, { scenario: copy, evidenceRoot }),
+        await captureThemedIdeState(page, stagingRoot, iterationFilename, { scenario: copy, evidenceRoot, locale }),
       );
       verifiedCaptureFilenames.push(iterationFilename);
 
@@ -5131,8 +5366,9 @@ async function main() {
       webviewIterationOutput = resolve(outputRoot, 'dark', 'ide-webview-iteration-1440.webp');
       themedCaptureAudits.push(
         await captureThemedIdeState(page, stagingRoot, webviewIterationFilename, {
-          scenario: copy,
           evidenceRoot,
+          locale,
+          scenario: copy,
         }),
       );
       verifiedCaptureFilenames.push(webviewIterationFilename);
@@ -5153,7 +5389,7 @@ async function main() {
       const interactionFilename = 'ide-agent-iteration.png';
       iterationOutput = resolve(outputRoot, 'dark', 'ide-agent-iteration-1440.webp');
       themedCaptureAudits.push(
-        await captureThemedIdeState(page, stagingRoot, interactionFilename, { scenario: copy, evidenceRoot }),
+        await captureThemedIdeState(page, stagingRoot, interactionFilename, { scenario: copy, evidenceRoot, locale }),
       );
       verifiedCaptureFilenames.push(interactionFilename);
 
@@ -5171,8 +5407,9 @@ async function main() {
       webviewIterationOutput = resolve(outputRoot, 'dark', 'ide-webview-iteration-1440.webp');
       themedCaptureAudits.push(
         await captureThemedIdeState(page, stagingRoot, webviewInteractionFilename, {
-          scenario: copy,
           evidenceRoot,
+          locale,
+          scenario: copy,
         }),
       );
       verifiedCaptureFilenames.push(webviewInteractionFilename);
@@ -5250,8 +5487,9 @@ async function main() {
     await verifyFilesSurface();
     themedCaptureAudits.push(
       await captureThemedIdeState(page, stagingRoot, filesFilename, {
-        scenario: copy,
         evidenceRoot,
+        locale,
+        scenario: copy,
         verifySurface: verifyFilesSurface,
       }),
     );
@@ -5327,6 +5565,34 @@ async function main() {
       );
     }
 
+    if (verifiedCaptureFilenames.length !== 6 || new Set(verifiedCaptureFilenames).size !== 6) {
+      throw new Error(
+        `Only a complete six-slot capture session can promote Solution proof assets; received ${verifiedCaptureFilenames.length}`,
+      );
+    }
+
+    const interSlotDifferences: InterSlotDifferenceAudit[] = (
+      await Promise.all(
+        CAPTURE_THEMES.map(async (theme) =>
+          compareInterSlotProofImages(
+            theme,
+            await Promise.all(
+              verifiedCaptureFilenames.map(async (filename) => ({
+                filename,
+                image: await readFile(resolve(stagingRoot, theme, filename)),
+              })),
+            ),
+          ),
+        ),
+      )
+    ).flat();
+
+    if (interSlotDifferences.length !== 30) {
+      throw new Error(
+        `Expected 30 light/dark inter-slot comparisons before promotion, received ${interSlotDifferences.length}`,
+      );
+    }
+
     const publishableCaptureFilenames =
       slug === 'app-builder'
         ? verifiedCaptureFilenames.filter(
@@ -5376,6 +5642,7 @@ async function main() {
       webviewIterationOutput,
       accentAudit,
       interactionAccentAudit,
+      interSlotDifferences,
       responsiveAccentAudits,
       responsiveStateAudits,
       themedCaptureAudits,
