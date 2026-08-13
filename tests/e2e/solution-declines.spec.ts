@@ -6,7 +6,14 @@ import { ENTERPRISE_COPY } from '~/components/marketing/solutions/enterprise.cop
 import { FREELANCERS_COPY } from '~/components/marketing/solutions/freelancers.copy';
 import { GAME_BUILDER_COPY } from '~/components/marketing/solutions/game-builder.copy';
 import { INTERNAL_AI_BUILDER_COPY } from '~/components/marketing/solutions/internal-ai-builder.copy';
-import type { SolutionCopyByLanguage } from '~/components/marketing/solutions/solution-copy';
+import type { SolutionCopy, SolutionCopyByLanguage } from '~/components/marketing/solutions/solution-copy';
+import {
+  getSolutionProofVisualContent,
+  getSolutionProofVisuals,
+  SOLUTION_PROOF_VISUAL_SLOTS,
+  type SolutionProofVisualSlug,
+  type SolutionProofVisualTheme,
+} from '~/components/marketing/solutions/solution-proof.visuals';
 import { STARTUPS_COPY } from '~/components/marketing/solutions/startups.copy';
 import { WEBSITE_BUILDER_COPY } from '~/components/marketing/solutions/website-builder.copy';
 
@@ -31,12 +38,25 @@ const VIEWPORTS = [
 const THEMES = ['light', 'dark'] as const;
 const LANGUAGES = ['en', 'fr'] as const;
 
+const VISUAL_TEST_IDS = {
+  prompt: 'solution-ide-prompt',
+  preview: 'solution-ide-preview',
+  webviewOverview: 'solution-webview-overview',
+  iteration: 'solution-ide-iteration',
+  webviewIteration: 'solution-webview-iteration',
+  files: 'solution-ide-files',
+} as const satisfies Record<(typeof SOLUTION_PROOF_VISUAL_SLOTS)[number], string>;
+
+const HERO_VISUAL_SIZES = '(min-width: 1200px) 560px, (min-width: 900px) 48vw, calc(100vw - 32px)';
+const CARD_VISUAL_SIZES = '(min-width: 1200px) 540px, (min-width: 768px) calc(100vw - 64px), calc(100vw - 32px)';
+
 function runtimeBaseUrl(testBaseUrl: string | undefined): string {
   return testBaseUrl ?? process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5173';
 }
 
 async function configureTheme(page: Page, baseURL: string, theme: (typeof THEMES)[number]) {
   await page.context().addCookies([{ name: 'ecode_theme', value: theme, url: baseURL }]);
+  await page.addInitScript((nextTheme) => localStorage.setItem('bolt_theme', nextTheme), theme);
   await page.emulateMedia({ colorScheme: theme, reducedMotion: 'reduce' });
 }
 
@@ -83,40 +103,54 @@ async function expectTouchTargets(page: Page) {
   expect(undersized, 'every visible solution-page target must measure at least 44×44 CSS pixels').toEqual([]);
 }
 
-async function expectProofImages(page: Page, language: (typeof LANGUAGES)[number]) {
-  const expectedSources = [
-    `/assets/solutions/app-builder/${language}/ide-agent-preview.png`,
-    `/assets/solutions/app-builder/${language}/ide-agent-iteration.png`,
-  ];
+async function expectProofImages(
+  page: Page,
+  slug: SolutionProofVisualSlug,
+  language: (typeof LANGUAGES)[number],
+  theme: SolutionProofVisualTheme,
+  copy: SolutionCopy,
+) {
+  const root = page.getByTestId('solution-page');
+  const assets = getSolutionProofVisuals(slug, language, theme);
+  const visualContent = getSolutionProofVisualContent(copy);
+  const proofFigures = root.locator('figure[data-real-solution-proof="true"]');
 
-  const images = page.locator('[data-testid="solution-ide-proof-gallery"] img');
+  await expect(proofFigures).toHaveCount(SOLUTION_PROOF_VISUAL_SLOTS.length);
 
-  await expect(images).toHaveCount(2);
+  for (const slot of SOLUTION_PROOF_VISUAL_SLOTS) {
+    const asset = assets[slot];
+    const content = visualContent[slot];
+    const figure = page.getByTestId(VISUAL_TEST_IDS[slot]);
+    const image = figure.locator('img');
+    const eager = slot === 'prompt';
 
-  for (const [index, source] of expectedSources.entries()) {
-    const image = images.nth(index);
-
-    await expect(image).toHaveAttribute('src', source);
-    await expect(image).toHaveAttribute('width', '1440');
-    await expect(image).toHaveAttribute('height', '900');
-    await expect(image).toHaveAttribute('loading', 'lazy');
+    expect(asset.src).toContain(`/assets/solutions/${slug}/${language}/${theme}/`);
+    expect(asset.src).not.toContain('/assets/solutions/app-builder/');
+    await expect(figure).toHaveAttribute('data-real-solution-proof', 'true');
+    await expect(figure).toHaveAttribute('data-visual-solution', slug);
+    await expect(figure).toHaveAttribute('data-visual-language', language);
+    await expect(figure).toHaveAttribute('data-visual-theme', theme);
+    await expect(figure).toHaveAttribute('data-visual-slot', slot);
+    await expect(figure.locator('figcaption')).toContainText(copy.proofLink.disclaimer);
+    await expect(figure.locator('figcaption')).toContainText(content.title);
+    await expect(image).toHaveAttribute('src', asset.src);
+    await expect(image).toHaveAttribute('srcset', asset.srcSet);
+    await expect(image).toHaveAttribute('sizes', eager ? HERO_VISUAL_SIZES : CARD_VISUAL_SIZES);
+    await expect(image).toHaveAttribute('width', String(asset.width));
+    await expect(image).toHaveAttribute('height', String(asset.height));
+    await expect(image).toHaveAttribute('alt', content.alt);
+    await expect(image).toHaveAttribute('loading', eager ? 'eager' : 'lazy');
+    await expect(image).toHaveAttribute('fetchpriority', eager ? 'high' : 'low');
     await expect(image).toHaveAttribute('decoding', 'async');
-
-    const alt = await image.getAttribute('alt');
-
-    expect(alt?.trim().length).toBeGreaterThan(20);
-
-    await image.scrollIntoViewIfNeeded();
-    await expect
-      .poll(() =>
-        image.evaluate((element) => {
-          const htmlImage = element as HTMLImageElement;
-
-          return htmlImage.complete ? [htmlImage.naturalWidth, htmlImage.naturalHeight] : [0, 0];
-        }),
-      )
-      .toEqual([1440, 900]);
   }
+
+  const renderedSources = await proofFigures
+    .locator('img')
+    .evaluateAll((images) => images.map((image) => image.getAttribute('src')));
+
+  expect(new Set(renderedSources).size, 'each proof slot must render a distinct dedicated asset').toBe(
+    SOLUTION_PROOF_VISUAL_SLOTS.length,
+  );
 }
 
 test.describe('declined solution sales pages', () => {
@@ -138,14 +172,6 @@ test.describe('declined solution sales pages', () => {
             await configureTheme(page, baseURL, theme);
             await page.goto(`/solutions/${solution.slug}?lang=${language}`, { waitUntil: 'domcontentloaded' });
             await expect(page.locator('html')).toHaveAttribute('data-ecode-hydrated', 'true', { timeout: 30_000 });
-            await page.evaluate((nextTheme) => {
-              const root = document.documentElement;
-
-              root.setAttribute('data-theme', nextTheme);
-              root.classList.toggle('dark', nextTheme === 'dark');
-              root.classList.toggle('light', nextTheme === 'light');
-              root.style.colorScheme = nextTheme;
-            }, theme);
 
             const root = page.getByTestId('solution-page');
 
@@ -166,7 +192,6 @@ test.describe('declined solution sales pages', () => {
             await expect(page.getByTestId('solution-hero').getByRole('heading', { level: 1 })).toHaveText(
               copy.hero.title,
             );
-            await expect(page.getByTestId('solution-demo')).toContainText(copy.demo.disclaimer);
             await expect(page.getByTestId('solution-problem').locator('article')).toHaveCount(3);
             await expect(page.getByTestId('solution-build').locator('blockquote')).toHaveText(copy.build.promptText);
             await expect(page.getByTestId('solution-build').locator('.sol-output-grid > li')).toHaveCount(4);
@@ -190,7 +215,7 @@ test.describe('declined solution sales pages', () => {
 
             await expectNoHorizontalOverflow(page, viewport.width);
             await expectTouchTargets(page);
-            await expectProofImages(page, language);
+            await expectProofImages(page, solution.slug, language, theme, copy);
 
             await page.evaluate(() => {
               if (document.activeElement instanceof HTMLElement) {

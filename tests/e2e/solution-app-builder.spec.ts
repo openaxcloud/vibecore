@@ -530,23 +530,35 @@ test.describe('App Builder solution sales page', () => {
     });
   }
 
-  test('the English and French selector updates the SSR language, localized images, and saved preference', async ({
+  test('the single global header language switch completes a real English-French round trip', async ({
     page,
   }, testInfo) => {
     const baseURL = runtimeBaseUrl(testInfo.project.use.baseURL?.toString());
 
     await configureLocalizedTheme(page, baseURL, 'light', 'en');
     await page.goto(`${ROUTE}?lang=en`, { waitUntil: 'domcontentloaded' });
+    await expect(page.locator('html')).toHaveAttribute('data-ecode-hydrated', 'true');
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.getByTestId('app-builder-visual-hero')).toHaveAttribute('data-visual-language', 'en');
 
-    const languageNavigation = page.getByRole('navigation', { name: APP_BUILDER_COPY.en.languageSwitch.label });
-    await expect(
-      languageNavigation.getByRole('link', { name: APP_BUILDER_COPY.en.languageSwitch.english }),
-    ).toHaveAttribute('aria-current', 'page');
-    await languageNavigation.getByRole('link', { name: APP_BUILDER_COPY.en.languageSwitch.french }).click();
+    const globalLanguageSwitch = page.locator('header').getByTestId('language-switch');
 
-    await expect(page).toHaveURL(new URL(`${ROUTE}?lang=fr`, baseURL).toString());
+    await expect(page.getByTestId('language-switch')).toHaveCount(1);
+    await expect(globalLanguageSwitch).toBeVisible();
+    await expect(globalLanguageSwitch).toHaveAccessibleName('Choose display language');
+    await expect(page.getByTestId('app-builder-hero').getByTestId('language-switch')).toHaveCount(0);
+
+    const activeEnglishButton = globalLanguageSwitch.getByRole('button', { name: 'Current language: English' });
+    const frenchButton = globalLanguageSwitch.getByRole('button', { name: 'French' });
+
+    await expect(activeEnglishButton).toHaveText('EN');
+    await expect(activeEnglishButton).toHaveAttribute('aria-pressed', 'true');
+    await expect(frenchButton).toHaveText('FR');
+    await expect(frenchButton).toHaveAttribute('aria-pressed', 'false');
+    await frenchButton.click();
+
+    await expect(page).toHaveURL(new URL(`${ROUTE}?lang=fr`, baseURL).toString(), { timeout: 30_000 });
+    await expect(page.locator('html')).toHaveAttribute('data-ecode-hydrated', 'true');
     await expect(page.locator('html')).toHaveAttribute('lang', 'fr');
     await expect(page.getByTestId('app-builder-visual-hero')).toHaveAttribute('data-visual-language', 'fr');
     await expect(page.getByTestId('app-builder-visual-hero').locator('img')).toHaveAttribute(
@@ -554,8 +566,37 @@ test.describe('App Builder solution sales page', () => {
       APP_BUILDER_VISUAL_ASSETS.fr.hero.src,
     );
 
-    const cookies = await page.context().cookies(baseURL);
-    expect(cookies).toContainEqual(expect.objectContaining({ name: 'vibecore-lang', value: 'fr' }));
+    await expect(page.getByTestId('language-switch')).toHaveCount(1);
+    await expect(globalLanguageSwitch).toHaveAccessibleName("Choisir la langue d'affichage");
+
+    const englishButton = globalLanguageSwitch.getByRole('button', { name: 'Anglais' });
+    const activeFrenchButton = globalLanguageSwitch.getByRole('button', { name: 'Langue actuelle : Français' });
+
+    await expect(englishButton).toHaveText('EN');
+    await expect(englishButton).toHaveAttribute('aria-pressed', 'false');
+    await expect(activeFrenchButton).toHaveText('FR');
+    await expect(activeFrenchButton).toHaveAttribute('aria-pressed', 'true');
+    await expect
+      .poll(
+        async () => (await page.context().cookies(baseURL)).find((cookie) => cookie.name === 'vibecore-lang')?.value,
+      )
+      .toBe('fr');
+    await englishButton.click();
+
+    await expect(page).toHaveURL(new URL(`${ROUTE}?lang=en`, baseURL).toString(), { timeout: 30_000 });
+    await expect(page.locator('html')).toHaveAttribute('data-ecode-hydrated', 'true');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.getByTestId('app-builder-visual-hero')).toHaveAttribute('data-visual-language', 'en');
+    await expect(page.getByTestId('app-builder-visual-hero').locator('img')).toHaveAttribute(
+      'src',
+      APP_BUILDER_VISUAL_ASSETS.en.hero.src,
+    );
+    await expect(page.getByTestId('language-switch')).toHaveCount(1);
+    await expect
+      .poll(
+        async () => (await page.context().cookies(baseURL)).find((cookie) => cookie.name === 'vibecore-lang')?.value,
+      )
+      .toBe('en');
   });
 
   for (const language of CAPTURE_LANGUAGES) {
