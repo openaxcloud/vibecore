@@ -26,10 +26,14 @@ import {
 import {
   observeRuntimeWriteFence,
   reconcileRuntimeFileSnapshot,
+  shouldCompleteTrackedIdeRequest,
+  shouldReloadAfterPostChatRuntimeChurn,
   verifyRuntimeFileSnapshotStable,
   type RuntimeFileSnapshot,
+  type RuntimeRequestCompletionDiagnostic,
   type RuntimeReconciliationEvent,
   type RuntimeReconciliationOperations,
+  type TrackedIdeRequestEndSource,
   type RuntimeWriteQuiescenceDiagnostic,
 } from './solution-runtime-reconciliation.js';
 import { applyOfficialRuntimeCaptureTheme } from './solution-runtime-theme-control.js';
@@ -122,6 +126,7 @@ const previewSurfaceStates = new WeakMap<Page, PreviewSurfaceState>();
 type RuntimeWriteActivityState = {
   inflight: Set<Request>;
   lastActivityAtMs: number;
+  lastCompletion?: RuntimeRequestCompletionDiagnostic;
   mutationCount: number;
 };
 
@@ -133,7 +138,16 @@ type RuntimeWriteActivityTracker = {
   ) => Promise<RuntimeWriteQuiescenceDiagnostic>;
 };
 
-type TrackedIdeRequest = { kind: 'chat' } | { kind: 'runtime'; workspaceId: string };
+type TrackedIdeRequest =
+  | { kind: 'chat'; startedAtMs: number }
+  | {
+      filePath?: string;
+      kind: 'runtime';
+      method: string;
+      pathname: string;
+      startedAtMs: number;
+      workspaceId: string;
+    };
 
 const runtimeWriteActivityTrackers = new WeakMap<Page, RuntimeWriteActivityTracker>();
 
@@ -177,6 +191,40 @@ function isAgentChatRequest(request: Request) {
   }
 }
 
+function runtimeMutationDescriptor(
+  request: Request,
+  workspaceId: string,
+): Extract<TrackedIdeRequest, { kind: 'runtime' }> {
+  let pathname = '';
+
+  try {
+    pathname = new URL(request.url()).pathname;
+  } catch {
+    pathname = request.url();
+  }
+
+  let filePath: string | undefined;
+
+  try {
+    const body = request.postDataJSON() as { path?: unknown } | null;
+
+    if (typeof body?.path === 'string' && body.path.trim()) {
+      filePath = body.path;
+    }
+  } catch {
+    // A non-JSON mutation remains fully tracked by method + endpoint.
+  }
+
+  return {
+    kind: 'runtime',
+    workspaceId,
+    method: request.method(),
+    pathname,
+    ...(filePath ? { filePath } : {}),
+    startedAtMs: Date.now(),
+  };
+}
+
 /**
  * Track mutations emitted by the real IDE page while Agent actions are still
  * streaming. Project ide-state can already look stable and the composer can look
@@ -189,6 +237,7 @@ function registerRuntimeWriteActivityTracker(page: Page) {
 
   let chatRequestCount = 0;
   let lastChatActivityAtMs = Date.now();
+  let postChatChurnReloadCount = 0;
 
   const stateFor = (workspaceId: string) => {
     const existing = states.get(workspaceId);
@@ -209,10 +258,11 @@ function registerRuntimeWriteActivityTracker(page: Page) {
 
   page.on('request', (request) => {
     if (isAgentChatRequest(request)) {
+      const startedAtMs = Date.now();
       chatInflight.add(request);
       chatRequestCount += 1;
-      lastChatActivityAtMs = Date.now();
-      trackedRequests.set(request, { kind: 'chat' });
+      lastChatActivityAtMs = startedAtMs;
+      trackedRequests.set(request, { kind: 'chat', startedAtMs });
 
       return;
     }
@@ -227,32 +277,44 @@ function registerRuntimeWriteActivityTracker(page: Page) {
     state.inflight.add(request);
     state.lastActivityAtMs = Date.now();
     state.mutationCount += 1;
-    trackedRequests.set(request, { kind: 'runtime', workspaceId });
+    trackedRequests.set(request, runtimeMutationDescriptor(request, workspaceId));
   });
 
-  const complete = (request: Request) => {
+  const complete = (request: Request, endSource: TrackedIdeRequestEndSource, status?: number) => {
     const tracked = trackedRequests.get(request);
 
-    if (!tracked) {
+    if (!tracked || !shouldCompleteTrackedIdeRequest(tracked.kind, endSource)) {
       return;
     }
 
     trackedRequests.delete(request);
 
+    const endedAtMs = Date.now();
+
     if (tracked.kind === 'chat') {
       chatInflight.delete(request);
-      lastChatActivityAtMs = Date.now();
+      lastChatActivityAtMs = endedAtMs;
 
       return;
     }
 
     const state = stateFor(tracked.workspaceId);
     state.inflight.delete(request);
-    state.lastActivityAtMs = Date.now();
+    state.lastActivityAtMs = endedAtMs;
+    state.lastCompletion = {
+      durationMs: Math.max(0, endedAtMs - tracked.startedAtMs),
+      endedAtMs,
+      endSource,
+      ...(tracked.filePath ? { filePath: tracked.filePath } : {}),
+      method: tracked.method,
+      pathname: tracked.pathname,
+      ...(status !== undefined ? { status } : {}),
+    };
   };
 
-  page.on('requestfinished', complete);
-  page.on('requestfailed', complete);
+  page.on('response', (response) => complete(response.request(), 'response', response.status()));
+  page.on('requestfinished', (request) => complete(request, 'requestfinished'));
+  page.on('requestfailed', (request) => complete(request, 'requestfailed'));
 
   const tracker: RuntimeWriteActivityTracker = {
     waitForQuiescence: async (workspaceId, quietForMs, deadlineMs) => {
@@ -265,13 +327,14 @@ function registerRuntimeWriteActivityTracker(page: Page) {
 
       while (Date.now() < deadlineMs) {
         const state = states.get(workspaceId);
+        const observedAtMs = Date.now();
 
         const fence = observeRuntimeWriteFence({
           chatInflight: chatInflight.size,
           lastChatActivityAtMs,
           lastRuntimeActivityAtMs: state?.lastActivityAtMs ?? waitStartedAtMs,
           minimumQuietForMs: quietForMs,
-          observedAtMs: Date.now(),
+          observedAtMs,
           runtimeMutationInflight: state?.inflight.size ?? 0,
           waitStartedAtMs,
         });
@@ -280,10 +343,76 @@ function registerRuntimeWriteActivityTracker(page: Page) {
           return {
             chatInflight: 0,
             chatRequestCount,
+            ...(state?.lastCompletion ? { lastRuntimeRequest: state.lastCompletion } : {}),
             quietForMs: fence.quietForMs,
             runtimeMutationCount: state?.mutationCount ?? 0,
             runtimeMutationInflight: 0,
           };
+        }
+
+        if (
+          state &&
+          shouldReloadAfterPostChatRuntimeChurn({
+            chatInflight: chatInflight.size,
+            chatRequestCount,
+            lastChatActivityAtMs,
+            lastRuntimeActivityAtMs: state.lastActivityAtMs,
+            maximumRuntimeSilenceMs: RUNTIME_POST_CHAT_CHURN_RECENCY_MS,
+            minimumPostChatChurnMs: RUNTIME_POST_CHAT_CHURN_RELOAD_MS,
+            observedAtMs,
+            reloadCount: postChatChurnReloadCount,
+            runtimeMutationCount: state.mutationCount,
+          })
+        ) {
+          postChatChurnReloadCount += 1;
+
+          process.stdout.write(
+            `${JSON.stringify({
+              status: 'runtime-post-chat-churn-reload-requested',
+              workspaceId,
+              chatRequestCount,
+              postChatChurnForMs: observedAtMs - lastChatActivityAtMs,
+              runtimeMutationCount: state.mutationCount,
+              runtimeMutationInflight: state.inflight.size,
+              runtimeSilentForMs: observedAtMs - state.lastActivityAtMs,
+              ...(state.lastCompletion ? { lastRuntimeRequest: state.lastCompletion } : {}),
+            })}\n`,
+          );
+
+          const reloadBudgetMs = deadlineMs - Date.now();
+
+          if (reloadBudgetMs <= 0) {
+            break;
+          }
+
+          await page.reload({
+            waitUntil: 'domcontentloaded',
+            timeout: Math.min(180_000, reloadBudgetMs),
+          });
+
+          const restoredAgentPanel = page.getByTestId('ide-agent-panel');
+          const restoredPromptBubble = restoredAgentPanel.locator('.bolt-chat-message-row-user[data-message-id]');
+          const restoreBudgetMs = deadlineMs - Date.now();
+
+          if (restoreBudgetMs <= 0) {
+            break;
+          }
+
+          await expect(restoredAgentPanel).toBeVisible({ timeout: Math.min(60_000, restoreBudgetMs) });
+          await expect(
+            restoredPromptBubble.first(),
+            'The post-chat churn reload must restore a real persisted Agent user bubble',
+          ).toBeVisible({ timeout: Math.min(60_000, Math.max(1, deadlineMs - Date.now())) });
+
+          process.stdout.write(
+            `${JSON.stringify({
+              status: 'runtime-post-chat-churn-reload-completed',
+              workspaceId,
+              runtimeMutationCount: state.mutationCount,
+            })}\n`,
+          );
+
+          continue;
         }
 
         const remainingBudgetMs = deadlineMs - Date.now();
@@ -296,11 +425,30 @@ function registerRuntimeWriteActivityTracker(page: Page) {
 
       const state = states.get(workspaceId);
 
+      const inflightRuntimeRequests = [...(state?.inflight ?? [])].flatMap((request) => {
+        const tracked = trackedRequests.get(request);
+
+        if (!tracked || tracked.kind !== 'runtime') {
+          return [];
+        }
+
+        return [
+          {
+            filePath: tracked.filePath,
+            inflightForMs: Math.max(0, Date.now() - tracked.startedAtMs),
+            method: tracked.method,
+            pathname: tracked.pathname,
+          },
+        ];
+      });
+
       throw new Error(
         `IDE runtime writes did not become quiescent for ${quietForMs}ms` +
           ` (workspace=${workspaceId}, chatInflight=${chatInflight.size},` +
           ` runtimeInflight=${state?.inflight.size ?? 0}, chatRequests=${chatRequestCount},` +
-          ` runtimeMutations=${state?.mutationCount ?? 0})`,
+          ` runtimeMutations=${state?.mutationCount ?? 0}, reloads=${postChatChurnReloadCount},` +
+          ` lastRuntimeRequest=${JSON.stringify(state?.lastCompletion ?? null)},` +
+          ` inflightRuntimeRequests=${JSON.stringify(inflightRuntimeRequests)})`,
       );
     },
   };
@@ -417,6 +565,16 @@ const RUNTIME_SYNC_BUDGET_MS = positiveDurationFromEnv('SOLUTION_PROOF_RUNTIME_S
 const RUNTIME_SYNC_STABLE_MS = positiveDurationFromEnv('SOLUTION_PROOF_RUNTIME_SYNC_STABLE_MS', 12_000);
 const RUNTIME_SYNC_POLL_MS = positiveDurationFromEnv('SOLUTION_PROOF_RUNTIME_SYNC_POLL_MS', 4_000);
 const RUNTIME_WRITE_QUIESCENCE_MS = positiveDurationFromEnv('SOLUTION_PROOF_RUNTIME_WRITE_QUIESCENCE_MS', 30_000);
+
+const RUNTIME_POST_CHAT_CHURN_RELOAD_MS = positiveDurationFromEnv(
+  'SOLUTION_PROOF_RUNTIME_POST_CHAT_CHURN_RELOAD_MS',
+  60_000,
+);
+const RUNTIME_POST_CHAT_CHURN_RECENCY_MS = positiveDurationFromEnv(
+  'SOLUTION_PROOF_RUNTIME_POST_CHAT_CHURN_RECENCY_MS',
+  5_000,
+);
+
 const RUNTIME_SYNC_MIN_MATCHING_READS = 4;
 const RUNTIME_SYNC_MAX_WRITE_CYCLES = 3;
 

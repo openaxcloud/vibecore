@@ -14,9 +14,23 @@ export type RuntimeSnapshotObservation = {
 export type RuntimeWriteQuiescenceDiagnostic = {
   chatInflight: number;
   chatRequestCount: number;
+  lastRuntimeRequest?: RuntimeRequestCompletionDiagnostic;
   quietForMs: number;
   runtimeMutationCount: number;
   runtimeMutationInflight: number;
+};
+
+export type TrackedIdeRequestKind = 'chat' | 'runtime';
+export type TrackedIdeRequestEndSource = 'requestfailed' | 'requestfinished' | 'response';
+
+export type RuntimeRequestCompletionDiagnostic = {
+  durationMs: number;
+  endedAtMs: number;
+  endSource: TrackedIdeRequestEndSource;
+  filePath?: string;
+  method: string;
+  pathname: string;
+  status?: number;
 };
 
 export type RuntimeWriteFenceObservation = {
@@ -29,6 +43,18 @@ export type RuntimeWriteFenceObservation = {
   waitStartedAtMs: number;
 };
 
+export type RuntimePostChatChurnObservation = {
+  chatInflight: number;
+  chatRequestCount: number;
+  lastChatActivityAtMs: number;
+  lastRuntimeActivityAtMs: number;
+  maximumRuntimeSilenceMs: number;
+  minimumPostChatChurnMs: number;
+  observedAtMs: number;
+  reloadCount: number;
+  runtimeMutationCount: number;
+};
+
 /** Pure clock/fence decision used by the Playwright request tracker. */
 export function observeRuntimeWriteFence(input: RuntimeWriteFenceObservation) {
   const quietSinceMs = Math.max(input.waitStartedAtMs, input.lastChatActivityAtMs, input.lastRuntimeActivityAtMs);
@@ -38,6 +64,33 @@ export function observeRuntimeWriteFence(input: RuntimeWriteFenceObservation) {
     quietForMs,
     ready: input.chatInflight === 0 && input.runtimeMutationInflight === 0 && quietForMs >= input.minimumQuietForMs,
   };
+}
+
+/**
+ * Detect a runaway client-side runtime writer after the real Agent stream has
+ * ended. This is deliberately narrower than the normal quiescence fence: it
+ * requires a completed chat request, recent runtime activity for at least the
+ * configured post-chat window, and an unused single reload allowance.
+ */
+export function shouldReloadAfterPostChatRuntimeChurn(input: RuntimePostChatChurnObservation) {
+  const postChatForMs = input.observedAtMs - input.lastChatActivityAtMs;
+  const runtimeSilentForMs = input.observedAtMs - input.lastRuntimeActivityAtMs;
+
+  return (
+    input.reloadCount === 0 &&
+    input.chatRequestCount > 0 &&
+    input.chatInflight === 0 &&
+    input.runtimeMutationCount > 0 &&
+    input.lastRuntimeActivityAtMs >= input.lastChatActivityAtMs &&
+    postChatForMs >= input.minimumPostChatChurnMs &&
+    runtimeSilentForMs >= 0 &&
+    runtimeSilentForMs <= input.maximumRuntimeSilenceMs
+  );
+}
+
+/** Runtime mutations finish once HTTP response headers arrive; chat remains a streamed body. */
+export function shouldCompleteTrackedIdeRequest(kind: TrackedIdeRequestKind, endSource: TrackedIdeRequestEndSource) {
+  return kind === 'runtime' || endSource !== 'response';
 }
 
 export type RuntimeReconciliationOperations<TFile> = {

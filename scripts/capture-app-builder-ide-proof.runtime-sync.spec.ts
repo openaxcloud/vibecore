@@ -46,12 +46,37 @@ describe('Solutions proof runtime reconciliation order', () => {
     expect(activityTrackerSource).toContain('runtimeMutationInflight: state?.inflight.size ?? 0');
     expect(activityTrackerSource).toContain('lastChatActivityAtMs');
     expect(activityTrackerSource).toContain('state?.lastActivityAtMs');
+    expect(activityTrackerSource).toContain("page.on('response'");
+    expect(activityTrackerSource).toContain("complete(response.request(), 'response', response.status())");
+    expect(activityTrackerSource).toContain("complete(request, 'requestfinished')");
+    expect(activityTrackerSource).toContain("complete(request, 'requestfailed')");
 
     const registerIndex = captureSource.indexOf('registerRuntimeWriteActivityTracker(page)');
     const authenticateIndex = captureSource.indexOf('await authenticate(page');
 
     expect(registerIndex).toBeGreaterThanOrEqual(0);
     expect(registerIndex).toBeLessThan(authenticateIndex);
+  });
+
+  it('reloads at most once only for prolonged post-chat runtime churn and restores real prompt history', () => {
+    expect(activityTrackerSource).toContain('shouldReloadAfterPostChatRuntimeChurn({');
+    expect(activityTrackerSource).toContain('postChatChurnReloadCount += 1');
+    expect(activityTrackerSource).toContain("status: 'runtime-post-chat-churn-reload-requested'");
+    expect(activityTrackerSource).toContain('await page.reload({');
+    expect(activityTrackerSource).toContain("waitUntil: 'domcontentloaded'");
+    expect(activityTrackerSource).toContain("page.getByTestId('ide-agent-panel')");
+    expect(activityTrackerSource).toContain('.bolt-chat-message-row-user[data-message-id]');
+    expect(activityTrackerSource).toContain("status: 'runtime-post-chat-churn-reload-completed'");
+    expect(activityTrackerSource).not.toContain('.inflight.clear(');
+    expect(activityTrackerSource).not.toContain('chatInflight.clear(');
+  });
+
+  it('records the last runtime response and any truly inflight request in failure diagnostics', () => {
+    expect(activityTrackerSource).toContain('durationMs: Math.max(0, endedAtMs - tracked.startedAtMs)');
+    expect(activityTrackerSource).toContain('endSource,');
+    expect(activityTrackerSource).toContain('method: tracked.method');
+    expect(activityTrackerSource).toContain('pathname: tracked.pathname');
+    expect(activityTrackerSource).toContain('inflightRuntimeRequests=');
   });
 
   it('forwards persisted binary encoding during authoritative writes', () => {

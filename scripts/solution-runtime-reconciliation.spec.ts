@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   observeRuntimeWriteFence,
   reconcileRuntimeFileSnapshot,
+  shouldCompleteTrackedIdeRequest,
+  shouldReloadAfterPostChatRuntimeChurn,
   verifyRuntimeFileSnapshotStable,
   type RuntimeFileSnapshot,
   type RuntimeReconciliationOperations,
@@ -35,6 +37,43 @@ const quiescenceDiagnostic = (quietForMs: number) => ({
 });
 
 describe('runtime file reconciliation', () => {
+  const postChatChurn = (overrides: Partial<Parameters<typeof shouldReloadAfterPostChatRuntimeChurn>[0]> = {}) => ({
+    chatInflight: 0,
+    chatRequestCount: 1,
+    lastChatActivityAtMs: 10_000,
+    lastRuntimeActivityAtMs: 70_000,
+    maximumRuntimeSilenceMs: 5_000,
+    minimumPostChatChurnMs: 60_000,
+    observedAtMs: 70_000,
+    reloadCount: 0,
+    runtimeMutationCount: 710,
+    ...overrides,
+  });
+
+  it('requests one reload only for recent runtime churn at least 60s after a completed chat', () => {
+    expect(shouldReloadAfterPostChatRuntimeChurn(postChatChurn())).toBe(true);
+  });
+
+  it('completes a runtime 204 response without waiting for requestfinished', () => {
+    expect(shouldCompleteTrackedIdeRequest('runtime', 'response')).toBe(true);
+  });
+
+  it('keeps a streaming chat in flight after its initial HTTP response', () => {
+    expect(shouldCompleteTrackedIdeRequest('chat', 'response')).toBe(false);
+    expect(shouldCompleteTrackedIdeRequest('chat', 'requestfinished')).toBe(true);
+    expect(shouldCompleteTrackedIdeRequest('chat', 'requestfailed')).toBe(true);
+  });
+
+  it.each([
+    ['chat still in flight', { chatInflight: 1 }],
+    ['no observed chat request', { chatRequestCount: 0 }],
+    ['less than 60s after chat completion', { observedAtMs: 69_999, lastRuntimeActivityAtMs: 69_999 }],
+    ['reload allowance already used', { reloadCount: 1 }],
+    ['runtime activity is no longer continuing', { lastRuntimeActivityAtMs: 64_999 }],
+  ])('does not reload when %s', (_label, overrides) => {
+    expect(shouldReloadAfterPostChatRuntimeChurn(postChatChurn(overrides))).toBe(false);
+  });
+
   it('does not accept a 30.205s runtime-write pause while the chat stream is still in flight', () => {
     const paused = observeRuntimeWriteFence({
       chatInflight: 1,
