@@ -22,6 +22,7 @@ import {
   generatedSolutionPackageContractFor,
   validateGeneratedSolutionPackageJson,
 } from './solution-generated-package-policy.js';
+import { activatePreviewTab } from './solution-preview-tab-activation.js';
 import {
   auditPromptBubbleViewport,
   auditNativeIdeWebview,
@@ -2355,10 +2356,7 @@ async function waitForPreview(
   await assertGeneratedSourcesAreUnwrapped(page, projectId, token);
   await waitForRuntimeFilesToMatchPersisted(page, projectId, token);
 
-  const webviewButton = page.getByRole('button', { name: 'Webview' }).first();
-
-  await expect(webviewButton).toBeVisible({ timeout: 60_000 });
-  await webviewButton.click();
+  await activatePreviewTab(page);
 
   const previewNotRunningState = page.getByTestId('preview-not-running-state');
   const previewLoadingStep = page.getByTestId('preview-loading-current-step');
@@ -2605,7 +2603,7 @@ async function waitForPreview(
       await expect(terminalTabs).toBeHidden({ timeout: 60_000 });
     }
 
-    await webviewButton.click();
+    await activatePreviewTab(page);
   };
 
   try {
