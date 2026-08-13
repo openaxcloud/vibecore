@@ -44,6 +44,23 @@ idea the tests failed. The head of `main` at the time of writing (`93e7eaf8`) is
 `Production CI` too — and the gate refuses it, live, in run
 [31714258577](https://github.com/openaxcloud/vibecore/actions/runs/31714258577).
 
+### What production is running right now
+
+Read straight off the live cluster (read-only, `kubectl -n vibecore get deploy`), then
+each tag's checks queried from the API:
+
+| tag in production | services | Production CI |
+|---|---|---|
+| `307303ceae` | api, worker, ai-gateway, preview-proxy, workspace-manager | **failure** |
+| `843c0facfb` | web | **failure** |
+| `377792b0e1` | screenshotter | **failure** |
+| `ef05fea502` | admin | **never ran** (0 runs; commit dated 2026-07-12) |
+
+**Not one service in production is running a commit whose CI passed.** Four different
+commits across eight Deployments, spanning a month — the platform has no single release
+identity to point at, which is the second half of what the manifest and digest pinning in
+this lot fix.
+
 A fourth hole, not in the original report: `e2e.yml` had no `push: [main]` trigger, so
 `Production E2E` had never run on **any** main commit. "E2E is green" was true only
 because nothing ever asked. Requiring E2E was therefore unsatisfiable until this lot
