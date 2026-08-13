@@ -317,3 +317,111 @@ describe('SEC-12 rollback preserves password protection', () => {
     expect(gate.statusCode).toBe(200);
   });
 });
+
+/*
+ * SEC-12b — the OTHER rollback route, checked and found safe for a DIFFERENT reason.
+ *
+ * `POST /projects/:p/deployments/:d/rollback` is the generic per-provider path.
+ * It spreads the TARGET deployment's metadata, so it carries whatever the OLD
+ * release had — the wrong source in principle, since protection is a property of
+ * the site as the owner last set it, not of the version being restored.
+ *
+ * The hypothesis was therefore that rolling back to a target predating the
+ * password would unprotect the site, exactly like SEC-12. Executing it showed
+ * otherwise: this route never calls `restoreStaticSnapshotInto`, so a static
+ * rollback through it produces a row with NO snapshot on disk, and the serve
+ * route 404s on the missing artifact before any access check. It serves nothing
+ * at all — unusable, not unprotected.
+ *
+ * The property worth pinning is thus the honest one: this path must never serve
+ * protected bytes. Asserting 401 specifically would encode a behaviour that does
+ * not exist and would break the day static bytes are restored here; asserting
+ * "never 200 with content" stays true either way, and would catch it if that
+ * changed without the gate following.
+ */
+describe('SEC-12b generic rollback preserves password protection', () => {
+  const prev = process.env.STATIC_DEPLOY_STORAGE_DIR;
+  const prevActivation = process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED;
+  let storageDir: string;
+
+  beforeEach(async () => {
+    storageDir = await mkdtemp(join(tmpdir(), 'rbsec12b-'));
+    process.env.STATIC_DEPLOY_STORAGE_DIR = storageDir;
+    process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = '1';
+  });
+
+  afterEach(async () => {
+    if (prev === undefined) delete process.env.STATIC_DEPLOY_STORAGE_DIR;
+    else process.env.STATIC_DEPLOY_STORAGE_DIR = prev;
+    if (prevActivation === undefined) delete process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED;
+    else process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = prevActivation;
+    await rm(storageDir, { recursive: true, force: true });
+  });
+
+  it('never serves protected bytes (today: 404, no snapshot restored by this path)', async () => {
+    const store = new TestApiStore();
+    const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store });
+    const register = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: 'sec12b@example.com', password: 'password123', name: 'S', organizationName: 'S Org' },
+    });
+    const auth = register.json() as { token: string; organization: { id: string } };
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'S Project' },
+    });
+    const projectId = (project.json() as { project: { id: string } }).project.id;
+
+    const publish = async (marker: string) => {
+      const d = await store.createDeployment({
+        projectId,
+        provider: 'static',
+        environment: 'preview',
+        status: 'READY',
+        url: 'https://example.test/x',
+      });
+      const dir = staticDeploymentSnapshotDir(d.id);
+      await mkdir(dir, { recursive: true });
+      await writeFile(join(dir, 'index.html'), `<!doctype html><body>${marker}</body>`, 'utf8');
+
+      return d;
+    };
+
+    // Old target: never protected. Current: protected by the owner.
+    const oldTarget = await publish('SECRET CONTENT OLD');
+    const current = await publish('SECRET CONTENT NEW');
+
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/projects/${projectId}/deployments/${current.id}/access`,
+          headers: { authorization: `Bearer ${auth.token}` },
+          payload: { mode: 'password', password: 'letmein' },
+        })
+      ).statusCode,
+    ).toBe(200);
+
+    const res = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${oldTarget.id}/rollback`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: {},
+    });
+    expect([200, 201]).toContain(res.statusCode);
+
+    const rolled = (res.json() as { deployment: { id: string } }).deployment;
+    const anon = await app.inject({ method: 'GET', url: `/static-deployments/${rolled.id}/` });
+
+    // Today: 404 (no snapshot restored by this path). If bytes ever start being
+    // restored here, this must become 401 — never a 200 carrying the content.
+    expect(anon.statusCode).not.toBe(200);
+    expect(anon.body).not.toContain('SECRET CONTENT');
+    expect([401, 404]).toContain(anon.statusCode);
+  });
+});
