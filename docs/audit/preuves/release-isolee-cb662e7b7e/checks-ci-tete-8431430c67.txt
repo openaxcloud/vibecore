@@ -1,0 +1,23 @@
+failure	Install, test, build, scan
+failure	Playwright desktop-1024
+failure	Playwright desktop-1440
+failure	Playwright local stack
+failure	Playwright mobile-390
+failure	Playwright tablet-768
+failure	Quality Gates
+skipped	Cleanup Preview
+skipped	Release Validation
+skipped	Security Review Required
+success	Accessibility Tests
+success	CodeQL Analysis (javascript)
+success	CodeQL Analysis (typescript)
+success	Dependency Vulnerability Scan
+success	Deploy Preview
+success	PR Size Check
+success	Performance Audit
+success	Quality Analysis
+success	Secret scan (gitleaks, blocking)
+success	Secrets Detection
+success	Terraform fmt, validate, plan (prod)
+success	Terraform fmt, validate, plan (staging)
+success	Validate PR Title
