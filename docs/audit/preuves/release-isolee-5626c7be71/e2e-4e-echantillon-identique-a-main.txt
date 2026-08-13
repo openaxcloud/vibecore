@@ -1,0 +1,16 @@
+# E2E : 4e echantillon cote PR — ensemble IDENTIQUE a celui de main
+
+Run 31706316591, tete e52f5c7f92 (donc fusion avec le tip de main du moment).
+
+  PR   : 57 failed / 177 passed
+  main : 57 failed / 177 passed  (deux echantillons, identiques entre eux)
+
+  tests en echec SEULEMENT sur la PR   : aucun
+  tests en echec SEULEMENT sur main    : aucun
+  dashboard.spec.ts:816                : PASSE cote PR cette fois
+
+Le seul test qui divergeait a donc bascule, sans qu'aucune ligne de la PR ne
+change entre-temps : la bissection avait deja montre qu'un arbre au contenu
+executable identique a main echouait dessus. Instabilite confirmee par un 4e
+echantillon, et attribution E2E desormais sans reste : l'ensemble en echec de
+la PR est exactement celui de main.

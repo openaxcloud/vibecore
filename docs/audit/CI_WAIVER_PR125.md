@@ -107,6 +107,12 @@ modules importés par **zéro** fichier hors tests — vérifié par `git grep`.
 comportement exécuté par la stack Playwright y est donc celui de `main`, et le test
 y échoue quand même.
 
+**Quatrième échantillon, et l'écart disparaît.** Au head `e52f5c7f92` (run
+`31706316591`), la PR rend **57 échecs / 177 succès** — exactement le compte de `main`
+— et l'ensemble en échec est **identique test par test** : aucun test ne casse d'un
+côté sans casser de l'autre, et `:816` y passe. Aucune ligne de la PR n'avait changé
+entre-temps. C'est la confirmation directe de ce que la bissection avait établi.
+
 **Décompte des échantillons** : échoue 5 fois (PR ×2, dispatch sur la branche, les
 deux bissections), passe 2 fois (`main` ×2). Le test est instable avec un taux
 d'échec élevé, et les deux passages sur `main` sont les runs chanceux — ce qui colle
