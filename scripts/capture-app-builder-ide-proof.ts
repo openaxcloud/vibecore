@@ -2995,6 +2995,77 @@ async function selectPreviewDevice(page: Page, device: 'desktop' | 'tablet' | 'm
 
 const CAPTURE_THEMES = ['light', 'dark'] as const satisfies readonly CaptureTheme[];
 
+const COMMAND_PALETTE_LABEL = /^(?:Command palette|Palette de commandes)$/i;
+const THEME_COMMAND_LABEL = /^(?:Toggle theme|Changer de thème)$/i;
+
+async function captureThemeControlDiagnostics(page: Page) {
+  return page.evaluate(`(() => {
+    const isVisible = (element) => {
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+
+      return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+    };
+    const describe = (element) =>
+      element
+        ? {
+            ariaLabel: element.getAttribute('aria-label'),
+            role: element.getAttribute('role'),
+            tag: element.tagName.toLowerCase(),
+            testId: element.getAttribute('data-testid'),
+          }
+        : null;
+
+    return {
+      activeElement: describe(document.activeElement),
+      appliedTheme: document.documentElement.getAttribute('data-theme'),
+      commandPaletteSearchCount: document.querySelectorAll('[data-testid="project-command-palette-search"]').length,
+      persistedTheme: localStorage.getItem('bolt_theme'),
+      url: window.location.href,
+      visibleDialogs: Array.from(document.querySelectorAll('[role="dialog"]'))
+        .filter(isVisible)
+        .slice(0, 8)
+        .map(describe),
+    };
+  })()`);
+}
+
+async function activateThemeCommand(page: Page, expectedTheme: CaptureTheme) {
+  const palette = page.getByRole('dialog', { name: COMMAND_PALETTE_LABEL }).last();
+  const search = page.getByTestId('project-command-palette-search').last();
+
+  try {
+    /*
+     * Cmd/Ctrl+Shift+P is the production IDE's global, terminal-safe command
+     * palette shortcut. It is independent from the compact Agent header and
+     * remains available in both EN and FR. Selecting the real command invokes
+     * toggleTheme(), exactly as a user would.
+     */
+    await page.keyboard.press('ControlOrMeta+Shift+P');
+    await expect(search).toBeVisible({ timeout: 30_000 });
+    await expect(palette).toBeVisible({ timeout: 30_000 });
+
+    const themeLabel = page.getByText(THEME_COMMAND_LABEL, { exact: true });
+    const themeOption = palette.getByRole('option').filter({ has: themeLabel });
+
+    await expect(themeOption, 'The command palette must expose exactly one localized theme command').toHaveCount(1);
+    await expect(themeOption).toBeVisible({ timeout: 30_000 });
+    await themeOption.click();
+  } catch (error) {
+    const diagnostics = await captureThemeControlDiagnostics(page).catch((diagnosticError) => ({
+      diagnosticError: errorMessageChain(diagnosticError),
+      url: page.url(),
+    }));
+
+    throw new Error(
+      `The production IDE theme command is unavailable while switching to ${expectedTheme}. ` +
+        `Expected Ctrl+Shift+P -> Command palette/Palette de commandes -> Toggle theme/Changer de thème. ` +
+        `Diagnostics: ${JSON.stringify(diagnostics)}`,
+      { cause: error },
+    );
+  }
+}
+
 async function applyCaptureTheme(page: Page, theme: CaptureTheme) {
   const html = page.locator('html');
 
@@ -3020,34 +3091,19 @@ async function applyCaptureTheme(page: Page, theme: CaptureTheme) {
 
   if (toggleCount > 0) {
     /*
-     * Use the production IDE's existing Appearance control. Mutating
+     * Use the production IDE's existing command palette. Mutating
      * <html data-theme> directly is not a valid theme switch: the nanostore in
      * App() remains authoritative and its effect immediately restores the old
-     * value. The real button calls toggleTheme(), updating the store,
+     * value. The real command calls toggleTheme(), updating the store,
      * persistence, cookie and document through the same path a user exercises.
      */
-    const agentPanel = page.getByTestId('ide-agent-panel');
-
-    const overflowButton = agentPanel
-      .getByRole('button', { name: /^(?:More agent actions|Plus d'actions d'agent)$/i })
-      .last();
-    const themeButton = agentPanel
-      .getByRole('button', { name: /^(?:Switch light\/dark theme|Changer de thème clair\/sombre)$/i })
-      .last();
-
     for (let toggleIndex = 0; toggleIndex < toggleCount; toggleIndex += 1) {
-      if (!(await themeButton.isVisible().catch(() => false))) {
-        await expect(overflowButton).toBeVisible({ timeout: 60_000 });
-        await overflowButton.click();
-      }
-
       const expectedAfterToggle: CaptureTheme = activeTheme === 'dark' ? 'light' : 'dark';
 
-      await expect(themeButton).toBeVisible({ timeout: 60_000 });
-      await themeButton.click();
+      await activateThemeCommand(page, expectedAfterToggle);
       await expect
         .poll(() => html.getAttribute('data-theme'), {
-          message: `The production Appearance control must switch to ${expectedAfterToggle}`,
+          message: `The production command palette theme control must switch to ${expectedAfterToggle}`,
           intervals: [100, 250, 500],
           timeout: 30_000,
         })
@@ -3058,7 +3114,7 @@ async function applyCaptureTheme(page: Page, theme: CaptureTheme) {
 
   await expect
     .poll(() => html.getAttribute('data-theme'), {
-      message: `The production IDE must settle in ${theme} mode through its Appearance control`,
+      message: `The production IDE must settle in ${theme} mode through its command palette theme control`,
       intervals: [100, 250, 500, 1_000],
       timeout: 30_000,
     })
@@ -3073,7 +3129,7 @@ async function applyCaptureTheme(page: Page, theme: CaptureTheme) {
           persisted: localStorage.getItem('bolt_theme'),
         }))()`),
       {
-        message: `The real Appearance control must apply and persist ${theme} consistently`,
+        message: `The real command palette theme control must apply and persist ${theme} consistently`,
         intervals: [100, 250, 500],
         timeout: 30_000,
       },
@@ -3090,30 +3146,6 @@ async function applyCaptureTheme(page: Page, theme: CaptureTheme) {
 
   if (state.mode === 'official-runtime-direct' && state.directPage) {
     await state.directPage.emulateMedia({ colorScheme: theme });
-    await state.directPage.evaluate(`(() => {
-      const nextTheme = ${JSON.stringify(theme)};
-
-      for (const key of ['theme', 'color-theme', 'bolt_theme']) {
-        localStorage.setItem(key, nextTheme);
-      }
-
-      document.cookie = 'ecode_theme=' + nextTheme + '; Path=/; Max-Age=31536000; SameSite=Lax';
-
-      const root = document.documentElement;
-
-      root.setAttribute('data-theme', nextTheme);
-      root.classList.toggle('dark', nextTheme === 'dark');
-      root.classList.toggle('light', nextTheme === 'light');
-      root.style.colorScheme = nextTheme;
-      window.dispatchEvent(
-        new StorageEvent('storage', {
-          key: 'theme',
-          newValue: nextTheme,
-          storageArea: localStorage,
-        }),
-      );
-      window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: nextTheme } }));
-    })()`);
     await state.directPage.evaluate(`document.fonts && document.fonts.ready`);
     assertDirectRuntimeStayedClean(page);
   }
