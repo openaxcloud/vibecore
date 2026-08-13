@@ -556,13 +556,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
    * element on every attempt and let the layout settle.
    */
   const readAgentMetrics = () =>
-    page.evaluate(() => {
-      const element = document.querySelector('[role="region"][aria-label="AI agent"]');
-
-      if (!element) {
-        return null;
-      }
-
+    page.getByRole('region', { name: 'AI agent' }).evaluate((element) => {
       const rect = element.getBoundingClientRect();
       const style = window.getComputedStyle(element);
 
@@ -582,16 +576,15 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await expect(async () => {
     const agentMetrics = await readAgentMetrics();
 
-    expect(agentMetrics).not.toBeNull();
-    expect(agentMetrics!.position).toBe('relative');
-    expect(agentMetrics!.top).toBe(36);
-    expect(agentMetrics!.left).toBeGreaterThanOrEqual(48);
-    expect(agentMetrics!.left).toBeLessThanOrEqual(80);
-    expect(agentMetrics!.width).toBeGreaterThanOrEqual(340);
-    expect(agentMetrics!.width).toBeLessThanOrEqual(520);
-    expect(agentMetrics!.height).toBe(expectedHeight);
-    expect(agentMetrics!.background).toBe('rgb(14, 21, 37)');
-    expect(agentMetrics!.borderRight).toBe('rgb(26, 32, 48)');
+    expect(agentMetrics.position).toBe('relative');
+    expect(agentMetrics.top).toBe(36);
+    expect(agentMetrics.left).toBeGreaterThanOrEqual(48);
+    expect(agentMetrics.left).toBeLessThanOrEqual(80);
+    expect(agentMetrics.width).toBeGreaterThanOrEqual(340);
+    expect(agentMetrics.width).toBeLessThanOrEqual(520);
+    expect(agentMetrics.height).toBe(expectedHeight);
+    expect(agentMetrics.background).toBe('rgb(14, 21, 37)');
+    expect(agentMetrics.borderRight).toBe('rgb(26, 32, 48)');
   }).toPass({ timeout: 20_000, intervals: [250, 500, 1000] });
 
   await expect

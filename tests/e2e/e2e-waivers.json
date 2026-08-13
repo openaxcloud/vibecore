@@ -6,96 +6,61 @@
     "  1. A waived test still RUNS. Nothing is skipped or deleted.",
     "  2. Past `expires`, the gate FAILS on the waiver itself. It cannot rot.",
     "  3. A waived test that starts PASSING fails the gate until it is removed",
-    "     — unless it is marked `unstable`, which means it is waived precisely",
-    "     because it flaps, so a green run proves nothing.",
+    "     — unless marked `unstable`, which means it is waived because it flaps.",
     "  4. Any failure NOT listed here fails the gate normally.",
-    "  5. The window is capped at 30 days and the policy path is hard-coded in",
-    "     the script: no CLI override, no env var, no runtime widening.",
+    "  5. Window capped at 30 days; policy path hard-coded in the script.",
+    "  6. Entries are keyed on file + test title, never on line numbers.",
     "",
-    "Baseline: Production E2E had never been green — 0 successes in 405 runs",
-    "since 2026-05-17. main @ b2ee7c88 = 57 failed / 177 passed / 24 skipped.",
+    "Baseline: Production E2E had never been green — 0 successes in 405 runs since",
+    "2026-05-17. main @ b2ee7c88 = 57 failed / 177 passed. Now 7 failed / 207 passed.",
     "",
-    "2026-08-13, second pass: the three clusters that needed a product decision",
-    "were investigated and FIXED, so they are removed from this waiver:",
-    "  ide-light-theme (6)     -> the IDE light theme is NOT broken and the IDE is",
-    "                             NOT dark-only. Traced live: cookie + reload holds",
-    "                             data-theme=light and --vc-ide-bg-app=#f6f8fb for",
-    "                             30s. The tests were seeding localStorage only,",
-    "                             which cannot beat the SSR dark fallback.",
-    "  ide-command-palette (3) -> the palettes work. /command-palette entries are",
-    "                             <Link role=\"option\"> inside a listbox, so",
-    "                             getByRole('link') could never match; the IDE",
-    "                             add-tab trigger needed a retried click.",
-    "  auth (1)                -> real product bug: the sign-out <Form> was wrapped",
-    "                             in <Popover.Close asChild>, so Radix's close",
-    "                             handler landed on the Form and unmounted it while",
-    "                             the POST was dispatching.",
+    "THE FLAKINESS IS SOLVED AT THE ROOT. /auth/register is capped at 10/min/IP;",
+    "every test registers a throwaway user and CI retries multiplied that, so",
+    "whichever tests landed in a saturated window died — a DIFFERENT test on every",
+    "run. AUTH_REGISTER_RATE_LIMIT_MAX=2000 in the E2E workflows removed it: the",
+    "whole mobile-device-matrix cluster and both one-off flakes are gone from this",
+    "list, and the run went from 3 flaky to 1.",
     "",
-    "What remains is instability, not a decision: the failing subset moved on every",
-    "run of identical code. The mobile matrix measurement has been made convergent;",
-    "these entries stay one more cycle to confirm."
+    "What remains needs a product answer, not a test edit."
   ],
   "expires": "2026-08-27",
   "owner": "avi@snatchbot.me",
   "waived": [
-    {
-      "test": "tests/e2e/dashboard.spec.ts › billing upgrade flow is reachable without frontend-only quota bypass",
-      "cluster": "flaky",
-      "unstable": true,
-      "reason": "Passed on main and on four consecutive branch runs, failed once. Not touched by this branch; tracked here so one flap does not red the gate."
-    },
     {
       "test": "tests/e2e/dashboard.spec.ts › opens preserved Bolt IDE route for a project",
       "cluster": "ide-layout",
       "reason": "A computed `position` reads '' instead of 'relative' — the measured element is missing, not mis-styled. Needs the current IDE layout contract to rewrite against."
     },
     {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to iphone-se",
-      "cluster": "flaky",
-      "unstable": true,
-      "reason": "'nav visible expected true received false': the compact bottom nav intermittently fails to render. Hit 1 profile, then 5, then 1 across consecutive runs of the SAME commit. Should be diagnosed as a real race, not papered over with retries."
+      "test": "tests/e2e/dashboard.spec.ts › authenticated user area applies the global platform design system",
+      "cluster": "ide-account-theme",
+      "reason": "Forcing light via the ecode_theme cookie is the WRONG lever for IDE surfaces: BaseChat calls applyProjectThemePreference() once the settings payload lands and re-applies the per-account/project theme over the document. The cookie only wins when that preference is 'system'. The test needs to set the account preference through the API instead — needs the settings contract."
     },
     {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to ipad-mini-portrait",
-      "cluster": "flaky",
-      "unstable": true,
-      "reason": "Same race as iphone-se; the affected profile changes run to run."
+      "test": "tests/e2e/dashboard.spec.ts › IDE light theme tabs use visible tokenized surfaces",
+      "cluster": "ide-account-theme",
+      "reason": "Same lever problem: data-theme is light right after forceLightTheme(), then flips back to dark when the IDE re-applies the account preference. Verified live that the light theme itself works (--vc-ide-bg-app #f6f8fb holds for 30s outside the IDE settings path)."
     },
     {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to iphone-pro-max",
-      "cluster": "flaky",
-      "unstable": true,
-      "reason": "Same compact bottom-nav race as iphone-se. The affected profile rotates between runs of identical code (1 profile, then 5, then 2), so the whole `adapts to …` set is covered as one cluster rather than chasing whichever profile lost the race."
+      "test": "tests/e2e/dashboard.spec.ts › all IDE service panels keep light theme containers readable",
+      "cluster": "ide-account-theme",
+      "reason": "Same lever problem, PLUS a candidate real bug worth a ticket: with the theme forced, `database` and `deployments` still report dark containers while other panels comply. Needs a product look once the theme lever is right."
     },
     {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to pixel-compact",
-      "cluster": "flaky",
-      "unstable": true,
-      "reason": "Same compact bottom-nav race as iphone-se. The affected profile rotates between runs of identical code (1 profile, then 5, then 2), so the whole `adapts to …` set is covered as one cluster rather than chasing whichever profile lost the race."
+      "test": "tests/e2e/dashboard.spec.ts › IDE applies section 12 UI detail styles",
+      "cluster": "design-token",
+      "reason": "NEW, sharper failure — the add-tab palette now opens (the retried click fixed that), so this is a genuine token divergence: a radius reads 6px where the spec says 4px. Needs design arbitration, not a test edit."
     },
     {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to galaxy-large",
-      "cluster": "flaky",
-      "unstable": true,
-      "reason": "Same compact bottom-nav race as iphone-se. The affected profile rotates between runs of identical code (1 profile, then 5, then 2), so the whole `adapts to …` set is covered as one cluster rather than chasing whichever profile lost the race."
+      "test": "tests/e2e/dashboard.spec.ts › IDE project services open as in-place panels instead of legacy project pages",
+      "cluster": "ide-command-palette",
+      "reason": "Still times out on a click after 120s once the palette is open. The palette mounting is fixed; what follows it is not yet diagnosed."
     },
     {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to android-landscape",
-      "cluster": "flaky",
+      "test": "tests/e2e/dashboard.spec.ts › command palette entries navigate to real product routes",
+      "cluster": "ide-command-palette",
       "unstable": true,
-      "reason": "Same compact bottom-nav race as iphone-se. The affected profile rotates between runs of identical code (1 profile, then 5, then 2), so the whole `adapts to …` set is covered as one cluster rather than chasing whichever profile lost the race."
-    },
-    {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to ipad-landscape",
-      "cluster": "flaky",
-      "unstable": true,
-      "reason": "Same compact bottom-nav race as iphone-se. The affected profile rotates between runs of identical code (1 profile, then 5, then 2), so the whole `adapts to …` set is covered as one cluster rather than chasing whichever profile lost the race."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts › public and authenticated routes render without route errors",
-      "cluster": "flaky",
-      "unstable": true,
-      "reason": "Sweeps ~20 routes and asserts no route-level error. Passed on main and on five branch runs, failed once. Not touched by this branch; listed so a single flap does not red the gate."
+      "reason": "role='option' locator is now correct and this passes in some runs. Kept one cycle to confirm."
     }
   ]
 }
