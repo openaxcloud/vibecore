@@ -23,7 +23,6 @@ export const GAME_BUILDER_COPY = {
       microcopy:
         'Start from the game you already have in mind. Source files, the running Preview, and publishing controls stay visible as the game evolves.',
     },
-    languageSwitch: { label: 'Choose the Game Builder page language', english: 'English', french: 'Français' },
     demo: {
       badge: 'Fictional demo data',
       brand: 'TriviaClash',
@@ -291,7 +290,6 @@ export const GAME_BUILDER_COPY = {
       microcopy:
         'Partez du jeu que vous avez déjà en tête. Les fichiers source, l’aperçu actif et les contrôles de publication restent visibles à mesure que le jeu évolue.',
     },
-    languageSwitch: { label: 'Choisir la langue de la page Générateur de jeu', english: 'English', french: 'Français' },
     demo: {
       badge: 'Données fictives',
       brand: 'TriviaClash',

@@ -27,7 +27,6 @@ export const DASHBOARD_BUILDER_COPY = {
       microcopy:
         'Start from the metrics you already track. Source files, the running Preview, and the chart and filter components stay visible as the dashboard evolves.',
     },
-    languageSwitch: { label: 'Choose the Dashboard Builder page language', english: 'English', french: 'Français' },
     demo: {
       badge: 'Fictional demo data',
       brand: 'PipelineIQ',
@@ -299,11 +298,6 @@ export const DASHBOARD_BUILDER_COPY = {
       },
       microcopy:
         'Partez des indicateurs que vous suivez déjà. Les fichiers source, l’aperçu actif et les composants de graphiques et de filtres restent visibles à mesure que le tableau de bord évolue.',
-    },
-    languageSwitch: {
-      label: 'Choisir la langue de la page Générateur de tableau de bord',
-      english: 'English',
-      french: 'Français',
     },
     demo: {
       badge: 'Données fictives',

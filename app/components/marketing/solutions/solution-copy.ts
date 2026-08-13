@@ -68,7 +68,6 @@ export type SolutionCopy = Readonly<{
     secondaryCta: ActionCopy;
     microcopy: string;
   }>;
-  languageSwitch: Readonly<{ label: string; english: string; french: string }>;
   demo: SolutionDemo;
   problem: Readonly<{
     eyebrow: string;

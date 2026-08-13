@@ -29,8 +29,6 @@ export const FR_RESIDUAL_ALLOWLIST = Object.freeze([
   { value: 'Enterprise', reason: 'Published E-Code offer name.' },
   { value: 'Startups', reason: 'Published E-Code offer name.' },
   { value: 'Freelancers', reason: 'Published E-Code offer name.' },
-  { value: 'English', reason: 'Native language name shown by the language switcher.' },
-  { value: 'Français', reason: 'Native language name shown by the language switcher.' },
   { value: 'Git', reason: 'Technical product term.' },
   { value: 'GitHub', reason: 'Established developer-platform brand.' },
   { value: 'API', reason: 'Technical initialism.' },

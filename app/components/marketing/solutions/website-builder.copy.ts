@@ -24,7 +24,6 @@ export const WEBSITE_BUILDER_COPY = {
       microcopy:
         'Start from the pages you already have in mind. Source files, the running Preview, and publishing controls stay visible as the site evolves.',
     },
-    languageSwitch: { label: 'Choose the Website Builder page language', english: 'English', french: 'Français' },
     demo: {
       badge: 'Fictional demo data',
       brand: 'Meridian Studio',
@@ -282,11 +281,6 @@ export const WEBSITE_BUILDER_COPY = {
       },
       microcopy:
         'Partez des pages que vous avez déjà en tête. Les fichiers source, l’aperçu actif et les contrôles de publication restent visibles à mesure que le site évolue.',
-    },
-    languageSwitch: {
-      label: 'Choisir la langue de la page Générateur de site',
-      english: 'English',
-      french: 'Français',
     },
     demo: {
       badge: 'Données fictives',
