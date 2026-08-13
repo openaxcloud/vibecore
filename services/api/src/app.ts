@@ -33982,6 +33982,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     /*
+     * Password enforcement is implemented by the static-deployment serving
+     * route. A server deployment keeps its own public URL and never traverses
+     * that gate, so persisting access metadata for it would acknowledge a
+     * protection that does not exist. Refuse before hashing, mutation and the
+     * success audit event. `mode=public` remains available to clear metadata
+     * left by an older, unsafe build.
+     */
+    if (body.mode === 'password' && deployment.provider !== 'static') {
+      return reply.code(409).send({
+        error: appPublicCopy('DEPLOYMENT_ACCESS_PROVIDER_UNSUPPORTED', transactionalLocaleForRequest(request)),
+        code: 'DEPLOYMENT_ACCESS_PROVIDER_UNSUPPORTED',
+      });
+    }
+
+    /*
      * SEC-8 — two-phase activation interlock (deploy-time, NOT a product toggle).
      *
      * An api build from BEFORE the P104 cutover answered a public static

@@ -2570,5 +2570,9 @@
   "DEPLOYMENT_ACCESS_ACTIVATION_DISABLED": {
     "en": "Password protection cannot be activated yet: the deployment cache-drain window has not elapsed. Retry shortly.",
     "fr": "La protection par mot de passe ne peut pas encore être activée : la fenêtre de purge du cache de déploiement n’est pas écoulée. Réessayez dans un instant."
+  },
+  "DEPLOYMENT_ACCESS_PROVIDER_UNSUPPORTED": {
+    "en": "Password protection is only available for static deployments.",
+    "fr": "La protection par mot de passe est disponible uniquement pour les déploiements statiques."
   }
 }

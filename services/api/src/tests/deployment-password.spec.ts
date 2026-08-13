@@ -183,6 +183,37 @@ describe('password-protected static deployments (endpoint)', () => {
     expect(noAuth.statusCode).toBe(401);
   });
 
+  it('SEC-11: refuses mode=password for a server deployment without mutating it', async () => {
+    const { app, store, auth, projectId } = await setup();
+    const deployment = await store.createDeployment({
+      projectId,
+      provider: 'server',
+      environment: 'production',
+      status: 'READY',
+      url: 'https://server.example.test',
+    });
+    const before = await store.getDeployment(projectId, deployment.id);
+    const successAuditCountBefore = store.auditLogs.filter((event) => event.action === 'deployment.access.set').length;
+
+    const response = await setAccess(app, projectId, deployment.id, auth.token, {
+      mode: 'password',
+      password: 'letmein',
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({
+      code: 'DEPLOYMENT_ACCESS_PROVIDER_UNSUPPORTED',
+    });
+
+    const after = await store.getDeployment(projectId, deployment.id);
+    expect(after?.metadata).toEqual(before?.metadata);
+    expect(after?.url).toBe(before?.url);
+    expect(JSON.stringify(after?.metadata ?? {})).not.toContain('passwordHash');
+    expect(store.auditLogs.filter((event) => event.action === 'deployment.access.set')).toHaveLength(
+      successAuditCountBefore,
+    );
+  });
+
   // ---- expert P0 security counter-audit (SEC-1..6) --------------------------
 
   it('SEC-2/3: every gated response is no-store (never public) with Vary: Cookie — no cache poisoning', async () => {
