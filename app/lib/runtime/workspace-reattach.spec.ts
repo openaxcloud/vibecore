@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { reseedWorkspacePreservingOnFailure, shouldReattachWarmWorkspace } from './workspace-reattach';
+import {
+  hasAdoptablePreviewPort,
+  reseedWorkspacePreservingOnFailure,
+  shouldReattachWarmWorkspace,
+} from './workspace-reattach';
 
 /*
  * `portProbeSucceeded` rejoint le cas nominal (option A, signal 2) : la sonde de
@@ -103,5 +107,32 @@ describe('reseedWorkspacePreservingOnFailure', () => {
       'agent 502',
     );
     expect(clearTree).toHaveBeenCalledOnce();
+  });
+});
+
+describe('hasAdoptablePreviewPort — signal 2, second volet', () => {
+  it('accepte un port dont `ready` n_est pas encore confirmé', () => {
+    /*
+     * `hasLivePreviewPort` exige `ready === true` : un port réellement en écoute
+     * mais pas encore confirmé par le flux de surveillance comptait comme mort,
+     * et la réouverture reseedait un pod sain. Le voisin qui répond à la même
+     * question (`refreshRuntimePorts`) accepte `ready !== false`.
+     */
+    expect(hasAdoptablePreviewPort([{ ready: undefined }])).toBe(true);
+    expect(hasAdoptablePreviewPort([{ ready: true }])).toBe(true);
+  });
+
+  it('refuse un port explicitement mort', () => {
+    expect(hasAdoptablePreviewPort([{ ready: false }])).toBe(false);
+  });
+
+  it('refuse l_absence de port', () => {
+    expect(hasAdoptablePreviewPort([])).toBe(false);
+    expect(hasAdoptablePreviewPort(null)).toBe(false);
+    expect(hasAdoptablePreviewPort(undefined)).toBe(false);
+  });
+
+  it('adopte dès qu_UN port est adoptable', () => {
+    expect(hasAdoptablePreviewPort([{ ready: false }, { ready: undefined }])).toBe(true);
   });
 });

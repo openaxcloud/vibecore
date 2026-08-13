@@ -69,6 +69,24 @@ export interface WarmReattachSignals {
  *   warm + seeded-this-session + live-port + NOT storage-newer  -> reattach
  *   cold pod / not seeded / no live port / storage newer        -> reseed
  */
+/*
+ * BUG-RUNTIME-DIVERGENCE (option A, signal 2 — second volet).
+ *
+ * `hasLivePreviewPort` exige `ready === true` STRICTEMENT, là où le code voisin
+ * qui répond à la même question (`workbenchStore.refreshRuntimePorts`) accepte
+ * `ready !== false`. Un port réellement en écoute mais dont l'état `ready` n'est
+ * pas encore confirmé par le flux de surveillance compte donc comme « mort » à
+ * l'instant de la décision — et la réouverture reseede un pod parfaitement sain.
+ *
+ * Le prédicat partagé n'est délibérément PAS modifié : il sert aussi à
+ * `isWorkspaceReallyRunning` et à `preview-recovery`, où sa sévérité est voulue
+ * et a déjà été corrigée en ce sens. Cette variante est donc locale à la
+ * décision de reattach, et alignée sur le voisin qui pose la même question.
+ */
+export function hasAdoptablePreviewPort(ports?: readonly { ready?: boolean }[] | null): boolean {
+  return (ports ?? []).some((port) => port.ready !== false);
+}
+
 export function shouldReattachWarmWorkspace(signals: WarmReattachSignals): boolean {
   if (signals.storageNewerThanSeed === true) {
     return false;

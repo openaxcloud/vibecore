@@ -5,9 +5,12 @@ import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-serv
 import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/lib/runtime/RuntimeAdapterProvider';
 import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
 import { workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
-import { reseedWorkspacePreservingOnFailure, shouldReattachWarmWorkspace } from '~/lib/runtime/workspace-reattach';
+import {
+  hasAdoptablePreviewPort,
+  reseedWorkspacePreservingOnFailure,
+  shouldReattachWarmWorkspace,
+} from '~/lib/runtime/workspace-reattach';
 import { readSeedMarker, writeSeedMarker } from '~/lib/runtime/workspace-seed-marker';
-import { hasLivePreviewPort } from '~/lib/runtime/workspace-status';
 import { workbenchStore } from '~/lib/stores/workbench';
 
 /*
@@ -20,14 +23,14 @@ import { workbenchStore } from '~/lib/stores/workbench';
  * bougé » à presque chaque réouverture et forçait le reseed — le symptôme même
  * qu'on cherche à corriger.
  *
- * `GET /files/revision` ne dépend que des chemins, dates et tailles (voir
+ * `GET /files-revision` ne dépend que des chemins, dates et tailles (voir
  * `projectFilesRevision` côté API). Renvoie `undefined` en cas d'échec, pour que
  * l'appelant retombe sur le comportement antérieur plutôt que de provoquer un
  * reseed injustifié.
  */
 export async function fetchPersistedProjectRevision(projectId: string): Promise<string | undefined> {
   try {
-    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/revision`, {
+    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files-revision`, {
       credentials: 'include',
       headers: { accept: 'application/json' },
     });
@@ -145,7 +148,7 @@ export function ProjectWorkspaceProvider({
          * startPreviewServer, which then short-circuits to the live preview). If ANY
          * signal is unknown/false we fall through to the safe cold wipe+reseed.
          *
-         * Probe the runtime's live ports first so hasLivePreviewPort sees the warm
+         * Probe the runtime's live ports first so the adoptable-port check sees the warm
          * pod's forwarded dev-server port (listPorts repopulates the previews store).
          */
         /*
@@ -193,7 +196,7 @@ export function ProjectWorkspaceProvider({
         const reattachWarmWorkspace = shouldReattachWarmWorkspace({
           reused: session.reused === true,
           seededThisSession: sessionAlreadySeeded,
-          hasLivePort: hasLivePreviewPort(workbenchStore.previews.get()),
+          hasLivePort: hasAdoptablePreviewPort(workbenchStore.previews.get()),
           portProbeSucceeded,
 
           /*
@@ -208,6 +211,22 @@ export function ProjectWorkspaceProvider({
             seededRevision !== undefined && currentRevision !== undefined
               ? currentRevision !== seededRevision
               : undefined,
+        });
+
+        /*
+         * Trace PERMANENTE des entrées de la décision. L'enquête d'origine a dû
+         * déployer une instrumentation ad hoc pour obtenir ces quatre valeurs à
+         * l'instant exact du choix : les journaliser une fois par montage coûte
+         * une ligne et évite de refaire ce détour au prochain doute.
+         */
+        console.info('[workspace] reattach decision', {
+          reused: session.reused === true,
+          seededThisSession: sessionAlreadySeeded,
+          hasLivePort: hasAdoptablePreviewPort(workbenchStore.previews.get()),
+          portProbeSucceeded,
+          seededRevision,
+          currentRevision,
+          decision: reattachWarmWorkspace ? 'reattach' : 'reseed',
         });
 
         if (reattachWarmWorkspace) {

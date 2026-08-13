@@ -16,7 +16,7 @@ import { fetchPersistedProjectRevision } from './ProjectWorkspaceProvider';
  * le reseed : c'est exactement le symptôme signalé (« ça recharge et reconstruit
  * au lieu de montrer l'app comme on l'a laissée »).
  *
- * La révision vient désormais de `GET /files/revision`, dérivée des chemins,
+ * La révision vient désormais de `GET /files-revision`, dérivée des chemins,
  * dates et tailles — donc insensible aux écritures d'interface.
  */
 
@@ -31,14 +31,14 @@ function response(init: { ok?: boolean; body?: unknown }) {
 describe('fetchPersistedProjectRevision', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('interroge /files/revision, et non plus l_ide-state', async () => {
+  it('interroge /files-revision, et non plus l_ide-state', async () => {
     const fetchMock = vi.fn(async () => response({ body: { revision: 'abc123' } }));
     vi.stubGlobal('fetch', fetchMock);
 
     await expect(fetchPersistedProjectRevision('p1')).resolves.toBe('abc123');
 
     const url = String(fetchMock.mock.calls[0]?.[0]);
-    expect(url).toContain('/files/revision');
+    expect(url).toContain('/files-revision');
     expect(url).not.toContain('/ide-state');
   });
 
