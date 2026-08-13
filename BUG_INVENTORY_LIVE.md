@@ -451,3 +451,42 @@ Un reseed aurait supprimé le témoin, réécrit le `mtime` et réécrit le marq
 **Réserve honnête.** Le prix de ce choix : si l'arborescence d'un pod chaud était corrompue par un moyen que le marqueur ne voit pas, elle serait adoptée au lieu d'être reconstruite. Le marqueur (révision + TTL 24 h) et le pod chaud sont les garde-fous ; la reconstruction reste disponible via un reseed explicite.
 
 **Tests** `workspace-reattach.spec.ts` **20/20**, dont « adopte un port qui SERT même si `ready` est faux (veto manager) » **et son inverse**. `app/lib/runtime` + `app/lib/stores` **55 fichiers / 517 tests** verts ; `services/api` **185 fichiers / 1603 tests** verts ; lint `app.ts` inchangé à 155.
+
+### 2026-08-13 (suite) — BUG-REATTACH-STORE-HYDRATION : la décision ne dépend plus du magasin client
+
+**Le défaut restant.** À l'instant exact de la décision de reattach, la trace donnait :
+
+```
+reused:true  seededThisSession:true  portProbeSucceeded:true  ports: Array(0)
+```
+
+pendant que le serveur répondait, en continu et au même moment :
+
+```
+[{ port: 5173, type:'open', processId:'…', serving: true }]
+```
+
+Le magasin client `previews` est donc **vide au montage** alors que le port sert réellement.
+
+**Cause.** `PreviewsStore.setRuntime()` remet `previews` à `[]` à chaque configuration de l'adaptateur, puis relance la surveillance des ports en **fire-and-forget** (`void this.#init()`). Le provider appelle `configureRuntime()` au tout début du montage ; la décision tombe donc dans cette fenêtre d'hydratation. Chaque montage — réouverture, retour de route, double-montage StrictMode — la rouvre.
+
+**Correctif.** Faire dépendre une opération **destructrice** (effacer l'espace de travail) de l'état d'hydratation d'un magasin client est fragile par construction : la fenêtre se rouvrira au moindre changement d'ordonnancement. La décision interroge désormais la **source d'autorité** (`/ide-panel/ports`, résolue côté serveur par le loader Remix). `fetchAnyPortServing` rend **`undefined`** — et non `false` — quand la réponse est inexploitable : confondre « je n'ai pas pu demander » avec « rien ne tourne » était exactement le défaut d'origine. Le magasin reste le repli, et les deux valeurs sont journalisées côte à côte (`portsFromStore` / `portsFromServer`) pour que toute divergence future soit visible sans réinstrumenter.
+
+| ID | 📤 | 💻 | ✅ |
+|---|:---:|:---:|:---:|
+| BUG-REATTACH-STORE-HYDRATION | ✅ | ✅ `843c0fac` | ✅ |
+
+**Preuve, deux réouvertures consécutives, sans rien écrire dans le pod :**
+
+| | Avant | Réouverture #1 | Réouverture #2 |
+|---|---|---|---|
+| `mtime src/App.tsx` | `1786636612` | **inchangé** | **inchangé** |
+| `mtime package.json` | `1786636612` | **inchangé** | **inchangé** |
+| Marqueur `seededAt` | `1786636613448` | **inchangé** | **inchangé** |
+| Aperçu | — | vivant | vivant |
+
+Un reseed réécrit les `mtime` **et** le marqueur. Les trois sont intacts.
+
+**Piège de méthode, à retenir.** Planter un témoin *dans le pod* fausse la mesure : c'est une écriture, l'IDE la persiste, le stockage change — et la réouverture suivante reseede **à juste titre**. C'est ce qui rendait mes premiers essais contradictoires. Le protocole correct n'écrit rien et lit des témoins **passifs** (`mtime`, marqueur).
+
+**Tests** `serving-ports.spec.ts` **15/15**, dont « `serving` fait foi même si `ready` le contredit » **et son inverse**, et la distinction `undefined` vs `false`. `app/lib/runtime` + `app/lib/stores` **56 fichiers / 527 tests** verts, lint propre.
