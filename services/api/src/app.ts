@@ -182,7 +182,12 @@ import {
   deletionStatus,
   purgeDueAtMs,
 } from './data-deletion.js';
-import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
+import {
+  clusterName,
+  resolveDatabaseTier,
+  resolveDefaultDatabaseProvisioner,
+  type ProvisionResult,
+} from './database-provisioner.js';
 import {
   IMPORT_HUB_PROVIDERS,
   ImportInvariantError,
@@ -4392,9 +4397,8 @@ async function ensureProjectStorageFromIdeState(
  * contenu n'est pas haché — inutile, et cela rendrait la route coûteuse.
  */
 export function projectFilesRevision(files: ReadonlyArray<{ path: string; updatedAt?: string; content?: string }>) {
-  const lines = files
-    .map((file) => `${file.path} ${file.updatedAt ?? ''} ${file.content?.length ?? 0}`)
-    .sort();
+  const SEP = '\u0000';
+  const lines = files.map((file) => [file.path, file.updatedAt ?? '', file.content?.length ?? 0].join(SEP)).sort();
 
   return createHash('sha256').update(lines.join('\n')).digest('hex').slice(0, 32);
 }
@@ -21857,6 +21861,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       runtime: { mode: 'remote-kubernetes', autosave: true, conflictDetection: true, offlineWarning: true },
     };
   });
+
   /*
    * Empreinte bon marché de l'arborescence persistée, pour que la réouverture
    * puisse distinguer « le pod chaud est encore à jour » de « le stockage a
@@ -31423,18 +31428,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const state = await billingState(project.organizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
 
-    const instance = await store.createDatabaseInstance({
-      projectId: project.id,
-      organizationId: project.organizationId,
-      retentionDays: entitlement.retentionDays,
-      environment,
-    });
-
     const provisioner = resolveDefaultDatabaseProvisioner();
     const tier = resolveDatabaseTier(state?.plan.key);
 
+    /*
+     * BUG-QA-DB-PROVISIONING-STUCK — un provisionnement qui n'a pas démarré ne
+     * doit pas être enregistré comme « en cours ».
+     *
+     * La ligne était créée en PROVISIONING, puis l'appel au provisionneur était
+     * avalé (`non-fatal`) : quand il échouait, PLUS RIEN ne réconciliait la
+     * ligne. L'utilisateur voyait « provisionnement » indéfiniment, et le
+     * réessai était impossible — la ligne zombie faisait répondre
+     * `{ created: false }` à toute nouvelle demande.
+     *
+     * Même règle transverse que pour la progression de l'agent : ne jamais
+     * déduire « c'est en cours » de l'ABSENCE d'un signal d'échec. Si le
+     * provisionnement ne part pas, on retire la ligne et on nomme la cause, ce
+     * qui rend le réessai possible.
+     */
     if (provisioner.active) {
-      await provisioner
+      const outcome = await provisioner
         .provisionInstance({
           projectId: project.id,
           organizationId: project.organizationId,
@@ -31442,8 +31455,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           tier,
           environment,
         })
-        .catch((error) => request.log?.warn?.({ err: error }, 'db provision kickoff failed (non-fatal)'));
+        .catch((error) => {
+          request.log?.warn?.({ err: error }, 'db provision kickoff failed');
+
+          /* Une exception ne dit pas POURQUOI : on ne lui invente pas de raison. */
+          const failed: ProvisionResult = { clusterName: '', applied: false };
+
+          return failed;
+        });
+
+      if (!outcome.applied) {
+        return reply.code(503).send({
+          error: appPublicEnglish('DATABASE_PROVISION_UNAVAILABLE'),
+          code: 'DATABASE_PROVISION_UNAVAILABLE',
+          reason: outcome.reason,
+        });
+      }
     }
+
+    /*
+     * La ligne n'est ecrite qu'ICI : une fois le provisionnement reellement
+     * accepte. Aucune ligne zombie ne peut donc subsister en PROVISIONING, et
+     * un reessai repart d'un etat propre (la contrainte unique
+     * (projectId, environment) rendait sinon la reprise impossible).
+     */
+    const instance = await store.createDatabaseInstance({
+      projectId: project.id,
+      organizationId: project.organizationId,
+      retentionDays: entitlement.retentionDays,
+      environment,
+    });
 
     return reply
       .code(202)
