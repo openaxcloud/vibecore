@@ -289,6 +289,28 @@ aucun résidu. Le « baseline clean » obtenu ainsi ne prouvait rien. Le signal 
 `allowlisted` était tombé à **767**, le fichier vidé ayant emporté ses propres entrées. Refaite
 avec le fichier réel (30 922 octets), la conclusion tient.
 
+### Question de sémantique laissée OUVERTE : le 429 de quota est figé
+
+`onSend` ne relâche la revendication que sur **5xx** ; tout 2xx/4xx délibéré devient la réponse
+rejouée. Or `ensureQuota` lève `statusCode: 429 / QUOTA_EXCEEDED`, et les **deux** routes
+l'appellent après la revendication (`rollback-to-previous` deux fois, la sœur une). Un rollback
+refusé pour quota fige donc un **429 pour toujours** sur cette clé : quota libéré ou plan
+relevé, le même retry ressortira le 429 d'origine, sans jamais retenter. Il n'y a par ailleurs
+**aucune expiration de clé** dans cette table.
+
+Deux lectures défendables, d'où le choix de ne pas trancher seul :
+- **figer** — c'est ce que font Stripe & co. : une clé d'idempotence épingle le résultat,
+  y compris un 4xx. Mais eux **expirent** les clés (24 h), ce qui n'est pas le cas ici ;
+- **relâcher** — un 429 signifie littéralement « réessayez plus tard » : le figer contredit
+  le code de statut lui-même. Le correctif tiendrait en une condition
+  (`reply.statusCode >= 500 || reply.statusCode === 429`).
+
+**Non modifié dans ce lot, délibérément** : cela toucherait le `onSend` de la route auditée à
+la veille d'une re-revue, et un refactor de cette même zone a déjà cassé la route une fois
+(voir plus haut). Les deux routes se comportent identiquement — aucune divergence n'a été
+introduite ici. À arbitrer par Avi ; si « relâcher » est retenu, l'appliquer aux deux routes
+dans le même commit, avec un test par route.
+
 ### Aucune suite laissée non exécutée
 
 Une régression sans `DATABASE_URL` **saute 7 fichiers** — silencieusement, en affichant
