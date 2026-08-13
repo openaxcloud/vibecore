@@ -66,6 +66,8 @@ export interface WorkspaceRecord {
   purgeFrozenAt?: string;
 }
 
+export type StalePurgeFenceReleaseResult = 'released' | 'live-owner' | 'unchanged';
+
 export interface WorkspaceStore {
   create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>): Promise<WorkspaceRecord>;
   update(workspaceId: string, patch: Partial<WorkspaceRecord>): Promise<WorkspaceRecord>;
@@ -113,17 +115,17 @@ export interface WorkspaceStore {
   releasePurgeFence(workspaceId: string, fenceToken: string | undefined): Promise<boolean>;
 
   /*
-   * RR-CODEX-14 v6 (R-P3-06): the reconciler's equivalent CAS. The staleness verdict
-   * is computed on a SNAPSHOT read (list()), so the release must be conditioned on
-   * that exact snapshot version — (purgeFrozen, purgeFenceToken, purgeFrozenAt) — or
-   * the reconciler carries the same TOCTOU: a barrier re-frozen by a NEW purge between
-   * the scan and the write would be lifted on the strength of the OLD row's age.
-   * A fresh freeze always changes both the token and purgeFrozenAt, so the CAS misses.
+   * RR-CODEX-14 v8: atomically prove the observed fence has no live owner and release
+   * that exact snapshot. The production store locks every PurgePlan row carrying the
+   * token, evaluates expiry on the PostgreSQL clock, and conditionally updates the
+   * WorkspaceRuntime in ONE transaction. This serialization is mandatory: a separate
+   * liveness read followed by a release lets an in-flight renewal commit after the
+   * barrier was lowered.
    */
   releaseStalePurgeFence(
     workspaceId: string,
     observed: { fenceToken?: string; frozenAt?: string },
-  ): Promise<boolean>;
+  ): Promise<StalePurgeFenceReleaseResult>;
 
   /*
    * RR-CODEX-14 v7 (R-P3-07): is this fence token still owned by a purge that is
@@ -235,7 +237,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
       (existing.purgeFenceToken ?? undefined) !== (observed.fenceToken ?? undefined) ||
       (existing.purgeFrozenAt ?? undefined) !== (observed.frozenAt ?? undefined)
     ) {
-      return false;
+      return 'unchanged' as const;
     }
 
     workspaces.set(workspaceId, {
@@ -246,7 +248,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
     });
     await this.write(workspaces);
 
-    return true;
+    return 'released' as const;
   }
 
   /*
@@ -1570,25 +1572,15 @@ export class WorkspaceManager {
        * error here counts as failed and the barrier is LEFT UP, because we cannot
        * prove nobody owns it.
        */
-      try {
-        if (row.purgeFenceToken !== undefined && (await this.store.isPurgeFenceOwnerLive(row.purgeFenceToken))) {
-          skippedLiveOwner += 1;
-          continue;
-        }
-      } catch {
-        failed += 1;
-        continue;
-      }
-
       /*
-       * R-P3-06: same TOCTOU as unfreezeWorkspace — `row` is a SNAPSHOT from the
-       * list() above, and a purge may have re-frozen this runtime since. Release
-       * with a CAS on the exact observed version (token + frozenAt), so a barrier
-       * that was refreshed after the scan is NEVER lifted on the old row's age.
-       * A CAS miss (or a DB error) leaves the runtime frozen — fail-closed.
+       * R-P3-06 + v8 lease linearization: `row` is a snapshot, but owner liveness
+       * and release are one store operation. Production holds a row lock on the
+       * matching PurgePlan until the conditional WorkspaceRuntime update commits;
+       * renewals either win first (and are observed live) or wait and then fail the
+       * strict unexpired-lease predicate. A DB error leaves the barrier up.
        */
       try {
-        const released = await this.store.releaseStalePurgeFence(row.id, {
+        const release = await this.store.releaseStalePurgeFence(row.id, {
           /*
            * `!== undefined`, NOT truthiness: an EMPTY-STRING token is a real stored
            * value and must go into the CAS verbatim. Folding '' into "absent" makes
@@ -1599,7 +1591,9 @@ export class WorkspaceManager {
           ...(row.purgeFrozenAt !== undefined ? { frozenAt: row.purgeFrozenAt } : {}),
         });
 
-        if (released) {
+        if (release === 'live-owner') {
+          skippedLiveOwner += 1;
+        } else if (release === 'released') {
           reconciled += 1;
         }
       } catch {

@@ -1,7 +1,7 @@
 import type { DatabaseClient } from '@vibecore/database';
 import type { WorkspacePlan } from '@vibecore/k8s-client';
 
-import type { WorkspaceRecord, WorkspaceStatus, WorkspaceStore } from './manager.js';
+import type { StalePurgeFenceReleaseResult, WorkspaceRecord, WorkspaceStatus, WorkspaceStore } from './manager.js';
 
 const KNOWN_PLANS: ReadonlySet<WorkspacePlan> = new Set(['free', 'pro', 'team', 'enterprise']);
 
@@ -96,6 +96,11 @@ function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
  */
 export class PrismaWorkspaceStore implements WorkspaceStore {
   constructor(private readonly prisma: DatabaseClient) {}
+
+  /** Deterministic concurrency seam used only by the real-PostgreSQL proof. */
+  purgeFenceTestHooks?: {
+    onOwnerLivenessLocked?: (input: { workspaceId: string; fenceToken: string; live: boolean }) => Promise<void>;
+  };
 
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>): Promise<WorkspaceRecord> {
     const now = new Date();
@@ -240,26 +245,54 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
   }
 
   /**
-   * RR-CODEX-14 v6 (R-P3-06): CAS release for the stale-barrier reconciler, conditioned
-   * on the FULL snapshot version the staleness verdict was computed from. A purge that
-   * re-froze the runtime after the scan changes both purgeFenceToken and purgeFrozenAt,
-   * so this UPDATE matches 0 rows and the fresh barrier survives the sweep.
+   * RR-CODEX-14 v8: owner-dead verdict + stale-barrier CAS in ONE transaction.
+   *
+   * `SELECT ... FOR UPDATE` serializes this decision with the API heartbeat UPDATE on
+   * PurgePlan. If renewal wins first, we observe a live lease and keep the barrier. If
+   * this transaction locks an expired plan first, the release commits before renewal
+   * resumes; its strict `leaseExpiresAt > transaction_timestamp()` predicate is then
+   * false, so it cannot resurrect the owner after the barrier went down.
    */
   async releaseStalePurgeFence(
     workspaceId: string,
     observed: { fenceToken?: string; frozenAt?: string },
-  ): Promise<boolean> {
-    const result = await this.prisma.workspaceRuntime.updateMany({
-      where: {
-        id: workspaceId,
-        purgeFrozen: true,
-        purgeFenceToken: observed.fenceToken ?? null,
-        purgeFrozenAt: observed.frozenAt ? new Date(observed.frozenAt) : null,
-      },
-      data: { purgeFrozen: false, purgeFenceToken: null, purgeFrozenAt: null },
-    });
+  ): Promise<StalePurgeFenceReleaseResult> {
+    return this.prisma.$transaction(async (tx) => {
+      if (observed.fenceToken) {
+        const owners = await tx.$queryRawUnsafe<Array<{ live: boolean }>>(
+          `WITH lease_clock AS (SELECT date_trunc('milliseconds', transaction_timestamp()) AS ts)
+           SELECT (plan."leaseExpiresAt" > lease_clock.ts) AS live
+             FROM "PurgePlan" AS plan
+             CROSS JOIN lease_clock
+            WHERE plan."ownerToken" = $1
+              FOR UPDATE OF plan`,
+          observed.fenceToken,
+        );
+        const live = owners.some((owner) => owner.live);
 
-    return result.count === 1;
+        await this.purgeFenceTestHooks?.onOwnerLivenessLocked?.({
+          workspaceId,
+          fenceToken: observed.fenceToken,
+          live,
+        });
+
+        if (live) {
+          return 'live-owner';
+        }
+      }
+
+      const result = await tx.workspaceRuntime.updateMany({
+        where: {
+          id: workspaceId,
+          purgeFrozen: true,
+          purgeFenceToken: observed.fenceToken ?? null,
+          purgeFrozenAt: observed.frozenAt ? new Date(observed.frozenAt) : null,
+        },
+        data: { purgeFrozen: false, purgeFenceToken: null, purgeFrozenAt: null },
+      });
+
+      return result.count === 1 ? 'released' : 'unchanged';
+    });
   }
 
   /**
@@ -280,12 +313,17 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
       return false;
     }
 
-    const live = await this.prisma.purgePlan.findFirst({
-      where: { ownerToken: fenceToken, leaseExpiresAt: { gt: new Date() } },
-      select: { id: true },
-    });
+    const [result] = await this.prisma.$queryRawUnsafe<Array<{ live: boolean }>>(
+      `SELECT EXISTS (
+         SELECT 1
+           FROM "PurgePlan"
+          WHERE "ownerToken" = $1
+            AND "leaseExpiresAt" > date_trunc('milliseconds', transaction_timestamp())
+       ) AS live`,
+      fenceToken,
+    );
 
-    return live !== null;
+    return result?.live === true;
   }
 
   async get(workspaceId: string): Promise<WorkspaceRecord | undefined> {

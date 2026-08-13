@@ -80,6 +80,14 @@ class TestWorkspaceStore implements WorkspaceStore {
   }
 
   async releaseStalePurgeFence(workspaceId: string, observed: { fenceToken?: string; frozenAt?: string }) {
+    if (this.livenessError) {
+      throw this.livenessError;
+    }
+
+    if (observed.fenceToken !== undefined && this.liveFenceTokens.has(observed.fenceToken)) {
+      return 'live-owner' as const;
+    }
+
     const existing = this.workspaces.get(workspaceId);
 
     if (
@@ -87,7 +95,7 @@ class TestWorkspaceStore implements WorkspaceStore {
       (existing.purgeFenceToken ?? undefined) !== (observed.fenceToken ?? undefined) ||
       (existing.purgeFrozenAt ?? undefined) !== (observed.frozenAt ?? undefined)
     ) {
-      return false;
+      return 'unchanged' as const;
     }
 
     this.workspaces.set(workspaceId, {
@@ -97,7 +105,7 @@ class TestWorkspaceStore implements WorkspaceStore {
       purgeFrozenAt: undefined,
     });
 
-    return true;
+    return 'released' as const;
   }
 
   /* R-P3-07: fence tokens whose purge plan still holds an unexpired lease. */

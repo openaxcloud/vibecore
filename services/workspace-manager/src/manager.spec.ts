@@ -161,6 +161,10 @@ class TestWorkspaceStore implements WorkspaceStore {
   }
 
   async releaseStalePurgeFence(workspaceId: string, observed: { fenceToken?: string; frozenAt?: string }) {
+    if (observed.fenceToken !== undefined && this.liveFenceTokens.has(observed.fenceToken)) {
+      return 'live-owner' as const;
+    }
+
     const existing = this.workspaces.get(workspaceId);
 
     if (
@@ -168,7 +172,7 @@ class TestWorkspaceStore implements WorkspaceStore {
       (existing.purgeFenceToken ?? undefined) !== (observed.fenceToken ?? undefined) ||
       (existing.purgeFrozenAt ?? undefined) !== (observed.frozenAt ?? undefined)
     ) {
-      return false;
+      return 'unchanged' as const;
     }
 
     this.workspaces.set(workspaceId, {
@@ -178,7 +182,7 @@ class TestWorkspaceStore implements WorkspaceStore {
       purgeFrozenAt: undefined,
     });
 
-    return true;
+    return 'released' as const;
   }
 
   /*

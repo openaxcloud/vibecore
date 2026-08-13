@@ -698,27 +698,53 @@ export class PrismaApiStore implements ApiStore {
 
   /**
    * RR-CODEX-12: renew (heartbeat) the lease via CAS on (id, ownerToken, version,
-   * status=ACTIVE). Returns the NEW version on success, or null if the CAS lost —
-   * the plan was reclaimed (status/version changed) or removed, i.e. the lease is
-   * no longer ours.
+   * status=ACTIVE, unexpired lease). PostgreSQL supplies ONE timestamp for both the
+   * strict liveness predicate and the new expiry; an expired lease can therefore
+   * never be resurrected by a pod whose wall clock is behind the database.
+   *
+   * Returns the NEW version on success, or null if the CAS lost — including when
+   * the lease reached its expiry boundary before this statement linearised.
    */
   async renewPurgeLease(planId: string, ownerToken: string, expectedVersion: number): Promise<number | null> {
-    const nextVersion = expectedVersion + 1;
-    const won = await this.prisma.purgePlan.updateMany({
-      where: { id: planId, ownerToken, version: expectedVersion, status: PURGE_PLAN_ACTIVE },
-      data: { leaseExpiresAt: new Date(Date.now() + this.purgeLease.ttlMs), version: nextVersion },
-    });
+    const renewed = await this.prisma.$queryRawUnsafe<Array<{ version: number }>>(
+      `WITH lease_clock AS (SELECT date_trunc('milliseconds', transaction_timestamp()) AS ts)
+       UPDATE "PurgePlan" AS plan
+          SET "leaseExpiresAt" = lease_clock.ts + ($4::bigint * interval '1 millisecond'),
+              version = plan.version + 1
+         FROM lease_clock
+        WHERE plan.id = $1
+          AND plan."ownerToken" = $2
+          AND plan.version = $3
+          AND plan.status = $5
+          AND plan."leaseExpiresAt" > lease_clock.ts
+      RETURNING plan.version`,
+      planId,
+      ownerToken,
+      expectedVersion,
+      this.purgeLease.ttlMs,
+      PURGE_PLAN_ACTIVE,
+    );
 
-    return won.count === 1 ? nextVersion : null;
+    return renewed[0]?.version ?? null;
   }
 
   /** RR-CODEX-12: is the lease still OURS, ACTIVE, and unexpired? */
   private async validatePurgeLease(planId: string, ownerToken: string): Promise<boolean> {
-    const plan = await this.prisma.purgePlan.findFirst({
-      where: { id: planId, ownerToken, status: PURGE_PLAN_ACTIVE },
-    });
+    const [result] = await this.prisma.$queryRawUnsafe<Array<{ valid: boolean }>>(
+      `SELECT EXISTS (
+         SELECT 1
+           FROM "PurgePlan"
+          WHERE id = $1
+            AND "ownerToken" = $2
+            AND status = $3
+            AND "leaseExpiresAt" > date_trunc('milliseconds', transaction_timestamp())
+       ) AS valid`,
+      planId,
+      ownerToken,
+      PURGE_PLAN_ACTIVE,
+    );
 
-    return Boolean(plan) && plan!.leaseExpiresAt.getTime() > Date.now();
+    return result?.valid === true;
   }
 
   /**
