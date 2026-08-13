@@ -70,45 +70,15 @@ audit_helm upgrade --install nfs-provisioner \
   --set 'storageClass.accessModes[0]=ReadWriteMany' \
   --wait --timeout 10m
 
-echo "==> Redis (in-cluster, remplace Memorystore)"
+echo "==> doubles in-cluster : Redis (remplace Memorystore) + puits e-mail (remplace Resend)"
+# Les deux manifestes vivent dans scripts/audit-env/manifests/in-cluster-doubles.yaml
+# et NON dans un heredoc ici, parce que deploy-isolated.sh doit installer les MEMES
+# doubles dans la namespace de la release isolee. Deux copies auraient derive, et une
+# preuve tournant sur un Redis different de celui de l'environnement ne dirait plus
+# la meme chose. Le fichier porte les explications (label part-of, fail-closed de
+# l'api sur EMAIL_HTTP_ENDPOINT, pourquoi chaque release a les siens).
 audit_env_ensure_namespace "$NS" "$RELEASE"
-audit_kubectl -n "$NS" apply -f - <<'YAML'
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: vibecore-redis
-  labels: { app: vibecore-redis, env: audit-test, app.kubernetes.io/part-of: vibecore }
-spec:
-  replicas: 1
-  selector: { matchLabels: { app: vibecore-redis } }
-  template:
-    metadata:
-      labels: { app: vibecore-redis, env: audit-test, app.kubernetes.io/part-of: vibecore }
-    spec:
-      containers:
-        - name: redis
-          image: redis:7-alpine
-          args: ["--save", "", "--appendonly", "no"]
-          ports: [{ containerPort: 6379 }]
-          resources:
-            requests: { cpu: 50m, memory: 128Mi }
-            limits: { cpu: 500m, memory: 512Mi }
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 999
-            allowPrivilegeEscalation: false
-            capabilities: { drop: ["ALL"] }
-            seccompProfile: { type: RuntimeDefault }
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: vibecore-redis
-  labels: { app: vibecore-redis, env: audit-test, app.kubernetes.io/part-of: vibecore }
-spec:
-  selector: { app: vibecore-redis }
-  ports: [{ port: 6379, targetPort: 6379 }]
-YAML
+audit_kubectl -n "$NS" apply -f "$REPO_ROOT/scripts/audit-env/manifests/in-cluster-doubles.yaml"
 
 echo "==> attente de l'IP externe du load balancer"
 for _ in $(seq 1 60); do
@@ -150,59 +120,6 @@ spec:
   selfSigned: {}
 YAML
 
-echo "==> puits e-mail (remplace Resend)"
-# L'api est fail-closed : avec environment=production elle REFUSE DE DEMARRER
-# sans EMAIL_HTTP_ENDPOINT (« EMAIL_HTTP_ENDPOINT is required in production »).
-# Plutot que d'affaiblir l'environnement — ce qui cesserait d'exercer les chemins
-# de code de production que l'audit veut precisement verifier — l'e-mail sortant
-# est dirige vers ce puits in-cluster : il repond 200 et journalise la requete
-# complete. Chaque e-mail devient observable via
-#   kubectl -n vibecore logs deploy/email-sink
-# et aucun ne part vers l'exterieur. values-audit-test.yaml pointe
-# platformEnv.email.httpEndpoint sur son Service.
-#
-# Le label app.kubernetes.io/part-of=vibecore n'est pas cosmetique : la policy
-# allow-intra-namespace-platform du chart ne reouvre le trafic pod-a-pod QUE
-# entre pods qui le portent. Sans lui, deny-all-default bloque api -> puits.
-audit_kubectl -n "$NS" apply -f - <<'YAML'
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: email-sink
-  labels: { app: email-sink, env: audit-test, app.kubernetes.io/part-of: vibecore }
-spec:
-  replicas: 1
-  selector: { matchLabels: { app: email-sink } }
-  template:
-    metadata:
-      labels: { app: email-sink, env: audit-test, app.kubernetes.io/part-of: vibecore }
-    spec:
-      containers:
-        - name: echo
-          image: mendhak/http-https-echo:31
-          env:
-            - { name: HTTP_PORT, value: "8080" }
-            - { name: DISABLE_REQUEST_LOGS, value: "false" }
-          ports: [{ containerPort: 8080 }]
-          resources:
-            requests: { cpu: 25m, memory: 64Mi }
-            limits: { cpu: 200m, memory: 256Mi }
-          securityContext:
-            runAsNonRoot: true
-            runAsUser: 65534
-            allowPrivilegeEscalation: false
-            capabilities: { drop: ["ALL"] }
-            seccompProfile: { type: RuntimeDefault }
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: email-sink
-  labels: { app: email-sink, env: audit-test, app.kubernetes.io/part-of: vibecore }
-spec:
-  selector: { app: email-sink }
-  ports: [{ port: 8080, targetPort: 8080 }]
-YAML
 
 # NOTE : la NetworkPolicy allow-dns-clusterip vivait ici. Elle est desormais
 # rendue par le chart (networkPolicy.dnsServiceIp, cf. values-audit-test.yaml) :

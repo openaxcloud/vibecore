@@ -15,15 +15,19 @@
 #
 # CE QUI EST ISOLÉ :
 #   * release + namespace plateforme .. <release> / <release>
-#   * namespace de runtime ............ <release>-workspaces (RuntimeClass,
-#     NetworkPolicies, quota installés par le chart workspaces-runtime)
+#   * namespace de runtime ............ <release>-workspaces (NetworkPolicies et
+#     quota installés par le chart workspaces-runtime)
 #   * noms de service in-cluster ...... <release>-vibecore-platform-*
 #   * hôtes d'ingress ................. distincts, pour ne pas entrer en conflit
 #     avec ceux de la release partagée
+#   * Redis et le puits e-mail ........ ses propres doubles dans sa namespace ;
+#     partager Redis, ce serait partager les files BullMQ et le pub/sub de
+#     collaboration — et les NetworkPolicies l'interdisent de toute façon
 #
-# CE QUI EST PARTAGÉ, à dessein : le cluster, Cloud SQL et Redis (les URL viennent
-# du même Secret). L'isolation visée porte sur la RELEASE, pas sur l'infrastructure
-# — dupliquer la base coûterait cher et ne rendrait pas la preuve plus vraie.
+# CE QUI EST PARTAGÉ, à dessein : le cluster, Cloud SQL, et les objets d'échelle
+# cluster (RuntimeClass gvisor, StorageClass). L'isolation visée porte sur la
+# RELEASE, pas sur l'infrastructure — dupliquer la base coûterait cher et ne
+# rendrait pas la preuve plus vraie.
 #
 # À LA FIN, le script VÉRIFIE LES DIGESTS : pour chaque pod, l'`imageID` observé
 # doit correspondre au digest publié dans Artifact Registry pour le tag demandé.
@@ -74,10 +78,20 @@ BASE_REWRITTEN="$(mktemp -t values-isolated-base-XXXXXX.yaml)"
 OVERRIDES="$(mktemp -t values-isolated-over-XXXXXX.yaml)"
 trap 'rm -f "$BASE_REWRITTEN" "$OVERRIDES"' EXIT
 
-sed \
-  -e "s|vibecore-vibecore-platform-|${RELEASE}-vibecore-platform-|g" \
-  -e "s|\.vibecore\.svc|.${NS}.svc|g" \
+# La réécriture ne porte QUE sur les services de la plateforme
+# (`vibecore-vibecore-platform-<x>.vibecore.svc`). Un `s|\.vibecore\.svc|…|g`
+# général — ce que faisait ce script — déplaçait aussi les doubles in-cluster
+# (`email-sink.vibecore.svc`), qui n'ont rien à voir avec le nom de la release.
+sed -E \
+  -e "s|vibecore-vibecore-platform-([a-z-]+)\.vibecore\.svc|${RELEASE}-vibecore-platform-\1.${NS}.svc|g" \
   "$BASE_VALUES" > "$BASE_REWRITTEN"
+
+# Contrôle : plus aucune URL de plateforme ne doit désigner la release partagée.
+if grep -qE 'vibecore-vibecore-platform-[a-z-]+\.vibecore\.svc' "$BASE_REWRITTEN"; then
+  echo "REFUS: des URL in-cluster pointent encore la release PARTAGEE :" >&2
+  grep -nE 'vibecore-vibecore-platform-[a-z-]+\.vibecore\.svc' "$BASE_REWRITTEN" >&2
+  exit 1
+fi
 
 # Les surcharges vont dans un fichier SÉPARÉ, passé en second `-f`.
 #
@@ -114,21 +128,55 @@ YAML
 # --- 2. namespaces, avec les marqueurs d'adoption Helm ----------------------
 audit_env_ensure_namespace "$NS" "$RELEASE"
 
-# --- 3. le Secret plateforme, recopié depuis la release partagée ------------
-# Même base, même Redis : on veut la MÊME infrastructure, seule la release change.
-# Les clés sensibles ne transitent pas par le disque local — tout se fait par un
-# tube entre deux appels kubectl épinglés.
-echo "==> copie du Secret $SECRET_NAME vers $NS"
+# --- 3. les doubles in-cluster, dans LA namespace de la release isolée -------
+# Redis et le puits e-mail sont des doubles de l'environnement d'audit, pas de
+# l'infrastructure partagée. Chaque release a les siens : deux releases sur le même
+# Redis partageraient les files BullMQ et le pub/sub de collaboration, donc le
+# workspace-manager partagé pourrait ramasser les travaux de cette preuve.
+#
+# Et de toute façon c'est impossible : `allow-intra-namespace-platform` n'ouvre le
+# trafic pod-à-pod QUE dans la namespace, donc un `REDIS_URL` traversant les
+# namespaces est jeté par `deny-all-default`. Observé : la sonde de readiness de
+# l'api rendait 503 sur `connect ETIMEDOUT` et le rollout expirait, tous les autres
+# tiers étant sains.
+echo "==> doubles in-cluster (Redis + puits e-mail) dans $NS"
+audit_kubectl -n "$NS" apply -f "$HERE/manifests/in-cluster-doubles.yaml" >/dev/null
+audit_kubectl -n "$NS" rollout status deploy/vibecore-redis --timeout=180s
+audit_kubectl -n "$NS" rollout status deploy/email-sink --timeout=180s
+
+# --- 4. le Secret plateforme, recopié depuis la release partagée -------------
+# Même base Cloud SQL — ça, c'est de l'infrastructure, légitimement partagée. Seul
+# `REDIS_URL` est réécrit vers le double local (voir ci-dessus). Les clés sensibles
+# ne transitent pas par le disque local : tout se fait par un tube entre deux appels
+# kubectl épinglés, et la réécriture est faite en mémoire dans ce tube.
+echo "==> copie du Secret $SECRET_NAME vers $NS (REDIS_URL redirige vers le double local)"
 audit_kubectl -n "$SHARED_SECRET_NS" get secret "$SECRET_NAME" -o json |
   python3 -c '
-import json, sys
+import base64, json, sys
+
+ns = sys.argv[1]
 d = json.load(sys.stdin)
-d["metadata"] = {"name": d["metadata"]["name"], "namespace": sys.argv[1]}
+d["metadata"] = {"name": d["metadata"]["name"], "namespace": ns}
+
+# Redis suit la release. On remplace la namespace DANS le nom DNS, sans jamais
+# afficher la valeur (elle porte le mot de passe).
+key = "REDIS_URL"
+if key in d.get("data", {}):
+    url = base64.b64decode(d["data"][key]).decode()
+    fixed = url.replace("vibecore-redis.vibecore.svc", f"vibecore-redis.{ns}.svc")
+    if fixed == url:
+        print(f"REFUS: {key} ne designe pas vibecore-redis.vibecore.svc", file=sys.stderr)
+        raise SystemExit(1)
+    d["data"][key] = base64.b64encode(fixed.encode()).decode()
+else:
+    print(f"REFUS: {key} absent du Secret partage", file=sys.stderr)
+    raise SystemExit(1)
+
 json.dump(d, sys.stdout)
 ' "$NS" |
   audit_kubectl -n "$NS" apply -f - >/dev/null
 
-# --- 4. runtime des workspaces dans SA namespace ---------------------------
+# --- 5. runtime des workspaces dans SA namespace ---------------------------
 echo "==> chart workspaces-runtime dans $RUNTIME_NS"
 #
 # DEUX POINTS APPRIS EN LE FAISANT, tous deux vérifiés sur le cluster :
@@ -152,7 +200,7 @@ audit_helm upgrade --install "$RELEASE-workspaces" "$REPO/infra/helm/workspaces-
   --set workspaceManager.serviceAccountName="$RELEASE-vibecore-platform-workspace-manager" \
   --wait --timeout 5m >/dev/null
 
-# --- 5. la plateforme -------------------------------------------------------
+# --- 6. la plateforme -------------------------------------------------------
 echo "==> helm upgrade --install $RELEASE (ns $NS)"
 audit_helm upgrade --install "$RELEASE" "$REPO/infra/helm/platform" \
   --namespace "$NS" \
@@ -167,7 +215,7 @@ for comp in api preview-proxy workspace-manager screenshotter; do
   audit_kubectl -n "$NS" rollout status "deploy/$RELEASE-vibecore-platform-$comp" --timeout=420s
 done
 
-# --- 6. VÉRIFICATION DES DIGESTS -------------------------------------------
+# --- 7. VÉRIFICATION DES DIGESTS -------------------------------------------
 # Un tag est mutable : `api:$TAG` peut désigner autre chose demain, et un pod peut
 # tourner sur une image tirée avant un re-push. On compare donc l'`imageID` du
 # conteneur (le digest réellement tiré) au digest publié pour ce tag.
