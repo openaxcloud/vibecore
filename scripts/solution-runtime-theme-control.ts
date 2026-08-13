@@ -31,6 +31,46 @@ const THEME_CONTROL_LABEL_PARTS = [
 
 export const OFFICIAL_RUNTIME_THEME_CONTROL_LABEL = new RegExp(`^(?:${THEME_CONTROL_LABEL_PARTS.join('|')})$`, 'iu');
 
+const IDE_SHELL_SHORTCUT_FOCUS_SELECTOR = '.bolt-project-statusbar:visible button:visible:not([disabled])';
+const DESKTOP_IDE_SELECTOR = '.bolt-responsive-ide-desktop:visible';
+
+/**
+ * Return keyboard ownership to the top-level IDE before invoking its global
+ * command-palette shortcut. A click on a generated app's theme control leaves
+ * `document.activeElement` on the Preview iframe, where key events cannot
+ * bubble into the parent window's production keybinding listener.
+ *
+ * Focusing an existing status-bar button is deterministic and side-effect
+ * free: unlike clicking it, this does not open another panel or mutate IDE
+ * state. The following key press still exercises the real production shortcut.
+ */
+export async function pressIdeCommandPaletteShortcut(page: Page, timeoutMs = 30_000) {
+  try {
+    await expect(page.locator(DESKTOP_IDE_SELECTOR)).toBeVisible({ timeout: timeoutMs });
+  } catch (error) {
+    throw new Error(
+      'The keyboard command-palette path is available only in the hydrated desktop IDE shell; compact layouts must use their visible Tools command.',
+      { cause: error },
+    );
+  }
+
+  const shellFocusTarget = page.locator(IDE_SHELL_SHORTCUT_FOCUS_SELECTOR).first();
+
+  await expect(shellFocusTarget, 'The IDE status bar must expose a focusable shell control').toBeVisible({
+    timeout: timeoutMs,
+  });
+  await expect(shellFocusTarget).toBeEnabled({ timeout: timeoutMs });
+  await shellFocusTarget.focus();
+  await expect(
+    shellFocusTarget,
+    'Keyboard focus must leave the Preview iframe and return to the IDE shell',
+  ).toBeFocused({
+    timeout: timeoutMs,
+  });
+
+  await page.keyboard.press('ControlOrMeta+Shift+P');
+}
+
 type RuntimeThemeSurface = Frame | Page;
 
 function themeFromClassName(className: string): RuntimeCaptureTheme | undefined {

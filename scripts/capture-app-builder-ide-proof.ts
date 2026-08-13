@@ -40,7 +40,7 @@ import {
   type TrackedIdeRequestEndSource,
   type RuntimeWriteQuiescenceDiagnostic,
 } from './solution-runtime-reconciliation.js';
-import { applyOfficialRuntimeCaptureTheme } from './solution-runtime-theme-control.js';
+import { applyOfficialRuntimeCaptureTheme, pressIdeCommandPaletteShortcut } from './solution-runtime-theme-control.js';
 
 type CaptureLocale = 'en' | 'fr';
 type CaptureSlug =
@@ -3740,7 +3740,7 @@ async function activateThemeCommand(page: Page, expectedTheme: CaptureTheme) {
      * remains available in both EN and FR. Selecting the real command invokes
      * toggleTheme(), exactly as a user would.
      */
-    await page.keyboard.press('ControlOrMeta+Shift+P');
+    await pressIdeCommandPaletteShortcut(page);
     await expect(search).toBeVisible({ timeout: 30_000 });
     await expect(palette).toBeVisible({ timeout: 30_000 });
 

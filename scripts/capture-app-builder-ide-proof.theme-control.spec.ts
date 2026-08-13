@@ -8,6 +8,7 @@ import {
   applyOfficialRuntimeCaptureTheme,
   explicitRuntimeTheme,
   OFFICIAL_RUNTIME_THEME_CONTROL_LABEL,
+  pressIdeCommandPaletteShortcut,
 } from './solution-runtime-theme-control.js';
 
 const readSource = (relativePath: string): string => readFileSync(resolve(process.cwd(), relativePath), 'utf8');
@@ -30,7 +31,9 @@ describe('Solutions proof capture theme control', () => {
   const baseChatSource = readSource('app/components/chat/BaseChat.tsx');
 
   it('uses the real localized command-palette control instead of compact Agent header actions', () => {
-    expect(captureSource).toContain("page.keyboard.press('ControlOrMeta+Shift+P')");
+    expect(captureSource).toContain('pressIdeCommandPaletteShortcut(page)');
+    expect(runtimeThemeControlSource).toContain("page.keyboard.press('ControlOrMeta+Shift+P')");
+    expect(runtimeThemeControlSource).toContain('.bolt-project-statusbar:visible button:visible:not([disabled])');
     expect(captureSource).toContain("getByTestId('project-command-palette-search')");
     expect(captureSource).toContain('Command palette|Palette de commandes');
     expect(captureSource).toContain('Toggle theme|Changer de thème');
@@ -136,6 +139,73 @@ describe.sequential('official runtime direct theme control', () => {
     await applyOfficialRuntimeCaptureTheme(page, 'dark', { timeoutMs: 2_000 });
     expect(await page.locator('html').getAttribute('data-theme')).toBe('dark');
     expect(await page.evaluate(`window.themeClickCount`)).toBe(2);
+  });
+
+  it('returns focus from a native Preview iframe before opening the real IDE command palette', async () => {
+    await page.setContent(`
+      <main class="bolt-responsive-ide-desktop">
+        <footer class="bolt-project-statusbar">
+          <button type="button" aria-label="Open Git panel">main</button>
+        </footer>
+        <iframe data-testid="preview-iframe" title="Preview"></iframe>
+      </main>
+      <script>
+        window.commandPaletteShortcutCount = 0;
+        window.addEventListener('keydown', (event) => {
+          if (!(event.ctrlKey || event.metaKey) || !event.shiftKey || event.key.toLowerCase() !== 'p') {
+            return;
+          }
+
+          window.commandPaletteShortcutCount += 1;
+          const dialog = document.createElement('div');
+          dialog.setAttribute('role', 'dialog');
+          dialog.setAttribute('aria-label', 'Command palette');
+          const search = document.createElement('input');
+          search.setAttribute('data-testid', 'project-command-palette-search');
+          dialog.append(search);
+          document.body.append(dialog);
+          search.focus();
+        }, { capture: true });
+      </script>
+    `);
+
+    const previewFrame = page.frames().find((candidate) => candidate !== page.mainFrame());
+
+    if (!previewFrame) {
+      throw new Error('Expected the native Preview iframe');
+    }
+
+    await previewFrame.setContent('<button type="button">Generated app theme</button>');
+    await previewFrame.getByRole('button', { name: 'Generated app theme' }).focus();
+    expect(await page.evaluate(`document.activeElement?.matches('iframe[data-testid="preview-iframe"]')`)).toBe(true);
+
+    await page.keyboard.press('ControlOrMeta+Shift+P');
+    expect(await page.evaluate(`window.commandPaletteShortcutCount`)).toBe(0);
+    expect(await page.getByTestId('project-command-palette-search').count()).toBe(0);
+
+    await pressIdeCommandPaletteShortcut(page, 2_000);
+
+    expect(await page.getByRole('dialog', { name: 'Command palette' }).isVisible()).toBe(true);
+    expect(
+      await page.evaluate(
+        `document.activeElement === document.querySelector('[data-testid="project-command-palette-search"]')`,
+      ),
+    ).toBe(true);
+    expect(await page.evaluate(`window.commandPaletteShortcutCount`)).toBe(1);
+  });
+
+  it('fails closed when the production IDE is using its compact layout', async () => {
+    await page.setContent(`
+      <main class="bolt-responsive-ide-mobile">
+        <footer class="bolt-project-statusbar bolt-project-statusbar-mobile">
+          <button type="button" aria-label="Open tools">Tools</button>
+        </footer>
+      </main>
+    `);
+
+    await expect(pressIdeCommandPaletteShortcut(page, 250)).rejects.toThrow(
+      'The keyboard command-palette path is available only in the hydrated desktop IDE shell',
+    );
   });
 
   it('emulates the containing page and clicks the real data-testid control inside a native iframe', async () => {
