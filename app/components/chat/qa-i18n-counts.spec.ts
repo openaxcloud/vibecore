@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
@@ -299,6 +299,74 @@ describe('BUG-QA-I18N-COUNT-003 — le motif ne peut plus être réintroduit', (
       }
 
       offenders.push(`L${i + 1}: ${current} + ${next}`);
+    }
+
+    expect(offenders, offenders.join('\n')).toEqual([]);
+  });
+});
+
+/*
+ * La garde ci-dessus ne protégeait que `BaseChat.tsx` — or rien n'empêche le
+ * motif de réapparaître ailleurs. Celle-ci balaie TOUT `app/`, ce qui en fait
+ * réellement un garde-fou transverse et non un correctif local.
+ */
+describe('BUG-QA-I18N-COUNT-003 — le motif est interdit dans TOUT app/', () => {
+  const APP_ROOT = join(CHAT_DIR, '..', '..');
+
+  /** Collages voulus : le libellé commence par le suffixe de l'unité (« 12x », « 87% »). */
+  const DELIBERATE = ['chat.copy.x_74e0fa34', 'chat.copy.agreement_fc61aa8b', 'chat.copy.success_319e54bc'];
+
+  function tsxFiles(dir: string, found: string[] = []): string[] {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const full = join(dir, entry.name);
+
+      if (entry.isDirectory()) {
+        if (entry.name !== 'node_modules') {
+          tsxFiles(full, found);
+        }
+
+        continue;
+      }
+
+      if (entry.name.endsWith('.tsx') && !entry.name.includes('.spec.')) {
+        found.push(full);
+      }
+    }
+
+    return found;
+  }
+
+  it('aucune expression JSX collée à un libellé traduit, nulle part', () => {
+    const files = tsxFiles(APP_ROOT);
+    const offenders: string[] = [];
+
+    expect(files.length, 'le balayage doit trouver des fichiers').toBeGreaterThan(100);
+
+    for (const file of files) {
+      const source = readFileSync(file, 'utf8');
+      const isBaseChat = file.endsWith('BaseChat.tsx');
+      const [from, to] = isBaseChat ? frozenLineRange(source) : [-1, -1];
+      const lines = codeOnly(source).split('\n');
+
+      for (let i = 0; i < lines.length - 1; i += 1) {
+        // Le bloc mobile Terminal scellé est exclu, et lui seul (cf. note ci-dessus).
+        if (isBaseChat && i + 1 >= from && i + 1 < to) {
+          continue;
+        }
+
+        const current = lines[i].trim();
+        const next = lines[i + 1].trim();
+
+        if (!/^\{[^{}]*\}$/.test(current) || /^\{['"`]/.test(current)) {
+          continue;
+        }
+
+        if (!/^\{(t\(|copy\[)/.test(next) || DELIBERATE.some((key) => next.includes(key))) {
+          continue;
+        }
+
+        offenders.push(`${file.slice(APP_ROOT.length + 1)}:${i + 1}  ${current} + ${next}`);
+      }
     }
 
     expect(offenders, offenders.join('\n')).toEqual([]);
