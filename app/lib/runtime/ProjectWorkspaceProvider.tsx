@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/lib/runtime/RuntimeAdapterProvider';
 import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
+import { fetchAnyPortServing } from '~/lib/runtime/serving-ports';
 import { workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
 import {
   hasAdoptablePreviewPort,
@@ -194,13 +195,21 @@ export function ProjectWorkspaceProvider({
         }
 
         /*
-         * Observationnel uniquement : un port vivant ne conditionne plus
-         * l'adoption (voir `shouldReattachWarmWorkspace`). Attendre qu'il
-         * apparaisse a été mesuré comme inutile — après un reseed, le serveur de
-         * dev met plusieurs SECONDES à revenir, pas quelques centaines de
-         * millisecondes.
+         * Le signal « un port sert » vient du SERVEUR, pas du magasin client.
+         *
+         * Mesuré à l'écran : `previews` est VIDE au montage alors que le serveur
+         * répond `serving: true` au même instant. `setRuntime()` remet le magasin
+         * à `[]` à chaque configuration de l'adaptateur et relance `watchPorts`
+         * en fire-and-forget ; la décision tombe dans cette fenêtre
+         * d'hydratation. Interroger la source d'autorité supprime la course.
+         *
+         * Ce signal reste observationnel — il ne conditionne plus l'adoption
+         * (voir `shouldReattachWarmWorkspace`) — mais il doit être JUSTE : c'est
+         * lui qu'on lit dans la trace pour diagnostiquer une réouverture.
          */
-        const canAdoptPort = hasAdoptablePreviewPort(workbenchStore.previews.get());
+        const portsFromStore = hasAdoptablePreviewPort(workbenchStore.previews.get());
+        const portsFromServer = await fetchAnyPortServing(projectId);
+        const canAdoptPort = portsFromServer ?? portsFromStore;
 
         const reattachWarmWorkspace = shouldReattachWarmWorkspace({
           reused: session.reused === true,
@@ -233,7 +242,9 @@ export function ProjectWorkspaceProvider({
           seededThisSession: sessionAlreadySeeded,
           hasLivePort: canAdoptPort,
           portProbeSucceeded,
-          ports: workbenchStore.previews.get().map((preview) => ({
+          portsFromStore,
+          portsFromServer,
+          storeSnapshot: workbenchStore.previews.get().map((preview) => ({
             port: preview.port,
             ready: preview.ready,
             serving: preview.serving,
