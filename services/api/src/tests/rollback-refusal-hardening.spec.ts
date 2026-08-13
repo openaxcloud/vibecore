@@ -419,6 +419,230 @@ describe('rollback refusal — what the loser leaves behind', () => {
 
       await app.close();
     });
+
+    /* ================================================================
+     * The same reserve, but through the REAL HTTP client.
+     * ================================================================
+     *
+     * Everything above replaces `globalThis.fetch`, so it exercises the DECISION code
+     * while FABRICATING the failures it decides on: the timeout case throws a hand-made
+     * `TimeoutError`, the crash case a hand-made `TypeError{cause.code:'ECONNRESET'}`.
+     * Those shapes are my assumption about what undici produces — asserted nowhere.
+     *
+     * These tests keep the real global fetch and point WORKSPACE_MANAGER_URL at a real
+     * socket that misbehaves on purpose. That buys three things a stub cannot give:
+     *
+     *  - a real non-OK Response really drives `response.ok === false`;
+     *  - a real destroyed socket really surfaces as a THROW, not a silent `undefined`
+     *    (a swallowed network error is exactly the fail-open under audit);
+     *  - `AbortSignal.timeout` really FIRES. The stub throws instantly, so it proves
+     *    nothing about a manager that simply never answers. That case matters most:
+     *    the request runs while the rollback holds its serialised section, so a hang
+     *    would pin the advisory lock rather than fail closed.
+     */
+    describe('through the REAL http client (no fetch stub)', () => {
+      let server: import('node:http').Server | undefined;
+
+      afterEach(async () => {
+        if (server) {
+          const s = server;
+          server = undefined;
+          await new Promise<void>((resolve) => {
+            s.closeAllConnections?.();
+            s.close(() => resolve());
+          });
+        }
+      });
+
+      /** A real socket that misbehaves. `stop` decides what POST /stop does on the wire. */
+      async function realFaultyManager(opts: {
+        stop: 'http500' | 'destroy' | 'hang' | 'ok';
+        existsAfterStop: boolean;
+        statusHttp500?: boolean;
+      }) {
+        const http = await import('node:http');
+        const calls = { stop: 0, status: 0 };
+
+        server = http.createServer((req, res) => {
+          const url = req.url ?? '';
+
+          if (url.includes('/server-deployments/start')) {
+            res.writeHead(200, { 'content-type': 'application/json' });
+            res.end(JSON.stringify({ ready: true, url: 'https://real.test', name: 'app', readyReplicas: 1 }));
+
+            return;
+          }
+
+          if (url.includes('/stop')) {
+            calls.stop += 1;
+
+            if (opts.stop === 'http500') {
+              res.writeHead(500, { 'content-type': 'text/plain' });
+              res.end('manager exploded');
+
+              return;
+            }
+
+            // Kill the socket mid-request: no HTTP status is ever produced.
+            if (opts.stop === 'destroy') {
+              req.destroy();
+
+              return;
+            }
+
+            // Never answer. Only AbortSignal.timeout can end this.
+            if (opts.stop === 'hang') {
+              return;
+            }
+
+            res.writeHead(200, { 'content-type': 'application/json' });
+            res.end('{}');
+
+            return;
+          }
+
+          if (url.includes('/status')) {
+            calls.status += 1;
+
+            if (opts.statusHttp500) {
+              res.writeHead(500, { 'content-type': 'text/plain' });
+              res.end('status unavailable');
+
+              return;
+            }
+
+            res.writeHead(200, { 'content-type': 'application/json' });
+            res.end(
+              JSON.stringify({
+                exists: opts.existsAfterStop,
+                readyReplicas: opts.existsAfterStop ? 1 : 0,
+                replicas: 1,
+              }),
+            );
+
+            return;
+          }
+
+          res.writeHead(200, { 'content-type': 'application/json' });
+          res.end('{}');
+        });
+
+        await new Promise<void>((resolve) => server!.listen(0, '127.0.0.1', () => resolve()));
+
+        const address = server!.address() as { port: number };
+        process.env.WORKSPACE_MANAGER_URL = `http://127.0.0.1:${address.port}`;
+
+        return calls;
+      }
+
+      it('a REAL 500 on the wire → fail-closed incident (not a tidy FAILED+409)', async () => {
+        const store = new PausingSerializingStore();
+        const { app, token, projectId } = await setup(store);
+        const calls = await realFaultyManager({ stop: 'http500', existsAfterStop: true });
+
+        const v1 = await publishServer(store, projectId, 1, 'd-v1.test');
+        await publishServer(store, projectId, 2, 'd-v2.test');
+
+        const res = await losingServerRollback(store, app, token, projectId);
+
+        expect(calls.stop, 'the real socket must have been called').toBeGreaterThan(0);
+        expect(res.statusCode).toBe(500);
+        expect((res.json() as Record<string, unknown>).code).toBe('ROLLBACK_STALE_WORKLOAD_ACTIVE');
+
+        const row = (await store.listDeployments(projectId)).find((d) => d.rolledBackFromId === v1.id)!;
+        expect(row.status).not.toBe('FAILED');
+        expect((row.metadata as Record<string, unknown>).staleWorkloadActive).toBe(true);
+
+        await app.close();
+      });
+
+      it('a REAL destroyed socket → surfaces as a throw, never a silent success', async () => {
+        const store = new PausingSerializingStore();
+        const { app, token, projectId } = await setup(store);
+        const calls = await realFaultyManager({ stop: 'destroy', existsAfterStop: true });
+
+        await publishServer(store, projectId, 1, 'd-v1.test');
+        await publishServer(store, projectId, 2, 'd-v2.test');
+
+        const res = await losingServerRollback(store, app, token, projectId);
+
+        expect(calls.stop).toBeGreaterThan(0);
+        expect(res.statusCode).toBe(500);
+        expect((res.json() as Record<string, unknown>).code).toBe('ROLLBACK_STALE_WORKLOAD_ACTIVE');
+
+        await app.close();
+      });
+
+      it('a REAL status probe answering 500 → "cannot check" is not "it is gone"', async () => {
+        const store = new PausingSerializingStore();
+        const { app, token, projectId } = await setup(store);
+        const calls = await realFaultyManager({ stop: 'ok', existsAfterStop: false, statusHttp500: true });
+
+        await publishServer(store, projectId, 1, 'd-v1.test');
+        await publishServer(store, projectId, 2, 'd-v2.test');
+
+        const res = await losingServerRollback(store, app, token, projectId);
+
+        expect(calls.stop).toBeGreaterThan(0);
+        expect(calls.status, 'the disappearance must have been probed for real').toBeGreaterThan(0);
+        expect(res.statusCode).toBe(500);
+        expect((res.json() as Record<string, unknown>).code).toBe('ROLLBACK_STALE_WORKLOAD_ACTIVE');
+
+        await app.close();
+      });
+
+      it('a REAL 200 + real status JSON reporting gone → the normal 409 refusal', async () => {
+        const store = new PausingSerializingStore();
+        const { app, token, projectId } = await setup(store);
+        const calls = await realFaultyManager({ stop: 'ok', existsAfterStop: false });
+
+        const v1 = await publishServer(store, projectId, 1, 'd-v1.test');
+        await publishServer(store, projectId, 2, 'd-v2.test');
+
+        const res = await losingServerRollback(store, app, token, projectId);
+
+        expect(calls.stop).toBeGreaterThan(0);
+        expect(calls.status).toBeGreaterThan(0);
+        expect(res.statusCode).toBe(409);
+        expect((res.json() as Record<string, unknown>).code).toBe('ROLLBACK_RELEASE_MOVED');
+
+        const row = (await store.listDeployments(projectId)).find((d) => d.rolledBackFromId === v1.id)!;
+        expect(row.status).toBe('FAILED');
+        expect((row.metadata as Record<string, unknown>).staleWorkloadActive).toBeUndefined();
+
+        await app.close();
+      });
+
+      /*
+       * The one a stub structurally cannot make: a manager that ACCEPTS the connection and
+       * then never answers. The assertion that matters is not the status code but that the
+       * call TERMINATES — bounded by the client's own 30 s abort. If AbortSignal.timeout
+       * did not fire, this request would hang while holding the serialised section.
+       */
+      it('a manager that NEVER answers → the client aborts itself; the call does not hang', async () => {
+        const store = new PausingSerializingStore();
+        const { app, token, projectId } = await setup(store);
+        const calls = await realFaultyManager({ stop: 'hang', existsAfterStop: true });
+
+        await publishServer(store, projectId, 1, 'd-v1.test');
+        await publishServer(store, projectId, 2, 'd-v2.test');
+
+        const startedAt = Date.now();
+        const res = await losingServerRollback(store, app, token, projectId);
+        const elapsedMs = Date.now() - startedAt;
+
+        expect(calls.stop).toBeGreaterThan(0);
+        expect(res.statusCode).toBe(500);
+        expect((res.json() as Record<string, unknown>).code).toBe('ROLLBACK_STALE_WORKLOAD_ACTIVE');
+
+        // It really WAITED for the abort rather than failing early for some other reason...
+        expect(elapsedMs, 'must have waited on the real 30s abort').toBeGreaterThan(25_000);
+        // ...and the abort really FIRED rather than hanging forever.
+        expect(elapsedMs).toBeLessThan(70_000);
+
+        await app.close();
+      }, 90_000);
+    });
   });
 
   /* ==================================================================
