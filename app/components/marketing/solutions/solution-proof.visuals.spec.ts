@@ -40,6 +40,45 @@ const FILENAMES = {
 
 const CAPTURE_FILENAMES = SOLUTION_PROOF_VISUAL_SLOTS.map((slot) => `${FILENAMES[slot]}.png`);
 
+type SolutionProofLanguage = (typeof LANGUAGES)[number];
+type PreviewDevice = 'desktop' | 'tablet' | 'mobile';
+type ResponsiveAuditExpectation = {
+  stage: string;
+  device: PreviewDevice;
+};
+
+/*
+ * capture-app-builder-ide-proof.ts emits these top-level audits in this exact
+ * order. French gets one additional tablet pass before the preview capture;
+ * its overview capture then exercises mobile while English exercises tablet.
+ */
+const RESPONSIVE_STATE_AUDIT_EXPECTATIONS = {
+  en: [
+    { stage: 'initial', device: 'desktop' },
+    { stage: 'overview', device: 'tablet' },
+    { stage: 'interaction', device: 'desktop' },
+    { stage: 'interaction', device: 'mobile' },
+    { stage: 'files', device: 'desktop' },
+  ],
+  fr: [
+    { stage: 'initial', device: 'desktop' },
+    { stage: 'preview', device: 'tablet' },
+    { stage: 'overview', device: 'mobile' },
+    { stage: 'interaction', device: 'desktop' },
+    { stage: 'interaction', device: 'mobile' },
+    { stage: 'files', device: 'desktop' },
+  ],
+} as const satisfies Record<SolutionProofLanguage, readonly ResponsiveAuditExpectation[]>;
+
+/*
+ * Each filename is captured in light and dark at the selected real Preview
+ * device. The order matches CAPTURE_FILENAMES/SOLUTION_PROOF_VISUAL_SLOTS.
+ */
+const THEMED_CAPTURE_DEVICE_EXPECTATIONS = {
+  en: ['desktop', 'desktop', 'tablet', 'desktop', 'mobile', 'desktop'],
+  fr: ['desktop', 'tablet', 'mobile', 'desktop', 'mobile', 'desktop'],
+} as const satisfies Record<SolutionProofLanguage, readonly PreviewDevice[]>;
+
 const PROMOTED_OUTPUT_FIELDS = {
   prompt: 'promptOutput',
   preview: 'previewOutput',
@@ -190,14 +229,103 @@ function expectCleanShell(value: unknown, label: string) {
   );
 }
 
-function expectResponsiveAudit(value: unknown, label: string) {
+function expectResponsiveAudit(value: unknown, label: string, expected?: ResponsiveAuditExpectation) {
   const responsive = asRecord(value, label);
+
+  const identity = {
+    stage: asString(responsive.stage, `${label}.stage`),
+    device: asString(responsive.device, `${label}.device`),
+  };
+
+  expect(identity.device, `${label}.device`).toMatch(/^(?:desktop|tablet|mobile)$/);
+
+  if (expected) {
+    expect(identity, `${label} stage/device`).toEqual(expected);
+  }
 
   expect(responsive.identityVisible, label).toBe(true);
   expect(responsive.horizontalOverflow, label).toBeLessThanOrEqual(1);
   expect(responsive.textLength, label).toBeGreaterThanOrEqual(80);
   expect(responsive.imageBytes, label).toBeGreaterThanOrEqual(6_000);
   expect(responsive.entropy, label).toBeGreaterThanOrEqual(0.15);
+
+  return responsive;
+}
+
+function expectResponsiveStateAuditCoverage(value: unknown, label: string, language: SolutionProofLanguage) {
+  const audits = asArray(value, label);
+  const expected = RESPONSIVE_STATE_AUDIT_EXPECTATIONS[language];
+
+  expect(audits, label).toHaveLength(expected.length);
+
+  for (const [auditIndex, auditValue] of audits.entries()) {
+    const auditExpectation = expected[auditIndex];
+
+    if (!auditExpectation) {
+      throw new Error(`${label}[${auditIndex}] has no declared ${language.toUpperCase()} responsive state`);
+    }
+
+    expectResponsiveAudit(auditValue, `${label}[${auditIndex}]`, auditExpectation);
+  }
+
+  const coveredDevices = new Set(
+    audits.map((auditValue, auditIndex) =>
+      asString(asRecord(auditValue, `${label}[${auditIndex}]`).device, `${label}[${auditIndex}].device`),
+    ),
+  );
+
+  expect(coveredDevices, `${label} device coverage`).toEqual(new Set<PreviewDevice>(['desktop', 'tablet', 'mobile']));
+
+  return audits;
+}
+
+function expectThemedCaptureCoverage(value: unknown, label: string, language: SolutionProofLanguage) {
+  const audits = asArray(value, label);
+  const expectedDevices = THEMED_CAPTURE_DEVICE_EXPECTATIONS[language];
+
+  expect(audits, label).toHaveLength(CAPTURE_FILENAMES.length);
+  expect(
+    audits.map((auditValue, auditIndex) => asRecord(auditValue, `${label}[${auditIndex}]`).filename),
+    `${label} filenames`,
+  ).toEqual(CAPTURE_FILENAMES);
+  expect(expectedDevices, `${label} fixture/device alignment`).toHaveLength(CAPTURE_FILENAMES.length);
+
+  for (const [auditIndex, auditValue] of audits.entries()) {
+    const auditLabel = `${label}[${auditIndex}]`;
+    const audit = asRecord(auditValue, auditLabel);
+    const filename = asString(audit.filename, `${auditLabel}.filename`);
+    const expectedDevice = expectedDevices[auditIndex];
+    const states = asArray(audit.states, `${auditLabel}.states`);
+
+    if (!expectedDevice) {
+      throw new Error(`${auditLabel} has no declared ${language.toUpperCase()} Preview device`);
+    }
+
+    expect(states, `${auditLabel}.states`).toHaveLength(SOLUTION_PROOF_VISUAL_THEMES.length);
+
+    for (const [stateIndex, stateValue] of states.entries()) {
+      const stateLabel = `${auditLabel}.states[${stateIndex}]`;
+      const state = asRecord(stateValue, stateLabel);
+      const expectedTheme = SOLUTION_PROOF_VISUAL_THEMES[stateIndex];
+
+      if (!expectedTheme) {
+        throw new Error(`${stateLabel} has no declared capture theme`);
+      }
+
+      expect(state.theme, `${stateLabel}.theme`).toBe(expectedTheme);
+      expect(state.device, `${stateLabel}.device`).toBe(expectedDevice);
+      expectResponsiveAudit(state.responsive, `${stateLabel}.responsive`, {
+        stage: `${filename.replace(/\.png$/u, '')}-${expectedTheme}`,
+        device: expectedDevice,
+      });
+    }
+  }
+
+  const coveredDevices = new Set(expectedDevices);
+
+  expect(coveredDevices, `${label} device coverage`).toEqual(new Set<PreviewDevice>(['desktop', 'tablet', 'mobile']));
+
+  return audits;
 }
 
 function expectPromptSurfaceProvenance(value: unknown, label: string, prompt: string) {
@@ -425,6 +553,102 @@ describe('theme-aware solution proof visual registry', () => {
       ),
     ).toThrow();
   });
+
+  it('rejects incomplete or mislabeled top-level responsive manifest coverage', () => {
+    const fixture = (language: SolutionProofLanguage) =>
+      RESPONSIVE_STATE_AUDIT_EXPECTATIONS[language].map((expected) => ({
+        ...expected,
+        identityVisible: true,
+        horizontalOverflow: 0,
+        textLength: 240,
+        imageBytes: 12_000,
+        entropy: 0.75,
+      }));
+
+    const english = fixture('en');
+    const french = fixture('fr');
+
+    expect(() => expectResponsiveStateAuditCoverage(english, 'english-responsive', 'en')).not.toThrow();
+    expect(() => expectResponsiveStateAuditCoverage(french, 'french-responsive', 'fr')).not.toThrow();
+    expect(english).toHaveLength(5);
+    expect(french).toHaveLength(6);
+
+    expect(() => expectResponsiveStateAuditCoverage(english.slice(0, -1), 'missing-english-state', 'en')).toThrow();
+    expect(() =>
+      expectResponsiveStateAuditCoverage(
+        english.map((audit, index) => (index === 1 ? { ...audit, device: 'desktop' } : audit)),
+        'wrong-english-device',
+        'en',
+      ),
+    ).toThrow();
+    expect(() =>
+      expectResponsiveStateAuditCoverage(
+        french.map((audit, index) => (index === 1 ? { ...audit, stage: 'overview' } : audit)),
+        'wrong-french-stage',
+        'fr',
+      ),
+    ).toThrow();
+  });
+
+  it('rejects missing slots, themes, or locale-specific devices in themed manifest coverage', () => {
+    const fixture = (language: SolutionProofLanguage) =>
+      CAPTURE_FILENAMES.map((filename, auditIndex) => {
+        const device = THEMED_CAPTURE_DEVICE_EXPECTATIONS[language][auditIndex];
+
+        if (!device) {
+          throw new Error(`Missing ${language} fixture device for ${filename}`);
+        }
+
+        return {
+          filename,
+          states: SOLUTION_PROOF_VISUAL_THEMES.map((theme) => ({
+            theme,
+            device,
+            responsive: {
+              stage: `${filename.replace(/\.png$/u, '')}-${theme}`,
+              device,
+              identityVisible: true,
+              horizontalOverflow: 0,
+              textLength: 240,
+              imageBytes: 12_000,
+              entropy: 0.75,
+            },
+          })),
+        };
+      });
+
+    const english = fixture('en');
+    const french = fixture('fr');
+
+    expect(() => expectThemedCaptureCoverage(english, 'english-themed', 'en')).not.toThrow();
+    expect(() => expectThemedCaptureCoverage(french, 'french-themed', 'fr')).not.toThrow();
+    expect(() => expectThemedCaptureCoverage(english.slice(0, -1), 'missing-slot', 'en')).toThrow();
+    expect(() =>
+      expectThemedCaptureCoverage(
+        english.map((audit, index) => (index === 0 ? { ...audit, states: audit.states.slice(0, 1) } : audit)),
+        'missing-dark-state',
+        'en',
+      ),
+    ).toThrow();
+    expect(() =>
+      expectThemedCaptureCoverage(
+        french.map((audit, index) =>
+          index === 1
+            ? {
+                ...audit,
+                states: audit.states.map((state) => ({
+                  ...state,
+                  device: 'desktop',
+                  responsive: { ...state.responsive, device: 'desktop' },
+                })),
+              }
+            : audit,
+        ),
+        'wrong-french-preview-device',
+        'fr',
+      ),
+    ).toThrow();
+  });
 });
 
 describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof WebP files', () => {
@@ -491,13 +715,11 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
         expect(runtimePromotionProof.matchingReads, label).toBeGreaterThanOrEqual(4);
         expect(runtimePromotionProof.stableForMs, label).toBeGreaterThanOrEqual(12_000);
 
-        const audits = asArray(manifest.themedCaptureAudits, `${label}.themedCaptureAudits`);
-
-        expect(audits, label).toHaveLength(6);
-        expect(
-          audits.map((value, index) => asRecord(value, `${label}.themedCaptureAudits[${index}]`).filename),
-          label,
-        ).toEqual(CAPTURE_FILENAMES);
+        const audits = expectThemedCaptureCoverage(
+          manifest.themedCaptureAudits,
+          `${label}.themedCaptureAudits`,
+          language,
+        );
 
         for (const [auditIndex, value] of audits.entries()) {
           const auditLabel = `${label}.themedCaptureAudits[${auditIndex}]`;
@@ -506,11 +728,6 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
           const states = asArray(audit.states, `${auditLabel}.states`);
           const difference = asRecord(audit.themeDifference, `${auditLabel}.themeDifference`);
 
-          expect(states, auditLabel).toHaveLength(2);
-          expect(
-            states.map((state, stateIndex) => asRecord(state, `${auditLabel}.states[${stateIndex}]`).theme),
-            auditLabel,
-          ).toEqual([...SOLUTION_PROOF_VISUAL_THEMES]);
           expect(difference.changedPixelRatio, auditLabel).toBeGreaterThanOrEqual(0.02);
           expect(difference.meanAbsoluteDifference, auditLabel).toBeGreaterThanOrEqual(2);
 
@@ -521,7 +738,6 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
             const provenance = expectCleanRuntimeProvenance(state.provenance, `${stateLabel}.provenance`);
 
             expectCleanShell(state.shell, `${stateLabel}.shell`);
-            expectResponsiveAudit(state.responsive, `${stateLabel}.responsive`);
             expect(applicationTheme.activeTheme, stateLabel).toBe(state.theme);
             expect(applicationTheme.strategy, stateLabel).toMatch(
               /^(?:explicit-state-already-applied|visible-runtime-control)$/,
@@ -553,12 +769,7 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
           }
         }
 
-        for (const [auditIndex, value] of asArray(
-          manifest.responsiveStateAudits,
-          `${label}.responsiveStateAudits`,
-        ).entries()) {
-          expectResponsiveAudit(value, `${label}.responsiveStateAudits[${auditIndex}]`);
-        }
+        expectResponsiveStateAuditCoverage(manifest.responsiveStateAudits, `${label}.responsiveStateAudits`, language);
       }
     }
   });
