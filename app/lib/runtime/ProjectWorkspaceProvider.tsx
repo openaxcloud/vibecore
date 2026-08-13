@@ -7,6 +7,7 @@ import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
 import { workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
 import {
   hasAdoptablePreviewPort,
+  probeAdoptablePortWithRetry,
   reseedWorkspacePreservingOnFailure,
   shouldReattachWarmWorkspace,
 } from '~/lib/runtime/workspace-reattach';
@@ -193,10 +194,26 @@ export function ProjectWorkspaceProvider({
           return;
         }
 
+        /*
+         * La sonde a pu résoudre AVANT que l'agent du pod n'ait rapporté le port
+         * du serveur de dev : le magasin est alors vide, et « vide » se lit comme
+         * « rien ne tourne ». On ne conclut donc qu'après une ré-sonde courte, et
+         * seulement quand elle peut changer la décision (pod chaud ET déjà semé)
+         * — les autres cas ne sont pas ralentis d'une milliseconde.
+         */
+        const canAdoptPort =
+          session.reused === true && sessionAlreadySeeded
+            ? await probeAdoptablePortWithRetry({
+                refresh: () => workbenchStore.refreshRuntimePorts(),
+                readPorts: () => workbenchStore.previews.get(),
+                wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+              })
+            : hasAdoptablePreviewPort(workbenchStore.previews.get());
+
         const reattachWarmWorkspace = shouldReattachWarmWorkspace({
           reused: session.reused === true,
           seededThisSession: sessionAlreadySeeded,
-          hasLivePort: hasAdoptablePreviewPort(workbenchStore.previews.get()),
+          hasLivePort: canAdoptPort,
           portProbeSucceeded,
 
           /*
@@ -222,8 +239,13 @@ export function ProjectWorkspaceProvider({
         console.info('[workspace] reattach decision', {
           reused: session.reused === true,
           seededThisSession: sessionAlreadySeeded,
-          hasLivePort: hasAdoptablePreviewPort(workbenchStore.previews.get()),
+          hasLivePort: canAdoptPort,
           portProbeSucceeded,
+          ports: workbenchStore.previews.get().map((preview) => ({
+            port: preview.port,
+            ready: preview.ready,
+            serving: preview.serving,
+          })),
           seededRevision,
           currentRevision,
           decision: reattachWarmWorkspace ? 'reattach' : 'reseed',

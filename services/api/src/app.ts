@@ -16756,6 +16756,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             ...port,
             type: 'open',
             ready: true,
+            serving: true,
             url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
           };
         }
@@ -16777,6 +16778,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ...port,
           type: 'open',
           ready: verdict.ready,
+
+          /*
+           * `serving` ne retient que les deux signaux qui disent si le pod chaud
+           * peut être ADOPTÉ : le port répond, un processus vivant le détient.
+           * `ready` y ajoute le statut manager et le beacon client — pertinents
+           * pour décider d'AFFICHER un aperçu, hors sujet pour décider de ne pas
+           * effacer un espace de travail qui tourne. Le statut manager retarde
+           * notoirement à la réouverture (« that row legitimately lags at
+           * PENDING/STARTING »), et le beacon reflète le rendu de la page
+           * précédente : tous deux faisaient reseeder un pod parfaitement sain.
+           */
+          serving: portReady && Boolean(port.processId),
           ...(verdict.blockedBy ? { notReadyReason: verdict.blockedBy } : {}),
           url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
         };

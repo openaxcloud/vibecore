@@ -83,8 +83,80 @@ export interface WarmReattachSignals {
  * et a déjà été corrigée en ce sens. Cette variante est donc locale à la
  * décision de reattach, et alignée sur le voisin qui pose la même question.
  */
-export function hasAdoptablePreviewPort(ports?: readonly { ready?: boolean }[] | null): boolean {
-  return (ports ?? []).some((port) => port.ready !== false);
+export function hasAdoptablePreviewPort(ports?: readonly { ready?: boolean; serving?: boolean }[] | null): boolean {
+  return (ports ?? []).some((port) => {
+    /*
+     * Quand le runtime sait répondre « ce port SERT » (le port répond ET un
+     * processus vivant le détient), c'est CE signal qui décide — c'est
+     * exactement la question posée ici. `ready` y ajoute le statut manager et le
+     * beacon client : le premier retarde à la réouverture, le second reflète le
+     * rendu de la page PRÉCÉDENTE. Mesuré en réel sur un pod sain servant
+     * `port 5173` : `ready:false, notReadyReason:'manager'` — et la réouverture
+     * effaçait l'espace de travail.
+     */
+    if (typeof port.serving === 'boolean') {
+      return port.serving;
+    }
+
+    // Runtime qui ne calcule pas `serving` (WebContainer, API antérieure).
+    return port.ready !== false;
+  });
+}
+
+/*
+ * BUG-RUNTIME-DIVERGENCE — laisser aux ports le temps d'apparaître AVANT de
+ * conclure qu'il n'y en a pas.
+ *
+ * La sonde de ports est lancée juste après `startWorkspace`. Sur une
+ * réouverture, elle peut résoudre avant que l'agent du pod n'ait rapporté le
+ * port du serveur de dev : le magasin est alors vide, et « vide » est
+ * interprété comme « rien ne tourne » — donc on efface un espace de travail
+ * parfaitement sain.
+ *
+ * Cette ré-sonde est délibérément COURTE et BORNÉE : elle ne s'exécute que
+ * lorsqu'elle peut changer la décision (pod chaud ET déjà semé), et elle
+ * s'arrête au premier port adoptable. Un pod réellement vide coûte donc au plus
+ * `attempts × delayMs` avant d'être reseedé comme avant.
+ */
+export async function probeAdoptablePortWithRetry(steps: {
+  /** Relance la sonde de ports (peut lever : l'appelant décide quoi en faire). */
+  refresh: () => Promise<void>;
+
+  /** Lit l'état courant du magasin de previews. */
+  readPorts: () => readonly { ready?: boolean; serving?: boolean }[];
+
+  /** Attente entre deux tentatives. */
+  wait: (ms: number) => Promise<void>;
+
+  attempts?: number;
+  delayMs?: number;
+}): Promise<boolean> {
+  const attempts = steps.attempts ?? 3;
+  const delayMs = steps.delayMs ?? 400;
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (hasAdoptablePreviewPort(steps.readPorts())) {
+      return true;
+    }
+
+    // Pas de ré-sonde après la dernière lecture : elle ne servirait à rien.
+    if (attempt === attempts - 1) {
+      break;
+    }
+
+    await steps.wait(delayMs);
+
+    try {
+      await steps.refresh();
+    } catch {
+      /*
+       * Une ré-sonde en échec ne dit rien du pod : on continue avec ce que le
+       * magasin contient déjà plutôt que d'abandonner la boucle.
+       */
+    }
+  }
+
+  return hasAdoptablePreviewPort(steps.readPorts());
 }
 
 export function shouldReattachWarmWorkspace(signals: WarmReattachSignals): boolean {

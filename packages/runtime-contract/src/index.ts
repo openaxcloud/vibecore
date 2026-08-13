@@ -131,6 +131,24 @@ export interface WorkspacePort {
   type: 'open' | 'close';
   url?: string;
   ready?: boolean;
+
+  /*
+   * BUG-RUNTIME-DIVERGENCE — « ce port SERT-il réellement ? »
+   *
+   * `ready` répond à une AUTRE question : « cet aperçu est-il sûr à afficher ».
+   * Il agrège quatre signaux, dont le statut côté manager et le dernier compte
+   * rendu de rendu du client. Ces deux-là sont des vetos légitimes pour décider
+   * d'afficher ou de relancer un aperçu — et hors sujet pour décider si l'on
+   * peut ADOPTER un pod chaud plutôt que de l'effacer : le statut manager
+   * retarde notoirement à la réouverture, et le beacon reflète le rendu de la
+   * page PRÉCÉDENTE.
+   *
+   * `serving` ne porte que les deux signaux qui répondent à la question
+   * d'adoption : le port répond à une sonde ET un processus vivant le détient.
+   * Absent quand le runtime ne sait pas le calculer (WebContainer, API
+   * antérieure) : l'appelant retombe alors sur `ready`.
+   */
+  serving?: boolean;
 }
 
 export interface PreviewRoute {
@@ -194,6 +212,7 @@ export interface RuntimeAdapter {
   getWorkspaceStatus(workspaceId?: string): Promise<WorkspaceSession>;
 
   listFiles(path?: string): Promise<FileNode[]>;
+
   /**
    * Read a file's content. Binary files (images/fonts/wasm) come back base64-
    * encoded with `encoding: 'base64'`; text comes back as utf8 (encoding 'utf8'

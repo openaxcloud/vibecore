@@ -14,6 +14,14 @@ export interface PreviewInfo {
   port: number;
   ready: boolean;
   baseUrl: string;
+
+  /*
+   * Le port répond ET un processus vivant le détient — voir `WorkspacePort.serving`.
+   * Distinct de `ready`, qui agrège en plus le statut manager et le beacon client.
+   * Conservé ici pour que la décision de reattach puisse poser SA question
+   * (« puis-je adopter ce pod ? ») sans hériter de vetos faits pour une autre.
+   */
+  serving?: boolean;
 }
 
 // Create a broadcast channel for preview updates
@@ -344,7 +352,7 @@ export class PreviewsStore {
     }
   }
 
-  #applyPortEvent({ port, type, url, ready }: WorkspacePort) {
+  #applyPortEvent({ port, type, url, ready, serving }: WorkspacePort) {
     let previewInfo = this.#availablePreviews.get(port);
 
     if (type === 'close' && previewInfo) {
@@ -370,12 +378,13 @@ export class PreviewsStore {
     const urlChanged = Boolean(previewInfo && previewInfo.baseUrl !== url);
 
     if (!previewInfo) {
-      previewInfo = { port, ready: ready ?? type === 'open', baseUrl: url };
+      previewInfo = { port, ready: ready ?? type === 'open', serving, baseUrl: url };
       this.#availablePreviews.set(port, previewInfo);
       previews.push(previewInfo);
     }
 
     previewInfo.ready = ready ?? type === 'open';
+    previewInfo.serving = serving;
     previewInfo.baseUrl = url;
 
     this.previews.set([...previews]);

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   hasAdoptablePreviewPort,
+  probeAdoptablePortWithRetry,
   reseedWorkspacePreservingOnFailure,
   shouldReattachWarmWorkspace,
 } from './workspace-reattach';
@@ -134,5 +135,115 @@ describe('hasAdoptablePreviewPort — signal 2, second volet', () => {
 
   it('adopte dès qu_UN port est adoptable', () => {
     expect(hasAdoptablePreviewPort([{ ready: false }, { ready: undefined }])).toBe(true);
+  });
+});
+
+describe('hasAdoptablePreviewPort — `serving` prime sur `ready`', () => {
+  /*
+   * Cause RACINE mesurée en réel : sur un pod sain servant `port 5173`, la route
+   * runtime répondait `ready:false, notReadyReason:'manager'`. `ready` agrège
+   * quatre signaux pour répondre à « cet aperçu est-il sûr à afficher » ; deux
+   * d'entre eux — statut manager, beacon du rendu PRÉCÉDENT — n'ont rien à dire
+   * sur « puis-je adopter ce pod ». La réouverture effaçait donc un espace de
+   * travail qui tournait.
+   */
+  it('adopte un port qui SERT, même si `ready` est faux (veto manager)', () => {
+    expect(hasAdoptablePreviewPort([{ ready: false, serving: true }])).toBe(true);
+  });
+
+  it('refuse un port qui NE sert pas, même si `ready` est vrai', () => {
+    // L'inverse doit valoir aussi : `serving` est la réponse, pas un assouplissement.
+    expect(hasAdoptablePreviewPort([{ ready: true, serving: false }])).toBe(false);
+  });
+
+  it('retombe sur `ready` quand le runtime ne calcule pas `serving`', () => {
+    expect(hasAdoptablePreviewPort([{ ready: true }])).toBe(true);
+    expect(hasAdoptablePreviewPort([{ ready: undefined }])).toBe(true);
+    expect(hasAdoptablePreviewPort([{ ready: false }])).toBe(false);
+  });
+
+  it('adopte dès qu_UN port sert, parmi plusieurs', () => {
+    expect(hasAdoptablePreviewPort([{ serving: false }, { serving: true }])).toBe(true);
+  });
+
+  it('l_absence de port reste un refus', () => {
+    expect(hasAdoptablePreviewPort([])).toBe(false);
+  });
+});
+
+describe('probeAdoptablePortWithRetry — laisser aux ports le temps d_apparaître', () => {
+  function harness(sequence: Array<Array<{ ready?: boolean; serving?: boolean }>>) {
+    let call = 0;
+
+    const waits: number[] = [];
+    const refreshes: number[] = [];
+
+    return {
+      waits,
+      refreshes,
+      steps: {
+        readPorts: () => sequence[Math.min(call, sequence.length - 1)],
+        refresh: async () => {
+          call += 1;
+          refreshes.push(call);
+        },
+        wait: async (ms: number) => {
+          waits.push(ms);
+        },
+      },
+    };
+  }
+
+  it('rend vrai immédiatement quand un port sert déjà (aucune attente)', async () => {
+    const h = harness([[{ serving: true }]]);
+
+    await expect(probeAdoptablePortWithRetry(h.steps)).resolves.toBe(true);
+    expect(h.waits).toEqual([]);
+    expect(h.refreshes).toEqual([]);
+  });
+
+  it('rend vrai quand le port apparaît à la DEUXIÈME lecture', async () => {
+    // Le cas réel : la sonde a résolu avant que l'agent n'ait rapporté le port.
+    const h = harness([[], [{ serving: true }]]);
+
+    await expect(probeAdoptablePortWithRetry(h.steps)).resolves.toBe(true);
+    expect(h.waits).toHaveLength(1);
+  });
+
+  it('abandonne après le nombre de tentatives, sans boucler', async () => {
+    const h = harness([[]]);
+
+    await expect(probeAdoptablePortWithRetry({ ...h.steps, attempts: 3 })).resolves.toBe(false);
+
+    // 3 lectures ⇒ 2 attentes seulement : on ne re-sonde pas après la dernière.
+    expect(h.waits).toHaveLength(2);
+  });
+
+  it('une ré-sonde qui LÈVE n_interrompt pas la boucle', async () => {
+    let reads = 0;
+
+    const ports: Array<{ serving?: boolean }> = [];
+
+    const result = await probeAdoptablePortWithRetry({
+      readPorts: () => {
+        reads += 1;
+
+        // Le port finit par apparaître malgré l'échec de la ré-sonde.
+        return reads >= 3 ? [{ serving: true }] : ports;
+      },
+      refresh: async () => {
+        throw new Error('agent 502');
+      },
+      wait: async () => undefined,
+    });
+
+    expect(result).toBe(true);
+  });
+
+  it('respecte le délai demandé', async () => {
+    const h = harness([[]]);
+
+    await probeAdoptablePortWithRetry({ ...h.steps, attempts: 2, delayMs: 250 });
+    expect(h.waits).toEqual([250]);
   });
 });
