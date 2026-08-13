@@ -6,10 +6,19 @@
  * tabIndex={-1} so focus lands on it after activation.
  */
 export function SkipLink({
-  label = 'Skip to content',
+  label,
   targetId = 'main-content',
 }: {
-  label?: string;
+  /*
+   * OBLIGATOIRE, et non un défaut anglais. Le défaut `'Skip to content'`
+   * partait en silence dans TOUTE la zone authentifiée : la coquille marketing
+   * passait bien un libellé localisé, `SaaSLayout` non — un visiteur français
+   * recevait donc de l'anglais sur le PREMIER élément focusable de chaque page.
+   * Le scanner de résidus ne le voyait pas : une valeur par défaut de paramètre
+   * n'est pas un littéral rendu. Rendre le prop requis fait échouer la
+   * compilation plutôt que la traduction.
+   */
+  label: string;
   targetId?: string;
 }) {
   return (

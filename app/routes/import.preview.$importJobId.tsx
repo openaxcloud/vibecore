@@ -43,16 +43,25 @@ type PreviewFinding = {
   preview: string;
 };
 
+/*
+ * Forme RÉELLE de `GET /orgs/:orgId/imports/:importJobId` : la route étale la
+ * ligne de job et place l'aperçu dans un sous-objet `preview`, qui vaut `null`
+ * dès que la copie jetable est disposée (commit, annulation, expiration,
+ * rollback). Lire l'aperçu à plat sur `import` renvoyait `undefined` et faisait
+ * planter l'écran sur `.length` — attrapé en live le 2026-08-13.
+ */
 type PreviewPayload = {
   import: {
-    importJobId: string;
+    id: string;
     state: string;
     provider: string;
-    sourceRef: string | null;
-    findings: PreviewFinding[];
-    stagedFileCount: number;
-    stagedFiles: Array<{ path: string; sizeBytes: number }>;
-    requiresConsent: boolean;
+    sourceRef?: string | null;
+    preview: {
+      findings: PreviewFinding[];
+      stagedFileCount: number;
+      stagedFiles: Array<{ path: string; sizeBytes: number }>;
+      requiresConsent: boolean;
+    } | null;
   };
 };
 
@@ -121,11 +130,22 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     throw new Response(null, { status: error instanceof Response ? error.status : 404 });
   }
 
+  /*
+   * `preview: null` = la copie jetable a été disposée. Il n'y a plus rien à
+   * décider, et afficher « 0 fichier » se lirait comme « un import vide » :
+   * on renvoie l'utilisateur au hub avec la raison.
+   */
+  if (!payload.import.preview) {
+    return redirect('/import?staging=gone');
+  }
+
   return json(
     {
       language: localeResolution.language,
       organizationSlug: organization.slug,
-      preview: payload.import,
+      state: payload.import.state,
+      sourceRef: payload.import.sourceRef ?? null,
+      preview: payload.import.preview,
       providerLabel:
         getImportHubProvider(payload.import.provider, localeResolution.language)?.label ?? payload.import.provider,
     },
@@ -222,7 +242,7 @@ function FindingRow({ finding, copy }: { finding: PreviewFinding; copy: ImportHu
 }
 
 export default function ImportPreviewPage() {
-  const { preview, providerLabel } = useLoaderData<typeof loader>();
+  const { preview, providerLabel, sourceRef } = useLoaderData<typeof loader>();
   const { i18n } = useTranslation();
   const copy = getImportHubCopy(i18n.resolvedLanguage ?? i18n.language);
   const actionData = useActionData<typeof action>() as ImportPreviewActionData | undefined;
@@ -244,9 +264,7 @@ export default function ImportPreviewPage() {
 
         <p className="break-words text-sm text-bolt-elements-textSecondary">
           <span className="font-medium">{copy['importHub.preview.source']}</span> — {providerLabel}
-          {preview.sourceRef
-            ? ` · ${formatImportHubCopy(copy['importHub.preview.sourceRef'], { ref: preview.sourceRef })}`
-            : ''}
+          {sourceRef ? ` · ${formatImportHubCopy(copy['importHub.preview.sourceRef'], { ref: sourceRef })}` : ''}
         </p>
 
         <h2 className="mt-5 flex items-center gap-2 text-sm font-semibold">
