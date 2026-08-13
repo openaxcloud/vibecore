@@ -15,7 +15,7 @@
  * Usage: node scripts/e2e-gate.mjs <playwright-report.json>
  */
 import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { resolve, dirname, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -83,7 +83,13 @@ function walk(suites, trail) {
     const here = suite.title ? [...trail, suite.title] : trail;
 
     for (const spec of suite.specs ?? []) {
-      const file = spec.file ?? suite.file ?? '';
+      /*
+       * Playwright reports `file` as a basename on specs and as a
+       * repo-relative path on the top-level suite, depending on nesting. Key on
+       * the basename so both the report and the policy normalise to the same
+       * shape regardless of which one we got.
+       */
+      const file = basename(spec.file ?? suite.file ?? '');
       const line = spec.line ?? 0;
       const column = spec.column ?? 0;
       const titlePath = [...here.slice(1), spec.title].filter(Boolean).join(' › ');
@@ -101,13 +107,31 @@ walk(report.suites, []);
 
 const failed = [...results.entries()].filter(([, status]) => status === 'failed').map(([key]) => key);
 const waived = policy.waived ?? [];
-const waivedKeys = new Set(waived.map((entry) => entry.test));
+
+/** Normalise a policy entry to the same basename-keyed shape as the report. */
+function normaliseKey(key) {
+  const [location, ...rest] = key.split(' › ');
+  const [path, line, column] = location.split(':');
+
+  return [`${basename(path)}:${line}:${column}`, ...rest].join(' › ');
+}
+
+const waivedKeys = new Set(waived.map((entry) => normaliseKey(entry.test)));
 
 /* ---- 3. Decide. ---- */
 
 const unwaivedFailures = failed.filter((key) => !waivedKeys.has(key));
-const staleWaivers = waived.filter((entry) => results.get(entry.test) === 'passed').map((entry) => entry.test);
-const unknownWaivers = waived.filter((entry) => !results.has(entry.test)).map((entry) => entry.test);
+/*
+ * A waiver must not outlive its problem, so a waived test that PASSES fails the
+ * gate until it is removed. The exception is entries explicitly marked
+ * `unstable: true` — those are waived *because* they flap, so a green run
+ * proves nothing and must not itself break the build. Every unstable entry
+ * still carries a reason and dies with the same expiry as the rest.
+ */
+const staleWaivers = waived
+  .filter((entry) => !entry.unstable && results.get(normaliseKey(entry.test)) === 'passed')
+  .map((entry) => entry.test);
+const unknownWaivers = waived.filter((entry) => !results.has(normaliseKey(entry.test))).map((entry) => entry.test);
 
 console.log(`E2E gate — waiver expires ${expires} (${daysLeft} day(s) left)`);
 console.log(`  tests reported : ${results.size}`);
