@@ -45,6 +45,15 @@ jobs:
       PLAYWRIGHT_SKIP_WEB_SERVER: '1'
       PLATFORM_ADMIN_EMAILS: e2e-platform-admin@local.test
       ADMIN_MFA_REQUIRED: 'false'
+      # Every test registers a throwaway user, and CI retries multiply that.
+      # The default ceiling (10/min/IP) made the limiter the single biggest
+      # source of run-to-run instability: whichever tests landed in a saturated
+      # window died with `Rate limit exceeded, retry in N seconds`, so a
+      # DIFFERENT test failed on every run of identical code. The limiter exists
+      # to protect production, not a throwaway CI stack — services/api's own
+      # comment says operators may lift it via this variable.
+      AUTH_REGISTER_RATE_LIMIT_MAX: '2000'
+      AUTH_LOGIN_RATE_LIMIT_MAX: '2000'
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
       OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}

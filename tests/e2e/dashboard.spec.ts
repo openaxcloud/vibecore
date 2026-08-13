@@ -60,7 +60,16 @@ async function authenticate(page: import('@playwright/test').Page) {
 
   await waitForApiHealth(page, apiBaseUrl);
 
-  const response = await page.request.post(`${apiBaseUrl}/auth/register`, {
+  /*
+   * /auth/register is rate limited per IP. Every test in this file registers a
+   * fresh user, and CI retries multiply that, so the limiter was the single
+   * biggest source of "a different test fails on every run": whichever tests
+   * landed in a saturated window died with
+   * `{"error":"Rate limit exceeded, retry in N seconds"}`.
+   * Wait out the window the API tells us about, exactly like
+   * mobile-device-matrix.spec.ts already did.
+   */
+  let response = await page.request.post(`${apiBaseUrl}/auth/register`, {
     data: {
       email,
       password: 'Password123!',
@@ -68,6 +77,26 @@ async function authenticate(page: import('@playwright/test').Page) {
       organizationName: `E2E Organization ${suffix}`,
     },
   });
+
+  for (let attempt = 0; attempt < 4 && !response.ok(); attempt += 1) {
+    const body = await response.text();
+
+    if (!/rate limit/i.test(body)) {
+      break;
+    }
+
+    const seconds = Number(body.match(/retry in (\d+) seconds/i)?.[1]);
+    await new Promise((resolveWait) => setTimeout(resolveWait, (Number.isFinite(seconds) ? seconds + 1 : 10) * 1000));
+
+    response = await page.request.post(`${apiBaseUrl}/auth/register`, {
+      data: {
+        email: `e2e-${suffix}-r${attempt}@local.test`,
+        password: 'Password123!',
+        name: 'E2E User',
+        organizationName: `E2E Organization ${suffix}-r${attempt}`,
+      },
+    });
+  }
 
   expect(response.ok(), await response.text()).toBeTruthy();
 
@@ -520,29 +549,50 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await expect(page.getByLabel('Agent prompt')).toBeVisible();
   await expect(page.getByRole('button', { name: 'Add a feature' })).toBeVisible();
 
-  const agentMetrics = await agentPanel.evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    const style = window.getComputedStyle(element);
+  /*
+   * Measuring through a cached locator handle returned `position: ""` in CI —
+   * getComputedStyle yields empty values on a DETACHED node, i.e. the panel had
+   * remounted between the visibility assertion and the read. Re-query the
+   * element on every attempt and let the layout settle.
+   */
+  const readAgentMetrics = () =>
+    page.evaluate(() => {
+      const element = document.querySelector('[role="region"][aria-label="AI agent"]');
 
-    return {
-      position: style.position,
-      top: rect.top,
-      left: rect.left,
-      width: Math.round(rect.width),
-      height: rect.height,
-      background: style.backgroundColor,
-      borderRight: style.borderRightColor,
-    };
-  });
-  expect(agentMetrics.position).toBe('relative');
-  expect(agentMetrics.top).toBe(36);
-  expect(agentMetrics.left).toBeGreaterThanOrEqual(48);
-  expect(agentMetrics.left).toBeLessThanOrEqual(80);
-  expect(agentMetrics.width).toBeGreaterThanOrEqual(340);
-  expect(agentMetrics.width).toBeLessThanOrEqual(520);
-  expect(agentMetrics.height).toBe((page.viewportSize()?.height ?? 900) - 36 - 32);
-  expect(agentMetrics.background).toBe('rgb(14, 21, 37)');
-  expect(agentMetrics.borderRight).toBe('rgb(26, 32, 48)');
+      if (!element) {
+        return null;
+      }
+
+      const rect = element.getBoundingClientRect();
+      const style = window.getComputedStyle(element);
+
+      return {
+        position: style.position,
+        top: rect.top,
+        left: rect.left,
+        width: Math.round(rect.width),
+        height: rect.height,
+        background: style.backgroundColor,
+        borderRight: style.borderRightColor,
+      };
+    });
+
+  const expectedHeight = (page.viewportSize()?.height ?? 900) - 36 - 32;
+
+  await expect(async () => {
+    const agentMetrics = await readAgentMetrics();
+
+    expect(agentMetrics).not.toBeNull();
+    expect(agentMetrics!.position).toBe('relative');
+    expect(agentMetrics!.top).toBe(36);
+    expect(agentMetrics!.left).toBeGreaterThanOrEqual(48);
+    expect(agentMetrics!.left).toBeLessThanOrEqual(80);
+    expect(agentMetrics!.width).toBeGreaterThanOrEqual(340);
+    expect(agentMetrics!.width).toBeLessThanOrEqual(520);
+    expect(agentMetrics!.height).toBe(expectedHeight);
+    expect(agentMetrics!.background).toBe('rgb(14, 21, 37)');
+    expect(agentMetrics!.borderRight).toBe('rgb(26, 32, 48)');
+  }).toPass({ timeout: 20_000, intervals: [250, 500, 1000] });
 
   await expect
     .poll(
