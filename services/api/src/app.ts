@@ -7324,9 +7324,71 @@ function runtimeSession(
   };
 }
 
-function runtimeWorkspaceId(projectId: string, userId: string) {
+export function runtimeWorkspaceId(projectId: string, userId: string) {
   const digest = createHash('sha256').update(`${projectId}:${userId}`).digest('hex').slice(0, 16);
   return `ws-${digest}`;
+}
+
+/** Shape of an id produced by `runtimeWorkspaceId` — `ws-` + 16 hex chars. */
+const DERIVED_WORKSPACE_ID = /^ws-[0-9a-f]{16}$/;
+
+/*
+ * BUG-WS-ID-SPLIT (D1) — résoudre le workspace du projet au lieu d'en DÉRIVER
+ * un id.
+ *
+ * Quatre chemins créent un workspace ; trois d'entre eux (API publique,
+ * planificateur, publish) laissent Prisma poser un `cuid()`. Huit sites — build
+ * statique, build de déploiement, outils de l'agent, restore de snapshot, et
+ * `authorizeRuntimeWorkspace` lui-même — recalculaient au contraire
+ * `ws-sha256(projectId:userId)[:16]`. Quand les deux diffèrent, l'écriture va
+ * dans `workspace-<cuid>` pendant que le build provisionne `workspace-ws-<hash>`,
+ * VIDE : `ENOENT package.json`. C'est la même racine que BUG-IDE-001.
+ *
+ * Le projet a légitimement PLUSIEURS workspaces — le schéma le dit : « a project
+ * keeps multiple dev workspaces (primary + secondary agent-run checkouts) », et
+ * le checkout de publication est celui dont `environment` vaut `production`. Il
+ * fallait donc trancher « lequel est actif ». Règle retenue, dans cet ordre :
+ *
+ *   1. l'id dérivé s'il existe VRAIMENT en base — c'est le cas courant, et le
+ *      comportement actuel est alors strictement inchangé ;
+ *   2. sinon le workspace de développement PRIMAIRE du projet, en reprenant la
+ *      définition que `resolveGitWorkspaceId` utilise déjà (le plus ancien par
+ *      `createdAt`) — mais UNIQUEMENT s'il n'a pas la forme d'un id dérivé ;
+ *   3. sinon l'id dérivé, comme avant (tout premier provisionnement).
+ *
+ * L'exclusion des ids en `ws-<hash>` à l'étape 2 est délibérée et porte la
+ * sûreté de la règle : un id dérivé qui n'est pas le mien appartient à un AUTRE
+ * utilisateur — la table ne porte pas de `userId`, l'id est la seule trace du
+ * propriétaire — et l'adopter ferait travailler deux personnes dans le même pod
+ * à leur insu. Les ids `cuid()` sont exactement la population du défaut : ceux
+ * qu'aucun utilisateur ne s'est vu attribuer.
+ */
+export async function resolveProjectWorkspaceId(
+  store: Pick<ApiStore, 'listWorkspaces'>,
+  projectId: string,
+  userId: string | undefined,
+): Promise<string> {
+  const derived = userId ? runtimeWorkspaceId(projectId, userId) : projectId;
+
+  let workspaces: WorkspaceRecord[];
+
+  try {
+    workspaces = await store.listWorkspaces(projectId);
+  } catch {
+    // Un store indisponible ne doit pas changer la cible : on retombe sur l'id dérivé.
+    return derived;
+  }
+
+  if (workspaces.some((workspace) => workspace.id === derived)) {
+    return derived;
+  }
+
+  const adoptable = workspaces
+    .filter((workspace) => (workspace.environment ?? 'development') === 'development')
+    .filter((workspace) => !DERIVED_WORKSPACE_ID.test(workspace.id))
+    .sort((a, b) => String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')));
+
+  return adoptable[0]?.id ?? derived;
 }
 
 function mapRuntimeNodes(nodes: AgentNode[]): RuntimeFileNode[] {
@@ -13809,7 +13871,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { handled: false };
     }
 
-    const workspaceId = runtimeWorkspaceId(project.id, userId);
+    const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
     try {
@@ -13919,7 +13981,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { ok: false, reason: 'Open the project workspace before deploying.' };
     }
 
-    const workspaceId = runtimeWorkspaceId(project.id, userId);
+    const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
     try {
@@ -14161,9 +14223,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * per-user runtime workspace id so every runtime call targets the real pod,
      * exactly as the POST /workspaces start handler computes it.
      */
-    const resolvedWorkspaceId = request.currentUser
-      ? runtimeWorkspaceId(project.id, request.currentUser.id)
-      : project.id;
+    const resolvedWorkspaceId = await resolveProjectWorkspaceId(store, project.id, request.currentUser?.id);
 
     return { workspaceId: resolvedWorkspaceId, projectId: project.id, organizationId: project.organizationId };
   };
@@ -15436,9 +15496,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * named `workspace-ws-<hash>` — so every AI tool call (list_files,
      * read_file, write_file, run_command, …) 502'd with ENOTFOUND.
      */
-    const defaultWorkspaceId = request.currentUser
-      ? runtimeWorkspaceId(project.id, request.currentUser.id)
-      : project.id;
+    const defaultWorkspaceId = await resolveProjectWorkspaceId(store, project.id, request.currentUser?.id);
 
     /*
      * An explicit workspaceId is caller-supplied and must be bound to this
@@ -15698,7 +15756,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const workspaceId =
       !requestedWorkspaceId || requestedWorkspaceId === project.id
-        ? runtimeWorkspaceId(project.id, request.currentUser!.id)
+        ? await resolveProjectWorkspaceId(store, project.id, request.currentUser!.id)
         : requestedWorkspaceId;
 
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
@@ -24774,7 +24832,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * terminal and preview actually rewind too — not just project storage / the
      * editor. Best-effort: a stopped/GC'd pod must not fail the restore.
      */
-    await syncRestoredFilesToWorkspace(runtimeWorkspaceId(project.id, request.currentUser!.id), restored);
+    await syncRestoredFilesToWorkspace(
+      await resolveProjectWorkspaceId(store, project.id, request.currentUser!.id),
+      restored,
+    );
 
     await store.recordProjectActivity({
       projectId: project.id,
@@ -32038,7 +32099,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       } else if (!userId || !WebSocketCtor) {
         serverError = 'Open the project workspace before deploying a server.';
       } else {
-        const workspaceId = runtimeWorkspaceId(project.id, userId);
+        const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
         const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
         try {
@@ -32859,7 +32920,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const content = serializeEcodeLock(lock);
-    const workspaceId = runtimeWorkspaceId(project.id, request.currentUser!.id);
+    const workspaceId = await resolveProjectWorkspaceId(store, project.id, request.currentUser!.id);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
     await agentMutateEnsuring(request, authorized, '/files/write', {
