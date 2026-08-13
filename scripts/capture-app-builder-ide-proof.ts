@@ -18,6 +18,10 @@ import {
   type ProjectFileEntry,
 } from './solution-capture-state.js';
 import {
+  generatedSolutionPackageContractFor,
+  validateGeneratedSolutionPackageJson,
+} from './solution-generated-package-policy.js';
+import {
   buildRuntimePreviewProvenance,
   isNativeWebviewFallbackEligible,
   selectOfficialRuntimePreviewUrl,
@@ -148,6 +152,10 @@ type TrackedIdeRequest =
       startedAtMs: number;
       workspaceId: string;
     };
+
+class GeneratedSolutionPackagePolicyError extends Error {
+  override readonly name = 'GeneratedSolutionPackagePolicyError';
+}
 
 const runtimeWriteActivityTrackers = new WeakMap<Page, RuntimeWriteActivityTracker>();
 
@@ -887,10 +895,12 @@ function creationPromptFor(
   scenario: SolutionScenario,
   { includeInteractionAcceptance = false }: { includeInteractionAcceptance?: boolean } = {},
 ) {
+  const packageContract = generatedSolutionPackageContractFor(locale);
+
   const runtimeContract =
     locale === 'fr'
-      ? ' Gardez un runtime généré volontairement fiable : une interface Vite, React et TypeScript avec un script dev complet dans package.json, ainsi que index.html, src/main.tsx et src/styles.css. Conservez toute l’interface fonctionnelle et son état local dans src/main.tsx et src/styles.css ; ne créez ni App.tsx ni fichier de composant supplémentaire. Gardez src/main.tsx sous 350 lignes et src/styles.css sous 300 lignes, avec une source compacte et sans commentaires explicatifs. N’ajoutez ni tests, ni backend, ni package de routage, ni bibliothèque de composants, ni dépendance autre que React, React DOM, TypeScript et Vite. Liez Vite à 0.0.0.0. Enregistrez uniquement des fichiers source complets et valides ; si l’espace manque, simplifiez la décoration au lieu de tronquer ou poursuivre un fichier. N’insérez jamais de balises antml, boltArtifact, boltAction, XML ou Markdown dans un fichier enregistré. La première route rendue doit afficher immédiatement le produit nommé.'
-      : ' Keep the generated runtime deliberately reliable: a Vite React TypeScript frontend with a complete package.json dev script, index.html, src/main.tsx, and src/styles.css. Keep the entire working UI and local state in src/main.tsx and src/styles.css; do not create App.tsx or extra component files. Keep src/main.tsx under 350 lines and src/styles.css under 300 lines, with compact source and no explanatory comments. Do not add tests, a backend, a router package, a component library, or any dependency beyond React, React DOM, TypeScript, and Vite. Bind Vite to 0.0.0.0. Save only complete valid source files; if space is tight, simplify decoration rather than truncating or continuing a file. Never include antml, boltArtifact, boltAction, XML, or markdown wrappers in a saved file. Make the first rendered route immediately show the named product.';
+      ? `${packageContract} Gardez le reste du runtime généré volontairement fiable : une interface Vite, React et TypeScript avec index.html, src/main.tsx et src/styles.css. Conservez toute l’interface fonctionnelle et son état local dans src/main.tsx et src/styles.css ; ne créez ni App.tsx ni fichier de composant supplémentaire. Gardez src/main.tsx sous 350 lignes et src/styles.css sous 300 lignes, avec une source compacte et sans commentaires explicatifs. N’ajoutez ni tests, ni backend, ni package de routage, ni bibliothèque de composants. Enregistrez uniquement des fichiers source complets et valides ; si l’espace manque, simplifiez la décoration au lieu de tronquer ou poursuivre un fichier. N’insérez jamais de balises antml, boltArtifact, boltAction, XML ou Markdown dans un fichier enregistré. La première route rendue doit afficher immédiatement le produit nommé.`
+      : `${packageContract} Keep the rest of the generated runtime deliberately reliable: a Vite React TypeScript frontend with index.html, src/main.tsx, and src/styles.css. Keep the entire working UI and local state in src/main.tsx and src/styles.css; do not create App.tsx or extra component files. Keep src/main.tsx under 350 lines and src/styles.css under 300 lines, with compact source and no explanatory comments. Do not add tests, a backend, a router package, or a component library. Save only complete valid source files; if space is tight, simplify decoration rather than truncating or continuing a file. Never include antml, boltArtifact, boltAction, XML, or markdown wrappers in a saved file. Make the first rendered route immediately show the named product.`;
 
   const interactionContract = includeInteractionAcceptance
     ? locale === 'fr'
@@ -1345,6 +1355,54 @@ async function assertGeneratedSourcesAreUnwrapped(page: Page, projectId: string,
   if (invalidPaths.length > 0) {
     throw new Error(`Generated source contains response-wrapper markers: ${invalidPaths.join(', ')}`);
   }
+}
+
+async function assertGeneratedSolutionPackagePolicy(page: Page, projectId: string, token: string) {
+  const projectState = await readProjectIdeState(page, projectId, token);
+
+  if (!projectState) {
+    throw new GeneratedSolutionPackagePolicyError(
+      'The persisted IDE state is unavailable for the generated package policy gate',
+    );
+  }
+
+  const packageFiles = projectState.files.filter((file) => /(?:^|\/)package\.json$/u.test(file.path ?? ''));
+  const rootPackageFiles = packageFiles.filter((file) => file.path === 'package.json');
+
+  if (rootPackageFiles.length !== 1) {
+    const discoveredPaths = packageFiles.flatMap((file) => (file.path ? [file.path] : []));
+    const detail = discoveredPaths.length > 0 ? discoveredPaths.join(', ') : 'none';
+
+    throw new GeneratedSolutionPackagePolicyError(
+      `Generated package policy requires exactly one root package.json (found root=${rootPackageFiles.length}; discovered=${detail})`,
+    );
+  }
+
+  if (packageFiles.length !== 1) {
+    throw new GeneratedSolutionPackagePolicyError(
+      `Generated package policy forbids nested or additional manifests: ${packageFiles
+        .flatMap((file) => (file.path ? [file.path] : []))
+        .join(', ')}`,
+    );
+  }
+
+  const source = rootPackageFiles[0].content;
+
+  if (typeof source !== 'string') {
+    throw new GeneratedSolutionPackagePolicyError('The persisted root package.json has no textual content');
+  }
+
+  const result = validateGeneratedSolutionPackageJson(source);
+
+  if (!result.valid) {
+    throw new GeneratedSolutionPackagePolicyError(
+      `Generated root package.json violates the closed Solutions dependency policy:\n- ${result.errors.join('\n- ')}`,
+    );
+  }
+
+  process.stdout.write(
+    `${JSON.stringify({ status: 'generated-package-policy-verified', projectId, packagePath: 'package.json' })}\n`,
+  );
 }
 
 async function assertScenarioSourceTerms(page: Page, projectId: string, token: string, scenario: SolutionScenario) {
@@ -2297,6 +2355,7 @@ async function waitForPreview(
   token: string,
   expectedIdentity?: string,
 ) {
+  await assertGeneratedSolutionPackagePolicy(page, projectId, token);
   await assertGeneratedSourcesAreUnwrapped(page, projectId, token);
   await waitForRuntimeFilesToMatchPersisted(page, projectId, token);
 
@@ -4770,6 +4829,10 @@ async function main() {
         ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
         break;
       } catch (previewError) {
+        if (previewError instanceof GeneratedSolutionPackagePolicyError) {
+          throw previewError;
+        }
+
         if (iterationOnly || attempt === maximumPreviewRepairAttempts) {
           throw previewError;
         }
