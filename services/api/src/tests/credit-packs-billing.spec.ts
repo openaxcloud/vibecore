@@ -182,194 +182,105 @@ describe('Credit-pack purchase (Replit parity)', () => {
     });
   });
 
-  describe("contrat Starter au publish : projets publiés ACTIFS", () => {
-    async function publishableProject(store: any, orgId: string, name: string) {
-      const project = await store.createProject({ organizationId: orgId, name, slug: name.toLowerCase() });
-      const source = await store.createDeployment({
-        projectId: project.id,
-        provider: 'static',
-        environment: 'preview',
-        status: 'READY',
-        url: `https://${name.toLowerCase()}-preview.example/`,
-      });
-
-      return { project, source };
+  describe('concurrent published-app cap (20) on publish', () => {
+    async function seedPublishedApps(store: TestApiStore, organizationId: string, count: number) {
+      for (let index = 0; index < count; index += 1) {
+        const project = await store.createProject({
+          organizationId,
+          name: `App ${index}`,
+          slug: `app-${index}`,
+        });
+        await store.createDeployment({
+          projectId: project.id,
+          provider: 'static',
+          environment: 'production',
+          status: 'READY',
+          url: `https://app-${index}.example/`,
+        });
+      }
     }
 
-    const publish = (app: any, token: string, projectId: string, deploymentId: string) =>
-      app.inject({
-        method: 'POST',
-        url: `/projects/${projectId}/deployments/${deploymentId}/publish`,
-        headers: { authorization: `Bearer ${token}` },
-      });
-
-    it('(a) publier le projet A est AUTORISÉ', async () => {
+    it('blocks publishing the 21st app when the credit model is live', async () => {
+      process.env.BILLING_CREDITS_ENABLED = 'true';
       const { app, store, org, token } = await setup();
       try {
-        const a = await publishableProject(store, org.id, 'ProjA');
-        expect((await publish(app, token, a.project.id, a.source.id)).statusCode).toBe(201);
-      } finally {
-        await app.close();
-      }
-    });
+        await seedPublishedApps(store, org.id, 20);
 
-    it('(b) republier A est AUTORISÉ, sans limite artificielle', async () => {
-      const { app, store, org, token } = await setup();
-      try {
-        const a = await publishableProject(store, org.id, 'ProjA');
-        expect((await publish(app, token, a.project.id, a.source.id)).statusCode).toBe(201);
-
-        // Trois republications successives du MÊME projet : toutes doivent passer.
-        for (let i = 0; i < 3; i += 1) {
-          const res = await publish(app, token, a.project.id, a.source.id);
-          expect(res.statusCode).toBe(201);
-        }
-      } finally {
-        await app.close();
-      }
-    });
-
-    it('(c) publier un 2e projet DISTINCT est REFUSÉ, avec invitation à monter de plan', async () => {
-      const { app, store, org, token } = await setup();
-      try {
-        const a = await publishableProject(store, org.id, 'ProjA');
-        expect((await publish(app, token, a.project.id, a.source.id)).statusCode).toBe(201);
-
-        const b = await publishableProject(store, org.id, 'ProjB');
-        const res = await publish(app, token, b.project.id, b.source.id);
-
-        expect(res.statusCode).toBe(402);
-        expect(res.json()).toMatchObject({
-          code: 'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT',
-          plan: 'starter',
-          cap: 1,
-          upgradeRequired: true,
+        const project = await store.createProject({ organizationId: org.id, name: 'App 21', slug: 'app-21' });
+        const source = await store.createDeployment({
+          projectId: project.id,
+          provider: 'static',
+          environment: 'preview',
+          status: 'READY',
+          url: 'https://preview-21.example/',
         });
+
+        const res = await app.inject({
+          method: 'POST',
+          url: `/projects/${project.id}/deployments/${source.id}/publish`,
+          headers: { authorization: `Bearer ${token}` },
+        });
+        expect(res.statusCode).toBe(429);
+        expect(res.json().code).toBe('APP_LIMIT_EXCEEDED');
       } finally {
         await app.close();
       }
     });
 
-    it('(d) après expiration de A à 30 jours, republier est AUTORISÉ', async () => {
+    it('still allows re-publishing an already-published app at the cap', async () => {
+      process.env.BILLING_CREDITS_ENABLED = 'true';
       const { app, store, org, token } = await setup();
       try {
-        const a = await publishableProject(store, org.id, 'ProjA');
-        expect((await publish(app, token, a.project.id, a.source.id)).statusCode).toBe(201);
+        // 19 other apps + this one already published = 20 at the cap.
+        await seedPublishedApps(store, org.id, 19);
+        const project = await store.createProject({ organizationId: org.id, name: 'App 20', slug: 'app-20' });
+        await store.createDeployment({
+          projectId: project.id,
+          provider: 'static',
+          environment: 'production',
+          status: 'READY',
+          url: 'https://app-20.example/',
+        });
+        const source = await store.createDeployment({
+          projectId: project.id,
+          provider: 'static',
+          environment: 'preview',
+          status: 'READY',
+          url: 'https://preview-20.example/',
+        });
 
-        // Vieillir toutes les publications de A au-delà du TTL Starter.
-        const old = new Date(Date.now() - 31 * 24 * 60 * 60 * 1000).toISOString();
-        for (const deployment of store.deployments.values()) {
-          if (deployment.projectId === a.project.id && deployment.environment === 'production') {
-            (deployment as any).createdAt = old;
-          }
-        }
-
-        // Le MÊME projet se republie...
-        expect((await publish(app, token, a.project.id, a.source.id)).statusCode).toBe(201);
-
-        // ...et un AUTRE projet redevient publiable une fois A expiré.
-        const { app: app2, store: store2, org: org2, token: token2 } = await setup();
-        try {
-          const a2 = await publishableProject(store2, org2.id, 'ProjA');
-          await publish(app2, token2, a2.project.id, a2.source.id);
-          for (const deployment of store2.deployments.values()) {
-            if (deployment.projectId === a2.project.id && deployment.environment === 'production') {
-              (deployment as any).createdAt = old;
-            }
-          }
-          const b2 = await publishableProject(store2, org2.id, 'ProjB');
-          expect((await publish(app2, token2, b2.project.id, b2.source.id)).statusCode).toBe(201);
-        } finally {
-          await app2.close();
-        }
+        const res = await app.inject({
+          method: 'POST',
+          url: `/projects/${project.id}/deployments/${source.id}/publish`,
+          headers: { authorization: `Bearer ${token}` },
+        });
+        expect(res.statusCode).toBe(201);
       } finally {
         await app.close();
       }
     });
 
-    it('(5) REJEU CONCURRENT : deux publications SIMULTANÉES -> exactement un 201 et un 402', async () => {
-      const { app, store, org, token } = await setup();
-      try {
-        const a = await publishableProject(store, org.id, 'ProjA');
-        const b = await publishableProject(store, org.id, 'ProjB');
-
-        /*
-         * Lancées SANS await intermédiaire : les deux requêtes sont en vol en
-         * même temps. Sans section critique sérialisée, chacune lit « 0
-         * publication active » et les DEUX passent — le plafond ne tient pas.
-         */
-        const [r1, r2] = await Promise.all([
-          publish(app, token, a.project.id, a.source.id),
-          publish(app, token, b.project.id, b.source.id),
-        ]);
-
-        const codes = [r1.statusCode, r2.statusCode].sort();
-        expect(codes).toEqual([201, 402]);
-
-        // …et la DB ne contient qu'UNE publication de production.
-        const published = [...store.deployments.values()].filter(
-          (d: any) => d.environment === 'production' && d.status === 'READY',
-        );
-        expect(published).toHaveLength(1);
-      } finally {
-        await app.close();
-      }
-    });
-
-    it('(5bis) rejeu concurrent à 5 projets distincts -> un seul 201', async () => {
-      const { app, store, org, token } = await setup();
-      try {
-        const projects = await Promise.all(
-          ['P1', 'P2', 'P3', 'P4', 'P5'].map((n) => publishableProject(store, org.id, n)),
-        );
-
-        const results = await Promise.all(
-          projects.map((p) => publish(app, token, p.project.id, p.source.id)),
-        );
-
-        expect(results.filter((r) => r.statusCode === 201)).toHaveLength(1);
-        expect(results.filter((r) => r.statusCode === 402)).toHaveLength(4);
-      } finally {
-        await app.close();
-      }
-    });
-
-    it('(2) FAIL-CLOSED : lecture des publications en erreur -> 503, jamais un quota remis a zero', async () => {
-      const { app, store, org, token } = await setup();
-      try {
-        const a = await publishableProject(store, org.id, 'ProjA');
-        expect((await publish(app, token, a.project.id, a.source.id)).statusCode).toBe(201);
-
-        // La lecture du quota tombe en panne au moment de publier un 2e projet.
-        const b = await publishableProject(store, org.id, 'ProjB');
-        store.listPublishedProjects = async () => {
-          throw new Error('panne de lecture du quota');
-        };
-
-        const res = await publish(app, token, b.project.id, b.source.id);
-
-        // Surtout PAS 201 : une panne ne doit pas ouvrir le quota.
-        expect(res.statusCode).toBe(503);
-        expect(res.json()).toMatchObject({ code: 'ENTITLEMENT_CHECK_UNAVAILABLE', retryable: true });
-
-        // Et aucune publication supplémentaire n'a été créée.
-        const published = [...store.deployments.values()].filter(
-          (d: any) => d.environment === 'production' && d.status === 'READY',
-        );
-        expect(published).toHaveLength(1);
-      } finally {
-        await app.close();
-      }
-    });
-
-    it("le contrat s'applique MÊME quand le modèle de crédits est dormant", async () => {
+    it('does not enforce the cap while the credit model is dormant', async () => {
       delete (process.env as Record<string, string | undefined>).BILLING_CREDITS_ENABLED;
       const { app, store, org, token } = await setup();
       try {
-        const a = await publishableProject(store, org.id, 'ProjA');
-        await publish(app, token, a.project.id, a.source.id);
-        const b = await publishableProject(store, org.id, 'ProjB');
-        expect((await publish(app, token, b.project.id, b.source.id)).statusCode).toBe(402);
+        await seedPublishedApps(store, org.id, 25);
+
+        const project = await store.createProject({ organizationId: org.id, name: 'App 26', slug: 'app-26' });
+        const source = await store.createDeployment({
+          projectId: project.id,
+          provider: 'static',
+          environment: 'preview',
+          status: 'READY',
+          url: 'https://preview-26.example/',
+        });
+
+        const res = await app.inject({
+          method: 'POST',
+          url: `/projects/${project.id}/deployments/${source.id}/publish`,
+          headers: { authorization: `Bearer ${token}` },
+        });
+        expect(res.statusCode).toBe(201);
       } finally {
         await app.close();
       }

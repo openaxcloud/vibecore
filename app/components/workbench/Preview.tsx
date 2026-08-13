@@ -18,7 +18,6 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { Fragment, memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { Inspector, type ElementInfo } from './Inspector';
 import { PortDropdown } from './PortDropdown';
@@ -28,7 +27,6 @@ import {
   decidePreviewLoadOutcome,
   shouldReloadPreviewOnReadyEdge,
   shouldRunPreviewBootLoop,
-  MAX_PREVIEW_BOOT_ATTEMPTS,
 } from './preview-frame-recovery';
 import { EmptyState } from '~/components/ui/EmptyState';
 import { IconButton } from '~/components/ui/IconButton';
@@ -180,9 +178,7 @@ export function parseConsoleSourceRefs(text: string): ConsoleMessageSegment[] {
  * into a keyboard-activatable jump button (blue = action). Refs that don't map
  * to an open workbench file render as plain text.
  */
-type Translate = (key: string, options?: Record<string, unknown>) => string;
-
-function renderConsoleMessage(message: string, t: Translate): ReactNode {
+function renderConsoleMessage(message: string): ReactNode {
   const segments = parseConsoleSourceRefs(message);
 
   if (segments.length <= 1 && segments[0]?.type !== 'ref') {
@@ -209,8 +205,8 @@ function renderConsoleMessage(message: string, t: Translate): ReactNode {
         type="button"
         className="bolt-preview-console-ref"
         onClick={() => openPreviewSource(resolvedPath, line, column)}
-        title={t('idePanels.preview.openLocation', { location })}
-        aria-label={t('idePanels.preview.openFileLine', { path: resolvedPath, line })}
+        title={`Open ${location}`}
+        aria-label={`Open ${resolvedPath} at line ${line}`}
       >
         {segment.value}
       </button>
@@ -254,30 +250,28 @@ interface WindowSize {
   frameType?: 'mobile' | 'tablet' | 'laptop' | 'desktop';
 }
 
-function getPreviewBootSteps(t: Translate): Array<{ id: PreviewBootStepId; label: string; description: string }> {
-  return [
-    {
-      id: 'dependencies',
-      label: t('idePanels.preview.bootDependencies'),
-      description: t('idePanels.preview.bootDependenciesBody'),
-    },
-    {
-      id: 'build',
-      label: t('idePanels.preview.bootBuild'),
-      description: t('idePanels.preview.bootBuildBody'),
-    },
-    {
-      id: 'server',
-      label: t('idePanels.preview.bootServer'),
-      description: t('idePanels.preview.bootServerBody'),
-    },
-    {
-      id: 'ready',
-      label: t('idePanels.preview.bootReady'),
-      description: t('idePanels.preview.bootReadyBody'),
-    },
-  ];
-}
+const previewBootSteps: Array<{ id: PreviewBootStepId; label: string; description: string }> = [
+  {
+    id: 'dependencies',
+    label: 'Building dependencies',
+    description: 'Preparing packages and workspace runtime.',
+  },
+  {
+    id: 'build',
+    label: 'Building',
+    description: 'Running the project build or dev command.',
+  },
+  {
+    id: 'server',
+    label: 'Starting dev server',
+    description: 'Detecting ports and attaching the webview.',
+  },
+  {
+    id: 'ready',
+    label: 'Ready',
+    description: 'Preview is connected to a live port.',
+  },
+];
 
 /*
  * Whether to show the "Starting project workspace…" boot overlay. Critically it
@@ -371,178 +365,102 @@ function resolvePreviewBootProgress(input: {
   return { activeStep: 'server' as PreviewBootStepId, progress: 68 };
 }
 
-function getWindowSizes(t: Translate): WindowSize[] {
-  return [
-    {
-      name: t('idePanels.preview.deviceIphoneSe'),
-      width: 375,
-      height: 667,
-      icon: 'i-ph:device-mobile',
-      hasFrame: true,
-      frameType: 'mobile',
-    },
-    {
-      name: t('idePanels.preview.deviceIphone'),
-      width: 390,
-      height: 844,
-      icon: 'i-ph:device-mobile',
-      hasFrame: true,
-      frameType: 'mobile',
-    },
-    {
-      name: t('idePanels.preview.deviceIphoneProMax'),
-      width: 428,
-      height: 926,
-      icon: 'i-ph:device-mobile',
-      hasFrame: true,
-      frameType: 'mobile',
-    },
-    {
-      name: t('idePanels.preview.deviceIpadMini'),
-      width: 768,
-      height: 1024,
-      icon: 'i-ph:device-tablet',
-      hasFrame: true,
-      frameType: 'tablet',
-    },
-    {
-      name: t('idePanels.preview.deviceIpadAir'),
-      width: 820,
-      height: 1180,
-      icon: 'i-ph:device-tablet',
-      hasFrame: true,
-      frameType: 'tablet',
-    },
-    {
-      name: t('idePanels.preview.deviceIpadPro11'),
-      width: 834,
-      height: 1194,
-      icon: 'i-ph:device-tablet',
-      hasFrame: true,
-      frameType: 'tablet',
-    },
-    {
-      name: t('idePanels.preview.deviceIpadPro13'),
-      width: 1024,
-      height: 1366,
-      icon: 'i-ph:device-tablet',
-      hasFrame: true,
-      frameType: 'tablet',
-    },
-    {
-      name: t('idePanels.preview.deviceSmallLaptop'),
-      width: 1280,
-      height: 800,
-      icon: 'i-ph:laptop',
-      hasFrame: true,
-      frameType: 'laptop',
-    },
-    {
-      name: t('idePanels.preview.deviceLaptop'),
-      width: 1366,
-      height: 768,
-      icon: 'i-ph:laptop',
-      hasFrame: true,
-      frameType: 'laptop',
-    },
-    {
-      name: t('idePanels.preview.deviceLargeLaptop'),
-      width: 1440,
-      height: 900,
-      icon: 'i-ph:laptop',
-      hasFrame: true,
-      frameType: 'laptop',
-    },
-    {
-      name: t('idePanels.preview.deviceDesktop'),
-      width: 1920,
-      height: 1080,
-      icon: 'i-ph:monitor',
-      hasFrame: true,
-      frameType: 'desktop',
-    },
-    {
-      name: t('idePanels.preview.device4k'),
-      width: 3840,
-      height: 2160,
-      icon: 'i-ph:monitor',
-      hasFrame: true,
-      frameType: 'desktop',
-    },
-  ];
-}
+const WINDOW_SIZES: WindowSize[] = [
+  { name: 'iPhone SE', width: 375, height: 667, icon: 'i-ph:device-mobile', hasFrame: true, frameType: 'mobile' },
+  { name: 'iPhone 12/13', width: 390, height: 844, icon: 'i-ph:device-mobile', hasFrame: true, frameType: 'mobile' },
+  {
+    name: 'iPhone 12/13 Pro Max',
+    width: 428,
+    height: 926,
+    icon: 'i-ph:device-mobile',
+    hasFrame: true,
+    frameType: 'mobile',
+  },
+  { name: 'iPad Mini', width: 768, height: 1024, icon: 'i-ph:device-tablet', hasFrame: true, frameType: 'tablet' },
+  { name: 'iPad Air', width: 820, height: 1180, icon: 'i-ph:device-tablet', hasFrame: true, frameType: 'tablet' },
+  { name: 'iPad Pro 11"', width: 834, height: 1194, icon: 'i-ph:device-tablet', hasFrame: true, frameType: 'tablet' },
+  {
+    name: 'iPad Pro 12.9"',
+    width: 1024,
+    height: 1366,
+    icon: 'i-ph:device-tablet',
+    hasFrame: true,
+    frameType: 'tablet',
+  },
+  { name: 'Small Laptop', width: 1280, height: 800, icon: 'i-ph:laptop', hasFrame: true, frameType: 'laptop' },
+  { name: 'Laptop', width: 1366, height: 768, icon: 'i-ph:laptop', hasFrame: true, frameType: 'laptop' },
+  { name: 'Large Laptop', width: 1440, height: 900, icon: 'i-ph:laptop', hasFrame: true, frameType: 'laptop' },
+  { name: 'Desktop', width: 1920, height: 1080, icon: 'i-ph:monitor', hasFrame: true, frameType: 'desktop' },
+  { name: '4K Display', width: 3840, height: 2160, icon: 'i-ph:monitor', hasFrame: true, frameType: 'desktop' },
+];
 
-function getPreviewTips(t: Translate) {
-  return [
-    { icon: MessageSquare, text: t('idePanels.preview.tipAgent') },
-    { icon: Cloud, text: t('idePanels.preview.tipDeploy') },
-    { icon: Pencil, text: t('idePanels.preview.tipFiles') },
-    { icon: UserPlus, text: t('idePanels.preview.tipCollaborators') },
-    { icon: History, text: t('idePanels.preview.tipSnapshots') },
-    { icon: Settings, text: t('idePanels.preview.tipEnvironment') },
-    { icon: ExternalLink, text: t('idePanels.preview.tipWindow') },
-    { icon: Sparkles, text: t('idePanels.preview.tipPorts') },
-    { icon: Shield, text: t('idePanels.preview.tipIsolation') },
-    { icon: Globe, text: t('idePanels.preview.tipDomains') },
-    { icon: Database, text: t('idePanels.preview.tipDatabase') },
-    { icon: Smartphone, text: t('idePanels.preview.tipDevices') },
-  ];
-}
+const previewTips = [
+  { icon: MessageSquare, text: 'Ask the Agent to add features while the preview boots.' },
+  { icon: Cloud, text: 'Deploy to staging or production directly from the Deployments panel.' },
+  { icon: Pencil, text: 'Open Files to inspect and edit generated code without leaving the IDE.' },
+  { icon: UserPlus, text: 'Invite collaborators and keep everyone in the same workspace.' },
+  { icon: History, text: 'Use snapshots and rollback when you want to return to a stable version.' },
+  { icon: Settings, text: 'Configure environment variables and secrets per project.' },
+  { icon: ExternalLink, text: 'Open the preview in a dedicated browser window when you need more space.' },
+  { icon: Sparkles, text: 'The Agent can continue working while ports are being detected.' },
+  { icon: Shield, text: 'Workspace isolation keeps user apps scoped to their project runtime.' },
+  { icon: Globe, text: 'Attach custom domains when your app is ready to publish.' },
+  { icon: Database, text: 'Use the Database panel for SQL browsing and project data workflows.' },
+  { icon: Smartphone, text: 'Switch Desktop, Tablet, and Mobile views from this preview toolbar.' },
+];
 
-function getPreviewSplashSlides(t: Translate): SplashSlide[] {
-  return [
-    {
-      layout: 'icon-hero',
-      icon: Sparkles,
-      headline: t('idePanels.preview.slidePreparing'),
-      subtitle: t('idePanels.preview.slidePreparingBody'),
-      color: 'var(--vc-ide-accent-action)',
-    },
-    {
-      layout: 'two-column',
-      icon: Zap,
-      headline: t('idePanels.preview.slideAutomatic'),
-      subtitle: t('idePanels.preview.slideAutomaticBody'),
-      color: 'var(--vc-ide-accent-warning)',
-      stats: [
-        { label: t('idePanels.preview.portScans'), value: t('idePanels.preview.automatic') },
-        { label: t('idePanels.preview.devServer'), value: t('idePanels.preview.live') },
-      ],
-    },
-    {
-      layout: 'tips-carousel',
-      icon: Lightbulb,
-      headline: t('idePanels.preview.slideBooting'),
-      subtitle: t('idePanels.preview.slideBootingBody'),
-      color: 'var(--vc-ide-accent-success)',
-    },
-    {
-      layout: 'icon-grid',
-      icon: Puzzle,
-      headline: t('idePanels.preview.slideConnected'),
-      subtitle: t('idePanels.preview.slideConnectedBody'),
-      color: 'var(--vc-ide-accent-error)',
-      gridItems: [
-        { icon: Database, label: t('idePanels.preview.database') },
-        { icon: Shield, label: t('idePanels.preview.secrets') },
-        { icon: Globe, label: t('idePanels.preview.domains') },
-        { icon: Cloud, label: t('idePanels.preview.deployments') },
-      ],
-    },
-    {
-      layout: 'stat-highlight',
-      icon: Globe,
-      headline: t('idePanels.preview.slidePublishing'),
-      subtitle: t('idePanels.preview.slidePublishingBody'),
-      color: 'var(--vc-ide-accent-action)',
-      stats: [
-        { label: t('idePanels.preview.tls'), value: t('idePanels.preview.builtIn') },
-        { label: t('idePanels.preview.rollback'), value: t('idePanels.preview.oneClick') },
-        { label: t('idePanels.preview.logs'), value: t('idePanels.preview.live') },
-      ],
-    },
-  ];
-}
+const previewSplashSlides: SplashSlide[] = [
+  {
+    layout: 'icon-hero',
+    icon: Sparkles,
+    headline: 'Preparing your live preview',
+    subtitle: 'E-code is starting the dev server, scanning runtime ports, and wiring the webview automatically.',
+    color: 'var(--vc-ide-accent-action)',
+  },
+  {
+    layout: 'two-column',
+    icon: Zap,
+    headline: 'Preview runs without manual setup',
+    subtitle: 'The workspace detects package scripts, installs dependencies if needed, and keeps refreshing ports.',
+    color: 'var(--vc-ide-accent-warning)',
+    stats: [
+      { label: 'Port scans', value: 'Auto' },
+      { label: 'Dev server', value: 'Live' },
+    ],
+  },
+  {
+    layout: 'tips-carousel',
+    icon: Lightbulb,
+    headline: 'While it boots',
+    subtitle: 'Use the rest of the IDE immediately. The preview will attach as soon as the app exposes a port.',
+    color: 'var(--vc-ide-accent-success)',
+  },
+  {
+    layout: 'icon-grid',
+    icon: Puzzle,
+    headline: 'Everything stays connected',
+    subtitle: 'Preview, files, terminal, logs, deployments, secrets, and collaboration run from one workspace.',
+    color: 'var(--vc-ide-accent-error)',
+    gridItems: [
+      { icon: Database, label: 'Database' },
+      { icon: Shield, label: 'Secrets' },
+      { icon: Globe, label: 'Domains' },
+      { icon: Cloud, label: 'Deploys' },
+    ],
+  },
+  {
+    layout: 'stat-highlight',
+    icon: Globe,
+    headline: 'Ready for publishing',
+    subtitle: 'When your app is stable, publish previews, staging, or production deployments from the same project.',
+    color: 'var(--vc-ide-accent-action)',
+    stats: [
+      { label: 'TLS', value: 'Built-in' },
+      { label: 'Rollback', value: '1 click' },
+      { label: 'Logs', value: 'Live' },
+    ],
+  },
+];
 
 function staticPreviewFileContent(files: FileMap, filePath: string) {
   const normalizedTarget = filePath.replaceAll('\\', '/').replace(/^\/+/, '');
@@ -562,7 +480,7 @@ function staticPreviewFileContent(files: FileMap, filePath: string) {
   return undefined;
 }
 
-function buildStaticPreviewHtml(files: FileMap, language: string, fallbackTitle: string) {
+function buildStaticPreviewHtml(files: FileMap) {
   const indexHtml = staticPreviewFileContent(files, 'index.html');
 
   if (!indexHtml) {
@@ -599,13 +517,13 @@ function buildStaticPreviewHtml(files: FileMap, language: string, fallbackTitle:
   );
 
   if (/<script\b[^>]*\btype=["']module["'][^>]*\bsrc=["'][^"']+["'][^>]*><\/script>/i.test(indexHtml)) {
-    return inlinedAnyModule && canInlineModules ? html : buildBoltTemplateStaticPreview(files, language, fallbackTitle);
+    return inlinedAnyModule && canInlineModules ? html : buildBoltTemplateStaticPreview(files);
   }
 
   return indexHtml;
 }
 
-function buildBoltTemplateStaticPreview(files: FileMap, language: string, fallbackTitle: string) {
+function buildBoltTemplateStaticPreview(files: FileMap) {
   const appSource =
     staticPreviewFileContent(files, 'src/App.tsx') ??
     staticPreviewFileContent(files, 'src/App.jsx') ??
@@ -626,11 +544,11 @@ function buildBoltTemplateStaticPreview(files: FileMap, language: string, fallba
   const styles = staticPreviewFileContent(files, 'src/styles.css') ?? '';
 
   return `<!doctype html>
-<html lang="${language.startsWith('fr') ? 'fr' : 'en'}">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${escapeHtml(title ?? fallbackTitle)}</title>
+    <title>${escapeHtml(title ?? 'Template preview')}</title>
     <style>${styles}</style>
   </head>
   <body>
@@ -677,22 +595,11 @@ export const Preview = memo(
     onOpenLogsRight,
     onOpenSourceFile,
   }: PreviewProps) => {
-    const { t, i18n } = useTranslation();
-    const activeLanguage = i18n.resolvedLanguage ?? i18n.language;
-    const windowSizes = useMemo(() => getWindowSizes(t), [t]);
-    const previewBootSteps = useMemo(() => getPreviewBootSteps(t), [t]);
     const iframeRef = useRef<HTMLIFrameElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // One-shot guard: auto-reload a blank (served-but-never-mounted) preview at most once.
     const blankRecoveredRef = useRef(false);
-
-    /*
-     * How many times the boot loop has relaunched the dev server for the current
-     * (portless) session — bounds the auto-retry so a dev-server-absent 502 keeps
-     * relaunching but never hammers forever (see shouldRunPreviewBootLoop).
-     */
-    const bootAttemptsRef = useRef(0);
     const inputRef = useRef<HTMLInputElement>(null);
     const previewReloadTimer = useRef<number | undefined>();
     const previewLoadRetryRef = useRef(0);
@@ -743,7 +650,7 @@ export const Preview = memo(
     const SCALING_FACTOR = 1;
 
     const [isWindowSizeDropdownOpen, setIsWindowSizeDropdownOpen] = useState(false);
-    const [selectedWindowSize, setSelectedWindowSize] = useState<WindowSize>(windowSizes[0]);
+    const [selectedWindowSize, setSelectedWindowSize] = useState<WindowSize>(WINDOW_SIZES[0]);
     const [isLandscape, setIsLandscape] = useState(false);
     const [showDeviceFrame, setShowDeviceFrame] = useState(true);
     const [showDeviceFrameInPreview, setShowDeviceFrameInPreview] = useState(false);
@@ -781,11 +688,7 @@ export const Preview = memo(
       .sort()
       .join('|');
 
-    const staticPreviewHtml = useMemo(
-      () => buildStaticPreviewHtml(files, activeLanguage, t('idePanels.preview.templateTitle')),
-      [activeLanguage, files, t],
-    );
-
+    const staticPreviewHtml = buildStaticPreviewHtml(files);
     const hasStaticPreview = Boolean(staticPreviewHtml && !activePreview);
     const lastPreviewableFilesSignature = useRef(previewableFilesSignature);
 
@@ -855,9 +758,9 @@ export const Preview = memo(
       setLoadedPreviewUrl(undefined);
 
       if (previewLoadIdentity) {
-        setPreviewStatus(t('idePanels.preview.loadingWebview'));
+        setPreviewStatus('Loading the webview and waiting for the first render...');
       }
-    }, [iframeUrl, projectId, t]);
+    }, [iframeUrl, projectId]);
 
     const openPreviewLogs = useCallback(() => {
       setActiveLogTab('server');
@@ -871,8 +774,8 @@ export const Preview = memo(
       }
 
       await navigator.clipboard?.writeText(visiblePreviewUrl);
-      toast.success(t('idePanels.preview.urlCopied'));
-    }, [t, visiblePreviewUrl]);
+      toast.success('Preview URL copied');
+    }, [visiblePreviewUrl]);
 
     const handleInspectorElementSelect = useCallback(
       (element: ElementInfo) => {
@@ -952,7 +855,7 @@ export const Preview = memo(
       if (exactFile) {
         const line = element?.source?.lineNumber ?? 1;
         openPreviewSource(exactFile, line);
-        toast.info(t('idePanels.preview.openedFileLine', { path: exactFile.replace(/^\/?/, ''), line }));
+        toast.info(`Opened ${exactFile.replace(/^\/?/, '')}:${line}`);
 
         return;
       }
@@ -961,13 +864,13 @@ export const Preview = memo(
       const filePath = resolveSourceFileForElement(element);
 
       if (!filePath) {
-        toast.info(t('idePanels.preview.noMatchingSource'));
+        toast.info('No matching source file found for this element.');
         return;
       }
 
       onOpenSourceFile?.(filePath);
-      toast.info(t('idePanels.preview.openedFile', { path: filePath.replace(/^\/?/, '') }));
-    }, [onOpenSourceFile, resolveSourceFileForElement, selectedPreviewElement, t]);
+      toast.info(`Opened ${filePath.replace(/^\/?/, '')}`);
+    }, [onOpenSourceFile, resolveSourceFileForElement, selectedPreviewElement]);
 
     useEffect(() => {
       setPreviewRunFailed(false);
@@ -1099,12 +1002,12 @@ export const Preview = memo(
 
       try {
         await workbenchStore.refreshRuntimePorts();
-      } catch {
-        setPreviewStatus(t('idePanels.preview.refreshPortsFailed'));
+      } catch (error) {
+        setPreviewStatus(error instanceof Error ? error.message : 'Failed to refresh preview ports');
       } finally {
         setIsRefreshingPorts(false);
       }
-    }, [t]);
+    }, []);
 
     const reloadPreview = useCallback(
       (reason = 'manual') => {
@@ -1163,7 +1066,7 @@ export const Preview = memo(
           window.clearTimeout(previewReloadTimer.current);
         }
 
-        setPreviewStatus(t('idePanels.preview.refreshAfterFile', { path: filePath.replace(/^\/+/, '') }));
+        setPreviewStatus(`Refreshing preview after ${filePath.replace(/^\/+/, '')}`);
         previewReloadTimer.current = window.setTimeout(() => {
           reloadPreview('file:applied');
           previewReloadTimer.current = undefined;
@@ -1178,7 +1081,7 @@ export const Preview = memo(
           previewReloadTimer.current = undefined;
         }
       };
-    }, [reloadPreview, t]);
+    }, [reloadPreview]);
 
     /*
      * Auto-reload when the dev server's port transitions not-ready → ready. The
@@ -1237,7 +1140,7 @@ export const Preview = memo(
       void fetch(`/api/projects/${projectId}/thumbnail/refresh`, {
         method: 'POST',
         body: new URLSearchParams({ url: baseUrl }),
-      }).catch(() => undefined);
+      }).catch(() => {});
     }, [projectId, activePreview?.baseUrl, activePreview?.ready]);
 
     const startPreviewServer = useCallback(async () => {
@@ -1247,12 +1150,12 @@ export const Preview = memo(
 
       try {
         const label = await workbenchStore.startPreviewServer();
-        setPreviewStatus(t('idePanels.preview.startingCommand', { label }));
-        toast.info(t('idePanels.preview.buildStarted', { label }), { toastId: 'preview-build-started' });
+        setPreviewStatus(`Starting ${label}...`);
+        toast.info(`Build started: ${label}`, { toastId: 'preview-build-started' });
         window.setTimeout(() => setIsStartingPreview(false), 2500);
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Failed to start preview server';
-        setPreviewStatus(t('idePanels.preview.startFailed'));
+        setPreviewStatus(message);
 
         /*
          * This wrapper is EXCLUSIVELY the auto boot-loop kick (the manual Run
@@ -1274,7 +1177,7 @@ export const Preview = memo(
           window.setTimeout(() => setIsStartingPreview(false), 2500);
         }
       }
-    }, [t]);
+    }, []);
 
     useEffect(() => {
       if (lastPreviewableFilesSignature.current === previewableFilesSignature) {
@@ -1289,16 +1192,16 @@ export const Preview = memo(
 
       if (hasStaticPreview) {
         setPreviewRunFailed(false);
-        setPreviewStatus(t('idePanels.preview.staticReady'));
+        setPreviewStatus('Static HTML preview ready.');
         setIsStartingPreview(false);
 
         return;
       }
 
       setPreviewRunFailed(false);
-      setPreviewStatus(t('idePanels.preview.filesChanged'));
+      setPreviewStatus('App files changed. Detecting preview port...');
       setIsStartingPreview(false);
-    }, [hasStaticPreview, previewableFilesSignature, previews.length, t]);
+    }, [hasStaticPreview, previewableFilesSignature, previews.length]);
 
     useEffect(() => {
       if (
@@ -1310,7 +1213,6 @@ export const Preview = memo(
           previewsLength: previews.length,
           previewRunFailed,
           hasWorkspaceError: Boolean(workspaceError),
-          bootAttempts: bootAttemptsRef.current,
         })
       ) {
         return;
@@ -1356,22 +1258,12 @@ export const Preview = memo(
       reopenKickedSessionRef.current = sessionKey;
       setPreviewRunFailed(false);
       setIsStartingPreview(true);
-      setPreviewStatus(t('idePanels.preview.reopening'));
+      setPreviewStatus('Reopening workspace — restarting the dev server…');
       void workbenchStore
         .startPreviewServer()
         .catch(() => undefined)
         .finally(() => window.setTimeout(() => setIsStartingPreview(false), 2500));
-    }, [autoStart, projectId, isStartingPreview, workspaceStatus, t]);
-
-    /*
-     * A detected port means the loop succeeded — reset the relaunch budget so a
-     * later death gets its own full budget.
-     */
-    useEffect(() => {
-      if (previews.length > 0) {
-        bootAttemptsRef.current = 0;
-      }
-    }, [previews.length]);
+    }, [autoStart, projectId, isStartingPreview, workspaceStatus]);
 
     useEffect(() => {
       if (
@@ -1382,7 +1274,6 @@ export const Preview = memo(
           previewsLength: previews.length,
           previewRunFailed,
           hasWorkspaceError: Boolean(workspaceError),
-          bootAttempts: bootAttemptsRef.current,
         })
       ) {
         return undefined;
@@ -1396,22 +1287,7 @@ export const Preview = memo(
 
         if (workbenchStore.isPreviewServerStarting()) {
           setIsStartingPreview(true);
-          setPreviewStatus(t('idePanels.preview.startingServer'));
-
-          return;
-        }
-
-        /*
-         * Bounded auto-retry: once the relaunch budget is spent, stop looping and
-         * hand off to the manual recovery UI instead of hammering. previewRunFailed
-         * does NOT stop the loop before this (a dev-server-absent 502 keeps
-         * relaunching), so this cap is what terminates it.
-         */
-        if (bootAttemptsRef.current >= MAX_PREVIEW_BOOT_ATTEMPTS) {
-          setPreviewStatus('The dev server did not come up after several attempts. Try Run / Reinstall.');
-          setPreviewRunFailed(true);
-          setIsStartingPreview(false);
-          window.clearInterval(interval);
+          setPreviewStatus('Starting dev server and detecting runtime ports...');
 
           return;
         }
@@ -1426,20 +1302,18 @@ export const Preview = memo(
            * isPreviewServerStarting() check above so it never overlaps an
            * in-flight install.
            */
-          bootAttemptsRef.current += 1;
           setIsStartingPreview(true);
-          setPreviewStatus(t('idePanels.preview.reinstallingServer'));
+          setPreviewStatus('Reinstalling dependencies and restarting the dev server...');
           void workbenchStore.reinstallDependencies().catch(() => undefined);
         } else if (tick % 2 === 0) {
-          bootAttemptsRef.current += 1;
           setIsStartingPreview(true);
-          setPreviewStatus(t('idePanels.preview.startingServer'));
+          setPreviewStatus('Starting dev server and detecting runtime ports...');
           void workbenchStore.startPreviewServer().catch(() => undefined);
         }
       }, 2500);
 
       return () => window.clearInterval(interval);
-    }, [autoStart, hasStaticPreview, previews.length, previewRunFailed, workspaceError, workspaceReady, t]);
+    }, [autoStart, hasStaticPreview, previews.length, previewRunFailed, workspaceError, workspaceReady]);
 
     useEffect(() => {
       if (
@@ -1450,21 +1324,20 @@ export const Preview = memo(
           previewsLength: previews.length,
           previewRunFailed,
           hasWorkspaceError: Boolean(workspaceError),
-          bootAttempts: bootAttemptsRef.current,
         })
       ) {
         return undefined;
       }
 
       const timeout = window.setTimeout(() => {
-        setPreviewStatus(t('idePanels.preview.noPort'));
+        setPreviewStatus('No running preview port was detected.');
         setPreviewRunFailed(true);
         setIsStartingPreview(false);
         setIsRefreshingPorts(false);
       }, 300000); // 5min: a fresh complex app's npm install + dev start can exceed 2min under gVisor/CPU contention
 
       return () => window.clearTimeout(timeout);
-    }, [autoStart, hasStaticPreview, previews.length, previewRunFailed, workspaceError, workspaceReady, t]);
+    }, [autoStart, hasStaticPreview, previews.length, previewRunFailed, workspaceError, workspaceReady]);
 
     const navigatePreviewHistory = (direction: 'back' | 'forward') => {
       try {
@@ -1629,7 +1502,7 @@ export const Preview = memo(
           onMouseOut={(e) =>
             (e.currentTarget.style.background = 'var(--bolt-elements-background-depth-3, var(--vc-ide-bg-card))')
           }
-          title={t('idePanels.preview.resizeWidth')}
+          title="Drag to resize width"
         >
           <GripIcon />
         </div>
@@ -1847,7 +1720,7 @@ export const Preview = memo(
 
           if (!newWindow) {
             console.error('Failed to open new window');
-            toast.error(t('idePanels.preview.popupBlocked'));
+            toast.error('Could not open the preview window — check if your browser is blocking pop-ups.');
 
             return;
           }
@@ -1885,10 +1758,10 @@ export const Preview = memo(
           // Create HTML content for the wrapper page
           const htmlContent = `
             <!DOCTYPE html>
-            <html lang="${activeLanguage.startsWith('fr') ? 'fr' : 'en'}">
+            <html>
             <head>
               <meta charset="utf-8">
-              <title>${escapeHtml(t('idePanels.preview.popupTitle', { device: size.name }))}</title>
+              <title>${size.name} Preview</title>
               <style>
                 body {
                   margin: 0;
@@ -2099,12 +1972,7 @@ export const Preview = memo(
           const rawFilename = typeof event.data.filename === 'string' ? event.data.filename : '';
           const lineno = typeof event.data.lineno === 'number' ? event.data.lineno : undefined;
           const filename = rawFilename ? ` (${rawFilename}:${lineno ?? '?'})` : '';
-
-          const message = t('idePanels.preview.runtimeError', {
-            message: event.data.message ?? t('idePanels.preview.unknownError'),
-            location: filename,
-          });
-
+          const message = `Preview error: ${event.data.message ?? 'unknown'}${filename}`;
           const resolvedPath = rawFilename ? resolvePreviewSourcePath(rawFilename) : undefined;
           const source = resolvedPath && lineno ? { path: resolvedPath, line: lineno } : undefined;
           setPreviewConsoleEvents((events) =>
@@ -2132,9 +2000,7 @@ export const Preview = memo(
             workbenchStore.appendWorkspaceLog(String(event.data.stack));
           }
         } else if (event.data.type === 'PREVIEW_UNHANDLED_REJECTION') {
-          const message = t('idePanels.preview.unhandledRejection', {
-            message: event.data.message ?? t('idePanels.preview.unknownError'),
-          });
+          const message = `Preview unhandled rejection: ${event.data.message ?? 'unknown'}`;
           setPreviewConsoleEvents((events) =>
             [
               {
@@ -2165,7 +2031,8 @@ export const Preview = memo(
            * silent blank, and auto-reload the frame ONCE — by then the agent's
            * serve-time entry repair has re-injected the missing entry script.
            */
-          const message = t('idePanels.preview.blankPage');
+          const message =
+            'Preview loaded but the app never mounted (blank page). Check the app entry / console. Auto-reloading once…';
           setPreviewConsoleEvents((events) => [{ level: 'warn', message }, ...events].slice(0, 120));
           workbenchStore.appendWorkspaceLog(message);
 
@@ -2179,7 +2046,7 @@ export const Preview = memo(
       window.addEventListener('message', handleMessage);
 
       return () => window.removeEventListener('message', handleMessage);
-    }, [isInspectorMode, reloadPreview, t]);
+    }, [isInspectorMode]);
 
     const toggleInspectorMode = () => {
       const newInspectorMode = !isInspectorMode;
@@ -2217,9 +2084,9 @@ export const Preview = memo(
         const stored = await captureAndUploadThumbnail(projectId, iframe);
 
         if (stored) {
-          toast.success(t('idePanels.preview.thumbnailSaved'));
+          toast.success('Saved as the project thumbnail.');
         } else {
-          toast.info(t('idePanels.preview.thumbnailStorageDisabled'));
+          toast.info('Object storage is not enabled — thumbnail was not saved.');
         }
       } catch (error) {
         // A user cancelling the screen-share picker throws NotAllowedError — stay quiet.
@@ -2227,11 +2094,11 @@ export const Preview = memo(
           return;
         }
 
-        toast.error(t('idePanels.preview.thumbnailFailed'));
+        toast.error(error instanceof Error ? error.message : 'Could not capture the thumbnail.');
       } finally {
         setCapturingThumbnail(false);
       }
-    }, [projectId, capturingThumbnail, t]);
+    }, [projectId, capturingThumbnail]);
 
     const recordPreviewLoad = useCallback(
       (url?: string) => {
@@ -2269,7 +2136,7 @@ export const Preview = memo(
           );
 
           if (decision.scheduleReload) {
-            setPreviewStatus(t('idePanels.preview.serverStartingRetry'));
+            setPreviewStatus('Preview server is still starting, retrying...');
 
             if (previewReloadTimer.current !== undefined) {
               window.clearTimeout(previewReloadTimer.current);
@@ -2299,9 +2166,9 @@ export const Preview = memo(
         setPreviewFrameLoaded(true);
         setLoadedPreviewUrl(targetUrl);
         setIsStartingPreview(false);
-        setPreviewStatus(t('idePanels.preview.rendered'));
+        setPreviewStatus('Preview rendered.');
       },
-      [activePreview?.ready, reloadPreview, visiblePreviewUrl, t],
+      [activePreview?.ready, reloadPreview, visiblePreviewUrl],
     );
 
     const handlePreviewFrameError = useCallback(() => {
@@ -2320,7 +2187,7 @@ export const Preview = memo(
       previewLoadRetryRef.current = decision.nextAttempt;
 
       if (decision.scheduleReload) {
-        setPreviewStatus(t('idePanels.preview.serverUnreachableRetry'));
+        setPreviewStatus('Preview server is unreachable, retrying...');
 
         if (previewReloadTimer.current !== undefined) {
           window.clearTimeout(previewReloadTimer.current);
@@ -2331,11 +2198,11 @@ export const Preview = memo(
           reloadPreview('upstream-error-retry');
         }, 1500);
       } else {
-        setPreviewStatus(t('idePanels.preview.serverNotResponding'));
+        setPreviewStatus('Preview server is not responding.');
         setPreviewRunFailed(true);
         setIsStartingPreview(false);
       }
-    }, [activePreview?.ready, reloadPreview, t]);
+    }, [activePreview?.ready, reloadPreview]);
 
     const previewViewportWidth = isDeviceModeOn
       ? showDeviceFrameInPreview
@@ -2350,8 +2217,8 @@ export const Preview = memo(
             : '100%';
 
     const inspectToCodeHint = selectedPreviewElement
-      ? t('idePanels.preview.inspectSelected')
-      : t('idePanels.preview.inspectHint');
+      ? 'Open the source file that most likely renders the selected element'
+      : 'Enable inspect to code, then click an element in the preview';
 
     return (
       <div ref={containerRef} className="bolt-project-webview-tool w-full h-full flex flex-col relative">
@@ -2368,34 +2235,26 @@ export const Preview = memo(
               icon="i-ph:arrow-left"
               onClick={() => navigatePreviewHistory('back')}
               disabled={previewHistoryUnavailable}
-              title={
-                previewHistoryUnavailable ? t('idePanels.preview.historyUnavailable') : t('idePanels.preview.back')
-              }
+              title={previewHistoryUnavailable ? 'Navigation history unavailable for external URLs' : 'Back'}
             />
             <IconButton
               icon="i-ph:arrow-right"
               onClick={() => navigatePreviewHistory('forward')}
               disabled={previewHistoryUnavailable}
-              title={
-                previewHistoryUnavailable ? t('idePanels.preview.historyUnavailable') : t('idePanels.preview.forward')
-              }
+              title={previewHistoryUnavailable ? 'Navigation history unavailable for external URLs' : 'Forward'}
             />
-            <IconButton
-              icon="i-ph:arrow-clockwise"
-              onClick={() => reloadPreview()}
-              title={t('idePanels.preview.refresh')}
-            />
+            <IconButton icon="i-ph:arrow-clockwise" onClick={() => reloadPreview()} title="Refresh preview" />
             <IconButton
               icon="i-ph:selection"
               onClick={() => setIsSelectionMode(!isSelectionMode)}
               className={isSelectionMode ? 'bg-bolt-elements-background-depth-3' : ''}
-              title={isSelectionMode ? t('idePanels.preview.disableSelection') : t('idePanels.preview.selectArea')}
+              title={isSelectionMode ? 'Disable screenshot selection' : 'Select preview area'}
             />
             <IconButton
               icon={capturingThumbnail ? 'i-ph:circle-notch animate-spin' : 'i-ph:camera'}
               onClick={() => void captureThumbnail()}
               disabled={capturingThumbnail || !activePreview || !projectId}
-              title={t('idePanels.preview.captureThumbnail')}
+              title="Capture preview as project thumbnail"
             />
           </div>
 
@@ -2409,9 +2268,9 @@ export const Preview = memo(
               previews={previews}
             />
             <input
-              title={t('idePanels.preview.url')}
-              aria-label={t('idePanels.preview.url')}
-              data-vc-tooltip={t('idePanels.preview.url')}
+              title="Preview URL"
+              aria-label="Preview URL"
+              data-vc-tooltip="Preview URL"
               ref={inputRef}
               className="w-full bg-transparent outline-none"
               type="text"
@@ -2431,40 +2290,34 @@ export const Preview = memo(
               className="bolt-preview-toolbar-button"
               disabled={!visiblePreviewUrl}
               onClick={() => void copyPreviewUrl()}
-              title={t('idePanels.preview.copyUrl')}
-              aria-label={t('idePanels.preview.copyUrl')}
-              data-vc-tooltip={t('idePanels.preview.copyUrl')}
+              title="Copy preview URL"
+              aria-label="Copy preview URL"
+              data-vc-tooltip="Copy preview URL"
             >
               <span className="i-ph:copy" aria-hidden />
-              <span>{t('idePanels.preview.copy')}</span>
+              <span>Copy</span>
             </button>
           </div>
 
           <div className="flex items-center gap-1">
             <select
-              aria-label={t('idePanels.preview.device')}
+              aria-label="Preview device"
               value={previewDevice}
               onChange={(event) => onPreviewDeviceChange?.(event.currentTarget.value as PreviewDevice)}
               className="h-8 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-xs text-bolt-elements-textPrimary outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             >
-              <option value="desktop">{t('idePanels.preview.desktop')}</option>
-              <option value="tablet">{t('idePanels.preview.tablet')}</option>
-              <option value="mobile">{t('idePanels.preview.mobile')}</option>
-              <option value="custom">{t('idePanels.preview.customWidth')}</option>
+              <option value="desktop">Desktop</option>
+              <option value="tablet">Tablet</option>
+              <option value="mobile">Mobile</option>
+              <option value="custom">Custom width</option>
             </select>
             <IconButton
               icon="i-ph:devices"
               onClick={toggleDeviceMode}
-              title={isDeviceModeOn ? t('idePanels.preview.responsiveMode') : t('idePanels.preview.deviceMode')}
+              title={isDeviceModeOn ? 'Switch to Responsive Mode' : 'Switch to Device Mode'}
             />
 
-            {expoUrl && (
-              <IconButton
-                icon="i-ph:qr-code"
-                onClick={() => setIsExpoQrModalOpen(true)}
-                title={t('idePanels.preview.showQr')}
-              />
-            )}
+            {expoUrl && <IconButton icon="i-ph:qr-code" onClick={() => setIsExpoQrModalOpen(true)} title="Show QR" />}
 
             <ExpoQrModal open={isExpoQrModalOpen} onClose={() => setIsExpoQrModalOpen(false)} />
 
@@ -2473,12 +2326,12 @@ export const Preview = memo(
                 <IconButton
                   icon="i-ph:device-rotate"
                   onClick={() => setIsLandscape(!isLandscape)}
-                  title={isLandscape ? t('idePanels.preview.portrait') : t('idePanels.preview.landscape')}
+                  title={isLandscape ? 'Switch to Portrait' : 'Switch to Landscape'}
                 />
                 <IconButton
                   icon={showDeviceFrameInPreview ? 'i-ph:device-mobile' : 'i-ph:device-mobile-slash'}
                   onClick={() => setShowDeviceFrameInPreview(!showDeviceFrameInPreview)}
-                  title={showDeviceFrameInPreview ? t('idePanels.preview.hideFrame') : t('idePanels.preview.showFrame')}
+                  title={showDeviceFrameInPreview ? 'Hide Device Frame' : 'Show Device Frame'}
                 />
               </>
             )}
@@ -2488,7 +2341,7 @@ export const Preview = memo(
               className={
                 isInspectorMode ? 'bg-bolt-elements-background-depth-3 !text-bolt-elements-item-contentAccent' : ''
               }
-              title={isInspectorMode ? t('idePanels.preview.disableInspect') : t('idePanels.preview.enableInspect')}
+              title={isInspectorMode ? 'Disable inspect to code' : 'Enable inspect to code'}
             />
             <button
               type="button"
@@ -2498,12 +2351,12 @@ export const Preview = memo(
                 setDevToolsOpen((open) => !open);
                 setActiveDevToolsTab('console');
               }}
-              title={t('idePanels.preview.openDevTools')}
-              aria-label={t('idePanels.preview.openDevTools')}
-              data-vc-tooltip={t('idePanels.preview.openDevTools')}
+              title="Open integrated preview DevTools"
+              aria-label="Open integrated preview DevTools"
+              data-vc-tooltip="Open integrated preview DevTools"
             >
               <span className="i-ph:wrench" aria-hidden />
-              <span>{t('idePanels.preview.devTools')}</span>
+              <span>DevTools</span>
             </button>
             <button
               type="button"
@@ -2515,24 +2368,24 @@ export const Preview = memo(
               data-vc-tooltip={inspectToCodeHint}
             >
               <span className="i-ph:code" aria-hidden />
-              <span>{t('idePanels.preview.inspectToCode')}</span>
+              <span>Inspect to code</span>
             </button>
             <IconButton
               icon={isFullscreen ? 'i-ph:arrows-in' : 'i-ph:arrows-out'}
               onClick={toggleFullscreen}
-              title={isFullscreen ? t('idePanels.preview.exitFullscreen') : t('idePanels.preview.fullscreen')}
+              title={isFullscreen ? 'Exit Full Screen' : 'Full Screen'}
             />
             <button
               type="button"
               className="bolt-preview-toolbar-button"
               onClick={openInNewTab}
               disabled={!activePreview}
-              title={t('idePanels.preview.openBrowser')}
-              aria-label={t('idePanels.preview.openBrowser')}
-              data-vc-tooltip={t('idePanels.preview.openBrowser')}
+              title="Open in browser"
+              aria-label="Open in browser"
+              data-vc-tooltip="Open in browser"
             >
               <span className="i-ph:arrow-square-out" aria-hidden />
-              <span>{t('idePanels.preview.open')}</span>
+              <span>Open</span>
             </button>
             <IconButton
               icon="i-ph:terminal-window"
@@ -2540,14 +2393,14 @@ export const Preview = memo(
                 setActiveLogTab('webview');
                 setLogsOpen((open) => !open);
               }}
-              title={t('idePanels.preview.webviewLogs')}
+              title="Webview logs"
             />
 
             <div className="flex items-center relative">
               <IconButton
                 icon="i-ph:browser"
                 onClick={() => setIsWindowSizeDropdownOpen(!isWindowSizeDropdownOpen)}
-                title={t('idePanels.preview.windowOptions')}
+                title="Preview window options"
               />
 
               {isWindowSizeDropdownOpen && (
@@ -2560,15 +2413,15 @@ export const Preview = memo(
                   <div className="bolt-preview-window-menu">
                     <div className="bolt-preview-window-menu-header">
                       <div>
-                        <strong>{t('idePanels.preview.window')}</strong>
-                        <span>{t('idePanels.preview.windowBody')}</span>
+                        <strong>Preview window</strong>
+                        <span>Open externally or test a viewport</span>
                       </div>
                       <span className="i-ph:browser" aria-hidden />
                     </div>
                     <div className="bolt-preview-window-menu-actions">
                       <button onClick={openInNewTab}>
                         <span className="i-ph:arrow-square-out" aria-hidden />
-                        <strong>{t('idePanels.preview.newTab')}</strong>
+                        <strong>New tab</strong>
                       </button>
                       <button
                         onClick={() => {
@@ -2587,7 +2440,7 @@ export const Preview = memo(
                         }}
                       >
                         <span className="i-ph:browser" aria-hidden />
-                        <strong>{t('idePanels.preview.windowShort')}</strong>
+                        <strong>Window</strong>
                       </button>
                     </div>
                     <div className="bolt-preview-window-menu-section">
@@ -2597,7 +2450,7 @@ export const Preview = memo(
                         aria-pressed={showDeviceFrame}
                         onClick={() => setShowDeviceFrame(!showDeviceFrame)}
                       >
-                        <span>{t('idePanels.preview.showDeviceFrame')}</span>
+                        <span>Show device frame</span>
                         <span className="bolt-preview-window-switch" aria-hidden>
                           <span />
                         </span>
@@ -2608,15 +2461,15 @@ export const Preview = memo(
                         aria-pressed={isLandscape}
                         onClick={() => setIsLandscape(!isLandscape)}
                       >
-                        <span>{t('idePanels.preview.landscapeMode')}</span>
+                        <span>Landscape mode</span>
                         <span className="bolt-preview-window-switch" aria-hidden>
                           <span />
                         </span>
                       </button>
                     </div>
-                    <div className="bolt-preview-window-menu-label">{t('idePanels.preview.responsivePresets')}</div>
+                    <div className="bolt-preview-window-menu-label">Responsive presets</div>
                     <div className="bolt-preview-window-menu-sizes">
-                      {windowSizes.map((size) => (
+                      {WINDOW_SIZES.map((size) => (
                         <button
                           key={size.name}
                           className="bolt-preview-window-size"
@@ -2633,7 +2486,7 @@ export const Preview = memo(
                               {isLandscape && (size.frameType === 'mobile' || size.frameType === 'tablet')
                                 ? `${size.height} × ${size.width}`
                                 : `${size.width} × ${size.height}`}
-                              {size.hasFrame && showDeviceFrame ? ` (${t('idePanels.preview.withFrame')})` : ''}
+                              {size.hasFrame && showDeviceFrame ? ' (with frame)' : ''}
                             </small>
                           </div>
                           {selectedWindowSize.name === size.name && <span className="i-ph:check" aria-hidden />}
@@ -2676,7 +2529,7 @@ export const Preview = memo(
                 {staticPreviewHtml && !activePreview ? (
                   <iframe
                     ref={iframeRef}
-                    title={t('idePanels.preview.iframeTitle')}
+                    title="preview"
                     className="border-none w-full h-full bg-white"
                     srcDoc={staticPreviewHtml}
                     sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation"
@@ -2752,7 +2605,7 @@ export const Preview = memo(
 
                       <iframe
                         ref={iframeRef}
-                        title={t('idePanels.preview.iframeTitle')}
+                        title="preview"
                         style={{
                           border: 'none',
                           width: isLandscape ? `${selectedWindowSize.height}px` : `${selectedWindowSize.width}px`,
@@ -2772,7 +2625,7 @@ export const Preview = memo(
                 ) : (
                   <iframe
                     ref={iframeRef}
-                    title={t('idePanels.preview.iframeTitle')}
+                    title="preview"
                     className="border-none w-full h-full bg-bolt-elements-background-depth-1"
                     src={iframeUrl}
                     sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
@@ -2786,8 +2639,8 @@ export const Preview = memo(
                   <PreviewResumeSkeleton
                     currentTask={
                       activePreview?.ready === false
-                        ? t('idePanels.preview.reconnecting')
-                        : t('idePanels.preview.reattaching')
+                        ? 'Reconnecting to your running app…'
+                        : 'Reattaching to your running app…'
                     }
                   />
                 ) : previewLoadingOverlayMode === 'rebuild' ? (
@@ -2796,8 +2649,8 @@ export const Preview = memo(
                     currentTask={
                       previewStatus ??
                       (activePreview?.ready === false
-                        ? t('idePanels.preview.waitingPort')
-                        : t('idePanels.preview.loadingWebview'))
+                        ? 'Waiting for the preview port to become ready...'
+                        : 'Loading the webview and waiting for the first render...')
                     }
                     logs={recentPreviewLogs}
                     progress={Math.min(previewBootProgress.progress, activePreview?.ready === false ? 84 : 92)}
@@ -2820,18 +2673,18 @@ export const Preview = memo(
               <>
                 {previewRunFailed || workspaceError ? (
                   <PreviewNotRunningState
-                    detail={previewStatus ?? (workspaceError ? t('idePanels.preview.workspaceFailed') : undefined)}
+                    detail={previewStatus ?? workspaceError}
                     isRunning={isStartingPreview}
                     logs={workspaceLogs.slice(-8)}
                     onRun={() => {
                       setIsStartingPreview(true);
                       setPreviewRunFailed(false);
-                      setPreviewStatus(t('idePanels.preview.restartStatus'));
-                      toast.info(t('idePanels.preview.restartStarted'), { toastId: 'preview-build-restart' });
+                      setPreviewStatus('Restarting preview server and detecting runtime ports...');
+                      toast.info('Build started: restarting preview server', { toastId: 'preview-build-restart' });
                       void workbenchStore
                         .restartPreviewServer()
-                        .catch(() => {
-                          setPreviewStatus(t('idePanels.preview.restartFailed'));
+                        .catch((error) => {
+                          setPreviewStatus(error instanceof Error ? error.message : 'Failed to restart preview server');
                           setPreviewRunFailed(true);
                         })
                         .finally(() => {
@@ -2841,12 +2694,12 @@ export const Preview = memo(
                     onReinstall={() => {
                       setIsStartingPreview(true);
                       setPreviewRunFailed(false);
-                      setPreviewStatus(t('idePanels.preview.reinstallStatus'));
-                      toast.info(t('idePanels.preview.reinstalling'), { toastId: 'preview-reinstall-deps' });
+                      setPreviewStatus('Reinstalling dependencies and restarting preview server...');
+                      toast.info('Reinstalling dependencies', { toastId: 'preview-reinstall-deps' });
                       void workbenchStore
                         .reinstallDependencies()
-                        .catch(() => {
-                          setPreviewStatus(t('idePanels.preview.reinstallFailed'));
+                        .catch((error) => {
+                          setPreviewStatus(error instanceof Error ? error.message : 'Failed to reinstall dependencies');
                           setPreviewRunFailed(true);
                         })
                         .finally(() => {
@@ -2858,7 +2711,7 @@ export const Preview = memo(
                   <>
                     {shouldShowPreviewStartupOverlay ? (
                       <iframe
-                        title={t('idePanels.preview.iframeTitle')}
+                        title="preview"
                         data-testid="preview-iframe"
                         className="bolt-preview-iframe bolt-preview-iframe--booting"
                         src="about:blank"
@@ -2866,13 +2719,13 @@ export const Preview = memo(
                     ) : null}
                     {!shouldShowPreviewStartupOverlay ? (
                       <PreviewSplashSequence
-                        appName={projectId ? t('idePanels.preview.projectPreview') : undefined}
+                        appName={projectId ? 'Project preview' : undefined}
                         activeStep={previewBootProgress.activeStep}
                         currentTask={
                           previewStatus ??
                           (workspaceReady
-                            ? t('idePanels.preview.startingServer')
-                            : t('idePanels.preview.startingWorkspace'))
+                            ? 'Starting dev server and detecting runtime ports...'
+                            : 'Starting project workspace...')
                         }
                         isBusy={isStartingPreview || isRefreshingPorts || autoStart || !workspaceReady}
                         progress={previewBootProgress.progress}
@@ -2887,8 +2740,8 @@ export const Preview = memo(
                         currentTask={
                           previewStatus ??
                           (workspaceReady
-                            ? t('idePanels.preview.startingServer')
-                            : t('idePanels.preview.startingWorkspace'))
+                            ? 'Starting dev server and detecting runtime ports...'
+                            : 'Starting project workspace...')
                         }
                         logs={recentPreviewLogs}
                         progress={Math.min(previewBootProgress.progress, 84)}
@@ -2920,7 +2773,7 @@ export const Preview = memo(
                     transition: 'opacity 0.3s',
                   }}
                 >
-                  {currentWidth} {t('idePanels.preview.pixelUnit')}
+                  {currentWidth}px
                 </div>
 
                 <ResizeHandle side="left" />
@@ -2930,9 +2783,9 @@ export const Preview = memo(
           </div>
         </div>
         {logsOpen && (
-          <section className="bolt-preview-logs-panel" aria-label={t('idePanels.preview.logsLabel')}>
+          <section className="bolt-preview-logs-panel" aria-label="Preview logs">
             <header>
-              <div role="tablist" aria-label={t('idePanels.preview.logType')}>
+              <div role="tablist" aria-label="Preview log type">
                 {(['webview', 'server'] as const).map((tab) => (
                   <button
                     key={tab}
@@ -2941,47 +2794,41 @@ export const Preview = memo(
                     aria-selected={activeLogTab === tab}
                     onClick={() => setActiveLogTab(tab)}
                   >
-                    {tab === 'webview' ? t('idePanels.preview.webviewLogs') : t('idePanels.preview.serverLogs')}
+                    {tab === 'webview' ? 'Webview logs' : 'Server logs'}
                   </button>
                 ))}
               </div>
               <button
                 type="button"
-                aria-label={t('idePanels.preview.openLogsRight')}
+                aria-label="Open logs in right panel"
                 onClick={() => {
                   setLogsOpen(false);
                   onOpenLogsRight?.();
                 }}
               >
                 <span className="i-ph:sidebar-simple" aria-hidden />
-                {t('idePanels.preview.dockRight')}
+                Dock right
               </button>
             </header>
             <pre>
               {(activeLogTab === 'webview'
                 ? [
-                    t('idePanels.preview.logUrl', {
-                      url: iframeUrl ?? t('idePanels.preview.notRunning'),
-                    }),
-                    t('idePanels.preview.logPort', {
-                      port: activePreview?.port ?? t('idePanels.preview.none'),
-                    }),
-                    t('idePanels.preview.logDevice', { device: previewDeviceLabel(previewDevice, t) }),
-                    t('idePanels.preview.logStatus', {
-                      status: previewStatus ?? t('idePanels.preview.ready'),
-                    }),
+                    `Preview URL: ${iframeUrl ?? 'not running'}`,
+                    `Active port: ${activePreview?.port ?? 'none'}`,
+                    `Device: ${previewDevice}`,
+                    previewStatus ? `Status: ${previewStatus}` : 'Status: ready',
                   ]
                 : workspaceLogs.length
                   ? workspaceLogs.slice(-120)
-                  : [t('idePanels.preview.noServerLogs')]
+                  : ['No server logs yet. Start the dev server to stream logs here.']
               ).join('\n')}
             </pre>
           </section>
         )}
         {devToolsOpen && (
-          <section className="bolt-preview-devtools-panel" aria-label={t('idePanels.preview.devToolsLabel')}>
+          <section className="bolt-preview-devtools-panel" aria-label="Preview DevTools">
             <header>
-              <div role="tablist" aria-label={t('idePanels.preview.devToolsTabs')}>
+              <div role="tablist" aria-label="Preview DevTools tabs">
                 {(['console', 'network', 'elements'] as const).map((tab) => (
                   <button
                     key={tab}
@@ -2990,11 +2837,7 @@ export const Preview = memo(
                     aria-selected={activeDevToolsTab === tab}
                     onClick={() => setActiveDevToolsTab(tab)}
                   >
-                    {tab === 'console'
-                      ? t('idePanels.preview.console')
-                      : tab === 'network'
-                        ? t('idePanels.preview.network')
-                        : t('idePanels.preview.elements')}
+                    {tab === 'console' ? 'Console' : tab === 'network' ? 'Network' : 'Elements'}
                   </button>
                 ))}
               </div>
@@ -3016,13 +2859,9 @@ export const Preview = memo(
                     }
                   }}
                 >
-                  {t('idePanels.common.clear')}
+                  Clear
                 </button>
-                <button
-                  type="button"
-                  aria-label={t('idePanels.preview.closeDevTools')}
-                  onClick={() => setDevToolsOpen(false)}
-                >
+                <button type="button" aria-label="Close Preview DevTools" onClick={() => setDevToolsOpen(false)}>
                   <span className="i-ph:x" aria-hidden />
                 </button>
               </div>
@@ -3035,20 +2874,15 @@ export const Preview = memo(
 
                     return (
                       <div key={`${event.level}-${index}`} data-level={event.level}>
-                        <strong>{previewConsoleLevel(event.level, t)}</strong>
-                        <span>{renderConsoleMessage(event.message, t)}</span>
+                        <strong>{event.level}</strong>
+                        <span>{renderConsoleMessage(event.message)}</span>
                         {source ? (
                           <button
                             type="button"
                             className="bolt-preview-console-open"
                             onClick={() => openPreviewSource(source.path, source.line)}
-                            title={t('idePanels.preview.openLocation', {
-                              location: `${source.path}:${source.line}`,
-                            })}
-                            aria-label={t('idePanels.preview.openFileLine', {
-                              path: source.path,
-                              line: source.line,
-                            })}
+                            title={`Open ${source.path}:${source.line}`}
+                            aria-label={`Open ${source.path} at line ${source.line}`}
                           >
                             <span className="i-ph:arrow-square-out" aria-hidden />
                             {source.path.split('/').pop()}:{source.line}
@@ -3061,8 +2895,8 @@ export const Preview = memo(
                   <EmptyState
                     variant="compact"
                     icon="i-ph:check-circle"
-                    title={t('idePanels.preview.noConsoleErrors')}
-                    description={t('idePanels.preview.consoleEmptyBody')}
+                    title="No console errors"
+                    description="Runtime logs remain available in the Logs panel."
                   />
                 )}
               </div>
@@ -3074,16 +2908,16 @@ export const Preview = memo(
                     <div key={`${event.url}-${index}`} data-level={event.status === 'ready' ? 'info' : 'trace'}>
                       <strong>{event.method}</strong>
                       <span title={event.url}>{event.url}</span>
-                      <em>{previewNetworkStatus(event.status, t)}</em>
-                      <small>{previewNetworkSource(event.source, t)}</small>
+                      <em>{event.status}</em>
+                      <small>{event.source}</small>
                     </div>
                   ))
                 ) : (
                   <EmptyState
                     variant="compact"
                     icon="i-ph:globe-simple"
-                    title={t('idePanels.preview.noNavigations')}
-                    description={t('idePanels.preview.noNavigationsBody')}
+                    title="No navigations yet"
+                    description="Preview page loads and route changes will appear here."
                   />
                 )}
               </div>
@@ -3102,12 +2936,12 @@ export const Preview = memo(
                       </span>
                     </div>
                     <div data-level="trace">
-                      <strong>{t('idePanels.preview.text')}</strong>
-                      <span>{selectedPreviewElement.textContent?.trim() || t('idePanels.preview.noText')}</span>
+                      <strong>Text</strong>
+                      <span>{selectedPreviewElement.textContent?.trim() || 'No text content'}</span>
                     </div>
                     {selectedPreviewElement.source?.fileName ? (
                       <div data-level="info">
-                        <strong>{t('idePanels.preview.source')}</strong>
+                        <strong>Source</strong>
                         <span>
                           {selectedPreviewElement.source.fileName.split('/').pop()}:
                           {selectedPreviewElement.source.lineNumber ?? '?'}
@@ -3116,18 +2950,16 @@ export const Preview = memo(
                     ) : null}
                     <button type="button" className="bolt-preview-devtools-primary" onClick={openSelectedElementSource}>
                       {selectedPreviewElement.source?.fileName
-                        ? t('idePanels.preview.openSource', {
-                            location: `${selectedPreviewElement.source.fileName.split('/').pop()}:${selectedPreviewElement.source.lineNumber ?? '?'}`,
-                          })
-                        : t('idePanels.preview.openMatchingSource')}
+                        ? `Open source (${selectedPreviewElement.source.fileName.split('/').pop()}:${selectedPreviewElement.source.lineNumber ?? '?'})`
+                        : 'Open matching source file'}
                     </button>
                   </>
                 ) : (
                   <EmptyState
                     variant="compact"
                     icon="i-ph:cursor-click"
-                    title={t('idePanels.preview.noElement')}
-                    description={t('idePanels.preview.noElementBody')}
+                    title="No element selected"
+                    description="Enable Inspect to code, then click an element in the preview."
                   />
                 )}
               </div>
@@ -3138,58 +2970,6 @@ export const Preview = memo(
     );
   },
 );
-
-function previewDeviceLabel(device: PreviewDevice, t: Translate): string {
-  const keyByDevice: Record<PreviewDevice, string> = {
-    desktop: 'idePanels.preview.desktop',
-    tablet: 'idePanels.preview.tablet',
-    mobile: 'idePanels.preview.mobile',
-    custom: 'idePanels.preview.customWidth',
-  };
-
-  return t(keyByDevice[device]);
-}
-
-function previewConsoleLevel(level: string, t: Translate): string {
-  const keyByLevel: Record<string, string> = {
-    error: 'idePanels.preview.levelError',
-    warn: 'idePanels.preview.levelWarning',
-    warning: 'idePanels.preview.levelWarning',
-    info: 'idePanels.preview.levelInfo',
-    log: 'idePanels.preview.levelLog',
-  };
-
-  return t(keyByLevel[level.toLowerCase()] ?? 'idePanels.common.unavailable');
-}
-
-function previewNetworkStatus(status: string, t: Translate): string {
-  const keyByStatus: Record<string, string> = {
-    detecting: 'idePanels.preview.networkDetecting',
-    ready: 'idePanels.preview.networkReady',
-    reloaded: 'idePanels.preview.networkReloaded',
-    'upstream-not-ready': 'idePanels.preview.networkWaiting',
-    loaded: 'idePanels.preview.networkLoaded',
-    navigated: 'idePanels.preview.networkNavigated',
-  };
-
-  return t(keyByStatus[status] ?? 'idePanels.preview.networkUnavailable');
-}
-
-function previewNetworkSource(source: string, t: Translate): string {
-  if (source.startsWith('port:')) {
-    return t('idePanels.preview.sourcePort', { port: source.slice('port:'.length) });
-  }
-
-  if (source === 'address-bar') {
-    return t('idePanels.preview.sourceAddress');
-  }
-
-  if (source === 'iframe') {
-    return t('idePanels.preview.sourceIframe');
-  }
-
-  return t('idePanels.preview.sourceSystem');
-}
 
 /*
  * Live `prefers-reduced-motion: reduce` state. Users who ask for reduced motion
@@ -3239,11 +3019,9 @@ function PreviewSplashSequence({
   progress: number;
   steps: Array<{ id: PreviewBootStepId; label: string; description: string }>;
 }) {
-  const { t } = useTranslation();
   const [activeSlide, setActiveSlide] = useState(0);
   const [paused, setPaused] = useState(false);
   const reducedMotion = useReducedMotion();
-  const previewSplashSlides = useMemo(() => getPreviewSplashSlides(t), [t]);
 
   useEffect(() => {
     // Freeze the carousel for reduced-motion users and while hovered/focused.
@@ -3286,26 +3064,26 @@ function PreviewSplashSequence({
         <div className="bolt-preview-splash-task">
           {isBusy ? <span className="i-ph:circle-notch animate-spin" aria-hidden /> : null}
           <span>
-            <strong>{steps.find((step) => step.id === activeStep)?.label ?? t('idePanels.preview.preparing')}</strong>
+            <strong>{steps.find((step) => step.id === activeStep)?.label ?? 'Preparing preview'}</strong>
             <small>{currentTask}</small>
           </span>
           {onViewLogs ? (
             <button type="button" onClick={onViewLogs}>
-              {t('idePanels.preview.viewLogs')}
+              View logs
             </button>
           ) : null}
         </div>
         <div
           className="bolt-preview-splash-progress"
           role="progressbar"
-          aria-label={t('idePanels.preview.startupProgress')}
+          aria-label="Preview startup progress"
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(progress)}
         >
           <span style={{ backgroundColor: slide.color, width: `${Math.max(8, Math.min(progress, 100))}%` }} />
         </div>
-        <div className="bolt-preview-splash-steps" aria-label={t('idePanels.preview.startupSteps')}>
+        <div className="bolt-preview-splash-steps" aria-label="Preview startup steps">
           {steps.map((step) => {
             const stepIndex = steps.findIndex((item) => item.id === step.id);
             const activeIndex = steps.findIndex((item) => item.id === activeStep);
@@ -3320,18 +3098,18 @@ function PreviewSplashSequence({
           })}
         </div>
         <div className="bolt-preview-splash-footer">
-          <div className="bolt-preview-splash-dots" aria-label={t('idePanels.preview.preparationSlides')}>
+          <div className="bolt-preview-splash-dots" aria-label="Preview preparation slides">
             {previewSplashSlides.map((item, index) => (
               <button
                 key={item.headline}
                 type="button"
                 className={index === activeSlide ? 'active' : undefined}
                 onClick={() => setActiveSlide(index)}
-                aria-label={t('idePanels.preview.showSlide', { headline: item.headline })}
+                aria-label={`Show ${item.headline}`}
               />
             ))}
           </div>
-          {appName ? <p>{t('idePanels.preview.preparingApp', { app: appName })}</p> : null}
+          {appName ? <p>Preparing: {appName}</p> : null}
         </div>
         {logs?.length ? <pre className="bolt-preview-splash-log">{logs.join('\n')}</pre> : null}
       </div>
@@ -3346,15 +3124,13 @@ function PreviewSplashSequence({
  * scratch. Uses E-Code IDE tokens (accent-action) so it matches the shell.
  */
 function PreviewResumeSkeleton({ currentTask }: { currentTask: string }) {
-  const { t } = useTranslation();
-
   return (
     <div className="bolt-preview-resume-overlay" data-testid="preview-resume-skeleton" role="status" aria-live="polite">
       <div className="bolt-preview-resume-card">
         <span className="bolt-preview-resume-spinner i-ph:circle-notch animate-spin" aria-hidden />
         <div className="bolt-preview-resume-copy">
-          <span>{t('idePanels.preview.resuming')}</span>
-          <h3>{t('idePanels.preview.reattachingTitle')}</h3>
+          <span>Resuming session</span>
+          <h3>Reattaching to your running app</h3>
           <p>{currentTask}</p>
         </div>
         <div className="bolt-preview-resume-skeleton-lines" aria-hidden>
@@ -3382,8 +3158,7 @@ function PreviewLoadingOverlay({
   progress: number;
   steps: Array<{ id: PreviewBootStepId; label: string; description: string }>;
 }) {
-  const { t } = useTranslation();
-  const activeLabel = steps.find((step) => step.id === activeStep)?.label ?? t('idePanels.preview.preparing');
+  const activeLabel = steps.find((step) => step.id === activeStep)?.label ?? 'Preparing preview';
 
   return (
     <div
@@ -3395,21 +3170,21 @@ function PreviewLoadingOverlay({
       <div className="bolt-preview-loading-card">
         <span className="bolt-preview-loading-spinner i-ph:circle-notch animate-spin" aria-hidden />
         <div className="bolt-preview-loading-copy">
-          <span>{t('idePanels.preview.webviewStartup')}</span>
+          <span>Webview startup</span>
           <h3 data-testid="preview-loading-current-step">{activeLabel}</h3>
           <p>{currentTask}</p>
         </div>
         <div
           className="bolt-preview-loading-progress"
           role="progressbar"
-          aria-label={t('idePanels.preview.webviewProgress')}
+          aria-label="Webview startup progress"
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round(progress)}
         >
           <span style={{ width: `${Math.max(8, Math.min(progress, 100))}%` }} />
         </div>
-        <ol className="bolt-preview-loading-steps" aria-label={t('idePanels.preview.webviewSteps')}>
+        <ol className="bolt-preview-loading-steps" aria-label="Webview startup steps">
           {steps.map((step) => {
             const stepIndex = steps.findIndex((item) => item.id === step.id);
             const activeIndex = steps.findIndex((item) => item.id === activeStep);
@@ -3426,7 +3201,7 @@ function PreviewLoadingOverlay({
         {logs.length ? <pre data-testid="preview-loading-log">{logs.join('\n')}</pre> : null}
         {onViewLogs ? (
           <button type="button" onClick={onViewLogs}>
-            {t('idePanels.preview.viewLogs')}
+            View logs
           </button>
         ) : null}
       </div>
@@ -3447,8 +3222,6 @@ function PreviewNotRunningState({
   onRun: () => void;
   onReinstall?: () => void;
 }) {
-  const { t } = useTranslation();
-
   return (
     <div className="bolt-preview-not-running" data-testid="preview-not-running-state">
       <div className="bolt-preview-not-running-card">
@@ -3459,14 +3232,17 @@ function PreviewNotRunningState({
           <Zap />
         </div>
         <div className="bolt-preview-not-running-copy">
-          <span>{t('idePanels.preview.status')}</span>
-          <h3>{t('idePanels.preview.notRunningTitle')}</h3>
-          <p>{detail ?? t('idePanels.preview.notRunningBody')}</p>
+          <span>Preview status</span>
+          <h3>Your app is not running</h3>
+          <p>
+            {detail ??
+              'E-code could not detect a live dev server port yet. Run the app again and the preview will attach automatically.'}
+          </p>
           {logs.length > 0 ? <pre className="bolt-preview-not-running-log">{logs.join('\n')}</pre> : null}
         </div>
         <button type="button" onClick={onRun} disabled={isRunning} className="bolt-preview-not-running-run">
           {isRunning ? <span className="i-ph:circle-notch animate-spin" aria-hidden /> : <Zap aria-hidden />}
-          <span>{isRunning ? t('idePanels.preview.startingPreview') : t('idePanels.preview.runPreview')}</span>
+          <span>{isRunning ? 'Starting preview...' : 'Run to preview your app'}</span>
         </button>
         {onReinstall ? (
           <button
@@ -3474,10 +3250,10 @@ function PreviewNotRunningState({
             onClick={onReinstall}
             disabled={isRunning}
             className="bolt-preview-not-running-secondary"
-            title={t('idePanels.preview.reinstallHelp')}
+            title="Force a fresh dependency install (use this if the preview is stuck because dependencies failed to install)"
           >
             <span className="i-ph:arrows-clockwise" aria-hidden />
-            <span>{t('idePanels.preview.reinstallDependencies')}</span>
+            <span>Reinstall dependencies</span>
           </button>
         ) : null}
       </div>
@@ -3548,11 +3324,9 @@ function PreviewSplashSlide({ slide }: { slide: SplashSlide }) {
 }
 
 function RotatingPreviewTips({ color }: { color: string }) {
-  const { t } = useTranslation();
   const [tipIndex, setTipIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const reducedMotion = useReducedMotion();
-  const previewTips = useMemo(() => getPreviewTips(t), [t]);
 
   useEffect(() => {
     // Freeze the tip rotation for reduced-motion users and while hovered.

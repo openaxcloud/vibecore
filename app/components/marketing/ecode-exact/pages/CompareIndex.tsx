@@ -1,6 +1,5 @@
-import { ArrowRight, Bot, Cloud, GitBranch, Rocket, Shield, Sparkles, Zap } from 'lucide-react';
+import { ArrowRight, Bot, Cloud, GitBranch, Rocket, Scale, Shield, Sparkles, Zap } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 
 import { comparePages } from '~/components/marketing/EcodeMarketingPages';
 import {
@@ -15,14 +14,12 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
-import {
-  getMarketingExactCompareIndexCopy,
-  interpolateMarketingExactCompareIndexCopy,
-  type CompareIndexCompetitorId,
-  type CompareIndexReasonId,
-} from '~/lib/i18n/catalogs/marketing-exact-compare-index';
 
-const COMPARISON_ICONS: Record<CompareIndexCompetitorId, LucideIcon> = {
+/*
+ * Per-competitor card icons; falls back to a generic Scale icon for any slug
+ * not listed here so the card list can't drift from comparePages.
+ */
+const compareIcons: Record<string, LucideIcon> = {
   'github-codespaces': Cloud,
   glitch: Sparkles,
   heroku: Zap,
@@ -30,151 +27,105 @@ const COMPARISON_ICONS: Record<CompareIndexCompetitorId, LucideIcon> = {
   'aws-cloud9': Cloud,
 };
 
-const REASON_ICONS: Record<CompareIndexReasonId, LucideIcon> = {
-  production: Rocket,
-  ai: Bot,
-  collaboration: GitBranch,
-  enterprise: Shield,
-};
+/*
+ * Derive the comparison cards from comparePages so every card links to a real
+ * detail page (/compare/<slug>) and competitors without a page can't appear.
+ */
+const comparisons = Object.values(comparePages).map((page) => ({
+  slug: page.slug,
+  name: page.title,
+  icon: compareIcons[page.slug] ?? Scale,
+  blurb: page.description,
+}));
+
+const reasons = [
+  {
+    icon: Rocket,
+    title: 'Prompt to production',
+    description: 'Generate, preview and deploy a full-stack app in minutes — no setup.',
+  },
+  { icon: Bot, title: 'Managed AI', description: 'Admin-provided models and effort-based credits — users just build.' },
+  {
+    icon: GitBranch,
+    title: 'Real collaboration',
+    description: 'Multiplayer editing, comments, presence and shared workspaces.',
+  },
+  {
+    icon: Shield,
+    title: 'Enterprise ready',
+    description: 'SSO/SAML, single-tenant, VPC peering, audit logs and static egress IPs.',
+  },
+];
 
 export default function CompareIndex() {
-  const { i18n } = useTranslation();
-  const copy = getMarketingExactCompareIndexCopy(i18n.resolvedLanguage ?? i18n.language).exactCompareIndex;
-
   return (
-    <div
-      className="flex min-h-screen flex-col bg-[var(--ecode-background)] text-[var(--ecode-text)]"
-      data-testid="page-compare-index"
-    >
+    <div className="min-h-screen bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary">
       <PublicNavbar />
-      <main className="min-w-0 flex-1">
-        <section
-          className="border-b border-[var(--ecode-border)] bg-gradient-to-b from-background to-muted"
-          aria-labelledby="compare-index-heading"
-        >
-          <div className="container-responsive max-w-5xl py-16 text-center sm:py-20 lg:py-24">
-            <Badge
-              variant="outline"
-              className="border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-3 py-1 text-[var(--ecode-accent-text)]"
-            >
-              {copy.hero.badge}
-            </Badge>
-            <h1
-              id="compare-index-heading"
-              className="mkt-h1 mx-auto mt-6 max-w-4xl break-words text-[var(--ecode-text)] [overflow-wrap:anywhere]"
-            >
-              {copy.hero.title}
-            </h1>
-            <p className="mkt-lead mx-auto mt-4 max-w-3xl break-words text-[var(--ecode-text-secondary)] [overflow-wrap:anywhere]">
-              {copy.hero.description}
-            </p>
+      <main>
+        <section className="mx-auto max-w-5xl px-4 py-16 text-center sm:py-24">
+          <Badge>Comparisons</Badge>
+          <h1 className="mt-6 text-4xl font-bold tracking-tight sm:text-5xl">How E-Code compares</h1>
+          <p className="mx-auto mt-4 max-w-2xl text-lg text-bolt-elements-textSecondary">
+            See how E-Code stacks up against other AI development platforms — from prompt to production.
+          </p>
+        </section>
+
+        <section className="mx-auto max-w-6xl px-4 pb-12">
+          <div className="grid gap-5 sm:grid-cols-2">
+            {comparisons.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Card key={item.slug} className="transition-colors hover:border-[var(--ecode-accent)]">
+                  <CardHeader>
+                    <div
+                      className="mb-3 flex h-11 w-11 items-center justify-center rounded-lg bg-bolt-elements-background-depth-2"
+                      style={{ color: 'var(--ecode-accent)' }}
+                    >
+                      <Icon className="h-6 w-6" />
+                    </div>
+                    <CardTitle>{item.name}</CardTitle>
+                    <CardDescription>{item.blurb}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <a
+                      href={`/compare/${item.slug}`}
+                      className="inline-flex items-center gap-1 text-sm font-medium"
+                      style={{ color: 'var(--ecode-accent)' }}
+                    >
+                      See comparison <ArrowRight className="h-4 w-4" />
+                    </a>
+                  </CardContent>
+                </Card>
+              );
+            })}
           </div>
         </section>
 
-        <section
-          className="py-12 sm:py-16"
-          aria-labelledby="compare-index-comparisons-heading"
-          data-testid="section-compare-index-comparisons"
-        >
-          <div className="container-responsive max-w-6xl">
-            <h2 id="compare-index-comparisons-heading" className="sr-only">
-              {copy.comparisons.title}
-            </h2>
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              {copy.comparisons.items.map((item) => {
-                const Icon = COMPARISON_ICONS[item.id];
-
-                const href = `/compare/${comparePages[item.id].slug}`;
-
-                return (
-                  <Card
-                    key={item.id}
-                    className="group flex h-full min-w-0 flex-col transition-colors hover:border-[var(--ecode-accent)] motion-reduce:transition-none"
-                    data-testid={`card-compare-${item.id}`}
-                  >
-                    <CardHeader className="min-w-0 flex-1">
-                      <div
-                        className="mb-3 flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--ecode-surface-secondary)] text-[var(--ecode-accent-text)]"
-                        aria-hidden="true"
-                        data-testid={`icon-compare-${item.id}`}
-                      >
-                        <Icon className="h-6 w-6" aria-hidden="true" />
-                      </div>
-                      <CardTitle className="break-words text-xl leading-snug [overflow-wrap:anywhere]">
-                        {item.title}
-                      </CardTitle>
-                      <CardDescription className="break-words text-[var(--ecode-text-secondary)] [overflow-wrap:anywhere]">
-                        {item.description}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="min-w-0">
-                      <a
-                        href={href}
-                        className="-mx-2 inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-sm font-semibold text-[var(--ecode-accent-text)] underline-offset-4 transition-colors hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ecode-surface)] motion-reduce:transition-none"
-                        aria-label={interpolateMarketingExactCompareIndexCopy(copy.comparisons.actionAria, {
-                          comparison: item.title,
-                        })}
-                      >
-                        {copy.comparisons.action}
-                        <ArrowRight
-                          className="h-4 w-4 transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none motion-reduce:transition-none"
-                          aria-hidden="true"
-                        />
-                      </a>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+        <section className="mx-auto max-w-6xl px-4 py-12">
+          <h2 className="text-center text-2xl font-bold sm:text-3xl">Why teams choose E-Code</h2>
+          <div className="mt-8 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {reasons.map((reason) => {
+              const Icon = reason.icon;
+              return (
+                <div
+                  key={reason.title}
+                  className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5"
+                >
+                  <Icon className="h-6 w-6" style={{ color: 'var(--ecode-accent)' }} />
+                  <h3 className="mt-3 font-semibold">{reason.title}</h3>
+                  <p className="mt-1 text-sm text-bolt-elements-textSecondary">{reason.description}</p>
+                </div>
+              );
+            })}
           </div>
-        </section>
-
-        <section
-          className="border-y border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] py-12 sm:py-16"
-          aria-labelledby="compare-index-reasons-heading"
-          data-testid="section-compare-index-reasons"
-        >
-          <div className="container-responsive max-w-6xl">
-            <h2
-              id="compare-index-reasons-heading"
-              className="break-words text-center text-2xl font-bold text-[var(--ecode-text)] [overflow-wrap:anywhere] sm:text-3xl"
+          <div className="mt-10 text-center">
+            <a
+              href="/"
+              className="inline-flex items-center gap-2 rounded-lg px-6 py-3 font-medium text-white"
+              style={{ background: 'var(--ecode-accent)' }}
             >
-              {copy.reasons.title}
-            </h2>
-            <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-              {copy.reasons.items.map((reason) => {
-                const Icon = REASON_ICONS[reason.id];
-
-                return (
-                  <div
-                    key={reason.id}
-                    className="h-full min-w-0 rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-5"
-                    data-testid={`card-compare-reason-${reason.id}`}
-                  >
-                    <Icon
-                      className="h-6 w-6 text-[var(--ecode-accent-text)]"
-                      aria-hidden="true"
-                      data-testid={`icon-compare-reason-${reason.id}`}
-                    />
-                    <h3 className="mt-3 break-words font-semibold text-[var(--ecode-text)] [overflow-wrap:anywhere]">
-                      {reason.title}
-                    </h3>
-                    <p className="mt-1 break-words text-sm text-[var(--ecode-text-secondary)] [overflow-wrap:anywhere]">
-                      {reason.description}
-                    </p>
-                  </div>
-                );
-              })}
-            </div>
-            <div className="mt-10 text-center">
-              <a
-                href="/"
-                className="inline-flex min-h-11 w-full items-center justify-center gap-2 whitespace-normal rounded-lg bg-[var(--ecode-accent)] px-6 py-3 text-center font-semibold text-[var(--ecode-accent-contrast)] transition-colors hover:bg-[var(--ecode-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ecode-surface-secondary)] motion-reduce:transition-none sm:w-auto"
-              >
-                {copy.cta.label}
-                <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-              </a>
-            </div>
+              Start building free <ArrowRight className="h-4 w-4" />
+            </a>
           </div>
         </section>
       </main>

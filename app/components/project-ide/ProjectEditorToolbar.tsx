@@ -1,6 +1,4 @@
 import { memo } from 'react';
-import { useTranslation } from 'react-i18next';
-import { getProjectIdeCopy } from '~/lib/i18n/catalogs/project-ide';
 
 interface ProjectEditorToolbarProps {
   fileLabel: string;
@@ -24,6 +22,8 @@ interface ProjectEditorToolbarProps {
   onSave: () => void;
 }
 
+const MONACO_ONLY_HINT = 'Available with Monaco editor';
+
 function ToolbarDivider() {
   return <span className="bolt-project-editor-toolbar-divider" aria-hidden="true" />;
 }
@@ -42,32 +42,21 @@ export const ProjectEditorToolbar = memo(
     onRefactor,
     onSave,
   }: ProjectEditorToolbarProps) => {
-    const { i18n } = useTranslation();
-    const copy = getProjectIdeCopy(i18n.resolvedLanguage ?? i18n.language);
     const languageServiceDisabled = !hasDocument || !monacoActive;
 
     return (
       <div className="bolt-project-editor-toolbar">
         <span className="bolt-project-editor-toolbar-file">{fileLabel}</span>
-        <div
-          className="bolt-project-editor-toolbar-actions"
-          role="toolbar"
-          aria-label={copy['projectIde.toolbar.ariaLabel']}
-        >
-          <div
-            className="bolt-project-editor-toolbar-group"
-            data-toolbar-group="view"
-            role="group"
-            aria-label={copy['projectIde.toolbar.group.view']}
-          >
+        <div className="bolt-project-editor-toolbar-actions" role="toolbar" aria-label="Editor actions">
+          <div className="bolt-project-editor-toolbar-group" data-toolbar-group="view" role="group" aria-label="View">
             <button
               type="button"
               aria-pressed={minimapEnabled}
-              title={minimapEnabled ? copy['projectIde.toolbar.minimap.hide'] : copy['projectIde.toolbar.minimap.show']}
+              title={minimapEnabled ? 'Hide minimap' : 'Show minimap'}
               onClick={onToggleMinimap}
               disabled={!hasDocument}
             >
-              {copy['projectIde.toolbar.minimap']}
+              Minimap
             </button>
           </div>
 
@@ -77,23 +66,23 @@ export const ProjectEditorToolbar = memo(
             className="bolt-project-editor-toolbar-group"
             data-toolbar-group="navigation"
             role="group"
-            aria-label={copy['projectIde.toolbar.group.navigation']}
+            aria-label="Navigation"
           >
             <button
               type="button"
               onClick={onGoToDefinition}
               disabled={languageServiceDisabled}
-              title={monacoActive ? copy['projectIde.toolbar.definition.title'] : copy['projectIde.toolbar.monacoOnly']}
+              title={monacoActive ? 'Go to definition' : MONACO_ONLY_HINT}
             >
-              {copy['projectIde.toolbar.definition']}
+              Definition
             </button>
             <button
               type="button"
               onClick={onFindReferences}
               disabled={languageServiceDisabled}
-              title={monacoActive ? copy['projectIde.toolbar.references.title'] : copy['projectIde.toolbar.monacoOnly']}
+              title={monacoActive ? 'Find references' : MONACO_ONLY_HINT}
             >
-              {copy['projectIde.toolbar.references']}
+              References
             </button>
           </div>
 
@@ -103,39 +92,34 @@ export const ProjectEditorToolbar = memo(
             className="bolt-project-editor-toolbar-group"
             data-toolbar-group="editing"
             role="group"
-            aria-label={copy['projectIde.toolbar.group.editing']}
+            aria-label="Editing"
           >
             <button type="button" onClick={onFormat} disabled={!hasDocument}>
-              {copy['projectIde.toolbar.format']}
+              Format
             </button>
             <button
               type="button"
               onClick={onRenameSymbol}
               disabled={languageServiceDisabled}
-              title={monacoActive ? copy['projectIde.toolbar.rename.title'] : copy['projectIde.toolbar.monacoOnly']}
+              title={monacoActive ? 'Rename symbol' : MONACO_ONLY_HINT}
             >
-              {copy['projectIde.toolbar.rename']}
+              Rename
             </button>
             <button
               type="button"
               onClick={onRefactor}
               disabled={languageServiceDisabled}
-              title={monacoActive ? copy['projectIde.toolbar.refactor.title'] : copy['projectIde.toolbar.monacoOnly']}
+              title={monacoActive ? 'Open refactor menu' : MONACO_ONLY_HINT}
             >
-              {copy['projectIde.toolbar.refactor']}
+              Refactor
             </button>
           </div>
 
           <ToolbarDivider />
 
-          <div
-            className="bolt-project-editor-toolbar-group"
-            data-toolbar-group="save"
-            role="group"
-            aria-label={copy['projectIde.toolbar.group.save']}
-          >
+          <div className="bolt-project-editor-toolbar-group" data-toolbar-group="save" role="group" aria-label="Save">
             <button type="button" className="bolt-project-editor-save-button" onClick={onSave} disabled={!hasDocument}>
-              {copy['projectIde.toolbar.save']}
+              Save
             </button>
           </div>
         </div>

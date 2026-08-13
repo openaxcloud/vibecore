@@ -1,5 +1,4 @@
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
-import { webApiErrorResponse, webApiLocaleHeaders } from '~/lib/i18n/catalogs/web-api-routes';
 import { json } from '~/lib/json-response';
 import { withSecurity } from '~/lib/security';
 
@@ -13,7 +12,7 @@ async function netlifyUserLoader({ request }: { request: Request }) {
     const netlifyToken = apiKeys.VITE_NETLIFY_ACCESS_TOKEN;
 
     if (!netlifyToken) {
-      return webApiErrorResponse(request, 'NETLIFY_TOKEN_MISSING', 401);
+      return json({ error: 'Netlify token not found' }, { status: 401 });
     }
 
     // Make server-side request to Netlify API
@@ -27,11 +26,10 @@ async function netlifyUserLoader({ request }: { request: Request }) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        return webApiErrorResponse(request, 'NETLIFY_TOKEN_INVALID', 401);
+        return json({ error: 'Invalid Netlify token' }, { status: 401 });
       }
 
-      console.error('Netlify user request failed:', { status: response.status });
-      throw new Error();
+      throw new Error(`Netlify API error: ${response.status}`);
     }
 
     const userData = (await response.json()) as {
@@ -42,19 +40,22 @@ async function netlifyUserLoader({ request }: { request: Request }) {
       full_name: string | null;
     };
 
-    return json(
-      {
-        id: userData.id,
-        name: userData.name,
-        email: userData.email,
-        avatar_url: userData.avatar_url,
-        full_name: userData.full_name,
-      },
-      { headers: webApiLocaleHeaders(request) },
-    );
+    return json({
+      id: userData.id,
+      name: userData.name,
+      email: userData.email,
+      avatar_url: userData.avatar_url,
+      full_name: userData.full_name,
+    });
   } catch (error) {
     console.error('Error fetching Netlify user:', error);
-    return webApiErrorResponse(request, 'NETLIFY_USER_FAILED', 503);
+    return json(
+      {
+        error: 'Failed to fetch Netlify user information',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    );
   }
 }
 
@@ -76,7 +77,7 @@ async function netlifyUserAction({ request }: { request: Request }) {
     const netlifyToken = apiKeys.VITE_NETLIFY_ACCESS_TOKEN;
 
     if (!netlifyToken) {
-      return webApiErrorResponse(request, 'NETLIFY_TOKEN_MISSING', 401);
+      return json({ error: 'Netlify token not found' }, { status: 401 });
     }
 
     if (action === 'get_sites') {
@@ -91,8 +92,7 @@ async function netlifyUserAction({ request }: { request: Request }) {
       });
 
       if (!response.ok) {
-        console.error('Netlify sites request failed:', { status: response.status });
-        throw new Error();
+        throw new Error(`Netlify API error: ${response.status}`);
       }
 
       const sites = (await response.json()) as Array<{
@@ -119,10 +119,16 @@ async function netlifyUserAction({ request }: { request: Request }) {
       });
     }
 
-    return webApiErrorResponse(request, 'NETLIFY_ACTION_INVALID', 400);
+    return json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('Error in Netlify user action:', error);
-    return webApiErrorResponse(request, 'NETLIFY_REQUEST_FAILED', 503);
+    return json(
+      {
+        error: 'Failed to process Netlify request',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    );
   }
 }
 

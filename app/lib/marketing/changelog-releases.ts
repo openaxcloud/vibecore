@@ -8,63 +8,86 @@ import { Rocket, Sparkles, Users, CreditCard, Bug, Cpu } from 'lucide-react';
  */
 export type ReleaseType = 'New' | 'Improved' | 'Fixed';
 
-export type ChangelogReleaseId =
-  | 'multi-agent-consensus'
-  | 'faster-deployments'
-  | 'usage-billing'
-  | 'workspace-stability'
-  | 'realtime-collaboration'
-  | 'smarter-code-generation';
-
 export interface Release {
-  id: ChangelogReleaseId;
-  publishedAt: string;
+  date: string;
   version: string;
   type: ReleaseType;
+  title: string;
   icon: LucideIcon;
+  changes: string[];
 }
 
-export const changelogReleases: readonly Release[] = [
+export const changelogReleases: Release[] = [
   {
-    id: 'multi-agent-consensus',
-    publishedAt: '2026-06-16',
+    date: 'June 16, 2026',
     version: 'v3.8.0',
     type: 'New',
+    title: 'Multi-agent consensus mode',
     icon: Cpu,
+    changes: [
+      'Run several AI agents in parallel lanes and merge their best work with live consensus voting',
+      'Per-lane streaming so you can watch each agent reason and edit in real time',
+      'New agent panel timeline with accept, reject, and rewind controls for every proposed patch',
+    ],
   },
   {
-    id: 'faster-deployments',
-    publishedAt: '2026-06-09',
+    date: 'June 9, 2026',
     version: 'v3.7.2',
     type: 'Improved',
+    title: 'Faster, smarter deployments',
     icon: Rocket,
+    changes: [
+      'Static and full-stack builds now snapshot incrementally to shorten redeploy times',
+      'Deployment logs stream live with searchable, color-coded output',
+      'One-click rollback to any previous successful release from the deployments tab',
+    ],
   },
   {
-    id: 'usage-billing',
-    publishedAt: '2026-06-02',
+    date: 'June 2, 2026',
     version: 'v3.7.0',
     type: 'New',
+    title: 'Usage-based credits and billing portal',
     icon: CreditCard,
+    changes: [
+      'Transparent per-run credit metering for AI agents, builds, and workspace hours',
+      'Self-serve billing portal to upgrade, downgrade, or manage your team plan',
+      'Spend alerts and soft caps to keep surprise charges off your invoice',
+    ],
   },
   {
-    id: 'workspace-stability',
-    publishedAt: '2026-05-26',
+    date: 'May 26, 2026',
     version: 'v3.6.1',
     type: 'Fixed',
+    title: 'Workspace and preview stability',
     icon: Bug,
+    changes: [
+      'Resolved an issue where reopening a project could leave the live preview stuck on "Starting"',
+      'Fixed dependency sync occasionally being skipped after a cold-start, breaking the editor',
+      'Hardened terminal reconnection so remote shells survive idle timeouts without flapping',
+    ],
   },
   {
-    id: 'realtime-collaboration',
-    publishedAt: '2026-05-18',
+    date: 'May 18, 2026',
     version: 'v3.6.0',
     type: 'New',
+    title: 'Real-time collaboration',
     icon: Users,
+    changes: [
+      'Live multiplayer editing with shared cursors, presence avatars, and per-file activity',
+      'Shareable read-only and edit links for projects, with granular access controls',
+      'Inline comments and patch proposals that persist across reloads',
+    ],
   },
   {
-    id: 'smarter-code-generation',
-    publishedAt: '2026-05-11',
+    date: 'May 11, 2026',
     version: 'v3.5.3',
     type: 'Improved',
+    title: 'Smarter AI code generation',
     icon: Sparkles,
+    changes: [
+      'Expanded context window so the agent reasons over larger codebases before editing',
+      'Automatic provider fallback keeps chat working when a model is unavailable',
+      'Generated diffs now render with clearer before-and-after views in the IDE',
+    ],
   },
 ];

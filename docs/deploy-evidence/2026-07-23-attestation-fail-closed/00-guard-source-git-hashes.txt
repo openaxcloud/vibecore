@@ -1,4 +1,0 @@
-verify-attestation-run.mjs               b138f08da9033bf4eb5854520be3783aba7773df
-verify-attestation-substitution-test.mjs 4ef30b3abe11a68062c54bc22fc08583a8553ad9
-validate-registries.mjs                  b940e4faa8c0923f93eaebd6c6f1ce4a34e9c693
-repro-attestation-fail-closed.mjs        b260dd8be017e9644f8f807975d53db03a6d232d

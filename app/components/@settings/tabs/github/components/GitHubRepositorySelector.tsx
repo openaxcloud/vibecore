@@ -1,17 +1,10 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, RefreshCw, GitBranch, Calendar, Filter, Check, Shield, Star, X } from 'lucide-react';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { GitHubRepositoryCard } from './GitHubRepositoryCard';
 import { resolveCloneBranches, type CloneBranchInfo } from './githubBranches';
 import { Button } from '~/components/ui/Button';
 import { useGitHubConnection, useGitHubStats } from '~/lib/hooks';
-import {
-  formatRepositorySelectorCopy,
-  formatRepositorySelectorNumber,
-  getRepositorySelectorCopy,
-  getRepositorySelectorError,
-} from '~/lib/i18n/catalogs/repository-selector';
 import type { GitHubRepoInfo } from '~/types/GitHub';
 import { classNames } from '~/utils/classNames';
 
@@ -45,13 +38,6 @@ export function clampPage(currentPage: number, totalPages: number): number {
 }
 
 export function GitHubRepositorySelector({ onClone, className }: GitHubRepositorySelectorProps) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
-  const copy = getRepositorySelectorCopy(language);
-
-  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
-    formatRepositorySelectorCopy(template, values);
-
   const { connection, isConnected } = useGitHubConnection();
 
   const {
@@ -163,7 +149,7 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
       await refreshStats();
     } catch (err) {
       console.error('Failed to refresh GitHub repositories:', err);
-      setError(err instanceof Error ? err.message : '');
+      setError(err instanceof Error ? err.message : 'Failed to refresh repositories');
     } finally {
       setIsRefreshing(false);
     }
@@ -194,7 +180,7 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
       }
 
       console.error('Failed to fetch branches:', err);
-      setBranchError(err instanceof Error ? err.message : '');
+      setBranchError(err instanceof Error ? err.message : 'Failed to fetch branches');
       setBranches([]);
     } finally {
       if (seq === branchFetchSeqRef.current) {
@@ -270,13 +256,9 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
   if (!isConnected || !connection) {
     return (
       <div className="text-center p-8">
-        <p className="text-bolt-elements-textSecondary mb-4">
-          {text(copy['repositorySelector.connect'], {
-            provider: copy['repositorySelector.clone.provider.github'],
-          })}
-        </p>
+        <p className="text-bolt-elements-textSecondary mb-4">Please connect to GitHub first to browse repositories</p>
         <Button variant="outline" onClick={() => window.location.reload()}>
-          {copy['repositorySelector.refreshConnection']}
+          Refresh Connection
         </Button>
       </div>
     );
@@ -286,7 +268,7 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
     return (
       <div className="flex flex-col items-center justify-center p-8 space-y-4">
         <div className="animate-spin w-8 h-8 border-2 border-bolt-elements-borderColorActive border-t-transparent rounded-full" />
-        <p className="text-sm text-bolt-elements-textSecondary">{copy['repositorySelector.loading']}</p>
+        <p className="text-sm text-bolt-elements-textSecondary">Loading repositories...</p>
       </div>
     );
   }
@@ -295,17 +277,11 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
     return (
       <div className="text-center p-8" role="alert">
         <GitBranch className="w-12 h-12 text-bolt-elements-textTertiary mx-auto mb-4" />
-        <p className="text-bolt-elements-textPrimary font-medium mb-1">{copy['repositorySelector.loadFailed']}</p>
-        <p className="text-sm text-bolt-elements-textSecondary mb-4">
-          {getRepositorySelectorError(
-            language,
-            error ? new Error(error) : undefined,
-            copy['repositorySelector.fetchFailed'],
-          )}
-        </p>
+        <p className="text-bolt-elements-textPrimary font-medium mb-1">Couldn&apos;t load repositories</p>
+        <p className="text-sm text-bolt-elements-textSecondary mb-4">{error}</p>
         <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
           <RefreshCw className={classNames('w-4 h-4 mr-2', { 'animate-spin': isRefreshing })} />
-          {copy['repositorySelector.retry']}
+          Retry
         </Button>
       </div>
     );
@@ -315,10 +291,10 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
     return (
       <div className="text-center p-8">
         <GitBranch className="w-12 h-12 text-bolt-elements-textTertiary mx-auto mb-4" />
-        <p className="text-bolt-elements-textSecondary mb-4">{copy['repositorySelector.empty']}</p>
+        <p className="text-bolt-elements-textSecondary mb-4">No repositories found</p>
         <Button variant="outline" onClick={handleRefresh} disabled={isRefreshing}>
           <RefreshCw className={classNames('w-4 h-4 mr-2', { 'animate-spin': isRefreshing })} />
-          {copy['repositorySelector.refresh']}
+          Refresh
         </Button>
       </div>
     );
@@ -334,12 +310,9 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
       {/* Header with stats */}
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">{copy['repositorySelector.title']}</h3>
+          <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">Select Repository to Clone</h3>
           <p className="text-sm text-bolt-elements-textSecondary">
-            {text(copy['repositorySelector.count'], {
-              shown: formatRepositorySelectorNumber(filteredRepositories.length, language),
-              total: formatRepositorySelectorNumber(repositories.length, language),
-            })}
+            {filteredRepositories.length} of {repositories.length} repositories
           </p>
         </div>
         <Button
@@ -350,21 +323,13 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
           className="flex items-center gap-2"
         >
           <RefreshCw className={classNames('w-4 h-4', { 'animate-spin': isRefreshing })} />
-          {copy['repositorySelector.refresh']}
+          Refresh
         </Button>
       </div>
 
       {error && repositories.length > 0 && (
         <div className="p-3 rounded-lg bg-yellow-50 border border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-700">
-          <p className="text-sm text-yellow-800 dark:text-yellow-200">
-            {text(copy['repositorySelector.warningCached'], {
-              reason: getRepositorySelectorError(
-                language,
-                error ? new Error(error) : undefined,
-                copy['repositorySelector.fetchFailed'],
-              ),
-            })}
-          </p>
+          <p className="text-sm text-yellow-800 dark:text-yellow-200">Warning: {error}. Showing cached data.</p>
         </div>
       )}
 
@@ -375,8 +340,7 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-bolt-elements-textTertiary" />
           <input
             type="text"
-            aria-label={copy['repositorySelector.searchAria']}
-            placeholder={copy['repositorySelector.searchPlaceholder']}
+            placeholder="Search repositories..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 rounded-lg bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive"
@@ -391,10 +355,10 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
             onChange={(e) => setSortBy(e.target.value as SortOption)}
             className="px-3 py-2 rounded-lg bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive"
           >
-            <option value="updated">{copy['repositorySelector.sort.updated']}</option>
-            <option value="stars">{copy['repositorySelector.sort.stars']}</option>
-            <option value="name">{copy['repositorySelector.sort.name']}</option>
-            <option value="created">{copy['repositorySelector.sort.created']}</option>
+            <option value="updated">Recently updated</option>
+            <option value="stars">Most starred</option>
+            <option value="name">Name (A-Z)</option>
+            <option value="created">Recently created</option>
           </select>
         </div>
 
@@ -406,10 +370,10 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
             onChange={(e) => setFilterBy(e.target.value as FilterOption)}
             className="px-3 py-2 rounded-lg bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive"
           >
-            <option value="all">{copy['repositorySelector.filter.all']}</option>
-            <option value="own">{copy['repositorySelector.filter.own']}</option>
-            <option value="forks">{copy['repositorySelector.filter.forks']}</option>
-            <option value="archived">{copy['repositorySelector.filter.archived']}</option>
+            <option value="all">All repositories</option>
+            <option value="own">Own repositories</option>
+            <option value="forks">Forked repositories</option>
+            <option value="archived">Archived repositories</option>
           </select>
         </div>
       </div>
@@ -427,17 +391,9 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-4 border-t border-bolt-elements-borderColor">
               <div className="text-sm text-bolt-elements-textSecondary">
-                {text(copy['repositorySelector.pagination.range'], {
-                  start: formatRepositorySelectorNumber(
-                    Math.min(startIndex + 1, filteredRepositories.length),
-                    language,
-                  ),
-                  end: formatRepositorySelectorNumber(
-                    Math.min(startIndex + REPOS_PER_PAGE, filteredRepositories.length),
-                    language,
-                  ),
-                  total: formatRepositorySelectorNumber(filteredRepositories.length, language),
-                })}
+                Showing {Math.min(startIndex + 1, filteredRepositories.length)} to{' '}
+                {Math.min(startIndex + REPOS_PER_PAGE, filteredRepositories.length)} of {filteredRepositories.length}{' '}
+                repositories
               </div>
               <div className="flex items-center gap-2">
                 <Button
@@ -446,13 +402,10 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
                   variant="outline"
                   size="sm"
                 >
-                  {copy['repositorySelector.pagination.previous']}
+                  Previous
                 </Button>
                 <span className="text-sm text-bolt-elements-textSecondary px-3">
-                  {text(copy['repositorySelector.pagination.page'], {
-                    current: formatRepositorySelectorNumber(currentPage, language),
-                    total: formatRepositorySelectorNumber(totalPages, language),
-                  })}
+                  {currentPage} of {totalPages}
                 </span>
                 <Button
                   onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
@@ -460,7 +413,7 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
                   variant="outline"
                   size="sm"
                 >
-                  {copy['repositorySelector.pagination.next']}
+                  Next
                 </Button>
               </div>
             </div>
@@ -468,7 +421,7 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
         </>
       ) : (
         <div className="text-center py-8">
-          <p className="text-bolt-elements-textSecondary">{copy['repositorySelector.noMatch']}</p>
+          <p className="text-bolt-elements-textSecondary">No repositories found matching your search criteria.</p>
         </div>
       )}
 
@@ -486,7 +439,6 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
               transition={{ duration: 0.2 }}
               role="dialog"
               aria-modal="true"
-              aria-label={copy['repositorySelector.branch.title']}
               onClick={(e) => e.stopPropagation()}
               className="bg-bolt-elements-background-depth-2 rounded-xl shadow-xl border border-bolt-elements-borderColor max-w-md w-full max-h-[80vh] flex flex-col"
             >
@@ -497,16 +449,14 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
                     <GitBranch className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">
-                      {copy['repositorySelector.branch.title']}
-                    </h3>
+                    <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">Select Branch</h3>
                     <p className="text-sm text-bolt-elements-textSecondary">{selectedRepo.full_name}</p>
                   </div>
                 </div>
                 <button
                   type="button"
-                  aria-label={copy['repositorySelector.branch.close']}
-                  title={copy['repositorySelector.branch.close']}
+                  aria-label="Close"
+                  title="Close"
                   onClick={handleCloseBranchSelector}
                   className="p-2 rounded-lg hover:bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-all"
                 >
@@ -519,25 +469,17 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
                 {isBranchesLoading ? (
                   <div className="flex flex-col items-center justify-center p-8 space-y-4">
                     <div className="animate-spin w-8 h-8 border-2 border-bolt-elements-borderColorActive border-t-transparent rounded-full" />
-                    <p className="text-sm text-bolt-elements-textSecondary">
-                      {copy['repositorySelector.branch.loading']}
-                    </p>
+                    <p className="text-sm text-bolt-elements-textSecondary">Loading branches...</p>
                   </div>
                 ) : branchError ? (
                   <div className="flex flex-col items-center justify-center p-8 space-y-4" role="alert">
                     <div className="text-red-500 mb-2">
                       <GitBranch className="w-8 h-8 mx-auto" />
                     </div>
-                    <p className="text-sm text-red-600 text-center">
-                      {getRepositorySelectorError(
-                        language,
-                        branchError ? new Error(branchError) : undefined,
-                        copy['repositorySelector.branch.loadFailed'],
-                      )}
-                    </p>
+                    <p className="text-sm text-red-600 text-center">{branchError}</p>
                     <Button onClick={() => fetchBranchesForRepo(selectedRepo)} variant="outline" size="sm">
                       <RefreshCw className="w-4 h-4 mr-2" />
-                      {copy['repositorySelector.retry']}
+                      Retry
                     </Button>
                   </div>
                 ) : (
@@ -547,7 +489,7 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
                       <div className="p-4 border-b border-bolt-elements-borderColor">
                         <input
                           type="text"
-                          placeholder={copy['repositorySelector.branch.search']}
+                          placeholder="Search branches..."
                           value={branchSearchQuery}
                           onChange={(e) => setBranchSearchQuery(e.target.value)}
                           className="w-full px-3 py-2 rounded-lg bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive"
@@ -577,18 +519,8 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
                                     {branch.name}
                                   </span>
                                   <div className="flex items-center gap-1 flex-shrink-0">
-                                    {branch.isDefault && (
-                                      <Star
-                                        className="w-3 h-3 text-yellow-500"
-                                        aria-label={copy['repositorySelector.branch.default']}
-                                      />
-                                    )}
-                                    {branch.protected && (
-                                      <Shield
-                                        className="w-3 h-3 text-red-500"
-                                        aria-label={copy['repositorySelector.branch.protected']}
-                                      />
-                                    )}
+                                    {branch.isDefault && <Star className="w-3 h-3 text-yellow-500" />}
+                                    {branch.protected && <Shield className="w-3 h-3 text-red-500" />}
                                   </div>
                                 </div>
                                 {selectedBranch === branch.name && <Check className="w-4 h-4 text-blue-600" />}
@@ -604,9 +536,7 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
                       ) : (
                         <div className="flex items-center justify-center p-8">
                           <p className="text-sm text-bolt-elements-textSecondary">
-                            {branchSearchQuery
-                              ? copy['repositorySelector.branch.noMatch']
-                              : copy['repositorySelector.branch.empty']}
+                            {branchSearchQuery ? 'No branches found matching your search.' : 'No branches available.'}
                           </p>
                         </div>
                       )}
@@ -621,14 +551,13 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
                   <div className="text-sm text-bolt-elements-textSecondary">
                     {selectedBranch && (
                       <>
-                        {copy['repositorySelector.branch.selected']}{' '}
-                        <span className="font-medium">{selectedBranch}</span>
+                        Selected: <span className="font-medium">{selectedBranch}</span>
                       </>
                     )}
                   </div>
                   <div className="flex items-center gap-3">
                     <Button onClick={handleCloseBranchSelector} variant="outline" size="sm">
-                      {copy['repositorySelector.branch.cancel']}
+                      Cancel
                     </Button>
                     <Button
                       onClick={handleConfirmBranchSelection}
@@ -636,7 +565,7 @@ export function GitHubRepositorySelector({ onClone, className }: GitHubRepositor
                       size="sm"
                       className="bg-blue-600 hover:bg-blue-700 text-white"
                     >
-                      {copy['repositorySelector.branch.clone']}
+                      Clone Branch
                     </Button>
                   </div>
                 </div>

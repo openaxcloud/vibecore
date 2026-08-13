@@ -1,11 +1,11 @@
 # PARITY_STATUS — vue GÉNÉRÉE (ne pas éditer : modifier les registres ou PARITY_STATUS_NOTES.md puis régénérer)
 
 schemaVersion: 2
-repoCommit: 586cb61b
+repoCommit: 6d57a401
 généréPar: scripts/parity/generate-parity-status.mjs (drift-check CI)
 
 **Statut global** : `overallStatus: NOT_APPROVED` · `highestPassedLevel: contractsPresent`
-**Attestation CI** : run 31690734585 (2026-08-13T10:22:22Z, commit 586cb61b) — verte.
+**Attestation CI** : run 30036181769 (2026-07-23T19:01:25Z, commit 6d57a401) — verte.
 
 | Niveau | État |
 |---|---|
@@ -14,14 +14,14 @@ généréPar: scripts/parity/generate-parity-status.mjs (drift-check CI)
 | registryUniverseReady | ✅ PASS |
 | contractsPresent | ✅ PASS |
 | contractsValidated | ❌ FAIL (DOMAIN_MODEL.md: no real reviewer … +18) |
-| implementationReady | ❌ FAIL (P0-V3-01 is OPEN … +24) |
+| implementationReady | ❌ FAIL (P0-V4-3 is OPEN … +29) |
 | verticalBackendReady | ✅ PASS |
 | verticalUserJourneyReady | ❌ FAIL (stage "publish" has no UI proof (une preuve API n'est pas une preuve UI) … +1) |
 | betaReady | ❌ FAIL (beta gate capability still unknown: UNK-GIT-RECONCILE-DONE … +5) |
-| publicLaunchReady | ❌ FAIL (betaReady not passed … +34) |
+| publicLaunchReady | ❌ FAIL (betaReady not passed … +67) |
 | parityBaselineReady | ❌ FAIL (surface SRF-IDE-FILE-HISTORY not done … +10) |
 
-**Compteurs (source unique)** : P0 65 (25 OPEN · 5 PROVEN · 35 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 12/12 · constats 336 → 122 work items · claims non ancrées 0 · uiGaps [publish, rollback]
+**Compteurs (source unique)** : P0 65 (30 OPEN · 5 PROVEN · 2 CLOSED) · P1 40 · surfaces déclarées 10 (univers 159/159 importé, 1 évaluées, 56 services) · e2e 12/12 · constats 336 → 122 work items · claims non ancrées 0 · uiGaps [publish, rollback]
 
 ---
 

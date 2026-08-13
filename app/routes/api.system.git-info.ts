@@ -1,5 +1,4 @@
 import { data as json, type LoaderFunction, type LoaderFunctionArgs } from 'react-router';
-import { webApiErrorResponse } from '~/lib/i18n/catalogs/web-api-routes';
 
 interface GitInfo {
   local: {
@@ -101,12 +100,16 @@ export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & {
 
     if (!token) {
       console.error('No GitHub token available');
-      return webApiErrorResponse(request, 'GITHUB_TOKEN_MISSING', 401, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      return json(
+        { error: 'No GitHub token available' },
+        {
+          status: 401,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          },
         },
-      });
+      );
     }
 
     try {
@@ -121,7 +124,7 @@ export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & {
 
         if (!response.ok) {
           console.error('GitHub user API error:', response.status);
-          throw new Error();
+          throw new Error(`GitHub API error: ${response.status}`);
         }
 
         const userData = await response.json();
@@ -148,7 +151,7 @@ export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & {
 
         if (!reposResponse.ok) {
           console.error('GitHub repos API error:', reposResponse.status);
-          throw new Error();
+          throw new Error(`GitHub API error: ${reposResponse.status}`);
         }
 
         const repos = (await reposResponse.json()) as GitHubRepo[];
@@ -234,7 +237,7 @@ export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & {
 
         if (!response.ok) {
           console.error('GitHub orgs API error:', response.status);
-          throw new Error();
+          throw new Error(`GitHub API error: ${response.status}`);
         }
 
         const orgs = await response.json();
@@ -259,21 +262,29 @@ export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & {
 
         if (!username) {
           console.error('GitHub username not found in cookies');
-          return webApiErrorResponse(request, 'GITHUB_USERNAME_MISSING', 400, {
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          return json(
+            { error: 'GitHub username not found in cookies' },
+            {
+              status: 400,
+              headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+              },
             },
-          });
+          );
         }
 
         if (!/^[A-Za-z0-9-]{1,39}$/.test(username)) {
-          return webApiErrorResponse(request, 'GITHUB_USERNAME_INVALID', 400, {
-            headers: {
-              'Access-Control-Allow-Origin': '*',
-              'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          return json(
+            { error: 'Invalid GitHub username' },
+            {
+              status: 400,
+              headers: {
+                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+              },
             },
-          });
+          );
         }
 
         const response = await fetch(
@@ -289,7 +300,7 @@ export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & {
 
         if (!response.ok) {
           console.error('GitHub activity API error:', response.status);
-          throw new Error();
+          throw new Error(`GitHub API error: ${response.status}`);
         }
 
         const events = await response.json();
@@ -306,12 +317,16 @@ export const loader: LoaderFunction = async ({ request }: LoaderFunctionArgs & {
       }
     } catch (error) {
       console.error('GitHub API error:', error);
-      return webApiErrorResponse(request, 'GITHUB_REQUEST_FAILED', 503, {
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      return json(
+        { error: error instanceof Error ? error.message : 'Unknown error' },
+        {
+          status: 500,
+          headers: {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+          },
         },
-      });
+      );
     }
   }
 

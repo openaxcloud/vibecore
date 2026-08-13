@@ -1,6 +1,4 @@
-import { redirect, type LoaderFunctionArgs } from 'react-router';
-
-import { normalizeSupportedLanguage } from '~/lib/i18n/language';
+import { redirect } from 'react-router';
 
 /*
  * Legacy onboarding surface. The page used to render a static checklist
@@ -9,9 +7,6 @@ import { normalizeSupportedLanguage } from '~/lib/i18n/language';
  * real backend signals. Nothing links here anymore, but the route is kept as
  * a redirect so old bookmarks and external links don't 404.
  */
-export function loader({ request }: LoaderFunctionArgs) {
-  const requestedLanguage = normalizeSupportedLanguage(new URL(request.url).searchParams.get('lang'));
-  const languageSearch = requestedLanguage ? `?lang=${requestedLanguage}` : '';
-
-  return redirect(`/dashboard${languageSearch}`);
+export function loader() {
+  return redirect('/dashboard');
 }

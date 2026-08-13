@@ -62,6 +62,7 @@ export const bitbucketConnector: ConnectorProvider = {
     if (!response.ok) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_TOKEN_EXCHANGE_FAILED',
+        message: `Bitbucket token exchange returned HTTP ${response.status}`,
         httpStatus: response.status,
       });
     }
@@ -73,19 +74,22 @@ export const bitbucketConnector: ConnectorProvider = {
     } catch {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
+        message: 'Bitbucket token exchange returned a non-JSON body',
       });
     }
 
     if (payload.error) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_TOKEN_EXCHANGE_FAILED',
-        providerDetail: payload.error_description ?? payload.error,
+        message: payload.error,
+        providerDetail: payload.error_description,
       });
     }
 
     if (!payload.access_token) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
+        message: 'Bitbucket token exchange response did not include access_token',
       });
     }
 
@@ -116,6 +120,7 @@ export const bitbucketConnector: ConnectorProvider = {
     if (!response.ok) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_USER_INFO_FAILED',
+        message: `Bitbucket user info returned HTTP ${response.status}`,
         httpStatus: response.status,
       });
     }
@@ -127,12 +132,14 @@ export const bitbucketConnector: ConnectorProvider = {
     } catch {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
+        message: 'Bitbucket user info returned a non-JSON body',
       });
     }
 
     if (!payload.uuid) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
+        message: 'Bitbucket user info response is missing uuid',
       });
     }
 

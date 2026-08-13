@@ -5,29 +5,16 @@ import { BaseChat } from '~/components/chat/BaseChat';
 import { GitUrlImport } from '~/components/git/GitUrlImport.client';
 import { Header } from '~/components/header/Header';
 import BackgroundRays from '~/components/ui/BackgroundRays';
-import { buildRemainingRouteMeta, getRemainingRouteShellsCopy } from '~/lib/i18n/catalogs/remaining-route-shells';
-import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
-export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-  const language = data?.language ?? rootData?.language;
-  const copy = getRemainingRouteShellsCopy(language);
-
-  return buildRemainingRouteMeta({
-    title: copy['remainingRoutes.git.title'],
-    description: copy['remainingRoutes.git.description'],
-    path: '/git',
-    language,
-  });
+export const meta: MetaFunction = () => {
+  return [
+    { title: 'Import from Git - E-Code' },
+    { name: 'description', content: 'Import a Git repository and build it with E-Code, your AI app builder.' },
+  ];
 };
 
 export async function loader(args: LoaderFunctionArgs) {
-  const localeResolution = resolveRequestLocale(args.request);
-
-  return json(
-    { language: localeResolution.language, url: args.params.url },
-    { headers: localeResponseHeaders(args.request, localeResolution) },
-  );
+  return json({ url: args.params.url });
 }
 
 export default function Index() {

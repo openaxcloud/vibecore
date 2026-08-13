@@ -19,7 +19,8 @@ describe('categorizeProjectsNewError', () => {
   it('maps a 401 RouteErrorResponse to the auth branch', () => {
     const descriptor = categorizeProjectsNewError(routeErrorResponse(401, { statusText: 'Unauthorized' }));
     expect(descriptor.kind).toBe('auth');
-    expect(descriptor).toEqual({ kind: 'auth' });
+    expect(descriptor.title).toBe('Sign in to create a project');
+    expect(descriptor.detail).toBe('Unauthorized');
   });
 
   it('maps a 403 RouteErrorResponse to the auth branch', () => {
@@ -27,17 +28,17 @@ describe('categorizeProjectsNewError', () => {
     expect(descriptor.kind).toBe('auth');
   });
 
-  it('does not expose data.error from a route response', () => {
+  it('prefers data.error when present for the detail string', () => {
     const descriptor = categorizeProjectsNewError(
       routeErrorResponse(401, { statusText: 'Unauthorized', data: { error: 'Session expired' } }),
     );
-    expect(descriptor).toEqual({ kind: 'auth' });
-    expect(JSON.stringify(descriptor)).not.toContain('Session expired');
+    expect(descriptor.detail).toBe('Session expired');
   });
 
   it('maps a 5xx RouteErrorResponse to the server branch', () => {
     const descriptor = categorizeProjectsNewError(routeErrorResponse(503, { statusText: 'Service Unavailable' }));
     expect(descriptor.kind).toBe('server');
+    expect(descriptor.title).toMatch(/project service/i);
   });
 
   it('maps project-count quota errors to the quota branch', () => {
@@ -45,6 +46,7 @@ describe('categorizeProjectsNewError', () => {
       routeErrorResponse(429, { data: { error: 'Quota exceeded for projects.count' } }),
     );
     expect(descriptor.kind).toBe('quota');
+    expect(descriptor.title).toBe('Project quota reached');
   });
 
   it('maps bare project-count quota Errors to the quota branch', () => {
@@ -55,11 +57,14 @@ describe('categorizeProjectsNewError', () => {
   it('maps a 404 RouteErrorResponse to the unknown branch (not auth)', () => {
     const descriptor = categorizeProjectsNewError(routeErrorResponse(404));
     expect(descriptor.kind).toBe('unknown');
+    expect(descriptor.title).not.toMatch(/sign in/i);
   });
 
   it('maps "fetch failed" Error to the network branch', () => {
     const descriptor = categorizeProjectsNewError(new TypeError('fetch failed'));
     expect(descriptor.kind).toBe('network');
+    expect(descriptor.title).toBe('Connection issue');
+    expect(descriptor.subtitle).toMatch(/sign in again/i);
   });
 
   it('maps "Failed to fetch" (Chrome) Error to the network branch', () => {
@@ -84,7 +89,8 @@ describe('categorizeProjectsNewError', () => {
   it('falls back to unknown for an opaque Error', () => {
     const descriptor = categorizeProjectsNewError(new Error('Something exploded internally'));
     expect(descriptor.kind).toBe('unknown');
-    expect(JSON.stringify(descriptor)).not.toContain('Something exploded internally');
+    expect(descriptor.title).not.toMatch(/sign in/i);
+    expect(descriptor.detail).toBe('Something exploded internally');
   });
 
   it('falls back to unknown for a bare string', () => {
@@ -96,7 +102,7 @@ describe('categorizeProjectsNewError', () => {
     expect(categorizeProjectsNewError(undefined).kind).toBe('unknown');
   });
 
-  it('returns classification only and never forwards a raw error string', () => {
+  it('never echoes the raw error string in the title', () => {
     for (const input of [
       new TypeError('fetch failed'),
       new Error('Network request failed: ECONNRESET'),
@@ -106,8 +112,9 @@ describe('categorizeProjectsNewError', () => {
       undefined,
     ]) {
       const descriptor = categorizeProjectsNewError(input);
-      expect(Object.keys(descriptor)).toEqual(['kind']);
-      expect(JSON.stringify(descriptor)).not.toMatch(/fetch failed|ECONNRESET|kaboom/iu);
+      expect(descriptor.title).not.toMatch(/fetch failed/i);
+      expect(descriptor.title).not.toMatch(/ECONNRESET/);
+      expect(descriptor.title).not.toMatch(/kaboom/);
     }
   });
 });

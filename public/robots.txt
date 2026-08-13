@@ -54,12 +54,7 @@ Disallow: /login
 Disallow: /register
 Disallow: /auth
 
-# Locale alternates are indexable; all unrelated query-string variants stay
-# blocked to avoid duplicate-content crawl space.
-Allow: /*?lang=en$
-Allow: /*?lang=fr$
-
-# Block other query strings
+# Block query strings
 Disallow: /*?*
 
 # Block development/internal paths
@@ -73,6 +68,16 @@ Crawl-delay: 1
 
 # Sitemap location
 Sitemap: https://e-code.ai/sitemap.xml
+
+# Google-specific
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 0
+
+# Bing-specific
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 1
 
 # Block AI training bots (optional - based on preference)
 User-agent: GPTBot

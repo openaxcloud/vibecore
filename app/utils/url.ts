@@ -83,7 +83,7 @@ export async function safeGitForgeFetch(
 
   for (let hop = 0; hop <= maxRedirects; hop += 1) {
     if (!isSafeGitForgeUrl(current)) {
-      throw Object.assign(new Error(), { code: 'SSRF_BLOCKED' });
+      throw Object.assign(new Error('Blocked SSRF redirect target'), { code: 'SSRF_BLOCKED' });
     }
 
     const response = await fetch(current, { ...init, headers, redirect: 'manual' });
@@ -105,7 +105,7 @@ export async function safeGitForgeFetch(
     current = next.toString();
   }
 
-  throw Object.assign(new Error(), { code: 'TOO_MANY_REDIRECTS' });
+  throw Object.assign(new Error('Too many redirects'), { code: 'TOO_MANY_REDIRECTS' });
 }
 
 export function isValidUrl(input: string): boolean {

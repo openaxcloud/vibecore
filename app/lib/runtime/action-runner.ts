@@ -4,8 +4,6 @@ import { applyEntryExportReconcile } from './entry-export-reconcile';
 import { buildSelfRepairPrompt, validateAndFormatHunk, type HunkValidationError } from './hunk-validate';
 import type { ActionCallbackData } from './message-parser';
 import { workspaceEvents } from './workspace-events';
-import { formatActionRunnerCopy, getActionRunnerCopy, type ActionRunnerKey } from '~/lib/i18n/catalogs/action-runner';
-import { getI18nInstance } from '~/lib/i18n/runtime';
 import type {
   ActionAlert,
   BoltAction,
@@ -54,13 +52,6 @@ const INSTALL_TOOL_TIMEOUT_MS = 300_000;
 const BUILD_TOOL_TIMEOUT_MS = 300_000;
 const TOOL_MAX_ATTEMPTS = 3;
 const TOOL_RETRY_BASE_DELAY_MS = 250;
-
-function actionRunnerText(key: ActionRunnerKey, values: Readonly<Record<string, string | number>> = {}): string {
-  const i18n = getI18nInstance();
-  const copy = getActionRunnerCopy(i18n.resolvedLanguage ?? i18n.language);
-
-  return formatActionRunnerCopy(copy[key], values);
-}
 
 /*
  * Phase 0 #2 — AST self-repair retry budget. When pre-write validation
@@ -157,13 +148,13 @@ async function callSelfRepairEndpoint(prompt: string, signal?: AbortSignal): Pro
   });
 
   if (!response.ok) {
-    throw new Error(actionRunnerText('actionRunner.error.selfRepairStatus', { status: response.status }));
+    throw new Error(`self-repair endpoint returned ${response.status}`);
   }
 
   const payload = (await response.json()) as { content?: unknown; error?: unknown };
 
   if (typeof payload.content !== 'string' || payload.content.length === 0) {
-    throw new Error(actionRunnerText('actionRunner.error.selfRepairEmpty'));
+    throw new Error('self-repair endpoint returned empty content');
   }
 
   return extractSelfRepairContent(payload.content);
@@ -239,7 +230,7 @@ class ActionCommandError extends Error {
 
   constructor(message: string, output: string) {
     // Create a formatted message that includes both the error message and output
-    const formattedMessage = actionRunnerText('actionRunner.error.shellExecutionFailed', { message, output });
+    const formattedMessage = `Failed To Execute Shell Command: ${message}\n\nOutput:\n${output}`;
     super(formattedMessage);
 
     // Set the output separately so it can be accessed programmatically
@@ -264,35 +255,10 @@ class ActionCommandError extends Error {
 
 class ToolTimeoutError extends Error {
   constructor(actionType: ActionState['type'], timeoutMs: number) {
-    super(
-      actionRunnerText('actionRunner.error.timeout', {
-        actionType,
-        seconds: Math.round(timeoutMs / 1000),
-      }),
-    );
+    super(`${actionType} action timed out after ${Math.round(timeoutMs / 1000)} seconds`);
     this.name = 'ToolTimeoutError';
     Object.setPrototypeOf(this, ToolTimeoutError.prototype);
   }
-}
-
-/*
- * Whether a `start` boltAction is launching a DEV SERVER (so it should be handed
- * to the workbench's single tracked launcher) rather than some bespoke long-running
- * command. Matches the package-manager dev/start scripts and the common framework
- * dev CLIs; a command that is none of these keeps the legacy PTY path so it is
- * never silently dropped.
- */
-export function isDevServerStartCommand(command: string): boolean {
-  const normalized = (command ?? '').toLowerCase();
-
-  return (
-    /\b(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?(?:dev|start|serve|preview)\b/.test(normalized) ||
-    /(?:^|\s|\/|&&\s*)(?:npx\s+)?vite\b/.test(normalized) ||
-    /\b(?:next|astro|remix|nuxt|vinxi|ng|vue-cli-service|react-scripts|parcel|rsbuild|webpack(?:-dev-server)?)\s+(?:dev|serve|start)\b/.test(
-      normalized,
-    ) ||
-    /\bnpm\s+start\b/.test(normalized)
-  );
 }
 
 export class ActionRunner {
@@ -304,18 +270,6 @@ export class ActionRunner {
   onAlert?: (alert: ActionAlert) => void;
   onSupabaseAlert?: (alert: SupabaseAlert) => void;
   onDeployAlert?: (alert: DeployAlert) => void;
-
-  /*
-   * Delegate a dev-server `start` action to the workbench's single tracked,
-   * install-aware launcher (startPreviewServer → streamCommand) instead of typing
-   * `npm run dev` into the jsh PTY. The PTY launch is untracked (never appears in
-   * /processes), not install-guaranteed (a slow install is Ctrl+C-killed by the
-   * next action), and races the tracked launcher on --strictPort 5173 — the
-   * structural cause of "dev server never starts". When this hook is wired there is
-   * exactly ONE launcher; when it is absent (tests / other embeddings) the runner
-   * falls back to the legacy PTY behaviour.
-   */
-  onStartDevServer?: (command: string) => Promise<unknown> | unknown;
   buildOutput?: { path: string; exitCode: number; output: string };
   #actionWatchdogs = new Map<string, ReturnType<typeof setTimeout>>();
 
@@ -325,14 +279,12 @@ export class ActionRunner {
     onAlert?: (alert: ActionAlert) => void,
     onSupabaseAlert?: (alert: SupabaseAlert) => void,
     onDeployAlert?: (alert: DeployAlert) => void,
-    onStartDevServer?: (command: string) => Promise<unknown> | unknown,
   ) {
     this.#runtime = runtime;
     this.#shellTerminal = getShellTerminal;
     this.onAlert = onAlert;
     this.onSupabaseAlert = onSupabaseAlert;
     this.onDeployAlert = onDeployAlert;
-    this.onStartDevServer = onStartDevServer;
   }
 
   addAction(data: ActionCallbackData) {
@@ -512,7 +464,7 @@ export class ActionRunner {
 
                 this.onAlert?.({
                   type: 'error',
-                  title: actionRunnerText('actionRunner.alert.devServerFailed'),
+                  title: 'Dev Server Failed',
                   description: err.header,
                   content: err.output,
                 });
@@ -533,11 +485,7 @@ export class ActionRunner {
              * that silently drops a file write or command. Surface it as a
              * failure so the user sees something went wrong.
              */
-            throw new Error(
-              actionRunnerText('actionRunner.error.unsupportedAction', {
-                actionType: String((action as { type?: unknown }).type ?? 'unknown'),
-              }),
-            );
+            throw new Error(`Unsupported action type: ${String((action as { type?: unknown }).type ?? 'unknown')}`);
           }
         }
       });
@@ -569,7 +517,7 @@ export class ActionRunner {
 
       this.onAlert?.({
         type: 'error',
-        title: actionRunnerText('actionRunner.alert.devServerFailed'),
+        title: 'Dev Server Failed',
         description: error.header,
         content: error.output,
       });
@@ -680,7 +628,7 @@ export class ActionRunner {
       return error.message;
     }
 
-    return actionRunnerText('actionRunner.error.actionFailed');
+    return 'Action failed';
   }
 
   async #runShellAction(action: ActionState) {
@@ -713,7 +661,7 @@ export class ActionRunner {
       const enhancedError = this.#createEnhancedShellError(
         action.content,
         resp?.exitCode ?? 1,
-        resp?.output ?? actionRunnerText('actionRunner.error.noShellResponse'),
+        resp?.output ?? 'No response from shell',
       );
       throw new ActionCommandError(enhancedError.title, enhancedError.details);
     }
@@ -722,19 +670,6 @@ export class ActionRunner {
   async #runStartAction(action: ActionState) {
     if (action.type !== 'start') {
       unreachable('Expected shell action');
-    }
-
-    /*
-     * UNIFIED LAUNCHER: hand a dev-server start to the workbench's single tracked
-     * launcher (startPreviewServer) instead of the jsh PTY, so there is never a
-     * second, untracked, install-unaware dev server racing it on port 5173. Only a
-     * recognized dev-server command is delegated — a non-dev `start` (a bespoke
-     * script with no dev/start entry the tracked path could detect) still runs in
-     * the PTY so we never silently drop it. No-op fallback when the hook is unwired.
-     */
-    if (this.onStartDevServer && isDevServerStartCommand(action.content)) {
-      await this.onStartDevServer(action.content);
-      return { exitCode: 0, output: '' };
     }
 
     if (!this.#shellTerminal) {
@@ -755,10 +690,7 @@ export class ActionRunner {
     logger.debug(`${action.type} Shell Response: [exit code:${resp?.exitCode}]`);
 
     if (resp?.exitCode != 0) {
-      throw new ActionCommandError(
-        actionRunnerText('actionRunner.error.startFailed'),
-        resp?.output || actionRunnerText('actionRunner.error.noOutputAvailable'),
-      );
+      throw new ActionCommandError('Failed To Start Application', resp?.output || 'No Output Available');
     }
 
     return resp;
@@ -801,21 +733,6 @@ export class ActionRunner {
 
       if (sanitized.stripped > 0) {
         logger.warn(`Sanitized ${sanitized.stripped} stray control characters from ${relativePath} before writing`);
-      }
-
-      /*
-       * BUG-AGENT-TRANSPORT-MARKUP — the model leaked its own function-call
-       * wrapper into the file body. The bytes are already clean (the write
-       * boundary strips them), but this is never normal: report it loudly so a
-       * recurrence is visible in the workspace log rather than silently healed.
-       * Any syntax damage left behind is caught by the AST self-repair loop
-       * immediately below, which regenerates the file.
-       */
-      if (sanitized.transportMarkupStripped > 0) {
-        logger.warn(
-          `Rejected ${sanitized.transportMarkupStripped} model transport-markup fragment(s) from ${relativePath} ` +
-            `before writing: ${sanitized.transportMarkupSamples.join(' ')}`,
-        );
       }
 
       payload = sanitized.sanitized;
@@ -930,7 +847,7 @@ export class ActionRunner {
       return {
         ok: false,
         kind: 'missing-file',
-        message: actionRunnerText('actionRunner.diff.targetMissing', { filePath: action.filePath }),
+        message: `diff target ${action.filePath} does not exist — full file required`,
       };
     }
 
@@ -938,25 +855,18 @@ export class ActionRunner {
       return {
         ok: false,
         kind: 'missing-file',
-        message: actionRunnerText('actionRunner.diff.targetMissing', { filePath: action.filePath }),
+        message: `diff target ${action.filePath} does not exist — full file required`,
       };
     }
 
     const parsed = parseSearchReplaceBlocks(action.content);
 
     if (parsed.malformed || parsed.blocks.length === 0) {
-      if (parsed.error) {
-        logger.warn(`[diff]: malformed SEARCH/REPLACE payload for ${action.filePath}: ${parsed.error}`);
-      }
-
-      const detail = parsed.error
-        ? actionRunnerText('actionRunner.diff.invalidStructure')
-        : actionRunnerText('actionRunner.diff.noBlocks');
-
+      const detail = parsed.error ?? 'no SEARCH/REPLACE blocks found';
       return {
         ok: false,
         kind: 'malformed',
-        message: actionRunnerText('actionRunner.diff.malformed', { filePath: action.filePath, detail }),
+        message: `diff for ${action.filePath} could not be parsed (${detail}) — re-emit the full file`,
         original,
       };
     }
@@ -968,19 +878,15 @@ export class ActionRunner {
         (hunk) => hunk.status === 'failed-not-found' || hunk.status === 'failed-ambiguous',
       );
 
-      const anchors = failed
-        .map((hunk) => actionRunnerText('actionRunner.diff.block', { index: hunk.index + 1 }))
-        .join(', ');
-
-      const anchorsSuffix = anchors ? actionRunnerText('actionRunner.diff.anchors', { anchors }) : '';
+      const anchors = failed.map((hunk) => `block #${hunk.index + 1}: ${hunk.status}`).join(', ');
 
       return {
         ok: false,
         kind: 'apply-failed',
-        message: actionRunnerText('actionRunner.diff.notApplied', {
-          filePath: action.filePath,
-          anchors: anchorsSuffix,
-        }),
+        message:
+          `diff for ${action.filePath} did not apply against the current file` +
+          (anchors ? ` (${anchors})` : '') +
+          ' — the file drifted from the anchor; re-emit the full file',
         hunks: result.hunks,
         original,
       };
@@ -1114,7 +1020,7 @@ export class ActionRunner {
 
       this.onAlert?.({
         type: 'warning',
-        title: actionRunnerText('actionRunner.diff.alertTitle'),
+        title: 'Diff could not be applied',
         description: resolution.message,
         content: resolution.message,
         source: 'preview',
@@ -1467,8 +1373,8 @@ export class ActionRunner {
     // Trigger build started alert
     this.onDeployAlert?.({
       type: 'info',
-      title: actionRunnerText('actionRunner.build.runningTitle'),
-      description: actionRunnerText('actionRunner.build.runningDescription'),
+      title: 'Building Application',
+      description: 'Building your application...',
       stage: 'building',
       buildStatus: 'running',
       deployStatus: 'pending',
@@ -1491,26 +1397,23 @@ export class ActionRunner {
       // Trigger build failed alert
       this.onDeployAlert?.({
         type: 'error',
-        title: actionRunnerText('actionRunner.build.failedTitle'),
-        description: actionRunnerText('actionRunner.build.failedDescription'),
-        content: output || actionRunnerText('actionRunner.build.noOutput'),
+        title: 'Build Failed',
+        description: 'Your application build failed',
+        content: output || 'No build output available',
         stage: 'building',
         buildStatus: 'failed',
         deployStatus: 'pending',
         source: 'netlify',
       });
 
-      throw new ActionCommandError(
-        actionRunnerText('actionRunner.build.failedTitle'),
-        output || actionRunnerText('actionRunner.error.noOutputAvailable'),
-      );
+      throw new ActionCommandError('Build Failed', output || 'No Output Available');
     }
 
     // Trigger build success alert
     this.onDeployAlert?.({
       type: 'success',
-      title: actionRunnerText('actionRunner.build.completedTitle'),
-      description: actionRunnerText('actionRunner.build.completedDescription'),
+      title: 'Build Completed',
+      description: 'Your application was built successfully',
       stage: 'deploying',
       buildStatus: 'complete',
       deployStatus: 'running',
@@ -1555,14 +1458,14 @@ export class ActionRunner {
     switch (operation) {
       case 'migration':
         if (!filePath) {
-          throw new Error(actionRunnerText('actionRunner.supabase.migrationPathMissing'));
+          throw new Error('Migration requires a filePath');
         }
 
         // Show alert for migration action
         this.onSupabaseAlert?.({
           type: 'info',
-          title: actionRunnerText('actionRunner.supabase.migrationTitle'),
-          description: actionRunnerText('actionRunner.supabase.migrationDescription', { filePath }),
+          title: 'Supabase Migration',
+          description: `Create migration file: ${filePath}`,
           content,
           source: 'supabase',
         });
@@ -1580,8 +1483,8 @@ export class ActionRunner {
         // Always show the alert and let the SupabaseAlert component handle connection state
         this.onSupabaseAlert?.({
           type: 'info',
-          title: actionRunnerText('actionRunner.supabase.queryTitle'),
-          description: actionRunnerText('actionRunner.supabase.queryDescription'),
+          title: 'Supabase Query',
+          description: 'Execute database query',
           content,
           source: 'supabase',
         });
@@ -1591,7 +1494,7 @@ export class ActionRunner {
       }
 
       default:
-        throw new Error(actionRunnerText('actionRunner.supabase.unknownOperation', { operation }));
+        throw new Error(`Unknown operation: ${operation}`);
     }
   }
 
@@ -1614,25 +1517,19 @@ export class ActionRunner {
 
     const title =
       stage === 'building'
-        ? actionRunnerText('actionRunner.deploy.buildingTitle')
+        ? 'Building Application'
         : stage === 'deploying'
-          ? actionRunnerText('actionRunner.deploy.deployingTitle')
-          : actionRunnerText('actionRunner.deploy.completedTitle');
+          ? 'Deploying Application'
+          : 'Deployment Complete';
 
     const description =
       status === 'failed'
-        ? actionRunnerText(
-            stage === 'building' ? 'actionRunner.deploy.buildFailed' : 'actionRunner.deploy.deploymentFailed',
-          )
+        ? `${stage === 'building' ? 'Build' : 'Deployment'} failed`
         : status === 'running'
-          ? actionRunnerText(stage === 'building' ? 'actionRunner.deploy.building' : 'actionRunner.deploy.deploying')
+          ? `${stage === 'building' ? 'Building' : 'Deploying'} your application...`
           : status === 'complete'
-            ? actionRunnerText(
-                stage === 'building' ? 'actionRunner.deploy.buildCompleted' : 'actionRunner.deploy.deploymentCompleted',
-              )
-            : actionRunnerText(
-                stage === 'building' ? 'actionRunner.deploy.preparingBuild' : 'actionRunner.deploy.preparingDeployment',
-              );
+            ? `${stage === 'building' ? 'Build' : 'Deployment'} completed successfully`
+            : `Preparing to ${stage === 'building' ? 'build' : 'deploy'} your application`;
 
     const buildStatus =
       stage === 'building' ? status : stage === 'deploying' || stage === 'complete' ? 'complete' : 'pending';
@@ -1688,14 +1585,14 @@ export class ActionRunner {
             return {
               shouldModify: true,
               modifiedCommand: `rm -f ${filePaths.join(' ')}`,
-              warning: actionRunnerText('actionRunner.validation.addedForceMissing'),
+              warning: 'Added -f flag to rm command as target files do not exist',
             };
           } else if (existingFiles.length < filePaths.length) {
             // Some files don't exist, modify to only remove existing ones with -f for safety
             return {
               shouldModify: true,
               modifiedCommand: `rm -f ${filePaths.join(' ')}`,
-              warning: actionRunnerText('actionRunner.validation.addedForcePartial'),
+              warning: 'Added -f flag to rm command as some target files do not exist',
             };
           }
         } catch (error) {
@@ -1717,7 +1614,7 @@ export class ActionRunner {
           return {
             shouldModify: true,
             modifiedCommand: `mkdir -p ${targetDir} && cd ${targetDir}`,
-            warning: actionRunnerText('actionRunner.validation.createdDirectory'),
+            warning: 'Directory does not exist, created it first',
           };
         }
       }
@@ -1735,7 +1632,7 @@ export class ActionRunner {
         } catch {
           return {
             shouldModify: false,
-            warning: actionRunnerText('actionRunner.validation.sourceMissing', { sourceFile }),
+            warning: `Source file '${sourceFile}' does not exist`,
           };
         }
       }
@@ -1759,47 +1656,50 @@ export class ActionRunner {
     const errorPatterns = [
       {
         pattern: /cannot remove.*No such file or directory/,
-        title: actionRunnerText('actionRunner.shell.fileNotFoundTitle'),
+        title: 'File Not Found',
         getMessage: () => {
           const fileMatch = output?.match(/'([^']+)'/);
-          const fileName = fileMatch ? fileMatch[1] : actionRunnerText('actionRunner.shell.defaultFile');
+          const fileName = fileMatch ? fileMatch[1] : 'file';
 
-          return actionRunnerText('actionRunner.shell.fileNotFoundDetails', { fileName });
+          return `The file '${fileName}' does not exist and cannot be removed.\n\nSuggestion: Use 'ls' to check what files exist, or use 'rm -f' to ignore missing files.`;
         },
       },
       {
         pattern: /No such file or directory/,
-        title: actionRunnerText('actionRunner.shell.pathNotFoundTitle'),
+        title: 'File or Directory Not Found',
         getMessage: () => {
           if (trimmedCommand.startsWith('cd ')) {
             const dirMatch = trimmedCommand.match(/cd\s+(.+)/);
-            const dirName = dirMatch ? dirMatch[1] : actionRunnerText('actionRunner.shell.defaultDirectory');
+            const dirName = dirMatch ? dirMatch[1] : 'directory';
 
-            return actionRunnerText('actionRunner.shell.directoryNotFoundDetails', { directory: dirName });
+            return `The directory '${dirName}' does not exist.\n\nSuggestion: Use 'mkdir -p ${dirName}' to create it first, or check available directories with 'ls'.`;
           }
 
-          return actionRunnerText('actionRunner.shell.pathNotFoundDetails');
+          return `The specified file or directory does not exist.\n\nSuggestion: Check the path and use 'ls' to see available files.`;
         },
       },
       {
         pattern: /Permission denied/,
-        title: actionRunnerText('actionRunner.shell.permissionDeniedTitle'),
-        getMessage: () => actionRunnerText('actionRunner.shell.permissionDeniedDetails', { command: firstWord }),
+        title: 'Permission Denied',
+        getMessage: () =>
+          `Permission denied for '${firstWord}'.\n\nSuggestion: The file may not be executable. Try 'chmod +x filename' first.`,
       },
       {
         pattern: /command not found/,
-        title: actionRunnerText('actionRunner.shell.commandNotFoundTitle'),
-        getMessage: () => actionRunnerText('actionRunner.shell.commandNotFoundDetails', { command: firstWord }),
+        title: 'Command Not Found',
+        getMessage: () =>
+          `The command '${firstWord}' is not available in the active runtime.\n\nSuggestion: Check available commands or use a package manager to install it.`,
       },
       {
         pattern: /Is a directory/,
-        title: actionRunnerText('actionRunner.shell.targetDirectoryTitle'),
-        getMessage: () => actionRunnerText('actionRunner.shell.targetDirectoryDetails'),
+        title: 'Target is a Directory',
+        getMessage: () =>
+          `Cannot perform this operation - target is a directory.\n\nSuggestion: Use 'ls' to list directory contents or add appropriate flags.`,
       },
       {
         pattern: /File exists/,
-        title: actionRunnerText('actionRunner.shell.fileExistsTitle'),
-        getMessage: () => actionRunnerText('actionRunner.shell.fileExistsDetails'),
+        title: 'File Already Exists',
+        getMessage: () => `File already exists.\n\nSuggestion: Use a different name or add '-f' flag to overwrite.`,
       },
     ];
 
@@ -1817,22 +1717,16 @@ export class ActionRunner {
     let suggestion = '';
 
     if (trimmedCommand.startsWith('npm ')) {
-      suggestion = actionRunnerText('actionRunner.shell.npmSuggestion');
+      suggestion = '\n\nSuggestion: Try running "npm install" first or check package.json.';
     } else if (trimmedCommand.startsWith('git ')) {
-      suggestion = actionRunnerText('actionRunner.shell.gitSuggestion');
+      suggestion = "\n\nSuggestion: Check if you're in a git repository or if remote is configured.";
     } else if (trimmedCommand.match(/^(ls|cat|rm|cp|mv)/)) {
-      suggestion = actionRunnerText('actionRunner.shell.pathSuggestion');
+      suggestion = '\n\nSuggestion: Check file paths and use "ls" to see available files.';
     }
 
     return {
-      title: actionRunnerText('actionRunner.shell.commandFailedTitle', {
-        exitCode: exitCode ?? '',
-      }),
-      details: actionRunnerText('actionRunner.shell.commandFailedDetails', {
-        command: trimmedCommand,
-        output: output || actionRunnerText('actionRunner.error.noOutputAvailable'),
-        suggestion,
-      }),
+      title: `Command Failed (exit code: ${exitCode})`,
+      details: `Command: ${trimmedCommand}\n\nOutput: ${output || 'No output available'}${suggestion}`,
     };
   }
 

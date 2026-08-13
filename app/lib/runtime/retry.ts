@@ -69,21 +69,6 @@ export function isTransientRuntimeError(error: unknown): boolean {
         return false;
       }
 
-      /*
-       * A 404 whose code says the workspace/project can't be resolved YET is a
-       * provisioning RACE, not a missing resource: a runtime op (e.g. the
-       * dependency-sync file reads/writes, /ports, /status) fired before
-       * `POST /workspaces` created the workspace record, so authorizeRuntimeWorkspace
-       * answered 404 PROJECT_NOT_FOUND / WORKSPACE_NOT_FOUND. Without this, that 404
-       * is treated as hard and the caller gives up — the "Dependency sync skipped …
-       * 404" the Solutions agent hit. Retrying lets it self-heal once the record
-       * exists; a genuinely deleted project keeps returning it and fails after the
-       * bounded retries. (Mirrors the adapter-level retry in packages/runtime-remote.)
-       */
-      if (error.status === 404 && (error.code === 'WORKSPACE_NOT_FOUND' || error.code === 'PROJECT_NOT_FOUND')) {
-        return true;
-      }
-
       return TRANSIENT_STATUSES.has(error.status);
     }
 

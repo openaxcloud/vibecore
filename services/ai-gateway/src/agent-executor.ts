@@ -9,7 +9,6 @@ import {
   type ConsensusOutput,
 } from './consensus/index.js';
 import { AiGateway, countTokens, type AiChatRequest, type AiMessage } from './gateway.js';
-import { aiGatewayError, aiGatewayMessage, localizedAiGatewayError, type AiGatewayLocale } from './public-i18n.js';
 import { summarizeRunTokenUsage, type LaneTokenUsage } from './token-usage.js';
 
 export type { AgentRunPersistence } from './agent-run-persistence.js';
@@ -59,7 +58,6 @@ export interface AgentRunRequest {
   provider?: AiChatRequest['provider'];
   model?: string;
   maxTokens?: number;
-  locale?: AiGatewayLocale;
   consensusAlgorithm?: ConsensusAlgorithm;
   consensusThreshold?: number;
   highStakes?: boolean;
@@ -357,11 +355,11 @@ function validateMessage(value: unknown): AiMessage | undefined {
 
 export function parseAgentRunRequest(value: unknown): AgentRunRequest {
   if (!isRecord(value)) {
-    throw aiGatewayError('requestBodyObject', { statusCode: 400 });
+    throw Object.assign(new Error('Request body must be an object.'), { statusCode: 400 });
   }
 
   if (value.mode !== 'parallel-subagents') {
-    throw aiGatewayError('agentModeInvalid', { statusCode: 400 });
+    throw Object.assign(new Error('mode must be parallel-subagents.'), { statusCode: 400 });
   }
 
   const roles = Array.isArray(value.roles)
@@ -372,34 +370,32 @@ export function parseAgentRunRequest(value: unknown): AgentRunRequest {
     : [];
 
   if (!roles.length) {
-    throw aiGatewayError('rolesRequired', { statusCode: 400 });
+    throw Object.assign(new Error('roles must include at least one supported agent role.'), { statusCode: 400 });
   }
 
   if (roles.length > maxAgentRoles) {
-    throw aiGatewayError('rolesMaximum', { statusCode: 400, values: { maximum: maxAgentRoles } });
+    throw Object.assign(new Error(`roles cannot include more than ${maxAgentRoles} entries.`), { statusCode: 400 });
   }
 
   if (new Set(roles.map((role) => role.id)).size !== roles.length) {
-    throw aiGatewayError('rolesDuplicate', { statusCode: 400 });
+    throw Object.assign(new Error('roles must not contain duplicate role ids.'), { statusCode: 400 });
   }
 
   if (!messages.length) {
-    throw aiGatewayError('messagesRequired', { statusCode: 400 });
+    throw Object.assign(new Error('messages must include at least one chat message.'), { statusCode: 400 });
   }
 
   if (messages.length > maxAgentMessages) {
-    throw aiGatewayError('messagesMaximum', {
+    throw Object.assign(new Error(`messages cannot include more than ${maxAgentMessages} entries.`), {
       statusCode: 400,
-      values: { maximum: maxAgentMessages },
     });
   }
 
   const inputCharacters = messages.reduce((total, message) => total + message.content.length, 0);
 
   if (inputCharacters > maxAgentInputCharacters) {
-    throw aiGatewayError('messagesCharactersMaximum', {
+    throw Object.assign(new Error(`messages cannot exceed ${maxAgentInputCharacters} characters.`), {
       statusCode: 400,
-      values: { maximum: maxAgentInputCharacters },
     });
   }
 
@@ -496,18 +492,14 @@ function parseJsonObject(content: string): Record<string, unknown> | undefined {
   }
 }
 
-function normalizeAgentOutput(
-  roleId: AgentRoleId,
-  content: string,
-  locale: AgentRunRequest['locale'] = 'en',
-): AgentRunResult {
+function normalizeAgentOutput(roleId: AgentRoleId, content: string): AgentRunResult {
   const parsed = parseJsonObject(content);
 
   if (!parsed || typeof parsed.summary !== 'string' || !parsed.summary.trim()) {
     return {
       roleId,
       status: 'partial',
-      summary: content.trim() || aiGatewayMessage('agentEmptyResponse', locale),
+      summary: content.trim() || 'Agent returned an empty response.',
     };
   }
 
@@ -551,7 +543,6 @@ export async function executeAgentRun(input: {
             plan: input.request.plan ?? 'free',
             provider: input.request.provider,
             model: input.request.model,
-            locale: input.request.locale,
             messages: buildRoleMessages(input.request, role),
             maxTokens: input.request.maxTokens ?? defaultAgentMaxTokens,
 
@@ -566,16 +557,13 @@ export async function executeAgentRun(input: {
           input.signal,
         );
 
-        return {
-          result: normalizeAgentOutput(role.id, completion.content, input.request.locale),
-          usage: completion.usage,
-        };
+        return { result: normalizeAgentOutput(role.id, completion.content), usage: completion.usage };
       } catch (error) {
         return {
           result: {
             roleId: role.id,
             status: 'failed',
-            summary: localizedAiGatewayError(error, input.request.locale ?? 'en', 'agentExecutionFailed'),
+            summary: error instanceof Error ? error.message : 'Agent execution failed.',
           },
         };
       }
@@ -623,7 +611,6 @@ export async function executeAgentRun(input: {
   const consensus = runConsensus({
     results,
     algorithm,
-    locale: input.request.locale,
     threshold: input.request.consensusThreshold,
   });
 
@@ -744,7 +731,6 @@ export async function* executeAgentRunStream(input: {
             plan: input.request.plan ?? 'free',
             provider: input.request.provider,
             model: input.request.model,
-            locale: input.request.locale,
             messages: buildRoleMessages(input.request, role),
             maxTokens: input.request.maxTokens ?? defaultAgentMaxTokens,
 
@@ -757,18 +743,18 @@ export async function* executeAgentRunStream(input: {
             content += chunk.content;
             emit({ type: 'lane-delta', roleId: role.id, content: chunk.content });
           } else if (chunk.type === 'error') {
-            throw new Error(chunk.error ?? aiGatewayMessage('subagentStreamError', input.request.locale));
+            throw new Error(chunk.error ?? 'Sub-agent stream error');
           }
         }
 
-        const result = normalizeAgentOutput(role.id, content, input.request.locale);
+        const result = normalizeAgentOutput(role.id, content);
         results.push(result);
         emit({ type: 'lane-done', roleId: role.id, result });
       } catch (error) {
         const result: AgentRunResult = {
           roleId: role.id,
           status: 'failed',
-          summary: localizedAiGatewayError(error, input.request.locale ?? 'en', 'agentExecutionFailed'),
+          summary: error instanceof Error ? error.message : 'Agent execution failed.',
         };
         results.push(result);
         emit({ type: 'lane-done', roleId: role.id, result });
@@ -820,12 +806,7 @@ export async function* executeAgentRunStream(input: {
     input.request.consensusAlgorithm ??
     selectAlgorithmForRequest({ highStakes: input.request.highStakes, hasFailedRoles, preferWeighted: false });
 
-  const consensus = runConsensus({
-    results: ordered,
-    algorithm,
-    locale: input.request.locale,
-    threshold: input.request.consensusThreshold,
-  });
+  const consensus = runConsensus({ results: ordered, algorithm, threshold: input.request.consensusThreshold });
   const response: AgentRunResponse = { runId, status, results: ordered, consensus };
 
   if (input.persistence && (status !== 'failed' || !input.signal?.aborted)) {

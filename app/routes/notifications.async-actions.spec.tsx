@@ -3,12 +3,9 @@
  */
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { I18nextProvider } from 'react-i18next';
 import { createMemoryRouter, RouterProvider } from 'react-router';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NotificationFeedSection, PreferencesMatrixSection } from './notifications';
-import type { SupportedLanguage } from '~/lib/i18n/language';
-import { createI18nInstance } from '~/lib/i18n/runtime';
 
 afterEach(() => {
   cleanup();
@@ -24,7 +21,7 @@ const initialMatrix = {
   system: { email: true, inApp: true },
 };
 
-function renderDataRoute(element: React.ReactNode, language: SupportedLanguage = 'en') {
+function renderDataRoute(element: React.ReactNode) {
   const router = createMemoryRouter([
     {
       path: '/',
@@ -32,22 +29,10 @@ function renderDataRoute(element: React.ReactNode, language: SupportedLanguage =
     },
   ]);
 
-  render(
-    <I18nextProvider i18n={createI18nInstance(language)}>
-      <RouterProvider router={router} />
-    </I18nextProvider>,
-  );
+  render(<RouterProvider router={router} />);
 }
 
 describe('notification async action recovery', () => {
-  it('renders the notification matrix in professional French', async () => {
-    renderDataRoute(<PreferencesMatrixSection initial={{ matrix: initialMatrix }} />, 'fr');
-
-    expect(await screen.findByRole('heading', { name: 'Préférences de notification' })).toBeTruthy();
-    expect(screen.getByText('Événements de sécurité')).toBeTruthy();
-    expect(screen.getByRole('switch', { name: 'Alertes de facturation via Dans l’application' })).toBeTruthy();
-  });
-
   it('reverts a failed preference save and retries the intended matrix', async () => {
     const intendedMatrix = {
       ...initialMatrix,

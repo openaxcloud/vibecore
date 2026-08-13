@@ -1,27 +1,24 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from 'react-router';
 import { getDiskInfo } from '~/lib/.server/disk-info';
 import { requireWebSession } from '~/lib/.server/require-session';
-import { remainingApiLocaleHeaders, remainingApiRouteMessage } from '~/lib/i18n/catalogs/remaining-api-routes';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { json } from '~/lib/json-response';
 import { withSecurity } from '~/lib/security';
 
-const errorResponse = (request: Request) =>
+const errorResponse = (error: unknown) =>
   json(
     [
       {
-        filesystem: remainingApiRouteMessage(request, 'diskFilesystemUnknown'),
+        filesystem: 'Unknown',
         size: 0,
         used: 0,
         available: 0,
         percentage: 0,
         mountpoint: '/',
         timestamp: new Date().toISOString(),
-        error: remainingApiRouteMessage(request, 'DISK_INFO_FAILED'),
-        code: 'DISK_INFO_FAILED',
+        error: error instanceof Error ? error.message : 'Unknown error',
       },
     ],
-    { status: 500, headers: remainingApiLocaleHeaders(request) },
+    { status: 500 },
   );
 
 /**
@@ -51,12 +48,10 @@ async function diskInfoHandler({ request }: ActionFunctionArgs | LoaderFunctionA
   }
 
   try {
-    return json(await getDiskInfo(resolveRequestLocale(request).language), {
-      headers: remainingApiLocaleHeaders(request),
-    });
+    return json(await getDiskInfo());
   } catch (error) {
     console.error('Failed to get disk info:', error);
-    return errorResponse(request);
+    return errorResponse(error);
   }
 }
 

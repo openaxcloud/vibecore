@@ -74,7 +74,7 @@ export function collectCappedBody(res: ReadableResponseLike, maxBytes: number): 
      */
     res.on('close', () => {
       if (!settled) {
-        reject(Object.assign(new Error(), { code: 'STREAM_CLOSED' }));
+        reject(Object.assign(new Error('Response stream closed before completion'), { code: 'STREAM_CLOSED' }));
       }
     });
 

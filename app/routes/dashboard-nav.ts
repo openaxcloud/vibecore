@@ -7,8 +7,6 @@
  * raw <a href>.
  */
 
-import { userAreaEn, type UserAreaTranslationKey } from '~/lib/i18n/catalogs/user-area';
-
 /**
  * A target is "external" — and therefore needs a real <a href> rather than a
  * client-side <Link> — when it points off-app: an absolute URL with a scheme
@@ -47,18 +45,15 @@ export type DashboardHeaderActions = {
 };
 
 /** Keep the most useful next action first, based on whether work already exists. */
-export function resolveDashboardHeaderActions(
-  projects: ReadonlyArray<unknown>,
-  translate: (key: UserAreaTranslationKey) => string = (key) => userAreaEn[key],
-): DashboardHeaderActions {
+export function resolveDashboardHeaderActions(projects: ReadonlyArray<unknown>): DashboardHeaderActions {
   if (projects.length > 0) {
     return {
-      primary: { label: translate('dashboard.newProject'), to: '/projects/new' },
+      primary: { label: 'New project', to: '/projects/new' },
     };
   }
 
   return {
-    primary: { label: translate('dashboard.startAgent'), to: '/projects/new' },
-    secondary: { label: translate('dashboard.browseTemplates'), to: '/dashboard/templates' },
+    primary: { label: 'Start with the agent', to: '/projects/new' },
+    secondary: { label: 'Browse templates', to: '/dashboard/templates' },
   };
 }

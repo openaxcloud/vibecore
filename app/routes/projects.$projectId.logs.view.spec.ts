@@ -19,13 +19,7 @@ describe('buildLogsViewModel', () => {
 
   it('surfaces a backend error from the snapshot instead of swallowing it', () => {
     const view = buildLogsViewModel(withWorkspace({ runtimeLogs: { logs: [], error: 'runtime unavailable' } }));
-    expect(view).toEqual({ kind: 'error' });
-  });
-
-  it('uses the non-sensitive unavailable marker for loader failures', () => {
-    expect(buildLogsViewModel(withWorkspace({ runtimeLogs: { logs: [], unavailable: true } }))).toEqual({
-      kind: 'error',
-    });
+    expect(view).toEqual({ kind: 'error', message: 'runtime unavailable' });
   });
 
   it('reports an empty state when the workspace exists but has no output yet', () => {

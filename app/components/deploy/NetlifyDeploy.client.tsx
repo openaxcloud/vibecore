@@ -1,16 +1,8 @@
 import { useStore } from '@nanostores/react';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { BOLT_DEPLOY_OUTPUT_DIRECTORIES, DEFAULT_DEPLOY_BUILD_COMMAND, formatBuildFailureOutput } from './deployUtils';
 import { pollNetlifyDeploy, type NetlifyDeployStatus } from './netlify-deploy-poll';
-import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
-import {
-  getDeploySurfacesCopy,
-  getDeploySurfaceStatusCopy,
-  type DeploySurfacesKey,
-  type DeploySurfaceStatus,
-} from '~/lib/i18n/catalogs/deploy-surfaces';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
@@ -18,57 +10,30 @@ import { collectRuntimeTextFiles, runtimeDirectoryExists } from '~/lib/runtime/r
 import { netlifyConnection } from '~/lib/stores/netlify';
 import { workbenchStore } from '~/lib/stores/workbench';
 
-class NetlifyDeployError extends Error {
-  constructor(
-    readonly userCopyKey: DeploySurfacesKey,
-    readonly technicalCause?: unknown,
-  ) {
-    super(userCopyKey);
-    this.name = 'NetlifyDeployError';
-  }
-}
-
-interface NetlifyDeployResponse {
-  deploy?: { id?: string };
-  site?: { id?: string };
-  error?: unknown;
-}
-
 export function useNetlifyDeploy() {
-  const { i18n } = useTranslation();
   const runtimeAdapter = useRuntimeAdapter();
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deploymentStatus, setDeploymentStatus] = useState<DeploySurfaceStatus>('idle');
   const netlifyConn = useStore(netlifyConnection);
   const currentChatId = useStore(chatId);
-  const copy = getDeploySurfacesCopy(i18n.resolvedLanguage ?? i18n.language);
-
-  const currentCopy = () => getDeploySurfacesCopy(i18n.resolvedLanguage ?? i18n.language);
-  const currentAstCopy = () => getClientAstResidualCopy(i18n.resolvedLanguage ?? i18n.language);
 
   const handleNetlifyDeploy = async () => {
     if (!netlifyConn.user || !netlifyConn.token) {
-      setDeploymentStatus('error');
-      toast.error(currentCopy()['deploySurfaces.netlify.connectFirst']);
-
+      toast.error('Please connect to Netlify first in the settings tab!');
       return false;
     }
 
     if (!currentChatId) {
-      setDeploymentStatus('error');
-      toast.error(currentCopy()['deploySurfaces.common.noActiveChat']);
-
+      toast.error('No active chat found');
       return false;
     }
 
     try {
       setIsDeploying(true);
-      setDeploymentStatus('building');
 
       const artifact = workbenchStore.firstArtifact;
 
       if (!artifact) {
-        throw new NetlifyDeployError('deploySurfaces.common.noActiveProject');
+        throw new Error('No active project found');
       }
 
       // Create a deployment artifact for visual feedback
@@ -76,7 +41,7 @@ export function useNetlifyDeploy() {
       workbenchStore.addArtifact({
         id: deploymentId,
         messageId: deploymentId,
-        title: currentCopy()['deploySurfaces.netlify.artifactTitle'],
+        title: 'Netlify Deployment',
         type: 'standalone',
       });
 
@@ -107,20 +72,15 @@ export function useNetlifyDeploy() {
       const buildOutput = artifact.runner.buildOutput;
 
       if (!buildOutput || buildOutput.exitCode !== 0) {
-        const technicalOutput = formatBuildFailureOutput(buildOutput?.output);
-
-        console.error('Netlify build failed:', technicalOutput);
-
         // Notify that build failed
         deployArtifact.runner.handleDeployAction('building', 'failed', {
-          error: currentCopy()['deploySurfaces.common.buildFailed'],
+          error: formatBuildFailureOutput(buildOutput?.output),
           source: 'netlify',
         });
-        throw new NetlifyDeployError('deploySurfaces.common.buildFailed', technicalOutput);
+        throw new Error('Build failed');
       }
 
       // Notify that build succeeded and deployment is starting
-      setDeploymentStatus('deploying');
       deployArtifact.runner.handleDeployAction('deploying', 'running', { source: 'netlify' });
 
       const buildPath = buildOutput.path.replace(runtimeAdapter.workdir, '');
@@ -146,11 +106,7 @@ export function useNetlifyDeploy() {
       }
 
       if (!buildPathExists) {
-        deployArtifact.runner.handleDeployAction('building', 'failed', {
-          error: currentCopy()['deploySurfaces.common.outputDirectoryMissing'],
-          source: 'netlify',
-        });
-        throw new NetlifyDeployError('deploySurfaces.common.outputDirectoryMissing');
+        throw new Error('Could not find build output directory. Please check your build configuration.');
       }
 
       const fileContents = await collectRuntimeTextFiles(runtimeAdapter, finalBuildPath, {
@@ -173,21 +129,18 @@ export function useNetlifyDeploy() {
         }),
       });
 
-      const data = (await response.json().catch(() => ({}))) as NetlifyDeployResponse;
+      const data = (await response.json().catch(() => ({}))) as any;
 
-      if (!response.ok || !data.deploy?.id || !data.site?.id) {
+      if (!response.ok || !data.deploy || !data.site) {
         console.error('Invalid deploy response:', data);
 
         // Notify that deployment failed
         deployArtifact.runner.handleDeployAction('deploying', 'failed', {
-          error: currentCopy()['deploySurfaces.common.invalidResponse'],
+          error: data.error || 'Invalid deployment response',
           source: 'netlify',
         });
-        throw new NetlifyDeployError('deploySurfaces.common.invalidResponse', data.error);
+        throw new Error(data.error || 'Invalid deployment response');
       }
-
-      const deployId = data.deploy.id;
-      const siteId = data.site.id;
 
       const maxAttempts = 120; // ~2 minutes timeout (1s between polls)
 
@@ -201,18 +154,17 @@ export function useNetlifyDeploy() {
       const pollResult = await pollNetlifyDeploy({
         maxAttempts,
         fetchStatus: async () => {
-          const statusResponse = await fetch(`https://api.netlify.com/api/v1/sites/${siteId}/deploys/${deployId}`, {
-            headers: {
-              Authorization: `Bearer ${netlifyConn.token}`,
+          const statusResponse = await fetch(
+            `https://api.netlify.com/api/v1/sites/${data.site.id}/deploys/${data.deploy.id}`,
+            {
+              headers: {
+                Authorization: `Bearer ${netlifyConn.token}`,
+              },
             },
-          });
+          );
 
           if (!statusResponse.ok) {
-            throw new Error(
-              formatClientAstResidualCopy(currentAstCopy()['clientAst.deploy.netlify.statusCheckFailed'], {
-                status: statusResponse.status,
-              }),
-            );
+            throw new Error(`Deployment status check failed (HTTP ${statusResponse.status})`);
           }
 
           return (await statusResponse.json()) as NetlifyDeployStatus;
@@ -220,29 +172,29 @@ export function useNetlifyDeploy() {
       });
 
       if (pollResult.outcome === 'error') {
-        console.error('Netlify deployment status reported an error:', pollResult.technicalCause);
-
         // Notify that deployment failed
         deployArtifact.runner.handleDeployAction('deploying', 'failed', {
-          error: currentCopy()['deploySurfaces.netlify.statusCheckFailed'],
+          error: pollResult.error,
           source: 'netlify',
         });
-        throw new NetlifyDeployError('deploySurfaces.netlify.statusCheckFailed', pollResult.technicalCause);
+        throw new Error(pollResult.error);
       }
 
       if (pollResult.outcome === 'timeout') {
         // Notify that deployment timed out
         deployArtifact.runner.handleDeployAction('deploying', 'failed', {
-          error: currentCopy()['deploySurfaces.netlify.timedOut'],
+          error: 'Deployment timed out',
           source: 'netlify',
         });
-        throw new NetlifyDeployError('deploySurfaces.netlify.timedOut');
+        throw new Error('Deployment timed out');
       }
 
       const deploymentStatus = pollResult.status;
 
       // Store the site ID if it's a new site
-      localStorage.setItem(`netlify-site-${currentChatId}`, siteId);
+      if (data.site) {
+        localStorage.setItem(`netlify-site-${currentChatId}`, data.site.id);
+      }
 
       // Notify that deployment completed successfully
       deployArtifact.runner.handleDeployAction('complete', 'complete', {
@@ -251,17 +203,12 @@ export function useNetlifyDeploy() {
       });
 
       // Show success toast notification
-      setDeploymentStatus('success');
-      toast.success(currentCopy()['deploySurfaces.netlify.success']);
+      toast.success(`🚀 Netlify deployment completed successfully!`);
 
       return true;
     } catch (error) {
       console.error('Deploy error:', error);
-      setDeploymentStatus('error');
-
-      const messageKey = error instanceof NetlifyDeployError ? error.userCopyKey : 'deploySurfaces.netlify.failed';
-
-      toast.error(currentCopy()[messageKey]);
+      toast.error(error instanceof Error ? error.message : 'Deployment failed');
 
       return false;
     } finally {
@@ -273,7 +220,5 @@ export function useNetlifyDeploy() {
     isDeploying,
     handleNetlifyDeploy,
     isConnected: !!netlifyConn.user,
-    deploymentStatus,
-    statusMessage: getDeploySurfaceStatusCopy(copy, deploymentStatus),
   };
 }

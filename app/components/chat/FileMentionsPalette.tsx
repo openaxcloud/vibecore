@@ -8,11 +8,10 @@
  * where to anchor and how to splice the selected path into the prompt.
  */
 
-import { memo, useCallback, useEffect, useId, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
 import { useFileMentions, type FileMentionCandidate } from '~/lib/hooks/useFileMentions';
-import { getChatResidualsCopy } from '~/lib/i18n/catalogs/chat-residuals';
+import { t } from '~/lib/i18n/dictionary';
 
 export interface FileMentionsPaletteProps {
   /** Free-text query, typically what the user typed after `@`. */
@@ -36,12 +35,9 @@ export interface FileMentionsPaletteProps {
 
 export const FileMentionsPalette = memo(
   ({ query, onSelect, onDismiss, limit, recentMentionedFilePaths }: FileMentionsPaletteProps) => {
-    const { i18n } = useTranslation();
-    const copy = getChatResidualsCopy(i18n.resolvedLanguage ?? i18n.language);
     const candidates = useFileMentions(query, { limit, recentMentionedFilePaths });
     const [activeIndex, setActiveIndex] = useState(0);
     const listRef = useRef<HTMLUListElement>(null);
-    const listboxId = useId();
 
     /*
      * Clamp the active index when the candidate list shrinks (e.g. typing
@@ -101,12 +97,12 @@ export const FileMentionsPalette = memo(
         <div
           className="bolt-file-mentions-palette"
           role="listbox"
-          aria-label={copy['chatResiduals.mentions.aria']}
+          aria-label="File mentions"
           data-empty="true"
           tabIndex={-1}
           onKeyDown={handleKeyDown}
         >
-          <p className="bolt-file-mentions-empty">{copy['chatResiduals.mentions.empty']}</p>
+          <p className="bolt-file-mentions-empty">{t('mentions.empty')}</p>
         </div>
       );
     }
@@ -115,8 +111,7 @@ export const FileMentionsPalette = memo(
       <div
         className="bolt-file-mentions-palette"
         role="listbox"
-        aria-label={copy['chatResiduals.mentions.aria']}
-        aria-activedescendant={`${listboxId}-${activeIndex}`}
+        aria-label="File mentions"
         tabIndex={-1}
         onKeyDown={handleKeyDown}
       >
@@ -127,11 +122,10 @@ export const FileMentionsPalette = memo(
             return (
               <li
                 key={candidate.absolutePath}
-                id={`${listboxId}-${index}`}
                 role="option"
                 aria-selected={isActive}
                 data-active={isActive ? 'true' : 'false'}
-                className="bolt-file-mentions-item min-h-11"
+                className="bolt-file-mentions-item"
                 onMouseEnter={() => setActiveIndex(index)}
                 onClick={() => select(candidate)}
               >

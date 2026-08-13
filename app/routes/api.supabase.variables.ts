@@ -1,7 +1,5 @@
-import { type ActionFunctionArgs } from 'react-router';
+import { data as json, type ActionFunctionArgs } from 'react-router';
 import { preferredConnectorToken } from '~/lib/connectors/connector-token.server';
-import { webApiErrorResponse, webApiLocaleHeaders } from '~/lib/i18n/catalogs/web-api-routes';
-import { json } from '~/lib/json-response';
 
 export async function action({ request }: ActionFunctionArgs) {
   try {
@@ -13,7 +11,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const token = await preferredConnectorToken(request, 'supabase', fallbackToken);
 
     if (!projectId || !token) {
-      return webApiErrorResponse(request, 'SUPABASE_PROJECT_TOKEN_REQUIRED', 400);
+      return json({ error: 'Project ID and token are required' }, { status: 400 });
     }
 
     /*
@@ -23,7 +21,7 @@ export async function action({ request }: ActionFunctionArgs) {
      * alphanumeric strings.
      */
     if (!/^[a-zA-Z0-9]{1,40}$/.test(projectId)) {
-      return webApiErrorResponse(request, 'SUPABASE_PROJECT_INVALID', 400);
+      return json({ error: 'Invalid project ID' }, { status: 400 });
     }
 
     const response = await fetch(`https://api.supabase.com/v1/projects/${encodeURIComponent(projectId)}/api-keys`, {
@@ -38,15 +36,14 @@ export async function action({ request }: ActionFunctionArgs) {
     });
 
     if (!response.ok) {
-      console.error('Supabase API keys request failed:', { status: response.status });
-      return webApiErrorResponse(request, 'SUPABASE_API_KEYS_FAILED', response.status);
+      return json({ error: `Failed to fetch API keys: ${response.statusText}` }, { status: response.status });
     }
 
     const apiKeys = await response.json();
 
-    return json({ apiKeys }, { headers: webApiLocaleHeaders(request) });
+    return json({ apiKeys });
   } catch (error) {
     console.error('Error fetching project API keys:', error);
-    return webApiErrorResponse(request, 'SUPABASE_API_KEYS_FAILED', 500);
+    return json({ error: error instanceof Error ? error.message : 'Unknown error occurred' }, { status: 500 });
   }
 }

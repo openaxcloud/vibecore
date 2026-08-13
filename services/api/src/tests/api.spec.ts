@@ -2054,10 +2054,7 @@ describe('SaaS API', () => {
     const admin = await register(app, { email: 'redact-admin@example.com', organizationName: 'Redact Admin Org' });
     await verifyEmail(app, admin.verificationToken);
 
-    const customer = await register(app, {
-      email: 'redact-customer@example.com',
-      organizationName: 'Redact Customer Org',
-    });
+    const customer = await register(app, { email: 'redact-customer@example.com', organizationName: 'Redact Customer Org' });
 
     // Seed two audit rows carrying PII (ipAddress) for the customer org.
     await store.recordAudit({
@@ -2885,20 +2882,6 @@ describe('SaaS API', () => {
 
     await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'free', status: 'ACTIVE' });
 
-    /*
-     * Le plan gratuit n'a PLUS de plafond de projets inventé (l'ancien « 3 »
-     * était sans source). Ce test porte sur le MÉCANISME de quota et sur les
-     * overrides : on pose donc explicitement un plafond administratif de 3, puis
-     * on vérifie qu'il bloque et qu'un override ultérieur le relève.
-     */
-    await store.createQuotaOverride({
-      organizationId: auth.organization.id,
-      key: 'projects.count',
-      limit: 3,
-      reason: 'plafond administratif pour ce test',
-      createdByUserId: auth.user.id,
-    });
-
     const projectNames = ['One', 'Two', 'Three'];
 
     for (const name of projectNames) {
@@ -3386,79 +3369,22 @@ describe('SaaS API', () => {
       });
       expect(billing.statusCode).toBe(200);
       expect(billing.json().plan.key).toBe('free');
-      /*
-       * Plus de plafond de projets inventé sur le plan gratuit : la valeur
-       * annoncée doit être « pas de plafond d'offre », pas « 3 ».
-       */
-      expect(billing.json().limits['projects.count']).toBeGreaterThan(1000);
+      expect(billing.json().limits['projects.count']).toBe(3);
     } finally {
       process.env.STRIPE_WEBHOOK_SECRET = previousSecret;
       await app.close();
     }
   });
 
-  it('scaffolds distinct, template-specific files for each curated template id (from-template)', async () => {
-    const store = new TestApiStore();
-    const projectStorage = new MemoryProjectStorage();
-    const app = await buildTestApiApp({ store, projectStorage });
-    const auth = await register(app, { email: 'tpl-distinct@example.com', organizationName: 'Tpl Distinct Org' });
-    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'team', status: 'ACTIVE' });
-
-    const createFromTemplate = async (templateName: string, name: string) => {
-      const response = await app.inject({
-        method: 'POST',
-        url: `/orgs/${auth.organization.id}/projects/from-template`,
-        headers: { authorization: `Bearer ${auth.token}` },
-        payload: { name, templateName },
-      });
-      expect(response.statusCode).toBe(201);
-
-      return response.json().project.id as string;
-    };
-
-    const signature = (projectId: string) =>
-      [...(projectStorage.files.get(projectId) ?? new Map()).entries()]
-        .map(([path, content]) => `${path}:${content.length}`)
-        .sort()
-        .join('|');
-
-    const crmId = await createFromTemplate('react-saas', 'CRM App');
-    const apiId = await createFromTemplate('fastify-api', 'API Monitor App');
-    const dashId = await createFromTemplate('next-dashboard', 'Ops Dashboard App');
-
-    const crmFiles = projectStorage.files.get(crmId)!;
-
-    /*
-     * The chosen template scaffolds its OWN application — not the identical
-     * generic Vite shell every template produced before this fix.
-     */
-    expect(crmFiles.get('src/App.tsx')).toContain('data-gallery-app-id="react-saas"');
-    expect(crmFiles.get('src/App.tsx')).not.toContain('Created from the Bolt template');
-    expect(crmFiles.get('src/App.tsx')).not.toContain('Créé à partir du modèle Bolt');
-
-    // Three different templates produce three genuinely different file sets.
-    const signatures = new Set([signature(crmId), signature(apiId), signature(dashId)]);
-    expect(signatures.size).toBe(3);
-
-    /*
-     * A templateName with no catalog entry still scaffolds a runnable project
-     * (generic Vite fallback) rather than an empty one.
-     */
-    const fallbackId = await createFromTemplate('react-basic-starter', 'Fallback App');
-    expect(projectStorage.files.get(fallbackId)?.size ?? 0).toBeGreaterThan(0);
-    expect(projectStorage.files.get(fallbackId)?.get('package.json')).toBeDefined();
-  });
-
   it('supports persistent project CRUD, settings, collaborators and soft delete restore', async () => {
     const store = new TestApiStore();
-    const projectStorage = new MemoryProjectStorage();
-    const app = await buildTestApiApp({ store, projectStorage });
+    const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'projects@example.com', organizationName: 'Projects Org' });
 
     const create = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/from-template`,
-      headers: { authorization: `Bearer ${auth.token}`, 'accept-language': 'fr-FR,fr;q=0.9' },
+      headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Template App', templateName: 'react-basic-starter' },
     });
     expect(create.statusCode).toBe(201);
@@ -3485,8 +3411,6 @@ describe('SaaS API', () => {
     });
     expect(dashboard.statusCode).toBe(200);
     expect(dashboard.json().files.length).toBeGreaterThan(0);
-    expect(projectStorage.files.get(projectId)?.get('index.html')).toContain('<html lang="fr">');
-    expect(projectStorage.files.get(projectId)?.get('src/App.tsx')).toContain('Créé à partir du modèle Bolt');
 
     const homepagePreview = await app.inject({
       method: 'GET',
@@ -3497,18 +3421,6 @@ describe('SaaS API', () => {
     expect(homepagePreview.headers['content-type']).toContain('image/svg+xml');
     expect(homepagePreview.body).toContain('Template App');
     expect(homepagePreview.body).toContain('Generated from the current homepage files');
-
-    const frenchHomepagePreview = await app.inject({
-      method: 'GET',
-      url: `/projects/${projectId}/homepage-preview.svg`,
-      headers: { authorization: `Bearer ${auth.token}`, 'accept-language': 'fr-FR,fr;q=0.9' },
-    });
-    expect(frenchHomepagePreview.statusCode).toBe(200);
-    expect(frenchHomepagePreview.headers['content-language']).toBe('fr');
-    expect(frenchHomepagePreview.headers.vary).toContain('Cookie');
-    expect(frenchHomepagePreview.body).toContain('Dernier aperçu');
-    expect(frenchHomepagePreview.body).toContain('Généré à partir des fichiers actuels');
-    expect(frenchHomepagePreview.body).not.toContain('Generated from the current homepage files');
 
     const saveIdeState = await app.inject({
       method: 'PUT',
@@ -4343,30 +4255,10 @@ export function App() { return 'Old app'; }
     const readme = await zip.file('README.md')!.async('string');
 
     expect(paths).toEqual(['README.md']);
+    expect(readme).toContain('Application files are intentionally left for the IDE agent');
+    expect(readme).toContain(prompt);
     expect(zip.file('package.json')).toBeNull();
     expect(zip.file('src/App.tsx')).toBeNull();
-
-    /*
-     * BUG-QA-PROMPT-IN-README. This assertion used to be
-     * `expect(readme).toContain(prompt)` — it locked IN the leak. The README is
-     * a delivered project file (exported, committed, deployed, visible to every
-     * collaborator), so the user's prompt must never reach it: prompts routinely
-     * carry API keys and database URLs.
-     */
-    expect(readme).not.toContain(prompt);
-
-    /*
-     * …and the prompt must still be available to the IDE, which is what makes
-     * the prompt->app flow work. It now travels through platform state, which is
-     * never exported.
-     */
-    const ideState = await app.inject({
-      method: 'GET',
-      url: `/projects/${project.json().project.id}/ide-state`,
-      headers: { authorization: `Bearer ${auth.token}` },
-    });
-    expect(ideState.statusCode).toBe(200);
-    expect(ideState.json().ideState.state.chat.pendingPrompt.prompt).toBe(prompt);
 
     await app.close();
   });
@@ -5206,10 +5098,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const runtime = await startRuntimeServices();
     const store = new TestApiStore();
     const app = await buildTestApiApp({ store });
-    const auth = await register(app, {
-      email: 'ai-tool-transcript@example.com',
-      organizationName: 'AI Tool Transcript Org',
-    });
+    const auth = await register(app, { email: 'ai-tool-transcript@example.com', organizationName: 'AI Tool Transcript Org' });
 
     const project = await app.inject({
       method: 'POST',
@@ -6935,9 +6824,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const auth = await register(app, { email: 'i18n-user@example.com', organizationName: 'i18n Org' });
 
     /*
-     * Registration persists the first-request locale. With no language
-     * header the documented fallback is English; a French Accept-Language
-     * request is covered by the dedicated transactional-i18n route tests.
+     * Fresh users have no language preference — GET /auth/me should
+     * surface it as undefined so the client can fall back to
+     * navigator.language detection.
      */
     const before = await app.inject({
       method: 'GET',
@@ -6945,7 +6834,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(before.statusCode).toBe(200);
-    expect(before.json().user.language).toBe('en');
+    expect(before.json().user.language).toBeFalsy();
 
     const setFr = await app.inject({
       method: 'PATCH',
@@ -7020,15 +6909,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     const app = await buildTestApiApp({ store });
     const auth = await register(app, { email: 'prefs-user@example.com', organizationName: 'Prefs Org' });
 
-    // Fresh users have an empty preferences blob, the negotiated default
-    // language, and no timezone.
+    // Fresh users have an empty preferences blob and no language/timezone.
     const before = await app.inject({
       method: 'GET',
       url: '/user/preferences',
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(before.statusCode).toBe(200);
-    expect(before.json()).toMatchObject({ language: 'en', timezone: null, preferences: {} });
+    expect(before.json()).toMatchObject({ language: null, timezone: null, preferences: {} });
 
     const setAll = await app.inject({
       method: 'PATCH',

@@ -60,6 +60,7 @@ export const vercelConnector: ConnectorProvider = {
     if (!response.ok) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_USER_INFO_FAILED',
+        message: `Vercel user info returned HTTP ${response.status}`,
         httpStatus: response.status,
       });
     }
@@ -71,6 +72,7 @@ export const vercelConnector: ConnectorProvider = {
     } catch {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
+        message: 'Vercel user info returned a non-JSON body',
       });
     }
 
@@ -79,6 +81,7 @@ export const vercelConnector: ConnectorProvider = {
     if (!userInfo) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
+        message: 'Vercel user info response is missing id or username',
       });
     }
 

@@ -1,4 +1,3 @@
-import { discloseInstalledSkills, type DisclosureTraceEntry } from './skill-disclosure';
 import { apiRequest } from '~/lib/enterprise-api.server';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -22,22 +21,12 @@ export interface InstalledSkillForPrompt {
   enabled: boolean;
   scope: string;
   homepageUrl?: string | null;
-
-  // RPL-SK-001.2 progressive disclosure inputs (from the InstalledSkill record).
-  manifestName?: string | null;
-  resources?: Array<{ path: string; kind: string; bytes: number }>;
 }
 
 export interface ProjectSkillsContext {
   skills: ResolvedSkill[];
   installed: InstalledSkillForPrompt[];
   context: string;
-
-  /** RPL-SK-001.2 — ordered disclosure trace (L1 all, L2 only for triggered skills). */
-  disclosureTrace: DisclosureTraceEntry[];
-
-  /** ownerRepo of installed skills whose body (L2) was loaded this turn. */
-  triggeredSkills: string[];
 }
 
 /**
@@ -121,7 +110,7 @@ function dedupeInstalled(rows: InstalledSkillForPrompt[]): InstalledSkillForProm
  */
 export async function retrieveSkillsForAgentContext(
   request: Request,
-  input: { projectId?: string; userPrompt?: string },
+  input: { projectId?: string },
 ): Promise<ProjectSkillsContext | undefined> {
   if (!input.projectId) {
     return undefined;
@@ -159,43 +148,11 @@ export async function retrieveSkillsForAgentContext(
 
   const installed = dedupeInstalled([...projectInstalled, ...workspaceInstalled]);
 
-  /*
-   * RPL-SK-001.2 — progressive disclosure. Builtin skills are already one-line
-   * capability hints (effectively L1). Installed skills are disclosed: their
-   * name+description (L1) is always present, but the full instructions (L2) are
-   * loaded ONLY for skills triggered by the current prompt. The trace records
-   * exactly which levels loaded, proving lazy loading.
-   */
-  const disclosure = discloseInstalledSkills(installed, input.userPrompt);
+  const context = composeSkillsContext(builtin, installed);
 
-  const sections: string[] = [];
-
-  if (builtin.length) {
-    sections.push(formatSkillsContext(builtin));
-  }
-
-  if (disclosure.context) {
-    sections.push(disclosure.context);
-  }
-
-  if (sections.length === 0) {
+  if (!context) {
     return undefined;
   }
 
-  if (disclosure.trace.length) {
-    logger.info(
-      `[skill-disclosure] projectId=${input.projectId} installed=${installed.length} ` +
-        `triggered=${disclosure.triggered.length}(${disclosure.triggered.join(',') || 'none'}) ` +
-        `bytesByLevel=${JSON.stringify(disclosure.bytesByLevel)} ` +
-        `trace=${JSON.stringify(disclosure.trace.map((e) => ({ seq: e.seq, level: e.level, skill: e.skill, bytes: e.bytes })))}`,
-    );
-  }
-
-  return {
-    skills: builtin,
-    installed,
-    context: sections.join('\n\n'),
-    disclosureTrace: disclosure.trace,
-    triggeredSkills: disclosure.triggered,
-  };
+  return { skills: builtin, installed, context };
 }

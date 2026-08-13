@@ -1,13 +1,8 @@
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Form, useSubmit } from 'react-router';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { RelativeTime } from '~/components/ui/RelativeTime';
-import {
-  formatOrganizationMembersCopy,
-  getOrganizationMembersCopy,
-  organizationMemberRoleLabel,
-} from '~/lib/i18n/catalogs/organization-members';
+import { userFacingLabel } from '~/lib/user-facing-labels';
 
 export type PendingInvitation = {
   id: string;
@@ -27,8 +22,6 @@ export type PendingInvitation = {
  * (Revoke / Expired). No hard-coded colors.
  */
 export function PendingInvitationsSection({ orgId, invitations }: { orgId: string; invitations: PendingInvitation[] }) {
-  const { i18n } = useTranslation();
-  const copy = getOrganizationMembersCopy(i18n.resolvedLanguage ?? i18n.language);
   const submit = useSubmit();
 
   // Invite the revoke confirmation dialog is open for, or null.
@@ -41,17 +34,13 @@ export function PendingInvitationsSection({ orgId, invitations }: { orgId: strin
   return (
     <section className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-sm shadow-sm">
       <div className="border-b border-bolt-elements-borderColor px-4 py-3 sm:px-6">
-        <h2 className="break-words font-semibold text-bolt-elements-textPrimary">
-          {copy['organizationMembers.pending.title']}
-        </h2>
+        <h2 className="font-semibold text-bolt-elements-textPrimary">Pending invitations</h2>
         <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-          {copy['organizationMembers.pending.description']}
+          Resend sends a fresh invitation link (once per minute per invite); revoke stops the link working immediately.
         </p>
       </div>
       {pending.length === 0 ? (
-        <div className="px-4 py-4 text-bolt-elements-textSecondary sm:px-6">
-          {copy['organizationMembers.pending.empty']}
-        </div>
+        <div className="px-4 py-4 text-bolt-elements-textSecondary sm:px-6">No pending invitations.</div>
       ) : (
         pending.map((invite) => {
           const expired = new Date(invite.expiresAt).getTime() < now;
@@ -65,20 +54,20 @@ export function PendingInvitationsSection({ orgId, invitations }: { orgId: strin
                 <div className="truncate font-medium text-bolt-elements-textPrimary">{invite.email}</div>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
                   <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5">
-                    {organizationMemberRoleLabel(invite.roleKey, undefined, copy)}
+                    {userFacingLabel(invite.roleKey, 'Member')}
                   </span>
-                  <RelativeTime value={invite.createdAt} prefix={copy['organizationMembers.pending.invited']} />
+                  <RelativeTime value={invite.createdAt} prefix="Invited" />
                   {expired ? (
                     <span
                       className="rounded-full border px-2 py-0.5 font-medium"
                       style={{ color: 'var(--status-error-text)', borderColor: 'var(--status-error-text)' }}
                     >
-                      {copy['organizationMembers.pending.expired']}
+                      Expired
                     </span>
                   ) : (
                     <RelativeTime
                       value={invite.expiresAt}
-                      prefix={copy['organizationMembers.pending.expires']}
+                      prefix="Expires"
                       className="text-bolt-elements-textTertiary"
                     />
                   )}
@@ -91,13 +80,11 @@ export function PendingInvitationsSection({ orgId, invitations }: { orgId: strin
                   <input type="hidden" name="inviteId" value={invite.id} />
                   <button
                     type="submit"
-                    className="min-h-[44px] whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs hover:bg-bolt-elements-background-depth-1"
+                    className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs hover:bg-bolt-elements-background-depth-1"
                     style={{ color: 'var(--vc-ide-accent-action)' }}
-                    aria-label={formatOrganizationMembersCopy(copy['organizationMembers.pending.resendAria'], {
-                      email: invite.email,
-                    })}
+                    aria-label={`Resend invitation to ${invite.email}`}
                   >
-                    {copy['organizationMembers.pending.resend']}
+                    Resend
                   </button>
                 </Form>
                 <Form
@@ -113,13 +100,11 @@ export function PendingInvitationsSection({ orgId, invitations }: { orgId: strin
                   <input type="hidden" name="inviteId" value={invite.id} />
                   <button
                     type="submit"
-                    className="min-h-[44px] whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs hover:bg-bolt-elements-background-depth-1"
+                    className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs hover:bg-bolt-elements-background-depth-1"
                     style={{ color: 'var(--status-error-text)' }}
-                    aria-label={formatOrganizationMembersCopy(copy['organizationMembers.pending.revokeAria'], {
-                      email: invite.email,
-                    })}
+                    aria-label={`Revoke invitation to ${invite.email}`}
                   >
-                    {copy['organizationMembers.pending.revoke']}
+                    Revoke
                   </button>
                 </Form>
               </div>
@@ -138,11 +123,9 @@ export function PendingInvitationsSection({ orgId, invitations }: { orgId: strin
             submit({ intent: 'invite-revoke', orgId, inviteId: pendingRevoke.id }, { method: 'post' });
           }
         }}
-        title={formatOrganizationMembersCopy(copy['organizationMembers.pending.dialogTitle'], {
-          email: invitePendingRevoke?.email ?? '',
-        })}
-        description={copy['organizationMembers.pending.dialogDescription']}
-        confirmLabel={copy['organizationMembers.pending.dialogConfirm']}
+        title={`Revoke the invitation for ${invitePendingRevoke?.email ?? ''}?`}
+        description="The invite link stops working immediately."
+        confirmLabel="Revoke invitation"
         variant="destructive"
       />
     </section>

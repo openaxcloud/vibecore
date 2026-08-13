@@ -16,38 +16,17 @@ describe('isPortReadyFromProbe', () => {
     expect(isPortReadyFromProbe({ kind: 'response', status: 500 })).toBe(false);
   });
 
-  it('is ready once an HTTP request returns a 2xx/3xx response', () => {
+  it('is ready once an HTTP request returns a non-5xx response', () => {
     const probes: PortProbeResult[] = [
       { kind: 'response', status: 200 },
       { kind: 'response', status: 304 },
-      { kind: 'response', status: 200, bodyBytes: 512 },
+      { kind: 'response', status: 404 },
+      { kind: 'response', status: 401 },
     ];
 
     for (const probe of probes) {
       expect(isPortReadyFromProbe(probe)).toBe(true);
     }
-  });
-
-  /*
-   * REGRESSION — SOLUTIONS_REAL_PROOF_BLOCKERS.md §5.
-   *
-   * 404/401 previously counted as READY (the rule was `status < 500`). A dev
-   * server that bound its port but served nothing at `/`, or a proxy answering
-   * "not found" for the workspace, therefore latched the preview to ready —
-   * which both showed a green light over a blank webview AND disarmed the
-   * not-ready -> ready auto-reload recovery.
-   */
-  it('is NOT ready on a 4xx: the port answers, but not with the app', () => {
-    expect(isPortReadyFromProbe({ kind: 'response', status: 404 })).toBe(false);
-    expect(isPortReadyFromProbe({ kind: 'response', status: 401 })).toBe(false);
-    expect(isPortReadyFromProbe({ kind: 'response', status: 403 })).toBe(false);
-  });
-
-  it('is NOT ready on a 200 with an empty body (bound socket, nothing served)', () => {
-    expect(isPortReadyFromProbe({ kind: 'response', status: 200, bodyBytes: 0 })).toBe(false);
-
-    // Body unknown (caller did not read it) still falls back to the status check.
-    expect(isPortReadyFromProbe({ kind: 'response', status: 200 })).toBe(true);
   });
 
   it('models the not-ready -> ready transition the Preview auto-reload edge depends on', () => {
@@ -113,52 +92,5 @@ describe('computeWorkspaceRestorePlan', () => {
 
     expect(plan.writes.map((file) => file.path)).toEqual(['a.ts', 'b.ts']);
     expect(plan.deletes).toEqual([]);
-  });
-});
-
-import { aggregatePreviewReadiness } from '../runtime-readiness.js';
-
-describe('aggregatePreviewReadiness (Blocker #5 — the 4 actors must agree)', () => {
-  const ready = { portReady: true, hasLiveProcess: true, managerStatus: 'RUNNING', clientBeacon: 'none' as const };
-
-  it('is ready only when all signals agree', () => {
-    expect(aggregatePreviewReadiness(ready)).toEqual({ ready: true });
-  });
-
-  it('port veto: a failed probe is never ready (even if everything else is fine)', () => {
-    expect(aggregatePreviewReadiness({ ...ready, portReady: false })).toEqual({ ready: false, blockedBy: 'port' });
-  });
-
-  it('process veto: a bound port with no live dev-server process is a ghost', () => {
-    expect(aggregatePreviewReadiness({ ...ready, hasLiveProcess: false })).toEqual({
-      ready: false,
-      blockedBy: 'process',
-    });
-  });
-
-  it('manager veto: a known non-RUNNING workspace is never ready', () => {
-    expect(aggregatePreviewReadiness({ ...ready, managerStatus: 'STOPPED' })).toEqual({
-      ready: false,
-      blockedBy: 'manager',
-    });
-  });
-
-  it('manager unknown (undefined) is neutral — a brand-new workspace still passes', () => {
-    expect(aggregatePreviewReadiness({ ...ready, managerStatus: undefined })).toEqual({ ready: true });
-  });
-
-  it('client veto: a fresh blank/error beacon drops readiness even when the port probe passed', () => {
-    expect(aggregatePreviewReadiness({ ...ready, clientBeacon: 'blank' })).toEqual({
-      ready: false,
-      blockedBy: 'client',
-    });
-    expect(aggregatePreviewReadiness({ ...ready, clientBeacon: 'error' })).toEqual({
-      ready: false,
-      blockedBy: 'client',
-    });
-  });
-
-  it("client 'ok' does not veto (it clears a prior blank)", () => {
-    expect(aggregatePreviewReadiness({ ...ready, clientBeacon: 'ok' })).toEqual({ ready: true });
   });
 });

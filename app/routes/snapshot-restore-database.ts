@@ -13,8 +13,6 @@
  * false success.
  */
 
-import { getApiRuntimeRoutesCopy } from '~/lib/i18n/catalogs/api-runtime-routes';
-
 export type DatabaseRestoreOutcome =
   | { kind: 'skipped' }
   | { kind: 'restored'; restore: unknown }
@@ -50,30 +48,26 @@ interface DatabaseRestoreError {
  * this deployment, so we report it as "unavailable" (the files were restored,
  * but the database was intentionally not) rather than a hard failure.
  */
-export function classifyDatabaseRestoreError(
-  error: DatabaseRestoreError,
-  language?: string | null,
-): DatabaseRestoreOutcome {
-  const copy = getApiRuntimeRoutesCopy(language);
-
+export function classifyDatabaseRestoreError(error: DatabaseRestoreError): DatabaseRestoreOutcome {
   if (error.status === 404 && error.code === 'FEATURE_NOT_ENABLED') {
     return {
       kind: 'unavailable',
-      message: copy['apiRuntime.snapshot.featureUnavailable'],
+      message:
+        'Files were restored, but database rollback is not available on this project, so the database was left unchanged.',
     };
   }
 
   if (error.status === 409 && error.code === 'NO_DATABASE') {
     return {
       kind: 'unavailable',
-      message: copy['apiRuntime.snapshot.noDatabase'],
+      message: 'Files were restored. This project has no managed database to roll back, so only files were restored.',
     };
   }
 
   return {
     kind: 'failed',
     status: error.status,
-    message: copy['apiRuntime.snapshot.failed'],
+    message: error.message || 'Database restore failed.',
   };
 }
 

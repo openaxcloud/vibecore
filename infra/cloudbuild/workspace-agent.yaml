@@ -24,9 +24,6 @@ substitutions:
   _PROJECT: vibecore-495216
   _REPO: vibecore-prod-containers
   _SHORT_SHA: dev
-  # Cosign signing key (B7) — see infra/cloudbuild/runtime-tier.yaml.
-  _KMS_KEYRING: ecode-supply-chain
-  _KMS_KEY: cosign-images
 
 options:
   machineType: E2_HIGHCPU_8
@@ -64,72 +61,7 @@ steps:
       - --tag=${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-agent:latest
       - .
 
-  # ---- 3. sign image (B7) — see infra/cloudbuild/runtime-tier.yaml for rationale ----
-  #
-  # NOTE: the workspace-agent image runs inside user workspace pods in namespace
-  # `workspaces`, which the Kyverno policy deliberately does NOT cover (that
-  # namespace also runs per-publish user app images that this key never signs).
-  # It is signed anyway so provenance is uniform across everything the platform
-  # builds, and so coverage can be extended later without a pipeline change.
-  - id: fetch-cosign
-    name: gcr.io/cloud-builders/docker
-    waitFor: ['-']
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        # Cosign is pinned by IMMUTABLE OCI DIGEST, not the mutable :v2.4.3 tag.
-        # `docker pull` refuses any content whose sha256 != this digest, so the
-        # build is cryptographically bound to the exact image we vetted — a
-        # repointed tag cannot slip a different binary in. (provenance binding #1)
-        # Digest is the sha256 of ghcr.io/sigstore/cosign/cosign:v2.4.3's
-        # multi-arch index; docker resolves it to linux/amd64 and content-verifies
-        # on pull. Derivation + verification: docs/supply-chain/COSIGN_PINNING.md.
-        cosign_image="ghcr.io/sigstore/cosign/cosign:v2.4.3@sha256:c77247c92f4dfea851c70555738226498393e34e2f9ca83cb959e51c230e4ad7"
-        # sha256 of the linux/amd64 /ko-app/cosign binary inside that image. This
-        # is a second, registry-independent binding checked OFFLINE below: even a
-        # digest we mis-copied, or a compromised registry, cannot hand us an
-        # executable that differs from the one we vetted. (provenance binding #2)
-        cosign_bin_sha256="37db5533587f87c2f9225c5896b39e1ee238205e3a71ba9ff9f0c84a2fd14474"
-        docker pull "$cosign_image"
-        # The official cosign image is distroless: no shell, no coreutils, so
-        # `entrypoint: cp` cannot work. Lift the binary out of a created (never
-        # started) container instead.
-        cid="$(docker create "$cosign_image")"
-        docker cp "$cid:/ko-app/cosign" /workspace/cosign
-        docker rm "$cid"
-        chmod +x /workspace/cosign
-        echo "$cosign_bin_sha256  /workspace/cosign" | sha256sum -c -
-        /workspace/cosign version
-
-  - id: push-image
-    name: gcr.io/cloud-builders/docker
-    waitFor: ['build-workspace-agent']
-    entrypoint: bash
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        docker push ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-agent:sha-${_SHORT_SHA}
-        docker push ${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-agent:latest
-
-  - id: sign-image
-    name: gcr.io/cloud-builders/docker
-    waitFor: ['push-image', 'fetch-cosign']
-    entrypoint: bash
-    env:
-      - 'COSIGN_KMS_KEY=gcpkms://projects/${_PROJECT}/locations/${_REGION}/keyRings/${_KMS_KEYRING}/cryptoKeys/${_KMS_KEY}'
-    args:
-      - -c
-      - |
-        set -euo pipefail
-        export PATH="/workspace:$$PATH"
-        ref="${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-agent:sha-${_SHORT_SHA}"
-        digest_ref="$(docker inspect --format='{{index .RepoDigests 0}}' "$ref")"
-        bash scripts/cosign-sign-images.sh "$digest_ref"
-
-  # ---- 4. vulnerability scan (non-blocking) ----
+  # ---- 3. vulnerability scan (non-blocking) ----
   - id: scan-image
     name: gcr.io/google.com/cloudsdktool/cloud-sdk:slim
     waitFor: ['build-workspace-agent']

@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  COMPARISON_COLUMNS,
-  getComparisonColumns,
-  missingComparisonKeys,
-  type ComparisonTierKey,
-} from './pricing-comparison';
+import { COMPARISON_COLUMNS, missingComparisonKeys, type ComparisonTierKey } from './pricing-comparison';
 
 describe('pricing comparison columns', () => {
   it('exposes the four tiers in the pricing-card order, keyed to internal tier keys', () => {
@@ -28,20 +23,6 @@ describe('pricing comparison columns', () => {
     // The cards rename internal `teams` → "Pro"; the comparison column must agree.
     const teams = COMPARISON_COLUMNS.find((c) => c.key === 'teams');
     expect(teams?.label).toBe('Pro');
-  });
-
-  it('localizes user-visible qualifiers without changing stable tier keys', () => {
-    const french = getComparisonColumns('fr-FR');
-
-    expect(french.map((column) => column.key)).toEqual(COMPARISON_COLUMNS.map((column) => column.key));
-    expect(french.map((column) => column.label)).toEqual(['Starter', 'Core', 'Pro', 'Enterprise']);
-    expect(french.map((column) => column.sublabel)).toEqual([
-      'Gratuit pour toujours',
-      'Le plus populaire',
-      'Pour les équipes en croissance',
-      'Sur mesure',
-    ]);
-    expect(getComparisonColumns('de-DE')).toEqual(COMPARISON_COLUMNS);
   });
 
   it('marks exactly one column (Core) as the accented / most-popular column', () => {

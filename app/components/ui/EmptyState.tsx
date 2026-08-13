@@ -13,10 +13,10 @@ const VARIANT_STYLES = {
       container: 'mb-3 h-10 w-10',
       size: 'h-5 w-5',
     },
-    titleClass: 'text-[15px] font-semibold',
-    descriptionClass: 'text-[13px] mt-2',
+    title: 'text-[15px] font-semibold',
+    description: 'text-[13px] mt-2',
     actions: 'mt-5',
-    buttonClass: 'min-h-11 min-w-11 px-4 py-2 text-sm',
+    button: 'h-9 px-4 text-sm',
   },
   compact: {
     container: 'p-4 py-4',
@@ -24,10 +24,10 @@ const VARIANT_STYLES = {
       container: 'mb-2 h-10 w-10',
       size: 'h-5 w-5',
     },
-    titleClass: 'text-[15px] font-semibold',
-    descriptionClass: 'text-[13px] mt-1',
+    title: 'text-[15px] font-semibold',
+    description: 'text-[13px] mt-1',
     actions: 'mt-3',
-    buttonClass: 'min-h-11 min-w-11 px-3 py-2 text-xs',
+    button: 'h-8 px-3 text-xs',
   },
 };
 
@@ -96,15 +96,11 @@ export function EmptyState({
   const primary =
     actionLabel && (to || onAction) ? (
       to ? (
-        <Link to={to} className={classNames(PRIMARY_CTA_CLASSES, styles.buttonClass, 'whitespace-normal text-center')}>
+        <Link to={to} className={classNames(PRIMARY_CTA_CLASSES, styles.button)}>
           {actionLabel}
         </Link>
       ) : (
-        <button
-          type="button"
-          onClick={onAction}
-          className={classNames(PRIMARY_CTA_CLASSES, styles.buttonClass, 'whitespace-normal text-center')}
-        >
+        <button type="button" onClick={onAction} className={classNames(PRIMARY_CTA_CLASSES, styles.button)}>
           {actionLabel}
         </button>
       )
@@ -113,18 +109,11 @@ export function EmptyState({
   const secondary =
     secondaryActionLabel && (secondaryTo || onSecondaryAction) ? (
       secondaryTo ? (
-        <Link
-          to={secondaryTo}
-          className={classNames(SECONDARY_CTA_CLASSES, styles.buttonClass, 'whitespace-normal text-center')}
-        >
+        <Link to={secondaryTo} className={classNames(SECONDARY_CTA_CLASSES, styles.button)}>
           {secondaryActionLabel}
         </Link>
       ) : (
-        <button
-          type="button"
-          onClick={onSecondaryAction}
-          className={classNames(SECONDARY_CTA_CLASSES, styles.buttonClass, 'whitespace-normal text-center')}
-        >
+        <button type="button" onClick={onSecondaryAction} className={classNames(SECONDARY_CTA_CLASSES, styles.button)}>
           {secondaryActionLabel}
         </button>
       )
@@ -151,19 +140,14 @@ export function EmptyState({
           <span className={classNames(icon as string, styles.icon.size, 'text-bolt-elements-textTertiary')} />
         )}
       </span>
-      <h2 className={classNames('break-words text-bolt-elements-textPrimary', styles.titleClass)}>{title}</h2>
+      <h2 className={classNames('text-bolt-elements-textPrimary', styles.title)}>{title}</h2>
       {description ? (
-        <p
-          className={classNames(
-            'mx-auto max-w-xl break-words text-bolt-elements-textSecondary',
-            styles.descriptionClass,
-          )}
-        >
+        <p className={classNames('mx-auto max-w-xl text-bolt-elements-textSecondary', styles.description)}>
           {description}
         </p>
       ) : null}
       {primary || secondary ? (
-        <div className={classNames('flex max-w-full flex-wrap items-center justify-center gap-2', styles.actions)}>
+        <div className={classNames('flex items-center gap-2', styles.actions)}>
           {primary}
           {secondary}
         </div>

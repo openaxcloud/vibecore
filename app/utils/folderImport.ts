@@ -6,12 +6,6 @@ import {
   escapeBoltTags,
   escapeBoltActionAttribute,
 } from './projectCommands';
-import {
-  formatImportFolderButtonCopy,
-  formatImportFolderButtonPlural,
-  getImportFolderButtonCopy,
-} from '~/lib/i18n/catalogs/import-folder-button';
-import { getProjectCommandsCopy } from '~/lib/i18n/catalogs/project-commands';
 
 export type FileArtifact = { content: string; path: string };
 
@@ -49,11 +43,7 @@ export const createChatFromFolder = async (
   files: File[],
   binaryFiles: string[],
   folderName: string,
-  language?: string | null,
 ): Promise<Message[]> => {
-  const copy = getImportFolderButtonCopy(language);
-  const projectCopy = getProjectCommandsCopy(language);
-
   const fileReadResults = await Promise.allSettled(
     files.map(async (file) => {
       return new Promise<FileArtifact>((resolve, reject) => {
@@ -67,7 +57,7 @@ export const createChatFromFolder = async (
             path: relativePath,
           });
         };
-        reader.onerror = () => reject(reader.error ?? Object.assign(new Error(), { code: 'FOLDER_FILE_READ_FAILED' }));
+        reader.onerror = () => reject(reader.error ?? new Error(`Failed to read file: ${file.name}`));
         reader.readAsText(file);
       });
     }),
@@ -75,36 +65,24 @@ export const createChatFromFolder = async (
 
   const { artifacts: fileArtifacts, skippedPaths: unreadablePaths } = partitionFileReads(files, fileReadResults);
 
-  const commands = await detectProjectCommands(fileArtifacts, language);
-  const commandsMessage = createCommandsMessage(commands, language);
-
-  const fileList = (paths: string[]) => paths.map((path) => `- ${escapeBoltTags(path)}`).join('\n');
+  const commands = await detectProjectCommands(fileArtifacts);
+  const commandsMessage = createCommandsMessage(commands);
 
   const binaryFilesMessage =
     binaryFiles.length > 0
-      ? `\n\n${formatImportFolderButtonPlural(language, binaryFiles.length, {
-          one: copy['importFolderButton.chat.binarySkipped_one'],
-          other: copy['importFolderButton.chat.binarySkipped_other'],
-        })}\n${fileList(binaryFiles)}`
+      ? `\n\nSkipped ${binaryFiles.length} binary files:\n${binaryFiles.map((f) => `- ${f}`).join('\n')}`
       : '';
 
   const unreadableFilesMessage =
     unreadablePaths.length > 0
-      ? `\n\n${formatImportFolderButtonPlural(language, unreadablePaths.length, {
-          one: copy['importFolderButton.chat.unreadableSkipped_one'],
-          other: copy['importFolderButton.chat.unreadableSkipped_other'],
-        })}\n${fileList(unreadablePaths)}`
+      ? `\n\nSkipped ${unreadablePaths.length} unreadable files:\n${unreadablePaths.map((f) => `- ${f}`).join('\n')}`
       : '';
-
-  const safeFolderName = escapeBoltTags(folderName);
 
   const filesMessage: Message = {
     role: 'assistant',
-    content: `${formatImportFolderButtonCopy(copy['importFolderButton.chat.imported'], {
-      folderName: safeFolderName,
-    })}${binaryFilesMessage}${unreadableFilesMessage}
+    content: `I've imported the contents of the "${folderName}" folder.${binaryFilesMessage}${unreadableFilesMessage}
 
-<boltArtifact id="imported-files" title="${copy['importFolderButton.chat.artifactTitle']}" type="bundled" >
+<boltArtifact id="imported-files" title="Imported Files" type="bundled" >
 ${fileArtifacts
   .map(
     (file) => `<boltAction type="file" filePath="${escapeBoltActionAttribute(file.path)}">
@@ -120,7 +98,7 @@ ${escapeBoltTags(file.content)}
   const userMessage: Message = {
     role: 'user',
     id: generateId(),
-    content: formatImportFolderButtonCopy(copy['importFolderButton.chat.userPrompt'], { folderName }),
+    content: `Import the "${folderName}" folder`,
     createdAt: new Date(),
   };
 
@@ -130,7 +108,7 @@ ${escapeBoltTags(file.content)}
     messages.push({
       role: 'user',
       id: generateId(),
-      content: projectCopy['projectCommands.setupPrompt'],
+      content: 'Setup the codebase and Start the application',
     });
     messages.push(commandsMessage);
   }

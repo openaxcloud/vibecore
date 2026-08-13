@@ -17,21 +17,16 @@ type ManifestIcon = {
 type EcodeManifest = {
   name: string;
   short_name: string;
-  lang: 'en' | 'fr';
   description: string;
   background_color: string;
   theme_color: string;
   icons: ManifestIcon[];
-  shortcuts?: Array<{ name: string; url: string }>;
 };
 
 const servedManifests = [
   'public/manifest.webmanifest',
-  'public/manifest.fr.webmanifest',
   'public/manifest.json',
-  'public/manifest.fr.json',
   'public/ecode-static/manifest.json',
-  'public/ecode-static/manifest.fr.json',
 ] as const;
 
 const canonicalLogoSvgs = [
@@ -97,19 +92,15 @@ describe('served E-Code shell branding', () => {
     expect(rootSource).toMatch(
       /rel:\s*'icon',[\s\S]{0,100}?href:\s*'\/favicon\.svg',[\s\S]{0,100}?type:\s*'image\/svg\+xml'/,
     );
-    expect(rootSource).toContain(
-      `<link rel="manifest" href={language === 'fr' ? '/manifest.fr.webmanifest' : '/manifest.webmanifest'} />`,
-    );
+    expect(rootSource).toContain("rel: 'manifest', href: '/manifest.webmanifest'");
     expect(rootSource).toContain("rel: 'apple-touch-icon', href: '/apple-touch-icon.png'");
     expect(rootSource).toContain('<meta name="apple-mobile-web-app-title" content="E-Code" />');
-    expect(rootSource).toContain("translateServerMessage(language, 'root.metaTitle')");
-    expect(readRepositoryText('app/lib/i18n/messages/en.ts')).toMatch(/'root\.metaTitle':\s*'E-Code\b/);
-    expect(readRepositoryText('app/lib/i18n/messages/fr.ts')).toMatch(/'root\.metaTitle':\s*'E-Code\b/);
+    expect(
+      /export const meta[\s\S]{0,600}?title:\s*['"`][^'"`]*E-Code[^'"`]*/.test(rootSource),
+      'app/root.tsx must provide an E-Code fallback title',
+    ).toBe(true);
 
-    expect(homeRouteSource).toContain('getMarketingExactLandingForumCopy(data?.language)');
-
-    const homeCatalogSource = readRepositoryText('app/lib/i18n/catalogs/marketing-exact-landing-forum.ts');
-    expect(homeCatalogSource.match(/title:\s*'E-Code\b/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(homeRouteSource).toMatch(/title:\s*['"`]E-Code\b/);
     expect(socialMetaSource).toContain("export const MARKETING_SITE_URL = 'https://e-code.ai'");
     expect(socialMetaSource).toContain('`${MARKETING_SITE_URL}/social_preview_index.jpg`');
     expect(socialMetaSource).toContain("{ property: 'og:image', content: DEFAULT_OG_IMAGE }");
@@ -124,10 +115,7 @@ describe('served E-Code shell branding', () => {
     for (const { file, manifest } of manifests) {
       expect(manifest.name, `${file} name`).toBe('E-Code.ai');
       expect(manifest.short_name, `${file} short_name`).toBe('E-Code');
-      expect(manifest.lang, `${file} language`).toBe(file.includes('.fr.') ? 'fr' : 'en');
-      expect(manifest.description, `${file} description`).toMatch(
-        manifest.lang === 'fr' ? /Plateforme de développement assistée par l’IA/ : /AI-powered coding platform/i,
-      );
+      expect(manifest.description, `${file} description`).toMatch(/E-Code|AI-powered coding platform/i);
       expect(manifest.icons.length, `${file} icons`).toBeGreaterThan(0);
       expect(
         manifest.icons.some((icon) => icon.sizes === '192x192'),
@@ -161,37 +149,6 @@ describe('served E-Code shell branding', () => {
     expect(new Set(manifests.map(({ manifest }) => manifest.background_color)).size, 'manifest backgrounds').toBe(1);
 
     expect(readPngSize(readFileSync(join(publicRoot, 'apple-touch-icon.png')))).toEqual({ width: 180, height: 180 });
-  });
-
-  it('keeps each French manifest structurally aligned with its canonical English manifest', () => {
-    const pairs = [
-      ['public/manifest.webmanifest', 'public/manifest.fr.webmanifest'],
-      ['public/manifest.json', 'public/manifest.fr.json'],
-      ['public/ecode-static/manifest.json', 'public/ecode-static/manifest.fr.json'],
-    ] as const;
-
-    for (const [englishFile, frenchFile] of pairs) {
-      const english = readManifest(englishFile);
-      const french = readManifest(frenchFile);
-
-      expect(english.lang, englishFile).toBe('en');
-      expect(french.lang, frenchFile).toBe('fr');
-      expect(french.name, frenchFile).toBe(english.name);
-      expect(french.short_name, frenchFile).toBe(english.short_name);
-      expect(french.icons, frenchFile).toEqual(english.icons);
-      expect(french.theme_color, frenchFile).toBe(english.theme_color);
-      expect(french.background_color, frenchFile).toBe(english.background_color);
-
-      if (english.shortcuts) {
-        expect(
-          french.shortcuts?.map((shortcut) => shortcut.url),
-          frenchFile,
-        ).toEqual(english.shortcuts.map((shortcut) => shortcut.url));
-        expect(french.shortcuts?.map((shortcut) => shortcut.name).join(' '), frenchFile).not.toMatch(
-          /Dashboard|Projects|New project/,
-        );
-      }
-    }
   });
 
   it('uses the canonical E plus chevron mark in every public SVG logo', () => {

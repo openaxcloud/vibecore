@@ -1,4 +1,0 @@
-b115515ddc3e8b001c50fc21ecd94fa54c1edea9861a9c0c98c35568157831e4  00-guard-source-git-hashes.txt
-35936e48547de3c5abdf412c2ab17f03fa75416c2ba036dfffcf5c8ef95df97f  01-substitution-test.txt
-705948e1c9d4d5c89a17d3b3922e235d063f2786c59103999fec6d42a3e28d9b  02-repro-fail-closed.txt
-e1314097cbca08117c851f551fdaa950ad3435bbd218e87fa3c084e4159f8f69  03-validate-registries-clean.txt

@@ -1,11 +1,5 @@
 import { clampGatewayOutputBudget, estimateGatewayOutputBudget } from './gateway-output-budget.js';
 import { applyGeminiCache, invalidateGeminiCache, logGeminiCacheUsage } from './gemini-cache.js';
-import {
-  aiGatewayError,
-  localizedAiGatewayError,
-  normalizeAiGatewayLocale,
-  type AiGatewayLocale,
-} from './public-i18n.js';
 
 export type AiProviderId =
   | 'openai'
@@ -53,7 +47,6 @@ export interface AiChatRequest {
   stream?: boolean;
   maxTokens?: number;
   temperature?: number;
-  locale?: AiGatewayLocale;
 
   /*
    * When set, a model that is not allowed on the plan is transparently swapped
@@ -940,15 +933,17 @@ async function readJson(response: Response) {
     const providerMessage = extractProviderErrorMessage(text);
 
     throw Object.assign(
-      aiGatewayError(accountLimit ? 'providerAccountLimit' : 'providerRequestFailed', {
-        statusCode: 502,
-        ...(accountLimit ? { code: 'PROVIDER_ACCOUNT_LIMIT' } : {}),
-      }),
+      new Error(
+        accountLimit
+          ? `Provider account usage limit reached: ${providerMessage ?? response.status}`
+          : `Provider request failed: ${response.status}`,
+      ),
       {
         statusCode: 502,
         upstreamStatus: response.status,
         providerBody: text.slice(0, 500),
         providerMessage,
+        ...(accountLimit ? { code: 'PROVIDER_ACCOUNT_LIMIT' } : {}),
       },
     );
   }
@@ -960,7 +955,8 @@ async function readJson(response: Response) {
   try {
     return JSON.parse(text);
   } catch {
-    throw Object.assign(aiGatewayError('providerNonJson', { statusCode: 502 }), {
+    throw Object.assign(new Error('Provider returned a non-JSON response'), {
+      statusCode: 502,
       providerBody: text.slice(0, 500),
     });
   }
@@ -1442,10 +1438,11 @@ async function* providerStream(
     const providerMessage = extractProviderErrorMessage(providerBody);
 
     throw Object.assign(
-      aiGatewayError(accountLimit ? 'providerAccountLimit' : 'providerStreamFailed', {
-        statusCode,
-        code: accountLimit ? 'PROVIDER_ACCOUNT_LIMIT' : 'PROVIDER_STREAM_FAILED',
-      }),
+      new Error(
+        accountLimit
+          ? `Provider account usage limit reached: ${providerMessage ?? upstreamStatus}`
+          : `Provider stream failed: ${upstreamStatus}`,
+      ),
       {
         statusCode,
         upstreamStatus,
@@ -1554,7 +1551,7 @@ async function* providerStream(
         reader.read(),
         new Promise<never>((_resolve, reject) => {
           idleTimer = setTimeout(
-            () => reject(aiGatewayError('providerStreamTimeout', { statusCode: 504 })),
+            () => reject(Object.assign(new Error('Provider stream idle timeout'), { statusCode: 504 })),
             streamIdleTimeoutMs,
           );
         }),
@@ -1669,10 +1666,9 @@ export class AiGateway {
        * always `requested`; a still-unknown id is genuinely invalid → fail loud.
        */
       if (request.model && !requested) {
-        throw aiGatewayError('modelUnknown', {
+        throw Object.assign(new Error(`Model '${request.model}' is not in the gateway catalog`), {
           statusCode: 400,
           code: 'AI_MODEL_UNKNOWN',
-          values: { model: request.model },
         });
       }
 
@@ -1718,7 +1714,7 @@ export class AiGateway {
        * the caller to name the provider instead of guessing.
        */
       if (!providerId) {
-        throw aiGatewayError('providerRequired', {
+        throw Object.assign(new Error('A provider must be specified for models that are not in the catalog'), {
           statusCode: 400,
           code: 'AI_PROVIDER_REQUIRED',
         });
@@ -1727,7 +1723,7 @@ export class AiGateway {
       const candidates = modelCatalog.filter((model) => model.plans.includes(plan) && model.provider === providerId);
 
       if (candidates.length === 0) {
-        throw aiGatewayError('modelPlanBlocked', {
+        throw Object.assign(new Error('Model is not available on this plan'), {
           statusCode: 403,
           code: 'AI_MODEL_PLAN_BLOCKED',
         });
@@ -1750,7 +1746,7 @@ export class AiGateway {
       const providerDefault = this.models(plan).find((model) => model.provider === request.provider);
 
       if (!providerDefault) {
-        throw aiGatewayError('providerModelPlanBlocked', {
+        throw Object.assign(new Error('No model is available for this provider on your plan'), {
           statusCode: 403,
           code: 'AI_MODEL_PLAN_BLOCKED',
         });
@@ -1762,7 +1758,7 @@ export class AiGateway {
     }
 
     if (!selectedModel.plans.includes(plan)) {
-      throw aiGatewayError('modelPlanBlocked', {
+      throw Object.assign(new Error('Model is not available on this plan'), {
         statusCode: 403,
         code: 'AI_MODEL_PLAN_BLOCKED',
       });
@@ -1790,7 +1786,7 @@ export class AiGateway {
       .filter(configured);
 
     if (providers.length === 0) {
-      throw aiGatewayError('providerUnavailable', {
+      throw Object.assign(new Error('No configured AI provider is available'), {
         statusCode: 503,
         code: 'AI_PROVIDER_UNAVAILABLE',
       });
@@ -1866,10 +1862,7 @@ export class AiGateway {
         const resolved = this._resolveModelForProvider(provider, request, routed.model, plan, primaryProviderId);
 
         if (!resolved) {
-          lastError = aiGatewayError('providerModelPlanBlocked', {
-            statusCode: 403,
-            code: 'AI_PROVIDER_MODEL_PLAN_BLOCKED',
-          });
+          lastError = new Error(`Provider ${provider.id} has no model available on plan '${plan}'`);
           continue;
         }
 
@@ -1901,7 +1894,6 @@ export class AiGateway {
     await hydrateProviderKeyOverrides();
 
     const routed = this.route(request);
-    const locale = normalizeAiGatewayLocale(request.locale) ?? 'en';
     const plan = request.plan ?? 'free';
     const primaryProviderId = request.provider ?? routed.model.provider;
     const inputTokens = countTokens(request.messages);
@@ -1926,10 +1918,7 @@ export class AiGateway {
       const resolved = this._resolveModelForProvider(provider, request, routed.model, plan, primaryProviderId);
 
       if (!resolved) {
-        lastError = aiGatewayError('providerModelPlanBlocked', {
-          statusCode: 403,
-          code: 'AI_PROVIDER_MODEL_PLAN_BLOCKED',
-        });
+        lastError = new Error(`Provider ${provider.id} has no model available on plan '${plan}'`);
         continue;
       }
 
@@ -1982,7 +1971,7 @@ export class AiGateway {
             type: 'error',
             provider: provider.id,
             model: resolved.id,
-            error: localizedAiGatewayError(error, locale, 'providerStreamFailed'),
+            error: error instanceof Error ? error.message : 'Provider stream failed',
           };
 
           return;
@@ -2005,7 +1994,7 @@ export class AiGateway {
             type: 'error',
             provider: provider.id,
             model: resolved.id,
-            error: localizedAiGatewayError(error, locale, 'providerStreamFailed'),
+            error: error instanceof Error ? error.message : 'Provider stream failed',
           };
 
           return;
@@ -2019,7 +2008,7 @@ export class AiGateway {
         type: 'error',
         provider: primaryProviderId,
         model: routed.model.id,
-        error: localizedAiGatewayError(lastError, locale, 'providerStreamFailed'),
+        error: lastError instanceof Error ? lastError.message : 'Provider stream failed',
       };
     }
   }

@@ -53,36 +53,6 @@ describe('auth-scaffold', () => {
     expect(html.toLowerCase()).not.toContain('mock');
   });
 
-  it('emits professional French UI, API errors, documentation, and html language without translating code', () => {
-    const byPath = new Map(generateAuthScaffoldFiles('fr-FR').map((file) => [file.path, file.content]));
-    const html = byPath.get('auth/login.html')!;
-    const js = byPath.get('auth/index.js')!;
-    const readme = byPath.get('auth/README.md')!;
-
-    expect(html).toContain('<html lang="fr">');
-    expect(html).toContain('<title>Connexion</title>');
-    expect(html).toContain('placeholder="Adresse e-mail"');
-    expect(html).toContain('placeholder="Mot de passe"');
-    expect(html).toContain('>Se connecter</button>');
-    expect(html).toContain('>S’inscrire</button>');
-    expect(html).not.toContain('>Sign in<');
-    expect(html).not.toContain('>Log in<');
-    expect(js).toContain('L’adresse e-mail et le mot de passe sont obligatoires.');
-    expect(js).toContain('La session est invalide ou a expiré.');
-    expect(readme).toContain('# Authentification');
-    expect(readme).toContain('## Variables d’environnement');
-
-    for (const technical of ['/auth/signup', '/auth/login', 'AUTH_JWT_SECRET', 'DATABASE_URL', 'ecode_session']) {
-      expect(`${html}\n${js}\n${readme}`).toContain(technical);
-    }
-  });
-
-  it('keeps English as the default locale', () => {
-    const html = generateAuthScaffoldFiles().find((file) => file.path === 'auth/login.html')!.content;
-    expect(html).toContain('<html lang="en">');
-    expect(html).toContain('<title>Sign in</title>');
-  });
-
   it('generates a strong, unique JWT secret each call', () => {
     const a = generateAuthJwtSecret();
     const b = generateAuthJwtSecret();

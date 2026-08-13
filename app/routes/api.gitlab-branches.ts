@@ -1,4 +1,3 @@
-import { webApiErrorResponse, webApiLocaleHeaders } from '~/lib/i18n/catalogs/web-api-routes';
 import { json } from '~/lib/json-response';
 import { withSecurity } from '~/lib/security';
 import { isSafeGitForgeUrl, safeGitForgeFetch } from '~/utils/url';
@@ -36,11 +35,11 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
     const { token, gitlabUrl = 'https://gitlab.com', projectId } = body;
 
     if (!token) {
-      return webApiErrorResponse(request, 'GITLAB_TOKEN_REQUIRED', 400);
+      return json({ error: 'GitLab token is required' }, { status: 400 });
     }
 
     if (!projectId) {
-      return webApiErrorResponse(request, 'GITLAB_PROJECT_REQUIRED', 400);
+      return json({ error: 'Project ID is required' }, { status: 400 });
     }
 
     /*
@@ -50,11 +49,11 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
      * can't redirect the authenticated call to a different GitLab API path.
      */
     if (!/^[\w./-]+$/.test(projectId)) {
-      return webApiErrorResponse(request, 'GITLAB_PROJECT_INVALID', 400);
+      return json({ error: 'Invalid project ID' }, { status: 400 });
     }
 
     if (!isSafeGitLabUrl(gitlabUrl)) {
-      return webApiErrorResponse(request, 'GITLAB_URL_INVALID', 400);
+      return json({ error: 'Invalid GitLab URL' }, { status: 400 });
     }
 
     // Fetch branches from GitLab API
@@ -73,17 +72,22 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        return webApiErrorResponse(request, 'GITLAB_TOKEN_INVALID', 401);
+        return json({ error: 'Invalid GitLab token' }, { status: 401 });
       }
 
       if (response.status === 404) {
-        return webApiErrorResponse(request, 'GITLAB_PROJECT_NOT_FOUND', 404);
+        return json({ error: 'Project not found or no access' }, { status: 404 });
       }
 
       const errorText = await response.text().catch(() => 'Unknown error');
       console.error('GitLab API error:', response.status, errorText);
 
-      return webApiErrorResponse(request, 'GITLAB_BRANCHES_FAILED', response.status);
+      return json(
+        {
+          error: `GitLab API error: ${response.status}`,
+        },
+        { status: response.status },
+      );
     }
 
     const branches: GitLabBranch[] = await response.json();
@@ -134,22 +138,38 @@ async function gitlabBranchesLoader({ request }: { request: Request }) {
       return a.name.localeCompare(b.name);
     });
 
-    return json(
-      {
-        branches: transformedBranches,
-        defaultBranch: defaultBranchName,
-        total: transformedBranches.length,
-      },
-      { headers: webApiLocaleHeaders(request) },
-    );
+    return json({
+      branches: transformedBranches,
+      defaultBranch: defaultBranchName,
+      total: transformedBranches.length,
+    });
   } catch (error) {
     console.error('Failed to fetch GitLab branches:', error);
 
-    const unavailable =
-      error instanceof TypeError ||
-      (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError'));
+    if (error instanceof Error) {
+      if (error.message.includes('fetch')) {
+        return json(
+          {
+            error: 'Failed to connect to GitLab. Please check your network connection.',
+          },
+          { status: 503 },
+        );
+      }
 
-    return webApiErrorResponse(request, unavailable ? 'GITLAB_UNAVAILABLE' : 'GITLAB_BRANCHES_FAILED', 503);
+      return json(
+        {
+          error: `Failed to fetch branches: ${error.message}`,
+        },
+        { status: 500 },
+      );
+    }
+
+    return json(
+      {
+        error: 'An unexpected error occurred while fetching branches',
+      },
+      { status: 500 },
+    );
   }
 }
 

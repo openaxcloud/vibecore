@@ -1,25 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Checkbox } from '~/components/ui/Checkbox';
 import { toast } from '~/components/ui/use-toast';
-import {
-  formatLockManagerCopy,
-  formatLockManagerPlural,
-  getLockManagerCopy,
-  resolveLockManagerLanguage,
-} from '~/lib/i18n/catalogs/lock-manager';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 
 export interface LockedItem {
   path: string;
   type: 'file' | 'folder';
-}
-
-type LockFilter = 'all' | 'files' | 'folders';
-
-function displayLockedPath(path: string): string {
-  return path.replace('/home/project/', '');
 }
 
 /**
@@ -44,12 +31,9 @@ export function removeSelectedPath(selected: Set<string>, path: string): Set<str
 }
 
 export function LockManager() {
-  const { i18n } = useTranslation();
-  const language = resolveLockManagerLanguage(i18n?.resolvedLanguage ?? i18n?.language);
-  const copy = getLockManagerCopy(language);
   const [lockedItems, setLockedItems] = useState<LockedItem[]>([]);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<LockFilter>('all');
+  const [filter, setFilter] = useState<'all' | 'files' | 'folders'>('all');
   const [searchTerm, setSearchTerm] = useState('');
 
   // Load locked items
@@ -157,7 +141,7 @@ export function LockManager() {
   // Handle unlocking selected items
   const handleUnlockSelected = () => {
     if (selectedItems.size === 0) {
-      toast.error(copy['lockManager.toast.noneSelected']);
+      toast.error('No items selected to unlock.');
       return;
     }
 
@@ -177,12 +161,7 @@ export function LockManager() {
     });
 
     if (unlockedCount > 0) {
-      toast.success(
-        formatLockManagerPlural(language, unlockedCount, {
-          one: copy['lockManager.toast.selected_one'],
-          other: copy['lockManager.toast.selected_other'],
-        }),
-      );
+      toast.success(`Unlocked ${unlockedCount} selected item(s).`);
 
       /*
        * Optimistically drop the unlocked paths from the list immediately. The
@@ -193,15 +172,6 @@ export function LockManager() {
       setSelectedItems(new Set()); // Clear selection after unlocking
     }
   };
-
-  const itemCount = formatLockManagerPlural(language, filteredAndSortedItems.length, {
-    one: copy['lockManager.count.items_one'],
-    other: copy['lockManager.count.items_other'],
-  });
-  const selectedCount = formatLockManagerPlural(language, selectedItems.size, {
-    one: copy['lockManager.count.selected_one'],
-    other: copy['lockManager.count.selected_other'],
-  });
 
   // Determine the state of the "Select All" checkbox
   const isAllSelected = filteredAndSortedItems.length > 0 && selectedItems.size === filteredAndSortedItems.length;
@@ -214,20 +184,17 @@ export function LockManager() {
       : false;
 
   return (
-    <div className="flex h-full min-w-0 flex-col overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Controls */}
-      <div className="flex min-w-0 flex-col gap-2 border-b border-bolt-elements-borderColor px-2 py-2 sm:flex-row sm:items-center">
+      <div className="flex items-center gap-1 px-2 py-1 border-b border-bolt-elements-borderColor">
         {/* Search Input */}
-        <div className="relative min-w-0 flex-1">
-          <span
-            className="i-ph:magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-bolt-elements-textTertiary"
-            aria-hidden
-          />
+        <div className="relative flex-1">
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-bolt-elements-textTertiary i-ph:magnifying-glass text-xs pointer-events-none" />
           <input
             type="text"
-            placeholder={copy['lockManager.search.placeholder']}
-            aria-label={copy['lockManager.search.ariaLabel']}
-            className="h-11 w-full rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 py-2 pl-7 pr-2 text-xs text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
+            placeholder="Search..."
+            aria-label="Search locked items"
+            className="w-full text-xs pl-6 pr-2 py-0.5 h-6 bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary rounded border border-bolt-elements-borderColor focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ minWidth: 0 }}
@@ -235,53 +202,47 @@ export function LockManager() {
         </div>
         {/* Filter Select */}
         <select
-          aria-label={copy['lockManager.filter.ariaLabel']}
-          className="h-11 min-w-0 rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-2 text-xs text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus sm:max-w-40"
+          aria-label="Filter locked items by type"
+          className="text-xs px-1 py-0.5 h-6 bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary rounded border border-bolt-elements-borderColor focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
           value={filter}
-          onChange={(event) => {
-            const nextFilter = event.target.value;
-
-            if (nextFilter === 'all' || nextFilter === 'files' || nextFilter === 'folders') {
-              setFilter(nextFilter);
-            }
-          }}
+          onChange={(e) => setFilter(e.target.value as any)}
         >
-          <option value="all">{copy['lockManager.filter.all']}</option>
-          <option value="files">{copy['lockManager.filter.files']}</option>
-          <option value="folders">{copy['lockManager.filter.folders']}</option>
+          <option value="all">All</option>
+          <option value="files">Files</option>
+          <option value="folders">Folders</option>
         </select>
       </div>
 
       {/* Header Row with Select All */}
-      <div className="flex min-w-0 flex-wrap items-center justify-between gap-2 px-2 py-2 text-xs text-bolt-elements-textSecondary">
-        <div className="flex min-h-11 items-center">
+      <div className="flex items-center justify-between px-2 py-1 text-xs text-bolt-elements-textSecondary">
+        <div>
           <Checkbox
             checked={selectAllCheckedState}
             onCheckedChange={handleSelectAll}
-            className="mr-2 h-4 w-4 rounded border-bolt-elements-borderColor"
-            aria-label={copy['lockManager.selectAll.ariaLabel']}
+            className="w-3 h-3 rounded border-bolt-elements-borderColor mr-2"
+            aria-label="Select all items"
             disabled={filteredAndSortedItems.length === 0} // Disable if no items to select
           />
-          <span>{copy['lockManager.selectAll.label']}</span>
+          <span>All</span>
         </div>
         {selectedItems.size > 0 && (
           <button
-            type="button"
-            className="ml-auto flex min-h-11 min-w-0 items-center gap-1 whitespace-normal rounded bg-bolt-elements-button-secondary-background px-3 py-2 text-center text-xs text-bolt-elements-button-secondary-text hover:bg-bolt-elements-button-secondary-backgroundHover"
+            className="ml-auto px-2 py-0.5 rounded bg-bolt-elements-button-secondary-background hover:bg-bolt-elements-button-secondary-backgroundHover text-bolt-elements-button-secondary-text text-xs flex items-center gap-1"
             onClick={handleUnlockSelected}
-            title={copy['lockManager.unlockSelected.title']}
+            title="Unlock all selected items"
           >
-            {copy['lockManager.unlockSelected']}
+            Unlock all
           </button>
         )}
+        <div></div>
       </div>
 
       {/* List of locked items */}
       <div className="flex-1 overflow-auto modern-scrollbar px-1 py-1">
         {filteredAndSortedItems.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-xs text-bolt-elements-textTertiary">
-            <span className="i-ph:lock-open-duotone text-lg opacity-50" aria-hidden />
-            <span>{copy['lockManager.empty']}</span>
+          <div className="flex flex-col items-center justify-center h-full text-bolt-elements-textTertiary text-xs gap-2">
+            <span className="i-ph:lock-open-duotone text-lg opacity-50" />
+            <span>No locked items found</span>
           </div>
         ) : (
           <ul className="space-y-1">
@@ -289,14 +250,14 @@ export function LockManager() {
               <li
                 key={item.path}
                 className={classNames(
-                  'group flex min-w-0 items-center gap-2 rounded px-2 py-1 text-bolt-elements-textTertiary transition-colors hover:bg-bolt-elements-background-depth-2',
+                  'text-bolt-elements-textTertiary flex items-center gap-2 px-2 py-1 rounded hover:bg-bolt-elements-background-depth-2 transition-colors group',
                   selectedItems.has(item.path) ? 'bg-bolt-elements-background-depth-2' : '',
                 )}
               >
                 <Checkbox
                   checked={selectedItems.has(item.path)}
                   onCheckedChange={() => handleSelectItem(item.path)}
-                  className="h-4 w-4 rounded border-bolt-elements-borderColor"
+                  className="w-3 h-3 rounded border-bolt-elements-borderColor"
                   aria-labelledby={`item-label-${item.path}`} // For accessibility
                 />
                 <span
@@ -304,17 +265,21 @@ export function LockManager() {
                     'shrink-0 text-bolt-elements-textTertiary text-xs',
                     item.type === 'file' ? 'i-ph:file-text-duotone' : 'i-ph:folder-duotone',
                   )}
-                  aria-hidden
                 />
-                <span id={`item-label-${item.path}`} className="min-w-0 flex-1 truncate text-xs" title={item.path}>
-                  {displayLockedPath(item.path)}
+                <span id={`item-label-${item.path}`} className="truncate flex-1 text-xs" title={item.path}>
+                  {item.path.replace('/home/project/', '')}
                 </span>
+                {/* ... rest of the item details and buttons ... */}
+                <span
+                  className={classNames(
+                    'inline-flex items-center px-1 rounded-sm text-xs',
+                    'bg-red-500/10 text-[var(--status-error-text)]',
+                  )}
+                ></span>
                 <button
                   type="button"
-                  aria-label={formatLockManagerCopy(copy['lockManager.unlockItem.ariaLabel'], {
-                    path: displayLockedPath(item.path),
-                  })}
-                  className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded bg-transparent px-2 py-2 text-xs hover:bg-bolt-elements-background-depth-3"
+                  aria-label={`Unlock ${item.path.replace('/home/project/', '')}`}
+                  className="flex items-center px-1 py-0.5 text-xs rounded bg-transparent hover:bg-bolt-elements-background-depth-3"
                   onClick={() => {
                     if (item.type === 'file') {
                       workbenchStore.unlockFile(item.path);
@@ -332,15 +297,11 @@ export function LockManager() {
                     setLockedItems((prev) => removeLockedPaths(prev, item.path));
                     setSelectedItems((prev) => removeSelectedPath(prev, item.path));
 
-                    toast.success(
-                      formatLockManagerCopy(copy['lockManager.toast.item'], {
-                        path: displayLockedPath(item.path),
-                      }),
-                    );
+                    toast.success(`${item.path.replace('/home/project/', '')} unlocked`);
                   }}
-                  title={copy['lockManager.unlockItem.title']}
+                  title="Unlock"
                 >
-                  <span className="i-ph:lock-open text-xs" aria-hidden />
+                  <span className="i-ph:lock-open text-xs" />
                 </button>
               </li>
             ))}
@@ -349,9 +310,9 @@ export function LockManager() {
       </div>
 
       {/* Footer */}
-      <div className="flex min-w-0 flex-wrap items-center justify-between border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-2 text-xs text-bolt-elements-textTertiary">
-        <div className="break-words">
-          {formatLockManagerCopy(copy['lockManager.footer'], { items: itemCount, selected: selectedCount })}
+      <div className="px-2 py-1 border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-xs text-bolt-elements-textTertiary flex justify-between items-center">
+        <div>
+          {filteredAndSortedItems.length} item(s) • {selectedItems.size} selected
         </div>
       </div>
     </div>

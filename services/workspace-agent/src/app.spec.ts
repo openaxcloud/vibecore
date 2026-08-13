@@ -1,5 +1,4 @@
 import { mkdtemp, rm } from 'node:fs/promises';
-import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { signAgentToken } from '@vibecore/workspace-sdk';
@@ -16,8 +15,6 @@ import {
   injectViteDevArgs,
   isProductionBuildCommand,
   isTransientPackageCommand,
-  acquirePinnedDevPortLock,
-  killStalePinnedDevServers,
   pinnedDevServerPort,
   sanitizedChildEnv,
   type ProcessRecord,
@@ -317,168 +314,6 @@ describe('sanitizedChildEnv', () => {
   });
 });
 
-describe('sanitizedChildEnv PORT handling', () => {
-  const savedPort = process.env.PORT;
-
-  afterEach(() => {
-    if (savedPort === undefined) {
-      delete process.env.PORT;
-    } else {
-      process.env.PORT = savedPort;
-    }
-  });
-
-  it("DELETES a child's inherited agent control port (8080) in the preview env (not repoint to Vite's 5173)", () => {
-    // The agent image bakes PORT=8080. A child that honors PORT must NOT inherit
-    // the agent's control port (EADDRINUSE) — and must NOT be repointed at 5173
-    // either, or it would fight Vite's --strictPort launch for that port. Deleting
-    // it lets a PORT-honoring framework fall back to its own default.
-    process.env.PORT = '8080';
-    const env = sanitizedChildEnv(
-      { PORT: '8080', VITE_HMR_CLIENT_PORT: '443' },
-      { command: 'npm', args: ['run', 'dev'] },
-    );
-
-    /*
-     * Le port de contrôle hérité est SUPPRIMÉ, jamais repointé sur 5173 : un
-     * projet qui lance aussi un serveur honorant PORT prendrait 5173 avant Vite
-     * et ferait échouer son `--strictPort` avec « Port 5173 is already in use ».
-     */
-    expect(env.PORT).toBeUndefined();
-  });
-
-  it('leaves PORT untouched outside the preview env (no VITE_HMR_CLIENT_PORT)', () => {
-    process.env.PORT = '8080';
-    const env = sanitizedChildEnv({ PORT: '8080' }, { command: 'npm', args: ['run', 'dev'] });
-    expect(env.PORT).toBe('8080');
-  });
-
-  it('respects a project that explicitly chose its own (non-control) PORT', () => {
-    process.env.PORT = '8080';
-    const env = sanitizedChildEnv(
-      { PORT: '3000', VITE_HMR_CLIENT_PORT: '443' },
-      { command: 'npm', args: ['run', 'dev'] },
-    );
-    expect(env.PORT).toBe('3000');
-  });
-});
-
-describe('acquirePinnedDevPortLock', () => {
-  it('serializes concurrent pinned dev-server starts for the same port', async () => {
-    const order: string[] = [];
-
-    // Two starts race for the same port. Each: acquire → "critical section" → release.
-    const a = acquirePinnedDevPortLock(5173).then(async (release) => {
-      order.push('A:enter');
-      await new Promise((r) => setTimeout(r, 30));
-      order.push('A:exit');
-      release();
-    });
-
-    // Ensure B requests the lock while A holds it.
-    await new Promise((r) => setTimeout(r, 5));
-
-    const b = acquirePinnedDevPortLock(5173).then((release) => {
-      order.push('B:enter');
-      order.push('B:exit');
-      release();
-    });
-
-    await Promise.all([a, b]);
-
-    // B's critical section must not interleave with A's — A fully exits before B enters.
-    expect(order).toEqual(['A:enter', 'A:exit', 'B:enter', 'B:exit']);
-  });
-
-  it('does not serialize starts for DIFFERENT ports (independent locks)', async () => {
-    const release5173 = await acquirePinnedDevPortLock(5173);
-    // A different port must be acquirable immediately even while 5173 is held.
-    const release3000 = await acquirePinnedDevPortLock(3000);
-    release3000();
-    release5173();
-    expect(true).toBe(true); // reaching here without hanging is the assertion
-  });
-});
-
-describe('killStalePinnedDevServers (real process)', () => {
-  const TEST_PORT = 52173; // high port, avoids colliding with a real 5173 dev server
-  const spawned: import('node:child_process').ChildProcess[] = [];
-
-  afterEach(() => {
-    for (const child of spawned.splice(0)) {
-      try {
-        if (child.pid) {
-          process.kill(-child.pid, 'SIGKILL');
-        }
-      } catch {
-        try {
-          child.kill('SIGKILL');
-        } catch {
-          /* already gone */
-        }
-      }
-    }
-  });
-
-  const startHolder = async (): Promise<import('node:child_process').ChildProcessWithoutNullStreams> => {
-    const { spawn } = await import('node:child_process');
-    // Bind 0.0.0.0 to match the dev server's `--host` bind (and the agent's
-    // isPortBindable probe), so the conflict is deterministic across platforms.
-    const child = spawn(
-      process.execPath,
-      ['-e', `require('http').createServer((_,r)=>r.end('hi')).listen(${TEST_PORT},'0.0.0.0')`],
-      { detached: true, stdio: ['ignore', 'pipe', 'pipe'] },
-    ) as import('node:child_process').ChildProcessWithoutNullStreams;
-    spawned.push(child);
-    // wait until it is actually listening
-    for (let i = 0; i < 50; i++) {
-      const free = await new Promise<boolean>((resolve) => {
-        const probe = createServer();
-        probe.once('error', () => resolve(false));
-        probe.listen(TEST_PORT, '0.0.0.0', () => probe.close(() => resolve(true)));
-      });
-      if (!free) {
-        return child; // port is held → holder is up
-      }
-      await new Promise((r) => setTimeout(r, 40));
-    }
-    throw new Error('holder never bound the port');
-  };
-
-  it('kills a TRACKED prior dev server holding the pinned port so a restart binds cleanly (no EADDRINUSE)', async () => {
-    const holder = await startHolder();
-
-    const processes = new Map<
-      string,
-      { id: string; command: string; startedAt: string; process: import('node:child_process').ChildProcessWithoutNullStreams }
-    >();
-    processes.set('prior', {
-      id: 'prior',
-      command: `npm run dev -- --port ${TEST_PORT} --strictPort --host`,
-      startedAt: new Date().toISOString(),
-      process: holder,
-    });
-
-    const spawnArgs = ['--port', String(TEST_PORT), '--strictPort'];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const release = await killStalePinnedDevServers(processes as any, spawnArgs);
-
-    // The tracked holder was killed and dropped from the map.
-    expect(processes.has('prior')).toBe(false);
-
-    // The port is now free — a fresh strictPort-style bind (0.0.0.0, as the dev
-    // server does) succeeds instead of EADDRINUSE.
-    const bound = await new Promise<boolean>((resolve) => {
-      const srv = createServer();
-      srv.once('error', () => resolve(false));
-      srv.listen(TEST_PORT, '0.0.0.0', () => srv.close(() => resolve(true)));
-    });
-    expect(bound).toBe(true);
-
-    release?.();
-  });
-});
-
 describe('workspace-agent', () => {
   let root: string;
   let token: string;
@@ -545,46 +380,6 @@ describe('workspace-agent', () => {
     expect(read.json()).toMatchObject({ content: 'first' });
   });
 
-  /*
-   * The 409 above is the message a user reads every time they name a new file
-   * after one that exists — an ordinary mistake, not a rare failure. It was
-   * thrown as a raw `new Error('File already exists')`, bypassing the catalogue
-   * that every neighbouring branch uses, so a French user got English copy and
-   * the i18n guard went red on the regression.
-   *
-   * Asserting both locales (not just "it is not the old literal") is what keeps
-   * the branch wired to the catalogue rather than merely reworded.
-   */
-  it('localizes the 409 EEXIST conflict copy per accept-language, preserving status and code', async () => {
-    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
-    const headers = { authorization: `Bearer ${token}` };
-
-    expect(
-      (await app.inject({ method: 'POST', url: '/files/create', headers, payload: { path: 'dup.txt', content: 'a' } }))
-        .statusCode,
-    ).toBe(200);
-
-    const french = await app.inject({
-      method: 'POST',
-      url: '/files/create',
-      headers: { ...headers, 'accept-language': 'fr-FR' },
-      payload: { path: 'dup.txt', content: 'b' },
-    });
-    const english = await app.inject({
-      method: 'POST',
-      url: '/files/create',
-      headers: { ...headers, 'accept-language': 'en-US' },
-      payload: { path: 'dup.txt', content: 'b' },
-    });
-
-    expect(french.statusCode).toBe(409);
-    expect(english.statusCode).toBe(409);
-    expect(french.json()).toMatchObject({ code: 'EEXIST' });
-    expect(english.json()).toMatchObject({ code: 'EEXIST' });
-    expect(french.json().error).toBe('Un fichier portant ce nom existe déjà.');
-    expect(english.json().error).toBe('A file with this name already exists.');
-  });
-
   it('reads a binary file back as lossless base64 (no utf8 corruption)', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
     const headers = { authorization: `Bearer ${token}` };
@@ -612,44 +407,6 @@ describe('workspace-agent', () => {
     const read = await app.inject({ method: 'GET', url: '/files/read?path=does/not/exist.ts', headers });
     expect(read.statusCode).toBe(404);
     expect(read.json()).toMatchObject({ code: 'ENOENT' });
-  });
-
-  it('returns localized French file errors with stable codes and response language metadata', async () => {
-    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
-    const read = await app.inject({
-      method: 'GET',
-      url: '/files/read?path=does/not/exist.ts',
-      headers: {
-        authorization: `Bearer ${token}`,
-        'accept-language': 'en;q=0.2, fr-FR;q=0.9',
-      },
-    });
-
-    expect(read.statusCode).toBe(404);
-    expect(read.headers['content-language']).toBe('fr');
-    expect(read.headers.vary).toContain('Accept-Language');
-    expect(read.json()).toMatchObject({
-      code: 'ENOENT',
-      error: 'Fichier introuvable.',
-      message: 'Fichier introuvable.',
-    });
-  });
-
-  it('localizes validation failures without echoing raw schema text', async () => {
-    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
-    const response = await app.inject({
-      method: 'POST',
-      url: '/files/write',
-      headers: { authorization: `Bearer ${token}`, 'accept-language': 'fr' },
-      payload: { path: 'bad\u0000path', content: 'nope' },
-    });
-
-    expect(response.statusCode).toBe(400);
-    expect(response.json()).toMatchObject({
-      code: 'VALIDATION_ERROR',
-      error: 'La requête est invalide.',
-    });
-    expect(response.body).not.toContain('control characters');
   });
 
   it('blocks path traversal', async () => {
@@ -1028,36 +785,6 @@ describe('workspace-agent', () => {
       socket.send(`${process.execPath} -e "console.log('terminal-critical-path')"\n`);
 
       await expect.poll(() => messages.join(''), { timeout: 5_000 }).toContain('terminal-critical-path');
-    } finally {
-      socket.close();
-      await app.close();
-    }
-  });
-
-  it('localizes terminal-session limit errors from the WebSocket Accept-Language header', async () => {
-    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, maxProcesses: 0 });
-    await app.listen({ host: '127.0.0.1', port: 0 });
-
-    const address = app.server.address();
-
-    if (!address || typeof address === 'string') {
-      throw new Error('Workspace agent did not bind to a TCP port');
-    }
-
-    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/terminal?token=${encodeURIComponent(token)}`, {
-      headers: { 'accept-language': 'fr-FR' },
-    });
-
-    try {
-      const frame = await new Promise<string>((resolve, reject) => {
-        socket.addEventListener('message', (event) => resolve(String(event.data)), { once: true });
-        socket.addEventListener('error', () => reject(new Error('Terminal WebSocket failed to open')), { once: true });
-      });
-      const event = JSON.parse(frame) as { data?: string };
-
-      expect(event.data).toContain('[erreur du terminal]');
-      expect(event.data).toContain('Trop de sessions de terminal sont ouvertes.');
-      expect(event.data).not.toContain('Too many terminal sessions');
     } finally {
       socket.close();
       await app.close();

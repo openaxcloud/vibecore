@@ -1,15 +1,14 @@
-import { apiRequest, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
-import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
+import { apiErrorMessage, apiRequest, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
 
 export async function action({ request, params }: EnterpriseActionArgs) {
   if (request.method.toUpperCase() !== 'POST') {
-    throw remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405, { extra: { ok: false } });
+    throw json({ ok: false, error: 'Method not allowed' }, { status: 405 });
   }
 
   const projectId = params.projectId;
 
   if (!projectId) {
-    throw remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
+    throw json({ ok: false, error: 'Project not found' }, { status: 404 });
   }
 
   try {
@@ -22,13 +21,9 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       headers: { 'cache-control': 'no-store' },
     });
   } catch (error) {
+    const message = await apiErrorMessage(error, 'Project import unavailable');
     const status = error instanceof Response && error.status !== 500 ? error.status : 502;
 
-    throw remainingApiErrorResponse(
-      request,
-      status === 401 || status === 403 ? 'PROJECT_IMPORT_AUTH_REQUIRED' : 'PROJECT_IMPORT_FAILED',
-      status,
-      { extra: { ok: false } },
-    );
+    throw json({ ok: false, error: message }, { status });
   }
 }

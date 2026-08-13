@@ -50,15 +50,8 @@ describe('shouldReattachRunningPreview', () => {
   it('REATTACHES when the workspace is running and a port is already serving (reopen of a live pod)', () => {
     expect(shouldReattachRunningPreview(session('running'), [{ port: 5173, ready: true }])).toBe(true);
 
-    /*
-     * REGRESSION — SOLUTIONS_REAL_PROOF_BLOCKERS.md §5: a forwarded URL is NOT a
-     * serving signal (the API stamps one on every port it reports, without ever
-     * touching the network). Reattaching to a URL-bearing but unprobed port is
-     * how the IDE ended up attached to a dead dev server showing a blank frame.
-     */
-    expect(shouldReattachRunningPreview(session('running'), [{ port: 5173, baseUrl: 'https://x.preview' }])).toBe(
-      false,
-    );
+    // The previews store forwards the URL as baseUrl.
+    expect(shouldReattachRunningPreview(session('running'), [{ port: 5173, baseUrl: 'https://x.preview' }])).toBe(true);
 
     // A live serving port makes even a status still lagging at STARTING a reattach.
     expect(shouldReattachRunningPreview(session('starting'), [{ port: 5173, ready: true }])).toBe(true);

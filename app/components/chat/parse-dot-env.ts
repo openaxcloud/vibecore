@@ -91,19 +91,6 @@ export function parseDotEnv(text: string): DotEnvParseResult {
 }
 
 /** Human label for a skip reason (kept here so the panel and tests agree). */
-const SKIP_REASON_COPY = {
-  en: {
-    'no-equals-sign': 'missing "=" separator',
-    'invalid-key': 'invalid key name',
-  },
-  fr: {
-    'no-equals-sign': 'séparateur « = » manquant',
-    'invalid-key': 'nom de clé invalide',
-  },
-} as const;
-
-export function describeSkipReason(reason: DotEnvSkippedLine['reason'], language?: string | null): string {
-  const copy = language?.toLowerCase().startsWith('fr') ? SKIP_REASON_COPY.fr : SKIP_REASON_COPY.en;
-
-  return copy[reason];
+export function describeSkipReason(reason: DotEnvSkippedLine['reason']): string {
+  return reason === 'no-equals-sign' ? 'missing "=" separator' : 'invalid key name';
 }

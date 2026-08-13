@@ -1,5 +1,3 @@
-import { userAreaEn, type UserAreaTranslationKey } from './i18n/catalogs/user-area';
-
 export type UserAreaSurface = {
   title: string;
   description: string;
@@ -7,191 +5,125 @@ export type UserAreaSurface = {
   backLabel: string;
 };
 
-export type UserAreaTranslate = (
-  key: UserAreaTranslationKey,
-  values?: Readonly<Record<string, string | number>>,
-) => string;
-
-export const defaultUserAreaTranslate: UserAreaTranslate = (key, values) => {
-  const message = userAreaEn[key];
-
-  return Object.entries(values ?? {}).reduce<string>(
-    (result, [name, value]) => result.replaceAll(`{${name}}`, String(value)),
-    String(message),
-  );
-};
-
-type SurfaceDefinition = Readonly<{
-  titleKey: UserAreaTranslationKey;
-  descriptionKey: UserAreaTranslationKey;
-  backTo: string;
-  backLabelKey: UserAreaTranslationKey;
-}>;
-
-const EXACT_SURFACES: Record<string, SurfaceDefinition> = {
+const EXACT_SURFACES: Record<string, UserAreaSurface> = {
   '/dashboard': {
-    titleKey: 'userArea.surface.dashboard.title',
-    descriptionKey: 'userArea.surface.dashboard.description',
+    title: 'Dashboard',
+    description: 'Your workspace overview is temporarily unavailable.',
     backTo: '/projects',
-    backLabelKey: 'userArea.routeError.viewProjects',
+    backLabel: 'View projects',
   },
   '/projects': {
-    titleKey: 'userArea.surface.projects.title',
-    descriptionKey: 'userArea.surface.projects.description',
+    title: 'Projects',
+    description: 'Your project library is temporarily unavailable.',
     backTo: '/dashboard',
-    backLabelKey: 'userArea.routeError.backDashboard',
+    backLabel: 'Back to dashboard',
   },
   '/recent-projects': {
-    titleKey: 'userArea.surface.recentProjects.title',
-    descriptionKey: 'userArea.surface.recentProjects.description',
+    title: 'Recent projects',
+    description: 'Your recent project activity is temporarily unavailable.',
     backTo: '/projects',
-    backLabelKey: 'userArea.routeError.viewAllProjects',
+    backLabel: 'View all projects',
   },
   '/billing': {
-    titleKey: 'userArea.surface.billing.title',
-    descriptionKey: 'userArea.surface.billing.description',
+    title: 'Billing overview',
+    description: 'Subscription and billing details are temporarily unavailable.',
     backTo: '/dashboard',
-    backLabelKey: 'userArea.routeError.backDashboard',
+    backLabel: 'Back to dashboard',
   },
   '/usage': {
-    titleKey: 'userArea.surface.usage.title',
-    descriptionKey: 'userArea.surface.usage.description',
+    title: 'Usage overview',
+    description: 'Usage and quota details are temporarily unavailable.',
     backTo: '/dashboard',
-    backLabelKey: 'userArea.routeError.backDashboard',
+    backLabel: 'Back to dashboard',
   },
   '/notifications': {
-    titleKey: 'userArea.surface.notifications.title',
-    descriptionKey: 'userArea.surface.notifications.description',
+    title: 'Notifications',
+    description: 'Your inbox and notification preferences are temporarily unavailable.',
     backTo: '/dashboard',
-    backLabelKey: 'userArea.routeError.backDashboard',
+    backLabel: 'Back to dashboard',
   },
   '/api-keys': {
-    titleKey: 'userArea.surface.apiKeys.title',
-    descriptionKey: 'userArea.surface.apiKeys.description',
+    title: 'API keys',
+    description: 'API key management is temporarily unavailable.',
     backTo: '/security-settings',
-    backLabelKey: 'userArea.routeError.securitySettings',
+    backLabel: 'Security settings',
   },
   '/support': {
-    titleKey: 'userArea.surface.support.title',
-    descriptionKey: 'userArea.surface.support.description',
+    title: 'Support',
+    description: 'Support requests are temporarily unavailable.',
     backTo: '/dashboard',
-    backLabelKey: 'userArea.routeError.backDashboard',
+    backLabel: 'Back to dashboard',
   },
   '/invoices': {
-    titleKey: 'userArea.surface.invoices.title',
-    descriptionKey: 'userArea.surface.invoices.description',
+    title: 'Invoices',
+    description: 'Invoice history is temporarily unavailable.',
     backTo: '/billing',
-    backLabelKey: 'userArea.routeError.billingOverview',
+    backLabel: 'Billing overview',
   },
   '/organization-members': {
-    titleKey: 'userArea.surface.organizationMembers.title',
-    descriptionKey: 'userArea.surface.organizationMembers.description',
+    title: 'Organization members',
+    description: 'Member management is temporarily unavailable.',
     backTo: '/dashboard',
-    backLabelKey: 'userArea.routeError.backDashboard',
+    backLabel: 'Back to dashboard',
   },
   '/organization-invitations': {
-    titleKey: 'userArea.surface.organizationInvitations.title',
-    descriptionKey: 'userArea.surface.organizationInvitations.description',
+    title: 'Organization invitations',
+    description: 'Organization invitations are temporarily unavailable.',
     backTo: '/organization-members',
-    backLabelKey: 'userArea.routeError.organizationMembers',
+    backLabel: 'Organization members',
   },
   '/organization-security': {
-    titleKey: 'userArea.surface.organizationSecurity.title',
-    descriptionKey: 'userArea.surface.organizationSecurity.description',
+    title: 'Organization security',
+    description: 'Organization security controls are temporarily unavailable.',
     backTo: '/security-settings',
-    backLabelKey: 'userArea.routeError.securitySettings',
+    backLabel: 'Security settings',
   },
   '/security-settings': {
-    titleKey: 'userArea.surface.securitySettings.title',
-    descriptionKey: 'userArea.surface.securitySettings.description',
+    title: 'Security settings',
+    description: 'Account security controls are temporarily unavailable.',
     backTo: '/account-settings',
-    backLabelKey: 'userArea.routeError.accountSettings',
+    backLabel: 'Account settings',
   },
   '/account-settings': {
-    titleKey: 'userArea.surface.account.title',
-    descriptionKey: 'userArea.surface.account.description',
+    title: 'Account',
+    description: 'Account settings are temporarily unavailable.',
     backTo: '/dashboard',
-    backLabelKey: 'userArea.routeError.backDashboard',
+    backLabel: 'Back to dashboard',
   },
   '/account-settings/connected': {
-    titleKey: 'userArea.surface.account.title',
-    descriptionKey: 'userArea.surface.connectedAccounts.description',
+    title: 'Account',
+    description: 'Connected accounts are temporarily unavailable.',
     backTo: '/account-settings',
-    backLabelKey: 'userArea.routeError.accountSettings',
+    backLabel: 'Account settings',
   },
   '/account-settings/data': {
-    titleKey: 'userArea.surface.account.title',
-    descriptionKey: 'userArea.surface.dataPrivacy.description',
+    title: 'Account',
+    description: 'Data and privacy controls are temporarily unavailable.',
     backTo: '/account-settings',
-    backLabelKey: 'userArea.routeError.accountSettings',
+    backLabel: 'Account settings',
   },
 };
 
-const PROJECT_SURFACES: Record<string, Pick<SurfaceDefinition, 'titleKey' | 'descriptionKey'>> = {
-  '': {
-    titleKey: 'userArea.surface.projectOverview.title',
-    descriptionKey: 'userArea.surface.projectOverview.description',
-  },
-  activity: {
-    titleKey: 'userArea.surface.projectActivity.title',
-    descriptionKey: 'userArea.surface.projectActivity.description',
-  },
-  collaborators: {
-    titleKey: 'userArea.surface.projectCollaborators.title',
-    descriptionKey: 'userArea.surface.projectCollaborators.description',
-  },
-  database: {
-    titleKey: 'userArea.surface.projectDatabase.title',
-    descriptionKey: 'userArea.surface.projectDatabase.description',
-  },
-  deployments: {
-    titleKey: 'userArea.surface.projectDeployments.title',
-    descriptionKey: 'userArea.surface.projectDeployments.description',
-  },
-  domains: {
-    titleKey: 'userArea.surface.projectDomains.title',
-    descriptionKey: 'userArea.surface.projectDomains.description',
-  },
-  env: {
-    titleKey: 'userArea.surface.projectEnv.title',
-    descriptionKey: 'userArea.surface.projectEnv.description',
-  },
-  logs: {
-    titleKey: 'userArea.surface.projectLogs.title',
-    descriptionKey: 'userArea.surface.projectLogs.description',
-  },
-  secrets: {
-    titleKey: 'userArea.surface.projectSecrets.title',
-    descriptionKey: 'userArea.surface.projectSecrets.description',
-  },
-  settings: {
-    titleKey: 'userArea.surface.projectSettings.title',
-    descriptionKey: 'userArea.surface.projectSettings.description',
-  },
-  snapshots: {
-    titleKey: 'userArea.surface.projectSnapshots.title',
-    descriptionKey: 'userArea.surface.projectSnapshots.description',
-  },
+const PROJECT_SURFACES: Record<string, Pick<UserAreaSurface, 'title' | 'description'>> = {
+  '': { title: 'Project overview', description: 'Project details are temporarily unavailable.' },
+  activity: { title: 'Project activity', description: 'Project activity is temporarily unavailable.' },
+  collaborators: { title: 'Project collaborators', description: 'Project collaborators are temporarily unavailable.' },
+  database: { title: 'Project database', description: 'Project database details are temporarily unavailable.' },
+  deployments: { title: 'Project deployments', description: 'Project deployments are temporarily unavailable.' },
+  domains: { title: 'Project domains', description: 'Project domains are temporarily unavailable.' },
+  env: { title: 'Environment variables', description: 'Project environment variables are temporarily unavailable.' },
+  logs: { title: 'Project logs', description: 'Project logs are temporarily unavailable.' },
+  secrets: { title: 'Project secrets', description: 'Project secrets are temporarily unavailable.' },
+  settings: { title: 'Project settings', description: 'Project settings are temporarily unavailable.' },
+  snapshots: { title: 'Project snapshots', description: 'Project snapshots are temporarily unavailable.' },
 };
 
-function localizeSurface(definition: SurfaceDefinition, translate: UserAreaTranslate): UserAreaSurface {
-  return {
-    title: translate(definition.titleKey),
-    description: translate(definition.descriptionKey),
-    backTo: definition.backTo,
-    backLabel: translate(definition.backLabelKey),
-  };
-}
-
-export function resolveUserAreaSurface(
-  pathname: string,
-  translate: UserAreaTranslate = defaultUserAreaTranslate,
-): UserAreaSurface {
+export function resolveUserAreaSurface(pathname: string): UserAreaSurface {
   const normalizedPath = pathname.length > 1 ? pathname.replace(/\/+$/u, '') : pathname;
   const exactSurface = EXACT_SURFACES[normalizedPath];
 
   if (exactSurface) {
-    return localizeSurface(exactSurface, translate);
+    return exactSurface;
   }
 
   const projectMatch = normalizedPath.match(/^\/projects\/[^/]+(?:\/([^/]+))?$/u);
@@ -199,23 +131,17 @@ export function resolveUserAreaSurface(
   if (projectMatch) {
     const projectSurface = PROJECT_SURFACES[projectMatch[1] ?? ''] ?? PROJECT_SURFACES[''];
 
-    return localizeSurface(
-      {
-        ...projectSurface,
-        backTo: '/projects',
-        backLabelKey: 'userArea.routeError.viewProjects',
-      },
-      translate,
-    );
+    return {
+      ...projectSurface,
+      backTo: '/projects',
+      backLabel: 'View projects',
+    };
   }
 
-  return localizeSurface(
-    {
-      titleKey: 'userArea.surface.workspace.title',
-      descriptionKey: 'userArea.surface.workspace.description',
-      backTo: '/dashboard',
-      backLabelKey: 'userArea.routeError.backDashboard',
-    },
-    translate,
-  );
+  return {
+    title: 'Workspace',
+    description: 'This workspace page is temporarily unavailable.',
+    backTo: '/dashboard',
+    backLabel: 'Back to dashboard',
+  };
 }

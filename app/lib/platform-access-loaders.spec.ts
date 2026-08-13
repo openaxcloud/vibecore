@@ -83,10 +83,10 @@ describe('platform access loaders', () => {
       }),
     );
 
-    const payload = (await response.json()) as { errorKey?: string };
+    const payload = (await response.json()) as { error?: string };
 
     expect(response.status).toBe(503);
-    expect(payload.errorKey).toBe('billing.feedback.checkoutUnavailable');
+    expect(payload.error).toBe('Stripe price is not configured for this plan');
   });
 
   it('returns portal errors inline instead of throwing the billing route boundary', async () => {
@@ -115,10 +115,10 @@ describe('platform access loaders', () => {
       }),
     );
 
-    const payload = (await response.json()) as { errorKey?: string };
+    const payload = (await response.json()) as { error?: string };
 
     expect(response.status).toBe(503);
-    expect(payload.errorKey).toBe('billing.feedback.portalUnavailable');
+    expect(payload.error).toBe('Stripe is not configured');
   });
 
   it('renders invitations with an access-limited state instead of throwing on members:manage 403', async () => {

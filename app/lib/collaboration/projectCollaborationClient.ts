@@ -22,8 +22,6 @@ export type CollaborationComment = {
 
 export type CollaborationConnectionStatus = 'idle' | 'connecting' | 'connected' | 'reconnecting' | 'error' | 'closed';
 
-export type CollaborationErrorCode = 'unavailable' | 'connectionFailed' | 'timeout' | 'invalidEvent' | 'socketError';
-
 export type CollaborationSnapshot = {
   status: CollaborationConnectionStatus;
   sessionId: string;
@@ -31,7 +29,6 @@ export type CollaborationSnapshot = {
   comments: CollaborationComment[];
   lastEvent?: CollaborationEvent;
   error?: string;
-  errorCode?: CollaborationErrorCode;
 };
 
 export type CollaborationEvent =
@@ -76,13 +73,6 @@ type EventListener = (event: CollaborationEvent) => void;
 
 const OPEN = 1;
 
-class CollaborationConnectionError extends Error {
-  constructor(readonly collaborationCode: CollaborationErrorCode) {
-    super(collaborationCode);
-    this.name = 'CollaborationConnectionError';
-  }
-}
-
 function createSessionId() {
   const random = globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
 
@@ -118,7 +108,6 @@ function applyEvent(snapshot: CollaborationSnapshot, event: CollaborationEvent):
       comments: [...commentsById.values()],
       lastEvent: event,
       error: undefined,
-      errorCode: undefined,
     };
   }
 
@@ -126,13 +115,7 @@ function applyEvent(snapshot: CollaborationSnapshot, event: CollaborationEvent):
     const presenceEvent = event as Extract<CollaborationEvent, { type: 'presence.join' | 'presence.update' }>;
     const presence = snapshot.presence.filter((user) => user.sessionId !== presenceEvent.presence.sessionId);
 
-    return {
-      ...snapshot,
-      presence: [...presence, presenceEvent.presence],
-      lastEvent: event,
-      error: undefined,
-      errorCode: undefined,
-    };
+    return { ...snapshot, presence: [...presence, presenceEvent.presence], lastEvent: event, error: undefined };
   }
 
   if (event.type === 'presence.leave') {
@@ -141,7 +124,6 @@ function applyEvent(snapshot: CollaborationSnapshot, event: CollaborationEvent):
       presence: snapshot.presence.filter((user) => user.sessionId !== event.sessionId),
       lastEvent: event,
       error: undefined,
-      errorCode: undefined,
     };
   }
 
@@ -152,11 +134,14 @@ function applyEvent(snapshot: CollaborationSnapshot, event: CollaborationEvent):
       ? snapshot.comments.map((comment) => (comment.id === commentEvent.comment.id ? commentEvent.comment : comment))
       : [...snapshot.comments, commentEvent.comment];
 
-    return { ...snapshot, comments, lastEvent: event, error: undefined, errorCode: undefined };
+    return { ...snapshot, comments, lastEvent: event, error: undefined };
   }
 
   if (event.type === 'error') {
-    return { ...snapshot, lastEvent: event, error: undefined, errorCode: 'socketError' };
+    const errorEvent = event as Extract<CollaborationEvent, { type: 'error' }>;
+    const error = typeof errorEvent.error === 'string' ? errorEvent.error : errorEvent.error?.message;
+
+    return { ...snapshot, lastEvent: event, error: error ?? 'Collaboration socket error' };
   }
 
   return { ...snapshot, lastEvent: event };
@@ -298,26 +283,26 @@ export class ProjectCollaborationClient {
     }
 
     if (!this.#WebSocket) {
-      this.#setSnapshot({ status: 'error', error: undefined, errorCode: 'unavailable' });
+      this.#setSnapshot({ status: 'error', error: 'WebSocket is not available in this browser' });
       this.#scheduleReconnect();
 
       return;
     }
 
     this.#connecting = true;
-    this.#setSnapshot({ status, error: undefined, errorCode: undefined });
+    this.#setSnapshot({ status, error: undefined });
 
     try {
       const response = await this.#fetch(this.#ticketEndpoint, { headers: { accept: 'application/json' } });
 
       if (!response.ok) {
-        throw new CollaborationConnectionError('connectionFailed');
+        throw new Error(`Collaboration ticket failed (${response.status})`);
       }
 
       const { websocketUrl } = (await response.json()) as { websocketUrl?: string };
 
       if (!websocketUrl) {
-        throw new CollaborationConnectionError('connectionFailed');
+        throw new Error('Collaboration ticket did not include a WebSocket URL');
       }
 
       /*
@@ -370,7 +355,7 @@ export class ProjectCollaborationClient {
           // already closing
         }
 
-        this.#setSnapshot({ status: 'error', error: undefined, errorCode: 'timeout' });
+        this.#setSnapshot({ status: 'error', error: 'Collaboration socket connect timed out' });
         this.#scheduleReconnect();
       }, this.#connectTimeoutMs);
 
@@ -392,7 +377,7 @@ export class ProjectCollaborationClient {
           this.#reconnectTimer = undefined;
         }
 
-        this.#setSnapshot({ status: 'connected', error: undefined, errorCode: undefined });
+        this.#setSnapshot({ status: 'connected', error: undefined });
 
         if (this.#pendingPresence) {
           this.updatePresence(this.#pendingPresence);
@@ -415,11 +400,10 @@ export class ProjectCollaborationClient {
 
         try {
           this.#emit(JSON.parse(event.data) as CollaborationEvent);
-        } catch {
+        } catch (error) {
           this.#setSnapshot({
             status: 'error',
-            error: undefined,
-            errorCode: 'invalidEvent',
+            error: error instanceof Error ? error.message : 'Invalid collaboration event',
           });
         }
       });
@@ -430,7 +414,7 @@ export class ProjectCollaborationClient {
 
         this.#connecting = false;
         this.#clearConnectTimer();
-        this.#setSnapshot({ status: 'error', error: undefined, errorCode: 'socketError' });
+        this.#setSnapshot({ status: 'error', error: 'Collaboration socket error' });
 
         /*
          * Some WS/proxy/LB layers emit 'error' WITHOUT a following 'close',
@@ -458,8 +442,7 @@ export class ProjectCollaborationClient {
       this.#clearConnectTimer();
       this.#setSnapshot({
         status: 'error',
-        error: undefined,
-        errorCode: error instanceof CollaborationConnectionError ? error.collaborationCode : 'connectionFailed',
+        error: error instanceof Error ? error.message : 'Unable to connect collaboration socket',
       });
       this.#scheduleReconnect();
     }

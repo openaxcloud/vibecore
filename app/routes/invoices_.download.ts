@@ -1,12 +1,5 @@
 import JSZip from 'jszip';
-import { apiRequest, firstOrganizationOrNull, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
-import {
-  getWebApiRoutesCopy,
-  interpolateWebApiCopy,
-  webApiErrorResponse,
-  webApiLocaleHeaders,
-} from '~/lib/i18n/catalogs/web-api-routes';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { apiRequest, firstOrganizationOrNull, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 
 type Invoice = {
   id: string;
@@ -24,18 +17,17 @@ const MAX_INVOICES = 24;
  * the whole archive.
  */
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const copy = getWebApiRoutesCopy(resolveRequestLocale(request).language);
   const organization = await firstOrganizationOrNull(request);
 
   if (!organization) {
-    throw webApiErrorResponse(request, 'INVOICE_ORGANIZATION_MISSING', 400);
+    throw json({ error: 'No organization found for your account.' }, { status: 400 });
   }
 
   const data = await apiRequest<{ invoices: Invoice[] }>(request, `/orgs/${organization.id}/billing/invoices`);
   const withPdf = (data.invoices ?? []).filter((invoice) => invoice.invoicePdf).slice(0, MAX_INVOICES);
 
   if (withPdf.length === 0) {
-    throw webApiErrorResponse(request, 'INVOICE_DOWNLOAD_EMPTY', 404);
+    throw json({ error: 'No downloadable invoices yet.' }, { status: 404 });
   }
 
   const zip = new JSZip();
@@ -49,8 +41,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         const response = await fetch(invoice.invoicePdf as string, { signal: AbortSignal.timeout(15_000) });
 
         if (!response.ok) {
-          console.error('Invoice PDF download failed:', { invoiceId: invoice.id, status: response.status });
-          throw new Error();
+          throw new Error(`HTTP ${response.status}`);
         }
 
         zip.file(name, await response.arrayBuffer());
@@ -61,18 +52,17 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   );
 
   if (skipped.length > 0) {
-    zip.file('MANIFEST.txt', `${copy.invoiceManifestSkipped}\n${skipped.join('\n')}\n`);
+    zip.file('MANIFEST.txt', `Skipped (download failed):\n${skipped.join('\n')}\n`);
   }
 
   const archive = await zip.generateAsync({ type: 'nodebuffer' });
   const stamp = new Date().toISOString().slice(0, 10);
-  const archiveFilename = interpolateWebApiCopy(copy.invoiceArchiveFilename, { date: stamp });
 
   return new Response(new Uint8Array(archive), {
-    headers: webApiLocaleHeaders(request, {
+    headers: {
       'content-type': 'application/zip',
-      'content-disposition': `attachment; filename="${archiveFilename}"`,
+      'content-disposition': `attachment; filename="invoices-${stamp}.zip"`,
       'cache-control': 'no-store',
-    }),
+    },
   });
 }

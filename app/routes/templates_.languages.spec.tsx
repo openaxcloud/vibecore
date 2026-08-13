@@ -24,13 +24,7 @@ vi.mock('~/lib/marketing/ecode-template-catalog.server', () => ({
   getEcodeTemplateCatalog: () => [],
 }));
 
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ i18n: { language: 'en', resolvedLanguage: 'en' } }),
-}));
-
 const loaderData = {
-  language: 'en' as const,
-  loadState: 'ready' as const,
   total: 8,
   languages: [
     { name: 'Python', count: 5 },
@@ -40,11 +34,7 @@ const loaderData = {
 
 vi.mock('react-router', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-router')>();
-  return {
-    ...actual,
-    useLoaderData: () => loaderData,
-    useRevalidator: () => ({ state: 'idle', revalidate: vi.fn() }),
-  };
+  return { ...actual, useLoaderData: () => loaderData };
 });
 
 import TemplatesLanguagesRoute from './templates_.languages';
@@ -65,7 +55,7 @@ describe('templates by language page', () => {
   it('renders each language with its real count as a non-interactive stat', () => {
     renderRoute();
 
-    const list = screen.getByRole('list', { name: /template count by programming language/i });
+    const list = screen.getByRole('list', { name: /template count by language/i });
     const items = within(list).getAllByRole('listitem');
     expect(items).toHaveLength(2);
 

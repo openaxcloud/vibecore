@@ -1,10 +1,8 @@
 import { forwardRef, type ForwardedRef, useCallback, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router';
 import { Checkbox } from '~/components/ui/Checkbox';
 import WithTooltip from '~/components/ui/Tooltip';
 import { useEditChatDescription } from '~/lib/hooks';
-import { getSidebarMenuCopy, interpolateSidebarMenuCopy } from '~/lib/i18n/catalogs/sidebar-menu';
 import { type ChatHistoryItem } from '~/lib/persistence';
 import { classNames } from '~/utils/classNames';
 
@@ -86,8 +84,6 @@ export function HistoryItem({
   isSelected = false,
   onToggleSelection,
 }: HistoryItemProps) {
-  const { i18n } = useTranslation();
-  const copy = getSidebarMenuCopy(i18n.resolvedLanguage ?? i18n.language).sidebarMenu;
   const { id: urlId } = useParams();
   const isActiveChat = urlId === item.urlId;
 
@@ -137,7 +133,7 @@ export function HistoryItem({
   return (
     <div
       className={classNames(
-        'group min-h-11 rounded-lg text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 overflow-hidden flex justify-between items-center px-3 py-2 transition-colors',
+        'group rounded-lg text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 overflow-hidden flex justify-between items-center px-3 py-2 transition-colors',
         { 'text-bolt-elements-item-contentAccent bg-bolt-elements-item-backgroundAccent': isActiveChat },
         { 'cursor-pointer': selectionMode },
       )}
@@ -149,10 +145,7 @@ export function HistoryItem({
             id={`select-${item.id}`}
             checked={isSelected}
             onCheckedChange={handleCheckboxChange}
-            aria-label={interpolateSidebarMenuCopy(copy.aria.selectConversation, {
-              name: currentDescription,
-            })}
-            className="h-5 w-5"
+            className="h-4 w-4"
           />
         </div>
       )}
@@ -162,9 +155,6 @@ export function HistoryItem({
           <input
             type="text"
             className="flex-1 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary rounded-md px-3 py-1.5 text-sm border border-bolt-elements-borderColor focus:outline-none focus:ring-1 focus:ring-bolt-elements-focus"
-            aria-label={interpolateSidebarMenuCopy(copy.aria.renameConversation, {
-              name: currentDescription,
-            })}
             autoFocus
             value={currentDescription}
             onChange={handleChange}
@@ -173,9 +163,9 @@ export function HistoryItem({
           />
           <button
             type="button"
-            aria-label={copy.history.actions.saveName}
-            title={copy.history.actions.saveName}
-            className="vc-focus-ring i-ph:check inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-bolt-elements-textTertiary hover:text-[var(--vc-ide-accent-action)] transition-colors"
+            aria-label="Save name"
+            title="Save name"
+            className="i-ph:check h-4 w-4 text-bolt-elements-textTertiary hover:text-[var(--vc-ide-accent-action)] transition-colors"
             onMouseDown={handleSubmit}
           />
         </form>
@@ -184,17 +174,9 @@ export function HistoryItem({
           href={`/chat/${item.urlId}`}
           className="flex w-full relative truncate block"
           onClick={selectionMode ? handleItemClick : undefined}
-          aria-current={isActiveChat ? 'page' : undefined}
         >
           <WithTooltip tooltip={currentDescription}>
-            <span
-              className={classNames(
-                'truncate',
-                isCoarsePointer ? '[padding-inline-end:14rem]' : '[padding-inline-end:10rem]',
-              )}
-            >
-              {currentDescription}
-            </span>
+            <span className="truncate [padding-inline-end:6rem]">{currentDescription}</span>
           </WithTooltip>
           <div
             className={classNames(
@@ -208,9 +190,8 @@ export function HistoryItem({
               )}
             >
               <ChatActionButton
-                toolTipContent={copy.history.actions.export}
+                toolTipContent="Export"
                 icon="i-ph:download-simple h-4 w-4"
-                coarsePointer={isCoarsePointer}
                 onClick={(event) => {
                   event.preventDefault();
                   exportChat(item.id);
@@ -218,9 +199,8 @@ export function HistoryItem({
               />
               {onDuplicate && (
                 <ChatActionButton
-                  toolTipContent={copy.history.actions.duplicate}
+                  toolTipContent="Duplicate"
                   icon="i-ph:copy h-4 w-4"
-                  coarsePointer={isCoarsePointer}
                   onClick={(event) => {
                     event.preventDefault();
                     onDuplicate?.(item.id);
@@ -228,19 +208,17 @@ export function HistoryItem({
                 />
               )}
               <ChatActionButton
-                toolTipContent={copy.history.actions.rename}
+                toolTipContent="Rename"
                 icon="i-ph:pencil-fill h-4 w-4"
-                coarsePointer={isCoarsePointer}
                 onClick={(event) => {
                   event.preventDefault();
                   toggleEditMode();
                 }}
               />
               <ChatActionButton
-                toolTipContent={copy.history.actions.delete}
+                toolTipContent="Delete"
                 icon="i-ph:trash h-4 w-4"
                 className="hover:text-[var(--status-error-text)]"
-                coarsePointer={isCoarsePointer}
                 onClick={handleDeleteClick}
               />
             </div>
@@ -257,14 +235,13 @@ const ChatActionButton = forwardRef(
       toolTipContent,
       icon,
       className,
-      coarsePointer,
       onClick,
     }: {
       toolTipContent: string;
       icon: string;
       className?: string;
-      coarsePointer?: boolean;
       onClick: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
+      btnTitle?: string;
     },
     ref: ForwardedRef<HTMLButtonElement>,
   ) => {
@@ -275,12 +252,7 @@ const ChatActionButton = forwardRef(
           type="button"
           aria-label={toolTipContent}
           title={toolTipContent}
-          className={classNames(
-            'vc-focus-ring inline-flex shrink-0 items-center justify-center rounded-md text-bolt-elements-textTertiary hover:text-[var(--vc-ide-accent-action)] transition-colors',
-            coarsePointer ? 'h-11 w-11' : 'h-7 w-7',
-            icon,
-            className,
-          )}
+          className={`text-bolt-elements-textTertiary hover:text-[var(--vc-ide-accent-action)] transition-colors ${icon} ${className ? className : ''}`}
           onClick={onClick}
         />
       </WithTooltip>

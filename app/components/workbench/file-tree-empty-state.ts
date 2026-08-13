@@ -1,7 +1,5 @@
 import type { WorkspaceStatus } from '@vibecore/runtime-contract';
 
-import { fileTreeEn, type FileTreeCopy } from '~/lib/i18n/catalogs/file-tree';
-
 /**
  * Inputs the file explorer's empty branch uses to decide *why* there are no
  * files to show.
@@ -50,11 +48,7 @@ export interface EmptyExplorerView {
  *   - error:   crashed / errored runtime → real error + Reconnect affordance
  *   - empty:   workspace genuinely ready but has no files → original copy
  */
-export function resolveEmptyExplorerState(
-  input: EmptyExplorerInput,
-  copy: FileTreeCopy['empty'] = fileTreeEn.empty,
-  includeWorkspaceError = true,
-): EmptyExplorerView {
+export function resolveEmptyExplorerState(input: EmptyExplorerInput): EmptyExplorerView {
   const { workspaceLoading, workspaceStatus, workspaceError, hasWorkspace } = input;
 
   const runtimeCrashed = workspaceStatus === 'error' || workspaceStatus === 'stopped';
@@ -68,8 +62,9 @@ export function resolveEmptyExplorerState(
     return {
       variant: 'error',
       icon: 'i-ph:warning-circle',
-      title: copy.workspaceUnavailableTitle,
-      description: includeWorkspaceError && workspaceError ? workspaceError : copy.workspaceUnavailableDescription,
+      title: 'Workspace unavailable',
+      description:
+        workspaceError ?? 'The workspace runtime stopped or failed to start. Reconnect to load your project files.',
       showReconnect: true,
     };
   }
@@ -78,8 +73,8 @@ export function resolveEmptyExplorerState(
     return {
       variant: 'loading',
       icon: 'i-svg-spinners:90-ring-with-bg',
-      title: copy.loadingTitle,
-      description: copy.loadingDescription,
+      title: 'Loading workspace files…',
+      description: 'Provisioning your workspace. Files will appear here once it is ready.',
       showReconnect: false,
     };
   }
@@ -87,8 +82,8 @@ export function resolveEmptyExplorerState(
   return {
     variant: 'empty',
     icon: 'i-ph:folder-open',
-    title: copy.noFilesTitle,
-    description: copy.noFilesDescription,
+    title: 'No files available',
+    description: 'Project files will appear here once the workspace is loaded.',
     showReconnect: false,
   };
 }

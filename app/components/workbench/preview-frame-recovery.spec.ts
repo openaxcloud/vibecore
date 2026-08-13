@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  MAX_PREVIEW_BOOT_ATTEMPTS,
   MAX_PREVIEW_LOAD_RETRIES,
   decidePreviewLoadOutcome,
   shouldAutoRunPreview,
@@ -89,35 +88,9 @@ describe('shouldRunPreviewBootLoop', () => {
     expect(shouldRunPreviewBootLoop({ ...base, workspaceReady: false })).toBe(false);
   });
 
-  it('does not run once a preview port already exists', () => {
+  it('does not run once a preview already exists or the run already failed', () => {
     expect(shouldRunPreviewBootLoop({ ...base, previewsLength: 1 })).toBe(false);
-  });
-
-  it('KEEPS relaunching on a dev-server-absent 502 (previewRunFailed) while the workspace is healthy', () => {
-    /*
-     * The regression this fixes: a transient 502 preview_upstream_unreachable set
-     * previewRunFailed and STOPPED the loop, stranding the dev server down. With a
-     * healthy workspace and no port, the loop must keep relaunching it.
-     */
-    expect(shouldRunPreviewBootLoop({ ...base, previewRunFailed: true })).toBe(true);
-  });
-
-  it('stops relaunching once the bounded attempt budget is spent (hands off to manual UI)', () => {
-    expect(shouldRunPreviewBootLoop({ ...base, previewRunFailed: true, bootAttempts: MAX_PREVIEW_BOOT_ATTEMPTS })).toBe(
-      false,
-    );
-    expect(shouldRunPreviewBootLoop({ ...base, bootAttempts: MAX_PREVIEW_BOOT_ATTEMPTS + 5 })).toBe(false);
-
-    // Still under budget → keeps running.
-    expect(
-      shouldRunPreviewBootLoop({ ...base, previewRunFailed: true, bootAttempts: MAX_PREVIEW_BOOT_ATTEMPTS - 1 }),
-    ).toBe(true);
-  });
-
-  it('still bails immediately on a genuine workspace error even under budget', () => {
-    expect(
-      shouldRunPreviewBootLoop({ ...base, hasWorkspaceError: true, previewRunFailed: true, bootAttempts: 0 }),
-    ).toBe(false);
+    expect(shouldRunPreviewBootLoop({ ...base, previewRunFailed: true })).toBe(false);
   });
 
   it('does not run for a static preview or when autoStart is off', () => {

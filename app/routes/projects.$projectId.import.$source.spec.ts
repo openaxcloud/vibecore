@@ -49,9 +49,9 @@ describe('projects.$projectId.import.$source loader', () => {
     expect((thrown as Response).status).toBe(404);
   });
 
-  it('uses a language-neutral missing-value marker when projectId is absent but source is valid', () => {
+  it('falls back to "unknown" projectId when absent but source is valid', () => {
     const result = runLoader(undefined, 'lovable');
 
-    expect(result).toEqual({ projectId: '—', source: 'lovable' });
+    expect(result).toEqual({ projectId: 'unknown', source: 'lovable' });
   });
 });

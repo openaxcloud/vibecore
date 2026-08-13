@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { useConnectorPopup } from '~/lib/chat/use-connector-popup';
-import {
-  formatGitProviderConnectCopy,
-  getGitProviderConnectCopy,
-  type GitProviderConnectCopy,
-} from '~/lib/i18n/catalogs/git-provider-connect';
 import { classNames } from '~/utils/classNames';
 
 type OAuthProviderId = 'github' | 'gitlab' | 'bitbucket';
@@ -21,24 +15,40 @@ type ProviderCard = {
   remotePlaceholder: string;
 };
 
-const PROVIDERS: ReadonlyArray<Pick<ProviderCard, 'id' | 'icon'>> = [
-  { id: 'github', icon: 'i-ph:github-logo' },
-  { id: 'gitlab', icon: 'i-ph:gitlab-logo' },
-  { id: 'bitbucket', icon: 'i-ph:git-branch' },
-  { id: 'custom', icon: 'i-ph:link-simple' },
+const PROVIDERS: ProviderCard[] = [
+  {
+    id: 'github',
+    label: 'GitHub',
+    icon: 'i-ph:github-logo',
+    description: 'Authorize E-Code to use your GitHub repositories from this workspace.',
+    action: 'Connect GitHub',
+    remotePlaceholder: 'https://github.com/acme/app.git',
+  },
+  {
+    id: 'gitlab',
+    label: 'GitLab',
+    icon: 'i-ph:gitlab-logo',
+    description: 'Start the GitLab OAuth flow without leaving the Git panel.',
+    action: 'Connect GitLab',
+    remotePlaceholder: 'https://gitlab.com/acme/app.git',
+  },
+  {
+    id: 'bitbucket',
+    label: 'Bitbucket',
+    icon: 'i-ph:git-branch',
+    description: 'Connect a Bitbucket account for hosted Git workflows.',
+    action: 'Connect Bitbucket',
+    remotePlaceholder: 'https://bitbucket.org/acme/app.git',
+  },
+  {
+    id: 'custom',
+    label: 'Custom Remote',
+    icon: 'i-ph:link-simple',
+    description: 'Add any HTTPS or SSH Git origin that this workspace can access.',
+    action: 'Add remote URL',
+    remotePlaceholder: 'git@example.com:acme/app.git',
+  },
 ];
-
-function providerCard(provider: Pick<ProviderCard, 'id' | 'icon'>, copy: GitProviderConnectCopy): ProviderCard {
-  const prefix = `gitProvider.${provider.id}` as const;
-
-  return {
-    ...provider,
-    label: copy[`${prefix}.label`],
-    description: copy[`${prefix}.description`],
-    action: copy[`${prefix}.action`],
-    remotePlaceholder: copy[`${prefix}.placeholder`],
-  };
-}
 
 export interface GitProviderConnectPanelProps {
   projectId: string;
@@ -50,8 +60,8 @@ export interface GitProviderConnectPanelProps {
   onRemoteConfigured?: () => void | Promise<void>;
 }
 
-function providerLabel(provider: string, cards: ProviderCard[]) {
-  return cards.find((item) => item.id === provider)?.label ?? provider;
+function providerLabel(provider: string) {
+  return PROVIDERS.find((item) => item.id === provider)?.label ?? provider;
 }
 
 export function GitProviderConnectPanel({
@@ -63,9 +73,6 @@ export function GitProviderConnectPanel({
   onConnected,
   onRemoteConfigured,
 }: GitProviderConnectPanelProps) {
-  const { i18n } = useTranslation();
-  const copy = getGitProviderConnectCopy(i18n.resolvedLanguage ?? i18n.language);
-  const providerCards = useMemo(() => PROVIDERS.map((provider) => providerCard(provider, copy)), [copy]);
   const { state, launch, reset } = useConnectorPopup();
   const [pendingProvider, setPendingProvider] = useState<OAuthProviderId | null>(null);
   const [networkError, setNetworkError] = useState<string | null>(null);
@@ -78,8 +85,8 @@ export function GitProviderConnectPanel({
   const handledConnectionRef = useRef<string | null>(null);
 
   const activeRemoteProvider = useMemo(
-    () => providerCards.find((provider) => provider.id === remoteProvider) ?? providerCards[0],
-    [providerCards, remoteProvider],
+    () => PROVIDERS.find((provider) => provider.id === remoteProvider) ?? PROVIDERS[0],
+    [remoteProvider],
   );
 
   useEffect(() => {
@@ -101,17 +108,12 @@ export function GitProviderConnectPanel({
 
     handledConnectionRef.current = connectionKey;
 
-    const label = providerLabel(state.result.provider, providerCards);
-    toast.success(
-      formatGitProviderConnectCopy(copy['gitProvider.connectedToast'], {
-        provider: label,
-        account: state.result.accountLabel,
-      }),
-    );
+    const label = providerLabel(state.result.provider);
+    toast.success(`${label} connected as ${state.result.accountLabel}`);
     setPendingProvider(null);
     setNetworkError(null);
     void onConnected?.();
-  }, [copy, onConnected, providerCards, state]);
+  }, [onConnected, state]);
 
   useEffect(() => {
     if (state.phase !== 'failed') {
@@ -119,12 +121,8 @@ export function GitProviderConnectPanel({
     }
 
     setPendingProvider(null);
-    setNetworkError(
-      formatGitProviderConnectCopy(copy['gitProvider.connectionFailed'], {
-        provider: providerLabel(state.result.provider, providerCards),
-      }),
-    );
-  }, [copy, providerCards, state]);
+    setNetworkError(state.result.errorMessage ?? `${providerLabel(state.result.provider)} connection failed.`);
+  }, [state]);
 
   const startOAuth = useCallback(
     async (provider: OAuthProviderId) => {
@@ -141,28 +139,18 @@ export function GitProviderConnectPanel({
         });
 
         if (!response.ok) {
-          setPendingProvider(null);
-          setNetworkError(
-            formatGitProviderConnectCopy(copy['gitProvider.oauthStartFailed'], {
-              provider: providerLabel(provider, providerCards),
-            }),
-          );
-
-          return;
+          const parsed = (await response.json().catch(() => ({}))) as { error?: string; code?: string };
+          throw new Error(parsed.error ?? `Failed to start ${providerLabel(provider)} OAuth (HTTP ${response.status})`);
         }
 
         const result = (await response.json()) as { provider: string; authorizationUrl: string };
         launch({ authorizationUrl: result.authorizationUrl, provider: result.provider });
-      } catch {
+      } catch (error) {
         setPendingProvider(null);
-        setNetworkError(
-          formatGitProviderConnectCopy(copy['gitProvider.oauthStartFailed'], {
-            provider: providerLabel(provider, providerCards),
-          }),
-        );
+        setNetworkError(error instanceof Error ? error.message : 'Unable to start OAuth flow.');
       }
     },
-    [copy, launch, projectId, providerCards, reset],
+    [launch, projectId, reset],
   );
 
   const openRemoteDrawer = useCallback(
@@ -200,27 +188,23 @@ export function GitProviderConnectPanel({
           body: formData,
         });
 
-        if (!response.ok) {
-          setRemoteError(copy['gitProvider.remote.saveFailed']);
+        const result = (await response.json().catch(() => ({}))) as { error?: string };
 
-          return;
+        if (!response.ok) {
+          throw new Error(result.error ?? `Failed to configure remote (HTTP ${response.status})`);
         }
 
-        toast.success(
-          formatGitProviderConnectCopy(copy['gitProvider.remote.savedToast'], {
-            branch: branchName.trim() || 'main',
-          }),
-        );
+        toast.success(`Git origin configured for ${branchName.trim() || 'main'}`);
         setRemoteProvider(null);
         setShowRepoPicker(false);
         void onRemoteConfigured?.();
-      } catch {
-        setRemoteError(copy['gitProvider.remote.saveFailed']);
+      } catch (error) {
+        setRemoteError(error instanceof Error ? error.message : 'Unable to configure this Git remote.');
       } finally {
         setConfiguringRemote(false);
       }
     },
-    [copy, onRemoteConfigured, projectId, workspaceId],
+    [onRemoteConfigured, projectId, workspaceId],
   );
 
   const configureRemote = useCallback(
@@ -238,9 +222,9 @@ export function GitProviderConnectPanel({
     <div className="grid gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <strong className="block break-words text-amber-700 dark:text-amber-200">{copy['gitProvider.title']}</strong>
-          <p className="mt-1 max-w-2xl break-words text-amber-700/85 dark:text-amber-100/85">
-            {copy['gitProvider.description']}
+          <strong className="block text-amber-700 dark:text-amber-200">No remote connected yet</strong>
+          <p className="mt-1 max-w-2xl text-amber-700/85 dark:text-amber-100/85">
+            Connect a source-control provider here, or add a Git origin directly to this workspace.
           </p>
         </div>
         {gitRepositoryUrl ? (
@@ -250,8 +234,8 @@ export function GitProviderConnectPanel({
         ) : null}
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4" aria-label={copy['gitProvider.providersAria']}>
-        {providerCards.map((provider) => {
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4" aria-label="Connect Git remote providers">
+        {PROVIDERS.map((provider) => {
           const providerLaunching = isLaunching && pendingProvider === provider.id;
           const providerSucceeded = succeeded?.provider === provider.id;
           const isOAuthProvider = provider.id !== 'custom';
@@ -277,9 +261,7 @@ export function GitProviderConnectPanel({
                 'hover:border-amber-500/50 hover:bg-bolt-elements-background-depth-2 disabled:cursor-not-allowed disabled:opacity-60',
               )}
               disabled={providerDisabled}
-              aria-label={formatGitProviderConnectCopy(copy['gitProvider.cardAria'], {
-                action: provider.action,
-              })}
+              aria-label={`${provider.action} from Git panel`}
               onClick={() => {
                 if (provider.id === 'custom') {
                   openRemoteDrawer(provider.id);
@@ -291,7 +273,7 @@ export function GitProviderConnectPanel({
               <span className="flex items-center justify-between gap-2">
                 <span className="flex min-w-0 items-center gap-2">
                   <span className={classNames(provider.icon, 'h-4 w-4 text-bolt-elements-item-contentAccent')} />
-                  <span className="break-words text-xs font-semibold text-bolt-elements-textPrimary">
+                  <span className="truncate text-xs font-semibold text-bolt-elements-textPrimary">
                     {provider.label}
                   </span>
                 </span>
@@ -299,19 +281,15 @@ export function GitProviderConnectPanel({
                   <span className="i-ph:check-circle-fill h-4 w-4 text-bolt-elements-icon-success" aria-hidden />
                 ) : null}
               </span>
-              <span className="break-words text-[11px] leading-4 text-bolt-elements-textSecondary">
-                {provider.description}
-              </span>
-              <span className="mt-auto inline-flex flex-wrap items-center gap-1 break-words text-xs font-semibold text-bolt-elements-item-contentAccent">
+              <span className="text-[11px] leading-4 text-bolt-elements-textSecondary">{provider.description}</span>
+              <span className="mt-auto inline-flex items-center gap-1 text-xs font-semibold text-bolt-elements-item-contentAccent">
                 {providerLaunching ? (
                   <>
                     <span className="i-ph:spinner-gap-bold h-3.5 w-3.5 animate-spin" aria-hidden />
-                    {copy['gitProvider.waitingOauth']}
+                    Waiting for OAuth...
                   </>
                 ) : providerSucceeded ? (
-                  formatGitProviderConnectCopy(copy['gitProvider.connectedAs'], {
-                    account: succeeded.accountLabel,
-                  })
+                  `Connected as ${succeeded.accountLabel}`
                 ) : (
                   provider.action
                 )}
@@ -330,16 +308,15 @@ export function GitProviderConnectPanel({
         <button
           type="button"
           onClick={() => setShowRepoPicker((value) => !value)}
-          className="inline-flex min-h-8 items-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-1.5 text-left text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2"
+          className="inline-flex h-8 items-center gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2"
         >
           <span className="i-ph:git-fork h-4 w-4 text-bolt-elements-item-contentAccent" aria-hidden />
-          {showRepoPicker ? copy['gitProvider.repoPicker.hide'] : copy['gitProvider.repoPicker.show']}
+          {showRepoPicker ? 'Hide your GitHub repositories' : 'Choose from your GitHub repositories'}
         </button>
       </div>
 
       {showRepoPicker ? (
         <GitHubRepoPicker
-          copy={copy}
           busy={configuringRemote || busy}
           onSelect={(url, repoBranch) => void submitRemote(url, repoBranch)}
         />
@@ -355,19 +332,15 @@ export function GitProviderConnectPanel({
         <div
           className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
           role="dialog"
-          aria-label={formatGitProviderConnectCopy(copy['gitProvider.remote.dialogAria'], {
-            provider: activeRemoteProvider.label,
-          })}
+          aria-label={`Configure ${activeRemoteProvider.label} remote`}
         >
           <div className="mb-3 flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <h3 className="break-words text-sm font-semibold text-bolt-elements-textPrimary">
-                {formatGitProviderConnectCopy(copy['gitProvider.remote.title'], {
-                  provider: activeRemoteProvider.label,
-                })}
+            <div>
+              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
+                Configure {activeRemoteProvider.label}
               </h3>
-              <p className="mt-1 break-words text-xs text-bolt-elements-textSecondary">
-                {copy['gitProvider.remote.description']}
+              <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+                This sets the workspace Git `origin` and stores the remote on the project.
               </p>
             </div>
             <button
@@ -375,12 +348,12 @@ export function GitProviderConnectPanel({
               className="rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
               onClick={() => setRemoteProvider(null)}
             >
-              {copy['gitProvider.remote.close']}
+              Close
             </button>
           </div>
           <form onSubmit={configureRemote} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_auto]">
             <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
-              {copy['gitProvider.remote.url']}
+              Remote URL
               <input
                 className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
                 value={remoteUrl}
@@ -390,22 +363,22 @@ export function GitProviderConnectPanel({
               />
             </label>
             <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
-              {copy['gitProvider.remote.defaultBranch']}
+              Default branch
               <input
                 className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
                 value={branch}
                 onChange={(event) => setBranch(event.currentTarget.value)}
-                placeholder={copy['gitProvider.remote.defaultBranchPlaceholder']}
+                placeholder="main"
                 required
               />
             </label>
             <div className="flex items-end">
               <button
                 type="submit"
-                className="inline-flex min-h-9 w-full items-center justify-center whitespace-normal rounded-md bg-bolt-elements-button-primary-background px-3 py-2 text-center text-sm font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover disabled:opacity-60"
+                className="inline-flex h-9 w-full items-center justify-center rounded-md bg-bolt-elements-button-primary-background px-3 text-sm font-medium text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover disabled:opacity-60"
                 disabled={configuringRemote || busy}
               >
-                {configuringRemote ? copy['gitProvider.remote.saving'] : copy['gitProvider.remote.save']}
+                {configuringRemote ? 'Saving...' : 'Save remote'}
               </button>
             </div>
           </form>
@@ -436,17 +409,15 @@ type GitHubRepo = {
  * when GitHub isn't connected yet.
  */
 function GitHubRepoPicker({
-  copy,
   busy = false,
   onSelect,
 }: {
-  copy: GitProviderConnectCopy;
   busy?: boolean;
   onSelect: (cloneUrl: string, defaultBranch: string) => void;
 }) {
   const [repos, setRepos] = useState<GitHubRepo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [errorStatus, setErrorStatus] = useState<401 | 500 | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
 
   useEffect(() => {
@@ -454,25 +425,17 @@ function GitHubRepoPicker({
 
     (async () => {
       setLoading(true);
-      setErrorStatus(null);
+      setError(null);
 
       try {
         const response = await fetch('/api/github-stats');
 
         if (response.status === 401) {
-          if (!cancelled) {
-            setErrorStatus(401);
-          }
-
-          return;
+          throw new Error('Connect GitHub above first to list your repositories.');
         }
 
         if (!response.ok) {
-          if (!cancelled) {
-            setErrorStatus(500);
-          }
-
-          return;
+          throw new Error(`Could not load your GitHub repositories (HTTP ${response.status}).`);
         }
 
         const data = (await response.json()) as { repos?: GitHubRepo[] };
@@ -480,9 +443,9 @@ function GitHubRepoPicker({
         if (!cancelled) {
           setRepos(Array.isArray(data.repos) ? data.repos : []);
         }
-      } catch {
+      } catch (cause) {
         if (!cancelled) {
-          setErrorStatus(500);
+          setError(cause instanceof Error ? cause.message : 'Could not load your GitHub repositories.');
         }
       } finally {
         if (!cancelled) {
@@ -509,12 +472,12 @@ function GitHubRepoPicker({
   return (
     <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
       <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
-        {copy['gitProvider.repositories.search']}
+        Search your repositories
         <input
           className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
-          placeholder={copy['gitProvider.repositories.placeholder']}
+          placeholder="owner/name"
         />
       </label>
 
@@ -522,18 +485,14 @@ function GitHubRepoPicker({
         {loading ? (
           <p className="flex items-center gap-2 p-3 text-xs text-bolt-elements-textSecondary">
             <span className="i-ph:spinner-gap-bold h-3.5 w-3.5 animate-spin" aria-hidden />
-            {copy['gitProvider.repositories.loading']}
+            Loading your repositories…
           </p>
-        ) : errorStatus ? (
+        ) : error ? (
           <p className="p-3 text-xs text-red-500" role="alert">
-            {errorStatus === 401
-              ? copy['gitProvider.repositories.connectFirst']
-              : copy['gitProvider.repositories.loadFailed']}
+            {error}
           </p>
         ) : filtered.length === 0 ? (
-          <p className="break-words p-3 text-xs text-bolt-elements-textSecondary">
-            {formatGitProviderConnectCopy(copy['gitProvider.repositories.noMatch'], { query })}
-          </p>
+          <p className="p-3 text-xs text-bolt-elements-textSecondary">No repositories match “{query}”.</p>
         ) : (
           <ul>
             {filtered.map((repo) => (
@@ -554,12 +513,12 @@ function GitHubRepoPicker({
                     </span>
                     {repo.private ? (
                       <span className="shrink-0 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-[10px] text-bolt-elements-textTertiary">
-                        {copy['gitProvider.repositories.private']}
+                        private
                       </span>
                     ) : null}
                   </span>
                   <span className="shrink-0 text-[11px] font-medium text-bolt-elements-item-contentAccent">
-                    {copy['gitProvider.repositories.connect']}
+                    Connect
                   </span>
                 </button>
               </li>

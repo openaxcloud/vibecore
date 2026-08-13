@@ -1,18 +1,4 @@
-import { getSettingsConnectorsResidualCopy } from '~/lib/i18n/catalogs/settings-connectors-residual';
 import type { GitHubConnection } from '~/types/GitHub';
-
-export type GitHubBranchesErrorCode = 'invalidRepository' | 'fetchFailed';
-
-export class GitHubBranchesError extends Error {
-  readonly code: GitHubBranchesErrorCode;
-
-  constructor(code: GitHubBranchesErrorCode) {
-    const copy = getSettingsConnectorsResidualCopy('en');
-    super(copy[`settingsResidual.branches.${code}`]);
-    this.name = 'GitHubBranchesError';
-    this.code = code;
-  }
-}
 
 export interface CloneBranchInfo {
   name: string;
@@ -134,7 +120,7 @@ export async function resolveCloneBranches(
   const [owner, repo] = repoFullName.split('/');
 
   if (!owner || !repo) {
-    throw new GitHubBranchesError('invalidRepository');
+    throw new Error('Invalid repository name');
   }
 
   if (isOAuthConnection(connection)) {
@@ -145,7 +131,8 @@ export async function resolveCloneBranches(
     });
 
     if (!response.ok) {
-      throw new GitHubBranchesError('fetchFailed');
+      const errorData = (await response.json().catch(() => ({}))) as { error?: string };
+      throw new Error(errorData.error || `Failed to fetch branches (HTTP ${response.status})`);
     }
 
     const data = (await response.json()) as { branches?: unknown };
@@ -160,7 +147,8 @@ export async function resolveCloneBranches(
   });
 
   if (!response.ok) {
-    throw new GitHubBranchesError('fetchFailed');
+    const errorData = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(errorData.error || `Failed to fetch branches (HTTP ${response.status})`);
   }
 
   const data = await response.json();

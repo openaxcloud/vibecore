@@ -1,33 +1,12 @@
-import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
+import type { MetaFunction } from 'react-router';
 
 import Terms from '~/components/marketing/ecode-exact/pages/Terms';
-import { getMarketingExactPrivacyTermsCopy } from '~/lib/i18n/catalogs/marketing-exact-privacy-terms';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
-import { socialMetaTags } from '~/utils/social-meta';
 
-export function loader({ request }: LoaderFunctionArgs) {
-  return { language: resolveRequestLocale(request).language };
-}
-
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-  const seo = getMarketingExactPrivacyTermsCopy(data?.language).exactTerms.seo;
-
-  const social = socialMetaTags(seo).map((tag) => {
-    const identifier = 'property' in tag ? tag.property : 'name' in tag ? tag.name : undefined;
-
-    return identifier === 'og:image:alt' || identifier === 'twitter:image:alt'
-      ? { ...tag, content: seo.imageAlt }
-      : tag;
-  });
-
-  return [
-    { title: seo.title },
-    { name: 'description', content: seo.description },
-    ...social,
-    { name: 'twitter:title', content: seo.title },
-    { name: 'twitter:description', content: seo.description },
-  ];
-};
+// In-repo SSR (main Remix app) rather than the prebuilt external marketing bundle.
+export const meta: MetaFunction = () => [
+  { title: 'Terms of Service — E-Code' },
+  { name: 'description', content: 'E-Code Terms of Service.' },
+];
 
 export default function TermsRoute() {
   return <Terms />;

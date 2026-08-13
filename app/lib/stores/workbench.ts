@@ -7,8 +7,14 @@ import JSZip from 'jszip';
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
 import { toast } from 'react-toastify';
 import { EditorStore } from './editor';
-import { fileHistoryStore } from './fileHistory';
-import { FilesStore, type FileMap, type ProjectStorageFile, type SaveFileOptions } from './files';
+import { clearFileSaveConflict, openFileSaveConflict } from './file-save-conflict';
+import {
+  FilesStore,
+  isRemoteFileConflictError,
+  type FileMap,
+  type ProjectStorageFile,
+  type SaveFileOptions,
+} from './files';
 import {
   appendWorkspaceLogLines,
   decodeArchiveEntry,
@@ -20,12 +26,6 @@ import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
 import { description } from '~/lib/persistence';
-import {
-  formatWorkbenchRuntimeCopy,
-  getWorkbenchRuntimeCopy,
-  type WorkbenchRuntimeKey,
-} from '~/lib/i18n/catalogs/workbench-runtime';
-import { getI18nInstance } from '~/lib/i18n/runtime';
 import {
   deleteAgentPatchProposalRemote,
   fetchOpenAgentPatchProposals,
@@ -72,13 +72,6 @@ import { syncWriteContent } from '~/lib/stores/workbench-sync';
 import type { ActionAlert, DeployAlert, SupabaseAlert } from '~/types/actions';
 
 const { saveAs } = fileSaver;
-
-function workbenchText(key: WorkbenchRuntimeKey, values: Readonly<Record<string, string | number>> = {}): string {
-  const i18n = getI18nInstance();
-  const copy = getWorkbenchRuntimeCopy(i18n.resolvedLanguage ?? i18n.language);
-
-  return formatWorkbenchRuntimeCopy(copy[key], values);
-}
 
 export interface ArtifactState {
   id: string;
@@ -418,9 +411,6 @@ export class WorkbenchStore {
     const changed = this.#projectId !== projectId;
     this.#projectId = projectId;
 
-    // Bind per-file History (append-only, independent of Git) to this project.
-    fileHistoryStore.configure(projectId);
-
     if (changed) {
       this.#runtimeFilesLoadedProjectId = undefined;
       this.filesHydrated.set(false);
@@ -575,7 +565,7 @@ export class WorkbenchStore {
     });
 
     if (!response.ok) {
-      throw Object.assign(new Error(), { code: 'PROJECT_FILE_ARCHIVE_HTTP_ERROR', status: response.status });
+      throw new Error(`project file archive returned ${response.status}`);
     }
 
     const payload = (await response.json()) as ProjectExportResponse;
@@ -669,25 +659,14 @@ export class WorkbenchStore {
     }
   }
 
-  async startPreviewServer(options: { forceInstall?: boolean; forceRestart?: boolean } = {}) {
-    /*
-     * Dedup concurrent starts synchronously (before any await) — see #previewStarting.
-     * A USER-initiated recovery (Run / Reinstall → forceRestart) must bypass this
-     * dedup: a PRIOR start that WEDGED (an unbounded runtime await in
-     * #runStartPreviewServer never returned, so #previewStarting/#previewStartPromise
-     * were never cleared) would otherwise make every subsequent start — including the
-     * Run button — early-return the dead promise and relaunch NOTHING. That is the
-     * "Run does nothing" no-op. On an explicit forceRestart we punch through and
-     * relaunch for real.
-     */
-    const forceRestart = options.forceRestart ?? false;
-
-    if (!forceRestart && this.#previewStartPromise) {
+  async startPreviewServer(options: { forceInstall?: boolean } = {}) {
+    // Dedup concurrent starts synchronously (before any await) — see #previewStarting.
+    if (this.#previewStartPromise) {
       return this.#previewStartPromise;
     }
 
-    if (!forceRestart && this.#previewStarting) {
-      return workbenchText('workbenchRuntime.preview.starting');
+    if (this.#previewStarting) {
+      return 'preview starting';
     }
 
     this.#previewStarting = true;
@@ -699,9 +678,8 @@ export class WorkbenchStore {
     }
   }
 
-  async #runStartPreviewServer(options: { forceInstall?: boolean; forceRestart?: boolean } = {}) {
+  async #runStartPreviewServer(options: { forceInstall?: boolean } = {}) {
     const forceInstall = options.forceInstall ?? false;
-    const forceRestart = options.forceRestart ?? false;
     const previousPreviewState = this.previewServerState.get();
 
     if (
@@ -711,7 +689,7 @@ export class WorkbenchStore {
     ) {
       this.previewServerState.set({
         status: 'starting',
-        command: previousPreviewState.command ?? workbenchText('workbenchRuntime.preview.detecting'),
+        command: previousPreviewState.command ?? 'Detecting preview command',
       });
     }
 
@@ -726,21 +704,22 @@ export class WorkbenchStore {
 
     await this.refreshRuntimePorts().catch(() => undefined);
 
-    if (!forceRestart && this.#previewStartPromise) {
+    if (this.#previewStartPromise) {
       return this.#previewStartPromise;
     }
 
     if (this.#canUseStaticHtmlPreview()) {
-      const staticPreview = workbenchText('workbenchRuntime.preview.staticCommand');
-      this.previewServerState.set({ status: 'static', command: staticPreview });
-      this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.staticReady'));
+      this.previewServerState.set({ status: 'static', command: 'static HTML preview' });
+      this.appendWorkspaceLog('Using static HTML preview; dev server is not required for this project.');
 
-      return staticPreview;
+      return 'static HTML preview';
     }
 
     if (!this.#findPackageJsonEntry()) {
-      await this.loadRuntimeFiles('.').catch(() => {
-        this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reloadFailed'));
+      await this.loadRuntimeFiles('.').catch((error) => {
+        this.appendWorkspaceLog(
+          error instanceof Error ? `Preview file reload failed: ${error.message}` : 'Preview file reload failed',
+        );
       });
     }
 
@@ -751,24 +730,24 @@ export class WorkbenchStore {
      * manifest sync / install / dev-server relaunch below, which would needlessly
      * stop and restart an app that is already up (the "from-scratch rebuild on
      * reopen" the resume path exists to avoid). A manual Reinstall (forceInstall)
-     * or a manual Run (forceRestart) always bypasses this — the user asked to
-     * relaunch, and adopting a "detected-ready" port that is actually a DYING
-     * untracked PTY dev server (bound 5173 then crashing) is exactly how Run
-     * became a no-op that reattaches to a corpse. Evaluating it BEFORE the manifest
-     * sync is what prevents a spurious dependenciesChanged from tearing down a live
-     * server on a NON-forced (auto) start.
+     * always bypasses this. Evaluating it BEFORE the manifest sync is what
+     * prevents a spurious dependenciesChanged from tearing down the live server.
      */
-    if (!forceInstall && !forceRestart && (await this.#canShortCircuitToExistingPreview())) {
+    if (!forceInstall && (await this.#canShortCircuitToExistingPreview())) {
       this.previewServerState.set({ status: 'running' });
-      this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reattached'));
+      this.appendWorkspaceLog('Reattached to the already-running dev server.');
 
-      return workbenchText('workbenchRuntime.preview.reattachedResult');
+      return 'reattached preview server';
     }
 
     let dependenciesChanged = false;
 
-    dependenciesChanged = await this.#syncPreviewManifestFromRuntime().catch(() => {
-      this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.dependencySyncSkipped'));
+    dependenciesChanged = await this.#syncPreviewManifestFromRuntime().catch((error) => {
+      this.appendWorkspaceLog(
+        error instanceof Error
+          ? `Dependency sync skipped before preview: ${error.message}`
+          : 'Dependency sync skipped before preview',
+      );
 
       return false;
     });
@@ -779,17 +758,11 @@ export class WorkbenchStore {
       await this.loadRuntimeFiles('.').catch(() => undefined);
     }
 
-    if (shouldInstall || forceRestart) {
-      /*
-       * A forced restart always tears down first, so the relaunch below reaches
-       * streamCommand — where the agent's conflict-heal frees port 5173 from ANY
-       * holder (including the untracked jsh-PTY dev server that stopPreviewServer's
-       * tracked-only kill cannot reap) before binding a fresh, tracked dev server.
-       */
+    if (shouldInstall) {
       await this.stopPreviewServer();
     } else if (await this.#canShortCircuitToExistingPreview()) {
       this.previewServerState.set({ status: 'running' });
-      return workbenchText('workbenchRuntime.preview.existingResult');
+      return 'existing preview server';
     }
 
     let command: PreviewCommand;
@@ -800,7 +773,7 @@ export class WorkbenchStore {
       const message = error instanceof Error ? error.message : String(error);
       this.previewServerState.set({
         status: 'error',
-        command: previousPreviewState.command ?? workbenchText('workbenchRuntime.preview.detecting'),
+        command: previousPreviewState.command ?? 'Detecting preview command',
         error: message,
       });
       this.appendWorkspaceLog(message);
@@ -834,19 +807,8 @@ export class WorkbenchStore {
         const hasRuntimeDeps = Object.keys({ ...(pkg.dependencies ?? {}), ...(pkg.devDependencies ?? {}) }).some(
           (dep) => dep !== 'vite' && dep !== 'typescript',
         );
-
-        /*
-         * FAIL CLOSED: if the "are dependencies installed?" probe itself fails (the
-         * runtime is transiently unreachable — a 502 during provisioning, the exact
-         * window this bulletproof guard exists for), assume NOT installed and run the
-         * install. The old `.catch(() => true)` did the opposite — a probe failure was
-         * read as "installed", the install was SKIPPED, and `npm run dev` then died
-         * with `vite: command not found` (exit 127) against an empty node_modules,
-         * leaving no process and a 502 preview. An extra install is idempotent and
-         * cheap; skipping a needed one is a dead preview.
-         */
         const installed = await this.#packageDirectoryHasInstalledPreviewDependencies(pkgEntry[0], pkg).catch(
-          () => false,
+          () => true,
         );
 
         const alreadyInstalling = (command.setupCommands ?? []).some((c) => /install/i.test(c.label));
@@ -856,12 +818,7 @@ export class WorkbenchStore {
             packageManager: (pkg as { packageManager?: string }).packageManager,
           });
           command = { ...command, setupCommands: [installCmd, ...(command.setupCommands ?? [])] };
-          this.appendWorkspaceLog(
-            workbenchText('workbenchRuntime.preview.dependenciesMissing', {
-              installCommand: installCmd.label,
-              previewCommand: command.label,
-            }),
-          );
+          this.appendWorkspaceLog(`Dependencies not installed; running ${installCmd.label} before ${command.label}.`);
         }
       }
     } catch {
@@ -877,11 +834,8 @@ export class WorkbenchStore {
     void (async () => {
       try {
         for (const setupCommand of command.setupCommands ?? []) {
-          const directory = setupCommand.cwd
-            ? workbenchText('workbenchRuntime.preview.directory', { directory: setupCommand.cwd })
-            : '';
           this.appendWorkspaceLog(
-            workbenchText('workbenchRuntime.preview.preparing', { command: setupCommand.label, directory }),
+            `Preparing preview with ${setupCommand.label}${setupCommand.cwd ? ` in ${setupCommand.cwd}` : ''}`,
           );
 
           const setupExitCode = await this.#runSetupCommandWithRetry(setupCommand);
@@ -890,56 +844,19 @@ export class WorkbenchStore {
             this.previewServerState.set({
               status: 'error',
               command: command.label,
-              error: workbenchText('workbenchRuntime.preview.setupFailed', {
-                command: setupCommand.label,
-                exitCode: setupExitCode,
-              }),
+              error: `${setupCommand.label} failed (exit ${setupExitCode})`,
             });
 
             return;
           }
         }
 
-        const directory = command.cwd
-          ? workbenchText('workbenchRuntime.preview.directory', { directory: command.cwd })
-          : '';
-        this.appendWorkspaceLog(
-          workbenchText('workbenchRuntime.preview.startCommand', { command: command.label, directory }),
-        );
-
-        const devExitCode = await this.#streamWorkspaceCommand(command, {
-          exitMessage: workbenchText('workbenchRuntime.preview.commandExited'),
+        this.appendWorkspaceLog(`Starting preview with ${command.label}${command.cwd ? ` in ${command.cwd}` : ''}`);
+        await this.#streamWorkspaceCommand(command, {
+          exitMessage: 'Preview command exited with code',
           refreshPortsOnOutput: true,
         });
-
-        /*
-         * FAIL CLOSED, honestly. A long-lived dev server does not exit; if
-         * streamCommand RETURNED a non-zero code the dev command DIED (most often
-         * exit 127 `vite: command not found` against an empty node_modules, or a
-         * config crash) — the app is NOT running. Surface a clear error instead of
-         * letting the finally below optimistically report `running`/`idle` off a
-         * lingering/phantom port. This is the "workspace RUNNING + 0 processes + 502
-         * but status says Running on Port 5173" lie the P0 hinged on.
-         */
-        if (devExitCode !== 0) {
-          this.previewServerState.set({
-            status: 'error',
-            command: command.label,
-            error:
-              devExitCode === 127
-                ? workbenchText('workbenchRuntime.preview.devMissingDependencies', { command: command.label })
-                : workbenchText('workbenchRuntime.preview.devExited', {
-                    command: command.label,
-                    exitCode: devExitCode,
-                  }),
-          });
-        }
       } catch (error) {
-        /*
-         * On garde le message RÉEL de l'erreur (et non un libellé générique) :
-         * c'est le seul indice exploitable quand le démarrage casse pour une
-         * raison inattendue.
-         */
         const message = error instanceof Error ? error.message : String(error);
         this.previewServerState.set({ status: 'error', command: command.label, error: message });
         this.appendWorkspaceLog(message);
@@ -1015,13 +932,15 @@ export class WorkbenchStore {
       return;
     }
 
-    this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.workspaceReprovisioning'));
+    this.appendWorkspaceLog('Workspace is stopped; reprovisioning before starting the preview…');
 
     try {
       const session = await withRuntimeRetry(() => this.#runtime.startWorkspace());
       this.workspaceStatus.set(session);
-    } catch {
-      this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.workspaceReprovisionFailed'));
+    } catch (error) {
+      this.appendWorkspaceLog(
+        error instanceof Error ? `Workspace reprovision failed: ${error.message}` : 'Workspace reprovision failed',
+      );
     }
   }
 
@@ -1074,12 +993,7 @@ export class WorkbenchStore {
   async restartPreviewServer() {
     await this.stopPreviewServer();
 
-    /*
-     * forceRestart: an explicit user Run must relaunch for real — punch through a
-     * wedged start guard AND the "reattach to existing" short-circuit, so it can
-     * never be a no-op that adopts a dead/dying preview.
-     */
-    return this.startPreviewServer({ forceRestart: true });
+    return this.startPreviewServer();
   }
 
   /**
@@ -1089,10 +1003,10 @@ export class WorkbenchStore {
    * is left with an empty node_modules / broken preview.
    */
   async reinstallDependencies() {
-    this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reinstalling'));
+    this.appendWorkspaceLog('Reinstalling dependencies…');
     await this.stopPreviewServer();
 
-    return this.startPreviewServer({ forceInstall: true, forceRestart: true });
+    return this.startPreviewServer({ forceInstall: true });
   }
 
   /*
@@ -1111,7 +1025,7 @@ export class WorkbenchStore {
       const tailStart = this.#currentWorkspaceLogLength();
 
       exitCode = await this.#streamWorkspaceCommand(setupCommand, {
-        exitMessage: workbenchText('workbenchRuntime.preview.setupExited'),
+        exitMessage: 'Preview setup command exited with code',
       });
 
       if (exitCode === 0) {
@@ -1127,13 +1041,8 @@ export class WorkbenchStore {
 
       const delayMs = PREVIEW_SETUP_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
       this.appendWorkspaceLog(
-        workbenchText('workbenchRuntime.preview.transientRetry', {
-          command: setupCommand.label,
-          exitCode,
-          seconds: Math.round(delayMs / 1000),
-          attempt: attempt + 1,
-          maxAttempts: PREVIEW_SETUP_RETRY_ATTEMPTS,
-        }),
+        `${setupCommand.label} failed transiently (exit ${exitCode}); retrying in ${Math.round(delayMs / 1000)}s ` +
+          `(attempt ${attempt + 1}/${PREVIEW_SETUP_RETRY_ATTEMPTS})`,
       );
       await new Promise<void>((resolve) => {
         setTimeout(resolve, delayMs);
@@ -1219,7 +1128,7 @@ export class WorkbenchStore {
 
         if (event.type === 'error') {
           this.appendWorkspaceLog(
-            `${options.exitMessage} ${exitCode} (${event.error?.message ?? workbenchText('workbenchRuntime.preview.streamInterrupted')})`,
+            `${options.exitMessage} ${exitCode} (${event.error?.message ?? 'command stream interrupted'})`,
           );
         }
       }
@@ -1289,7 +1198,7 @@ export class WorkbenchStore {
               return {
                 command: 'npm',
                 args: ['run', 'dev', ...hostArgs],
-                label: workbenchText('workbenchRuntime.command.npmDev'),
+                label: 'npm run dev',
                 cwd,
                 setupCommands,
               };
@@ -1298,7 +1207,7 @@ export class WorkbenchStore {
             return {
               command: 'npx',
               args: ['--yes', 'vite', ...this.#viteDevArgsFromScript(scripts.dev)],
-              label: workbenchText('workbenchRuntime.command.npxVite'),
+              label: 'npx vite',
               cwd,
               setupCommands,
             };
@@ -1308,7 +1217,7 @@ export class WorkbenchStore {
             return {
               command: 'npx',
               args: ['--yes', 'vite', '--host', '0.0.0.0'],
-              label: workbenchText('workbenchRuntime.command.npxVite'),
+              label: 'npx vite',
               cwd,
             };
           }
@@ -1316,7 +1225,7 @@ export class WorkbenchStore {
           return {
             command: 'npm',
             args: ['run', 'dev', ...hostArgs],
-            label: workbenchText('workbenchRuntime.command.npmDev'),
+            label: 'npm run dev',
             cwd,
             setupCommands,
           };
@@ -1326,7 +1235,7 @@ export class WorkbenchStore {
           return {
             command: 'npm',
             args: ['run', 'start'],
-            label: workbenchText('workbenchRuntime.command.npmStart'),
+            label: 'npm run start',
             cwd,
             setupCommands,
           };
@@ -1350,7 +1259,7 @@ export class WorkbenchStore {
       return {
         command: 'npm',
         args: ['run', 'dev'],
-        label: workbenchText('workbenchRuntime.command.npmDev'),
+        label: 'npm run dev',
         cwd,
         setupCommands: [this.#installCommandForPackage(fallbackPkg[0], {})],
       };
@@ -1359,7 +1268,7 @@ export class WorkbenchStore {
     return {
       command: 'npx',
       args: ['--yes', 'vite', '--host', '0.0.0.0'],
-      label: workbenchText('workbenchRuntime.command.npxVite'),
+      label: 'npx vite',
     };
   }
 
@@ -1481,27 +1390,17 @@ export class WorkbenchStore {
      * permanently blank preview. Force dev dependencies in regardless of NODE_ENV.
      */
     if (packageManager.startsWith('pnpm') || hasPnpmLock) {
-      return {
-        command: 'pnpm',
-        args: ['install', '--prod=false'],
-        label: workbenchText('workbenchRuntime.command.pnpmInstall'),
-        cwd,
-      };
+      return { command: 'pnpm', args: ['install', '--prod=false'], label: 'pnpm install', cwd };
     }
 
     if (packageManager.startsWith('yarn') || hasYarnLock) {
-      return {
-        command: 'yarn',
-        args: ['install', '--production=false'],
-        label: workbenchText('workbenchRuntime.command.yarnInstall'),
-        cwd,
-      };
+      return { command: 'yarn', args: ['install', '--production=false'], label: 'yarn install', cwd };
     }
 
     return {
       command: 'npm',
       args: ['install', '--include=dev', '--prefer-offline', '--no-audit', '--no-fund'],
-      label: workbenchText('workbenchRuntime.command.npmInstall'),
+      label: 'npm install',
       cwd,
     };
   }
@@ -1566,9 +1465,13 @@ export class WorkbenchStore {
        */
       try {
         await this.#runtime.deleteFile(relativePath);
-        this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.corruptLockRemoved', { file: fileName }));
-      } catch {
-        this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.corruptLockRemoveFailed', { file: fileName }));
+        this.appendWorkspaceLog(`Removed corrupt ${fileName} so the install can regenerate it`);
+      } catch (error) {
+        this.appendWorkspaceLog(
+          error instanceof Error
+            ? `Could not remove corrupt ${fileName}: ${error.message}`
+            : `Could not remove corrupt ${fileName}`,
+        );
       }
     }
   }
@@ -1942,21 +1845,24 @@ export class WorkbenchStore {
         return;
       }
 
-      this.saveFile(filePath).catch((error) => {
+      /*
+       * Autosave is the most common way a user meets a save conflict — the file
+       * changed on disk while they kept typing. Route it through the same
+       * conflict prompt as a manual save so the dialog opens with the choice,
+       * rather than a toast that only reports the loss (BUG-IDE-004).
+       */
+      this.saveFileWithConflictPrompt(filePath).catch((error) => {
         console.error(`Autosave failed for ${filePath}`, error);
 
         /*
-         * Surface autosave failures instead of swallowing them — silent loss of
-         * edits is the worst outcome. Dedupe per file (toastId) so a repeatedly
-         * failing autosave shows one non-stacking toast; the file stays in the
-         * unsaved set so a manual save can still retry.
+         * Surface non-conflict autosave failures instead of swallowing them —
+         * silent loss of edits is the worst outcome. Dedupe per file (toastId)
+         * so a repeatedly failing autosave shows one non-stacking toast; the
+         * file stays in the unsaved set so a manual save can still retry.
          */
-        toast.error(
-          workbenchText('workbenchRuntime.files.autosaveFailed', { file: filePath.split('/').pop() ?? filePath }),
-          {
-            toastId: `autosave-fail-${filePath}`,
-          },
-        );
+        toast.error(`Autosave failed for ${filePath.split('/').pop()} — your changes are not saved.`, {
+          toastId: `autosave-fail-${filePath}`,
+        });
       });
     }, delayMs);
 
@@ -2007,10 +1913,73 @@ export class WorkbenchStore {
 
     this.unsavedFiles.set(newUnsavedFiles);
 
-    // Append a File History version for this human save (deduped if unchanged).
-    void fileHistoryStore.capture(filePath, document.value, 'save');
-
     this.#emitFileApplied(filePath, 'user');
+  }
+
+  /**
+   * Save a human edit, routing an optimistic-concurrency conflict to the
+   * conflict dialog instead of rejecting into a dead-end toast (BUG-IDE-004).
+   *
+   * Returns 'saved' or 'conflict'; any other failure still rejects so callers
+   * keep reporting real errors. The buffer is never touched here — on conflict
+   * the file stays dirty and the edit stays in the editor until the user picks
+   * a resolution.
+   */
+  async saveFileWithConflictPrompt(filePath: string): Promise<'saved' | 'conflict'> {
+    try {
+      await this.saveFile(filePath);
+      clearFileSaveConflict(filePath);
+
+      return 'saved';
+    } catch (error) {
+      if (!isRemoteFileConflictError(error)) {
+        throw error;
+      }
+
+      /*
+       * The guard compares against the baseline, so a remote write that landed
+       * on exactly the user's text still trips it. There is nothing to decide:
+       * adopt the identical remote version and report success rather than
+       * showing a dialog whose diff is empty.
+       */
+      if (error.remoteContent === error.localContent) {
+        await this.saveFile(filePath, { onRemoteConflict: 'overwrite' });
+        clearFileSaveConflict(filePath);
+
+        return 'saved';
+      }
+
+      openFileSaveConflict({
+        filePath,
+        remoteContent: error.remoteContent,
+        localContent: error.localContent,
+        baselineContent: error.baselineContent,
+        detectedAt: Date.now(),
+      });
+
+      return 'conflict';
+    }
+  }
+
+  /**
+   * "Reload" — discard the local edit and adopt what is on disk. Destructive by
+   * definition, so it is only ever reached from an explicit dialog choice.
+   */
+  async resolveFileConflictWithRemote(filePath: string, remoteContent: string) {
+    this.#editorStore.updateFile(filePath, remoteContent);
+    this.#filesStore.adoptRemoteContent(filePath, remoteContent);
+
+    const newUnsavedFiles = new Set(this.unsavedFiles.get());
+    newUnsavedFiles.delete(filePath);
+    this.unsavedFiles.set(newUnsavedFiles);
+
+    clearFileSaveConflict(filePath);
+  }
+
+  /** "Keep mine" — write the unsaved buffer over the remote version. */
+  async resolveFileConflictWithLocal(filePath: string) {
+    await this.saveFile(filePath, { onRemoteConflict: 'overwrite' });
+    clearFileSaveConflict(filePath);
   }
 
   async writeFileContent(filePath: string, content: string) {
@@ -2025,36 +1994,7 @@ export class WorkbenchStore {
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
     newUnsavedFiles.delete(filePath);
     this.unsavedFiles.set(newUnsavedFiles);
-
-    // Append a File History version for this programmatic/agent write.
-    void fileHistoryStore.capture(filePath, content, 'agent');
-
     this.#emitFileApplied(filePath, 'user');
-  }
-
-  /**
-   * Restore a File History version append-only: write its content to disk and
-   * record it as a NEW version (`source: 'restore'`) so nothing in the history
-   * is lost. Returns the created version, or undefined if the content already
-   * matches the latest (no-op restore).
-   */
-  async restoreFileVersion(filePath: string, content: string, restoredFromSeq: number) {
-    const documents = this.#editorStore.documents.get();
-
-    if (documents[filePath]) {
-      this.#editorStore.updateFile(filePath, content);
-    }
-
-    await this.#filesStore.saveFile(filePath, content);
-
-    const newUnsavedFiles = new Set(this.unsavedFiles.get());
-    newUnsavedFiles.delete(filePath);
-    this.unsavedFiles.set(newUnsavedFiles);
-
-    const version = await fileHistoryStore.capture(filePath, content, 'restore', { restoredFromSeq });
-    this.#emitFileApplied(filePath, 'user');
-
-    return version;
   }
 
   async saveCurrentDocument() {
@@ -2093,7 +2033,7 @@ export class WorkbenchStore {
     const currentDocument = this.currentDocument.get();
 
     if (currentDocument === undefined) {
-      throw new Error(workbenchText('workbenchRuntime.files.noOpenFile'));
+      throw new Error('No file is open to format');
     }
 
     const { filePath, value } = currentDocument;
@@ -2105,8 +2045,8 @@ export class WorkbenchStore {
     if (this.isFileLocked(filePath).locked) {
       this.actionAlert.set({
         type: 'warning',
-        title: workbenchText('workbenchRuntime.files.lockedTitle'),
-        description: workbenchText('workbenchRuntime.files.formatLocked', { file: filePath }),
+        title: 'File locked',
+        description: `${filePath} is locked and cannot be formatted. Unlock it first.`,
         content: '',
         source: 'preview',
       });
@@ -2177,7 +2117,7 @@ export class WorkbenchStore {
     });
     this.#syncAgentPatchProposalToServer(proposalId);
     this.#dropResolvedAgentPatchLogs(proposal.relativePath);
-    this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.rejected', { file: proposal.relativePath }));
+    this.appendWorkspaceLog(`AI patch rejected: ${proposal.relativePath}`);
   }
 
   async acceptAgentPatchProposal(
@@ -2205,7 +2145,7 @@ export class WorkbenchStore {
      * feature for the entire agent-patch journey.
      */
     if (this.isFileLocked(proposal.filePath).locked) {
-      const message = workbenchText('workbenchRuntime.patch.locked', { file: proposal.relativePath });
+      const message = `${proposal.relativePath} is locked; the AI patch was not applied. Unlock it first.`;
       this.agentPatchProposals.setKey(proposalId, {
         ...proposal,
         status: 'failed',
@@ -2215,12 +2155,12 @@ export class WorkbenchStore {
       this.#syncAgentPatchProposalToServer(proposalId);
       this.actionAlert.set({
         type: 'warning',
-        title: workbenchText('workbenchRuntime.files.lockedTitle'),
+        title: 'File locked',
         description: message,
         content: message,
         source: 'preview',
       });
-      this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.lockedLog', { file: proposal.relativePath }));
+      this.appendWorkspaceLog(`AI patch blocked (locked): ${proposal.relativePath}`);
 
       return 'ignored';
     }
@@ -2298,9 +2238,7 @@ export class WorkbenchStore {
 
           if (reconciled !== acceptedContent) {
             acceptedContent = reconciled;
-            this.appendWorkspaceLog(
-              workbenchText('workbenchRuntime.patch.reconciled', { file: proposal.relativePath }),
-            );
+            this.appendWorkspaceLog(`AI patch reconciled ${proposal.relativePath} with a concurrent change`);
           }
         }
 
@@ -2323,8 +2261,12 @@ export class WorkbenchStore {
         artifact?.runner.skipAction(proposal.actionId);
 
         if (!fileExistsInEditor) {
-          await this.loadRuntimeFiles('.').catch(() => {
-            this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.refreshSkipped'));
+          await this.loadRuntimeFiles('.').catch((error) => {
+            this.appendWorkspaceLog(
+              error instanceof Error
+                ? `File refresh skipped after accepting AI patch: ${error.message}`
+                : 'File refresh skipped after accepting AI patch',
+            );
           });
         }
 
@@ -2343,17 +2285,19 @@ export class WorkbenchStore {
         });
         this.#dropResolvedAgentPatchLogs(proposal.relativePath);
         this.#dropResolvedMissingImportFailures();
-        this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.accepted', { file: proposal.relativePath }));
+        this.appendWorkspaceLog(`AI patch accepted: ${proposal.relativePath}`);
 
-        await this.#createProjectAgentCheckpoint(
-          workbenchText('workbenchRuntime.patch.checkpointLabel', { file: proposal.relativePath }),
-        ).catch(() => {
-          this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.checkpointSkipped'));
+        await this.#createProjectAgentCheckpoint(`AI accepted ${proposal.relativePath}`).catch((error) => {
+          this.appendWorkspaceLog(
+            error instanceof Error
+              ? `AI checkpoint skipped after patch accept: ${error.message}`
+              : 'AI checkpoint skipped after patch accept',
+          );
         });
 
         return 'accepted';
-      } catch {
-        const message = workbenchText('workbenchRuntime.patch.applyFailed');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Failed to apply AI patch.';
         this.agentPatchProposals.setKey(proposalId, {
           ...proposal,
           status: 'failed',
@@ -2361,7 +2305,7 @@ export class WorkbenchStore {
           error: message,
         });
         this.#syncAgentPatchProposalToServer(proposalId);
-        this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.failedLog', { file: proposal.relativePath }));
+        this.appendWorkspaceLog(`AI patch failed: ${proposal.relativePath}: ${message}`);
 
         return 'failed';
       }
@@ -2399,9 +2343,7 @@ export class WorkbenchStore {
 
     if (orderedProposals.cyclic && orderedProposals.cycleParticipants.length > 0) {
       this.appendWorkspaceLog(
-        workbenchText('workbenchRuntime.patch.importCycle', {
-          files: orderedProposals.cycleParticipants.join(', '),
-        }),
+        `AI patch bulk apply: import cycle detected (${orderedProposals.cycleParticipants.join(', ')}) — falling back to source order`,
       );
     }
 
@@ -2425,7 +2367,7 @@ export class WorkbenchStore {
     const artifact = this.#getArtifact(proposal.artifactId);
 
     if (!artifact) {
-      this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.revertMissing', { file: proposal.relativePath }));
+      this.appendWorkspaceLog(`AI patch revert skipped (artifact gone): ${proposal.relativePath}`);
       return;
     }
 
@@ -2465,9 +2407,10 @@ export class WorkbenchStore {
         artifactId: proposal.artifactId,
         actionId: `${proposal.actionId}-revert`,
       });
-      this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.reverted', { file: proposal.relativePath }));
-    } catch {
-      this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.revertFailed', { file: proposal.relativePath }));
+      this.appendWorkspaceLog(`AI patch reverted: ${proposal.relativePath}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to revert AI patch.';
+      this.appendWorkspaceLog(`AI patch revert failed: ${proposal.relativePath}: ${message}`);
     }
   }
 
@@ -2487,7 +2430,7 @@ export class WorkbenchStore {
     });
 
     if (!response.ok) {
-      throw Object.assign(new Error(), { code: 'SNAPSHOT_ENDPOINT_HTTP_ERROR', status: response.status });
+      throw new Error(`snapshot endpoint returned ${response.status}`);
     }
   }
 
@@ -2721,16 +2664,6 @@ export class WorkbenchStore {
 
           this.deployAlert.set(alert);
         },
-
-        /*
-         * Unify the dev-server launch: the AI's `start` action delegates here
-         * instead of typing `npm run dev` into an untracked jsh PTY, so the dev
-         * server is launched ONCE, through the tracked + install-aware
-         * startPreviewServer/streamCommand path (which /processes sees and the
-         * conflict-heal can reap). Normal (non-forced) start so it dedups against
-         * the client's own auto-run rather than double-launching.
-         */
-        () => this.startPreviewServer(),
       ),
     });
   }
@@ -2847,12 +2780,12 @@ export class WorkbenchStore {
            */
           this.actionAlert.set({
             type: 'warning',
-            title: workbenchText('workbenchRuntime.diff.title'),
-            description: workbenchText('workbenchRuntime.diff.description'),
-            content: workbenchText('workbenchRuntime.diff.description'),
+            title: 'Diff could not be applied',
+            description: resolution.message,
+            content: resolution.message,
             source: 'preview',
           });
-          this.appendWorkspaceLog(workbenchText('workbenchRuntime.diff.log'));
+          this.appendWorkspaceLog(`AI diff not applied: ${resolution.message}`);
           artifact.runner.skipAction(data.actionId);
 
           return;
@@ -2925,15 +2858,11 @@ export class WorkbenchStore {
         const lockState = this.isFileLocked(fullPath);
 
         if (hasUnsavedEdits || lockState.locked) {
-          const conflictTitle = workbenchText('workbenchRuntime.write.conflictTitle');
-
-          if (this.actionAlert.value?.title !== conflictTitle) {
+          if (this.actionAlert.value?.title !== 'AI write conflict') {
             this.actionAlert.set({
               type: 'warning',
-              title: conflictTitle,
-              description: workbenchText('workbenchRuntime.write.conflictDescription', {
-                file: data.action.filePath,
-              }),
+              title: 'AI write conflict',
+              description: `The assistant is editing ${data.action.filePath} while you have unsaved changes to it. Your edits are kept; save or discard them to apply the assistant's version.`,
               content: '',
               source: 'preview',
             });
@@ -2957,15 +2886,15 @@ export class WorkbenchStore {
       const nonStreamingLockState = this.isFileLocked(fullPath);
 
       if (nonStreamingLockState.locked) {
-        const message = workbenchText('workbenchRuntime.write.locked', { file: data.action.filePath });
+        const message = `${data.action.filePath} is locked; the assistant's change was not written.`;
         this.actionAlert.set({
           type: 'warning',
-          title: workbenchText('workbenchRuntime.write.blockedTitle'),
+          title: 'AI file write blocked',
           description: message,
           content: message,
           source: 'preview',
         });
-        this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.blockedLog', { file: data.action.filePath }));
+        this.appendWorkspaceLog(`AI file write blocked (locked): ${data.action.filePath}`);
         artifact.runner.skipAction(data.actionId);
 
         return;
@@ -2976,22 +2905,26 @@ export class WorkbenchStore {
       const completedAction = artifact.runner.actions.get()[data.actionId];
 
       if (completedAction?.status === 'failed') {
-        const message = workbenchText('workbenchRuntime.write.failed', { file: data.action.filePath });
+        const message = completedAction.error || `Failed to write ${data.action.filePath}`;
 
         this.actionAlert.set({
           type: 'error',
-          title: workbenchText('workbenchRuntime.write.blockedTitle'),
+          title: 'AI file write blocked',
           description: message,
           content: message,
           source: 'preview',
         });
-        this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.blockedLog', { file: data.action.filePath }));
+        this.appendWorkspaceLog(`AI file write blocked: ${data.action.filePath}: ${message}`);
 
         return;
       }
 
-      await this.loadRuntimeFiles('.').catch(() => {
-        this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.refreshSkipped'));
+      await this.loadRuntimeFiles('.').catch((error) => {
+        this.appendWorkspaceLog(
+          error instanceof Error
+            ? `File refresh skipped after AI write: ${error.message}`
+            : 'File refresh skipped after AI write',
+        );
       });
 
       const writtenFile = this.#filesStore.getFile(fullPath);
@@ -3005,7 +2938,7 @@ export class WorkbenchStore {
     } else {
       if (this.agentPatchReviewRequired.get() && this.#hasOpenAgentPatchProposalsForArtifact(artifactId)) {
         artifact.runner.skipAction(data.actionId);
-        this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.commandReviewPending'));
+        this.appendWorkspaceLog('AI command skipped until reviewed file changes are accepted or rejected.');
 
         return;
       }
@@ -3099,7 +3032,7 @@ export class WorkbenchStore {
         validationFiles,
       );
     } catch (error) {
-      const message = workbenchText('workbenchRuntime.validation.failed');
+      const message = error instanceof Error ? error.message : 'Generated file validation failed.';
       const failedPath = error instanceof Error && 'filePath' in error ? String(error.filePath) : null;
 
       for (const proposal of proposals) {
@@ -3119,9 +3052,7 @@ export class WorkbenchStore {
           error: message,
         });
         this.#syncAgentPatchProposalToServer(proposal.id);
-        this.appendWorkspaceLog(
-          workbenchText('workbenchRuntime.validation.patchBlocked', { file: proposal.relativePath }),
-        );
+        this.appendWorkspaceLog(`AI patch blocked: ${proposal.relativePath}: ${message}`);
       }
     }
   }
@@ -3173,20 +3104,22 @@ export class WorkbenchStore {
     }
 
     if (!isStreaming) {
-      this.appendWorkspaceLog(
-        workbenchText('workbenchRuntime.validation.waitingForReview', { file: data.action.filePath }),
-      );
+      this.appendWorkspaceLog(`AI patch waiting for review: ${data.action.filePath}`);
     }
   }
 
   async #refreshPreviewAfterArtifactClose(artifactId: string) {
-    await this.loadRuntimeFiles('.').catch(() => {
-      this.appendWorkspaceLog(workbenchText('workbenchRuntime.validation.previewRefreshSkipped'));
+    await this.loadRuntimeFiles('.').catch((error) => {
+      this.appendWorkspaceLog(
+        error instanceof Error ? `Preview file refresh skipped: ${error.message}` : 'Preview file refresh skipped',
+      );
     });
 
-    const previewManifestChanged = await this.#syncPreviewManifestFromRuntime().catch(() => {
+    const previewManifestChanged = await this.#syncPreviewManifestFromRuntime().catch((error) => {
       this.appendWorkspaceLog(
-        workbenchText('workbenchRuntime.validation.dependencySyncSkipped', { artifact: artifactId }),
+        error instanceof Error
+          ? `Dependency sync skipped after ${artifactId}: ${error.message}`
+          : `Dependency sync skipped after ${artifactId}`,
       );
 
       return false;
@@ -3215,9 +3148,11 @@ export class WorkbenchStore {
       return;
     }
 
-    await this.restartPreviewServer().catch(() => {
+    await this.restartPreviewServer().catch((error) => {
       this.appendWorkspaceLog(
-        workbenchText('workbenchRuntime.validation.previewRestartSkipped', { artifact: artifactId }),
+        error instanceof Error
+          ? `Preview restart skipped after ${artifactId}: ${error.message}`
+          : `Preview restart skipped after ${artifactId}`,
       );
     });
   }
@@ -3252,19 +3187,17 @@ export class WorkbenchStore {
       await validateGeneratedFiles(generatedFiles);
 
       return true;
-    } catch {
-      const message = workbenchText('workbenchRuntime.validation.invalidImportDescription');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Generated file import validation failed.';
 
       this.actionAlert.set({
         type: 'error',
-        title: workbenchText('workbenchRuntime.validation.invalidImportTitle'),
+        title: 'AI generated an invalid file import',
         description: message,
         content: message,
         source: 'preview',
       });
-      this.appendWorkspaceLog(
-        workbenchText('workbenchRuntime.validation.previewRestartBlocked', { artifact: artifactId }),
-      );
+      this.appendWorkspaceLog(`Preview restart blocked after ${artifactId}: ${message}`);
 
       return false;
     }
@@ -3289,12 +3222,10 @@ export class WorkbenchStore {
      */
     return withRuntimeRetry(() => this.#syncPreviewManifestFromRuntimeOnce(), {
       attempts: 8,
-      onRetry: (attempt, delayMs) => {
+      onRetry: (attempt, delayMs, error) => {
+        const reason = error instanceof Error ? error.message : String(error);
         this.appendWorkspaceLog(
-          workbenchText('workbenchRuntime.dependencies.retry', {
-            attempt,
-            seconds: Math.round(delayMs / 100) / 10,
-          }),
+          `Dependency sync attempt ${attempt} failed (${reason}); retrying in ${Math.round(delayMs / 100) / 10}s…`,
         );
       },
     });
@@ -3322,18 +3253,13 @@ export class WorkbenchStore {
 
     if (Object.keys(doctor.fixups).length) {
       this.appendWorkspaceLog(
-        workbenchText('workbenchRuntime.doctor.fixedExports', {
-          files: Object.keys(doctor.fixups).join(', '),
-        }),
+        `Project doctor: added missing default export(s) to ${Object.keys(doctor.fixups).join(', ')}`,
       );
     }
 
     for (const item of doctor.unresolved) {
       this.appendWorkspaceLog(
-        workbenchText('workbenchRuntime.doctor.unresolvedImport', {
-          specifier: item.specifier,
-          importer: item.importer,
-        }),
+        `Project doctor: "${item.specifier}" imported by ${item.importer} resolves to no file — the app may not mount until it exists.`,
       );
     }
 
@@ -3346,39 +3272,31 @@ export class WorkbenchStore {
       changed = true;
 
       if (repair.packageJson.created) {
-        this.appendWorkspaceLog(
-          workbenchText('workbenchRuntime.doctor.createdManifest', { file: repair.packageJson.path }),
-        );
+        this.appendWorkspaceLog(`Created preview package manifest at ${repair.packageJson.path}`);
       }
 
       if (repair.packageJson.missingDependencies.length) {
         this.appendWorkspaceLog(
-          workbenchText('workbenchRuntime.doctor.addedDependencies', {
-            dependencies: repair.packageJson.missingDependencies.join(', '),
-          }),
+          `Added missing runtime dependencies: ${repair.packageJson.missingDependencies.join(', ')}`,
         );
       }
 
       if (repair.packageJson.addedScripts.length) {
-        this.appendWorkspaceLog(
-          workbenchText('workbenchRuntime.doctor.addedScripts', {
-            scripts: repair.packageJson.addedScripts.join(', '),
-          }),
-        );
+        this.appendWorkspaceLog(`Added preview package scripts: ${repair.packageJson.addedScripts.join(', ')}`);
       }
 
       if (repair.packageJson.upgradedDependencies.length) {
         this.appendWorkspaceLog(
-          workbenchText('workbenchRuntime.doctor.upgradedReact', {
-            dependencies: repair.packageJson.upgradedDependencies.join(', '),
-          }),
+          `Upgraded ${repair.packageJson.upgradedDependencies.join(
+            ', ',
+          )} to React 18 (the app calls createRoot / react-dom/client, which require React ≥18)`,
         );
       }
     }
 
     for (const file of repair.supplementalFiles) {
       await this.#runtime.writeFile(file.path, file.content);
-      this.appendWorkspaceLog(workbenchText('workbenchRuntime.doctor.createdRuntimeFile', { file: file.path }));
+      this.appendWorkspaceLog(`Created preview runtime file ${file.path}`);
       changed = true;
     }
 
@@ -3416,12 +3334,12 @@ export class WorkbenchStore {
         const byteLength = new TextEncoder().encode(content).byteLength;
 
         if (byteLength > PROJECT_STORAGE_SYNC_MAX_FILE_BYTES) {
-          this.appendWorkspaceLog(workbenchText('workbenchRuntime.storage.skippedLargeFile', { file: filePath }));
+          this.appendWorkspaceLog(`Project storage sync skipped large file ${filePath}`);
           continue;
         }
 
         if (totalBytes + byteLength > PROJECT_STORAGE_SYNC_MAX_TOTAL_BYTES) {
-          this.appendWorkspaceLog(workbenchText('workbenchRuntime.storage.sizeLimit'));
+          this.appendWorkspaceLog('Project storage sync stopped at size limit');
           break;
         }
 
@@ -3445,14 +3363,16 @@ export class WorkbenchStore {
       });
 
       if (!response.ok) {
-        throw Object.assign(new Error(), { code: 'PROJECT_IMPORT_HTTP_ERROR', status: response.status });
+        throw new Error(`import returned ${response.status}`);
       }
 
+      this.appendWorkspaceLog(`Project storage synced ${fileCount} files after ${artifactId}`);
+    } catch (error) {
       this.appendWorkspaceLog(
-        workbenchText('workbenchRuntime.storage.synced', { count: fileCount, artifact: artifactId }),
+        error instanceof Error
+          ? `Project storage sync skipped after ${artifactId}: ${error.message}`
+          : `Project storage sync skipped after ${artifactId}`,
       );
-    } catch {
-      this.appendWorkspaceLog(workbenchText('workbenchRuntime.storage.skipped', { artifact: artifactId }));
     }
   }
 
@@ -3472,9 +3392,7 @@ export class WorkbenchStore {
     }
 
     try {
-      await this.#runtime.createSnapshot(
-        workbenchText('workbenchRuntime.snapshot.beforeAi', { artifact: data.artifactId }),
-      );
+      await this.#runtime.createSnapshot(`Before AI changes ${data.artifactId}`);
 
       /*
        * Mark as snapshotted only AFTER success. Setting the dedup marker first
@@ -3609,13 +3527,13 @@ export class WorkbenchStore {
       const owner = username || Cookies.get(isGitHub ? 'githubUsername' : 'gitlabUsername');
 
       if (!authToken || !owner) {
-        throw new Error(workbenchText('workbenchRuntime.repository.credentialsMissing', { provider }));
+        throw new Error(`${provider} token or username is not set in cookies or provided.`);
       }
 
       const files = this.files.get();
 
       if (!files || Object.keys(files).length === 0) {
-        throw new Error(workbenchText('workbenchRuntime.repository.noFiles'));
+        throw new Error('No files found to push');
       }
 
       if (isGitHub) {
@@ -3690,7 +3608,7 @@ export class WorkbenchStore {
         const files = this.files.get();
 
         if (!files || Object.keys(files).length === 0) {
-          throw new Error(workbenchText('workbenchRuntime.repository.noFiles'));
+          throw new Error('No files found to push');
         }
 
         // Function to push files with retry logic
@@ -3738,7 +3656,7 @@ export class WorkbenchStore {
             const validBlobs = blobs.filter(Boolean); // Filter out any undefined blobs
 
             if (validBlobs.length === 0) {
-              throw new Error(workbenchText('workbenchRuntime.repository.noValidFiles'));
+              throw new Error('No valid files to push');
             }
 
             // Refresh repository reference to ensure we have the latest data
@@ -3793,7 +3711,7 @@ export class WorkbenchStore {
             const { data: newCommit } = await octokit.git.createCommit({
               owner: repo.owner.login,
               repo: repo.name,
-              message: commitMessage || workbenchText('workbenchRuntime.repository.initialCommit'),
+              message: commitMessage || 'Initial commit from your app',
               tree: newTree.sha,
               parents: [latestCommitSha],
             });
@@ -3906,7 +3824,7 @@ export class WorkbenchStore {
         // Commit all files
         await gitLabApiService.commitFiles(repo.id, {
           branch: branchName,
-          commit_message: commitMessage || workbenchText('workbenchRuntime.repository.multipleFilesCommit'),
+          commit_message: commitMessage || 'Commit multiple files',
           actions,
         });
 
@@ -3914,7 +3832,7 @@ export class WorkbenchStore {
       }
 
       // Should not reach here since we only handle GitHub and GitLab
-      throw new Error(workbenchText('workbenchRuntime.repository.unsupportedProvider', { provider }));
+      throw new Error(`Unsupported provider: ${provider}`);
     } catch (error) {
       console.error('Error pushing to repository:', error);
       throw error; // Rethrow the error for further handling

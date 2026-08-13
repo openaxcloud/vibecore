@@ -1,10 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import {
-  formatClientRuntimeResidualCopy,
-  getClientRuntimeResidualCopy,
-} from '~/lib/i18n/catalogs/client-runtime-residual';
 import { gitHubApiService } from '~/lib/services/githubApiService';
 import type { GitHubStats, GitHubConnection } from '~/types/GitHub';
 
@@ -32,25 +27,11 @@ export interface UseGitHubStatsReturn extends UseGitHubStatsState {
 const STATS_CACHE_KEY = 'github_stats_cache';
 const DEFAULT_CACHE_TIMEOUT = 30 * 60 * 1000; // 30 minutes
 
-type GitHubStatsErrorKind = 'connection_unavailable' | 'authentication_required' | 'api_unavailable' | 'fetch_failed';
-
-class GitHubStatsDisplayError extends Error {
-  constructor(
-    message: string,
-    readonly kind: GitHubStatsErrorKind,
-  ) {
-    super(message);
-  }
-}
-
 export function useGitHubStats(
   connection: GitHubConnection | null,
   options: UseGitHubStatsOptions = {},
   isServerSide: boolean = false,
 ): UseGitHubStatsReturn {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getClientRuntimeResidualCopy(language);
   const { autoFetch = false, refreshInterval, cacheTimeout = DEFAULT_CACHE_TIMEOUT } = options;
 
   const [state, setState] = useState<UseGitHubStatsState>({
@@ -60,23 +41,6 @@ export function useGitHubStats(
     error: null,
     lastUpdated: null,
   });
-
-  const [errorKind, setErrorKind] = useState<GitHubStatsErrorKind | null>(null);
-
-  const localizedError =
-    errorKind === 'connection_unavailable'
-      ? formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsUnavailable'], { provider: 'GitHub' })
-      : errorKind === 'authentication_required'
-        ? formatClientRuntimeResidualCopy(copy['clientRuntime.connection.authenticationRequired'], {
-            provider: 'GitHub',
-          })
-        : errorKind === 'api_unavailable'
-          ? formatClientRuntimeResidualCopy(copy['clientRuntime.connection.apiUnavailable'], { provider: 'GitHub' })
-          : errorKind === 'fetch_failed'
-            ? formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsFetchFailed'], {
-                provider: 'GitHub',
-              })
-            : null;
 
   // Configure API service when connection is available
   const apiService = useMemo(() => {
@@ -192,19 +156,16 @@ export function useGitHubStats(
 
   const fetchStats = useCallback(async () => {
     if (!connection?.user) {
-      setErrorKind('connection_unavailable');
       setState((prev) => ({
         ...prev,
-        error: null,
+        error: 'GitHub connection not available',
         isLoading: false,
         isRefreshing: false,
       }));
-
       return;
     }
 
     let isRefreshing = false;
-    setErrorKind(null);
 
     setState((prev) => {
       isRefreshing = !!prev.stats; // Show refreshing (and toasts) only when stats already exist
@@ -226,31 +187,18 @@ export function useGitHubStats(
 
         if (!response.ok) {
           if (response.status === 401) {
-            throw new GitHubStatsDisplayError(
-              formatClientRuntimeResidualCopy(copy['clientRuntime.connection.authenticationRequired'], {
-                provider: 'GitHub',
-              }),
-              'authentication_required',
-            );
+            throw new Error('GitHub authentication required');
           }
 
-          await response.json().catch(() => undefined);
-          throw new GitHubStatsDisplayError(
-            formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsFetchFailed'], {
-              provider: 'GitHub',
-            }),
-            'fetch_failed',
-          );
+          const errorData: any = await response.json();
+          throw new Error(errorData.error || 'Failed to fetch stats from server');
         }
 
         stats = await response.json();
       } else {
         // Use client-side API service for stats
         if (!apiService) {
-          throw new GitHubStatsDisplayError(
-            formatClientRuntimeResidualCopy(copy['clientRuntime.connection.apiUnavailable'], { provider: 'GitHub' }),
-            'api_unavailable',
-          );
+          throw new Error('GitHub API service not available');
         }
 
         stats = await apiService.generateComprehensiveStats(connection.user);
@@ -266,7 +214,6 @@ export function useGitHubStats(
         lastUpdated: now,
         error: null,
       }));
-      setErrorKind(null);
 
       // Cache the stats
       saveCachedStats(stats, connection.user.login);
@@ -282,41 +229,28 @@ export function useGitHubStats(
 
       // Only show success toast for manual refreshes, not auto-fetches
       if (isRefreshing) {
-        toast.success(
-          formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsUpdated'], { provider: 'GitHub' }),
-        );
+        toast.success('GitHub stats updated successfully');
       }
     } catch (error) {
       console.error('Error fetching GitHub stats:', error);
 
-      const errorMessage =
-        error instanceof GitHubStatsDisplayError
-          ? error.message
-          : formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsFetchFailed'], {
-              provider: 'GitHub',
-            });
-      setErrorKind(error instanceof GitHubStatsDisplayError ? error.kind : 'fetch_failed');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch GitHub stats';
 
       setState((prev) => ({
         ...prev,
         isLoading: false,
         isRefreshing: false,
-        error: null,
+        error: errorMessage,
       }));
 
       // Only show error toast for manual actions, not auto-fetches
       if (isRefreshing) {
-        toast.error(
-          formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsUpdateFailed'], { provider: 'GitHub' }),
-        );
+        toast.error(`Failed to update GitHub stats: ${errorMessage}`);
       }
 
-      throw new GitHubStatsDisplayError(
-        errorMessage,
-        error instanceof GitHubStatsDisplayError ? error.kind : 'fetch_failed',
-      );
+      throw error;
     }
-  }, [apiService, connection, copy, saveCachedStats, isServerSide]);
+  }, [apiService, connection, saveCachedStats, isServerSide]);
 
   const refreshStats = useCallback(async () => {
     if (state.isRefreshing || state.isLoading) {
@@ -327,7 +261,6 @@ export function useGitHubStats(
   }, [fetchStats, state.isRefreshing, state.isLoading]);
 
   const clearStats = useCallback(() => {
-    setErrorKind(null);
     setState({
       stats: null,
       isLoading: false,
@@ -342,7 +275,6 @@ export function useGitHubStats(
 
   return {
     ...state,
-    error: localizedError,
     fetchStats,
     refreshStats,
     clearStats,
@@ -352,21 +284,9 @@ export function useGitHubStats(
 
 // Helper hook for lightweight stats fetching (just repositories)
 export function useGitHubRepositories(connection: GitHubConnection | null) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getClientRuntimeResidualCopy(language);
   const [repositories, setRepositories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorKind, setErrorKind] = useState<'connection_unavailable' | 'fetch_failed' | null>(null);
-
-  const error =
-    errorKind === 'connection_unavailable'
-      ? formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsUnavailable'], { provider: 'GitHub' })
-      : errorKind === 'fetch_failed'
-        ? formatClientRuntimeResidualCopy(copy['clientRuntime.connection.repositoriesFetchFailed'], {
-            provider: 'GitHub',
-          })
-        : null;
+  const [error, setError] = useState<string | null>(null);
 
   const apiService = useMemo(() => {
     if (!connection?.token) {
@@ -384,12 +304,12 @@ export function useGitHubRepositories(connection: GitHubConnection | null) {
 
   const fetchRepositories = useCallback(async () => {
     if (!apiService) {
-      setErrorKind('connection_unavailable');
+      setError('GitHub connection not available');
       return;
     }
 
     setIsLoading(true);
-    setErrorKind(null);
+    setError(null);
 
     try {
       const repos = await apiService.getAllUserRepositories();
@@ -397,15 +317,13 @@ export function useGitHubRepositories(connection: GitHubConnection | null) {
     } catch (error) {
       console.error('Error fetching repositories:', error);
 
-      const errorMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.repositoriesFetchFailed'], {
-        provider: 'GitHub',
-      });
-      setErrorKind('fetch_failed');
-      throw new GitHubStatsDisplayError(errorMessage, 'fetch_failed');
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch repositories';
+      setError(errorMessage);
+      throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [apiService, copy]);
+  }, [apiService]);
 
   return {
     repositories,

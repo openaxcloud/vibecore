@@ -1,15 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useEffect, useState } from 'react';
 import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
 import { Input } from '~/components/ui/Input';
-import {
-  formatConnectionsTabRequestDate,
-  formatConnectionsTabRequestHeading,
-  getConnectionsTabCopy,
-  getConnectionsTabRequestSafeError,
-  getConnectionsTabRequestStatusLabel,
-} from '~/lib/i18n/catalogs/connections-tab';
 import { classNames } from '~/utils/classNames';
 
 interface IntegrationFeatureRequest {
@@ -28,12 +20,7 @@ interface IntegrationFeatureRequest {
  * statuses fall back to a neutral pill so a new status never renders un-styled.
  */
 function statusBadgeVariant(status: string): 'warning' | 'info' | 'success' | 'danger' | 'secondary' {
-  switch (
-    status
-      .trim()
-      .toLowerCase()
-      .replace(/[\s-]+/gu, '_')
-  ) {
+  switch (status) {
     case 'pending':
       return 'warning';
     case 'planned':
@@ -50,97 +37,61 @@ function statusBadgeVariant(status: string): 'warning' | 'info' | 'success' | 'd
   }
 }
 
-function parseIntegrationFeatureRequest(value: unknown): IntegrationFeatureRequest | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-
-  const request = value as Partial<Record<keyof IntegrationFeatureRequest, unknown>>;
-
-  if (
-    typeof request.id !== 'string' ||
-    typeof request.integrationName !== 'string' ||
-    typeof request.useCaseDescription !== 'string' ||
-    typeof request.status !== 'string' ||
-    (request.organizationId !== null && typeof request.organizationId !== 'string') ||
-    typeof request.createdAt !== 'string' ||
-    typeof request.mine !== 'boolean'
-  ) {
-    return null;
-  }
-
-  return {
-    id: request.id,
-    integrationName: request.integrationName,
-    useCaseDescription: request.useCaseDescription,
-    status: request.status,
-    organizationId: request.organizationId,
-    createdAt: request.createdAt,
-    mine: request.mine,
-  };
+function formatStatus(status: string): string {
+  return status.replace(/_/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function parseIntegrationRequestsPayload(value: unknown): IntegrationFeatureRequest[] {
-  if (!value || typeof value !== 'object' || !('requests' in value) || !Array.isArray(value.requests)) {
-    throw new TypeError();
-  }
+function formatDate(iso: string): string {
+  const date = new Date(iso);
 
-  const requests = value.requests.map(parseIntegrationFeatureRequest);
-
-  if (requests.some((request) => request === null)) {
-    throw new TypeError();
-  }
-
-  return requests as IntegrationFeatureRequest[];
+  return Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString();
 }
 
 const textareaClassName =
   'flex min-h-[88px] w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textPrimary ring-offset-bolt-elements-background-depth-1 placeholder:text-bolt-elements-textSecondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50';
 
 export default function RequestIntegrationCard() {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getConnectionsTabCopy(language);
   const [requests, setRequests] = useState<IntegrationFeatureRequest[]>([]);
-  const [loadState, setLoadState] = useState<'loading' | 'success' | 'error'>('loading');
-  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
 
   const [integrationName, setIntegrationName] = useState('');
   const [useCaseDescription, setUseCaseDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [submitFailed, setSubmitFailed] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
-    const controller = new AbortController();
+    let cancelled = false;
 
-    setLoadState('loading');
+    fetch('/api/integration-requests')
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error(response.statusText))))
+      .then((data) => {
+        const responseData = data as { requests?: IntegrationFeatureRequest[] };
 
-    void fetch('/api/integration-requests', { signal: controller.signal })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error();
-        }
-
-        return parseIntegrationRequestsPayload(await response.json());
-      })
-      .then((nextRequests) => {
-        if (!controller.signal.aborted) {
-          setRequests(nextRequests);
-          setLoadState('success');
+        if (!cancelled) {
+          setRequests(Array.isArray(responseData.requests) ? responseData.requests : []);
+          setListError(null);
         }
       })
       .catch(() => {
-        if (!controller.signal.aborted) {
+        if (!cancelled) {
           setRequests([]);
-          setLoadState('error');
+          setListError('Could not load your integration requests. Check your connection and try again.');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
         }
       });
 
-    return () => controller.abort();
-  }, [loadAttempt]);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const name = integrationName.trim();
@@ -151,7 +102,7 @@ export default function RequestIntegrationCard() {
     }
 
     setSubmitting(true);
-    setSubmitFailed(false);
+    setSubmitError(null);
     setSubmitted(false);
 
     try {
@@ -161,22 +112,21 @@ export default function RequestIntegrationCard() {
 
       const response = await fetch('/api/integration-requests', { method: 'POST', body: form });
 
-      const data: unknown = await response.json().catch(() => null);
+      const data = (await response.json().catch(() => ({}))) as {
+        request?: IntegrationFeatureRequest;
+        error?: string;
+      };
 
-      const request =
-        data && typeof data === 'object' && 'request' in data ? parseIntegrationFeatureRequest(data.request) : null;
-
-      if (!response.ok || !request) {
-        throw new Error();
+      if (!response.ok || !data.request) {
+        throw new Error(data.error ?? 'Unable to submit your integration request.');
       }
 
-      setRequests((current) => [request, ...current.filter((item) => item.id !== request.id)]);
-      setLoadState('success');
+      setRequests((current) => [data.request as IntegrationFeatureRequest, ...current]);
       setIntegrationName('');
       setUseCaseDescription('');
       setSubmitted(true);
-    } catch {
-      setSubmitFailed(true);
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : 'Unable to submit your integration request.');
     } finally {
       setSubmitting(false);
     }
@@ -185,54 +135,40 @@ export default function RequestIntegrationCard() {
   const canSubmit = integrationName.trim().length > 0 && useCaseDescription.trim().length > 0 && !submitting;
 
   return (
-    <section
-      className="min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
-      aria-labelledby="integration-request-title"
-    >
-      <div className="flex min-w-0 flex-col gap-1">
-        <h3 id="integration-request-title" className="break-words text-sm font-medium text-bolt-elements-textPrimary">
-          {copy['connectionsTab.request.title']}
-        </h3>
-        <p className="break-words text-sm text-bolt-elements-textSecondary">
-          {copy['connectionsTab.request.description']}
+    <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Request an integration</h3>
+        <p className="text-sm text-bolt-elements-textSecondary">
+          Need a connector or service that isn&apos;t available yet? Tell us what you&apos;d build with it.
         </p>
       </div>
 
       <form className="mt-4 flex flex-col gap-3" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="integration-name" className="text-xs font-medium text-bolt-elements-textSecondary">
-            {copy['connectionsTab.request.nameLabel']}
+            Integration name
           </label>
           <Input
             id="integration-name"
             value={integrationName}
-            onChange={(event) => {
-              setIntegrationName(event.target.value);
-              setSubmitFailed(false);
-              setSubmitted(false);
-            }}
-            placeholder={copy['connectionsTab.request.namePlaceholder']}
+            onChange={(event) => setIntegrationName(event.target.value)}
+            placeholder="e.g. Notion, Stripe, Twilio"
             maxLength={120}
             disabled={submitting}
-            className="!h-11"
             required
           />
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label htmlFor="integration-use-case" className="text-xs font-medium text-bolt-elements-textSecondary">
-            {copy['connectionsTab.request.useCaseLabel']}
+            What would you use it for?
           </label>
           <textarea
             id="integration-use-case"
             className={textareaClassName}
             value={useCaseDescription}
-            onChange={(event) => {
-              setUseCaseDescription(event.target.value);
-              setSubmitFailed(false);
-              setSubmitted(false);
-            }}
-            placeholder={copy['connectionsTab.request.useCasePlaceholder']}
+            onChange={(event) => setUseCaseDescription(event.target.value)}
+            placeholder="Describe the use case so we can prioritize it."
             maxLength={2000}
             disabled={submitting}
             required
@@ -242,71 +178,35 @@ export default function RequestIntegrationCard() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p
             className={classNames(
-              'min-w-0 flex-1 break-words text-xs',
-              submitFailed
-                ? 'text-[var(--status-error-text)]'
-                : submitted
-                  ? 'text-[var(--status-success-text)]'
-                  : 'text-bolt-elements-textTertiary',
+              'text-xs',
+              submitError ? 'text-red-500' : submitted ? 'text-green-500' : 'text-bolt-elements-textTertiary',
             )}
-            role={submitFailed ? 'alert' : submitted ? 'status' : undefined}
-            aria-live="polite"
+            role={submitError ? 'alert' : undefined}
           >
-            {submitFailed
-              ? getConnectionsTabRequestSafeError('submit', language)
+            {submitError
+              ? submitError
               : submitted
-                ? copy['connectionsTab.request.submitSuccess']
-                : copy['connectionsTab.request.visibility']}
+                ? 'Thanks! Your request has been recorded.'
+                : 'Your request is visible to you and your organization.'}
           </p>
-          <Button
-            type="submit"
-            disabled={!canSubmit}
-            className="!h-auto min-h-11 max-w-full shrink-0 !whitespace-normal break-words py-2 text-center leading-tight"
-          >
-            {submitting ? copy['connectionsTab.request.submitting'] : copy['connectionsTab.request.submit']}
+          <Button type="submit" disabled={!canSubmit}>
+            {submitting ? 'Submitting...' : 'Submit request'}
           </Button>
         </div>
       </form>
 
       <div className="mt-5 border-t border-bolt-elements-borderColor pt-4">
-        <h4 className="break-words text-xs font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
-          {formatConnectionsTabRequestHeading(requests.length, language)}
-        </h4>
+        <h4 className="text-xs font-medium uppercase tracking-wide text-bolt-elements-textTertiary">Your requests</h4>
 
-        {loadState === 'loading' ? (
-          <div className="mt-3" role="status" aria-live="polite" aria-busy="true">
-            <p className="text-sm text-bolt-elements-textSecondary">{copy['connectionsTab.request.loading']}</p>
-            <div className="mt-3 flex flex-col gap-2" aria-hidden="true">
-              {Array.from({ length: 2 }, (_, index) => (
-                <div key={index} className="h-16 animate-pulse rounded-lg bg-bolt-elements-background-depth-1" />
-              ))}
-            </div>
-          </div>
-        ) : loadState === 'error' ? (
-          <div
-            className="mt-3 flex min-w-0 flex-col items-start gap-3 rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4 sm:flex-row sm:justify-between"
-            role="alert"
-          >
-            <div className="min-w-0">
-              <p className="break-words text-sm font-medium text-[var(--status-error-text)]">
-                {copy['connectionsTab.request.loadErrorTitle']}
-              </p>
-              <p className="mt-1 break-words text-sm text-[var(--status-error-text)]">
-                {getConnectionsTabRequestSafeError('load', language)}
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setLoadAttempt((current) => current + 1)}
-              className="!h-auto min-h-11 max-w-full shrink-0 !whitespace-normal break-words py-2 text-center leading-tight"
-            >
-              {copy['connectionsTab.request.retry']}
-            </Button>
-          </div>
+        {loading ? (
+          <p className="mt-3 text-sm text-bolt-elements-textSecondary">Loading your requests...</p>
+        ) : listError ? (
+          <p className="mt-3 text-sm text-red-500" role="alert">
+            {listError}
+          </p>
         ) : requests.length === 0 ? (
-          <p className="mt-3 break-words text-sm text-bolt-elements-textSecondary" role="status">
-            {copy['connectionsTab.request.empty']}
+          <p className="mt-3 text-sm text-bolt-elements-textSecondary">
+            You haven&apos;t requested any integrations yet.
           </p>
         ) : (
           <ul className="mt-3 flex flex-col gap-2">
@@ -320,23 +220,17 @@ export default function RequestIntegrationCard() {
                     <span className="truncate text-sm font-medium text-bolt-elements-textPrimary">
                       {request.integrationName}
                     </span>
-                    {!request.mine && (
-                      <span className="shrink-0 text-xs text-bolt-elements-textTertiary">
-                        ({copy['connectionsTab.request.team']})
-                      </span>
-                    )}
+                    {!request.mine && <span className="text-xs text-bolt-elements-textTertiary">(team)</span>}
                   </div>
                   <p className="mt-0.5 break-words text-xs text-bolt-elements-textSecondary">
                     {request.useCaseDescription}
                   </p>
                   {request.createdAt && (
-                    <p className="mt-1 text-xs text-bolt-elements-textTertiary">
-                      {formatConnectionsTabRequestDate(request.createdAt, language)}
-                    </p>
+                    <p className="mt-1 text-xs text-bolt-elements-textTertiary">{formatDate(request.createdAt)}</p>
                   )}
                 </div>
                 <Badge variant={statusBadgeVariant(request.status)} size="md" className="shrink-0 self-start">
-                  {getConnectionsTabRequestStatusLabel(request.status, language)}
+                  {formatStatus(request.status)}
                 </Badge>
               </li>
             ))}

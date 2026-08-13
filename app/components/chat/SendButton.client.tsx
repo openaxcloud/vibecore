@@ -1,6 +1,4 @@
 import { AnimatePresence, cubicBezier, motion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
-import { getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 
 interface SendButtonProps {
   show: boolean;
@@ -14,10 +12,7 @@ interface SendButtonProps {
 const customEasingFn = cubicBezier(0.4, 0, 0.2, 1);
 
 export const SendButton = ({ show, isStreaming, disabled, variant = 'overlay', onClick }: SendButtonProps) => {
-  const { i18n } = useTranslation();
-  const copy = getClientAstResidualCopy(i18n.resolvedLanguage ?? i18n.language);
   const isToolbarVariant = variant === 'toolbar';
-  const accessibleLabel = isStreaming ? copy['clientAst.chat.send.stop'] : copy['clientAst.chat.send.message'];
 
   const buttonClassName = isToolbarVariant
     ? 'bolt-composer-send-button bolt-composer-send-button-toolbar relative z-20 flex h-9 w-9 items-center justify-center rounded-md bg-accent-500 p-1 color-white shadow-sm transition-theme hover:brightness-94 disabled:cursor-not-allowed disabled:opacity-50'
@@ -29,8 +24,8 @@ export const SendButton = ({ show, isStreaming, disabled, variant = 'overlay', o
         <motion.button
           type="button"
           className={buttonClassName}
-          aria-label={accessibleLabel}
-          title={accessibleLabel}
+          aria-label={isStreaming ? 'Stop generation' : 'Send message'}
+          title={isStreaming ? 'Stop generation' : 'Send message'}
           transition={{ ease: customEasingFn, duration: 0.17 }}
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}

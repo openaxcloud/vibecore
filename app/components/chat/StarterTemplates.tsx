@@ -1,17 +1,14 @@
 import React, { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
-import { formatStarterTemplatesCopy, getStarterTemplatesCopy } from '~/lib/i18n/catalogs/starter-templates';
 import type { Template } from '~/types/template';
-import { getStarterTemplates } from '~/utils/constants';
+import { STARTER_TEMPLATES } from '~/utils/constants';
 
 interface FrameworkLinkProps {
   template: Template;
-  startLabel: string;
   onNavigate: (href: string, event: React.MouseEvent) => void;
 }
 
-const FrameworkLink: React.FC<FrameworkLinkProps> = ({ template, startLabel, onNavigate }) => {
+const FrameworkLink: React.FC<FrameworkLinkProps> = ({ template, onNavigate }) => {
   const href = `/git?url=https://github.com/${template.githubRepo}.git`;
 
   return (
@@ -20,7 +17,7 @@ const FrameworkLink: React.FC<FrameworkLinkProps> = ({ template, startLabel, onN
       data-state="closed"
       data-discover="true"
       data-discard-guard="true"
-      aria-label={startLabel}
+      aria-label={`Start a ${template.label} app`}
       title={template.label}
       onClick={(event) => onNavigate(href, event)}
       className="inline-flex items-center justify-center rounded-md p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
@@ -40,10 +37,6 @@ const FrameworkLink: React.FC<FrameworkLinkProps> = ({ template, startLabel, onN
  * draft. `hasUnsentDraft` is supplied by the composer host.
  */
 const StarterTemplates: React.FC<{ hasUnsentDraft?: boolean }> = ({ hasUnsentDraft = false }) => {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getStarterTemplatesCopy(language);
-  const starterTemplates = getStarterTemplates(language);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
 
   const handleNavigate = (href: string, event: React.MouseEvent) => {
@@ -54,31 +47,22 @@ const StarterTemplates: React.FC<{ hasUnsentDraft?: boolean }> = ({ hasUnsentDra
   };
 
   return (
-    <div className="flex w-full flex-col items-center gap-4 px-3 sm:px-4">
-      <span className="max-w-xl text-center text-sm leading-relaxed text-bolt-elements-textSecondary">
-        {copy['starterTemplates.intro']}
-      </span>
-      <div className="flex w-full justify-center">
-        <div className="flex w-full max-w-lg flex-wrap items-center justify-center gap-3 sm:gap-4">
-          {starterTemplates.map((template) => (
-            <FrameworkLink
-              key={template.name}
-              template={template}
-              startLabel={formatStarterTemplatesCopy(copy['starterTemplates.startAria'], {
-                template: template.label,
-              })}
-              onNavigate={handleNavigate}
-            />
+    <div className="flex flex-col items-center gap-4">
+      <span className="text-sm text-bolt-elements-textSecondary">or start a blank app with your favorite stack</span>
+      <div className="flex justify-center">
+        <div className="flex flex-wrap justify-center items-center gap-4 max-w-sm">
+          {STARTER_TEMPLATES.map((template) => (
+            <FrameworkLink key={template.name} template={template} onNavigate={handleNavigate} />
           ))}
         </div>
       </div>
 
       <ConfirmationDialog
         isOpen={pendingHref !== null}
-        title={copy['starterTemplates.discardTitle']}
-        description={copy['starterTemplates.discardDescription']}
-        confirmLabel={copy['starterTemplates.discardConfirm']}
-        cancelLabel={copy['starterTemplates.discardCancel']}
+        title="Discard your prompt?"
+        description="You have an unsent prompt in the composer. Starting a template will leave this page and discard it."
+        confirmLabel="Discard & continue"
+        cancelLabel="Keep editing"
         variant="destructive"
         onConfirm={() => {
           if (pendingHref) {

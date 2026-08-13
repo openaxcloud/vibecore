@@ -1,6 +1,5 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { getMarketingExactProductControlsCopy } from '~/lib/i18n/catalogs/marketing-exact-product-controls';
 
 describe('E-Code homepage hero', () => {
   it('keeps the mobile hero at E-Code scale with an unselected public model picker', () => {
@@ -37,17 +36,8 @@ describe('E-Code homepage hero', () => {
       ":is([data-ecode-static-shell], [data-ecode-public-chrome='homepage']) :where(h1, h2, h3, h4, h5, h6) :where(span:not([class*='i-']))",
     );
     expect(landingControls).toContain("fetch('/api/models'");
-    expect(landingControls).toContain('copy.modelSelector.selectOption');
-    expect(landingControls).toContain('copy.modelSelector.preferenceSaved');
-    expect(landingControls).toContain('createStaticModelOptions(language)');
-    expect(landingControls).not.toContain('Select AI model...');
-    expect(landingControls).not.toContain('Model preference saved');
+    expect(landingControls).toContain('Select AI model...');
+    expect(landingControls).toContain('Model preference saved');
     expect(landingControls).not.toContain('({modelOptions.length} available)');
-
-    const english = getMarketingExactProductControlsCopy('en').exactLandingControls.modelSelector;
-    const french = getMarketingExactProductControlsCopy('fr').exactLandingControls.modelSelector;
-
-    expect(english.selectOption).toBe('Select an AI model…');
-    expect(french.selectOption).toBe('Sélectionnez un modèle d’IA…');
   });
 });

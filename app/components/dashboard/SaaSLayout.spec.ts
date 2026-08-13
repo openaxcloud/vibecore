@@ -82,7 +82,7 @@ describe('public marketing brand', () => {
 
     const stylesSource = readFileSync(join(process.cwd(), 'app/styles/index.scss'), 'utf8');
 
-    expect(layoutSource).toContain("t('userArea.topbar.menu')");
+    expect(layoutSource).toContain('<span className="text-xs font-medium sm:sr-only">Menu</span>');
     expect(layoutSource).toContain('min-w-0 flex-1 truncate text-base font-semibold xl:hidden');
     expect(layoutSource).toContain('inline-flex h-[44px] min-w-[44px]');
     expect(layoutSource).toContain('vc-sidebar-header group relative flex h-[56px]');
@@ -90,9 +90,7 @@ describe('public marketing brand', () => {
     expect(layoutSource).toContain("collapsed ? 'h-[44px] w-[44px] justify-center px-0'");
     expect(layoutSource).toContain('overflow-y-auto overflow-x-visible px-3 py-2');
     expect(layoutSource).toContain("classNames('grid w-full gap-0'");
-    expect(layoutSource).toContain(
-      "navItem('userArea.navigation.account', '/account-settings', Settings, { end: true })",
-    );
+    expect(layoutSource).toContain("{ label: 'Account', to: '/account-settings', icon: Settings, end: true }");
     expect(layoutSource).toContain('end={item.end}');
     expect(layoutSource).toContain('px-3 pb-0.5 text-[10px]');
     expect(layoutSource).not.toContain("classNames('grid w-full gap-1', collapsed");
@@ -102,7 +100,9 @@ describe('public marketing brand', () => {
     expect(layoutSource).toContain('max-w-[26rem]');
     expect(layoutSource).toContain('line-clamp-2 min-h-12 text-base leading-6');
     expect(layoutSource).toContain('inline-flex min-h-[44px] w-full items-center justify-between');
-    expect(layoutSource).toContain("t('userArea.project.activity')");
+    expect(layoutSource).toContain(
+      '<span className="block text-[11px] text-bolt-elements-textTertiary">Activity</span>',
+    );
     expect(stylesSource).toContain('.vc-user-area-shell .vc-app-shell-title');
     expect(stylesSource).toContain('font-size: 28px !important');
     expect(stylesSource).toContain('.vc-user-area-shell {\n  --vc-ide-bg-app: #111315;');
@@ -155,7 +155,7 @@ describe('public marketing brand', () => {
 
     expect(layoutSource).toContain('<ProductTour restartToken={tourRestartToken} />');
     expect(layoutSource).toContain('onStartTour={() => setTourRestartToken((current) => current + 1)}');
-    expect(layoutSource).toContain("t('userArea.topbar.openTour')");
+    expect(layoutSource).toContain('Open guided tour');
     expect(layoutSource).toContain('data-vc-tour-target="navigation"');
     expect(layoutSource).toContain('data-vc-tour-target="create-project"');
     expect(layoutSource).toContain('data-vc-tour-target="help"');

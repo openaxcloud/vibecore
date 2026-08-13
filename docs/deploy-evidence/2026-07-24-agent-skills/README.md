@@ -67,38 +67,10 @@ commandes/instructions d'attaque impératives (pas des mentions de sujet), donc 
 skill de sécurité légitime (guide OWASP mentionnant « injection ») n'est pas signalé
 — test dédié.
 
-## Historique livraison
+## Reste (non coché ✅)
 
-- Commit initial `a961c1d0` (PR #58) ; merge dans main = `3da39808` après résolution
-  du conflit avec `main` (migration renumérotée `0079 → 0080_skill_interop_audit`,
-  client Prisma régénéré). `deploy-main` vert, Helm rév. 906, migration `0080` appliquée
-  (job `prisma-migrate` Complete 1/1). Voir la section « Preuves LIVE prod » ci-dessous.
-
-## Preuves LIVE prod — 2026-07-31 (merge `3da39808`, deploy vert, Helm rév. 906, migration `0080` appliquée)
-
-Session QA mintée server-side (kubectl exec api pod), nettoyée en fin de preuve (user/org/project/skills/journal supprimés, 0 ligne réelle touchée).
-
-- **RPL-SK-001.3 — refus malveillant LIVE (API prod)** : `POST /projects/<id>/skills/install` `pyenv/pyenv` (README contient `curl -fsSL https://pyenv.run | bash`) → **HTTP 422 `SKILL_AUDIT_REJECTED`**, verdict `rejected`, finding CRITICAL `REMOTE_EXEC`. Skill **non persisté** (absent de `/skills/installed`). Journal `install-rejected pyenv/pyenv (rejected)` présent. Un skill propre (`anthropics/skills`) s'installe en 201 `approved`.
-- **RPL-SK-001.3 — code déployé rejette le malveillant (in-pod)** : `import('/runtime/dist/skill-audit.js')` sur le contenu malveillant exact → `verdict=rejected, installable=false`, findings CRED_EXFIL + PROMPT_INJECTION + REMOTE_EXEC + DATA_EGRESS_HOST.
-- **RPL-SK-001.4 — revoke LIVE + fail-closed** : `POST /skills/installed/revoke` `nvm-sh/nvm` → `enabled:false, revokedAt` posé, `revokeReason` conservé. `PATCH … enabled:true` → **HTTP 409 `SKILL_ENABLE_BLOCKED`** (le store refuse de réactiver un skill révoqué).
-- **RPL-SK-001.4 — UI responsive live** : panneau Skills ouvert dans l'IDE prod (cookie `vc_session`), affichant provenance (badges Github/Catalog), verdicts (✓ Approved / ⊘ Revoked), boutons Approve/Revoke/Uninstall et le journal d'audit (dont `install-rejected pyenv`). **8 captures** `responsive/skills-{1440x900,1024x768,768x1024,390x844}-{dark,light}.png` — le panneau s'adapte aux 4 largeurs et aux 2 thèmes (layout mobile natif à 390px).
-- **RPL-SK-001.1 — parser déployé exercé live** : le chemin d'install audite via `parseSkillManifest` déployé (le refus pyenv et l'install anthropics passent par le parser). Skill réel `.agents/skills/commit-helper/` livré sur main.
-
-## RPL-SK-001.2 — progressive disclosure CÂBLÉE + prouvée LIVE (2026-07-31, merge `04288e8f` PR #75)
-
-Le module de disclosure est désormais **câblé au chemin agent live** : `app/lib/.server/llm/skill-disclosure.ts` (jumeau runtime de `services/api/src/skill-disclosure.ts`) est consommé par `retrieveSkillsForAgentContext` (`project-skills.ts`), lui-même appelé par `api.chat.ts`. Le dernier message utilisateur pilote le chargement L2 ; une annotation `skillDisclosure` + un log `[skill-disclosure]` sont émis par tour.
-
-**Preuve live prod** (session QA, 2 skills installés, génération réelle `/api/chat`, prompt matchant un seul) :
-```
-[skill-disclosure] installed=2 triggered=1(goldbergyoni/nodebestpractices)
-  bytesByLevel={"1":218,"2":50354,"3":0}
-  trace=[ {seq:1,L1,"Node.js Best Practices",107B},
-          {seq:2,L1,"Anthropic Skills",111B},
-          {seq:3,L2,"Node.js Best Practices",50354B} ]
-annotation: {"type":"skillDisclosure","triggered":["goldbergyoni/nodebestpractices"]}
-```
-→ **L1 pour les DEUX skills, L2 uniquement pour le skill pertinent** (le body d'Anthropic Skills n'est jamais entré dans le prompt). 13 tests (6 disclosure + 7 project-skills). Détail : `disclosure-live-proof.txt`.
-
-### Réserve restante
-
-- **RPL-SK-001.1** : la matérialisation d'un dossier `.agents/skills/<name>/` dans un workspace réel reste prouvée par `loadSkillFromFiles` (tests), pas par un flux UI live.
+- Landing du commit sur `main` : bloqué en séance par le hook pre-commit (typecheck
+  monorepo qui timeoute sous forte charge machine + fichiers untracked étrangers en
+  erreur de type dans l'arbre) — HEAD gelé côté local toute la séance.
+- Redeploy prod (`deploy-main.yml`) après merge.
+- Captures responsive live 390/768/1024/1440 clair+sombre du panneau Skills.

@@ -125,8 +125,7 @@ describe('moderateProjectPrompt', () => {
     expect(result.checked).toBe(false);
     expect(result.allowed).toBe(true);
     expect(result.reason).toBe('provider_error');
-    expect(result.error).toBe('MODERATION_HTTP_ERROR');
-    expect(result.providerStatus).toBe(502);
+    expect(result.error).toContain('HTTP 502');
   });
 
   it('fail-opens on a network exception with reason=provider_error', async () => {
@@ -138,7 +137,7 @@ describe('moderateProjectPrompt', () => {
     expect(result.checked).toBe(false);
     expect(result.allowed).toBe(true);
     expect(result.reason).toBe('provider_error');
-    expect(result.error).toBe('MODERATION_TRANSPORT_ERROR');
+    expect(result.error).toContain('fetch failed');
   });
 
   it('fail-opens when the response body is missing results[]', async () => {
@@ -147,7 +146,6 @@ describe('moderateProjectPrompt', () => {
     expect(result.checked).toBe(false);
     expect(result.allowed).toBe(true);
     expect(result.reason).toBe('provider_error');
-    expect(result.error).toBe('MODERATION_RESULTS_MISSING');
   });
 
   it('forwards a bounded AbortSignal to fetch so the request can time out', async () => {

@@ -1,5 +1,10 @@
-import { apiRequest, json, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
-import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
+import {
+  apiErrorMessage,
+  apiRequest,
+  json,
+  type EnterpriseActionArgs,
+  type EnterpriseLoaderArgs,
+} from '~/lib/enterprise-api.server';
 
 /*
  * Replit-parity database point-in-time rollback — web proxy for the project
@@ -32,7 +37,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   const projectId = params.projectId;
 
   if (!projectId) {
-    throw remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
+    throw json({ ok: false, error: 'Project not found' }, { status: 404 });
   }
 
   try {
@@ -51,14 +56,10 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       return json({ ok: false, enabled: false }, { status: 404 });
     }
 
+    const message = await apiErrorMessage(error, 'Database panel unavailable');
     const status = error instanceof Response && error.status !== 500 ? error.status : 502;
 
-    throw remainingApiErrorResponse(
-      request,
-      status === 401 || status === 403 ? 'DATABASE_AUTH_REQUIRED' : 'DATABASE_PANEL_FAILED',
-      status,
-      { extra: { ok: false } },
-    );
+    throw json({ ok: false, error: message }, { status });
   }
 }
 
@@ -66,7 +67,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
   const projectId = params.projectId;
 
   if (!projectId) {
-    throw remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
+    throw json({ ok: false, error: 'Project not found' }, { status: 404 });
   }
 
   const body = (await request.json().catch(() => ({}))) as { intent?: string; [key: string]: unknown };
@@ -87,14 +88,10 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 
     return json({ ok: true, intent, ...(payload as Record<string, unknown>) });
   } catch (error) {
+    const message = await apiErrorMessage(error, 'Database request failed');
     const status = error instanceof Response && error.status !== 500 ? error.status : 502;
 
     /* Return (not throw) so the fetcher receives the error in fetcher.data and the panel can surface it. */
-    return remainingApiErrorResponse(
-      request,
-      status === 401 || status === 403 ? 'DATABASE_AUTH_REQUIRED' : 'DATABASE_REQUEST_FAILED',
-      status,
-      { extra: { ok: false, status } },
-    );
+    return json({ ok: false, error: message, status }, { status });
   }
 }

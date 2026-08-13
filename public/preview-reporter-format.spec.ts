@@ -164,21 +164,4 @@ describe('vibecore-preview-reporter.js (console capture)', () => {
     expect(levels).toContain('warn');
     expect(levels).toContain('error');
   });
-
-  it('leaves an absent rejection reason unset so the parent can localize its fallback', () => {
-    const event = new Event('unhandledrejection');
-    Object.defineProperty(event, 'reason', { configurable: true, value: undefined });
-    window.dispatchEvent(event);
-
-    const rejection = posted.find(
-      (message): message is { type: string; message?: string } =>
-        typeof message === 'object' &&
-        message !== null &&
-        (message as { type?: string }).type === 'PREVIEW_UNHANDLED_REJECTION',
-    );
-
-    expect(rejection).toBeDefined();
-    expect(rejection?.message).toBeUndefined();
-    expect(JSON.stringify(rejection)).not.toContain('Unhandled promise rejection');
-  });
 });

@@ -1,5 +1,4 @@
 import { apiRequest, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
-import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 /*
  * IDE proxy for "Add Authentication" — POSTs to the internal API
@@ -8,11 +7,11 @@ import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-rou
  */
 export async function action({ request, params }: EnterpriseActionArgs) {
   if (!params.projectId) {
-    return remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
+    return json({ ok: false, error: 'Project not found' }, { status: 404 });
   }
 
   if (request.method !== 'POST') {
-    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405, { extra: { ok: false } });
+    return json({ ok: false, error: 'Method not allowed' }, { status: 405 });
   }
 
   try {
@@ -23,14 +22,18 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     if (error instanceof Response) {
       const body = (await error.json().catch(() => ({}))) as { error?: string; code?: string };
 
-      return remainingApiErrorResponse(
-        request,
-        body.code === 'FEATURE_NOT_ENABLED' ? 'AUTH_SCAFFOLD_DISABLED' : 'AUTH_SCAFFOLD_FAILED',
-        error.status,
-        { extra: { ok: false } },
+      return json(
+        {
+          ok: false,
+          error:
+            body.code === 'FEATURE_NOT_ENABLED'
+              ? 'Add Authentication is not enabled on this platform yet.'
+              : (body.error ?? 'Could not add authentication.'),
+        },
+        { status: error.status },
       );
     }
 
-    return remainingApiErrorResponse(request, 'AUTH_SCAFFOLD_UNAVAILABLE', 502, { extra: { ok: false } });
+    return json({ ok: false, error: 'Could not reach the auth scaffold service.' }, { status: 502 });
   }
 }

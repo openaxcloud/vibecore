@@ -12,10 +12,6 @@
  *      apparaisse (workflow, event, branche, sha, conclusion, url, date) ;
  *   3. falsifie mergedCommit puis repoCommit dans l'ATTESTATION seule → erreur
  *      sha (verdict -06 §1) ;
- *   3c. RR-20260723-CODEX-07 : SUPPRIME chacun des champs OBLIGATOIRES
- *      (mergedCommit, repoCommit, runUrl) — un test INDÉPENDANT PAR CHAMP — et
- *      exige le rejet de l'attestation « amputée » (fail-open corrigé), +
- *      variante chaîne vide ;
  *   4. garde le cas cumulatif « run étranger » (fixture Preview Deployment) ;
  *   5. sonde live best-effort non bloquante (verdict -05).
  * Aucune dépendance réseau ni historique dans les cas 1-4 → déterministe.
@@ -88,32 +84,6 @@ must(checkAttestationFields({ ...goldenAtt, repoCommit: 'deadbeef' }, golden).so
 must(sameCommit(golden.head_sha.slice(0, 10), golden.head_sha), 'préfixe court 10 hex valide → accepté');
 must(!sameCommit(golden.head_sha.slice(0, 6), golden.head_sha), 'préfixe 6 hex (<7) → refusé (règle explicite)');
 must(normalizeRunUrl('https://github.com/x/y/actions/runs/1/') === 'https://github.com/x/y/actions/runs/1', 'normalizeRunUrl retire le slash final');
-
-/* ---- 3c. SUPPRESSION d'un champ obligatoire → attestation AMPUTÉE REJETÉE
- *         (RR-20260723-CODEX-07). Un test INDÉPENDANT PAR CHAMP : on retire UN
- *         SEUL champ à la fois et on exige l'erreur d'absence correspondante.
- *         Les anciens tests ne falsifiaient que des valeurs PRÉSENTES ; ceux-ci
- *         testent le fail-open sur l'ABSENCE. --------------------------------- */
-console.log('[substitution-test] 3c. suppression par champ → attestation amputée rejetée (CODEX-07)');
-const requiredFields = [
-  ['mergedCommit', 'sha'],
-  ['repoCommit', 'sha'],
-  ['runUrl', 'url'],
-];
-for (const [field, prefix] of requiredFields) {
-  const amputated = { ...goldenAtt };
-  delete amputated[field];
-  const errs = checkAttestationFields(amputated, golden);
-  const hit = errs.some((e) => e.startsWith(prefix + ':') && e.includes(field) && e.includes('ABSENT'));
-  must(hit, `${field} SUPPRIMÉ seul → attestation amputée REJETÉE (erreur "${prefix}: ${field} ABSENT")`);
-}
-// Et la chaîne vide est traitée comme absente (fail-closed).
-for (const [field, prefix] of requiredFields) {
-  const blanked = { ...goldenAtt, [field]: '' };
-  const errs = checkAttestationFields(blanked, golden);
-  must(errs.some((e) => e.startsWith(prefix + ':') && e.includes(field) && e.includes('ABSENT')),
-    `${field} vide ("") → REJETÉ comme absent (fail-closed)`);
-}
 
 /* ---- 4. Cas cumulatif : run étranger complet -------------------------- */
 console.log('[substitution-test] 4. run étranger complet (fixture Preview Deployment)');

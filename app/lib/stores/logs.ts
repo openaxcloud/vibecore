@@ -1,10 +1,5 @@
 import Cookies from 'js-cookie';
 import { atom, map } from 'nanostores';
-import {
-  clientStoresServicesText,
-  resolveClientStoresServicesLanguage,
-  type ClientStoresServicesKey,
-} from '~/lib/i18n/catalogs/client-stores-services';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('LogStore');
@@ -51,90 +46,6 @@ interface LogDetails extends Record<string, any> {
 
 const MAX_LOGS = 1000; // Maximum number of logs to keep in memory
 const LOG_STORAGE_KEY = 'eventLogs';
-
-export type AuthLogAction = 'login' | 'logout' | 'token_refresh' | 'key_validation';
-export type NetworkLogStatus = 'online' | 'offline' | 'reconnecting' | 'connected';
-
-const AUTH_ACTION_KEYS: Readonly<Record<AuthLogAction, ClientStoresServicesKey>> = {
-  login: 'clientStores.logs.auth.action.login',
-  logout: 'clientStores.logs.auth.action.logout',
-  token_refresh: 'clientStores.logs.auth.action.tokenRefresh',
-  key_validation: 'clientStores.logs.auth.action.keyValidation',
-};
-
-const NETWORK_STATUS_KEYS: Readonly<Record<NetworkLogStatus, ClientStoresServicesKey>> = {
-  online: 'clientStores.logs.network.status.online',
-  offline: 'clientStores.logs.network.status.offline',
-  reconnecting: 'clientStores.logs.network.status.reconnecting',
-  connected: 'clientStores.logs.network.status.connected',
-};
-
-function formatLogResult(success: boolean, language?: string | null): string {
-  return clientStoresServicesText(
-    success ? 'clientStores.logs.result.success' : 'clientStores.logs.result.failed',
-    {},
-    language,
-  );
-}
-
-export function formatAuthLogMessage(action: AuthLogAction, success: boolean, language?: string | null): string {
-  return clientStoresServicesText(
-    'clientStores.logs.auth.message',
-    {
-      action: clientStoresServicesText(AUTH_ACTION_KEYS[action], {}, language),
-      result: formatLogResult(success, language),
-    },
-    language,
-  );
-}
-
-export function formatNetworkLogMessage(status: NetworkLogStatus, language?: string | null): string {
-  return clientStoresServicesText(
-    'clientStores.logs.network.message',
-    { status: clientStoresServicesText(NETWORK_STATUS_KEYS[status], {}, language) },
-    language,
-  );
-}
-
-export function formatDatabaseLogMessage(
-  operation: string,
-  success: boolean,
-  duration: number,
-  language?: string | null,
-): string {
-  const resolvedLanguage = resolveClientStoresServicesLanguage(language);
-  const safeDuration = Number.isFinite(duration) ? Math.max(0, duration) : 0;
-
-  const formattedDuration =
-    resolvedLanguage === 'fr'
-      ? new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 3 }).format(safeDuration)
-      : String(safeDuration);
-
-  return clientStoresServicesText(
-    'clientStores.logs.database.message',
-    { operation, result: formatLogResult(success, resolvedLanguage), duration: formattedDuration },
-    resolvedLanguage,
-  );
-}
-
-export function formatPerformanceLogMessage(
-  component: string,
-  operation: string,
-  duration: number,
-  language?: string | null,
-): string {
-  const resolvedLanguage = resolveClientStoresServicesLanguage(language);
-
-  const formattedDuration = new Intl.NumberFormat(resolvedLanguage === 'fr' ? 'fr-FR' : 'en-US', {
-    maximumFractionDigits: 0,
-  }).format(Number.isFinite(duration) ? Math.max(0, duration) : 0);
-
-  return clientStoresServicesText(
-    'clientStores.logs.performanceMetric',
-    { component, operation, duration: formattedDuration },
-    resolvedLanguage,
-  );
-}
 
 class LogStore {
   private _logs = map<Record<string, LogEntry>>({});
@@ -340,8 +251,12 @@ class LogStore {
   }
 
   // Authentication Logging
-  logAuth(action: AuthLogAction, success: boolean, details?: Record<string, any>, language?: string | null) {
-    const message = formatAuthLogMessage(action, success, language);
+  logAuth(
+    action: 'login' | 'logout' | 'token_refresh' | 'key_validation',
+    success: boolean,
+    details?: Record<string, any>,
+  ) {
+    const message = `Auth ${action} - ${success ? 'Success' : 'Failed'}`;
     const level = success ? 'info' : 'error';
 
     return this._addLog(message, level, 'auth', {
@@ -353,8 +268,8 @@ class LogStore {
   }
 
   // Network Status Logging
-  logNetworkStatus(status: NetworkLogStatus, details?: Record<string, any>, language?: string | null) {
-    const message = formatNetworkLogMessage(status, language);
+  logNetworkStatus(status: 'online' | 'offline' | 'reconnecting' | 'connected', details?: Record<string, any>) {
+    const message = `Network ${status}`;
     const level = status === 'offline' ? 'error' : status === 'reconnecting' ? 'warning' : 'info';
 
     return this._addLog(message, level, 'network', {
@@ -365,14 +280,8 @@ class LogStore {
   }
 
   // Database Operations Logging
-  logDatabase(
-    operation: string,
-    success: boolean,
-    duration: number,
-    details?: Record<string, any>,
-    language?: string | null,
-  ) {
-    const message = formatDatabaseLogMessage(operation, success, duration, language);
+  logDatabase(operation: string, success: boolean, duration: number, details?: Record<string, any>) {
+    const message = `DB ${operation} - ${success ? 'Success' : 'Failed'} (${duration}ms)`;
     const level = success ? 'info' : 'error';
 
     return this._addLog(message, level, 'database', {
@@ -644,15 +553,9 @@ class LogStore {
     );
   }
 
-  logPerformanceMetric(
-    component: string,
-    operation: string,
-    duration: number,
-    details?: any,
-    language?: string | null,
-  ) {
+  logPerformanceMetric(component: string, operation: string, duration: number, details?: any) {
     return this._addLog(
-      formatPerformanceLogMessage(component, operation, duration, language),
+      `Performance: ${component} - ${operation} took ${duration}ms`,
       duration > 1000 ? 'warning' : 'info',
       'performance',
       { component, operation, duration, ...details },

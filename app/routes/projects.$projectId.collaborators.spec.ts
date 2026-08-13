@@ -47,22 +47,6 @@ describe('handleCollaboratorActionError', () => {
     expect(result.init?.status).toBe(500);
   });
 
-  it('masks a raw English API error with safe French copy in French', async () => {
-    const apiError = new Response(JSON.stringify({ error: 'Raw backend English permission failure' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    const result = (await handleCollaboratorActionError(apiError, 'fr')) as {
-      data: { error?: string };
-      init?: ResponseInit;
-    };
-
-    expect(result.data.error).toBe('Impossible d’ajouter le collaborateur. Vérifiez l’adresse e-mail, puis réessayez.');
-    expect(result.data.error).not.toContain('backend');
-    expect(result.init?.status).toBe(403);
-  });
-
   it('re-throws non-Response errors to the error boundary', async () => {
     const boom = new Error('unexpected');
 

@@ -1,13 +1,8 @@
 import { useStore } from '@nanostores/react';
 import Cookies from 'js-cookie';
 import { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { useGitHubAPI } from './useGitHubAPI';
-import {
-  formatClientRuntimeResidualCopy,
-  getClientRuntimeResidualCopy,
-} from '~/lib/i18n/catalogs/client-runtime-residual';
 import { githubConnection, isConnecting, updateGitHubConnection } from '~/lib/stores/github';
 import type { GitHubUserResponse, GitHubConnection } from '~/types/GitHub';
 
@@ -28,27 +23,12 @@ export interface UseGitHubConnectionReturn extends ConnectionState {
 }
 
 const STORAGE_KEY = 'github_connection';
-type GitHubConnectionErrorCode = 'saved_load_failed' | 'token_required' | 'connection_failed' | 'refresh_failed';
 
 export function useGitHubConnection(): UseGitHubConnectionReturn {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getClientRuntimeResidualCopy(language);
   const connection = useStore(githubConnection);
   const connecting = useStore(isConnecting);
-  const [errorCode, setErrorCode] = useState<GitHubConnectionErrorCode | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  const error =
-    errorCode === 'saved_load_failed'
-      ? copy['clientRuntime.connection.savedLoadFailed']
-      : errorCode === 'token_required'
-        ? copy['clientRuntime.connection.tokenRequired']
-        : errorCode === 'connection_failed'
-          ? formatClientRuntimeResidualCopy(copy['clientRuntime.connection.failed'], { provider: 'GitHub' })
-          : errorCode === 'refresh_failed'
-            ? formatClientRuntimeResidualCopy(copy['clientRuntime.connection.refreshFailed'], { provider: 'GitHub' })
-            : null;
 
   // Create API instance - will update when connection changes
   useGitHubAPI();
@@ -60,7 +40,7 @@ export function useGitHubConnection(): UseGitHubConnectionReturn {
 
   const loadSavedConnection = useCallback(async () => {
     setIsLoading(true);
-    setErrorCode(null);
+    setError(null);
 
     try {
       // Check if connection already exists in store (likely from initialization)
@@ -77,141 +57,121 @@ export function useGitHubConnection(): UseGitHubConnectionReturn {
       setIsLoading(false);
     } catch (error) {
       console.error('Error loading saved connection:', error);
-      setErrorCode('saved_load_failed');
+      setError('Failed to load saved connection');
       setIsLoading(false);
 
       // Clean up corrupted data
       localStorage.removeItem(STORAGE_KEY);
     }
-  }, [connection, copy]);
+  }, [connection]);
 
-  const refreshConnectionData = useCallback(
-    async (connection: GitHubConnection) => {
-      if (!connection.token) {
-        return;
+  const refreshConnectionData = useCallback(async (connection: GitHubConnection) => {
+    if (!connection.token) {
+      return;
+    }
+
+    try {
+      // Make direct API call instead of using hook
+      const response = await fetch('https://api.github.com/user', {
+        headers: {
+          Accept: 'application/vnd.github.v3+json',
+          Authorization: `${connection.tokenType === 'classic' ? 'token' : 'Bearer'} ${connection.token}`,
+          'User-Agent': 'e-code-app',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
       }
 
-      try {
-        // Make direct API call instead of using hook
-        const response = await fetch('https://api.github.com/user', {
-          headers: {
-            Accept: 'application/vnd.github.v3+json',
-            Authorization: `${connection.tokenType === 'classic' ? 'token' : 'Bearer'} ${connection.token}`,
-            'User-Agent': 'e-code-app',
-          },
-        });
+      const userData = (await response.json()) as GitHubUserResponse;
 
-        if (!response.ok) {
-          throw Object.assign(new Error(), { code: 'GITHUB_API_ERROR', status: response.status });
-        }
+      const updatedConnection: GitHubConnection = {
+        ...connection,
+        user: userData,
+      };
 
-        const userData = (await response.json()) as GitHubUserResponse;
+      updateGitHubConnection(updatedConnection);
+    } catch (error) {
+      console.error('Error refreshing connection data:', error);
+    }
+  }, []);
 
-        const updatedConnection: GitHubConnection = {
-          ...connection,
-          user: userData,
-        };
+  const connect = useCallback(async (token: string, tokenType: 'classic' | 'fine-grained') => {
+    console.log('useGitHubConnection.connect called with tokenType:', tokenType);
 
-        updateGitHubConnection(updatedConnection);
-      } catch (error) {
-        console.error('Error refreshing connection data:', error);
-        throw new Error(
-          formatClientRuntimeResidualCopy(copy['clientRuntime.connection.refreshFailed'], { provider: 'GitHub' }),
-        );
+    if (!token.trim()) {
+      console.log('Token validation failed - empty token');
+      setError('Token is required');
+
+      return;
+    }
+
+    console.log('Setting isConnecting to true');
+    isConnecting.set(true);
+    setError(null);
+
+    try {
+      console.log('Making API request to GitHub...');
+
+      // Test the token by fetching user info
+      const response = await fetch('https://api.github.com/user', {
+        headers: {
+          Accept: 'application/vnd.github.v3+json',
+          Authorization: `${tokenType === 'classic' ? 'token' : 'Bearer'} ${token}`,
+          'User-Agent': 'e-code-app',
+        },
+      });
+
+      console.log('GitHub API response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        throw new Error(`Authentication failed: ${response.status} ${response.statusText}`);
       }
-    },
-    [copy],
-  );
 
-  const connect = useCallback(
-    async (token: string, tokenType: 'classic' | 'fine-grained') => {
-      console.log('useGitHubConnection.connect called with tokenType:', tokenType);
+      const userData = (await response.json()) as GitHubUserResponse;
 
-      if (!token.trim()) {
-        console.log('Token validation failed - empty token');
-        setErrorCode('token_required');
+      // Create connection object
+      const connectionData: GitHubConnection = {
+        user: userData,
+        token,
+        tokenType,
+      };
 
-        return;
-      }
+      /*
+       * Token-bearing cookies must carry the same hardening saveGitAuth applies
+       * (Secure + SameSite=strict + expiry). js-cookie overwrites wholesale, so
+       * bare set() here silently DOWNGRADED the hardened git:github.com cookie
+       * back to an insecure session cookie on every connect.
+       */
+      const secureCookieOptions = { secure: true, sameSite: 'strict' as const, expires: 7 };
+      Cookies.set('githubToken', token, secureCookieOptions);
+      Cookies.set('githubUsername', userData.login, secureCookieOptions);
+      Cookies.set(
+        'git:github.com',
+        JSON.stringify({
+          username: token,
+          password: 'x-oauth-basic',
+        }),
+        secureCookieOptions,
+      );
 
-      console.log('Setting isConnecting to true');
-      isConnecting.set(true);
-      setErrorCode(null);
+      // Update the store
+      updateGitHubConnection(connectionData);
 
-      try {
-        console.log('Making API request to GitHub...');
+      toast.success(`Connected to GitHub as ${userData.login}`);
+    } catch (error) {
+      console.error('Failed to connect to GitHub:', error);
 
-        // Test the token by fetching user info
-        const response = await fetch('https://api.github.com/user', {
-          headers: {
-            Accept: 'application/vnd.github.v3+json',
-            Authorization: `${tokenType === 'classic' ? 'token' : 'Bearer'} ${token}`,
-            'User-Agent': 'e-code-app',
-          },
-        });
+      const errorMessage = error instanceof Error ? error.message : 'Failed to connect to GitHub';
 
-        console.log('GitHub API response status:', response.status, response.statusText);
-
-        if (!response.ok) {
-          throw new Error(
-            formatClientRuntimeResidualCopy(copy['clientRuntime.connection.authenticationFailed'], {
-              provider: 'GitHub',
-            }),
-          );
-        }
-
-        const userData = (await response.json()) as GitHubUserResponse;
-
-        // Create connection object
-        const connectionData: GitHubConnection = {
-          user: userData,
-          token,
-          tokenType,
-        };
-
-        /*
-         * Token-bearing cookies must carry the same hardening saveGitAuth applies
-         * (Secure + SameSite=strict + expiry). js-cookie overwrites wholesale, so
-         * bare set() here silently DOWNGRADED the hardened git:github.com cookie
-         * back to an insecure session cookie on every connect.
-         */
-        const secureCookieOptions = { secure: true, sameSite: 'strict' as const, expires: 7 };
-        Cookies.set('githubToken', token, secureCookieOptions);
-        Cookies.set('githubUsername', userData.login, secureCookieOptions);
-        Cookies.set(
-          'git:github.com',
-          JSON.stringify({
-            username: token,
-            password: 'x-oauth-basic',
-          }),
-          secureCookieOptions,
-        );
-
-        // Update the store
-        updateGitHubConnection(connectionData);
-
-        toast.success(
-          formatClientRuntimeResidualCopy(copy['clientRuntime.connection.connectedAs'], {
-            provider: 'GitHub',
-            account: userData.login,
-          }),
-        );
-      } catch (error) {
-        console.error('Failed to connect to GitHub:', error);
-
-        const errorMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.failed'], {
-          provider: 'GitHub',
-        });
-
-        setErrorCode('connection_failed');
-        toast.error(errorMessage);
-        throw new Error(errorMessage);
-      } finally {
-        isConnecting.set(false);
-      }
-    },
-    [copy],
-  );
+      setError(errorMessage);
+      toast.error(`Failed to connect: ${errorMessage}`);
+      throw error;
+    } finally {
+      isConnecting.set(false);
+    }
+  }, []);
 
   const disconnect = useCallback(() => {
     // Clear localStorage
@@ -229,36 +189,28 @@ export function useGitHubConnection(): UseGitHubConnectionReturn {
       tokenType: 'classic',
     });
 
-    setErrorCode(null);
-    toast.success(
-      formatClientRuntimeResidualCopy(copy['clientRuntime.connection.disconnected'], { provider: 'GitHub' }),
-    );
-  }, [copy]);
+    setError(null);
+    toast.success('Disconnected from GitHub');
+  }, []);
 
   const refreshConnection = useCallback(async () => {
     if (!connection?.token) {
-      throw new Error(
-        formatClientRuntimeResidualCopy(copy['clientRuntime.connection.noneToRefresh'], { provider: 'GitHub' }),
-      );
+      throw new Error('No connection to refresh');
     }
 
     setIsLoading(true);
-    setErrorCode(null);
+    setError(null);
 
     try {
       await refreshConnectionData(connection);
     } catch (error) {
       console.error('Error refreshing connection:', error);
-
-      const errorMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.refreshFailed'], {
-        provider: 'GitHub',
-      });
-      setErrorCode('refresh_failed');
-      throw new Error(errorMessage);
+      setError('Failed to refresh connection');
+      throw error;
     } finally {
       setIsLoading(false);
     }
-  }, [connection, copy, refreshConnectionData]);
+  }, [connection, refreshConnectionData]);
 
   const testConnection = useCallback(async (): Promise<boolean> => {
     if (!connection) {

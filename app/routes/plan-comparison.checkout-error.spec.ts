@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isReauthRedirect } from '~/lib/route-reauth';
+import { shouldRethrowActionError } from '~/lib/route-reauth';
 
 /*
  * Regression coverage for the plan-comparison checkout action's catch block.
@@ -12,9 +12,10 @@ import { isReauthRedirect } from '~/lib/route-reauth';
  *      whole page with a generic crash screen, losing the user's plan selection.
  *   2. A DNS / connection failure (also a non-Response error) did the same.
  *
- * The localized action mirrors the catch-block decision exactly:
- *   - re-throw only 3xx re-auth redirects via isReauthRedirect,
- *   - render every API Response through a stable local error code,
+ * The fix mirrors the catch-block decision exactly:
+ *   - re-throw 3xx re-auth redirects and 5xx server Responses (framework /
+ *     boundary handle them) via shouldRethrowActionError,
+ *   - render 4xx API Responses inline,
  *   - render any other (non-Response) failure inline with a friendly message
  *     instead of throwing.
  *
@@ -25,7 +26,7 @@ import { isReauthRedirect } from '~/lib/route-reauth';
 type CatchOutcome = 'rethrow' | 'inline-api-error' | 'inline-friendly';
 
 function classifyCheckoutCatch(error: unknown): CatchOutcome {
-  if (isReauthRedirect(error)) {
+  if (shouldRethrowActionError(error)) {
     return 'rethrow';
   }
 
@@ -60,10 +61,10 @@ describe('plan-comparison checkout catch classification', () => {
     expect(classifyCheckoutCatch(loginRedirect)).toBe('rethrow');
   });
 
-  it('re-throws an MFA-required redirect but keeps server errors safe and inline', () => {
+  it('re-throws the MFA-required redirect and 5xx server errors to the boundary', () => {
     expect(classifyCheckoutCatch(new Response(null, { status: 307 }))).toBe('rethrow');
-    expect(classifyCheckoutCatch(new Response('{"error":"boom"}', { status: 500 }))).toBe('inline-api-error');
-    expect(classifyCheckoutCatch(new Response(null, { status: 503 }))).toBe('inline-api-error');
+    expect(classifyCheckoutCatch(new Response('{"error":"boom"}', { status: 500 }))).toBe('rethrow');
+    expect(classifyCheckoutCatch(new Response(null, { status: 503 }))).toBe('rethrow');
   });
 
   it('renders 4xx checkout API errors inline', () => {

@@ -2,14 +2,6 @@ import { Octokit } from '@octokit/rest';
 import { data as json, type ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
 import { FixedWindowRateLimiter } from '~/lib/fixed-window-rate-limiter';
-import {
-  getWebApiRoutesCopy,
-  interpolateWebApiCopy,
-  webApiErrorResponse,
-  webApiLocaleHeaders,
-  type WebApiRoutesCopy,
-} from '~/lib/i18n/catalogs/web-api-routes';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 const rateLimiter = new FixedWindowRateLimiter({ limit: 10, windowMs: 60 * 60 * 1000 });
 
@@ -25,20 +17,6 @@ const abuseReportSchema = z.object({
 });
 
 type AbuseReport = z.infer<typeof abuseReportSchema>;
-
-function abuseReportTypeLabel(type: AbuseReport['reportType'], copy: WebApiRoutesCopy): string {
-  const keys = {
-    code: 'abuseTypeCode',
-    content: 'abuseTypeContent',
-    harassment: 'abuseTypeHarassment',
-    spam: 'abuseTypeSpam',
-    copyright: 'abuseTypeCopyright',
-    privacy: 'abuseTypePrivacy',
-    other: 'abuseTypeOther',
-  } as const;
-
-  return copy[keys[type]];
-}
 
 function sanitizeInput(input: string) {
   return input.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#x27;');
@@ -98,20 +76,17 @@ async function readPayload(request: Request) {
   return Object.fromEntries(formData.entries());
 }
 
-function fallbackMailto(report: AbuseReport, copy: WebApiRoutesCopy) {
-  const reportType = abuseReportTypeLabel(report.reportType, copy);
-  const subject = interpolateWebApiCopy(copy.abuseMailSubject, { type: reportType });
+function fallbackMailto(report: AbuseReport) {
+  const subject = `E-Code abuse report: ${report.reportType}`;
 
   const body = [
-    interpolateWebApiCopy(copy.abuseMailReportType, { type: reportType }),
-    interpolateWebApiCopy(copy.abuseMailTargetUrl, { url: report.targetUrl }),
-    report.username ? interpolateWebApiCopy(copy.abuseMailUsername, { username: report.username }) : undefined,
-    report.reporterEmail
-      ? interpolateWebApiCopy(copy.abuseMailReporterEmail, { email: report.reporterEmail })
-      : undefined,
-    report.pagePath ? interpolateWebApiCopy(copy.abuseMailPagePath, { path: report.pagePath }) : undefined,
+    `Report type: ${report.reportType}`,
+    `Target URL: ${report.targetUrl}`,
+    report.username ? `Username: ${report.username}` : undefined,
+    report.reporterEmail ? `Reporter email: ${report.reporterEmail}` : undefined,
+    report.pagePath ? `Page path: ${report.pagePath}` : undefined,
     '',
-    copy.abuseMailDescription,
+    'Description:',
     report.description,
   ]
     .filter(Boolean)
@@ -120,34 +95,30 @@ function fallbackMailto(report: AbuseReport, copy: WebApiRoutesCopy) {
   return `mailto:abuse@e-code.ai?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-function issueBody(report: AbuseReport, request: Request, copy: WebApiRoutesCopy) {
-  const reportType = abuseReportTypeLabel(report.reportType, copy);
-
+function issueBody(report: AbuseReport, request: Request) {
   return [
-    `**${copy.abuseIssueHeading}**`,
+    '**Abuse Report**',
     '',
-    `**${copy.abuseIssueType} :** ${sanitizeInput(reportType)}`,
-    `**${copy.abuseIssueTargetUrl} :** ${sanitizeInput(report.targetUrl)}`,
-    report.username ? `**${copy.abuseIssueUsername} :** ${sanitizeInput(report.username)}` : undefined,
-    report.reporterEmail ? `**${copy.abuseIssueReporterEmail} :** ${sanitizeInput(report.reporterEmail)}` : undefined,
-    report.pagePath ? `**${copy.abuseIssueSubmittedFrom} :** ${sanitizeInput(report.pagePath)}` : undefined,
-    `**${copy.abuseIssueClientIp} :** ${sanitizeInput(getClientIP(request))}`,
+    `**Type:** ${sanitizeInput(report.reportType)}`,
+    `**Target URL:** ${sanitizeInput(report.targetUrl)}`,
+    report.username ? `**Username:** ${sanitizeInput(report.username)}` : undefined,
+    report.reporterEmail ? `**Reporter email:** ${sanitizeInput(report.reporterEmail)}` : undefined,
+    report.pagePath ? `**Submitted from:** ${sanitizeInput(report.pagePath)}` : undefined,
+    `**Client IP:** ${sanitizeInput(getClientIP(request))}`,
     '',
-    `**${copy.abuseIssueDescription} :**`,
+    '**Description:**',
     sanitizeInput(report.description),
     '',
     '---',
-    `*${copy.abuseIssueFooter}*`,
+    '*Submitted via the public E-Code Report Abuse page.*',
   ]
     .filter(Boolean)
     .join('\n');
 }
 
 export async function action({ request, context }: ActionFunctionArgs) {
-  const copy = getWebApiRoutesCopy(resolveRequestLocale(request).language);
-
   if (request.method !== 'POST') {
-    return webApiErrorResponse(request, 'ABUSE_METHOD_NOT_ALLOWED', 405, { headers: { Allow: 'POST' } });
+    return json({ error: 'Method not allowed' }, { status: 405 });
   }
 
   const clientIP = getClientIP(request);
@@ -158,21 +129,17 @@ export async function action({ request, context }: ActionFunctionArgs) {
     report = abuseReportSchema.parse(await readPayload(request));
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return webApiErrorResponse(request, 'ABUSE_REPORT_INVALID', 400, {
-        extra: {
-          details: error.issues.map((issue) => ({
-            field: issue.path.join('.'),
-            code: issue.code,
-          })),
-        },
-      });
+      return json({ error: 'Invalid abuse report data', details: error.errors }, { status: 400 });
     }
 
-    return webApiErrorResponse(request, 'ABUSE_REQUEST_INVALID', 400);
+    return json({ error: 'Invalid request body' }, { status: 400 });
   }
 
   if (isSpam(report)) {
-    return webApiErrorResponse(request, 'ABUSE_REPORT_SPAM', 400);
+    return json(
+      { error: 'Your report was flagged as potential spam. Please contact abuse@e-code.ai if this is an error.' },
+      { status: 400 },
+    );
   }
 
   /*
@@ -182,7 +149,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
    * client-side-skipped validation failures and get locked out for an hour.
    */
   if (!rateLimiter.check(clientIP)) {
-    return webApiErrorResponse(request, 'ABUSE_RATE_LIMIT', 429);
+    return json({ error: 'Rate limit exceeded. Please wait before submitting another report.' }, { status: 429 });
   }
 
   const githubToken =
@@ -193,15 +160,19 @@ export async function action({ request, context }: ActionFunctionArgs) {
     envValue(context, 'ABUSE_REPORT_REPO') || envValue(context, 'BUG_REPORT_REPO') || 'openaxcloud/vibecore';
 
   if (!githubToken) {
-    return webApiErrorResponse(request, 'ABUSE_INTAKE_UNAVAILABLE', 503, {
-      extra: { fallbackMailto: fallbackMailto(report, copy) },
-    });
+    return json(
+      {
+        error: 'Abuse report intake is not configured.',
+        fallbackMailto: fallbackMailto(report),
+      },
+      { status: 503 },
+    );
   }
 
   const [owner, repo] = targetRepo.split('/');
 
   if (!owner || !repo) {
-    return webApiErrorResponse(request, 'ABUSE_CONFIGURATION_INVALID', 500);
+    return json({ error: 'Abuse report repository is misconfigured. Expected "owner/repo" format.' }, { status: 500 });
   }
 
   try {
@@ -211,27 +182,23 @@ export async function action({ request, context }: ActionFunctionArgs) {
     });
 
     const titleUrl = report.targetUrl.length > 80 ? `${report.targetUrl.slice(0, 77)}...` : report.targetUrl;
-    const reportType = abuseReportTypeLabel(report.reportType, copy);
 
     const issue = await octokit.rest.issues.create({
       owner,
       repo,
-      title: interpolateWebApiCopy(copy.abuseIssueTitle, { type: reportType, url: titleUrl }),
-      body: issueBody(report, request, copy),
+      title: `[Abuse report] ${report.reportType}: ${titleUrl}`,
+      body: issueBody(report, request),
       labels: ['abuse-report', 'trust-safety'],
     });
 
-    return json(
-      {
-        success: true,
-        issueNumber: issue.data.number,
-        issueUrl: issue.data.html_url,
-      },
-      { headers: webApiLocaleHeaders(request) },
-    );
+    return json({
+      success: true,
+      issueNumber: issue.data.number,
+      issueUrl: issue.data.html_url,
+    });
   } catch (error) {
     console.error('Error creating abuse report:', error);
 
-    return webApiErrorResponse(request, 'ABUSE_SUBMISSION_FAILED', 500);
+    return json({ error: 'Failed to submit abuse report. Please try again later.' }, { status: 500 });
   }
 }

@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import McpMarketplace from '~/components/@settings/tabs/mcp/McpMarketplace';
 import McpServerList from '~/components/@settings/tabs/mcp/McpServerList';
@@ -31,8 +30,6 @@ const EXAMPLE_MCP_CONFIG: MCPConfig = {
 };
 
 export default function McpTab() {
-  const { t } = useTranslation();
-
   const settings = useMCPStore((state) => state.settings);
   const isInitialized = useMCPStore((state) => state.isInitialized);
   const serverTools = useMCPStore((state) => state.serverTools);
@@ -51,12 +48,11 @@ export default function McpTab() {
   useEffect(() => {
     if (!isInitialized) {
       initialize().catch((err) => {
-        console.error('Failed to initialize MCP settings', err);
-        setError(t('settings.mcp.configuration.initializeFailed'));
-        toast.error(t('settings.copy.failedToLoadMcpConfiguration_7c3c8989'));
+        setError(`Failed to initialize MCP settings: ${err instanceof Error ? err.message : String(err)}`);
+        toast.error('Failed to load MCP configuration');
       });
     }
-  }, [initialize, isInitialized, t]);
+  }, [isInitialized]);
 
   useEffect(() => {
     setMCPConfigText(JSON.stringify(settings.mcpConfig, null, 2));
@@ -84,10 +80,10 @@ export default function McpTab() {
 
     try {
       JSON.parse(mcpConfigText);
-    } catch {
-      setError(t('settings.mcp.configuration.invalidJson'));
+    } catch (e) {
+      setError(`Invalid JSON format: ${e instanceof Error ? e.message : String(e)}`);
     }
-  }, [mcpConfigText, parsedConfig, t]);
+  }, [mcpConfigText, parsedConfig]);
 
   const handleMaxLLMCallChange = (value: string) => {
     const parsed = parseInt(value, 10);
@@ -111,13 +107,12 @@ export default function McpTab() {
         mcpConfig: parsedConfig,
         maxLLMSteps,
       });
-      toast.success(t('settings.copy.mcpConfigurationSaved_aac7ff26'));
+      toast.success('MCP configuration saved');
 
       setError(null);
     } catch (e) {
-      console.error('Failed to save MCP configuration', e);
-      setError(t('settings.copy.failedToSaveMcpConfiguration_36fd5c51'));
-      toast.error(t('settings.copy.failedToSaveMcpConfiguration_36fd5c51'));
+      setError(e instanceof Error ? e.message : 'Failed to save configuration');
+      toast.error('Failed to save MCP configuration');
     } finally {
       setIsSaving(false);
     }
@@ -139,8 +134,7 @@ export default function McpTab() {
     try {
       await checkServersAvailabilities();
     } catch (e) {
-      console.error('Failed to check MCP server availability', e);
-      setError(t('settings.mcp.configuration.availabilityFailed'));
+      setError(`Failed to check server availability: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setIsCheckingServers(false);
     }
@@ -157,7 +151,7 @@ export default function McpTab() {
       <div
         className="inline-flex p-0.5 rounded-lg bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor"
         role="tablist"
-        aria-label={t('settings.copy.mcpView_2cf27783')}
+        aria-label="MCP view"
       >
         <button
           role="tab"
@@ -171,7 +165,7 @@ export default function McpTab() {
               : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
           )}
         >
-          {t('settings.copy.marketplace_c608981d')}
+          Marketplace
         </button>
         <button
           role="tab"
@@ -185,7 +179,7 @@ export default function McpTab() {
               : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
           )}
         >
-          {t('settings.copy.configuration_b332c349')}
+          Configuration
         </button>
       </div>
 
@@ -195,9 +189,7 @@ export default function McpTab() {
         <>
           <section aria-labelledby="server-status-heading">
             <div className="flex justify-between items-center mb-3">
-              <h2 className="text-base font-medium text-bolt-elements-textPrimary">
-                {t('settings.copy.mcpServersConfigured_6fcafbc4')}
-              </h2>{' '}
+              <h2 className="text-base font-medium text-bolt-elements-textPrimary">MCP Servers Configured</h2>{' '}
               <button
                 onClick={checkServerAvailability}
                 disabled={isCheckingServers || !parsedConfig || serverEntries.length === 0}
@@ -215,7 +207,7 @@ export default function McpTab() {
                 ) : (
                   <div className="i-ph:arrow-counter-clockwise w-3 h-3" />
                 )}
-                {t('settings.copy.checkAvailability_2071664a')}
+                Check availability
               </button>
             </div>
             <McpServerList
@@ -227,14 +219,12 @@ export default function McpTab() {
           </section>
 
           <section aria-labelledby="config-section-heading">
-            <h2 className="text-base font-medium text-bolt-elements-textPrimary mb-3">
-              {t('settings.copy.configuration_b332c349')}
-            </h2>
+            <h2 className="text-base font-medium text-bolt-elements-textPrimary mb-3">Configuration</h2>
 
             <div className="space-y-4">
               <div>
                 <label htmlFor="mcp-config" className="block text-sm text-bolt-elements-textSecondary mb-2">
-                  {t('settings.copy.configurationJson_1d1271b8')}
+                  Configuration JSON
                 </label>
                 <textarea
                   id="mcp-config"
@@ -253,12 +243,12 @@ export default function McpTab() {
               <div>{error && <p className="mt-2 mb-2 text-sm text-bolt-elements-icon-error">{error}</p>}</div>
               <div>
                 <label htmlFor="max-llm-steps" className="block text-sm text-bolt-elements-textSecondary mb-2">
-                  {t('settings.copy.maximumNumberOfSequentialLlmCallsSteps_9538ba31')}
+                  Maximum number of sequential LLM calls (steps)
                 </label>
                 <input
                   id="max-llm-steps"
                   type="number"
-                  placeholder={t('settings.copy.maximumNumberOfSequentialLlmCalls_a536e28a')}
+                  placeholder="Maximum number of sequential LLM calls"
                   min="1"
                   max="20"
                   value={maxLLMSteps}
@@ -267,14 +257,14 @@ export default function McpTab() {
                 />
               </div>
               <div className="mt-2 text-sm text-bolt-elements-textSecondary">
-                {t('settings.copy.theMcpConfigurationFormatIsIdenticalToThe_5b798888')}
+                The MCP configuration format is identical to the one used in Claude Desktop.
                 <a
                   href="https://modelcontextprotocol.io/examples"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-bolt-elements-link hover:underline inline-flex items-center gap-1"
                 >
-                  {t('settings.copy.viewExampleServers_0df93f04')}
+                  View example servers
                   <div className="i-ph:arrow-square-out w-4 h-4" />
                 </a>
               </div>
@@ -288,7 +278,7 @@ export default function McpTab() {
                     bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary
                     hover:bg-bolt-elements-background-depth-3"
             >
-              {t('settings.copy.loadExample_c3f32d3a')}
+              Load Example
             </button>
 
             <div className="flex gap-2">
@@ -304,7 +294,7 @@ export default function McpTab() {
                 )}
               >
                 <div className="i-ph:floppy-disk w-4 h-4" />
-                {isSaving ? t('settings.mcp.configuration.saving') : t('settings.mcp.configuration.save')}
+                {isSaving ? 'Saving...' : 'Save Configuration'}
               </button>
             </div>
           </div>

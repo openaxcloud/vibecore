@@ -1,29 +1,17 @@
 import {
+  apiErrorMessage,
   apiRequest,
   json,
   redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
-
-function missingThumbnailResponse(): Response {
-  return new Response(null, {
-    status: 204,
-    headers: { 'Cache-Control': 'private, no-store' },
-  });
-}
 
 /*
  * Serves a project's REAL captured preview thumbnail. The API returns a short-lived
  * signed object-storage URL for the latest screenshot; we 302 the <img> straight to
- * it. If no thumbnail has been captured yet (or it's unavailable) we return 204 (No
- * Content): the <img> still fires onError so the card shows its neutral placeholder,
- * but — unlike a 404 — a 2xx is NOT logged as a "Failed to load resource" console
- * error on every dashboard/projects render for every draft project (BUG-USR-002). A
- * genuinely malformed request (missing project id) is still a real 404, and
- * authentication / upstream failures keep their real failure status rather than
- * being flattened into a misleading 2xx.
+ * it. If no thumbnail has been captured yet (or it's unavailable) we return 404 so
+ * the card shows its neutral placeholder instead of a fake mock.
  */
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (!params.projectId) {
@@ -34,16 +22,12 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
     const result = await apiRequest<{ url?: string }>(request, `/projects/${params.projectId}/thumbnail`);
 
     if (!result?.url) {
-      return missingThumbnailResponse();
+      return new Response(null, { status: 404 });
     }
 
     return redirect(result.url);
-  } catch (error) {
-    if (error instanceof Response) {
-      return error.status === 404 ? missingThumbnailResponse() : new Response(null, { status: error.status });
-    }
-
-    return new Response(null, { status: 502 });
+  } catch {
+    return new Response(null, { status: 404 });
   }
 }
 
@@ -56,7 +40,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
  */
 export async function action({ request, params }: EnterpriseActionArgs) {
   if (!params.projectId) {
-    return remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
+    return json({ ok: false, error: 'Project not found' }, { status: 404 });
   }
 
   try {
@@ -67,7 +51,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     );
 
     if (!signed?.url) {
-      return remainingApiErrorResponse(request, 'THUMBNAIL_UPLOAD_FAILED', 502, { extra: { ok: false } });
+      return json({ ok: false, error: 'Thumbnail upload is unavailable.' }, { status: 502 });
     }
 
     return json({ ok: true, url: signed.url, method: signed.method ?? 'PUT', headers: signed.headers });
@@ -79,6 +63,6 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       return json({ ok: false, enabled: false }, { status: 404 });
     }
 
-    return remainingApiErrorResponse(request, 'THUMBNAIL_UPLOAD_FAILED', status, { extra: { ok: false } });
+    return json({ ok: false, error: await apiErrorMessage(error, 'Thumbnail upload is unavailable.') }, { status });
   }
 }

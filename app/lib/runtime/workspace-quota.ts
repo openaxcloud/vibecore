@@ -1,5 +1,4 @@
 import { RuntimeError } from '@vibecore/runtime-contract';
-import { clientStoresServicesText, type ClientStoresServicesKey } from '~/lib/i18n/catalogs/client-stores-services';
 
 export interface WorkspaceQuotaPrompt {
   warning: string;
@@ -12,17 +11,9 @@ export interface WorkspaceQuotaPrompt {
  * such as `workspaces.active` or `terminals.concurrent`; surfacing the specific
  * limit tells the user what to free up rather than a generic "quota exceeded".
  */
-const QUOTA_PROMPT_KEYS: Readonly<
-  Record<string, Readonly<{ warning: ClientStoresServicesKey; upgrade: ClientStoresServicesKey }>>
-> = {
-  'workspaces.active': {
-    warning: 'clientRuntime.workspace.quota.activeWorkspaces.warning',
-    upgrade: 'clientRuntime.workspace.quota.activeWorkspaces.upgrade',
-  },
-  'terminals.concurrent': {
-    warning: 'clientRuntime.workspace.quota.concurrentTerminals.warning',
-    upgrade: 'clientRuntime.workspace.quota.concurrentTerminals.upgrade',
-  },
+const QUOTA_KEY_LABELS: Record<string, string> = {
+  'workspaces.active': 'active workspace',
+  'terminals.concurrent': 'concurrent terminal',
 };
 
 /*
@@ -56,24 +47,24 @@ export function isWorkspaceQuotaError(error: unknown): boolean {
  * `undefined` when the error is not a quota error so callers can fall through to
  * their generic error handling.
  */
-export function workspaceQuotaPrompt(error: unknown, language?: string | null): WorkspaceQuotaPrompt | undefined {
+export function workspaceQuotaPrompt(error: unknown): WorkspaceQuotaPrompt | undefined {
   if (!isWorkspaceQuotaError(error)) {
     return undefined;
   }
 
   const quotaKey = error instanceof RuntimeError ? extractQuotaKey(error.details) : undefined;
-  const promptKeys = quotaKey ? QUOTA_PROMPT_KEYS[quotaKey] : undefined;
+  const label = quotaKey ? QUOTA_KEY_LABELS[quotaKey] : undefined;
 
-  if (promptKeys) {
+  if (label) {
     return {
-      warning: clientStoresServicesText(promptKeys.warning, {}, language),
-      upgrade: clientStoresServicesText(promptKeys.upgrade, {}, language),
+      warning: `You have reached your ${label} limit.`,
+      upgrade: `Upgrade your plan to start more ${label}s.`,
     };
   }
 
   return {
-    warning: clientStoresServicesText('clientRuntime.workspace.quota.generic.warning', {}, language),
-    upgrade: clientStoresServicesText('clientRuntime.workspace.quota.generic.upgrade', {}, language),
+    warning: 'Workspace quota exceeded',
+    upgrade: 'Upgrade your plan to start more workspaces.',
   };
 }
 

@@ -1,123 +1,130 @@
 import {
   Accessibility as AccessibilityIcon,
-  ArrowRight,
-  AudioLines,
-  CircleCheckBig,
-  Contrast,
-  Gauge,
   Keyboard,
-  Mail,
-  MousePointer2,
   ScanEye,
+  AudioLines,
+  MousePointer2,
   Type,
+  Contrast,
+  CircleCheckBig,
+  Gauge,
+  ArrowRight,
+  Mail,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import type { IconType } from 'react-icons';
-import { SiAndroid, SiApple, SiFreedesktopdotorg, SiGoogle } from 'react-icons/si';
-
+import { SiApple, SiGoogle, SiAndroid, SiFreedesktopdotorg } from 'react-icons/si';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
 } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import {
   Badge,
+  Button,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-  Link,
+  useMarketingNavigate,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
-import {
-  getMarketingExactTrustPressCopy,
-  type AccessibilityCommitmentId,
-  type AccessibilityTechnologyId,
-} from '~/lib/i18n/catalogs/marketing-exact-trust-press';
 
 const PRODUCT_DASHBOARD_SHOT = '/ecode-static/assets/product/dashboard.png';
-const ACCESSIBILITY_EMAIL = 'accessibility@e-code.ai';
-const ACCESSIBILITY_MAILTO = `mailto:${ACCESSIBILITY_EMAIL}`;
-const ACCENT = 'var(--ecode-accent)';
-
-const ACCESSIBILITY_COMMITMENT_ICONS: Record<AccessibilityCommitmentId, LucideIcon> = {
-  perceivable: ScanEye,
-  operable: MousePointer2,
-  understandable: Type,
-  robust: Contrast,
-};
-
-type AccessibilityIconComponent = LucideIcon | IconType;
-
-const ACCESSIBILITY_TECH_ICONS: Record<AccessibilityTechnologyId, AccessibilityIconComponent> = {
-  voiceOver: SiApple,
-  talkBack: SiAndroid,
-  orca: SiFreedesktopdotorg,
-  voiceControl: AudioLines,
-  magnifiers: ScanEye,
-  voiceAccess: SiGoogle,
-};
 
 export default function Accessibility() {
-  const { i18n } = useTranslation();
-  const copy = getMarketingExactTrustPressCopy(i18n.resolvedLanguage ?? i18n.language).exactAccessibility;
+  const navigate = useMarketingNavigate();
 
-  const commitments = copy.commitment.items.map((commitment) => ({
-    ...commitment,
-    icon: ACCESSIBILITY_COMMITMENT_ICONS[commitment.id],
-  }));
-  const technologies = copy.technologies.items.map((technology) => ({
-    ...technology,
-    icon: ACCESSIBILITY_TECH_ICONS[technology.id],
-  }));
+  // Each principle maps to a concrete, on-theme concept icon (not a generic badge).
+  const commitments = [
+    {
+      icon: ScanEye,
+      title: 'Perceivable',
+      description: 'Sufficient color contrast, scalable text, and text alternatives for non-text content',
+    },
+    {
+      icon: MousePointer2,
+      title: 'Operable',
+      description: 'Full keyboard operability, visible focus states, and no time-based traps',
+    },
+    {
+      icon: Type,
+      title: 'Understandable',
+      description: 'Predictable navigation, clear labels, and helpful, consistent error messaging',
+    },
+    {
+      icon: Contrast,
+      title: 'Robust',
+      description: 'Semantic, standards-compliant markup that works with current and future assistive tech',
+    },
+  ];
+
+  // Real brand glyphs for the platforms behind each assistive technology.
+  const assistiveTech = [
+    { name: 'VoiceOver', detail: 'Built-in macOS and iOS screen reader', icon: SiApple },
+    { name: 'TalkBack', detail: 'Built-in Android screen reader', icon: SiAndroid },
+    { name: 'Orca', detail: 'Open-source screen reader on Linux desktops', icon: SiFreedesktopdotorg },
+    { name: 'Voice Control', detail: 'Speech-driven navigation and dictation', icon: AudioLines },
+    { name: 'Screen Magnifiers', detail: 'OS-level zoom and on-screen magnification', icon: ScanEye },
+    { name: 'Voice Access', detail: 'Hands-free control on Android and ChromeOS', icon: SiGoogle },
+  ];
+
+  const shortcuts = [
+    { keys: 'Tab / Shift + Tab', action: 'Move forward or backward between interactive elements' },
+    { keys: 'Enter / Space', action: 'Activate buttons, links, and controls' },
+    { keys: 'Esc', action: 'Close dialogs, menus, and overlays' },
+    { keys: 'Arrow Keys', action: 'Navigate menus, tabs, and list items' },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col" data-testid="page-accessibility">
       <PublicNavbar />
 
       <main className="flex-1">
+        {/* Hero Section */}
         <section className="py-responsive bg-gradient-to-b from-background to-muted">
           <div className="container-responsive">
             <div className="text-center max-w-3xl mx-auto">
               <div
                 className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-2xl"
-                style={{ backgroundColor: ACCENT }}
+                style={{ backgroundColor: 'var(--ecode-accent)' }}
               >
-                <AccessibilityIcon className="h-7 w-7 text-white" aria-hidden />
+                <AccessibilityIcon className="h-7 w-7 text-white" />
               </div>
               <h1 className="mkt-h1 mb-4" data-testid="heading-accessibility">
-                {copy.hero.title}
+                Accessibility at E-Code
               </h1>
-              <p className="mkt-lead text-muted-foreground mb-8">{copy.hero.description}</p>
-              <Badge
-                variant="secondary"
-                className="inline-flex max-w-full whitespace-normal px-4 py-2 text-center text-[15px]"
-              >
-                {copy.hero.badge}
+              <p className="mkt-lead text-muted-foreground mb-8">
+                We are building a development platform that everyone can use — regardless of ability or the assistive
+                technology they rely on.
+              </p>
+              <Badge variant="secondary" className="text-[15px] px-4 py-2">
+                Targeting WCAG 2.1 Level AA
               </Badge>
             </div>
           </div>
         </section>
 
+        {/* Our Commitment */}
         <section className="py-responsive">
           <div className="container-responsive">
             <div className="max-w-3xl mx-auto text-center mb-12">
-              <h2 className="mkt-h2 mb-4">{copy.commitment.title}</h2>
-              <p className="mkt-body text-muted-foreground">{copy.commitment.description}</p>
+              <h2 className="mkt-h2 mb-4">Our Commitment</h2>
+              <p className="mkt-body text-muted-foreground">
+                Accessibility is a core part of how we design and build E-Code. We follow the four guiding principles of
+                the Web Content Accessibility Guidelines, and we treat accessibility issues as bugs that deserve the
+                same priority as any other defect.
+              </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {commitments.map((item) => {
                 const Icon = item.icon;
-
                 return (
-                  <Card key={item.id} className="h-full">
+                  <Card key={item.title}>
                     <CardContent className="pt-6 text-center">
                       <div
                         className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
-                        style={{ backgroundColor: ACCENT }}
+                        style={{ backgroundColor: 'var(--ecode-accent)' }}
                       >
-                        <Icon className="h-6 w-6 text-white" aria-hidden />
+                        <Icon className="h-6 w-6 text-white" />
                       </div>
                       <h3 className="mkt-h3 font-semibold mb-2">{item.title}</h3>
                       <p className="mkt-small text-muted-foreground">{item.description}</p>
@@ -129,80 +136,101 @@ export default function Accessibility() {
           </div>
         </section>
 
+        {/* Conformance */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
             <div className="max-w-5xl mx-auto grid gap-10 lg:grid-cols-2 lg:items-center">
-              <div className="min-w-0">
+              <div>
                 <div
                   className="mb-4 flex h-11 w-11 items-center justify-center rounded-xl"
-                  style={{ backgroundColor: ACCENT }}
+                  style={{ backgroundColor: 'var(--ecode-accent)' }}
                 >
-                  <Gauge className="h-6 w-6 text-white" aria-hidden />
+                  <Gauge className="h-6 w-6 text-white" />
                 </div>
-                <h2 className="mkt-h2 mb-4">{copy.conformance.title}</h2>
+                <h2 className="mkt-h2 mb-4">Conformance Status</h2>
                 <Card>
                   <CardHeader>
-                    <CardTitle>{copy.conformance.cardTitle}</CardTitle>
-                    <CardDescription>{copy.conformance.cardDescription}</CardDescription>
+                    <CardTitle>WCAG 2.1 Level AA</CardTitle>
+                    <CardDescription>
+                      E-Code aims to conform to Level AA of the Web Content Accessibility Guidelines 2.1.
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {copy.conformance.items.map((item) => (
-                      <div key={item.id}>
-                        <h3 className="mkt-h3 font-semibold mb-2">{item.title}</h3>
-                        <p className="mkt-small text-muted-foreground">{item.description}</p>
-                      </div>
-                    ))}
+                    <div>
+                      <h4 className="mkt-h3 font-semibold mb-2">Target Standard</h4>
+                      <p className="mkt-small text-muted-foreground">
+                        We measure our product against WCAG 2.1 AA success criteria across the marketing site,
+                        dashboard, and the in-browser IDE.
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="mkt-h3 font-semibold mb-2">Ongoing Testing</h4>
+                      <p className="mkt-small text-muted-foreground">
+                        Automated checks run in our pipeline and are supplemented by manual screen-reader and
+                        keyboard-only testing on key user flows.
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="mkt-h3 font-semibold mb-2">Known Limitations</h4>
+                      <p className="mkt-small text-muted-foreground">
+                        Some highly interactive editor surfaces are still being improved. Where a gap exists, we
+                        document it and prioritize a fix.
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               </div>
 
-              <figure className="m-0 min-w-0">
-                <div className="overflow-hidden rounded-xl border border-border bg-background shadow-2xl">
+              {/* Real product capture: the E-Code dashboard, framed responsively. */}
+              <figure className="m-0">
+                <div className="overflow-hidden rounded-xl border border-white/10 bg-black/40 shadow-2xl ring-1 ring-white/5">
                   <img
                     src={PRODUCT_DASHBOARD_SHOT}
-                    alt={copy.conformance.imageAlt}
+                    alt="The E-Code dashboard, navigable end-to-end with a keyboard and screen reader"
                     loading="lazy"
                     className="block w-full"
                     draggable={false}
                   />
                 </div>
                 <figcaption className="mt-3 text-center mkt-small text-muted-foreground">
-                  {copy.conformance.imageCaption}
+                  The E-Code dashboard — built with semantic landmarks, visible focus, and accessible labels.
                 </figcaption>
               </figure>
             </div>
           </div>
         </section>
 
+        {/* Supported Assistive Technology */}
         <section className="py-responsive">
           <div className="container-responsive">
             <div className="text-center mb-12">
               <div
                 className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
-                style={{ backgroundColor: ACCENT }}
+                style={{ backgroundColor: 'var(--ecode-accent)' }}
               >
-                <AudioLines className="h-6 w-6 text-white" aria-hidden />
+                <AudioLines className="h-6 w-6 text-white" />
               </div>
-              <h2 className="mkt-h2">{copy.technologies.title}</h2>
-              <p className="mkt-body text-muted-foreground mt-4 max-w-2xl mx-auto">{copy.technologies.description}</p>
+              <h2 className="mkt-h2">Supported Assistive Technology</h2>
+              <p className="mkt-body text-muted-foreground mt-4 max-w-2xl mx-auto">
+                We test E-Code against the screen readers and input technologies our developers actually use.
+              </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              {technologies.map((technology) => {
-                const Icon = technology.icon;
-
+              {assistiveTech.map((tech) => {
+                const Icon = tech.icon;
                 return (
-                  <Card key={technology.id} className="h-full">
-                    <CardContent className="flex min-w-0 items-center gap-4 p-6">
+                  <Card key={tech.name}>
+                    <CardContent className="flex items-center gap-4 p-6">
                       <div
                         className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl border border-border bg-background"
                         aria-hidden="true"
                       >
-                        <Icon className="h-5 w-5" style={{ color: ACCENT }} />
+                        <Icon className="h-5 w-5" style={{ color: 'var(--ecode-accent)' }} />
                       </div>
-                      <div className="min-w-0">
-                        <h3 className="mkt-h3 font-semibold">{technology.name}</h3>
-                        <p className="mkt-small text-muted-foreground">{technology.detail}</p>
+                      <div>
+                        <h3 className="mkt-h3 font-semibold">{tech.name}</h3>
+                        <p className="mkt-small text-muted-foreground">{tech.detail}</p>
                       </div>
                     </CardContent>
                   </Card>
@@ -212,22 +240,26 @@ export default function Accessibility() {
           </div>
         </section>
 
+        {/* Keyboard Navigation */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
             <div className="text-center mb-12">
               <div
                 className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
-                style={{ backgroundColor: ACCENT }}
+                style={{ backgroundColor: 'var(--ecode-accent)' }}
               >
-                <Keyboard className="h-6 w-6 text-white" aria-hidden />
+                <Keyboard className="h-6 w-6 text-white" />
               </div>
-              <h2 className="mkt-h2">{copy.keyboard.title}</h2>
-              <p className="mkt-body text-muted-foreground mt-4 max-w-2xl mx-auto">{copy.keyboard.description}</p>
+              <h2 className="mkt-h2">Keyboard Navigation</h2>
+              <p className="mkt-body text-muted-foreground mt-4 max-w-2xl mx-auto">
+                Every interactive element is reachable and operable with a keyboard alone, with a clear visible focus
+                indicator at all times.
+              </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-              {copy.keyboard.items.map((shortcut) => (
-                <Card key={shortcut.id} className="h-full">
+              {shortcuts.map((shortcut) => (
+                <Card key={shortcut.keys}>
                   <CardContent className="p-6">
                     <kbd className="inline-block rounded border bg-background px-2 py-1 text-[13px] font-mono mb-3">
                       {shortcut.keys}
@@ -240,48 +272,58 @@ export default function Accessibility() {
           </div>
         </section>
 
+        {/* Report an Issue */}
         <section className="py-responsive">
           <div className="container-responsive text-center">
             <div
               className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl"
-              style={{ backgroundColor: ACCENT }}
+              style={{ backgroundColor: 'var(--ecode-accent)' }}
             >
-              <Mail className="h-6 w-6 text-white" aria-hidden />
+              <Mail className="h-6 w-6 text-white" />
             </div>
-            <h2 className="mkt-h2 mb-4">{copy.report.title}</h2>
-            <p className="mkt-body text-muted-foreground mb-8 max-w-2xl mx-auto">{copy.report.description}</p>
+            <h2 className="mkt-h2 mb-4">Report an Accessibility Issue</h2>
+            <p className="mkt-body text-muted-foreground mb-8 max-w-2xl mx-auto">
+              If you encounter a barrier while using E-Code, we want to hear about it. Please include the page, the
+              assistive technology you were using, and a short description so we can reproduce and resolve it quickly.
+            </p>
             <a
-              href={ACCESSIBILITY_MAILTO}
-              className="inline-flex min-h-[44px] w-full max-w-sm items-center justify-center gap-2 break-all rounded-md px-6 py-3 text-white sm:w-auto"
-              style={{ backgroundColor: ACCENT }}
+              href="mailto:accessibility@e-code.ai"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 text-white rounded-md min-h-[44px]"
+              style={{ backgroundColor: 'var(--ecode-accent)' }}
               data-testid="link-accessibility-report"
             >
-              <CircleCheckBig className="h-4 w-4 shrink-0" aria-hidden />
-              {ACCESSIBILITY_EMAIL}
+              <CircleCheckBig className="h-4 w-4" />
+              accessibility@e-code.ai
             </a>
           </div>
         </section>
 
+        {/* End CTA */}
         <section className="py-responsive bg-gradient-to-b from-background to-muted">
           <div className="container-responsive max-w-3xl text-center">
-            <h2 className="mkt-h2">{copy.cta.title}</h2>
-            <p className="mkt-lead mx-auto mt-4 max-w-xl text-muted-foreground">{copy.cta.description}</p>
-            <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-              <Link
-                href="/signup"
-                className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-md bg-ecode-accent px-8 font-medium text-white hover:bg-ecode-accent-hover sm:w-auto"
+            <h2 className="mkt-h2">Build something everyone can use</h2>
+            <p className="mkt-lead mx-auto mt-4 max-w-xl text-muted-foreground">
+              Spin up an accessible workspace in seconds — the same projects, agent, and previews, fully keyboard- and
+              screen-reader-navigable from day one.
+            </p>
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Button
+                size="lg"
+                onClick={() => navigate('/signup')}
+                className="gap-2 bg-ecode-accent text-white hover:bg-ecode-accent-hover"
                 data-testid="button-accessibility-cta-start"
               >
-                {copy.cta.primary}
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </Link>
-              <Link
-                href="/dashboard"
-                className="inline-flex min-h-[44px] w-full items-center justify-center rounded-md border border-border bg-surface-solid px-8 font-medium text-foreground hover:bg-surface-hover-solid sm:w-auto"
+                Get started free
+                <ArrowRight className="h-4 w-4" />
+              </Button>
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => navigate('/dashboard')}
                 data-testid="button-accessibility-cta-dashboard"
               >
-                {copy.cta.secondary}
-              </Link>
+                Open dashboard
+              </Button>
             </div>
           </div>
         </section>

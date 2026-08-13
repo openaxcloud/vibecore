@@ -7,7 +7,12 @@ import { USER_AREA_LOCALE } from '~/lib/i18n/user-area-locale';
  * counts without throwing away precision the way a "99+" ceiling does.
  */
 
-export function formatRailBadgeValue(value: number, language?: string | null): string {
+const COMPACT_FORMATTER = new Intl.NumberFormat(USER_AREA_LOCALE, {
+  notation: 'compact',
+  maximumFractionDigits: 1,
+});
+
+export function formatRailBadgeValue(value: number): string {
   if (!Number.isFinite(value) || value < 0) {
     return '0';
   }
@@ -24,12 +29,5 @@ export function formatRailBadgeValue(value: number, language?: string | null): s
    * runner and local Node disagreed. The badge contract is the GitHub-style
    * uppercase "1.2K", independent of the host's ICU data.
    */
-  const locale = language?.toLowerCase().startsWith('fr') ? 'fr-FR' : USER_AREA_LOCALE;
-
-  const formatted = new Intl.NumberFormat(locale, {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(rounded);
-
-  return locale === USER_AREA_LOCALE ? formatted.toUpperCase() : formatted;
+  return COMPACT_FORMATTER.format(rounded).toUpperCase();
 }

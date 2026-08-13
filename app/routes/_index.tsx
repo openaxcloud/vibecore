@@ -1,34 +1,18 @@
-import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
+import type { MetaFunction } from 'react-router';
 
 import LandingOptimized from '~/components/marketing/ecode-exact/pages/LandingOptimized';
-import { getMarketingExactLandingForumCopy } from '~/lib/i18n/catalogs/marketing-exact-landing-forum';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { socialMetaTags } from '~/utils/social-meta';
 
 // In-repo SSR (main Remix app) rather than the prebuilt external marketing bundle.
-export function loader({ request }: LoaderFunctionArgs) {
-  return { language: resolveRequestLocale(request).language };
-}
-
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-  const seo = getMarketingExactLandingForumCopy(data?.language).exactLanding.seo;
-
-  const social = socialMetaTags(seo).map((tag) => {
-    const identifier = 'property' in tag ? tag.property : 'name' in tag ? tag.name : undefined;
-
-    return identifier === 'og:image:alt' || identifier === 'twitter:image:alt'
-      ? { ...tag, content: seo.imageAlt }
-      : tag;
-  });
-
-  return [
-    { title: seo.title },
-    { name: 'description', content: seo.description },
-    ...social,
-    { name: 'twitter:title', content: seo.title },
-    { name: 'twitter:description', content: seo.description },
-  ];
-};
+export const meta: MetaFunction = () => [
+  { title: 'E-Code — Build, ship and scale apps with AI' },
+  {
+    name: 'description',
+    content:
+      'E-Code is where you create software with AI agents: build full-stack apps from a prompt, collaborate in real time, and deploy to production. Starter (free), Core, Pro and Enterprise plans.',
+  },
+  ...socialMetaTags({ title: 'E-Code', description: 'Build, ship and scale apps with AI agents.' }),
+];
 
 export default function IndexRoute() {
   return <LandingOptimized />;

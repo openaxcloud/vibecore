@@ -31,7 +31,6 @@
  * want retries raise `maxRetries` on the task.
  */
 import { RESERVED_VM_TIERS, workspaceComputeUnits, type ReservedVmTier } from '@vibecore/billing';
-import { appPublicCopy, appPublicEnglish, localizeAppPublicMessage } from './app-public-copy.js';
 import { meterDeployment } from './metering-service.js';
 import { minIntervalMinutes, nextCronRun, parseCron } from './scheduled-tasks-cron.js';
 import type {
@@ -40,7 +39,6 @@ import type {
   ScheduledTaskRunStatus,
 } from './scheduled-tasks-repository.js';
 import type { ApiStore } from './store.js';
-import type { TransactionalLocale } from './transactional-i18n.js';
 
 /** Result of one shell exec inside the project's sandbox. */
 export interface ExecResult {
@@ -155,54 +153,7 @@ export function truncateLogs(output: string): string {
     return output;
   }
 
-  return `${output.slice(0, MAX_RUN_LOG_BYTES)}\n${appPublicEnglish('SCHEDULE_LOG_TRUNCATED', {
-    bytes: output.length - MAX_RUN_LOG_BYTES,
-  })}`;
-}
-
-/**
- * Translate only scheduler-owned fragments in a persisted run log. Commands,
- * workflow names and command output are user/project content and remain byte-for-byte
- * unchanged. This also covers English rows created before locale-aware responses.
- */
-export function localizeScheduledRunText(value: string | null | undefined, locale: TransactionalLocale): string {
-  if (!value || locale === 'en') {
-    return value ?? '';
-  }
-
-  const exact = localizeAppPublicMessage(value, locale);
-
-  if (exact.matched) {
-    return exact.value;
-  }
-
-  return value
-    .replace(
-      /^\$ # scheduled task "([^"]*)" \((deployment|workflow)\) — (\d+) step\(s\)$/m,
-      (_line, label, kind, count) => {
-        const localizedKind = appPublicCopy(
-          kind === 'deployment' ? 'SCHEDULE_KIND_DEPLOYMENT' : 'SCHEDULE_KIND_WORKFLOW',
-          locale,
-        );
-
-        return `$ # ${appPublicCopy('SCHEDULE_LOG_HEADER', locale, { label, kind: localizedKind, count })}`;
-      },
-    )
-    .replace(/Timed out after (\d+)s\./g, (_line, seconds) =>
-      appPublicCopy('SCHEDULE_RUN_TIMEOUT', locale, { seconds }),
-    )
-    .replace(/Step exited with code (-?\d+)\./g, (_line, code) => appPublicCopy('SCHEDULE_STEP_EXIT', locale, { code }))
-    .replace(
-      /\$ # step failed with exit code (-?\d+); stopping\./g,
-      (_line, code) => `$ # ${appPublicCopy('SCHEDULE_LOG_STEP_STOP', locale, { code })}`,
-    )
-    .replace(/\$ # execution error: ([^\n]+)/g, (_line, error) => {
-      const localizedError = localizeScheduledRunText(error, locale);
-      return `$ # ${appPublicCopy('SCHEDULE_LOG_EXECUTION_ERROR', locale, { error: localizedError })}`;
-    })
-    .replace(/… \[truncated: (\d+) more bytes\]/g, (_line, bytes) =>
-      appPublicCopy('SCHEDULE_LOG_TRUNCATED', locale, { bytes }),
-    );
+  return `${output.slice(0, MAX_RUN_LOG_BYTES)}\n… [truncated: ${output.length - MAX_RUN_LOG_BYTES} more bytes]`;
 }
 
 /** Validate a cron against the org's plan. Pure — testable without a database. */
@@ -211,20 +162,18 @@ export function validateSchedule(input: {
   timezone: string;
   planKey?: string;
   now?: Date;
-  locale?: TransactionalLocale;
 }): { valid: boolean; normalized?: string; nextRunAt?: Date; error?: string; code?: string } {
-  const locale = input.locale ?? 'en';
   const parsed = parseCron(input.cron);
 
   if (!parsed.valid) {
-    return { valid: false, error: appPublicCopy('SCHEDULE_INVALID_CRON', locale), code: 'SCHEDULE_INVALID_CRON' };
+    return { valid: false, error: parsed.error, code: 'SCHEDULE_INVALID_CRON' };
   }
 
   const now = input.now ?? new Date();
   const next = nextCronRun(parsed.normalized!, now, input.timezone);
 
   if (!next) {
-    return { valid: false, error: appPublicCopy('SCHEDULE_NEVER_FIRES', locale), code: 'SCHEDULE_NEVER_FIRES' };
+    return { valid: false, error: 'This schedule never fires (no matching date).', code: 'SCHEDULE_NEVER_FIRES' };
   }
 
   const floor = planMinIntervalMinutes(input.planKey);
@@ -234,7 +183,7 @@ export function validateSchedule(input: {
     return {
       valid: false,
       code: 'SCHEDULE_TOO_FREQUENT',
-      error: appPublicCopy('SCHEDULE_TOO_FREQUENT', locale, { observed, floor }),
+      error: `This schedule fires every ${observed} minute(s); your plan allows at most one run every ${floor} minutes.`,
     };
   }
 
@@ -354,7 +303,7 @@ export class ScheduledTaskService {
           finishedAt: now,
           durationMs: 0,
           machineSize: task.machineSize,
-          logs: appPublicEnglish('SCHEDULE_RUN_OVERLAP'),
+          logs: 'Skipped: the previous run of this task was still in progress (overlap policy: FORBID).',
         });
         await repository.setTaskOutcome(task.id, now, 'SKIPPED');
         result.skipped.push(task.id);
@@ -374,14 +323,14 @@ export class ScheduledTaskService {
     const task = await repository.getTask(taskId);
 
     if (!task) {
-      throw Object.assign(new Error(appPublicEnglish('SCHEDULED_TASK_NOT_FOUND')), {
+      throw Object.assign(new Error('Scheduled task not found'), {
         statusCode: 404,
         code: 'SCHEDULED_TASK_NOT_FOUND',
       });
     }
 
     if (task.concurrency !== 'ALLOW' && (await repository.countRunningRuns(task.id)) > 0) {
-      throw Object.assign(new Error(appPublicEnglish('SCHEDULED_TASK_ALREADY_RUNNING')), {
+      throw Object.assign(new Error('This task is already running'), {
         statusCode: 409,
         code: 'SCHEDULED_TASK_ALREADY_RUNNING',
       });
@@ -433,13 +382,13 @@ export class ScheduledTaskService {
       });
 
       if (!workflow) {
-        throw Object.assign(new Error(appPublicEnglish('SCHEDULED_WORKFLOW_MISSING')), {
+        throw Object.assign(new Error('The scheduled workflow no longer exists in this project.'), {
           code: 'SCHEDULED_WORKFLOW_MISSING',
         });
       }
 
       if (workflow.commands.length === 0) {
-        throw Object.assign(new Error(appPublicEnglish('SCHEDULED_WORKFLOW_EMPTY')), {
+        throw Object.assign(new Error('The scheduled workflow has no steps to run.'), {
           code: 'SCHEDULED_WORKFLOW_EMPTY',
         });
       }
@@ -450,15 +399,18 @@ export class ScheduledTaskService {
     const command = task.command?.trim() ?? '';
 
     if (!command) {
-      throw Object.assign(new Error(appPublicEnglish('SCHEDULED_TASK_NO_COMMAND')), {
-        code: 'SCHEDULED_TASK_NO_COMMAND',
-      });
+      throw Object.assign(new Error('This scheduled task has no command.'), { code: 'SCHEDULED_TASK_NO_COMMAND' });
     }
 
     return { commands: [command], label: task.name };
   }
 
-  private async execute(task: ScheduledTaskRow, runId: string, scheduledFor: Date, startedAt: Date): Promise<void> {
+  private async execute(
+    task: ScheduledTaskRow,
+    runId: string,
+    scheduledFor: Date,
+    startedAt: Date,
+  ): Promise<void> {
     const { repository } = this.deps;
     const controller = new AbortController();
 
@@ -493,7 +445,7 @@ export class ScheduledTaskService {
         if (remainingMs <= 0) {
           status = 'TIMED_OUT';
           exitCode = null;
-          error = appPublicEnglish('SCHEDULE_RUN_TIMEOUT', { seconds: timeoutSeconds });
+          error = `Timed out after ${timeoutSeconds}s.`;
           chunks.push(`\n$ # ${error}\n`);
           break;
         }
@@ -515,7 +467,7 @@ export class ScheduledTaskService {
         if (result.exitCode !== 0) {
           status = 'FAILED';
           exitCode = result.exitCode;
-          error = appPublicEnglish('SCHEDULE_STEP_EXIT', { code: result.exitCode });
+          error = `Step exited with code ${result.exitCode}.`;
           chunks.push(`\n$ # step failed with exit code ${result.exitCode}; stopping.\n`);
           break;
         }
@@ -623,7 +575,13 @@ export class ScheduledTaskService {
         continue;
       }
 
-      await repository.failStuckRun(run.id, now, appPublicEnglish('SCHEDULE_RUN_INTERRUPTED')).catch(() => undefined);
+      await repository
+        .failStuckRun(
+          run.id,
+          now,
+          'Run interrupted — the executor was restarted while this run was in progress.',
+        )
+        .catch(() => undefined);
       reaped += 1;
     }
 

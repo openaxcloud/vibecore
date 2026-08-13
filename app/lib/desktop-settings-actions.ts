@@ -11,33 +11,22 @@
  * route entrypoints — pure helpers live in `app/lib/**`).
  */
 
-import {
-  getDesktopSettingsCopy,
-  resolveDesktopSettingsLanguage,
-  type DesktopSettingsKey,
-  type DesktopSettingsLanguage,
-} from './i18n/catalogs/desktop-settings';
-
 type DesktopBridge = NonNullable<typeof globalThis.window.vibecoreDesktop>;
-export type DesktopSettingsStatusKey = Extract<DesktopSettingsKey, `desktopSettings.status.${string}`>;
 
 /**
  * Persists desktop settings through the bridge. Returns the status line to
  * display. Never throws: a rejected `settings.set` becomes an error status.
  */
-export async function saveDesktopSettings(
-  bridge: DesktopBridge | undefined,
-  next: unknown,
-): Promise<DesktopSettingsStatusKey> {
+export async function saveDesktopSettings(bridge: DesktopBridge | undefined, next: unknown): Promise<string> {
   if (!bridge) {
-    return 'desktopSettings.status.openAppSettings';
+    return 'Open this page in the E-Code desktop app to change native settings.';
   }
 
   try {
     await bridge.settings.set(next);
-    return 'desktopSettings.status.saved';
+    return 'Desktop settings saved.';
   } catch {
-    return 'desktopSettings.status.saveFailed';
+    return 'Desktop settings could not be saved. Try again.';
   }
 }
 
@@ -45,25 +34,19 @@ export async function saveDesktopSettings(
  * Shows a native test notification. Returns the status line to display.
  * Never throws: a rejected `notifications.show` becomes an error status.
  */
-export async function showDesktopTestNotification(
-  bridge: DesktopBridge | undefined,
-  language?: DesktopSettingsLanguage,
-): Promise<DesktopSettingsStatusKey> {
+export async function showDesktopTestNotification(bridge: DesktopBridge | undefined): Promise<string> {
   if (!bridge) {
-    return 'desktopSettings.status.openAppNotification';
+    return 'Open this page in the E-Code desktop app to test native notifications.';
   }
 
   try {
-    const copy = getDesktopSettingsCopy(resolveDesktopSettingsLanguage(language));
-
     await bridge.notifications.show({
-      title: copy['desktopSettings.notification.title'],
-      body: copy['desktopSettings.notification.body'],
+      title: 'E-Code',
+      body: 'Native notifications are enabled.',
     });
-
-    return 'desktopSettings.status.notificationSent';
+    return 'Test notification sent.';
   } catch {
-    return 'desktopSettings.status.notificationFailed';
+    return 'The test notification could not be sent. Check system permissions and try again.';
   }
 }
 
@@ -71,16 +54,16 @@ export async function showDesktopTestNotification(
  * Opens the native folder picker. Returns the status line to display.
  * Never throws: a rejected `files.openLocalFolder` becomes an error status.
  */
-export async function openDesktopLocalFolder(bridge: DesktopBridge | undefined): Promise<DesktopSettingsStatusKey> {
+export async function openDesktopLocalFolder(bridge: DesktopBridge | undefined): Promise<string> {
   if (!bridge) {
-    return 'desktopSettings.status.openAppFolder';
+    return 'Open this page in the E-Code desktop app to choose a local folder.';
   }
 
   try {
     const folder = await bridge.files.openLocalFolder();
-    return folder ? 'desktopSettings.status.folderSelected' : 'desktopSettings.status.folderCanceled';
+    return folder ? 'Folder selected.' : 'Folder selection canceled.';
   } catch {
-    return 'desktopSettings.status.folderFailed';
+    return 'The folder picker could not open. Try again.';
   }
 }
 

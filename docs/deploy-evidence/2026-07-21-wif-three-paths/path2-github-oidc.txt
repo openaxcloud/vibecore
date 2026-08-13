@@ -1,7 +1,0 @@
-GitHub Actions run: https://github.com/openaxcloud/vibecore/actions/runs/29812447097
-authorized	Read the secret bucket with the WIF-obtained token (no key)	2026-07-21T08:01:15.6774255Z CREDENTIAL_FILE=/home/runner/work/vibecore/vibecore/gha-creds-78e4170beb2cbd70.json (external_account/federated, NOT a key)
-authorized	Read the secret bucket with the WIF-obtained token (no key)	2026-07-21T08:01:15.6776544Z TOKEN_ACQUIRED_VIA=WIF_impersonation length=1024
-authorized	Read the secret bucket with the WIF-obtained token (no key)	2026-07-21T08:01:16.6040011Z READ_HTTP=200
-authorized	Read the secret bucket with the WIF-obtained token (no key)	2026-07-21T08:01:16.6052285Z SECRET_CONTENT=wif-proof-secret-content-1784619072
-negative	Report negative outcome	2026-07-21T08:01:15.3994458Z AUTH_STEP_OUTCOME=failure
-negative	Report negative outcome	2026-07-21T08:01:15.3995503Z NEGATIVE_OK: impersonation of the un-granted SA was DENIED (no workloadIdentityUser binding)

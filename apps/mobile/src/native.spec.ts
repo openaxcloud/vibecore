@@ -112,19 +112,6 @@ describe('shareProjectLink (native share payload uses the E-Code brand)', () => 
     const serialized = JSON.stringify(payload);
     expect(serialized).not.toMatch(/vibecore|bolt/i);
   });
-
-  it('localizes the native share sheet in French while preserving the project id and URL', async () => {
-    await shareProjectLink('project_123', 'https://app.e-code.ai/projects/project_123', 'fr-FR');
-
-    const payload = share.mock.calls[0][0] as { title: string; text: string; url: string; dialogTitle: string };
-
-    expect(payload).toEqual({
-      title: 'Projet E-Code',
-      text: 'Ouvrir le projet project_123 sur E-Code',
-      url: 'https://app.e-code.ai/projects/project_123',
-      dialogTitle: 'Partager le projet',
-    });
-  });
 });
 
 describe('configurePushNotifications (permission/register rejection does not leak listeners)', () => {

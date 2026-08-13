@@ -15,16 +15,10 @@ describe('/sw.js route', () => {
 
     const body = await response.text();
 
-    expect(body).toContain("const CACHE_NAME = 'vibecore-shell-v3'");
+    expect(body).toContain("const CACHE_NAME = 'vibecore-shell-v2'");
     expect(body).toContain("fetch(request, { cache: 'no-store' })");
-    expect(body).toContain("const OFFLINE_URL = '/offline.html'");
-    expect(body).toContain("'/offline-messages.js'");
-    expect(body).toContain("'/offline-i18n.js'");
-    expect(body).toContain("'/manifest.fr.webmanifest'");
-    expect(body).toContain('caches.match(OFFLINE_URL)');
     expect(body).toContain('caches.delete(key)');
     expect(body).not.toContain("caches.match('/dashboard')");
     expect(body).not.toContain('cachedDashboard');
-    expect(body).not.toContain('Connection interrupted');
   });
 });

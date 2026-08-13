@@ -13,7 +13,6 @@ import {
 } from './agent-executor.js';
 import { createDefaultAgentRunPersistence, type AgentRunPersistence } from './agent-run-persistence.js';
 import { AiGateway, type AiChatRequest } from './gateway.js';
-import { aiGatewayLocaleFromHeader, aiGatewayMessage, localizedAiGatewayError } from './public-i18n.js';
 
 export interface AiGatewayAppOptions {
   gateway?: AiGateway;
@@ -68,12 +67,6 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
       ? undefined
       : (options.agentRunPersistence ?? (await createDefaultAgentRunPersistence()));
 
-  app.addHook('onRequest', async (request, reply) => {
-    const locale = aiGatewayLocaleFromHeader(request.headers['accept-language']);
-    reply.header('content-language', locale);
-    reply.header('vary', 'Accept-Language');
-  });
-
   app.addHook('onClose', async () => {
     await agentRunRateLimiter.close?.();
   });
@@ -88,7 +81,6 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
   });
 
   app.post('/chat/completions', async (request, reply) => {
-    const locale = aiGatewayLocaleFromHeader(request.headers['accept-language']);
     /*
      * Shared-secret auth, gated on AI_GATEWAY_REQUIRE_AUTH so the rollout never
      * 401s prod chat: the api is deployed sending the secret (and the secret is
@@ -104,18 +96,14 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
       });
 
       if (!authorized) {
-        return reply
-          .code(401)
-          .send({ error: aiGatewayMessage('gatewayUnauthorized', locale), code: 'AI_GATEWAY_UNAUTHORIZED' });
+        return reply.code(401).send({ error: 'Unauthorized ai-gateway request.', code: 'AI_GATEWAY_UNAUTHORIZED' });
       }
     }
 
-    const body = { ...(request.body as AiChatRequest), locale };
+    const body = request.body as AiChatRequest;
 
     if (!Array.isArray(body?.messages)) {
-      return reply
-        .code(400)
-        .send({ error: aiGatewayMessage('chatMessagesRequired', locale), code: 'AI_MESSAGES_REQUIRED' });
+      return reply.code(400).send({ error: 'messages is required', code: 'AI_MESSAGES_REQUIRED' });
     }
 
     if (body.stream) {
@@ -144,7 +132,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
         const statusCode = typeof rawStatus === 'number' ? rawStatus : 500;
 
         return reply.code(statusCode).send({
-          error: localizedAiGatewayError(error, locale, 'aiStreamFailed'),
+          error: error instanceof Error ? error.message : 'AI stream failed.',
           code: statusCode >= 400 && statusCode < 500 ? 'AI_STREAM_BAD_REQUEST' : 'AI_STREAM_FAILED',
         });
       }
@@ -153,8 +141,6 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
         'content-type': 'text/event-stream; charset=utf-8',
         'cache-control': 'no-cache',
         connection: 'keep-alive',
-        'content-language': locale,
-        vary: 'Accept-Language',
       });
 
       try {
@@ -201,7 +187,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
          * truncation. Emit a terminal SSE error frame so the consumer can surface
          * a real failure, then fall through to the finally for cleanup.
          */
-        const message = localizedAiGatewayError(error, locale, 'aiStreamFailed');
+        const message = error instanceof Error ? error.message : 'AI stream failed.';
         request.log?.error?.({ err: error }, 'ai-gateway stream interrupted mid-flight');
 
         if (!reply.raw.writableEnded) {
@@ -245,7 +231,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
       const statusCode = typeof rawStatus === 'number' ? rawStatus : 500;
 
       return reply.code(statusCode).send({
-        error: localizedAiGatewayError(error, locale, 'completionFailed'),
+        error: error instanceof Error ? error.message : 'Completion failed',
         code: statusCode >= 400 && statusCode < 500 ? 'AI_COMPLETION_BAD_REQUEST' : 'AI_COMPLETION_FAILED',
       });
     } finally {
@@ -254,7 +240,6 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
   });
 
   app.post('/v1/agent-runs', async (request, reply) => {
-    const locale = aiGatewayLocaleFromHeader(request.headers['accept-language']);
     if (
       !authorizeAgentRun({
         authorizationHeader: request.headers.authorization,
@@ -273,13 +258,11 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
         allowInsecure: (env.NODE_ENV ?? 'production') !== 'production',
       })
     ) {
-      return reply
-        .code(401)
-        .send({ error: aiGatewayMessage('executorUnauthorized', locale), code: 'AGENT_RUN_UNAUTHORIZED' });
+      return reply.code(401).send({ error: 'Unauthorized agent executor request.', code: 'AGENT_RUN_UNAUTHORIZED' });
     }
 
     try {
-      const body = { ...parseAgentRunRequest(request.body), locale };
+      const body = parseAgentRunRequest(request.body);
 
       /*
        * Prefer an explicit per-tenant key, then the org id, then the (pod) IP.
@@ -296,7 +279,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
 
       if (!rateLimit.allowed) {
         return reply.code(429).send({
-          error: aiGatewayMessage('executorRateLimited', locale),
+          error: 'Agent executor rate limit exceeded.',
           code: 'AGENT_RUN_RATE_LIMITED',
           retryAfterSeconds: Math.max(1, Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
         });
@@ -325,7 +308,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
       const statusCode = typeof rawStatus === 'number' ? rawStatus : 500;
 
       return reply.code(statusCode).send({
-        error: localizedAiGatewayError(error, locale, 'agentRunFailed'),
+        error: error instanceof Error ? error.message : 'Agent run failed.',
         code: statusCode >= 400 && statusCode < 500 ? 'AGENT_RUN_BAD_REQUEST' : 'AGENT_RUN_FAILED',
       });
     }
@@ -337,7 +320,6 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
    * instead of waiting for the whole run. Same auth + rate limit as the JSON route.
    */
   app.post('/v1/agent-runs/stream', async (request, reply) => {
-    const locale = aiGatewayLocaleFromHeader(request.headers['accept-language']);
     if (
       !authorizeAgentRun({
         authorizationHeader: request.headers.authorization,
@@ -345,21 +327,19 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
         allowInsecure: (env.NODE_ENV ?? 'production') !== 'production',
       })
     ) {
-      return reply
-        .code(401)
-        .send({ error: aiGatewayMessage('executorUnauthorized', locale), code: 'AGENT_RUN_UNAUTHORIZED' });
+      return reply.code(401).send({ error: 'Unauthorized agent executor request.', code: 'AGENT_RUN_UNAUTHORIZED' });
     }
 
     let body;
 
     try {
-      body = { ...parseAgentRunRequest(request.body), locale };
+      body = parseAgentRunRequest(request.body);
     } catch (error) {
       const rawStatus = (error as { statusCode?: unknown }).statusCode;
       const statusCode = typeof rawStatus === 'number' ? rawStatus : 400;
 
       return reply.code(statusCode).send({
-        error: localizedAiGatewayError(error, locale, 'agentRunFailed'),
+        error: error instanceof Error ? error.message : 'Agent run failed.',
         code: 'AGENT_RUN_BAD_REQUEST',
       });
     }
@@ -380,7 +360,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
 
     if (!rateLimit.allowed) {
       return reply.code(429).send({
-        error: aiGatewayMessage('executorRateLimited', locale),
+        error: 'Agent executor rate limit exceeded.',
         code: 'AGENT_RUN_RATE_LIMITED',
         retryAfterSeconds: Math.max(1, Math.ceil((rateLimit.resetAt - Date.now()) / 1000)),
       });
@@ -394,8 +374,6 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
       'content-type': 'text/event-stream; charset=utf-8',
       'cache-control': 'no-cache',
       connection: 'keep-alive',
-      'content-language': locale,
-      vary: 'Accept-Language',
       ...rateLimitHeaders,
     });
 
@@ -436,7 +414,7 @@ export async function buildAiGatewayApp(options: AiGatewayAppOptions = {}) {
     } catch (error) {
       if (!reply.raw.writableEnded) {
         reply.raw.write(
-          `data: ${JSON.stringify({ type: 'error', error: localizedAiGatewayError(error, locale, 'agentRunFailed') })}\n\n`,
+          `data: ${JSON.stringify({ type: 'error', error: error instanceof Error ? error.message : 'Agent run failed.' })}\n\n`,
         );
       }
     } finally {

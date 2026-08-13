@@ -1,12 +1,8 @@
 import type { AgentRoleId, AgentRunResult } from '../agent-executor.js';
-import { aiGatewayMessage, type AiGatewayLocale } from '../public-i18n.js';
 import { normalizeClaim, normalizeFilePath } from './voting.js';
 import type { ConsensusConflict } from './types.js';
 
-export function detectFileOverlapConflicts(
-  results: AgentRunResult[],
-  locale: AiGatewayLocale = 'en',
-): ConsensusConflict[] {
+export function detectFileOverlapConflicts(results: AgentRunResult[]): ConsensusConflict[] {
   const ownership = new Map<string, AgentRoleId[]>();
 
   for (const result of results) {
@@ -28,7 +24,7 @@ export function detectFileOverlapConflicts(
     if (owners.length > 1) {
       conflicts.push({
         type: 'file-overlap',
-        description: aiGatewayMessage('consensusFileOverlap', locale, { count: owners.length, path: key }),
+        description: `${owners.length} sub-agents claim ownership of ${key}`,
         involvedRoles: [...owners],
         severity: owners.length >= 3 ? 'high' : 'medium',
       });
@@ -38,11 +34,7 @@ export function detectFileOverlapConflicts(
   return conflicts;
 }
 
-export function detectRiskDisagreement(
-  results: AgentRunResult[],
-  minDissentingRoles = 2,
-  locale: AiGatewayLocale = 'en',
-): ConsensusConflict[] {
+export function detectRiskDisagreement(results: AgentRunResult[], minDissentingRoles = 2): ConsensusConflict[] {
   const claims = new Map<string, { raw: string; supporters: Set<AgentRoleId> }>();
 
   /*
@@ -78,11 +70,7 @@ export function detectRiskDisagreement(
     if (dissenters.length >= minDissentingRoles && bucket.supporters.size >= 1) {
       conflicts.push({
         type: 'risk-disagreement',
-        description: aiGatewayMessage('consensusRiskDisagreement', locale, {
-          risk: bucket.raw,
-          supporters: bucket.supporters.size,
-          dissenters: dissenters.length,
-        }),
+        description: `Risk "${bucket.raw}" raised by ${bucket.supporters.size} role(s) but ignored by ${dissenters.length} other(s)`,
         involvedRoles: [...bucket.supporters, ...dissenters],
         severity: dissenters.length >= bucket.supporters.size ? 'medium' : 'low',
       });
@@ -92,7 +80,7 @@ export function detectRiskDisagreement(
   return conflicts;
 }
 
-export function detectVerificationGaps(results: AgentRunResult[], locale: AiGatewayLocale = 'en'): ConsensusConflict[] {
+export function detectVerificationGaps(results: AgentRunResult[]): ConsensusConflict[] {
   const conflicts: ConsensusConflict[] = [];
   const lacking: AgentRoleId[] = [];
 
@@ -111,10 +99,7 @@ export function detectVerificationGaps(results: AgentRunResult[], locale: AiGate
 
   conflicts.push({
     type: 'verification-gap',
-    description: aiGatewayMessage('consensusVerificationGap', locale, {
-      missing: lacking.length,
-      total: totalNonFailed,
-    }),
+    description: `${lacking.length} of ${totalNonFailed} sub-agents produced no verification steps`,
     involvedRoles: lacking,
     severity: lacking.length === totalNonFailed ? 'high' : 'medium',
   });
@@ -122,28 +107,25 @@ export function detectVerificationGaps(results: AgentRunResult[], locale: AiGate
   return conflicts;
 }
 
-export function detectRoleFailures(results: AgentRunResult[], locale: AiGatewayLocale = 'en'): ConsensusConflict[] {
+export function detectRoleFailures(results: AgentRunResult[]): ConsensusConflict[] {
   const failed = results.filter((r) => r.status === 'failed').map((r) => r.roleId);
   if (failed.length === 0) return [];
 
   return [
     {
       type: 'role-failure',
-      description: aiGatewayMessage('consensusRoleFailure', locale, {
-        count: failed.length,
-        roles: failed.join(', '),
-      }),
+      description: `${failed.length} sub-agent role(s) failed: ${failed.join(', ')}`,
       involvedRoles: failed,
       severity: failed.length >= results.length / 2 ? 'high' : 'medium',
     },
   ];
 }
 
-export function detectAllConflicts(results: AgentRunResult[], locale: AiGatewayLocale = 'en'): ConsensusConflict[] {
+export function detectAllConflicts(results: AgentRunResult[]): ConsensusConflict[] {
   return [
-    ...detectRoleFailures(results, locale),
-    ...detectFileOverlapConflicts(results, locale),
-    ...detectRiskDisagreement(results, 2, locale),
-    ...detectVerificationGaps(results, locale),
+    ...detectRoleFailures(results),
+    ...detectFileOverlapConflicts(results),
+    ...detectRiskDisagreement(results),
+    ...detectVerificationGaps(results),
   ];
 }

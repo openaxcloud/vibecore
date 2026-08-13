@@ -188,27 +188,15 @@ export interface TenantSqlExecutor {
  * Identifiers are alnum-only (derived from the cuid); the password is hex
  * (HMAC digest), so both embed safely as literals.
  */
-/** Minimal shape of the pg client this executor drives (injectable for tests). */
-export interface TenantSqlClient {
-  connect(): Promise<void>;
-  query(text: string, values?: unknown[]): Promise<{ rowCount: number | null }>;
-  end(): Promise<void>;
-}
-
 export class PgTenantSqlExecutor implements TenantSqlExecutor {
-  constructor(
-    private readonly createClient: (adminUri: string) => TenantSqlClient = (adminUri) =>
-      new PgClient({
-        connectionString: adminUri,
-        ssl: /sslmode=disable/.test(adminUri) ? false : { rejectUnauthorized: false },
-        connectionTimeoutMillis: 10_000,
-        statement_timeout: 15_000,
-      }) as unknown as TenantSqlClient,
-  ) {}
-
   async provisionTenant(input: { adminUri: string; role: string; db: string; password: string }): Promise<void> {
     const { adminUri, role, db, password } = input;
-    const client = this.createClient(adminUri);
+    const client = new PgClient({
+      connectionString: adminUri,
+      ssl: /sslmode=disable/.test(adminUri) ? false : { rejectUnauthorized: false },
+      connectionTimeoutMillis: 10_000,
+      statement_timeout: 15_000,
+    });
     await client.connect();
 
     try {
@@ -224,18 +212,6 @@ export class PgTenantSqlExecutor implements TenantSqlExecutor {
       const dbExists = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [db]);
 
       if (dbExists.rowCount === 0) {
-        /*
-         * Postgres 16+ requires the creating role to be able to SET ROLE to the
-         * database's target OWNER — i.e. be a MEMBER of the tenant role — or
-         * `CREATE DATABASE ... OWNER "<role>"` fails with 42501 "must be able to
-         * SET ROLE". The CNPG `app` admin has CREATEDB/CREATEROLE but is not a
-         * member of the freshly-created tenant role, so grant membership first.
-         * Without this the shared-tier database is never created: getConnectionUri
-         * returns undefined, no DATABASE_URL is written, and the IDE Database panel
-         * stays stuck on "No database yet" for every free-tier project.
-         * Idempotent (GRANT of an already-held membership is a no-op).
-         */
-        await client.query(`GRANT "${role}" TO CURRENT_USER`);
         // CREATE DATABASE cannot run inside a transaction; node-postgres simple
         // queries are autocommit, so this is fine.
         await client.query(`CREATE DATABASE "${db}" OWNER "${role}"`);

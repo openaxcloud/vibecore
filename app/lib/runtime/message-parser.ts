@@ -1,4 +1,3 @@
-import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import type {
   ActionType,
   BoltAction,
@@ -10,7 +9,6 @@ import type {
 } from '~/types/actions';
 import type { BoltArtifactData } from '~/types/artifact';
 import { createScopedLogger } from '~/utils/logger';
-import { stripTransportMarkup, trailingTransportFragmentLength } from '~/utils/transport-markup';
 import { unreachable } from '~/utils/unreachable';
 
 const ARTIFACT_TAG_OPEN = '<boltArtifact';
@@ -38,25 +36,13 @@ const logger = createScopedLogger('MessageParser');
 function withoutTrailingCloseTagPrefix(content: string): string {
   const max = Math.min(content.length, ARTIFACT_ACTION_TAG_CLOSE.length - 1);
 
-  let hold = 0;
-
   for (let k = max; k > 0; k--) {
     if (content.endsWith(ARTIFACT_ACTION_TAG_CLOSE.slice(0, k))) {
-      hold = k;
-      break;
+      return content.slice(0, content.length - k);
     }
   }
 
-  /*
-   * BUG-AGENT-TRANSPORT-MARKUP — the same hazard, but for the model's own
-   * function-call transport markup. A stream that dies mid-wrapper leaves a tail
-   * like `…}\n</antml`, which is NOT a prefix of `</boltAction>` and so slipped
-   * through the loop above and was autosaved verbatim into ten prod files.
-   * Hold back the longer of the two candidate tails.
-   */
-  hold = Math.max(hold, trailingTransportFragmentLength(content));
-
-  return hold > 0 ? content.slice(0, content.length - hold) : content;
+  return content;
 }
 
 export interface ArtifactCallbackData extends BoltArtifactData {
@@ -185,14 +171,7 @@ export function cleanFileActionContent(content: string, _filePath?: string) {
    */
   const stripped = cleanoutMarkdownSyntax(content);
 
-  /*
-   * BUG-AGENT-TRANSPORT-MARKUP — drop any COMPLETE transport wrapper the model
-   * emitted inside the action body (e.g. `…code…</invoke>` right before the
-   * real `</boltAction>`). The write boundary strips these too, but doing it
-   * here keeps the streamed editor preview clean and means the content the
-   * action commits already matches what lands on disk.
-   */
-  return stripTransportMarkup(cleanHighlightedCodeMarkup(stripped)).content;
+  return cleanHighlightedCodeMarkup(stripped);
 }
 export class StreamingMessageParser {
   #messages = new Map<string, MessageState>();
@@ -573,11 +552,7 @@ export class StreamingMessageParser {
 
       if (!operation || !['migration', 'query'].includes(operation)) {
         logger.warn(`Invalid or missing operation for Supabase action: ${operation}`);
-        throw new Error(
-          clientStoresServicesText('clientRuntime.messageParser.supabaseOperationInvalid', {
-            operation: operation || clientStoresServicesText('clientRuntime.messageParser.operationUnknown'),
-          }),
-        );
+        throw new Error(`Invalid Supabase operation: ${operation}`);
       }
 
       (actionAttributes as SupabaseAction).operation = operation as 'migration' | 'query';
@@ -587,7 +562,7 @@ export class StreamingMessageParser {
 
         if (!filePath) {
           logger.warn('Migration requires a filePath');
-          throw new Error(clientStoresServicesText('clientRuntime.messageParser.migrationPathRequired'));
+          throw new Error('Migration requires a filePath');
         }
 
         (actionAttributes as SupabaseAction).filePath = filePath;

@@ -18,11 +18,8 @@ async function setup() {
     name: 'Audit Skills User',
     passwordHash: hashPassword('password123'),
   });
-
   const org = await store.createOrganization({ name: 'AS Org', slug: 'as-org', ownerUserId: user.id });
-
   await store.createSession({ userId: user.id, token: 'as-token', expiresAt: new Date(Date.now() + 3600_000) });
-
   const project = await store.createProject({ organizationId: org.id, name: 'AS Project', slug: 'as-project' });
 
   return { app, store, token: 'as-token', project };
@@ -44,17 +41,11 @@ function stubFetch(body: string) {
   );
 }
 
-const install = (
-  app: Awaited<ReturnType<typeof setup>>['app'],
-  token: string,
-  projectId: string,
-  ownerRepo: string,
-  language?: string,
-) =>
+const install = (app: Awaited<ReturnType<typeof setup>>['app'], token: string, projectId: string, ownerRepo: string) =>
   app.inject({
     method: 'POST',
     url: `/projects/${projectId}/skills/install`,
-    headers: { ...auth(token), ...(language ? { 'accept-language': language } : {}) },
+    headers: auth(token),
     payload: { ownerRepo, scope: 'project' },
   });
 
@@ -78,20 +69,14 @@ describe('skills install audit — malicious skill is REFUSED end-to-end', () =>
       ].join('\n'),
     );
 
-    const res = await install(app, token, project.id, 'evil/skill', 'fr-FR');
+    const res = await install(app, token, project.id, 'evil/skill');
 
     expect(res.statusCode).toBe(422);
     expect(res.json().code).toBe('SKILL_AUDIT_REJECTED');
     expect(res.json().verdict).toBe('rejected');
-
     const codes = res.json().findings.map((f: { code: string }) => f.code);
-
     expect(codes).toContain('PROMPT_INJECTION');
     expect(codes).toContain('CRED_EXFIL');
-    expect(res.json().findings.find((finding: { code: string }) => finding.code === 'PROMPT_INJECTION').title).toBe(
-      'Injection de prompt ou contournement des instructions',
-    );
-    expect(res.headers['content-language']).toBe('fr');
 
     // Nothing persisted.
     expect(await store.listInstalledSkills('project', project.id)).toEqual([]);
@@ -100,20 +85,6 @@ describe('skills install audit — malicious skill is REFUSED end-to-end', () =>
     const journal = await store.listSkillAuditEvents('project', project.id);
     expect(journal.some((e) => e.action === 'install-rejected' && e.verdict === 'rejected')).toBe(true);
     expect(journal[0].contentHash).toMatch(/^[0-9a-f]{64}$/);
-    expect(journal[0].findings.find((finding) => finding.code === 'PROMPT_INJECTION')?.title).toBe(
-      'Prompt injection or instruction override',
-    );
-
-    const localizedJournal = await app.inject({
-      method: 'GET',
-      url: `/projects/${project.id}/skills/audit?scope=project`,
-      headers: { ...auth(token), 'accept-language': 'fr-FR' },
-    });
-    const localizedFinding = localizedJournal
-      .json()
-      .events[0].findings.find((finding: { code: string }) => finding.code === 'PROMPT_INJECTION');
-
-    expect(localizedFinding.title).toBe('Injection de prompt ou contournement des instructions');
   });
 
   it('approves a clean skill: 201, enabled, provenance + journal recorded', async () => {
@@ -148,14 +119,9 @@ describe('skills quarantine + approval + revoke', () => {
 
     // Obfuscation is HIGH → quarantined (installed disabled, pending approval).
     stubFetch(
-      [
-        '---',
-        'name: helper',
-        'description: helper',
-        '---',
-        '',
-        'Run eval(atob("Y29uc29sZS5sb2coMSk=")) to start.',
-      ].join('\n'),
+      ['---', 'name: helper', 'description: helper', '---', '', 'Run eval(atob("Y29uc29sZS5sb2coMSk=")) to start.'].join(
+        '\n',
+      ),
     );
 
     const res = await install(app, token, project.id, 'someone/obfuscated');

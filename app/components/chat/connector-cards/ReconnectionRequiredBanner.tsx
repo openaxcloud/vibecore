@@ -1,13 +1,7 @@
 import { useCallback, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Button } from '~/components/ui/Button';
 import type { ReconnectionRequiredMessage, ReconnectionRequiredReason } from '~/lib/chat/connector-messages';
 import { useConnectorPopup } from '~/lib/chat/use-connector-popup';
-import {
-  formatChatResidualsCopy,
-  getChatResidualsCopy,
-  getReconnectionReasonLabel,
-} from '~/lib/i18n/catalogs/chat-residuals';
 
 /*
  * Persistent inline banner rendered when the agent emits a
@@ -19,6 +13,14 @@ import {
  * card.
  */
 
+const REASON_LABEL: Record<ReconnectionRequiredReason, string> = {
+  token_expired: 'The access token expired.',
+  token_revoked: 'The token was revoked at the provider.',
+  scope_insufficient: 'The current scopes no longer cover the agent request.',
+};
+
+const GENERIC_REASON_LABEL = 'Reconnection is required to continue.';
+
 /*
  * Resolve a reconnection reason to a human-readable label. The upstream
  * data-part filter (isConnectorDataPart) only checks that `kind` is a
@@ -29,11 +31,8 @@ import {
  * Fall back to a generic label so the banner always tells the builder
  * why reconnection is needed.
  */
-export function reasonLabel(
-  reason: ReconnectionRequiredReason | string | undefined,
-  language: string | null | undefined = 'en',
-): string {
-  return getReconnectionReasonLabel(language, reason);
+export function reasonLabel(reason: ReconnectionRequiredReason | string | undefined): string {
+  return (reason != null && REASON_LABEL[reason as ReconnectionRequiredReason]) || GENERIC_REASON_LABEL;
 }
 
 export interface ReconnectionRequiredBannerProps {
@@ -42,9 +41,6 @@ export interface ReconnectionRequiredBannerProps {
 }
 
 export function ReconnectionRequiredBanner({ payload, projectId }: ReconnectionRequiredBannerProps) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getChatResidualsCopy(language);
   const { state, launch } = useConnectorPopup();
   const [networkError, setNetworkError] = useState<string | null>(null);
 
@@ -59,43 +55,30 @@ export function ReconnectionRequiredBanner({ payload, projectId }: ReconnectionR
       });
 
       if (!response.ok) {
-        setNetworkError(copy['chatResiduals.reconnection.startFailed']);
+        const parsed = (await response.json().catch(() => ({}))) as { error?: string };
+        setNetworkError(parsed.error ?? `Failed to start reconnection (HTTP ${response.status})`);
 
         return;
       }
 
-      const result = (await response.json()) as { provider?: unknown; authorizationUrl?: unknown };
-
-      if (
-        typeof result.authorizationUrl !== 'string' ||
-        typeof result.provider !== 'string' ||
-        result.provider !== payload.provider
-      ) {
-        setNetworkError(copy['chatResiduals.reconnection.startFailed']);
-
-        return;
-      }
-
+      const result = (await response.json()) as { provider: string; authorizationUrl: string };
       launch({ authorizationUrl: result.authorizationUrl, provider: result.provider });
-    } catch {
+    } catch (error) {
       /*
        * launch() is never reached on a transport failure, so the hook
        * stays 'idle' and the button silently reverts. Surface the error
        * inline so the builder gets feedback, mirroring ConnectionRequestCard.
        */
-      setNetworkError(copy['chatResiduals.reconnection.startFailed']);
+      setNetworkError(error instanceof Error ? error.message : 'Unknown failure starting reconnection.');
     }
-  }, [copy, launch, payload.provider, projectId]);
+  }, [launch, payload.provider, projectId]);
 
   if (state.phase === 'succeeded') {
     return (
-      <div className="my-2 flex min-w-0 items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2">
-        <span className="i-ph:check-circle-fill h-4 w-4 shrink-0 text-bolt-elements-icon-success" aria-hidden />
-        <p className="min-w-0 break-words text-xs text-bolt-elements-textSecondary">
-          {formatChatResidualsCopy(copy['chatResiduals.reconnection.success'], {
-            provider: payload.providerDisplayName,
-            account: state.result.accountLabel,
-          })}
+      <div className="my-2 flex items-center gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-2 bg-bolt-elements-background-depth-1">
+        <span className="i-ph:check-circle-fill w-4 h-4 text-bolt-elements-icon-success" />
+        <p className="text-xs text-bolt-elements-textSecondary">
+          {payload.providerDisplayName} reconnected as <strong>{state.result.accountLabel}</strong>.
         </p>
       </div>
     );
@@ -104,33 +87,18 @@ export function ReconnectionRequiredBanner({ payload, projectId }: ReconnectionR
   const isLaunching = state.phase === 'launching';
 
   return (
-    <div className="my-2 min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
+    <div className="my-2 rounded-lg border border-bolt-elements-borderColor p-3 bg-bolt-elements-background-depth-1">
       <div className="flex items-start gap-3">
-        <span className="i-ph:warning-fill mt-0.5 h-5 w-5 shrink-0 text-bolt-elements-icon-warning" aria-hidden />
-        <div className="min-w-0 flex-1">
-          <p className="break-words text-sm font-medium text-bolt-elements-textPrimary">
-            {formatChatResidualsCopy(copy['chatResiduals.reconnection.title'], {
-              provider: payload.providerDisplayName,
-            })}
-          </p>
-          <p className="mt-1 break-words text-xs text-bolt-elements-textSecondary">
-            {reasonLabel(payload.reason, language)}
-          </p>
-          <Button
-            type="button"
-            onClick={startReconnect}
-            disabled={isLaunching}
-            className="mt-2 min-h-11 max-w-full whitespace-normal"
-          >
-            {isLaunching
-              ? copy['chatResiduals.reconnection.waiting']
-              : formatChatResidualsCopy(copy['chatResiduals.reconnection.action'], {
-                  provider: payload.providerDisplayName,
-                })}
+        <span className="i-ph:warning-fill w-5 h-5 text-bolt-elements-icon-warning mt-0.5" />
+        <div className="flex-1">
+          <p className="text-sm font-medium text-bolt-elements-textPrimary">Reconnect {payload.providerDisplayName}</p>
+          <p className="text-xs text-bolt-elements-textSecondary mt-1">{reasonLabel(payload.reason)}</p>
+          <Button onClick={startReconnect} disabled={isLaunching} className="mt-2">
+            {isLaunching ? 'Waiting for authorization...' : `Reconnect ${payload.providerDisplayName}`}
           </Button>
-          {networkError || state.phase === 'failed' ? (
+          {networkError ? (
             <p role="alert" className="mt-2 text-xs text-bolt-elements-icon-error">
-              {networkError ?? copy['chatResiduals.reconnection.authorizationFailed']}
+              {networkError}
             </p>
           ) : null}
         </div>

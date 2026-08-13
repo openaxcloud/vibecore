@@ -19,8 +19,6 @@ import {
   Users,
   Zap,
 } from 'lucide-react';
-import type { LucideIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -33,36 +31,106 @@ import {
   CardHeader,
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
-import {
-  getMarketingExactCompanyCopy,
-  type CareerPerkId,
-  type CareerValueId,
-} from '~/lib/i18n/catalogs/marketing-exact-company';
 
 const PRODUCT = '/ecode-static/assets/product';
 
-const PERK_ICONS: Record<CareerPerkId, LucideIcon> = {
-  remote: Globe,
-  wellness: HeartPulse,
-  equity: BadgeDollarSign,
-  timeOff: CalendarClock,
-  learning: GraduationCap,
-  tooling: Cpu,
-};
-
-const VALUE_ICONS: Record<CareerValueId, LucideIcon> = {
-  ship: Rocket,
-  ownership: Target,
-  craft: Zap,
-  candor: MessageSquare,
-};
-
 export default function Careers() {
-  const { i18n } = useTranslation();
-  const copy = getMarketingExactCompanyCopy(i18n.resolvedLanguage ?? i18n.language).exactCareers;
-  const perks = copy.benefits.items.map((perk) => ({ ...perk, icon: PERK_ICONS[perk.id] }));
-  const values = copy.values.items.map((value) => ({ ...value, icon: VALUE_ICONS[value.id] }));
-  const openRoles = copy.roles.items;
+  // Each perk uses an icon that matches its title — white glyph on an orange chip.
+  const perks = [
+    {
+      icon: Globe,
+      title: 'Remote-First',
+      description: 'Work from anywhere. We hire across time zones and trust you to do your best work wherever you are.',
+    },
+    {
+      icon: HeartPulse,
+      title: 'Health & Wellness',
+      description: 'Comprehensive medical, dental and vision coverage, plus a monthly wellness stipend.',
+    },
+    {
+      icon: BadgeDollarSign,
+      title: 'Meaningful Equity',
+      description: 'Every team member shares in the upside with a generous equity grant from day one.',
+    },
+    {
+      icon: CalendarClock,
+      title: 'Flexible Time Off',
+      description: 'Unlimited PTO with a four-week minimum we actually encourage you to take.',
+    },
+    {
+      icon: GraduationCap,
+      title: 'Learning Budget',
+      description: 'An annual budget for courses, conferences, books and anything that helps you grow.',
+    },
+    {
+      icon: Cpu,
+      title: 'Latest Tooling',
+      description: 'Top-tier hardware and unlimited access to the AI tools we build and use every day.',
+    },
+  ];
+
+  // Working principles — distinct concept icons, no repeated bare-orange Sparkles.
+  const values = [
+    {
+      icon: Rocket,
+      title: 'Ship to learn',
+      description: 'We move fast, put real work in front of users, and let what we learn shape what we build next.',
+    },
+    {
+      icon: Target,
+      title: 'Default to ownership',
+      description: 'Everyone owns outcomes end to end. Titles are loose, responsibility is real.',
+    },
+    {
+      icon: Zap,
+      title: 'Craft matters',
+      description: 'We sweat the details because the people building software deserve tools that feel right.',
+    },
+    {
+      icon: MessageSquare,
+      title: 'Low ego, high candor',
+      description: 'We give direct feedback, assume good intent, and care more about the work than being right.',
+    },
+  ];
+
+  const openRoles = [
+    {
+      title: 'Senior Full-Stack Engineer',
+      team: 'Engineering',
+      location: 'Remote (Global)',
+      type: 'Full-time',
+    },
+    {
+      title: 'AI Platform Engineer',
+      team: 'Engineering',
+      location: 'Remote (Global)',
+      type: 'Full-time',
+    },
+    {
+      title: 'Infrastructure Engineer, Kubernetes',
+      team: 'Engineering',
+      location: 'Remote (Global)',
+      type: 'Full-time',
+    },
+    {
+      title: 'Product Designer',
+      team: 'Design',
+      location: 'Remote (US / EU)',
+      type: 'Full-time',
+    },
+    {
+      title: 'Developer Advocate',
+      team: 'Go-to-Market',
+      location: 'Remote (Global)',
+      type: 'Full-time',
+    },
+    {
+      title: 'Founding Account Executive',
+      team: 'Go-to-Market',
+      location: 'Remote (US)',
+      type: 'Full-time',
+    },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-bolt-elements-background-depth-1" data-testid="page-careers">
@@ -77,15 +145,18 @@ export default function Careers() {
                 <Briefcase className="h-6 w-6 text-white" />
               </span>
               <h1 className="mkt-h1 tracking-tight text-bolt-elements-textPrimary mb-6" data-testid="heading-careers">
-                {copy.hero.title}
+                Build the future with us
               </h1>
-              <p className="mkt-lead text-bolt-elements-textSecondary mb-8">{copy.hero.description}</p>
+              <p className="mkt-lead text-bolt-elements-textSecondary mb-8">
+                We&apos;re a small, ambitious team making software creation as natural as describing an idea. Help us
+                put an AI-native development platform in the hands of builders everywhere.
+              </p>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <Badge variant="secondary" className="px-4 py-1.5 text-[13px]" style={{ color: '#F26207' }}>
-                  {openRoles.length} {copy.hero.openRoles}
+                  {openRoles.length} open roles
                 </Badge>
                 <Badge variant="secondary" className="px-4 py-1.5 text-[13px]" style={{ color: '#F26207' }}>
-                  {copy.hero.remote}
+                  Remote-first
                 </Badge>
               </div>
             </div>
@@ -102,12 +173,18 @@ export default function Careers() {
                     <LayoutDashboard className="h-4 w-4 text-white" />
                   </span>
                   <span className="mkt-small font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                    {copy.product.eyebrow}
+                    What you&apos;ll build
                   </span>
                 </div>
-                <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-4">{copy.product.title}</h2>
-                <p className="mkt-body text-bolt-elements-textSecondary mb-4">{copy.product.paragraphs[0]}</p>
-                <p className="mkt-body text-bolt-elements-textSecondary">{copy.product.paragraphs[1]}</p>
+                <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-4">A platform builders use every day</h2>
+                <p className="mkt-body text-bolt-elements-textSecondary mb-4">
+                  E-Code pairs an autonomous coding agent with a complete cloud workspace — editor, terminal, live
+                  preview, Git, and one-click deploy — so anyone can go from a prompt to a running app in the browser.
+                </p>
+                <p className="mkt-body text-bolt-elements-textSecondary">
+                  You&apos;ll work on the product surfaces our users touch every day, from the agent and IDE to the
+                  dashboard that ties their projects together. It&apos;s real software, shipped to real people, fast.
+                </p>
               </div>
 
               {/* Real local product capture, framed */}
@@ -119,12 +196,12 @@ export default function Careers() {
                     <span className="h-2.5 w-2.5 rounded-full bg-[#F99D25]/70" />
                     <span className="h-2.5 w-2.5 rounded-full bg-bolt-elements-textTertiary/40" />
                     <span className="ml-2 mkt-small text-bolt-elements-textSecondary font-medium truncate">
-                      {copy.product.windowLabel}
+                      E-Code Dashboard
                     </span>
                   </div>
                   <img
                     src={`${PRODUCT}/dashboard.png`}
-                    alt={copy.product.imageAlt}
+                    alt="The E-Code dashboard showing a builder's projects, recent activity and deployments"
                     width={1440}
                     height={900}
                     loading="lazy"
@@ -134,7 +211,7 @@ export default function Careers() {
                 </div>
                 <figcaption className="mt-3 flex items-start gap-2 mkt-small text-bolt-elements-textSecondary px-1">
                   <Compass className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#F26207] flex-shrink-0 mt-0.5" />
-                  <span>{copy.product.caption}</span>
+                  <span>The E-Code dashboard: where every project, deploy and teammate comes together.</span>
                 </figcaption>
               </figure>
             </div>
@@ -145,8 +222,10 @@ export default function Careers() {
         <section className="border-b border-bolt-elements-borderColor">
           <div className="container-responsive py-14 sm:py-20">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-3">{copy.benefits.title}</h2>
-              <p className="mkt-body text-bolt-elements-textSecondary">{copy.benefits.description}</p>
+              <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-3">Why you&apos;ll love it here</h2>
+              <p className="mkt-body text-bolt-elements-textSecondary">
+                The support and flexibility to do the best work of your career.
+              </p>
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto">
@@ -172,13 +251,15 @@ export default function Careers() {
         <section className="bg-bolt-elements-background-depth-2 border-b border-bolt-elements-borderColor">
           <div className="container-responsive py-14 sm:py-20">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-3">{copy.roles.title}</h2>
-              <p className="mkt-body text-bolt-elements-textSecondary">{copy.roles.description}</p>
+              <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-3">Open roles</h2>
+              <p className="mkt-body text-bolt-elements-textSecondary">
+                Don&apos;t see the perfect fit? We&apos;re always glad to meet great people — reach out anyway.
+              </p>
             </div>
 
             <div className="grid gap-4 max-w-4xl mx-auto">
               {openRoles.map((role) => (
-                <Card key={role.id} className="bg-bolt-elements-background-depth-1">
+                <Card key={role.title} className="bg-bolt-elements-background-depth-1">
                   <CardContent className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 p-6">
                     <div>
                       <h3 className="mkt-h3 text-bolt-elements-textPrimary mb-1">{role.title}</h3>
@@ -201,9 +282,9 @@ export default function Careers() {
                       href="/contact"
                       className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md text-white font-medium hover:opacity-90 min-h-[44px] whitespace-nowrap transition-opacity"
                       style={{ backgroundColor: '#F26207' }}
-                      data-testid={`link-apply-${role.id}`}
+                      data-testid={`link-apply-${role.title.toLowerCase().replace(/[^a-z]+/g, '-')}`}
                     >
-                      {copy.roles.apply}
+                      Apply
                       <ArrowRight className="h-4 w-4" />
                     </a>
                   </CardContent>
@@ -217,8 +298,10 @@ export default function Careers() {
         <section className="border-b border-bolt-elements-borderColor">
           <div className="container-responsive py-14 sm:py-20">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-3">{copy.values.title}</h2>
-              <p className="mkt-body text-bolt-elements-textSecondary">{copy.values.description}</p>
+              <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-3">How we work</h2>
+              <p className="mkt-body text-bolt-elements-textSecondary">
+                A few principles that shape how we collaborate, make decisions, and treat each other.
+              </p>
             </div>
 
             <div className="grid gap-6 sm:grid-cols-2 max-w-4xl mx-auto">
@@ -249,17 +332,23 @@ export default function Careers() {
                   <div className="flex h-11 w-11 items-center justify-center rounded-lg mb-3 bg-[#F26207]">
                     <ShieldCheck className="h-5 w-5 text-white" />
                   </div>
-                  <CardTitle className="text-bolt-elements-textPrimary">{copy.inclusion.title}</CardTitle>
+                  <CardTitle className="text-bolt-elements-textPrimary">
+                    An inclusive place to do your best work
+                  </CardTitle>
                   <CardDescription className="text-bolt-elements-textSecondary">
-                    {copy.inclusion.description}
+                    Great products are built by teams with different backgrounds, perspectives and lived experiences.
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {copy.inclusion.paragraphs.map((paragraph) => (
-                    <p key={paragraph} className="mkt-body text-bolt-elements-textSecondary">
-                      {paragraph}
-                    </p>
-                  ))}
+                  <p className="mkt-body text-bolt-elements-textSecondary">
+                    E-Code is an equal-opportunity employer. We welcome applicants of every race, gender, age, religion,
+                    identity, ability and experience, and we&apos;re committed to a hiring process that is fair,
+                    accessible and free of bias.
+                  </p>
+                  <p className="mkt-body text-bolt-elements-textSecondary">
+                    Need an accommodation during the interview process? Let us know on your application and we&apos;ll
+                    make it happen — no questions asked.
+                  </p>
                 </CardContent>
               </Card>
             </div>
@@ -276,8 +365,11 @@ export default function Careers() {
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[#F26207] mb-5">
                   <Send className="h-6 w-6 text-white" />
                 </span>
-                <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-4">{copy.cta.title}</h2>
-                <p className="mkt-lead text-bolt-elements-textSecondary mb-8">{copy.cta.description}</p>
+                <h2 className="mkt-h2 text-bolt-elements-textPrimary mb-4">Let&apos;s talk</h2>
+                <p className="mkt-lead text-bolt-elements-textSecondary mb-8">
+                  Tell us what you&apos;re great at and where you want to grow. We read every message and reply to every
+                  candidate.
+                </p>
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <a
                     href="/contact"
@@ -285,7 +377,7 @@ export default function Careers() {
                     style={{ backgroundColor: '#F26207' }}
                     data-testid="link-careers-contact"
                   >
-                    {copy.cta.contact}
+                    Get in touch
                     <ArrowRight className="h-4 w-4" />
                   </a>
                   <a
@@ -294,7 +386,7 @@ export default function Careers() {
                     data-testid="link-careers-signup"
                   >
                     <Building2 className="h-4 w-4 text-[#F26207]" />
-                    {copy.cta.product}
+                    Try the product
                   </a>
                 </div>
               </div>

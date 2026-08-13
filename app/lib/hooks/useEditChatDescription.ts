@@ -1,9 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { validateChatDescription } from './validateChatDescription';
-import { getSidebarMenuCopy } from '~/lib/i18n/catalogs/sidebar-menu';
 import {
   chatId as chatIdStore,
   db,
@@ -47,8 +45,6 @@ export function useEditChatDescription({
   customChatId,
   syncWithGlobalStore,
 }: EditChatDescriptionOptions): EditChatDescriptionHook {
-  const { i18n } = useTranslation();
-  const copy = getSidebarMenuCopy(i18n.resolvedLanguage ?? i18n.language).sidebarMenu.toasts;
   const chatIdFromStore = useStore(chatIdStore);
   const [editing, setEditing] = useState(false);
   const [currentDescription, setCurrentDescription] = useState(initialDescription);
@@ -107,17 +103,17 @@ export function useEditChatDescription({
           toggleEditMode();
           return false; // No change, skip validation
         case 'invalid-length':
-          toast.error(copy.renameInvalidLength);
+          toast.error('Description must be between 1 and 100 characters.');
           return false;
         case 'invalid-characters':
-          toast.error(copy.renameInvalidCharacters);
+          toast.error('Description cannot contain angle brackets (< >) or control characters.');
           return false;
         case 'valid':
         default:
           return true;
       }
     },
-    [copy.renameInvalidCharacters, copy.renameInvalidLength, lastSavedDescription, toggleEditMode],
+    [lastSavedDescription, toggleEditMode],
   );
 
   const handleSubmit = useCallback(
@@ -130,12 +126,12 @@ export function useEditChatDescription({
 
       try {
         if (!db) {
-          toast.error(copy.renameStorageUnavailable);
+          toast.error('Chat persistence is not available');
           return;
         }
 
         if (!chatId) {
-          toast.error(copy.renameMissingId);
+          toast.error('Chat Id is not available');
           return;
         }
 
@@ -151,26 +147,14 @@ export function useEditChatDescription({
           descriptionStore.set(currentDescription);
         }
 
-        toast.success(copy.renameSuccess);
+        toast.success('Chat description updated successfully');
       } catch (error) {
-        console.error('Failed to update chat description:', error);
-        toast.error(copy.renameFailed);
+        toast.error('Failed to update chat description: ' + (error as Error).message);
       }
 
       toggleEditMode();
     },
-    [
-      chatId,
-      copy.renameFailed,
-      copy.renameMissingId,
-      copy.renameStorageUnavailable,
-      copy.renameSuccess,
-      currentDescription,
-      db,
-      isValidDescription,
-      syncWithGlobalStore,
-      toggleEditMode,
-    ],
+    [currentDescription, db, chatId, isValidDescription, syncWithGlobalStore, toggleEditMode],
   );
 
   const handleKeyDown = useCallback(

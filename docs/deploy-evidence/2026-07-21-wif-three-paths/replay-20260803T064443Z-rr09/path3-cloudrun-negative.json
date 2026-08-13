@@ -1,1 +1,0 @@
-{"identity": "wif-wrong@ecode-wif-proof-739484.iam.gserviceaccount.com", "keyUsed": false, "read_status": 403, "denied": "wif-wrong@ecode-wif-proof-739484.iam.gserviceaccount.com does not have storage.objects.get access to the Google Cloud Storage object. Permission &#39;storage.objects.get&#39; denied on resource &#39;/"}

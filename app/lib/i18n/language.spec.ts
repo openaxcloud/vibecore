@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
-  AUTO_LANGUAGE_COOKIE,
   USER_LANGUAGE_COOKIE,
   USER_LANGUAGE_STORAGE_KEY,
   detectUserLanguage,
@@ -44,20 +43,8 @@ describe('detectUserLanguage', () => {
     expect(detectUserLanguage()).toBe('fr');
   });
 
-  it('reuses the automatic first-visit cookie before browser detection', () => {
-    vi.stubGlobal('navigator', { language: 'en-US' });
-    vi.stubGlobal('document', { cookie: `${AUTO_LANGUAGE_COOKIE}=fr` });
-
-    expect(detectUserLanguage()).toBe('fr');
-  });
-
   it('defaults to English when nothing matches', () => {
     vi.stubGlobal('navigator', { language: 'pt-BR' });
-    expect(detectUserLanguage()).toBe('en');
-  });
-
-  it('keeps English as the first-visit default for legacy non-French bundles', () => {
-    vi.stubGlobal('navigator', { language: 'es-ES' });
     expect(detectUserLanguage()).toBe('en');
   });
 

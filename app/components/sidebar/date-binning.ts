@@ -1,18 +1,16 @@
 import { format, isAfter, isThisWeek, isThisYear, isToday, isYesterday, subDays } from 'date-fns';
-import { enGB, fr as frLocale } from 'date-fns/locale';
-import { getSidebarMenuCopy, resolveSidebarMenuLanguage } from '~/lib/i18n/catalogs/sidebar-menu';
 import type { ChatHistoryItem } from '~/lib/persistence';
 
 type Bin = { category: string; items: ChatHistoryItem[] };
 
-export function binDates(_list: ChatHistoryItem[], language?: string | null) {
+export function binDates(_list: ChatHistoryItem[]) {
   const list = _list.toSorted((a, b) => Date.parse(b.timestamp) - Date.parse(a.timestamp));
 
   const binLookup: Record<string, Bin> = {};
   const bins: Array<Bin> = [];
 
   list.forEach((item) => {
-    const category = dateCategory(new Date(item.timestamp), language);
+    const category = dateCategory(new Date(item.timestamp));
 
     if (!(category in binLookup)) {
       const bin = {
@@ -31,39 +29,31 @@ export function binDates(_list: ChatHistoryItem[], language?: string | null) {
   return bins;
 }
 
-export function dateCategory(date: Date, language?: string | null) {
-  const resolvedLanguage = resolveSidebarMenuLanguage(language);
-  const locale = resolvedLanguage === 'fr' ? frLocale : enGB;
-  const copy = getSidebarMenuCopy(resolvedLanguage).sidebarMenu.history.dates;
-
-  if (Number.isNaN(date.getTime())) {
-    return copy.unknown;
-  }
-
+function dateCategory(date: Date) {
   if (isToday(date)) {
-    return copy.today;
+    return 'Today';
   }
 
   if (isYesterday(date)) {
-    return copy.yesterday;
+    return 'Yesterday';
   }
 
-  if (isThisWeek(date, { locale })) {
+  if (isThisWeek(date)) {
     // e.g., "Mon" instead of "Monday"
-    return format(date, 'EEE', { locale });
+    return format(date, 'EEE');
   }
 
   const thirtyDaysAgo = subDays(new Date(), 30);
 
   if (isAfter(date, thirtyDaysAgo)) {
-    return copy.pastThirtyDays;
+    return 'Past 30 Days';
   }
 
   if (isThisYear(date)) {
     // e.g., "Jan" instead of "January"
-    return format(date, 'LLL', { locale });
+    return format(date, 'LLL');
   }
 
   // e.g., "Jan 2023" instead of "January 2023"
-  return format(date, 'LLL yyyy', { locale });
+  return format(date, 'LLL yyyy');
 }

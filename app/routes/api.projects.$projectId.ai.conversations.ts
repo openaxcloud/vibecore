@@ -1,5 +1,4 @@
 import { apiRequest, json, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
-import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 function conversationsPath(projectId: string, request?: Request) {
   const search = request ? new URL(request.url).search : '';
@@ -9,7 +8,7 @@ function conversationsPath(projectId: string, request?: Request) {
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (!params.projectId) {
-    return remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
+    return json({ ok: false, error: 'Project not found' }, { status: 404 });
   }
 
   const payload = await apiRequest(request, conversationsPath(params.projectId, request));
@@ -19,11 +18,11 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
 export async function action({ request, params }: EnterpriseActionArgs) {
   if (!params.projectId) {
-    return remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
+    return json({ ok: false, error: 'Project not found' }, { status: 404 });
   }
 
   if (request.method.toUpperCase() !== 'POST') {
-    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405, { extra: { ok: false } });
+    return json({ ok: false, error: 'Method not allowed' }, { status: 405 });
   }
 
   const body = await request.text();

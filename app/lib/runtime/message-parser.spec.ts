@@ -317,26 +317,6 @@ describe('EnhancedStreamingMessageParser', () => {
     );
   });
 
-  it('localizes the synthetic shell artifact while preserving the command', () => {
-    const callbacks = {
-      onArtifactOpen: vi.fn(),
-      onArtifactClose: vi.fn(),
-      onActionOpen: vi.fn(),
-      onActionClose: vi.fn(),
-    };
-
-    const parser = new EnhancedStreamingMessageParser({ callbacks, language: () => 'fr' });
-
-    parser.parse('localized_shell', '```bash\nnpm install && npm run dev\n```');
-
-    expect(callbacks.onArtifactOpen).toHaveBeenCalledWith(expect.objectContaining({ title: 'Commande shell' }));
-    expect(callbacks.onActionOpen).toHaveBeenCalledWith(
-      expect.objectContaining({
-        action: expect.objectContaining({ content: 'npm install && npm run dev' }),
-      }),
-    );
-  });
-
   it('should detect file creation from code blocks with context', () => {
     const callbacks = {
       onArtifactOpen: vi.fn(),

@@ -1,5 +1,3 @@
-import { getMarketingBlogPostCopy } from '~/lib/i18n/catalogs/marketing-blog-detail';
-
 export type EcodePaymentPlan = {
   id: string;
   name: string;
@@ -199,15 +197,35 @@ export type EcodeBlogPost = {
   updatedAt: string;
 };
 
-type EcodeBlogPostMetadata = Omit<
-  EcodeBlogPost,
-  'title' | 'excerpt' | 'content' | 'author' | 'authorRole' | 'category' | 'tags'
->;
-
-const ecodeBlogPostMetadata: EcodeBlogPostMetadata[] = [
+export const ecodeBlogPosts: EcodeBlogPost[] = [
   {
     id: '1',
+    title: 'Introducing E-Code AI Agent 2.0',
     slug: 'introducing-e-code',
+    excerpt:
+      'Our most powerful AI coding assistant yet, now with multi-file editing and autonomous debugging capabilities.',
+    content: `# Introducing E-Code AI Agent 2.0
+
+E-Code AI Agent 2.0 is an autonomous software engineer for teams that need to move from idea to production without losing control of architecture, security, or quality.
+
+## What changed
+
+- Multi-file planning and editing across full applications
+- Autonomous debugging with terminal, preview, and logs in context
+- Production-aware scaffolding for frontend, backend, data, auth, and deployment
+- Clear explanations for every material change
+
+## Built for real delivery
+
+The agent creates complete project structures, writes typed code, installs dependencies, validates the preview, and keeps iterating until the application works. Teams can review each step, keep auditability, and ship with the same workflow on desktop and mobile.
+
+## Start building
+
+Open E-Code, describe the product you want, and let the agent assemble the first working version. You can refine design, add integrations, and deploy from the same workspace.`,
+    author: 'E-Code Team',
+    authorRole: 'Product',
+    category: 'Product',
+    tags: ['AI', 'agent', 'product'],
     published: true,
     featured: true,
     coverImage: '/ecode-static/assets/product/ide.png',
@@ -219,7 +237,27 @@ const ecodeBlogPostMetadata: EcodeBlogPostMetadata[] = [
   },
   {
     id: '2',
+    title: 'Building at Scale: How We Handle 10M+ Requests',
     slug: 'building-at-scale-how-we-handle-10m-requests',
+    excerpt: 'A deep dive into our distributed architecture and the lessons we learned scaling E-Code.',
+    content: `# Building at Scale: How We Handle 10M+ Requests
+
+Scaling E-Code means keeping code editing, AI generation, previews, deployments, and collaboration responsive at the same time.
+
+## Architecture
+
+The platform separates real-time workspace traffic, AI job orchestration, static asset delivery, and billing-critical APIs. Each surface has explicit health checks, telemetry, and backpressure.
+
+## Lessons
+
+- Keep interactive paths short
+- Cache immutable assets aggressively
+- Use queues for long-running work
+- Measure latency from the user's point of view`,
+    author: 'Engineering Team',
+    authorRole: 'Platform Engineering',
+    category: 'Engineering',
+    tags: ['architecture', 'scaling', 'performance'],
     published: true,
     featured: false,
     coverImage: '/ecode-static/assets/product/dashboard.png',
@@ -231,7 +269,25 @@ const ecodeBlogPostMetadata: EcodeBlogPostMetadata[] = [
   },
   {
     id: '3',
+    title: 'Getting Started with E-Code in 5 Minutes',
     slug: 'getting-started-with-e-code-in-5-minutes',
+    excerpt: 'A quick tutorial to help you build and deploy your first app using E-Code.',
+    content: `# Getting Started with E-Code in 5 Minutes
+
+This guide walks through creating a first project, opening the IDE, asking the AI Agent for a working application, and deploying the result.
+
+## Steps
+
+1. Create a workspace.
+2. Describe the app you want to build.
+3. Review the generated files and preview.
+4. Deploy when the build is ready.
+
+E-Code keeps the editor, terminal, preview, logs, and deployment state in one place so the first project stays easy to reason about.`,
+    author: 'Developer Relations',
+    authorRole: 'DevRel',
+    category: 'Tutorial',
+    tags: ['tutorial', 'getting-started'],
     published: true,
     featured: false,
     coverImage: '/ecode-static/assets/product/mobile.png',
@@ -243,36 +299,16 @@ const ecodeBlogPostMetadata: EcodeBlogPostMetadata[] = [
   },
 ];
 
-export function getEcodeBlogPosts(language?: string | null): EcodeBlogPost[] {
-  return ecodeBlogPostMetadata.flatMap((metadata) => {
-    const copy = getMarketingBlogPostCopy(metadata.slug, language);
-
-    return copy ? [{ ...metadata, ...copy }] : [];
-  });
+export function findEcodeBlogPost(slug: string | undefined) {
+  return ecodeBlogPosts.find((post) => post.slug === slug && post.published);
 }
 
-export const ecodeBlogPosts: EcodeBlogPost[] = getEcodeBlogPosts('en');
-
-export function findEcodeBlogPost(slug: string | undefined, language?: string | null) {
-  return getEcodeBlogPosts(language).find((post) => post.slug === slug && post.published);
-}
-
-export function findEcodeBlogPostsByCategory(category: string | undefined, language?: string | null) {
+export function findEcodeBlogPostsByCategory(category: string | undefined) {
   if (!category) {
     return [];
   }
 
   const normalized = category.toLowerCase();
 
-  const matchingSlugs = new Set(
-    getEcodeBlogPosts('en')
-      .filter((post) => post.category.toLowerCase() === normalized)
-      .map((post) => post.slug),
-  );
-
-  const localizedPosts = getEcodeBlogPosts(language);
-
-  return localizedPosts.filter(
-    (post) => post.published && (matchingSlugs.has(post.slug) || post.category.toLowerCase() === normalized),
-  );
+  return ecodeBlogPosts.filter((post) => post.published && post.category.toLowerCase() === normalized);
 }

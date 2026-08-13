@@ -6,8 +6,6 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { getEnterpriseApiErrorCopy } from '~/lib/i18n/catalogs/enterprise-api-errors';
-import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 export type ProjectRecord = {
   id: string;
@@ -23,17 +21,12 @@ export type ProjectRecord = {
 };
 
 export async function projectLoader<T>(request: Request, projectId: string, path: string) {
-  const localeResolution = resolveRequestLocale(request);
-
   const [projectResult, data] = await Promise.all([
     apiRequest<{ project: ProjectRecord }>(request, `/projects/${projectId}`),
     apiRequest<T>(request, path),
   ]);
 
-  return json(
-    { language: localeResolution.language, project: projectResult.project, data },
-    { headers: localeResponseHeaders(request, localeResolution) },
-  );
+  return json({ project: projectResult.project, data });
 }
 
 export async function projectAction(
@@ -46,12 +39,7 @@ export async function projectAction(
   const projectId = args.params.projectId;
 
   if (!projectId) {
-    const localeResolution = resolveRequestLocale(args.request);
-
-    throw json(
-      { ok: false, errorCode: 'projectNotFound' },
-      { status: 404, headers: localeResponseHeaders(args.request, localeResolution) },
-    );
+    throw json({ ok: false, error: 'Project not found' }, { status: 404 });
   }
 
   const body = formObject(await args.request.formData()) as Record<string, string>;
@@ -59,15 +47,7 @@ export async function projectAction(
   const handler = handlers[intent] ?? handlers.default;
 
   if (!handler) {
-    const localeResolution = resolveRequestLocale(args.request);
-
-    return json(
-      {
-        error: getEnterpriseApiErrorCopy(localeResolution.language).unsupportedAction,
-        code: 'UNSUPPORTED_ACTION',
-      },
-      { status: 400, headers: localeResponseHeaders(args.request, localeResolution) },
-    );
+    return json({ error: `Unsupported action: ${intent}` }, { status: 400 });
   }
 
   return handler({ request: args.request, projectId, body });
@@ -77,12 +57,7 @@ export async function projectPageLoader<T>(args: EnterpriseLoaderArgs, pathFacto
   const projectId = args.params.projectId;
 
   if (!projectId) {
-    const localeResolution = resolveRequestLocale(args.request);
-
-    throw json(
-      { ok: false, errorCode: 'projectNotFound' },
-      { status: 404, headers: localeResponseHeaders(args.request, localeResolution) },
-    );
+    throw json({ ok: false, error: 'Project not found' }, { status: 404 });
   }
 
   return projectLoader<T>(args.request, projectId, pathFactory(projectId));

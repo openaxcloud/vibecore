@@ -1,4 +1,4 @@
-import { getOrganizationAccessCopy, type OrganizationAccessKey } from './i18n/catalogs/organization-access';
+import { humanizeTechnicalIdentifier } from './user-facing-labels';
 
 /*
  * Web-side mirror of the RBAC permission catalog. The canonical source of truth
@@ -44,172 +44,64 @@ export type PermissionKey =
  * grouping so the matrix stays scannable. Order and membership mirror the
  * `PermissionKey` union above.
  */
-type PermissionDefinition = {
-  key: PermissionKey;
-  labelKey: OrganizationAccessKey;
-  descriptionKey: OrganizationAccessKey;
-};
-
-type PermissionGroupDefinition = {
-  groupKey: OrganizationAccessKey;
-  permissions: PermissionDefinition[];
-};
-
-export type PermissionCatalogGroup = {
+export const PERMISSION_CATALOG: Array<{
   group: string;
   permissions: Array<{ key: PermissionKey; label: string; description: string }>;
-};
-
-const PERMISSION_CATALOG_DEFINITION: PermissionGroupDefinition[] = [
+}> = [
   {
-    groupKey: 'organizationAccess.group.organization',
+    group: 'Organization',
     permissions: [
-      {
-        key: 'org:read',
-        labelKey: 'organizationAccess.permission.orgRead.label',
-        descriptionKey: 'organizationAccess.permission.orgRead.description',
-      },
-      {
-        key: 'org:update',
-        labelKey: 'organizationAccess.permission.orgUpdate.label',
-        descriptionKey: 'organizationAccess.permission.orgUpdate.description',
-      },
-      {
-        key: 'members:manage',
-        labelKey: 'organizationAccess.permission.membersManage.label',
-        descriptionKey: 'organizationAccess.permission.membersManage.description',
-      },
-      {
-        key: 'roles:manage',
-        labelKey: 'organizationAccess.permission.rolesManage.label',
-        descriptionKey: 'organizationAccess.permission.rolesManage.description',
-      },
+      { key: 'org:read', label: 'Read organization', description: 'View organization settings and details.' },
+      { key: 'org:update', label: 'Update organization', description: 'Edit organization name and settings.' },
+      { key: 'members:manage', label: 'Manage members', description: 'Invite, remove and re-role members.' },
+      { key: 'roles:manage', label: 'Manage roles', description: 'Create and edit custom roles.' },
     ],
   },
   {
-    groupKey: 'organizationAccess.group.projectsWorkspaces',
+    group: 'Projects & workspaces',
     permissions: [
-      {
-        key: 'projects:read',
-        labelKey: 'organizationAccess.permission.projectsRead.label',
-        descriptionKey: 'organizationAccess.permission.projectsRead.description',
-      },
-      {
-        key: 'projects:write',
-        labelKey: 'organizationAccess.permission.projectsWrite.label',
-        descriptionKey: 'organizationAccess.permission.projectsWrite.description',
-      },
-      {
-        key: 'workspaces:read',
-        labelKey: 'organizationAccess.permission.workspacesRead.label',
-        descriptionKey: 'organizationAccess.permission.workspacesRead.description',
-      },
-      {
-        key: 'workspaces:write',
-        labelKey: 'organizationAccess.permission.workspacesWrite.label',
-        descriptionKey: 'organizationAccess.permission.workspacesWrite.description',
-      },
+      { key: 'projects:read', label: 'Read projects', description: 'View projects in the organization.' },
+      { key: 'projects:write', label: 'Write projects', description: 'Create and edit projects.' },
+      { key: 'workspaces:read', label: 'Read workspaces', description: 'View running workspaces.' },
+      { key: 'workspaces:write', label: 'Write workspaces', description: 'Create and control workspaces.' },
     ],
   },
   {
-    groupKey: 'organizationAccess.group.billingUsage',
+    group: 'Billing & usage',
     permissions: [
-      {
-        key: 'billing:read',
-        labelKey: 'organizationAccess.permission.billingRead.label',
-        descriptionKey: 'organizationAccess.permission.billingRead.description',
-      },
-      {
-        key: 'billing:manage',
-        labelKey: 'organizationAccess.permission.billingManage.label',
-        descriptionKey: 'organizationAccess.permission.billingManage.description',
-      },
-      {
-        key: 'usage:read',
-        labelKey: 'organizationAccess.permission.usageRead.label',
-        descriptionKey: 'organizationAccess.permission.usageRead.description',
-      },
+      { key: 'billing:read', label: 'Read billing', description: 'View invoices and billing details.' },
+      { key: 'billing:manage', label: 'Manage billing', description: 'Change plan and payment methods.' },
+      { key: 'usage:read', label: 'Read usage', description: 'View usage and quota metrics.' },
     ],
   },
   {
-    groupKey: 'organizationAccess.group.securityCompliance',
+    group: 'Security & compliance',
     permissions: [
-      {
-        key: 'security:manage',
-        labelKey: 'organizationAccess.permission.securityManage.label',
-        descriptionKey: 'organizationAccess.permission.securityManage.description',
-      },
-      {
-        key: 'scim:manage',
-        labelKey: 'organizationAccess.permission.scimManage.label',
-        descriptionKey: 'organizationAccess.permission.scimManage.description',
-      },
-      {
-        key: 'audit:export',
-        labelKey: 'organizationAccess.permission.auditExport.label',
-        descriptionKey: 'organizationAccess.permission.auditExport.description',
-      },
+      { key: 'security:manage', label: 'Manage security', description: 'Configure SSO, SAML and security policy.' },
+      { key: 'scim:manage', label: 'Manage SCIM', description: 'Issue and rotate SCIM provisioning tokens.' },
+      { key: 'audit:export', label: 'Export audit logs', description: 'Export security-relevant audit events.' },
     ],
   },
   {
-    groupKey: 'organizationAccess.group.administration',
+    group: 'Administration',
     permissions: [
-      {
-        key: 'admin:read',
-        labelKey: 'organizationAccess.permission.adminRead.label',
-        descriptionKey: 'organizationAccess.permission.adminRead.description',
-      },
-      {
-        key: 'admin:write',
-        labelKey: 'organizationAccess.permission.adminWrite.label',
-        descriptionKey: 'organizationAccess.permission.adminWrite.description',
-      },
-      {
-        key: 'enterprise:read',
-        labelKey: 'organizationAccess.permission.enterpriseRead.label',
-        descriptionKey: 'organizationAccess.permission.enterpriseRead.description',
-      },
-      {
-        key: 'enterprise:write',
-        labelKey: 'organizationAccess.permission.enterpriseWrite.label',
-        descriptionKey: 'organizationAccess.permission.enterpriseWrite.description',
-      },
-      {
-        key: 'support:write',
-        labelKey: 'organizationAccess.permission.supportWrite.label',
-        descriptionKey: 'organizationAccess.permission.supportWrite.description',
-      },
+      { key: 'admin:read', label: 'Admin read', description: 'View administrative console data.' },
+      { key: 'admin:write', label: 'Admin write', description: 'Perform administrative actions.' },
+      { key: 'enterprise:read', label: 'Enterprise read', description: 'View enterprise configuration.' },
+      { key: 'enterprise:write', label: 'Enterprise write', description: 'Edit enterprise configuration.' },
+      { key: 'support:write', label: 'Contact support', description: 'Open and reply to support requests.' },
     ],
   },
 ];
 
-export function getPermissionCatalog(language?: string | null): PermissionCatalogGroup[] {
-  const copy = getOrganizationAccessCopy(language);
-
-  return PERMISSION_CATALOG_DEFINITION.map((group) => ({
-    group: copy[group.groupKey],
-    permissions: group.permissions.map((permission) => ({
-      key: permission.key,
-      label: copy[permission.labelKey],
-      description: copy[permission.descriptionKey],
-    })),
-  }));
-}
-
-export const PERMISSION_CATALOG = getPermissionCatalog('en');
-
 export const ALL_PERMISSIONS: PermissionKey[] = PERMISSION_CATALOG.flatMap((g) => g.permissions.map((p) => p.key));
 
-export function permissionLabel(key: string, language?: string | null): string {
-  const copy = getOrganizationAccessCopy(language);
+const PERMISSION_LABELS: Record<PermissionKey, string> = Object.fromEntries(
+  PERMISSION_CATALOG.flatMap((g) => g.permissions.map((p) => [p.key, p.label] as const)),
+) as Record<PermissionKey, string>;
 
-  const labels = Object.fromEntries(
-    getPermissionCatalog(language).flatMap((group) =>
-      group.permissions.map((permission) => [permission.key, permission.label] as const),
-    ),
-  ) as Record<PermissionKey, string>;
-
-  return labels[key as PermissionKey] ?? copy['organizationAccess.permission.unknown'];
+export function permissionLabel(key: string): string {
+  return PERMISSION_LABELS[key as PermissionKey] ?? humanizeTechnicalIdentifier(key, 'Unknown permission');
 }
 
 /*
@@ -278,19 +170,13 @@ export const BUILTIN_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
 
 export const BUILTIN_ROLE_ORDER = ['owner', 'admin', 'member', 'editor', 'viewer'] as const;
 
-export function getBuiltinRoleLabels(language?: string | null): Record<string, string> {
-  const copy = getOrganizationAccessCopy(language);
-
-  return {
-    owner: copy['organizationAccess.role.owner'],
-    admin: copy['organizationAccess.role.admin'],
-    member: copy['organizationAccess.role.member'],
-    editor: copy['organizationAccess.role.editor'],
-    viewer: copy['organizationAccess.role.viewer'],
-  };
-}
-
-export const BUILTIN_ROLE_LABELS: Record<string, string> = getBuiltinRoleLabels('en');
+export const BUILTIN_ROLE_LABELS: Record<string, string> = {
+  owner: 'Owner',
+  admin: 'Admin',
+  member: 'Member',
+  editor: 'Editor',
+  viewer: 'Viewer',
+};
 
 /*
  * Resolve the effective permissions of a role key within an org, given the org's

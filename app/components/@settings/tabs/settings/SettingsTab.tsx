@@ -1,13 +1,11 @@
 import { motion } from 'framer-motion';
 import React, { useState, useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { reconcileHydration } from './settings-hydration-merge';
 import { mergeNotificationIntoProfile } from './settings-profile-storage';
 import { settingsPersistenceSnapshot } from './settings-snapshot';
 import { buildTimezoneOptions } from './timezone-options';
 import type { UserProfile } from '~/components/@settings/core/types';
-import { LanguageSwitch } from '~/components/i18n/LanguageSwitch';
 import { Switch } from '~/components/ui/Switch';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { classNames } from '~/utils/classNames';
@@ -53,7 +51,6 @@ async function persistPreferencesToBackend(settings: UserProfile): Promise<boole
 }
 
 export default function SettingsTab() {
-  const { t } = useTranslation();
   const [currentTimezone, setCurrentTimezone] = useState('');
 
   const [settings, setSettings] = useState<UserProfile>(() => {
@@ -184,17 +181,17 @@ export default function SettingsTab() {
 
       persistPreferencesToBackend(settings)
         .then((persisted) => {
-          toast.success(
-            persisted ? t('settingsPreferences.toast.updated') : t('settingsPreferences.toast.savedLocally'),
-          );
+          toast.success(persisted ? 'Settings updated' : 'Settings saved locally');
         })
-        .catch(() => {
-          toast.error(t('settingsPreferences.toast.syncFailed'));
+        .catch((error) => {
+          console.error('Error persisting settings to backend:', error);
+          toast.error('Failed to sync settings');
         });
-    } catch {
-      toast.error(t('settingsPreferences.toast.updateFailed'));
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast.error('Failed to update settings');
     }
-  }, [settings, t]);
+  }, [settings]);
 
   return (
     <div className="space-y-4">
@@ -207,33 +204,50 @@ export default function SettingsTab() {
       >
         <div className="flex items-center gap-2 mb-4">
           <div className="i-ph:palette-fill w-4 h-4 text-[var(--vc-ide-accent-action)]" />
-          <span className="text-sm font-medium text-bolt-elements-textPrimary">{t('settingsPreferences.title')}</span>
+          <span className="text-sm font-medium text-bolt-elements-textPrimary">Preferences</span>
         </div>
 
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="i-ph:translate-fill w-4 h-4 text-bolt-elements-textSecondary" />
-            <span className="block text-sm text-bolt-elements-textSecondary">{t('settingsPreferences.language')}</span>
+            <label className="block text-sm text-bolt-elements-textSecondary">Language</label>
           </div>
-          <LanguageSwitch className="max-w-full" />
+          <select
+            value={settings.language}
+            onChange={(e) => setSettings((prev) => ({ ...prev, language: e.target.value }))}
+            className={classNames(
+              'w-full px-3 py-2 rounded-lg text-sm',
+              'bg-bolt-elements-background-depth-1',
+              'border border-bolt-elements-borderColor',
+              'text-bolt-elements-textPrimary',
+              'focus:outline-none focus:ring-2 focus:ring-[var(--vc-ide-focus-ring)]',
+              'transition-all duration-200',
+            )}
+          >
+            <option value="en">English</option>
+            <option value="es">Español</option>
+            <option value="fr">Français</option>
+            <option value="de">Deutsch</option>
+            <option value="it">Italiano</option>
+            <option value="pt">Português</option>
+            <option value="ru">Русский</option>
+            <option value="zh">中文</option>
+            <option value="ja">日本語</option>
+            <option value="ko">한국어</option>
+          </select>
         </div>
 
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="i-ph:bell-fill w-4 h-4 text-bolt-elements-textSecondary" />
-            <span className="block text-sm text-bolt-elements-textSecondary">
-              {t('settingsPreferences.notifications')}
-            </span>
+            <label className="block text-sm text-bolt-elements-textSecondary">Notifications</label>
           </div>
-          <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+          <div className="flex items-center justify-between">
             <span className="text-sm text-bolt-elements-textSecondary">
-              {settings.notifications
-                ? t('settingsPreferences.notifications.enabled')
-                : t('settingsPreferences.notifications.disabled')}
+              {settings.notifications ? 'Notifications are enabled' : 'Notifications are disabled'}
             </span>
             <Switch
               checked={settings.notifications}
-              aria-label={t('settingsPreferences.notifications.toggle')}
               onCheckedChange={(checked) => {
                 // Update local state
                 setSettings((prev) => ({ ...prev, notifications: checked }));
@@ -273,20 +287,15 @@ export default function SettingsTab() {
       >
         <div className="flex items-center gap-2 mb-4">
           <div className="i-ph:clock-fill w-4 h-4 text-[var(--vc-ide-accent-action)]" />
-          <span className="text-sm font-medium text-bolt-elements-textPrimary">
-            {t('settingsPreferences.time.title')}
-          </span>
+          <span className="text-sm font-medium text-bolt-elements-textPrimary">Time Settings</span>
         </div>
 
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="i-ph:globe-fill w-4 h-4 text-bolt-elements-textSecondary" />
-            <label htmlFor="settings-timezone" className="block text-sm text-bolt-elements-textSecondary">
-              {t('settingsPreferences.timezone')}
-            </label>
+            <label className="block text-sm text-bolt-elements-textSecondary">Timezone</label>
           </div>
           <select
-            id="settings-timezone"
             value={settings.timezone}
             onChange={(e) => setSettings((prev) => ({ ...prev, timezone: e.target.value }))}
             className={classNames(
@@ -316,21 +325,17 @@ export default function SettingsTab() {
       >
         <div className="flex items-center gap-2 mb-4">
           <div className="i-ph:keyboard-fill w-4 h-4 text-[var(--vc-ide-accent-action)]" />
-          <span className="text-sm font-medium text-bolt-elements-textPrimary">
-            {t('settingsPreferences.shortcuts.title')}
-          </span>
+          <span className="text-sm font-medium text-bolt-elements-textPrimary">Keyboard Shortcuts</span>
         </div>
 
         <div className="space-y-2">
-          <div className="flex flex-col items-start justify-between gap-3 rounded-lg bg-bolt-elements-background-depth-1 p-2 sm:flex-row sm:items-center">
-            <div className="min-w-0 flex flex-col">
-              <span className="text-sm text-bolt-elements-textPrimary">{t('settingsPreferences.theme.title')}</span>
-              <span className="text-xs text-bolt-elements-textSecondary">
-                {t('settingsPreferences.theme.description')}
-              </span>
+          <div className="flex flex-wrap items-center justify-between gap-y-2 p-2 rounded-lg bg-bolt-elements-background-depth-1">
+            <div className="flex flex-col">
+              <span className="text-sm text-bolt-elements-textPrimary">Toggle Theme</span>
+              <span className="text-xs text-bolt-elements-textSecondary">Switch between light and dark mode</span>
             </div>
-            <div className="flex max-w-full flex-wrap items-center justify-start gap-2 sm:justify-end">
-              <ThemeSwitch size="lg" title={t('settingsPreferences.theme.action')} />
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <ThemeSwitch size="lg" title="Switch light/dark theme" />
               <kbd className="px-2 py-1 text-xs font-semibold text-bolt-elements-textSecondary bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded shadow-sm">
                 {getModifierSymbol('meta')}
               </kbd>

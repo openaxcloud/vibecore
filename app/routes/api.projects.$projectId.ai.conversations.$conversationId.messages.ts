@@ -1,5 +1,4 @@
 import { apiRequest, json, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
-import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 function conversationMessagesPath(projectId: string, conversationId: string) {
   return `/projects/${encodeURIComponent(projectId)}/ai/conversations/${encodeURIComponent(conversationId)}/messages`;
@@ -7,7 +6,7 @@ function conversationMessagesPath(projectId: string, conversationId: string) {
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (!params.projectId || !params.conversationId) {
-    return remainingApiErrorResponse(request, 'CONVERSATION_NOT_FOUND', 404, { extra: { ok: false } });
+    return json({ ok: false, error: 'Conversation not found' }, { status: 404 });
   }
 
   const payload = await apiRequest(request, conversationMessagesPath(params.projectId, params.conversationId));
@@ -17,11 +16,11 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
 export async function action({ request, params }: EnterpriseActionArgs) {
   if (!params.projectId || !params.conversationId) {
-    return remainingApiErrorResponse(request, 'CONVERSATION_NOT_FOUND', 404, { extra: { ok: false } });
+    return json({ ok: false, error: 'Conversation not found' }, { status: 404 });
   }
 
   if (request.method.toUpperCase() !== 'POST') {
-    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405, { extra: { ok: false } });
+    return json({ ok: false, error: 'Method not allowed' }, { status: 405 });
   }
 
   const body = await request.text();

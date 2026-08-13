@@ -1,5 +1,4 @@
 import { apiErrorMessage, json } from '~/lib/enterprise-api.server';
-import { getProjectCollaboratorsCopy } from '~/lib/i18n/catalogs/project-collaborators';
 
 /*
  * Lives in ~/lib (not the route module) so the collaborators route can import a
@@ -13,15 +12,14 @@ import { getProjectCollaboratorsCopy } from '~/lib/i18n/catalogs/project-collabo
  * re-thrown so the framework performs the login/MFA redirect; other API Responses
  * become a rendered inline error; anything else propagates.
  */
-export async function handleCollaboratorActionError(error: unknown, language?: string | null) {
+export async function handleCollaboratorActionError(error: unknown) {
   if (error instanceof Response && error.status >= 300 && error.status < 400) {
     throw error;
   }
 
   if (error instanceof Response) {
     const status = error.status;
-    const fallback = getProjectCollaboratorsCopy(language)['projectCollaborators.error.add'];
-    const msg = language?.toLowerCase().startsWith('fr') ? fallback : await apiErrorMessage(error, fallback);
+    const msg = await apiErrorMessage(error, 'Unable to add collaborator. Check the email and try again.');
 
     return json({ error: msg }, { status });
   }

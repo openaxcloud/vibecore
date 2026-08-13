@@ -1,77 +1,42 @@
-import { ArrowRight, BookOpen, Clock, Layers, Rocket, Terminal, Users, Wand2, Workflow } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { BookOpen, Clock, Wand2, Rocket, Users, Terminal, ArrowRight, Layers, Workflow } from 'lucide-react';
 import type { IconType } from 'react-icons';
-import { SiGithub, SiPostgresql } from 'react-icons/si';
-
+import { SiPostgresql, SiGithub } from 'react-icons/si';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
 } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import {
-  Badge,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
-import {
-  formatGuidesPoliciesInteger,
-  formatTutorialDuration,
-  getMarketingExactGuidesPoliciesCopy,
-  type LearningPathId,
-  type TutorialId,
-  type TutorialLevelId,
-} from '~/lib/i18n/catalogs/marketing-exact-guides-policies';
+import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
+
+type TutorialLevel = 'Beginner' | 'Intermediate' | 'Advanced';
+
+/**
+ * Level pills, kept on-theme: neutral dark surfaces with an orange accent for
+ * the most advanced tier so nothing reads as off-brand blue/indigo/purple.
+ */
+const levelStyles: Record<TutorialLevel, string> = {
+  Beginner: 'bg-bolt-elements-background-depth-3 text-muted-foreground border border-bolt-elements-borderColor',
+  Intermediate: 'bg-bolt-elements-background-depth-3 text-foreground border border-bolt-elements-borderColor',
+  Advanced: 'bg-[#F26207]/12 text-[#F26207] border border-[#F26207]/25',
+};
 
 type TutorialIcon = LucideIcon | IconType;
 
-const LEVEL_STYLES: Record<TutorialLevelId, string> = {
-  beginner: 'border border-border bg-muted text-muted-foreground',
-  intermediate: 'border border-border bg-surface-solid text-foreground',
-  advanced: 'border border-primary/25 bg-primary/10 text-primary',
-};
-
-const TUTORIAL_ICONS: Record<TutorialId, TutorialIcon> = {
-  agent: Wand2,
-  deploy: Rocket,
-  database: SiPostgresql,
-  collaboration: Users,
-  terminal: Terminal,
-  git: SiGithub,
-};
-
-const TUTORIAL_HREFS: Record<TutorialId, string> = {
-  agent: '/docs#build-a-full-stack-app-with-the-ai-agent',
-  deploy: '/docs#deploy-to-production',
-  database: '/docs#connect-a-database',
-  collaboration: '/docs#real-time-collaboration',
-  terminal: '/docs#master-the-integrated-terminal',
-  git: '/docs#git-workflows-and-github-sync',
-};
-
-const TUTORIAL_MINUTES: Record<TutorialId, number> = {
-  agent: 15,
-  deploy: 10,
-  database: 20,
-  collaboration: 18,
-  terminal: 12,
-  git: 25,
-};
-
-const LEARNING_PATH_ICONS: Record<LearningPathId, TutorialIcon> = {
-  idea: Wand2,
-  fullStack: Layers,
-  team: Workflow,
-};
-
-const LEARNING_PATH_HREFS: Record<LearningPathId, string> = {
-  idea: '/docs#from-idea-to-app',
-  fullStack: '/docs#full-stack-foundations',
-  team: '/docs#ship-as-a-team',
-};
-
+/**
+ * Build the docs deep-link for a tutorial or learning-path entry.
+ *
+ * There is no per-tutorial detail route yet, so every lesson points at the
+ * canonical `/docs` page and scrolls to a stable, slugified anchor derived
+ * from its title. Centralising the logic keeps every card linking to a real,
+ * reachable destination (and makes the slugging unit-testable).
+ */
 export function tutorialHref(title: string): string {
   const anchor = title
     .toLowerCase()
@@ -83,115 +48,178 @@ export function tutorialHref(title: string): string {
 }
 
 export default function Tutorials() {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getMarketingExactGuidesPoliciesCopy(language).exactTutorials;
+  const tutorials: Array<{
+    icon: TutorialIcon;
+    title: string;
+    level: TutorialLevel;
+    duration: string;
+    description: string;
+  }> = [
+    {
+      icon: Wand2,
+      title: 'Build a full-stack app with the AI agent',
+      level: 'Beginner',
+      duration: '15 min',
+      description:
+        'Go from a single prompt to a working full-stack app while the AI agent writes, runs and fixes the code for you.',
+    },
+    {
+      icon: Rocket,
+      title: 'Deploy to production',
+      level: 'Beginner',
+      duration: '10 min',
+      description:
+        'Ship your project to a live URL in one click and learn how custom domains and environment variables work.',
+    },
+    {
+      icon: SiPostgresql,
+      title: 'Connect a database',
+      level: 'Intermediate',
+      duration: '20 min',
+      description: 'Provision a Postgres database, model your schema and wire it into your app with type-safe queries.',
+    },
+    {
+      icon: Users,
+      title: 'Real-time collaboration',
+      level: 'Intermediate',
+      duration: '18 min',
+      description: 'Invite teammates into your workspace and edit, run and review code together with live presence.',
+    },
+    {
+      icon: Terminal,
+      title: 'Master the integrated terminal',
+      level: 'Intermediate',
+      duration: '12 min',
+      description:
+        'Run scripts, manage processes and use the package manager inside your cloud workspace like a local shell.',
+    },
+    {
+      icon: SiGithub,
+      title: 'Git workflows & GitHub sync',
+      level: 'Advanced',
+      duration: '25 min',
+      description:
+        'Branch, commit and push from inside the editor, then connect a GitHub repo for two-way sync and pull requests.',
+    },
+  ];
 
-  const tutorials = copy.tutorials.items.map((tutorial) => ({
-    ...tutorial,
-    href: TUTORIAL_HREFS[tutorial.id],
-    icon: TUTORIAL_ICONS[tutorial.id],
-    levelLabel: copy.tutorials.levels[tutorial.level],
-    minutes: TUTORIAL_MINUTES[tutorial.id],
-  }));
-
-  const learningPaths = copy.paths.items.map((path) => ({
-    ...path,
-    href: LEARNING_PATH_HREFS[path.id],
-    icon: LEARNING_PATH_ICONS[path.id],
-  }));
+  const learningPaths: Array<{
+    icon: TutorialIcon;
+    title: string;
+    description: string;
+    steps: string[];
+  }> = [
+    {
+      icon: Wand2,
+      title: 'From Idea to App',
+      description:
+        'Start with nothing but a prompt and finish with a deployed product. Perfect for first-time builders.',
+      steps: ['Build with the AI agent', 'Iterate on your design', 'Deploy to production'],
+    },
+    {
+      icon: Layers,
+      title: 'Full-Stack Foundations',
+      description: 'Learn the core building blocks of a production app — data, APIs and authentication.',
+      steps: ['Connect a database', 'Add an API layer', 'Secure with auth'],
+    },
+    {
+      icon: Workflow,
+      title: 'Ship as a Team',
+      description: 'Collaborate, review and release together with the workflows real engineering teams rely on.',
+      steps: ['Real-time collaboration', 'Git & GitHub sync', 'Production deploys'],
+    },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col" data-testid="page-tutorials">
       <PublicNavbar />
 
       <main className="flex-1">
+        {/* Hero Section */}
         <section className="py-responsive bg-gradient-to-b from-background to-muted">
           <div className="container-responsive">
             <div className="text-center max-w-3xl mx-auto">
-              <span className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary">
-                <BookOpen className="h-7 w-7" aria-hidden />
+              <span
+                className="inline-flex h-14 w-14 items-center justify-center rounded-2xl mb-5 ring-1 ring-[#F26207]/25"
+                style={{ backgroundColor: 'rgba(242, 98, 7, 0.12)' }}
+              >
+                <BookOpen className="h-7 w-7" style={{ color: 'var(--ecode-accent)' }} />
               </span>
               <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-tutorials">
-                {copy.hero.title}
+                Tutorials
               </h1>
-              <p className="mkt-lead text-muted-foreground mb-8">{copy.hero.description}</p>
-              <Badge
-                variant="secondary"
-                className="inline-flex max-w-full whitespace-normal px-4 py-2 text-center text-[15px]"
-              >
-                {copy.hero.badge}
+              <p className="mkt-lead text-muted-foreground mb-8">
+                Learn to build, deploy and collaborate with the AI agent — one short, hands-on lesson at a time.
+              </p>
+              <Badge variant="secondary" className="text-[15px] px-4 py-2">
+                Step-by-step, no setup required
               </Badge>
             </div>
 
+            {/* Real product capture: the workspace every tutorial happens in */}
             <figure className="relative mt-12 max-w-5xl mx-auto">
-              <div
-                className="pointer-events-none absolute -inset-2 rounded-2xl bg-gradient-to-r from-primary/20 to-primary/5 blur-2xl"
-                aria-hidden="true"
-              />
-              <div className="relative overflow-hidden rounded-xl border border-border bg-surface-solid shadow-2xl">
-                <div className="flex items-center gap-2 border-b border-border bg-muted px-3 py-2.5 sm:px-4">
-                  <span className="flex gap-2" aria-hidden="true">
-                    <span className="h-2.5 w-2.5 rounded-full bg-primary/70" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-primary/40" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
-                  </span>
-                  <span className="ml-2 truncate text-[11px] font-medium text-muted-foreground sm:text-[13px]">
-                    {copy.figure.workspaceLabel}
+              <div className="absolute -inset-2 bg-gradient-to-r from-[#F26207]/20 to-[#F99D25]/20 blur-2xl rounded-2xl pointer-events-none" />
+              <div className="relative rounded-xl overflow-hidden ring-1 ring-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl">
+                <div className="flex items-center gap-2 px-3 sm:px-4 py-2.5 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#F26207]/70" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-[#F99D25]/70" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
+                  <span className="ml-2 text-[11px] sm:text-[13px] text-muted-foreground font-medium truncate">
+                    E-Code Workspace
                   </span>
                 </div>
                 <img
                   src="/ecode-static/assets/product/ide.png"
-                  alt={copy.figure.imageAlt}
+                  alt="The E-Code workspace used throughout the tutorials: the AI Agent panel, code editor, file tree and live preview side by side"
                   width={1440}
                   height={900}
                   loading="lazy"
-                  className="block h-auto w-full"
+                  className="block w-full h-auto"
                   data-testid="img-tutorials-ide"
                 />
               </div>
-              <figcaption className="mt-3 px-1 text-center text-[11px] text-muted-foreground sm:text-[13px]">
-                {copy.figure.caption}
+              <figcaption className="mt-3 text-center text-[11px] sm:text-[13px] text-muted-foreground px-1">
+                Every lesson runs in the same browser-based workspace — no local setup required.
               </figcaption>
             </figure>
           </div>
         </section>
 
+        {/* Tutorials Grid */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="mkt-h2 font-bold text-center mb-12">{copy.tutorials.title}</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">Browse Tutorials</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {tutorials.map((tutorial) => {
                 const Icon = tutorial.icon;
-
                 return (
                   <a
-                    key={tutorial.id}
-                    href={tutorial.href}
-                    className="group block min-w-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2"
+                    key={tutorial.title}
+                    href={tutorialHref(tutorial.title)}
+                    className="group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                    style={{ ['--tw-ring-color' as string]: 'var(--ecode-accent)' }}
                     data-testid="link-tutorial"
                   >
-                    <Card className="flex h-full min-w-0 flex-col transition-shadow group-hover:shadow-md">
-                      <CardHeader className="min-w-0">
-                        <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-                          <Icon className="h-5 w-5" aria-hidden />
+                    <Card className="flex flex-col h-full transition-shadow group-hover:shadow-md">
+                      <CardHeader>
+                        <span
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-xl mb-3 ring-1 ring-[#F26207]/20"
+                          style={{ backgroundColor: 'rgba(242, 98, 7, 0.1)' }}
+                        >
+                          <Icon className="h-5 w-5" style={{ color: 'var(--ecode-accent)' }} />
                         </span>
-                        <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
-                          <Badge
-                            className={`max-w-full whitespace-normal text-center text-[12px] ${LEVEL_STYLES[tutorial.level]}`}
-                          >
-                            {tutorial.levelLabel}
-                          </Badge>
+                        <div className="flex items-center gap-2 mb-2">
+                          <Badge className={`text-[12px] ${levelStyles[tutorial.level]}`}>{tutorial.level}</Badge>
                           <span className="flex items-center gap-1 text-[12px] text-muted-foreground">
-                            <Clock className="h-3.5 w-3.5" aria-hidden />
-                            {formatTutorialDuration(tutorial.minutes, language)}
+                            <Clock className="h-3.5 w-3.5" />
+                            {tutorial.duration}
                           </span>
                         </div>
-                        <CardTitle className="mkt-h3 break-words">{tutorial.title}</CardTitle>
+                        <CardTitle className="mkt-h3">{tutorial.title}</CardTitle>
                       </CardHeader>
                       <CardContent className="flex-1">
-                        <p className="mkt-body break-words text-muted-foreground">{tutorial.description}</p>
+                        <p className="mkt-body text-muted-foreground">{tutorial.description}</p>
                       </CardContent>
                     </Card>
                   </a>
@@ -201,40 +229,50 @@ export default function Tutorials() {
           </div>
         </section>
 
+        {/* Learning Paths */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
             <div className="text-center max-w-3xl mx-auto mb-12">
-              <h2 className="mkt-h2 font-bold mb-4">{copy.paths.title}</h2>
-              <p className="mkt-lead text-muted-foreground">{copy.paths.description}</p>
+              <h2 className="mkt-h2 font-bold mb-4">Learning Paths</h2>
+              <p className="mkt-lead text-muted-foreground">
+                Follow a guided sequence of tutorials to build a complete skill set, from your first prompt to shipping
+                with a team.
+              </p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {learningPaths.map((path) => {
                 const Icon = path.icon;
-
                 return (
                   <a
-                    key={path.id}
-                    href={path.href}
-                    className="group block min-w-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2"
+                    key={path.title}
+                    href={tutorialHref(path.title)}
+                    className="group block rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
+                    style={{ ['--tw-ring-color' as string]: 'var(--ecode-accent)' }}
                     data-testid="link-learning-path"
                   >
-                    <Card className="flex h-full min-w-0 flex-col transition-shadow group-hover:shadow-md">
-                      <CardHeader className="min-w-0">
-                        <span className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-xl border border-primary/20 bg-primary/10 text-primary">
-                          <Icon className="h-5 w-5" aria-hidden />
+                    <Card className="flex flex-col h-full transition-shadow group-hover:shadow-md">
+                      <CardHeader>
+                        <span
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-xl mb-3 ring-1 ring-[#F26207]/20"
+                          style={{ backgroundColor: 'rgba(242, 98, 7, 0.1)' }}
+                        >
+                          <Icon className="h-5 w-5" style={{ color: 'var(--ecode-accent)' }} />
                         </span>
-                        <CardTitle className="break-words">{path.title}</CardTitle>
-                        <CardDescription className="break-words">{path.description}</CardDescription>
+                        <CardTitle>{path.title}</CardTitle>
+                        <CardDescription>{path.description}</CardDescription>
                       </CardHeader>
                       <CardContent className="flex-1">
                         <ol className="space-y-3">
                           {path.steps.map((step, index) => (
-                            <li key={step} className="flex min-w-0 items-center gap-3 text-[13px]">
-                              <span className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-primary text-[12px] font-semibold text-primary-foreground">
-                                {formatGuidesPoliciesInteger(index + 1, language)}
+                            <li key={step} className="flex items-center gap-3 text-[13px]">
+                              <span
+                                className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full text-[12px] font-semibold text-white"
+                                style={{ backgroundColor: 'var(--ecode-accent)' }}
+                              >
+                                {index + 1}
                               </span>
-                              <span className="min-w-0 break-words">{step}</span>
+                              <span>{step}</span>
                             </li>
                           ))}
                         </ol>
@@ -247,31 +285,33 @@ export default function Tutorials() {
           </div>
         </section>
 
+        {/* CTA */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <div className="relative overflow-hidden rounded-2xl border border-border bg-muted px-6 py-12 text-center sm:px-12 sm:py-16">
-              <div
-                className="pointer-events-none absolute -top-24 left-1/2 h-64 w-[36rem] max-w-full -translate-x-1/2 bg-gradient-to-r from-primary/25 to-primary/5 blur-3xl"
-                aria-hidden="true"
-              />
+            <div className="relative overflow-hidden rounded-2xl ring-1 ring-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-6 py-12 sm:px-12 sm:py-16 text-center">
+              <div className="absolute -top-24 left-1/2 -translate-x-1/2 h-64 w-[36rem] max-w-full bg-gradient-to-r from-[#F26207]/25 to-[#F99D25]/25 blur-3xl pointer-events-none" />
               <div className="relative">
-                <h2 className="mkt-h2 font-bold mb-4">{copy.cta.title}</h2>
-                <p className="mkt-body text-muted-foreground mb-8 max-w-2xl mx-auto">{copy.cta.description}</p>
-                <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
+                <h2 className="mkt-h2 font-bold mb-4">Ready to start building?</h2>
+                <p className="mkt-body text-muted-foreground mb-8 max-w-2xl mx-auto">
+                  Open a workspace and let the AI agent turn your first idea into a running app in minutes — free to
+                  start, no credit card required.
+                </p>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                   <a
-                    className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] sm:w-auto"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 text-white rounded-md min-h-[44px] w-full sm:w-auto hover:opacity-90 transition-opacity"
+                    style={{ backgroundColor: 'var(--ecode-accent)' }}
                     href="/signup"
                     data-testid="button-tutorials-start"
                   >
-                    {copy.cta.primary}
-                    <ArrowRight className="h-4 w-4" aria-hidden />
+                    Get started free
+                    <ArrowRight className="h-4 w-4" />
                   </a>
                   <a
-                    className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-md border border-border bg-surface-solid px-6 py-3 text-foreground transition-colors hover:bg-surface-hover-solid focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] sm:w-auto"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md min-h-[44px] w-full sm:w-auto border border-bolt-elements-borderColor text-foreground hover:bg-bolt-elements-background-depth-3 transition-colors"
                     href="/dashboard"
                     data-testid="link-tutorials-dashboard"
                   >
-                    {copy.cta.secondary}
+                    Open dashboard
                   </a>
                 </div>
               </div>

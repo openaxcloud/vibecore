@@ -1,10 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useState, useCallback } from 'react';
 import type { ConnectionTestResult } from '~/components/@settings/shared/service-integration';
-import {
-  formatClientRuntimeResidualCopy,
-  getClientRuntimeResidualCopy,
-} from '~/lib/i18n/catalogs/client-runtime-residual';
 
 interface UseConnectionTestOptions {
   testEndpoint: string;
@@ -12,56 +7,14 @@ interface UseConnectionTestOptions {
   getUserIdentifier?: (data: any) => string;
 }
 
-type InternalConnectionTestResult =
-  | { status: 'testing' }
-  | { status: 'success'; account?: string; timestamp: number }
-  | { status: 'error'; timestamp: number };
-
 export function useConnectionTest({ testEndpoint, serviceName, getUserIdentifier }: UseConnectionTestOptions) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getClientRuntimeResidualCopy(language);
-  const [internalResult, setInternalResult] = useState<InternalConnectionTestResult | null>(null);
-
-  const testResult = useMemo<ConnectionTestResult | null>(() => {
-    if (!internalResult) {
-      return null;
-    }
-
-    if (internalResult.status === 'testing') {
-      return {
-        status: 'testing',
-        message: copy['clientRuntime.connectionTest.testing'],
-      };
-    }
-
-    if (internalResult.status === 'error') {
-      return {
-        status: 'error',
-        message: formatClientRuntimeResidualCopy(copy['clientRuntime.connectionTest.failed'], {
-          service: serviceName,
-        }),
-        timestamp: internalResult.timestamp,
-      };
-    }
-
-    return {
-      status: 'success',
-      message: formatClientRuntimeResidualCopy(
-        internalResult.account
-          ? copy['clientRuntime.connectionTest.connectedAs']
-          : copy['clientRuntime.connectionTest.connected'],
-        {
-          service: serviceName,
-          ...(internalResult.account ? { account: internalResult.account } : {}),
-        },
-      ),
-      timestamp: internalResult.timestamp,
-    };
-  }, [copy, internalResult, serviceName]);
+  const [testResult, setTestResult] = useState<ConnectionTestResult | null>(null);
 
   const testConnection = useCallback(async () => {
-    setInternalResult({ status: 'testing' });
+    setTestResult({
+      status: 'testing',
+      message: 'Testing connection...',
+    });
 
     try {
       const response = await fetch(testEndpoint, {
@@ -73,31 +26,32 @@ export function useConnectionTest({ testEndpoint, serviceName, getUserIdentifier
 
       if (response.ok) {
         const data = await response.json();
-        const userIdentifier = getUserIdentifier?.(data);
+        const userIdentifier = getUserIdentifier ? getUserIdentifier(data) : 'User';
 
-        setInternalResult({
+        setTestResult({
           status: 'success',
-          account: userIdentifier,
+          message: `Connected successfully to ${serviceName} as ${userIdentifier}`,
           timestamp: Date.now(),
         });
       } else {
-        await response.json().catch(() => undefined);
-        setInternalResult({
+        const errorData = (await response.json().catch(() => ({}))) as { error?: string };
+        setTestResult({
           status: 'error',
+          message: `Connection failed: ${errorData.error || `${response.status} ${response.statusText}`}`,
           timestamp: Date.now(),
         });
       }
     } catch (error) {
-      console.error(`Connection test failed for ${serviceName}:`, error);
-      setInternalResult({
+      setTestResult({
         status: 'error',
+        message: `Connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
         timestamp: Date.now(),
       });
     }
-  }, [getUserIdentifier, serviceName, testEndpoint]);
+  }, [testEndpoint, serviceName, getUserIdentifier]);
 
   const clearTestResult = useCallback(() => {
-    setInternalResult(null);
+    setTestResult(null);
   }, []);
 
   return {

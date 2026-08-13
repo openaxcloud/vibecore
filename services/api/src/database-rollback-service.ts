@@ -11,8 +11,6 @@
  * catalog): Starter/Core = 0 (no rollback), Pro/Enterprise = 28 days.
  */
 import { creditPlanCatalog, type CreditPlanKey } from '@vibecore/billing';
-import { appPublicCopy } from './app-public-copy.js';
-import type { TransactionalLocale } from './transactional-i18n.js';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -47,11 +45,7 @@ export function retentionFloorMs(retentionDays: number, nowMs: number): number {
 
 export type RestoreTargetValidation =
   | { ok: true }
-  | {
-      ok: false;
-      code: 'ROLLBACK_DISABLED' | 'PLAN_NOT_ELIGIBLE' | 'TARGET_IN_FUTURE' | 'TARGET_TOO_OLD';
-      message: string;
-    };
+  | { ok: false; code: 'ROLLBACK_DISABLED' | 'PLAN_NOT_ELIGIBLE' | 'TARGET_IN_FUTURE' | 'TARGET_TOO_OLD'; message: string };
 
 /**
  * Validate a point-in-time restore target against the plan's retention window.
@@ -63,24 +57,17 @@ export function validateRestoreTarget(input: {
   entitlement: DatabaseRollbackEntitlement;
   targetTimestampMs: number;
   nowMs: number;
-  locale?: TransactionalLocale;
 }): RestoreTargetValidation {
-  const locale = input.locale ?? 'en';
-
   if (!input.enabled) {
-    return { ok: false, code: 'ROLLBACK_DISABLED', message: appPublicCopy('ROLLBACK_DISABLED', locale) };
+    return { ok: false, code: 'ROLLBACK_DISABLED', message: 'Database rollback is not enabled.' };
   }
 
   if (!input.entitlement.allowed) {
-    return {
-      ok: false,
-      code: 'PLAN_NOT_ELIGIBLE',
-      message: appPublicCopy('ROLLBACK_PLAN_NOT_ELIGIBLE', locale),
-    };
+    return { ok: false, code: 'PLAN_NOT_ELIGIBLE', message: 'Your plan does not include database rollback.' };
   }
 
   if (input.targetTimestampMs > input.nowMs) {
-    return { ok: false, code: 'TARGET_IN_FUTURE', message: appPublicCopy('ROLLBACK_TARGET_IN_FUTURE', locale) };
+    return { ok: false, code: 'TARGET_IN_FUTURE', message: 'Restore target cannot be in the future.' };
   }
 
   const floor = retentionFloorMs(input.entitlement.retentionDays, input.nowMs);
@@ -89,7 +76,7 @@ export function validateRestoreTarget(input: {
     return {
       ok: false,
       code: 'TARGET_TOO_OLD',
-      message: appPublicCopy('ROLLBACK_TARGET_TOO_OLD', locale, { days: input.entitlement.retentionDays }),
+      message: `Restore target is outside the ${input.entitlement.retentionDays}-day retention window.`,
     };
   }
 

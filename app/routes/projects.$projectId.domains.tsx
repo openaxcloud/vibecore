@@ -1,5 +1,4 @@
 import { Globe2, ShieldCheck } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { ActivityList, ProjectShell } from '~/components/dashboard/SaaSLayout';
@@ -13,14 +12,6 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import {
-  formatProjectDomainsCopy,
-  getProjectDomainsCopy,
-  resolveProjectDomainsLanguage,
-  type ProjectDomainsCopy,
-  type ProjectDomainsKey,
-} from '~/lib/i18n/catalogs/project-domains';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
@@ -36,38 +27,20 @@ type Domain = {
 };
 type Project = { id: string; name: string; description?: string };
 
-// DNS identifiers and domain examples are technical values, identical in every locale.
-const DOMAIN_PLACEHOLDER = 'app.example.com';
-const DNS_RECORD_TYPE = 'TXT';
-
 /** TLS/SSL status derived from the domain's real verification + sslStatus. */
-function domainSsl(item: Domain, copy: ProjectDomainsCopy): { label: string; tone: 'ok' | 'pending' | 'error' } {
+function domainSsl(item: Domain): { label: string; tone: 'ok' | 'pending' | 'error' } {
   if (item.sslStatus === 'failed') {
-    return { label: copy['projectDomains.tls.failed'], tone: 'error' };
+    return { label: 'TLS: verification failed', tone: 'error' };
   }
 
   if (item.verifiedAt || item.sslStatus === 'dns_verified') {
-    return { label: copy['projectDomains.tls.active'], tone: 'ok' };
+    return { label: 'TLS certificate active', tone: 'ok' };
   }
 
-  return { label: copy['projectDomains.tls.pending'], tone: 'pending' };
+  return { label: 'TLS pending domain verification', tone: 'pending' };
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-  const copy = getProjectDomainsCopy(data?.language ?? rootData?.language);
-  const title = copy['projectDomains.meta.title'];
-  const description = copy['projectDomains.meta.description'];
-
-  return [
-    { title },
-    { name: 'description', content: description },
-    { property: 'og:title', content: title },
-    { property: 'og:description', content: description },
-    { name: 'twitter:title', content: title },
-    { name: 'twitter:description', content: description },
-  ];
-};
+export const meta: MetaFunction = () => [{ title: 'Custom domains - E-Code' }];
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 /**
@@ -80,12 +53,10 @@ export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashbo
  * redirect.
  */
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
-  const language = resolveProjectDomainsLanguage(resolveRequestLocale(request).language);
-  const copy = getProjectDomainsCopy(language);
   const projectId = params.projectId;
 
   if (!projectId) {
-    throw json({ error: copy['projectDomains.error.projectNotFound'] }, { status: 404 });
+    throw json({ error: 'Project not found' }, { status: 404 });
   }
 
   const [projectResult, organization] = await Promise.all([
@@ -99,16 +70,14 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
   const domains = await apiRequest<{ domains: Domain[] }>(request, `/orgs/${organization.id}/domains`);
 
-  return json({ project: projectResult.project, organization, domains: domains?.domains ?? [], language });
+  return json({ project: projectResult.project, organization, domains: domains?.domains ?? [] });
 }
 
 export async function action({ request, params }: EnterpriseActionArgs) {
-  const language = resolveProjectDomainsLanguage(resolveRequestLocale(request).language);
-  const copy = getProjectDomainsCopy(language);
   const projectId = params.projectId;
 
   if (!projectId) {
-    throw json({ error: copy['projectDomains.error.projectNotFound'] }, { status: 404 });
+    throw json({ error: 'Project not found' }, { status: 404 });
   }
 
   let organization: Awaited<ReturnType<typeof firstOrganization>>;
@@ -130,7 +99,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
      */
     console.error('Organization lookup failed in domains action:', error);
 
-    return json({ error: copy['projectDomains.error.serviceUnavailable'] });
+    return json({ error: 'Unable to reach the domains service. Please try again in a moment.' });
   }
 
   const form = await request.formData();
@@ -152,9 +121,8 @@ export async function action({ request, params }: EnterpriseActionArgs) {
        * record isn't visible yet. Surface that message inline instead of throwing to an error boundary.
        */
       if (error instanceof Response) {
-        const key: ProjectDomainsKey =
-          error.status >= 500 ? 'projectDomains.error.serviceUnavailable' : 'projectDomains.error.verificationFailed';
-        return json({ error: copy[key] });
+        const payload = (await error.json().catch(() => ({}))) as { error?: string };
+        return json({ error: payload.error ?? 'Domain verification failed. Check the DNS record and try again.' });
       }
 
       /*
@@ -165,7 +133,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
        */
       console.error('Domain verification request failed:', error);
 
-      return json({ error: copy['projectDomains.error.serviceUnavailable'] });
+      return json({ error: 'Unable to reach the domains service. Please try again in a moment.' });
     }
   } else {
     try {
@@ -183,9 +151,8 @@ export async function action({ request, params }: EnterpriseActionArgs) {
        * message inline instead of throwing to an error boundary.
        */
       if (error instanceof Response) {
-        const key: ProjectDomainsKey =
-          error.status >= 500 ? 'projectDomains.error.serviceUnavailable' : 'projectDomains.error.addFailed';
-        return json({ error: copy[key] });
+        const payload = (await error.json().catch(() => ({}))) as { error?: string };
+        return json({ error: payload.error ?? 'Unable to add domain. Check the value and try again.' });
       }
 
       /*
@@ -195,7 +162,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
        */
       console.error('Add-domain request failed:', error);
 
-      return json({ error: copy['projectDomains.error.serviceUnavailable'] });
+      return json({ error: 'Unable to reach the domains service. Please try again in a moment.' });
     }
   }
 
@@ -203,10 +170,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
 }
 
 export default function ProjectDomainsPage() {
-  const { i18n } = useTranslation();
-  const { project, domains, language: loadedLanguage } = useLoaderData<typeof loader>();
-  const language = resolveProjectDomainsLanguage(i18n.resolvedLanguage ?? i18n.language ?? loadedLanguage);
-  const copy = getProjectDomainsCopy(language);
+  const { project, domains } = useLoaderData<typeof loader>();
   const navigation = useNavigation();
   const busy = navigation.state !== 'idle';
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
@@ -214,59 +178,42 @@ export default function ProjectDomainsPage() {
   return (
     <ProjectShell
       projectId={project.id}
-      title={copy['projectDomains.page.title']}
-      description={copy['projectDomains.page.description']}
+      title="Custom domains"
+      description="Map project deployments to verified domains with TLS readiness."
     >
-      <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
         <ActivityList
           items={
             domains.length
               ? domains.map((item) => {
-                  const ssl = domainSsl(item, copy);
-
-                  const verifiedDate = item.verifiedAt
-                    ? (formatUserAreaDateTime(item.verifiedAt, undefined, language) ??
-                      copy['projectDomains.activity.dateUnavailable'])
-                    : null;
-
+                  const ssl = domainSsl(item);
                   return {
                     title: item.domain,
                     detail: `${
-                      verifiedDate
-                        ? formatProjectDomainsCopy(copy['projectDomains.activity.verified'], { date: verifiedDate })
-                        : copy['projectDomains.activity.pending']
+                      item.verifiedAt
+                        ? `Verified ${formatUserAreaDateTime(item.verifiedAt) ?? 'date unavailable'}`
+                        : 'Pending DNS verification'
                     } · ${ssl.label}`,
                     icon: item.verifiedAt ? ShieldCheck : Globe2,
                   };
                 })
-              : [
-                  {
-                    title: copy['projectDomains.activity.emptyTitle'],
-                    detail: copy['projectDomains.activity.emptyDescription'],
-                    icon: Globe2,
-                  },
-                ]
+              : [{ title: 'No verified domains', detail: 'Add a domain to create a verification token.', icon: Globe2 }]
           }
         />
-        <div className="grid min-w-0 gap-4 overflow-x-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 sm:p-6">
+        <div className="grid gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6">
           {/* Step 1 — add the domain. */}
           <section className="grid gap-3">
-            <StepHeader index={1} title={copy['projectDomains.add.title']} done={domains.length > 0} />
+            <StepHeader index={1} title="Add your domain" done={domains.length > 0} />
             <Form method="post" className="grid gap-3">
               <input
-                className="h-10 min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none"
+                className="h-10 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none"
                 name="domain"
-                aria-label={copy['projectDomains.add.ariaLabel']}
-                placeholder={DOMAIN_PLACEHOLDER}
+                aria-label="Custom domain"
+                placeholder="app.example.com"
                 required
               />
-              <Button
-                type="submit"
-                className="h-auto min-h-10 whitespace-normal px-3 py-2"
-                disabled={busy}
-                aria-busy={busy}
-              >
-                {busy ? copy['projectDomains.add.loading'] : copy['projectDomains.add.submit']}
+              <Button type="submit" disabled={busy} aria-busy={busy}>
+                {busy ? 'Adding…' : 'Add domain'}
               </Button>
             </Form>
             {actionData?.error ? (
@@ -282,7 +229,7 @@ export default function ProjectDomainsPage() {
           {domains
             .filter((item) => !item.verifiedAt)
             .map((item) => {
-              const ssl = domainSsl(item, copy);
+              const ssl = domainSsl(item);
               return (
                 <div
                   key={item.id}
@@ -290,24 +237,22 @@ export default function ProjectDomainsPage() {
                 >
                   {/* Step 2 — publish the DNS TXT record. */}
                   <section className="grid gap-2">
-                    <StepHeader
-                      index={2}
-                      title={formatProjectDomainsCopy(copy['projectDomains.dns.title'], { domain: item.domain })}
-                    />
+                    <StepHeader index={2} title={`Add the DNS record for ${item.domain}`} />
                     <p className="text-xs text-bolt-elements-textSecondary">
-                      {copy['projectDomains.dns.instructions']}
+                      Add this TXT record at your domain registrar, then re-check once it propagates (usually a few
+                      minutes, up to 48h):
                     </p>
                     <dl className="grid gap-1 text-xs">
                       <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-                        <dt className="text-bolt-elements-textTertiary">{copy['projectDomains.dns.type']}</dt>
-                        <dd className="font-mono">{DNS_RECORD_TYPE}</dd>
+                        <dt className="text-bolt-elements-textTertiary">Type</dt>
+                        <dd className="font-mono">TXT</dd>
                       </div>
                       <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-                        <dt className="text-bolt-elements-textTertiary">{copy['projectDomains.dns.name']}</dt>
+                        <dt className="text-bolt-elements-textTertiary">Name / Host</dt>
                         <dd className="select-all break-all font-mono">{`_vibecore.${item.domain}`}</dd>
                       </div>
                       <div className="flex flex-col gap-0.5 sm:flex-row sm:items-center sm:justify-between sm:gap-2">
-                        <dt className="text-bolt-elements-textTertiary">{copy['projectDomains.dns.value']}</dt>
+                        <dt className="text-bolt-elements-textTertiary">Value</dt>
                         <dd className="select-all break-all font-mono">{`vibecore-domain-verification=${item.verificationToken}`}</dd>
                       </div>
                     </dl>
@@ -315,7 +260,7 @@ export default function ProjectDomainsPage() {
 
                   {/* Step 3 — verify (re-check) and provision TLS. */}
                   <section className="grid gap-2">
-                    <StepHeader index={3} title={copy['projectDomains.verify.title']} />
+                    <StepHeader index={3} title="Verify & secure" />
                     <p className="text-xs" data-ssl-tone={ssl.tone}>
                       <span
                         className={
@@ -332,14 +277,8 @@ export default function ProjectDomainsPage() {
                     <Form method="post">
                       <input type="hidden" name="intent" value="verify" />
                       <input type="hidden" name="domain" value={item.domain} />
-                      <Button
-                        type="submit"
-                        variant="outline"
-                        className="h-auto min-h-10 whitespace-normal px-3 py-2"
-                        disabled={busy}
-                        aria-busy={busy}
-                      >
-                        {busy ? copy['projectDomains.verify.loading'] : copy['projectDomains.verify.submit']}
+                      <Button type="submit" variant="outline" disabled={busy} aria-busy={busy}>
+                        {busy ? 'Re-checking…' : 'Re-check DNS'}
                       </Button>
                     </Form>
                   </section>
@@ -355,7 +294,7 @@ export default function ProjectDomainsPage() {
 /** Numbered step marker for the DNS setup wizard. */
 function StepHeader({ index, title, done }: { index: number; title: string; done?: boolean }) {
   return (
-    <div className="flex min-w-0 items-center gap-2">
+    <div className="flex items-center gap-2">
       <span
         className={
           done
@@ -366,7 +305,7 @@ function StepHeader({ index, title, done }: { index: number; title: string; done
       >
         {done ? '✓' : index}
       </span>
-      <h3 className="min-w-0 break-words text-sm font-semibold text-bolt-elements-textPrimary">{title}</h3>
+      <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">{title}</h3>
     </div>
   );
 }

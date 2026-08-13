@@ -8,7 +8,6 @@ import {
   computeAgentCallBilling,
   lineMargins,
   lineUserPrice,
-  localizeAgentRoutingCardLabels,
   negativeMarginLineKeys,
   routingLine,
   switchAvailableForPlan,
@@ -160,29 +159,5 @@ describe('validateAgentRoutingCard', () => {
     const errors = validateAgentRoutingCard(card);
     expect(errors.some((e) => e.line === 'lite')).toBe(true);
     expect(errors.some((e) => e.line === 'power')).toBe(true);
-  });
-
-  it('localizes French validation copy without translating schema identifiers', () => {
-    const card = structuredClone(BUILTIN_AGENT_ROUTING_CARD);
-    card.lines = card.lines.filter((line) => line.key !== 'turbo');
-
-    expect(validateAgentRoutingCard(card, 'fr')).toContainEqual({
-      line: 'turbo',
-      message: 'ligne de routage manquante « turbo »',
-    });
-  });
-});
-
-describe('localizeAgentRoutingCardLabels', () => {
-  it('translates visible labels and preserves routing identifiers and prices', () => {
-    const localized = localizeAgentRoutingCardLabels(BUILTIN_AGENT_ROUTING_CARD, 'fr');
-    const economy = routingLine(localized, 'economy')!;
-
-    expect(economy.label).toBe('Économie');
-    expect(economy.key).toBe('economy');
-    expect(economy.provider).toBe('anthropic');
-    expect(economy.model).toBe('claude-opus-4-8');
-    expect(economy.costInCentsPerM).toBe(500);
-    expect(BUILTIN_AGENT_ROUTING_CARD.lines.find((line) => line.key === 'economy')?.label).toBe('Economy');
   });
 });

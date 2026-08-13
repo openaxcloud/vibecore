@@ -1,10 +1,9 @@
 import { AlertCircle } from 'lucide-react';
 import React, { Component } from 'react';
 import type { ReactNode } from 'react';
-import { withTranslation, type WithTranslation } from 'react-i18next';
 import { classNames } from '~/utils/classNames';
 
-interface Props extends WithTranslation {
+interface Props {
   children: ReactNode;
   fallback?: ReactNode;
   onError?: (error: Error, errorInfo: React.ErrorInfo) => void;
@@ -15,7 +14,7 @@ interface State {
   error?: Error;
 }
 
-class ErrorBoundary extends Component<Props, State> {
+export default class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
     this.state = { hasError: false };
@@ -31,8 +30,6 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   render() {
-    const { t } = this.props;
-
     if (this.state.hasError) {
       if (this.props.fallback) {
         return this.props.fallback;
@@ -41,8 +38,8 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <div className={classNames('p-6 rounded-lg border border-red-500/20', 'bg-red-500/5 text-center')}>
           <AlertCircle className="w-12 h-12 mx-auto text-red-500 mb-4" />
-          <h3 className="text-lg font-medium text-red-500 mb-2">{t('settings.localProviders.errorBoundary.title')}</h3>
-          <p className="text-sm text-red-400 mb-4">{t('settings.localProviders.errorBoundary.description')}</p>
+          <h3 className="text-lg font-medium text-red-500 mb-2">Something went wrong</h3>
+          <p className="text-sm text-red-400 mb-4">There was an error loading the local providers section.</p>
           <button
             onClick={() => this.setState({ hasError: false, error: undefined })}
             className={classNames(
@@ -52,13 +49,11 @@ class ErrorBoundary extends Component<Props, State> {
               'transition-colors duration-200',
             )}
           >
-            {t('settings.localProviders.errorBoundary.retry')}
+            Try Again
           </button>
           {process.env.NODE_ENV === 'development' && this.state.error && (
             <details className="mt-4 text-left">
-              <summary className="cursor-pointer text-sm text-red-400 hover:text-red-300">
-                {t('settings.localProviders.errorBoundary.details')}
-              </summary>
+              <summary className="cursor-pointer text-sm text-red-400 hover:text-red-300">Error Details</summary>
               <pre className="mt-2 p-2 bg-red-500/10 rounded text-xs text-red-300 overflow-auto">
                 {this.state.error.stack}
               </pre>
@@ -71,5 +66,3 @@ class ErrorBoundary extends Component<Props, State> {
     return this.props.children;
   }
 }
-
-export default withTranslation()(ErrorBoundary);

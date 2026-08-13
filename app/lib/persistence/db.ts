@@ -1,11 +1,6 @@
 import type { Message } from 'ai';
 import type { Snapshot } from './types'; // Import Snapshot type
 import type { ChatHistoryItem } from './useChatHistory';
-import {
-  formatDuplicatedDiscussionTitle,
-  formatForkedDiscussionTitle,
-  getPersistenceRuntimeCopy,
-} from '~/lib/i18n/catalogs/persistence-runtime';
 import { createScopedLogger } from '~/utils/logger';
 
 export interface IChatMetadata {
@@ -144,7 +139,7 @@ export async function setMessages(
     const store = transaction.objectStore('chats');
 
     if (timestamp && isNaN(Date.parse(timestamp))) {
-      reject(new Error(getPersistenceRuntimeCopy()['persistence.error.invalidTimestamp']));
+      reject(new Error('Invalid timestamp'));
       return;
     }
 
@@ -165,8 +160,7 @@ export async function setMessages(
      */
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () =>
-      reject(transaction.error ?? new Error(getPersistenceRuntimeCopy()['persistence.error.transactionAborted']));
+    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction aborted'));
   });
 }
 
@@ -214,8 +208,7 @@ export async function deleteById(db: IDBDatabase, id: string): Promise<void> {
      */
     transaction.oncomplete = () => resolve(undefined);
     transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () =>
-      reject(transaction.error ?? new Error(getPersistenceRuntimeCopy()['persistence.error.transactionAborted']));
+    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction aborted'));
   });
 }
 
@@ -258,8 +251,7 @@ export async function getNextId(db: IDBDatabase): Promise<string> {
     request.onerror = () => reject(request.error);
     transaction.oncomplete = () => resolve(nextId);
     transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () =>
-      reject(transaction.error ?? new Error(getPersistenceRuntimeCopy()['persistence.error.idReservationAborted']));
+    transaction.onabort = () => reject(transaction.error ?? new Error('getNextId transaction aborted'));
   });
 }
 
@@ -308,30 +300,30 @@ export async function forkChat(db: IDBDatabase, chatId: string, messageId: strin
   const chat = await getMessages(db, chatId);
 
   if (!chat) {
-    throw new Error(getPersistenceRuntimeCopy()['persistence.error.chatNotFound']);
+    throw new Error('Chat not found');
   }
 
   // Find the index of the message to fork at
   const messageIndex = chat.messages.findIndex((msg) => msg.id === messageId);
 
   if (messageIndex === -1) {
-    throw new Error(getPersistenceRuntimeCopy()['persistence.error.messageNotFound']);
+    throw new Error('Message not found');
   }
 
   // Get messages up to and including the selected message
   const messages = chat.messages.slice(0, messageIndex + 1);
 
-  return createChatFromMessages(db, formatForkedDiscussionTitle(chat.description), messages);
+  return createChatFromMessages(db, chat.description ? `${chat.description} (fork)` : 'Forked chat', messages);
 }
 
 export async function duplicateChat(db: IDBDatabase, id: string): Promise<string> {
   const chat = await getMessages(db, id);
 
   if (!chat) {
-    throw new Error(getPersistenceRuntimeCopy()['persistence.error.chatNotFound']);
+    throw new Error('Chat not found');
   }
 
-  return createChatFromMessages(db, formatDuplicatedDiscussionTitle(chat.description), chat.messages);
+  return createChatFromMessages(db, `${chat.description || 'Chat'} (copy)`, chat.messages);
 }
 
 export async function createChatFromMessages(
@@ -358,7 +350,7 @@ export async function createChatFromMessages(
 
 export async function updateChatDescription(db: IDBDatabase, id: string, description: string): Promise<void> {
   if (!description.trim()) {
-    throw new Error(getPersistenceRuntimeCopy()['persistence.error.descriptionEmpty']);
+    throw new Error('Description cannot be empty');
   }
 
   const chat = await getMessages(db, id);
@@ -375,7 +367,7 @@ export async function updateChatDescription(db: IDBDatabase, id: string, descrip
       return;
     }
 
-    throw new Error(getPersistenceRuntimeCopy()['persistence.error.chatNotFound']);
+    throw new Error('Chat not found');
   }
 
   await setMessages(db, id, chat.messages, chat.urlId, description, chat.timestamp, chat.metadata);
@@ -389,7 +381,7 @@ export async function updateChatMetadata(
   const chat = await getMessages(db, id);
 
   if (!chat) {
-    throw new Error(getPersistenceRuntimeCopy()['persistence.error.chatNotFound']);
+    throw new Error('Chat not found');
   }
 
   await setMessages(db, id, chat.messages, chat.urlId, chat.description, chat.timestamp, metadata);
@@ -426,8 +418,7 @@ export async function setSnapshot(db: IDBDatabase, chatId: string, snapshot: Sna
     // Resolve on commit, not request success, so an aborted commit (e.g. quota) isn't reported as a saved snapshot.
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () =>
-      reject(transaction.error ?? new Error(getPersistenceRuntimeCopy()['persistence.error.transactionAborted']));
+    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction aborted'));
   });
 }
 

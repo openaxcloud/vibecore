@@ -1,5 +1,3 @@
-import { getApiRuntimeRoutesCopy } from '~/lib/i18n/catalogs/api-runtime-routes';
-import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('require-session');
@@ -53,20 +51,11 @@ function sessionTokenFromCookie(cookieHeader: string | null): string | undefined
   }
 }
 
-function sessionErrorResponse(
-  request: Request,
-  status: 401 | 503,
-  key: 'apiRuntime.generic.authenticationRequired' | 'apiRuntime.generic.authenticationUnavailable',
-): Response {
-  const locale = resolveRequestLocale(request);
-  const headers = localeResponseHeaders(request, locale);
-  headers.set('content-type', 'application/json');
-
-  return new Response(JSON.stringify({ error: getApiRuntimeRoutesCopy(locale.language)[key] }), { status, headers });
-}
-
-function unauthorized(request: Request): Response {
-  return sessionErrorResponse(request, 401, 'apiRuntime.generic.authenticationRequired');
+function unauthorized(): Response {
+  return new Response(JSON.stringify({ error: 'Authentication required' }), {
+    status: 401,
+    headers: { 'content-type': 'application/json' },
+  });
 }
 
 /**
@@ -83,7 +72,7 @@ export async function requireWebSession(request: Request): Promise<string> {
   const sessionToken = sessionTokenFromCookie(request.headers.get('Cookie'));
 
   if (!sessionToken) {
-    throw unauthorized(request);
+    throw unauthorized();
   }
 
   const url = `${apiBaseUrl().replace(/\/+$/, '')}/auth/me`;
@@ -98,14 +87,17 @@ export async function requireWebSession(request: Request): Promise<string> {
     });
   } catch (error) {
     logger.warn(`session verification failed: ${error instanceof Error ? error.message : String(error)}`);
-    throw sessionErrorResponse(request, 503, 'apiRuntime.generic.authenticationUnavailable');
+    throw new Response(JSON.stringify({ error: 'Authentication unavailable' }), {
+      status: 503,
+      headers: { 'content-type': 'application/json' },
+    });
   }
 
   if (response.status === 200) {
     return sessionToken;
   }
 
-  throw unauthorized(request);
+  throw unauthorized();
 }
 
 /**

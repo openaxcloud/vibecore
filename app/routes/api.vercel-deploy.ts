@@ -1,7 +1,5 @@
-import { type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
+import { type ActionFunctionArgs, type LoaderFunctionArgs, data as json } from 'react-router';
 import { preferredConnectorToken } from '~/lib/connectors/connector-token.server';
-import { webApiErrorResponse, webApiLocaleHeaders } from '~/lib/i18n/catalogs/web-api-routes';
-import { json } from '~/lib/json-response';
 import { resolveVercelPollOutcome } from '~/lib/vercel-deploy-poll';
 import { isValidVercelProjectId } from '~/lib/vercel-project-id';
 import { buildVercelProjectName } from '~/lib/vercel-project-name';
@@ -199,7 +197,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const token = request.headers.get('x-vercel-token') ?? url.searchParams.get('token');
 
   if (!projectId || !token) {
-    return webApiErrorResponse(request, 'VERCEL_PROJECT_TOKEN_REQUIRED', 400);
+    return json({ error: 'Missing projectId or token' }, { status: 400 });
   }
 
   /*
@@ -210,7 +208,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
    * routes which validate + encode their refs.
    */
   if (!isValidVercelProjectId(projectId)) {
-    return webApiErrorResponse(request, 'VERCEL_PROJECT_INVALID', 400);
+    return json({ error: 'Invalid projectId' }, { status: 400 });
   }
 
   try {
@@ -222,7 +220,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
 
     if (!projectResponse.ok) {
-      return webApiErrorResponse(request, 'VERCEL_PROJECT_FETCH_FAILED', 400);
+      return json({ error: 'Failed to fetch project' }, { status: 400 });
     }
 
     const projectData = (await projectResponse.json()) as any;
@@ -238,33 +236,30 @@ export async function loader({ request }: LoaderFunctionArgs) {
     );
 
     if (!deploymentsResponse.ok) {
-      return webApiErrorResponse(request, 'VERCEL_DEPLOYMENTS_FETCH_FAILED', 400);
+      return json({ error: 'Failed to fetch deployments' }, { status: 400 });
     }
 
     const deploymentsData = (await deploymentsResponse.json()) as any;
 
     const latestDeployment = deploymentsData.deployments?.[0];
 
-    return json(
-      {
-        project: {
-          id: projectData.id,
-          name: projectData.name,
-          url: `https://${projectData.name}.vercel.app`,
-        },
-        deploy: latestDeployment
-          ? {
-              id: latestDeployment.id,
-              state: latestDeployment.state,
-              url: latestDeployment.url ? `https://${latestDeployment.url}` : `https://${projectData.name}.vercel.app`,
-            }
-          : null,
+    return json({
+      project: {
+        id: projectData.id,
+        name: projectData.name,
+        url: `https://${projectData.name}.vercel.app`,
       },
-      { headers: webApiLocaleHeaders(request) },
-    );
+      deploy: latestDeployment
+        ? {
+            id: latestDeployment.id,
+            state: latestDeployment.state,
+            url: latestDeployment.url ? `https://${latestDeployment.url}` : `https://${projectData.name}.vercel.app`,
+          }
+        : null,
+    });
   } catch (error) {
     console.error('Error fetching Vercel deployment:', error);
-    return webApiErrorResponse(request, 'VERCEL_DEPLOYMENT_FETCH_FAILED', 500);
+    return json({ error: 'Failed to fetch deployment' }, { status: 500 });
   }
 }
 
@@ -298,7 +293,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const token = await preferredConnectorToken(request, 'vercel', fallbackToken);
 
     if (!token) {
-      return webApiErrorResponse(request, 'VERCEL_TOKEN_MISSING', 401);
+      return json({ error: 'Not connected to Vercel' }, { status: 401 });
     }
 
     /*
@@ -310,7 +305,7 @@ export async function action({ request }: ActionFunctionArgs) {
      * guard at the top of this file.
      */
     if (projectId !== undefined && !isValidVercelProjectId(projectId)) {
-      return webApiErrorResponse(request, 'VERCEL_PROJECT_INVALID', 400);
+      return json({ error: 'Invalid projectId' }, { status: 400 });
     }
 
     let targetProjectId = projectId;
@@ -341,8 +336,11 @@ export async function action({ request }: ActionFunctionArgs) {
       });
 
       if (!createProjectResponse.ok) {
-        console.error('Vercel project creation failed:', { status: createProjectResponse.status });
-        return webApiErrorResponse(request, 'VERCEL_PROJECT_CREATE_FAILED', 400);
+        const errorData = (await createProjectResponse.json()) as any;
+        return json(
+          { error: `Failed to create project: ${errorData.error?.message || 'Unknown error'}` },
+          { status: 400 },
+        );
       }
 
       const newProject = (await createProjectResponse.json()) as any;
@@ -389,8 +387,11 @@ export async function action({ request }: ActionFunctionArgs) {
         });
 
         if (!createProjectResponse.ok) {
-          console.error('Vercel project creation failed:', { status: createProjectResponse.status });
-          return webApiErrorResponse(request, 'VERCEL_PROJECT_CREATE_FAILED', 400);
+          const errorData = (await createProjectResponse.json()) as any;
+          return json(
+            { error: `Failed to create project: ${errorData.error?.message || 'Unknown error'}` },
+            { status: 400 },
+          );
         }
 
         const newProject = (await createProjectResponse.json()) as any;
@@ -486,8 +487,11 @@ export async function action({ request }: ActionFunctionArgs) {
     });
 
     if (!deployResponse.ok) {
-      console.error('Vercel deployment creation failed:', { status: deployResponse.status });
-      return webApiErrorResponse(request, 'VERCEL_DEPLOYMENT_CREATE_FAILED', 400);
+      const errorData = (await deployResponse.json()) as any;
+      return json(
+        { error: `Failed to create deployment: ${errorData.error?.message || 'Unknown error'}` },
+        { status: 400 },
+      );
     }
 
     const deployData = (await deployResponse.json()) as any;
@@ -547,11 +551,11 @@ export async function action({ request }: ActionFunctionArgs) {
     });
 
     if (outcome.kind === 'error') {
-      return webApiErrorResponse(request, 'DEPLOYMENT_FAILED', 500);
+      return json({ error: 'Deployment failed' }, { status: 500 });
     }
 
     if (outcome.kind === 'timed-out') {
-      return webApiErrorResponse(request, 'DEPLOYMENT_TIMED_OUT', 504);
+      return json({ error: 'Deployment timed out' }, { status: 500 });
     }
 
     /*
@@ -573,26 +577,23 @@ export async function action({ request }: ActionFunctionArgs) {
           },
           project: projectInfo,
         },
-        { status: 202, headers: webApiLocaleHeaders(request) },
+        { status: 202 },
       );
     }
 
-    return json(
-      {
-        success: true,
-        deploy: {
-          id: deployData.id,
-          state: outcome.state,
+    return json({
+      success: true,
+      deploy: {
+        id: deployData.id,
+        state: outcome.state,
 
-          // Return public domain as deploy URL and private domain as fallback.
-          url: projectInfo.url || deploymentUrl,
-        },
-        project: projectInfo,
+        // Return public domain as deploy URL and private domain as fallback.
+        url: projectInfo.url || deploymentUrl,
       },
-      { headers: webApiLocaleHeaders(request) },
-    );
+      project: projectInfo,
+    });
   } catch (error) {
     console.error('Vercel deploy error:', error);
-    return webApiErrorResponse(request, 'DEPLOYMENT_FAILED', 500);
+    return json({ error: 'Deployment failed' }, { status: 500 });
   }
 }

@@ -12,13 +12,6 @@ import {
 } from 'chart.js';
 import { useState, useEffect } from 'react';
 import { Bar, Pie } from 'react-chartjs-2';
-import { useTranslation } from 'react-i18next';
-import {
-  formatSearchDataSettingsDate,
-  formatSearchDataSettingsNumber,
-  getDataSettingsCopy,
-  resolveSearchDataSettingsLanguage,
-} from '~/lib/i18n/catalogs/search-data-settings';
 import type { Chat } from '~/lib/persistence/chats';
 import { classNames } from '~/utils/classNames';
 
@@ -30,9 +23,6 @@ type DataVisualizationProps = {
 };
 
 export function DataVisualization({ chats }: DataVisualizationProps) {
-  const { i18n } = useTranslation();
-  const language = resolveSearchDataSettingsLanguage(i18n.resolvedLanguage ?? i18n.language);
-  const copy = getDataSettingsCopy(language).visualization;
   const [chatsByDate, setChatsByDate] = useState<Record<string, number>>({});
   const [messagesByRole, setMessagesByRole] = useState<Record<string, number>>({});
   const [averageMessagesPerChat, setAverageMessagesPerChat] = useState<number>(0);
@@ -67,12 +57,8 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
     let totalMessages = 0;
 
     chats.forEach((chat) => {
-      const date = new Date(chat.timestamp);
-
-      if (!Number.isNaN(date.getTime())) {
-        const dateKey = date.toISOString().slice(0, 10);
-        chatDates[dateKey] = (chatDates[dateKey] || 0) + 1;
-      }
+      const date = new Date(chat.timestamp).toLocaleDateString();
+      chatDates[date] = (chatDates[date] || 0) + 1;
 
       chat.messages.forEach((message) => {
         roleCounts[message.role] = (roleCounts[message.role] || 0) + 1;
@@ -80,7 +66,7 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
       });
     });
 
-    const sortedDates = Object.keys(chatDates).sort((a, b) => a.localeCompare(b));
+    const sortedDates = Object.keys(chatDates).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
     const sortedChatsByDate: Record<string, number> = {};
     sortedDates.forEach((date) => {
       sortedChatsByDate[date] = chatDates[date];
@@ -174,10 +160,10 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
 
   const chartData = {
     history: {
-      labels: Object.keys(chatsByDate).map((date) => formatSearchDataSettingsDate(`${date}T00:00:00.000Z`, language)),
+      labels: Object.keys(chatsByDate),
       datasets: [
         {
-          label: copy.chatsCreated,
+          label: 'Chats Created',
           data: Object.values(chatsByDate),
           backgroundColor: getChartColors(0).bg,
           borderColor: getChartColors(0).border,
@@ -186,10 +172,10 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
       ],
     },
     roles: {
-      labels: Object.keys(messagesByRole).map((role) => copy.roles[role as keyof typeof copy.roles] ?? role),
+      labels: Object.keys(messagesByRole),
       datasets: [
         {
-          label: copy.messagesByRole,
+          label: 'Messages by Role',
           data: Object.values(messagesByRole),
           backgroundColor: Object.keys(messagesByRole).map((_, i) => getChartColors(i).bg),
           borderColor: Object.keys(messagesByRole).map((_, i) => getChartColors(i).border),
@@ -202,7 +188,6 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
   const baseChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    locale: language === 'fr' ? 'fr-FR' : 'en-GB',
     color: chartColors.text,
     plugins: {
       legend: {
@@ -242,7 +227,7 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
       ...baseChartOptions.plugins,
       title: {
         ...baseChartOptions.plugins.title,
-        text: copy.chatHistory,
+        text: 'Chat History',
       },
     },
     scales: {
@@ -285,7 +270,7 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
       ...baseChartOptions.plugins,
       title: {
         ...baseChartOptions.plugins.title,
-        text: copy.messageDistribution,
+        text: 'Message Distribution',
       },
       legend: {
         ...baseChartOptions.plugins.legend,
@@ -304,8 +289,10 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
     return (
       <div className="text-center py-8">
         <div className="i-ph-chart-line-duotone w-12 h-12 mx-auto mb-4 text-bolt-elements-textTertiary opacity-80" />
-        <h3 className="mb-2 break-words text-lg font-medium text-bolt-elements-textPrimary">{copy.noDataTitle}</h3>
-        <p className="break-words text-bolt-elements-textSecondary">{copy.noDataDescription}</p>
+        <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">No Data Available</h3>
+        <p className="text-bolt-elements-textSecondary">
+          Start creating chats to see your usage statistics and data visualization.
+        </p>
       </div>
     );
   }
@@ -321,55 +308,41 @@ export function DataVisualization({ chats }: DataVisualizationProps) {
   return (
     <div className="space-y-8">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className={`${cardClasses} min-w-0`}>
-          <h3 className="mb-4 break-words text-lg font-medium text-bolt-elements-textPrimary">{copy.totalChats}</h3>
+        <div className={cardClasses}>
+          <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-4">Total Chats</h3>
           <div className={statClasses}>
             <div className="i-ph-chats-duotone w-8 h-8 text-blue-500 dark:text-blue-400" />
-            <span>{formatSearchDataSettingsNumber(chats.length, language)}</span>
+            <span>{chats.length}</span>
           </div>
         </div>
 
-        <div className={`${cardClasses} min-w-0`}>
-          <h3 className="mb-4 break-words text-lg font-medium text-bolt-elements-textPrimary">{copy.totalMessages}</h3>
+        <div className={cardClasses}>
+          <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-4">Total Messages</h3>
           <div className={statClasses}>
             <div className="i-ph-chat-text-duotone w-8 h-8 text-pink-500 dark:text-pink-400" />
-            <span>
-              {formatSearchDataSettingsNumber(
-                Object.values(messagesByRole).reduce((sum, count) => sum + count, 0),
-                language,
-              )}
-            </span>
+            <span>{Object.values(messagesByRole).reduce((sum, count) => sum + count, 0)}</span>
           </div>
         </div>
 
-        <div className={`${cardClasses} min-w-0`}>
-          <h3 className="mb-4 break-words text-lg font-medium text-bolt-elements-textPrimary">
-            {copy.averageMessages}
-          </h3>
+        <div className={cardClasses}>
+          <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-4">Avg. Messages/Chat</h3>
           <div className={statClasses}>
             <div className="i-ph-chart-bar-duotone w-8 h-8 text-green-500 dark:text-green-400" />
-            <span>
-              {formatSearchDataSettingsNumber(averageMessagesPerChat, language, {
-                minimumFractionDigits: 1,
-                maximumFractionDigits: 1,
-              })}
-            </span>
+            <span>{averageMessagesPerChat.toFixed(1)}</span>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className={`${cardClasses} min-w-0`}>
-          <h3 className="mb-6 break-words text-lg font-medium text-bolt-elements-textPrimary">{copy.chatHistory}</h3>
+        <div className={cardClasses}>
+          <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-6">Chat History</h3>
           <div className="h-64">
             <Bar data={chartData.history} options={chartOptions} />
           </div>
         </div>
 
-        <div className={`${cardClasses} min-w-0`}>
-          <h3 className="mb-6 break-words text-lg font-medium text-bolt-elements-textPrimary">
-            {copy.messageDistribution}
-          </h3>
+        <div className={cardClasses}>
+          <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-6">Message Distribution</h3>
           <div className="h-64">
             <Pie data={chartData.roles} options={pieOptions} />
           </div>

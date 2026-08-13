@@ -1,4 +1,4 @@
-import { convertToCoreMessages, smoothStream, streamText as _streamText, type Message } from 'ai';
+import { convertToCoreMessages, streamText as _streamText, type Message } from 'ai';
 import {
   areParallelSubagentsAvailable,
   type AgentOrchestrationPlan,
@@ -842,23 +842,6 @@ ${props.summary}
      * so already-written files are never duplicated. Default 4, env-overridable.
      */
     maxRetries: resolveStreamMaxRetries(effectiveServerEnv as Record<string, string | undefined> | undefined),
-
-    /*
-     * Smooth the provider stream into WORD-sized chunks before it reaches the
-     * client (BUG-QA-STREAM-CHOPPY-001, « ça saute, impossible de lire »).
-     *
-     * Measured on the running agent: the provider delivered ~110 characters
-     * every ~700 ms (14 chunks over 9.36 s, median gap 695 ms). Between two
-     * blocks the client has nothing to paint, so the transcript advances in
-     * visible jumps. nginx was cleared — the same cadence is observed from
-     * inside the pod — and the 40 ms client-side smoothing cannot invent frames
-     * that never arrived: only the SERVER can subdivide them.
-     *
-     * `smoothStream` is a first-class transform of the `ai` SDK and was
-     * available but wired NOWHERE. Placed BEFORE `...filteredOptions` so an
-     * explicit caller-supplied `experimental_transform` still wins.
-     */
-    experimental_transform: smoothStream({ chunking: 'word' }),
     ...tokenParams,
     messages: convertToCoreMessages(processedMessages as any),
     ...filteredOptions,

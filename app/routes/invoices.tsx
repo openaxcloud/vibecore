@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Link, useLoaderData, useRevalidator } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
@@ -12,16 +11,8 @@ import {
   redirect,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import {
-  billingDisplayName,
-  billingEn,
-  billingFr,
-  formatBillingCurrency,
-  formatBillingDate,
-} from '~/lib/i18n/catalogs/billing';
-import type { SupportedLanguage } from '~/lib/i18n/language';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
+import { statusDisplayLabel } from '~/lib/user-facing-labels';
 
 type Invoice = {
   id: string;
@@ -40,14 +31,25 @@ type InvoicesResponse = {
   stripeConfigured: boolean;
 };
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  { title: (data?.language === 'fr' ? billingFr : billingEn)['invoices.meta.title'] },
-];
+export const meta: MetaFunction = () => [{ title: 'Invoices - E-Code' }];
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
+
+const invoiceEuroFormatter = new Intl.NumberFormat('en-GB', {
+  style: 'currency',
+  currency: 'EUR',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+const invoiceDateFormatter = new Intl.DateTimeFormat('en-GB', {
+  day: '2-digit',
+  month: 'short',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
-  const { language } = resolveRequestLocale(request);
 
   if (!organization) {
     return redirect('/');
@@ -57,7 +59,6 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     const data = await apiRequest<InvoicesResponse>(request, `/orgs/${organization.id}/billing/invoices`);
 
     return json({
-      language,
       invoices: Array.isArray(data.invoices) ? data.invoices : [],
       stripeConfigured: data.stripeConfigured,
       accessLimited: false,
@@ -70,7 +71,6 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
     if (isForbiddenApiResponse(error)) {
       return json({
-        language,
         invoices: [],
         stripeConfigured: false,
         accessLimited: true,
@@ -79,7 +79,6 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     }
 
     return json({
-      language,
       invoices: [],
       stripeConfigured: false,
       accessLimited: false,
@@ -88,28 +87,31 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   }
 }
 
-export function formatInvoiceAmount(cents: number, currency = 'EUR', language: SupportedLanguage = 'en') {
-  return formatBillingCurrency(cents, currency, language);
+function formatInvoiceAmount(cents: number) {
+  return invoiceEuroFormatter.format(cents / 100);
 }
 
 export default function InvoicesPage() {
-  const { t } = useTranslation();
-  const { language, invoices, stripeConfigured, accessLimited, invoicesUnavailable } = useLoaderData<typeof loader>();
+  const { invoices, stripeConfigured, accessLimited, invoicesUnavailable } = useLoaderData<typeof loader>();
   const revalidator = useRevalidator();
   const retrying = revalidator.state !== 'idle';
   const loadFailed = accessLimited || invoicesUnavailable;
 
   return (
-    <EnterpriseFormPage title={t('invoices.page.title')} description={t('invoices.page.description')}>
+    <EnterpriseFormPage title="Invoices" description="View invoices, payment status and downloadable receipts.">
       {loadFailed ? (
         retrying ? (
-          <AsyncPanelSkeleton label={t('invoices.loading')} rows={4} compact />
+          <AsyncPanelSkeleton label="Loading invoices" rows={4} compact />
         ) : (
           <AsyncPanelError
-            title={t(accessLimited ? 'invoices.restrictedTitle' : 'invoices.errorTitle')}
-            description={t(accessLimited ? 'invoices.restrictedDescription' : 'invoices.errorDescription')}
+            title={accessLimited ? 'Invoices are restricted' : 'Invoices could not load'}
+            description={
+              accessLimited
+                ? 'Only organization owners and billing administrators can view invoices.'
+                : 'Invoice history is hidden because the latest request failed. Your billing data was not changed.'
+            }
             onRetry={revalidator.revalidate}
-            retryLabel={t('invoices.reload')}
+            retryLabel="Reload invoices"
             tone={accessLimited ? 'warning' : 'error'}
             compact
           />
@@ -120,7 +122,7 @@ export default function InvoicesPage() {
             href="/invoices/download"
             className="inline-flex min-h-[44px] items-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
           >
-            {t('invoices.downloadAll')}
+            Download all (.zip)
           </a>
         </div>
       ) : null}
@@ -129,7 +131,11 @@ export default function InvoicesPage() {
           {invoices.map((invoice) => {
             const link = invoice.hostedInvoiceUrl ?? invoice.invoicePdf;
 
-            /* Stripe's hosted invoice page is the retry surface for failed or outstanding payments. */
+            /*
+             * 'uncollectible' = a payment definitively failed; 'open' with an
+             * outstanding amount = awaiting/retryable payment. Stripe's hosted
+             * invoice page IS the retry surface for the customer.
+             */
             const unpaid =
               invoice.status === 'uncollectible' || (invoice.status === 'open' && invoice.amountDueCents > 0);
 
@@ -138,30 +144,30 @@ export default function InvoicesPage() {
                 key={invoice.id}
                 className="flex flex-col items-start justify-between gap-3 py-3 text-sm sm:flex-row sm:items-center sm:gap-4"
               >
-                <div className="min-w-0 break-words">
+                <div className="min-w-0">
                   <p className="font-medium text-bolt-elements-textPrimary">
                     {invoice.number ?? invoice.id}
                     {invoice.status ? (
                       unpaid ? (
                         <span
-                          className="ml-2 inline-flex rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide"
+                          className="ml-2 rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide"
                           style={{
                             color: 'var(--status-error-text)',
                             background: 'color-mix(in srgb, var(--vc-ide-accent-error) 12%, transparent)',
                           }}
                         >
-                          {t(invoice.status === 'uncollectible' ? 'invoices.failed' : 'invoices.unpaid')}
+                          {invoice.status === 'uncollectible' ? 'Failed' : 'Unpaid'}
                         </span>
                       ) : (
-                        <span className="ml-2 inline-flex text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
-                          {billingDisplayName(invoice.status, language, 'billing.label.statusUnavailable')}
+                        <span className="ml-2 text-xs uppercase tracking-wide text-bolt-elements-textSecondary">
+                          {statusDisplayLabel(invoice.status)}
                         </span>
                       )
                     ) : null}
                   </p>
                   <p className="text-bolt-elements-textSecondary">
-                    {invoice.createdAt ? formatBillingDate(invoice.createdAt, language) : t('invoices.datePending')} ·{' '}
-                    {formatInvoiceAmount(invoice.amountPaidCents || invoice.amountDueCents, invoice.currency, language)}
+                    {invoice.createdAt ? invoiceDateFormatter.format(new Date(invoice.createdAt)) : 'Date pending'} ·{' '}
+                    {formatInvoiceAmount(invoice.amountPaidCents || invoice.amountDueCents)}
                   </p>
                 </div>
                 <span className="flex shrink-0 flex-wrap items-center gap-2">
@@ -172,7 +178,7 @@ export default function InvoicesPage() {
                       rel="noreferrer"
                       className="inline-flex min-h-[44px] items-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-sm font-medium text-white transition-opacity hover:opacity-90"
                     >
-                      {t('invoices.retryPayment')}
+                      Retry payment
                     </a>
                   ) : null}
                   {link ? (
@@ -182,7 +188,7 @@ export default function InvoicesPage() {
                       rel="noreferrer"
                       className="inline-flex min-h-[44px] items-center rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium hover:border-bolt-elements-focus"
                     >
-                      {t('invoices.view')}
+                      View
                     </a>
                   ) : null}
                 </span>
@@ -194,14 +200,18 @@ export default function InvoicesPage() {
         <EmptyState
           variant="compact"
           icon="i-ph:receipt"
-          title={t('invoices.emptyTitle')}
-          description={t(stripeConfigured ? 'invoices.emptyConfigured' : 'invoices.emptyInactive')}
+          title="No invoices yet"
+          description={
+            stripeConfigured
+              ? 'Invoices appear here after your first paid billing cycle.'
+              : 'Invoices will appear here when billing is active.'
+          }
         />
       ) : null}
       <p className="mt-4 text-sm text-bolt-elements-textSecondary">
-        {t('invoices.portalPrefix')}{' '}
+        Manage payment details and download receipts in the{' '}
         <Link to="/payment-method" className="underline">
-          {t('invoices.portalLink')}
+          Stripe customer portal
         </Link>
         .
       </p>

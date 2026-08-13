@@ -1,12 +1,7 @@
 import { AlertTriangle } from 'lucide-react';
 import React, { Component } from 'react';
 import type { ReactNode, ErrorInfo } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Button } from '~/components/ui/Button';
-import {
-  getSourceControlConnectionsCopy,
-  type SourceControlConnectionsCopy,
-} from '~/lib/i18n/catalogs/source-control-connections';
 
 interface Props {
   children: ReactNode;
@@ -16,20 +11,17 @@ interface Props {
 
 interface State {
   hasError: boolean;
+  error: Error | null;
 }
 
-interface InternalProps extends Props {
-  copy: SourceControlConnectionsCopy;
-}
-
-class GitHubErrorBoundaryCore extends Component<InternalProps, State> {
-  constructor(props: InternalProps) {
+export class GitHubErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, error: null };
   }
 
-  static getDerivedStateFromError(_error: Error): State {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error): State {
+    return { hasError: true, error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
@@ -41,7 +33,7 @@ class GitHubErrorBoundaryCore extends Component<InternalProps, State> {
   }
 
   handleRetry = () => {
-    this.setState({ hasError: false });
+    this.setState({ hasError: false, error: null });
   };
 
   render() {
@@ -51,34 +43,34 @@ class GitHubErrorBoundaryCore extends Component<InternalProps, State> {
       }
 
       return (
-        <div
-          className="flex flex-col items-center justify-center space-y-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4 text-center sm:p-8"
-          role="alert"
-        >
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[var(--status-error-bg)]">
-            <AlertTriangle className="h-6 w-6 text-[var(--status-error-text)]" aria-hidden="true" />
+        <div className="flex flex-col items-center justify-center p-8 text-center space-y-4 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-lg">
+          <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
+            <AlertTriangle className="w-6 h-6 text-red-500" />
           </div>
 
           <div>
-            <h3 className="mb-2 text-lg font-medium text-bolt-elements-textPrimary">
-              {this.props.copy['sourceControl.github.boundary.title']}
-            </h3>
+            <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">GitHub Integration Error</h3>
             <p className="text-sm text-bolt-elements-textSecondary mb-4 max-w-md">
-              {this.props.copy['sourceControl.github.boundary.description']}
+              Something went wrong while loading GitHub data. This could be due to network issues, API limits, or a
+              temporary problem.
             </p>
+
+            {this.state.error && (
+              <details className="text-xs text-bolt-elements-textTertiary mb-4">
+                <summary className="cursor-pointer hover:text-bolt-elements-textSecondary">Show error details</summary>
+                <pre className="mt-2 p-2 bg-bolt-elements-background-depth-2 rounded text-left overflow-auto">
+                  {this.state.error.message}
+                </pre>
+              </details>
+            )}
           </div>
 
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button variant="outline" size="sm" onClick={this.handleRetry} className="min-h-11 whitespace-normal">
-              {this.props.copy['sourceControl.github.boundary.retry']}
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={this.handleRetry}>
+              Try Again
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => window.location.reload()}
-              className="min-h-11 whitespace-normal"
-            >
-              {this.props.copy['sourceControl.github.boundary.reload']}
+            <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+              Reload Page
             </Button>
           </div>
         </div>
@@ -87,13 +79,6 @@ class GitHubErrorBoundaryCore extends Component<InternalProps, State> {
 
     return this.props.children;
   }
-}
-
-export function GitHubErrorBoundary(props: Props) {
-  const { i18n } = useTranslation();
-  const copy = getSourceControlConnectionsCopy(i18n.resolvedLanguage ?? i18n.language);
-
-  return <GitHubErrorBoundaryCore {...props} copy={copy} />;
 }
 
 // Higher-order component for wrapping components with error boundary
@@ -105,22 +90,16 @@ export function withGitHubErrorBoundary<P extends object>(component: React.Compo
 
 // Hook for handling async errors in GitHub operations
 export function useGitHubErrorHandler() {
-  const { i18n } = useTranslation();
-  const copy = getSourceControlConnectionsCopy(i18n.resolvedLanguage ?? i18n.language);
+  const handleError = React.useCallback((error: unknown, context?: string) => {
+    console.error(`GitHub Error ${context ? `(${context})` : ''}:`, error);
 
-  const handleError = React.useCallback(
-    (error: unknown, context?: string) => {
-      console.error(`GitHub Error ${context ? `(${context})` : ''}:`, error);
+    /*
+     * You could integrate with error tracking services here
+     * For example: Sentry, LogRocket, etc.
+     */
 
-      /*
-       * You could integrate with error tracking services here
-       * For example: Sentry, LogRocket, etc.
-       */
-
-      return copy['sourceControl.common.connectionError'];
-    },
-    [copy],
-  );
+    return error instanceof Error ? error.message : 'An unknown error occurred';
+  }, []);
 
   return { handleError };
 }

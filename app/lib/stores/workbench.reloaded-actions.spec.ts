@@ -526,48 +526,6 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     expect(installAttempts).toBe(1);
   });
 
-  it('surfaces an honest error (not "running"/"idle") when the dev server dies with exit 127', async () => {
-    /*
-     * A dev server that dies (e.g. `vite: command not found` against an empty
-     * node_modules) must NOT be reported as running. This is the P0 lie: workspace
-     * RUNNING + 0 processes + 502, yet the status claimed "Running on Port 5173".
-     */
-    runtimeFiles.set(
-      'package.json',
-      JSON.stringify({
-        name: 'app',
-        type: 'module',
-        scripts: { dev: 'vite --host 0.0.0.0' },
-        dependencies: { react: '^18.3.1' },
-        devDependencies: { vite: '^5.1.4' },
-      }),
-    );
-
-    const store = new WorkbenchStore();
-    await store.loadRuntimeFiles('.');
-
-    runtimeAdapterMock.streamCommand.mockImplementation(async function* (request: { args?: string[] }) {
-      const args = request.args ?? [];
-
-      if (args.includes('install')) {
-        yield { type: 'exit', exitCode: 0 };
-        return;
-      }
-
-      // The dev-server binary is missing → `npm run dev` exits 127.
-      yield { type: 'stderr', data: 'sh: vite: command not found' };
-      yield { type: 'exit', exitCode: 127 };
-    });
-
-    await store.startPreviewServer();
-
-    await vi.waitFor(() => {
-      const state = store.previewServerState.get();
-      expect(state.status).toBe('error');
-      expect(String(state.error ?? '')).toContain('127');
-    });
-  });
-
   it('reprovisions a stopped workspace before starting the preview', async () => {
     runtimeFiles.set(
       'package.json',

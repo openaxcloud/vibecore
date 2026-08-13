@@ -1,7 +1,6 @@
 import type { CommandEvent, RuntimeAdapter } from '@vibecore/runtime-contract';
-import { useEffect, useMemo, useRef, type PropsWithChildren } from 'react';
-import { useTranslation } from 'react-i18next';
-import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
+import { RuntimeError } from '@vibecore/runtime-contract';
+import { useEffect, useMemo, type PropsWithChildren } from 'react';
 import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/lib/runtime/RuntimeAdapterProvider';
 import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
 import { workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
@@ -17,44 +16,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
  * no entry and cold-seeds. Module scope so it survives provider remounts within
  * the same page load, and is naturally empty on a full reload.
  */
-const seededWorkspaceSessions = new Map<string, string | undefined>();
-
-/**
- * Cheap "persisted files revision" for a project: the ETag of the persisted
- * ide-state, which is `"${ideState.version}"` and bumps on every persist —
- * including the file manifest (state.files.entries). Used to decide whether a
- * warm pod may be reattached: the pod is only adopted AS-IS when the persisted
- * revision still equals the one it was seeded from. If the persisted files
- * changed since the seed (e.g. a cross-device / another-tab edit that the warm
- * pod never received), the revision differs and we reseed so the running
- * workspace reflects the persisted files instead of serving a stale tree.
- * Returns undefined on any failure so the caller falls back to the prior
- * (marker-only) behaviour rather than forcing a spurious reseed.
- */
-export async function fetchPersistedProjectRevision(projectId: string): Promise<string | undefined> {
-  try {
-    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-state`, {
-      credentials: 'include',
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return undefined;
-    }
-
-    const etag = response.headers.get('etag');
-
-    if (etag) {
-      return etag;
-    }
-
-    const body = (await response.json()) as { ideState?: { version?: number | string } | null };
-
-    return body.ideState?.version != null ? String(body.ideState.version) : undefined;
-  } catch {
-    return undefined;
-  }
-}
+const seededWorkspaceSessions = new Set<string>();
 
 export interface ProjectWorkspaceProviderProps extends PropsWithChildren {
   projectId: string;
@@ -77,10 +39,6 @@ export function ProjectWorkspaceProvider({
   initialError,
   children,
 }: ProjectWorkspaceProviderProps) {
-  const { i18n } = useTranslation();
-  const languageRef = useRef(i18n.resolvedLanguage ?? i18n.language);
-  languageRef.current = i18n.resolvedLanguage ?? i18n.language;
-
   const runtime = useMemo(
     () => adapter ?? createRuntimeAdapter(getRuntimeMode(), { projectId, workspaceId }),
     [adapter, projectId, workspaceId],
@@ -114,9 +72,10 @@ export function ProjectWorkspaceProvider({
       }
 
       const persistedFilesHydration = workbenchStore.loadProjectStorageFiles().catch((error) => {
-        console.error('Persisted project file hydration failed:', error);
         workbenchStore.appendWorkspaceLog(
-          clientStoresServicesText('clientRuntime.workspace.persistedHydrationSkipped'),
+          error instanceof Error
+            ? `Persisted project file hydration skipped: ${error.message}`
+            : 'Persisted project file hydration skipped',
         );
 
         return false;
@@ -161,22 +120,7 @@ export function ProjectWorkspaceProvider({
          * pod's forwarded dev-server port (listPorts repopulates the previews store).
          */
         const sessionAlreadySeeded = seededWorkspaceSessions.has(sessionId);
-        const seededRevision = seededWorkspaceSessions.get(sessionId);
         await workbenchStore.refreshRuntimePorts().catch(() => undefined);
-
-        if (cancelled) {
-          await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id);
-          return;
-        }
-
-        /*
-         * Read the current persisted files revision so the warm-reattach decision
-         * can tell "the pod is still current" from "the persisted files changed
-         * since this pod was seeded". Fetched on every mount: on a warm remount it
-         * gates reattach-vs-reseed; on a cold seed it is the revision we record as
-         * the seeded baseline (one lightweight GET, dwarfed by the reseed itself).
-         */
-        const currentRevision = await fetchPersistedProjectRevision(projectId);
 
         if (cancelled) {
           await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id);
@@ -189,26 +133,24 @@ export function ProjectWorkspaceProvider({
           hasLivePort: hasLivePreviewPort(workbenchStore.previews.get()),
 
           /*
-           * The persisted files changed after this pod was seeded (another tab or
-           * device edited the project, or the Agent persisted new files, while the
-           * warm pod kept the old tree). When KNOWN newer, reattaching would serve
-           * a stale runtime — so reseed. Only asserted when BOTH revisions are
-           * known; if either is undefined (fetch failed, or first seed of this
-           * session) it stays undefined and the marker-only behaviour applies.
+           * Storage-freshness (cross-device staleness) is NOT cheaply knowable
+           * here: the project-storage export endpoint exposes no reliable updatedAt
+           * and the pod's last-seed time isn't tracked. We therefore rely on the
+           * same-page-session marker, which is correct for the dominant StrictMode/
+           * route-return remount case; a genuinely new page-session (a fresh load,
+           * possibly with cross-device edits) has no marker and reseeds. Left
+           * undefined (treated as "not newer") rather than invented.
            */
-          storageNewerThanSeed:
-            seededRevision !== undefined && currentRevision !== undefined
-              ? currentRevision !== seededRevision
-              : undefined,
         });
 
         if (reattachWarmWorkspace) {
-          workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.reattached'));
+          workbenchStore.appendWorkspaceLog('Reattached warm workspace (skipped reseed)');
         } else {
           await workbenchStore.stopPreviewServer().catch((error) => {
-            console.error('Previous preview cleanup failed:', error);
             workbenchStore.appendWorkspaceLog(
-              clientStoresServicesText('clientRuntime.workspace.previewCleanupSkipped'),
+              error instanceof Error
+                ? `Previous preview cleanup skipped: ${error.message}`
+                : 'Previous preview cleanup skipped',
             );
           });
 
@@ -235,8 +177,11 @@ export function ProjectWorkspaceProvider({
                 }),
               clearTree: () =>
                 clearRuntimeProjectTree(runtime).catch((error) => {
-                  console.error('Project workspace cleanup failed:', error);
-                  workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.cleanupSkipped'));
+                  workbenchStore.appendWorkspaceLog(
+                    error instanceof Error
+                      ? `Project workspace cleanup skipped: ${error.message}`
+                      : 'Project workspace cleanup skipped',
+                  );
                 }),
               applyArchive: (archive) =>
                 withRuntimeRetry(() => applyProjectStorageArchive(runtime, archive), {
@@ -276,7 +221,7 @@ export function ProjectWorkspaceProvider({
            * above, so a retry still reseeds), so a later remount within this page-
            * session reattaches to a genuinely-seeded, warm pod.
            */
-          seededWorkspaceSessions.set(sessionId, currentRevision);
+          seededWorkspaceSessions.add(sessionId);
         }
 
         /*
@@ -305,9 +250,8 @@ export function ProjectWorkspaceProvider({
         }
 
         void workbenchStore.startPreviewServer().catch((error) => {
-          console.error('Preview auto-start failed:', error);
           workbenchStore.appendWorkspaceLog(
-            clientStoresServicesText('clientRuntime.workspace.previewAutoStartSkipped'),
+            error instanceof Error ? `Preview auto-start skipped: ${error.message}` : 'Preview auto-start skipped',
           );
         });
 
@@ -350,9 +294,12 @@ export function ProjectWorkspaceProvider({
           return;
         }
 
-        console.error('Workspace start failed:', error);
-
-        const message = clientStoresServicesText('clientRuntime.workspace.startFailed');
+        const message =
+          error instanceof RuntimeError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : 'Workspace start failed';
         workbenchStore.workspaceError.set(message);
 
         /*
@@ -366,7 +313,7 @@ export function ProjectWorkspaceProvider({
           activeWorkspaceId = undefined;
         }
 
-        const quotaPrompt = workspaceQuotaPrompt(error, languageRef.current);
+        const quotaPrompt = workspaceQuotaPrompt(error);
 
         if (quotaPrompt) {
           workbenchStore.quotaWarning.set(quotaPrompt.warning);
@@ -427,17 +374,13 @@ async function fetchProjectStorageArchive(projectId: string): Promise<Uint8Array
   });
 
   if (!response.ok) {
-    throw new Error(
-      clientStoresServicesText('clientRuntime.workspace.exportFailed', {
-        status: response.status,
-      }),
-    );
+    throw new Error(await projectExportFailureMessage(response));
   }
 
   const archive = new Uint8Array(await response.arrayBuffer());
 
   if (archive.byteLength === 0) {
-    throw new Error(clientStoresServicesText('clientRuntime.workspace.exportEmpty'));
+    throw new Error('project export returned an empty archive');
   }
 
   return archive;
@@ -445,36 +388,53 @@ async function fetchProjectStorageArchive(projectId: string): Promise<Uint8Array
 
 async function applyProjectStorageArchive(runtime: RuntimeAdapter, archive: Uint8Array) {
   await runtime.importZip(archive, '.');
-  workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.filesSynced'));
+  workbenchStore.appendWorkspaceLog('Project files synced into workspace runtime');
+}
+
+async function projectExportFailureMessage(response: Response) {
+  let details = response.statusText;
+
+  try {
+    const payload = (await response.clone().json()) as { error?: string; code?: string };
+    details = payload.error ?? payload.code ?? details;
+  } catch {
+    try {
+      details = (await response.clone().text()).trim() || details;
+    } catch {
+      details = response.statusText;
+    }
+  }
+
+  return `project export returned ${response.status}${details ? `: ${details}` : ''}`;
 }
 
 function normalizeProjectFileSyncError(error: unknown) {
-  const message = error instanceof Error ? error.message : '';
+  const message = error instanceof Error ? error.message : 'project export failed';
   const lower = message.toLowerCase();
 
   if (message.includes('401') || message.includes('403') || lower.includes('unauthorized')) {
-    return clientStoresServicesText('clientRuntime.workspace.filesAuth');
+    return `Project files could not be loaded: ${message}. Your session is missing or expired. Sign in again, then reload the IDE.`;
   }
 
   if (message.includes('502') || message.includes('503') || lower.includes('fetch failed') || lower.includes('api')) {
-    return clientStoresServicesText('clientRuntime.workspace.filesUnavailable');
+    return `Project files could not be loaded: ${message}. Start the full local stack with pnpm run dev so the web app and API run together.`;
   }
 
-  return clientStoresServicesText('clientRuntime.workspace.filesFailed');
+  return `Project files could not be loaded: ${message}.`;
 }
 
 function formatProjectApiError(message: string) {
   const lower = message.toLowerCase();
 
   if (message.includes('401') || message.includes('403') || lower.includes('unauthorized')) {
-    return clientStoresServicesText('clientRuntime.workspace.projectApiAuth');
+    return `Project API unavailable: ${message}. Your session is missing or expired. Sign in again, then reload the IDE.`;
   }
 
   if (lower.includes('fetch failed') || lower.includes('connect') || lower.includes('api')) {
-    return clientStoresServicesText('clientRuntime.workspace.projectApiUnavailable');
+    return `Project API unavailable: ${message}. Start the full local stack with pnpm run dev so the web app and API run together.`;
   }
 
-  return clientStoresServicesText('clientRuntime.workspace.projectApiFailed');
+  return `Project API unavailable: ${message}.`;
 }
 
 async function clearRuntimeProjectTree(runtime: RuntimeAdapter) {
@@ -491,7 +451,8 @@ async function stopRemoteWorkspace(runtime: RuntimeAdapter, workspaceId: string)
   }
 
   await runtime.stopWorkspace(workspaceId).catch((error) => {
-    console.error('Workspace cleanup failed:', error);
-    workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.cleanupSkipped'));
+    workbenchStore.appendWorkspaceLog(
+      error instanceof Error ? `Workspace cleanup skipped: ${error.message}` : 'Workspace cleanup skipped',
+    );
   });
 }

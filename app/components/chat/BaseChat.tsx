@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment, import/order */
 // @ts-nocheck — Preventing TS checks. Must be a line comment, not a block, or tsc silently ignores the directive.
-import { useTranslation } from 'react-i18next';
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import { EditorAdapter } from '@vibecore/editor';
@@ -14,21 +13,11 @@ import {
   Tooltip as ChartTooltip,
 } from 'chart.js';
 import type { JSONValue, Message } from 'ai';
-import type { TFunction } from 'i18next';
 import Cookies from 'js-cookie';
 import { Copy, Download, Trash2, Users } from 'lucide-react';
 import React, { lazy, Suspense, type RefCallback, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Bar } from 'react-chartjs-2';
 import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
-import {
-  bringFloatingPaneToFront as engineBringFloatingPaneToFront,
-  dockPane as engineDockPane,
-  floatPane as engineFloatPane,
-  setSplitRatio as engineSetSplitRatio,
-  splitPane as engineSplitPane,
-  updateFloatingBounds as engineUpdateFloatingBounds,
-  type ProjectEditorWindowState,
-} from '~/lib/project-editor-layout';
 import { ClientOnly } from 'remix-utils/client-only';
 import { toast } from 'react-toastify';
 
@@ -75,20 +64,18 @@ import { projectAiMessagesToChatMessages, type ProjectAiMessagesResponse } from 
 import { ShareConversationButton } from './ShareConversationButton';
 import { ImportButtons } from '~/components/chat/chatExportAndImport/ImportButtons';
 import { DatabaseWorkbench } from '~/components/database/DatabaseWorkbench';
+import { FileSaveConflictDialog } from '~/components/workbench/FileSaveConflictDialog';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { EmptyState } from '~/components/ui/EmptyState';
-import { FilterChip } from '~/components/ui/FilterChip';
 import { InputDialog } from '~/components/ui/InputDialog';
 import { PanelBoundary, PanelErrorBoundary, PanelLoading, ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
-import { EditorHistoryOverlay } from '~/components/workbench/EditorHistoryOverlay';
 import { FileTree } from '~/components/workbench/FileTree';
 import { Preview } from '~/components/workbench/Preview';
 import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
-import { FloatingPaneFrame } from '~/components/project-ide/FloatingPaneFrame';
 import { ProjectEditorToolbar } from '~/components/project-ide/ProjectEditorToolbar';
 import { ProjectOverviewPanel } from '~/components/project-ide/ProjectOverviewPanel';
 import {
@@ -99,7 +86,6 @@ import {
 } from '~/lib/project-agent-layout';
 import type { FileMap } from '~/lib/stores/files';
 import { buildRuntimeDiagnostics, useDiagnosticsStore, type Diagnostic } from '~/lib/stores/diagnostics';
-import { parseProblemLocation, type ProblemLocation } from '~/lib/stores/problem-location';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { DEFAULT_THEME, applyThemeToDocument, kTheme, themeStore, toggleTheme, type Theme } from '~/lib/stores/theme';
 import type { ProviderInfo } from '~/types/model';
@@ -146,7 +132,6 @@ import { useMobileIdePersistence } from '~/lib/hooks/useMobileIdePersistence';
 import { useProjectChatBranches } from '~/lib/hooks/useProjectChatBranches';
 import {
   getProjectIdeMemory,
-  getProjectIdeMemorySync,
   saveProjectIdeMemory,
   subscribeProjectIdeMemory,
   type ProjectIdeMemory,
@@ -176,25 +161,13 @@ import {
 } from '~/lib/mobile-ide-tabs';
 import {
   applyKeybindingOverrides,
-  createProjectFocusTabKeybinding,
   defaultProjectKeybindings,
   detectKeybindingConflicts,
   formatKeybindingCombo,
-  getKeybindingCategoryLabel,
-  localizeProjectKeybindings,
-  PROJECT_KEYBINDING_CATEGORIES,
   type Keybinding,
   type KeybindingOverrideMap,
 } from '~/lib/keybindings';
 import { useFocusTrap } from '~/lib/use-focus-trap';
-import {
-  formatBaseChatAstDate,
-  formatBaseChatAstDateTime,
-  formatBaseChatAstNumber,
-  formatBaseChatAstRelativeTime,
-  formatBaseChatAstTime,
-  getBaseChatAstCopy,
-} from '~/lib/i18n/catalogs/base-chat-ast';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, ChartTooltip, Legend);
 
@@ -205,18 +178,6 @@ const PROJECT_SECURITY_SCAN_TIMEOUT_MS = 90_000;
 const PROJECT_IDE_STATE_RESTORE_FALLBACK_MS = 6_000;
 const PROJECT_KEYBINDINGS = defaultProjectKeybindings;
 type ProjectThemePreference = Theme | 'system';
-
-function chatKey<const Key extends string>(key: Key): Key {
-  return key;
-}
-
-function codeExample<const Value extends string>(value: Value): Value {
-  return value;
-}
-
-function resolvedBaseChatLanguage(i18n: { resolvedLanguage?: string; language?: string }): string {
-  return i18n.resolvedLanguage ?? i18n.language ?? 'en';
-}
 
 function isProjectThemePreference(preference: unknown): preference is ProjectThemePreference {
   return preference === 'dark' || preference === 'light' || preference === 'system';
@@ -264,111 +225,91 @@ function applyProjectThemePreference(preference: unknown): Theme {
 }
 
 const IDE_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string }> = {
-  Agent: { description: chatKey('chat.copy.focusTheAiAgentComposerAnd_8d14ee25'), shortcut: 'Cmd+J' },
-  'Add tab': { description: chatKey('chat.copy.openAnotherEditorTerminalPreviewOr_f5ea7611'), shortcut: 'Ctrl+T' },
+  Agent: { description: 'Focus the AI agent composer and project instructions.', shortcut: 'Cmd+J' },
+  'Add tab': { description: 'Open another editor, terminal, preview or project panel.', shortcut: 'Ctrl+T' },
   'Close terminal panel': {
-    description: chatKey('chat.copy.hideTheBottomTerminalDrawerWithout_2b21049b'),
+    description: 'Hide the bottom terminal drawer without stopping the workspace.',
     shortcut: 'Esc',
   },
-  'Close split': { description: chatKey('chat.copy.returnLogsToASingleStream_df5589bc') },
-  'Copy preview URL': {
-    description: chatKey('chat.copy.copyTheCurrentPreviewAddressTo_c7d1b1b6'),
-    shortcut: 'Cmd+Shift+C',
-  },
+  'Close split': { description: 'Return logs to a single stream view.' },
+  'Copy preview URL': { description: 'Copy the current preview address to your clipboard.', shortcut: 'Cmd+Shift+C' },
   'Enable inspect to code': {
-    description: chatKey('chat.copy.clickAnElementInPreviewAnd_ba396983'),
+    description: 'Click an element in preview and jump to its source file.',
     shortcut: 'Cmd+Shift+I',
   },
-  'Exit Full Screen': { description: chatKey('chat.copy.leaveFullScreenPreviewMode_d51d485e'), shortcut: 'Esc' },
-  'Focus agent composer': { description: chatKey('chat.copy.jumpBackToTheAiPrompt_5866f7c8'), shortcut: 'Cmd+J' },
-  'Full Screen': { description: chatKey('chat.copy.expandThePreviewToInspectThe_19231abf'), shortcut: 'F' },
+  'Exit Full Screen': { description: 'Leave full-screen preview mode.', shortcut: 'Esc' },
+  'Focus agent composer': { description: 'Jump back to the AI prompt input.', shortcut: 'Cmd+J' },
+  'Full Screen': { description: 'Expand the preview to inspect the app without panels.', shortcut: 'F' },
   'Go to definition': {
-    description: chatKey('chat.copy.jumpToTheSymbolDefinitionFrom_a82809fc'),
+    description: 'Jump to the symbol definition from the current editor context.',
     shortcut: 'F12',
   },
-  'Hide minimap': { description: chatKey('chat.copy.hideTheCodeOverviewStripIn_7c73c82b') },
-  'More editor status': { description: chatKey('chat.copy.showCursorIndentationEncodingAndLanguage_c153dba0') },
-  'Open in browser': { description: chatKey('chat.copy.openThePreviewUrlInA_a778992d'), shortcut: 'Cmd+Enter' },
-  'Open refactor menu': {
-    description: chatKey('chat.copy.showAvailableCodeActionsAndRefactors_b1d1b39b'),
-    shortcut: 'Ctrl+.',
-  },
-  'Preview window options': { description: chatKey('chat.copy.adjustPreviewWindowAndDeviceDisplay_6dc02f87') },
-  'Refresh preview': { description: chatKey('chat.copy.reloadTheEmbeddedWebPreview_b6dbf5bc'), shortcut: 'Cmd+R' },
-  'Refresh runtime logs': {
-    description: chatKey('chat.copy.refreshTerminalAndRuntimeStateFrom_635b5627'),
-    shortcut: 'R',
-  },
-  'Rename symbol': {
-    description: chatKey('chat.copy.renameTheCurrentSymbolAcrossReferences_eb70d3d0'),
-    shortcut: 'F2',
-  },
-  'Resize AI agent panel': { description: chatKey('chat.copy.dragToGiveTheAgentOr_bc97c212') },
-  'Resize files panel': { description: chatKey('chat.copy.dragToResizeTheFileBrowser_8c3d7d12') },
-  'Show editor status details': { description: chatKey('chat.copy.openTheFullEditorStatusList_ab95dccd') },
-  'Show QR': { description: chatKey('chat.copy.openAQrCodeForTesting_f8b14567') },
-  'Show minimap': { description: chatKey('chat.copy.showTheCodeOverviewStripIn_6c768a34') },
-  'Split view': { description: chatKey('chat.copy.showAnotherLogStreamBesideThe_b12c7790'), shortcut: 'Cmd+\\' },
-  'Toggle split log view': {
-    description: chatKey('chat.copy.showAnotherLogStreamBesideThe_b12c7790'),
-    shortcut: 'Cmd+\\',
-  },
-  'Tab actions': { description: chatKey('chat.copy.openTabActionsSuchAsClose_524ae782') },
-  'Toggle live tail': { description: chatKey('chat.copy.keepLogsPinnedToTheNewest_b6be115d'), shortcut: 'T' },
-  'Toggle terminal': { description: chatKey('chat.copy.showOrHideThePinnedShell_adb90367'), shortcut: 'Ctrl+`' },
+  'Hide minimap': { description: 'Hide the code overview strip in the editor.' },
+  'More editor status': { description: 'Show cursor, indentation, encoding and language details.' },
+  'Open in browser': { description: 'Open the preview URL in a separate browser tab.', shortcut: 'Cmd+Enter' },
+  'Open refactor menu': { description: 'Show available code actions and refactors.', shortcut: 'Ctrl+.' },
+  'Preview window options': { description: 'Adjust preview window and device display options.' },
+  'Refresh preview': { description: 'Reload the embedded web preview.', shortcut: 'Cmd+R' },
+  'Refresh runtime logs': { description: 'Refresh terminal and runtime state from the workspace.', shortcut: 'R' },
+  'Rename symbol': { description: 'Rename the current symbol across references.', shortcut: 'F2' },
+  'Resize AI agent panel': { description: 'Drag to give the agent or workbench more room.' },
+  'Resize files panel': { description: 'Drag to resize the file browser and project tools.' },
+  'Show editor status details': { description: 'Open the full editor status list.' },
+  'Show QR': { description: 'Open a QR code for testing the preview on a mobile device.' },
+  'Show minimap': { description: 'Show the code overview strip in the editor.' },
+  'Split view': { description: 'Show another log stream beside the current one.', shortcut: 'Cmd+\\' },
+  'Toggle split log view': { description: 'Show another log stream beside the current one.', shortcut: 'Cmd+\\' },
+  'Tab actions': { description: 'Open tab actions such as close, split and pin.' },
+  'Toggle live tail': { description: 'Keep logs pinned to the newest entry while output streams.', shortcut: 'T' },
+  'Toggle terminal': { description: 'Show or hide the pinned shell terminal drawer.', shortcut: 'Ctrl+`' },
 };
 
 const IDE_RAIL_TOOLTIP_HELP: Record<string, { description: string; shortcut?: string }> = {
-  Agent: { description: chatKey('chat.copy.focusTheAiAgentComposerAnd_8d14ee25'), shortcut: 'Cmd+J' },
-  Files: { description: chatKey('chat.copy.openTheProjectFileBrowserAnd_f4aa4650'), shortcut: 'Cmd+Shift+E' },
-  Editor: { description: chatKey('chat.copy.returnToTheActiveCodeEditor_e983595e'), shortcut: 'Cmd+E' },
-  Terminal: { description: chatKey('chat.copy.openTheWorkspaceShellTerminalDrawer_53ba4b78'), shortcut: 'Ctrl+`' },
-  [SHELL_TERMINAL_LABEL]: {
-    description: chatKey('chat.copy.openTheWorkspaceShellTerminalDrawer_53ba4b78'),
-    shortcut: 'Ctrl+`',
-  },
-  Preview: { description: chatKey('chat.copy.openTheLiveWebPreviewPanel_76fd4695'), shortcut: 'Cmd+Enter' },
-  Publish: {
-    description: chatKey('chat.copy.openDeploymentsDomainsAndPublishingTools_e353e9a5'),
-    shortcut: 'Cmd+Shift+P',
-  },
-  Search: { description: chatKey('chat.copy.searchProjectFilesAndSymbols_855ee585'), shortcut: 'Cmd+P' },
-  Git: { description: chatKey('chat.copy.openVersionControlBranchesAndChanges_297ee092'), shortcut: 'Ctrl+Shift+G' },
-  Database: { description: chatKey('chat.copy.openDatabaseConnectionsQueryToolsAnd_d505c108') },
-  Packages: { description: chatKey('chat.copy.manageDependenciesManifestsAndPackageAudits_56e1be8f') },
-  Monitoring: { description: chatKey('chat.copy.inspectRuntimeHealthActivityAndMetrics_37d738f1') },
-  Security: { description: chatKey('chat.copy.runScansAndReviewVulnerabilities_5bc3c76a') },
-  Activity: { description: chatKey('chat.copy.openTheProjectAuditTimelineAnd_b112349e') },
-  Settings: { description: chatKey('chat.copy.openWorkspaceAndPersonalIdeSettings_04dbe1d2'), shortcut: 'Cmd+,' },
+  Agent: { description: 'Focus the AI agent composer and project instructions.', shortcut: 'Cmd+J' },
+  Files: { description: 'Open the project file browser and workspace views.', shortcut: 'Cmd+Shift+E' },
+  Editor: { description: 'Return to the active code editor tab.', shortcut: 'Cmd+E' },
+  Terminal: { description: 'Open the workspace shell terminal drawer.', shortcut: 'Ctrl+`' },
+  [SHELL_TERMINAL_LABEL]: { description: 'Open the workspace shell terminal drawer.', shortcut: 'Ctrl+`' },
+  Preview: { description: 'Open the live web preview panel.', shortcut: 'Cmd+Enter' },
+  Publish: { description: 'Open deployments, domains and publishing tools.', shortcut: 'Cmd+Shift+P' },
+  Search: { description: 'Search project files and symbols.', shortcut: 'Cmd+P' },
+  Git: { description: 'Open version control, branches and changes.', shortcut: 'Ctrl+Shift+G' },
+  Database: { description: 'Open database connections, query tools and schema browser.' },
+  Packages: { description: 'Manage dependencies, manifests and package audits.' },
+  Monitoring: { description: 'Inspect runtime health, activity and metrics.' },
+  Security: { description: 'Run scans and review vulnerabilities.' },
+  Activity: { description: 'Open the project audit timeline and workspace events.' },
+  Settings: { description: 'Open workspace and personal IDE settings.', shortcut: 'Cmd+,' },
 };
 
 const PROJECT_IDE_TOUR_STEPS = [
   {
     selector: '.bolt-project-agent-panel',
-    title: chatKey('chat.copy.projectAssistant_2b677b08'),
-    description: chatKey('chat.copy.describeWhatYouWantToBuild_998d9a1a'),
+    title: 'Project assistant',
+    description:
+      'Describe what you want to build, fix or refactor. Use Plan first when you want approval before edits.',
     shortcut: 'Cmd+J',
   },
   {
     selector: '.bolt-project-ide-rail',
-    title: chatKey('chat.copy.ideRail_f70134ec'),
-    description: chatKey('chat.copy.switchBetweenFilesEditorTerminalPreview_4f1972a7'),
+    title: 'IDE rail',
+    description: 'Switch between files, editor, terminal, preview and publishing. Hover any icon for its purpose.',
   },
   {
     selector: '.bolt-project-tabbar',
-    title: chatKey('chat.copy.workspaceTabs_41a97420'),
-    description: chatKey('chat.copy.pinSplitAndReorderYourActive_b37b4560'),
+    title: 'Workspace tabs',
+    description: 'Pin, split and reorder your active work surfaces without losing context.',
     shortcut: 'Ctrl+T',
   },
   {
     selector: '.bolt-project-statusbar',
-    title: chatKey('chat.copy.statusBar_31b8336a'),
-    description: chatKey('chat.copy.runtimeGitProblemsAndPreviewState_eaa1d16d'),
+    title: 'Status bar',
+    description: 'Runtime, Git, Problems and Preview state live here. Details move into menus as space gets tight.',
   },
   {
     selector: '.bolt-project-topbar-actions',
-    title: chatKey('chat.copy.topbarActions_5e8fe8aa'),
-    description: chatKey('chat.copy.runPublishAndShareStayVisible_1bc7711c'),
+    title: 'Topbar actions',
+    description: 'Run, Publish and Share stay visible. Secondary actions and notifications are under More.',
   },
 ] as const;
 
@@ -427,7 +368,7 @@ const ECODE_MOBILE_DEFAULT_TABS = ['editor', 'preview', 'agent', 'deployments'] 
 const MOBILE_OVERLAY_RESTORE_WINDOW_MS = 120_000;
 type MobileOverlayKind = 'tools' | 'tabs' | 'more' | 'agent';
 
-const ECODE_MOBILE_TAB_META_BASE: Record<string, { id: string; name: string; icon: string }> = {
+const ECODE_MOBILE_TAB_META: Record<string, { id: string; name: string; icon: string }> = {
   preview: { id: 'preview', name: 'Webview', icon: 'i-ph:monitor' },
   agent: { id: 'agent', name: 'Agent', icon: 'agent' },
   deploy: { id: 'deploy', name: 'Deployments', icon: 'i-ph:rocket-launch' },
@@ -491,35 +432,35 @@ const IDE_FILE_TREE_HIDDEN_PATTERNS = [
 ];
 
 const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> = {
-  overview: 'chat.copy.projectSummary_398c8190',
-  studio: 'chat.copy.agentSupervisor_ac7559cf',
-  database: 'chat.copy.sqlBrowser_4bdd94d4',
-  'object-storage': 'chat.copy.fileStorage_4fbddfd9',
-  packages: 'chat.copy.dependenciesManager_5bf6692e',
-  skills: 'chat.copy.agentSkills_ce8667c8',
-  monitoring: 'chat.copy.appMetrics_a76e2b66',
-  ports: 'chat.copy.forwardedPorts_fc7ae1ef',
-  extensions: 'chat.copy.marketplace_983095c0',
-  integrations: 'chat.copy.connectedServices_35c4834d',
-  workflows: 'chat.copy.taskAutomation_00886567',
-  debugger: 'chat.copy.breakpointsAndLaunchConfigs_0e342dbd',
-  deployments: 'chat.copy.publishYourApp_84e20c23',
-  security: 'chat.copy.securityScanner_3993f46d',
-  env: 'chat.copy.environmentVariables_1173b2e1',
-  secrets: 'chat.copy.environmentVariables_1173b2e1',
-  git: 'chat.copy.versionControl_62f1aa26',
-  activity: 'chat.copy.projectTimeline_307c9b37',
-  terminal: 'chat.copy.workspaceShellTerminal_21af7c52',
-  logs: 'chat.copy.runtimeLogs_d0a587ed',
-  collaborators: 'chat.copy.teamAccess_8fb3578f',
-  domains: 'chat.copy.customDomains_b18c921e',
-  snapshots: 'chat.copy.rollbackPoints_3ab1afec',
-  settings: 'chat.copy.projectSettings_95590645',
-  editor: 'chat.copy.codeEditor_2faee521',
-  preview: 'chat.copy.appPreview_9edb6188',
-  files: 'chat.copy.browseProjectFiles_644a8995',
-  search: 'chat.copy.findInFiles_c8857ba2',
-  locks: 'chat.copy.lockedFiles_9c2ea979',
+  overview: 'Project summary',
+  studio: 'Agent supervisor',
+  database: 'SQL browser',
+  'object-storage': 'File storage',
+  packages: 'Dependencies manager',
+  skills: 'Agent skills',
+  monitoring: 'App metrics',
+  ports: 'Forwarded ports',
+  extensions: 'Marketplace',
+  integrations: 'Connected services',
+  workflows: 'Task automation',
+  debugger: 'Breakpoints and launch configs',
+  deployments: 'Publish your app',
+  security: 'Security scanner',
+  env: 'Environment variables',
+  secrets: 'Environment variables',
+  git: 'Version control',
+  activity: 'Project timeline',
+  terminal: 'Workspace shell terminal',
+  logs: 'Runtime logs',
+  collaborators: 'Team access',
+  domains: 'Custom domains',
+  snapshots: 'Rollback points',
+  settings: 'Project settings',
+  editor: 'Code editor',
+  preview: 'App preview',
+  files: 'Browse project files',
+  search: 'Find in files',
+  locks: 'Locked files',
 };
 
 type IdeRightPanel = (typeof IDE_RIGHT_PANELS)[number];
@@ -586,31 +527,31 @@ const PROJECT_AGENT_EXECUTION_MODES: Array<{
 }> = [
   {
     id: 'ask',
-    label: chatKey('chat.copy.ask_3562777b'),
+    label: 'Ask',
     chatMode: 'discuss',
-    description: chatKey('chat.copy.answerExplainAndInspectWithoutChanging_ec00ba1e'),
-    placeholder: chatKey('chat.copy.askAnythingAboutThisProject_ce81dd6b'),
+    description: 'Answer, explain, and inspect without changing files or running commands.',
+    placeholder: 'Ask anything about this project…',
   },
   {
     id: 'edit',
-    label: chatKey('chat.copy.edit_5301648d'),
+    label: 'Edit',
     chatMode: 'build',
-    description: chatKey('chat.copy.makeScopedCodeChangesOnlyAfter_c3f95796'),
-    placeholder: chatKey('chat.copy.describeAScopedEditEG_0d84e847'),
+    description: 'Make scoped code changes only after identifying the target files.',
+    placeholder: 'Describe a scoped edit, e.g. "Add a logout button to the navbar"…',
   },
   {
     id: 'agent',
-    label: chatKey('chat.copy.agent_5ce2e6f4'),
+    label: 'Agent',
     chatMode: 'build',
-    description: chatKey('chat.copy.executeTheRequestedTaskEndTo_41227963'),
-    placeholder: chatKey('chat.copy.describeWhatYouWantTheAgent_283b294d'),
+    description: 'Execute the requested task end to end with verification.',
+    placeholder: 'Describe what you want the agent to build, fix or refactor…',
   },
   {
     id: 'architect',
-    label: chatKey('chat.copy.architect_16639cf7'),
+    label: 'Architect',
     chatMode: 'discuss',
-    description: chatKey('chat.copy.designArchitectureContractsRisksAndRollout_33a8af69'),
-    placeholder: chatKey('chat.copy.describeTheSystemToDesignGoals_b6fcef66'),
+    description: 'Design architecture, contracts, risks, and rollout steps before implementation.',
+    placeholder: 'Describe the system to design — goals, constraints, integrations…',
   },
 ];
 
@@ -624,14 +565,14 @@ const PROJECT_AGENT_PUBLIC_MODES: Array<{
 }> = [
   {
     id: 'agent',
-    label: chatKey('chat.copy.agent_5ce2e6f4'),
-    description: chatKey('chat.copy.runTheSelectedTaskEndTo_5494ff2a'),
+    label: 'Agent',
+    description: 'Run the selected task end to end.',
     execution: 'agent',
   },
   {
     id: 'assistant',
-    label: chatKey('chat.copy.assistant_8010d1f4'),
-    description: chatKey('chat.copy.conversationalAnswersQuestionsAndProposesScoped_01156362'),
+    label: 'Assistant',
+    description: 'Conversational — answers questions and proposes scoped edits but waits for your go.',
     execution: 'ask',
   },
 ];
@@ -694,73 +635,49 @@ function publicModeForExecution(execution: ProjectAgentExecutionMode): ProjectAg
 }
 
 const INTEGRATION_CATALOG = [
-  ['github', 'GitHub', 'chat.copy.connectRepositoriesForCodeSyncAnd_7a7a39e3', 'cicd', 'i-ph:github-logo'],
-  ['slack', 'Slack', 'chat.copy.sendBuildDeployAndIncidentNotifications_f2cc4419', 'communication', 'i-ph:slack-logo'],
-  ['jira', 'Jira', 'chat.copy.syncIssuesAndDeliveryWorkAcross_c61d98fd', 'project', 'i-ph:kanban'],
-  ['notion', 'Notion', 'chat.copy.syncDocsAndProductNotesWith_03a48a9d', 'project', 'i-ph:notion-logo'],
-  ['gitlab', 'GitLab', 'chat.copy.alternativeGitHostingAndCiPipelines_c18b2802', 'cicd', 'i-ph:gitlab-logo'],
-  [
-    'discord',
-    'Discord',
-    'chat.copy.sendWorkspaceNotificationsToDiscord_3525cc0e',
-    'communication',
-    'i-ph:discord-logo',
-  ],
-  ['trello', 'Trello', 'chat.copy.visualBoardsAndCardsForProduct_d6198868', 'project', 'i-ph:columns'],
-  ['asana', 'Asana', 'chat.copy.teamWorkManagementAndTaskTracking_a4d7156b', 'project', 'i-ph:list-checks'],
-  ['figma', 'Figma', 'chat.copy.designCollaborationAndHandoffLinks_972088ed', 'project', 'i-ph:figma-logo'],
-  ['linear', 'Linear', 'chat.copy.issuesSprintsAndRoadmaps_aeeb5615', 'project', 'i-ph:chart-line-up'],
-  ['zendesk', 'Zendesk', 'chat.copy.supportTicketsAndCustomerOperations_3440bfe7', 'support', 'i-ph:headset'],
-  [
-    'datadog',
-    'Datadog',
-    'chat.copy.infrastructureAndApplicationMonitoring_3d56e01c',
-    'observability',
-    'i-ph:chart-line',
-  ],
-  ['sentry', 'Sentry', 'chat.copy.errorTrackingAndReleaseHealth_375126dc', 'observability', 'i-ph:warning-diamond'],
-  [
-    'pagerduty',
-    'PagerDuty',
-    'chat.copy.incidentRoutingAndOnCallEscalation_5a435a1c',
-    'observability',
-    'i-ph:bell-ringing',
-  ],
-  ['newrelic', 'New Relic', 'chat.copy.fullStackObservabilityData_527efc13', 'observability', 'i-ph:pulse'],
-  ['grafana', 'Grafana', 'chat.copy.dashboardsAndMetricsVisualization_e0e986bf', 'observability', 'i-ph:gauge'],
-  ['jenkins', 'Jenkins', 'chat.copy.selfHostedAutomationServer_090b33ce', 'cicd', 'i-ph:factory'],
-  ['circleci', 'CircleCI', 'chat.copy.continuousIntegrationAndDelivery_725543ac', 'cicd', 'i-ph:circle'],
-  [
-    'github-actions',
-    'GitHub Actions',
-    'chat.copy.repositoryNativeWorkflowAutomation_5174acde',
-    'cicd',
-    'i-ph:git-branch',
-  ],
-  ['vercel', 'Vercel', 'chat.copy.deployAndHostModernWebApps_c87b1d87', 'cicd', 'i-ph:triangle'],
-  ['aws-s3', 'AWS S3', 'chat.copy.objectStorageForAssetsAndExports_5fbc8bd4', 'data', 'i-ph:cloud'],
-  ['mongodb', 'MongoDB', 'chat.copy.documentDatabaseIntegration_f9e95150', 'data', 'i-ph:database'],
-  ['postgresql', 'PostgreSQL', 'chat.copy.relationalDatabaseIntegration_96f9a13b', 'data', 'i-ph:database'],
-  ['redis', 'Redis', 'chat.copy.inMemoryCacheAndQueueService_2ef34e77', 'data', 'i-ph:stack'],
-  ['elasticsearch', 'Elasticsearch', 'chat.copy.searchAndAnalyticsIndexing_3c363e99', 'data', 'i-ph:magnifying-glass'],
-  ['stripe', 'Stripe', 'chat.copy.paymentsBillingAndWebhookEvents_1f22daf9', 'payments', 'i-ph:credit-card'],
-  ['twilio', 'Twilio', 'chat.copy.smsVoiceAndCommunicationsApis_64da7fa3', 'communication', 'i-ph:phone'],
-  ['resend', 'Resend', 'chat.copy.transactionalEmailDelivery_c27c4a85', 'communication', 'i-ph:paper-plane-tilt'],
-  ['intercom', 'Intercom', 'chat.copy.customerMessagingAndSupport_2e0907c6', 'support', 'i-ph:chat-circle-text'],
-  ['hubspot', 'HubSpot', 'chat.copy.crmAndMarketingAutomation_6a8ec43f', 'support', 'i-ph:users-three'],
-  ['salesforce', 'Salesforce', 'chat.copy.enterpriseCrmWorkflows_21d2a378', 'support', 'i-ph:building-office'],
-  ['zapier', 'Zapier', 'chat.copy.crossToolWorkflowAutomation_1d9b7342', 'automation', 'i-ph:lightning'],
+  ['github', 'GitHub', 'Connect repositories for code sync and CI/CD.', 'cicd', 'i-ph:github-logo'],
+  ['slack', 'Slack', 'Send build, deploy and incident notifications to channels.', 'communication', 'i-ph:slack-logo'],
+  ['jira', 'Jira', 'Sync issues and delivery work across projects.', 'project', 'i-ph:kanban'],
+  ['notion', 'Notion', 'Sync docs and product notes with project context.', 'project', 'i-ph:notion-logo'],
+  ['gitlab', 'GitLab', 'Alternative Git hosting and CI pipelines.', 'cicd', 'i-ph:gitlab-logo'],
+  ['discord', 'Discord', 'Send workspace notifications to Discord.', 'communication', 'i-ph:discord-logo'],
+  ['trello', 'Trello', 'Visual boards and cards for product work.', 'project', 'i-ph:columns'],
+  ['asana', 'Asana', 'Team work management and task tracking.', 'project', 'i-ph:list-checks'],
+  ['figma', 'Figma', 'Design collaboration and handoff links.', 'project', 'i-ph:figma-logo'],
+  ['linear', 'Linear', 'Issues, sprints and roadmaps.', 'project', 'i-ph:chart-line-up'],
+  ['zendesk', 'Zendesk', 'Support tickets and customer operations.', 'support', 'i-ph:headset'],
+  ['datadog', 'Datadog', 'Infrastructure and application monitoring.', 'observability', 'i-ph:chart-line'],
+  ['sentry', 'Sentry', 'Error tracking and release health.', 'observability', 'i-ph:warning-diamond'],
+  ['pagerduty', 'PagerDuty', 'Incident routing and on-call escalation.', 'observability', 'i-ph:bell-ringing'],
+  ['newrelic', 'New Relic', 'Full-stack observability data.', 'observability', 'i-ph:pulse'],
+  ['grafana', 'Grafana', 'Dashboards and metrics visualization.', 'observability', 'i-ph:gauge'],
+  ['jenkins', 'Jenkins', 'Self-hosted automation server.', 'cicd', 'i-ph:factory'],
+  ['circleci', 'CircleCI', 'Continuous integration and delivery.', 'cicd', 'i-ph:circle'],
+  ['github-actions', 'GitHub Actions', 'Repository-native workflow automation.', 'cicd', 'i-ph:git-branch'],
+  ['vercel', 'Vercel', 'Deploy and host modern web apps.', 'cicd', 'i-ph:triangle'],
+  ['aws-s3', 'AWS S3', 'Object storage for assets and exports.', 'data', 'i-ph:cloud'],
+  ['mongodb', 'MongoDB', 'Document database integration.', 'data', 'i-ph:database'],
+  ['postgresql', 'PostgreSQL', 'Relational database integration.', 'data', 'i-ph:database'],
+  ['redis', 'Redis', 'In-memory cache and queue service.', 'data', 'i-ph:stack'],
+  ['elasticsearch', 'Elasticsearch', 'Search and analytics indexing.', 'data', 'i-ph:magnifying-glass'],
+  ['stripe', 'Stripe', 'Payments, billing and webhook events.', 'payments', 'i-ph:credit-card'],
+  ['twilio', 'Twilio', 'SMS, voice and communications APIs.', 'communication', 'i-ph:phone'],
+  ['resend', 'Resend', 'Transactional email delivery.', 'communication', 'i-ph:paper-plane-tilt'],
+  ['intercom', 'Intercom', 'Customer messaging and support.', 'support', 'i-ph:chat-circle-text'],
+  ['hubspot', 'HubSpot', 'CRM and marketing automation.', 'support', 'i-ph:users-three'],
+  ['salesforce', 'Salesforce', 'Enterprise CRM workflows.', 'support', 'i-ph:building-office'],
+  ['zapier', 'Zapier', 'Cross-tool workflow automation.', 'automation', 'i-ph:lightning'],
 ] as const;
 const INTEGRATION_CATEGORIES = [
-  ['all', 'chat.copy.allIntegrations_4cf0ab99', 'i-ph:link'],
-  ['cicd', 'chat.copy.ciCd_25ef1b43', 'i-ph:rocket-launch'],
-  ['observability', 'chat.copy.observability_e2397377', 'i-ph:chart-line'],
-  ['communication', 'chat.copy.communication_ade0d50c', 'i-ph:globe'],
-  ['project', 'chat.copy.projectManagement_dd64c0f0', 'i-ph:kanban'],
-  ['support', 'chat.copy.support_f32d5a3b', 'i-ph:headset'],
-  ['data', 'chat.copy.dataStorage_d7b94492', 'i-ph:database'],
-  ['payments', 'chat.copy.payments_44357ae5', 'i-ph:shield-check'],
-  ['automation', 'chat.copy.automation_a15fde51', 'i-ph:hard-drives'],
+  ['all', 'All Integrations', 'i-ph:link'],
+  ['cicd', 'CI/CD', 'i-ph:rocket-launch'],
+  ['observability', 'Observability', 'i-ph:chart-line'],
+  ['communication', 'Communication', 'i-ph:globe'],
+  ['project', 'Project Management', 'i-ph:kanban'],
+  ['support', 'Support', 'i-ph:headset'],
+  ['data', 'Data & Storage', 'i-ph:database'],
+  ['payments', 'Payments', 'i-ph:shield-check'],
+  ['automation', 'Automation', 'i-ph:hard-drives'],
 ] as const;
 
 /*
@@ -771,60 +688,32 @@ const INTEGRATION_CATEGORIES = [
  */
 const INTEGRATION_PERMISSIONS: Record<string, string[]> = {
   cicd: [
-    'chat.copy.readRepositoryAndPipelineMetadata_da9b7a67',
-    'chat.copy.triggerBuildsDeploysAndReadTheir_01110234',
-    'chat.copy.readBuildAndDeployLogs_d1752153',
+    'Read repository and pipeline metadata',
+    'Trigger builds/deploys and read their status',
+    'Read build and deploy logs',
   ],
-  observability: [
-    'chat.copy.readMetricsDashboardsAndAlertStatus_c49abb55',
-    'chat.copy.readIncidentAndOnCallState_e09c9828',
-  ],
-  communication: ['chat.copy.postTheNotificationsYouAuthorizeTo_e3b91e04'],
-  project: ['chat.copy.readAndSyncTheIssuesTasks_4d625aa5'],
-  support: ['chat.copy.readAndCreateTheSupportTickets_edcf0535'],
-  data: ['chat.copy.readAndWriteDataInThe_07bdc6c0'],
-  payments: ['chat.copy.readPaymentSubscriptionAndWebhookEvents_584bbdef'],
-  automation: ['chat.copy.triggerAndReceiveTheAutomationWorkflows_7e21af4b'],
+  observability: ['Read metrics, dashboards and alert status', 'Read incident and on-call state'],
+  communication: ['Post the notifications you authorize to your channels'],
+  project: ['Read and sync the issues, tasks and documents you authorize'],
+  support: ['Read and create the support tickets and customer records you authorize'],
+  data: ['Read and write data in the resources you authorize'],
+  payments: ['Read payment, subscription and webhook events'],
+  automation: ['Trigger and receive the automation workflows you authorize'],
 };
 
 function integrationPermissions(category: string): string[] {
-  return INTEGRATION_PERMISSIONS[category] ?? ['chat.copy.accessTheDataAndActionsYou_90610671'];
+  return INTEGRATION_PERMISSIONS[category] ?? ['Access the data and actions you authorize for this integration'];
 }
 
 const TERMINAL_SCRIPT_TEMPLATES = [
-  [
-    'start-dev',
-    'chat.copy.startDevelopmentServer_ac4c3f32',
-    'chat.copy.startTheDevelopmentServerWithHot_212b828e',
-    'npm run dev',
-  ],
-  ['build', 'chat.copy.buildProject_26b3ae15', 'chat.copy.buildTheProjectForProduction_b2a7b008', 'npm run build'],
-  ['test', 'chat.copy.runTests_40e0369d', 'chat.copy.executeTheTestSuite_f416c702', 'npm test'],
-  ['lint', 'chat.copy.lintCode_05d2a7c2', 'chat.copy.checkCodeStyleAndStaticIssues_2d6e0695', 'npm run lint'],
-  [
-    'db-migrate',
-    'chat.copy.databaseMigration_3325d37a',
-    'chat.copy.runDatabaseMigrations_42783d59',
-    'npm run db:migrate',
-  ],
-  [
-    'docker-build',
-    'chat.copy.dockerBuild_ae5f0584',
-    'chat.copy.buildTheProjectDockerImage_b3eee5e3',
-    'docker build -t vibecore-project .',
-  ],
-  [
-    'git-status',
-    'chat.copy.gitStatus_1dc1b911',
-    'chat.copy.inspectRepositoryStatusAndRecentCommits_36c970c6',
-    'git status && git log --oneline -5',
-  ],
-  [
-    'clean-deps',
-    'chat.copy.cleanDependencies_d00bb9d3',
-    'chat.copy.removeAndReinstallDependencies_b81fd44b',
-    'rm -rf node_modules && npm install',
-  ],
+  ['start-dev', 'Start Development Server', 'Start the development server with hot reload.', 'npm run dev'],
+  ['build', 'Build Project', 'Build the project for production.', 'npm run build'],
+  ['test', 'Run Tests', 'Execute the test suite.', 'npm test'],
+  ['lint', 'Lint Code', 'Check code style and static issues.', 'npm run lint'],
+  ['db-migrate', 'Database Migration', 'Run database migrations.', 'npm run db:migrate'],
+  ['docker-build', 'Docker Build', 'Build the project Docker image.', 'docker build -t vibecore-project .'],
+  ['git-status', 'Git Status', 'Inspect repository status and recent commits.', 'git status && git log --oneline -5'],
+  ['clean-deps', 'Clean Dependencies', 'Remove and reinstall dependencies.', 'rm -rf node_modules && npm install'],
 ] as const;
 type ProjectIdeBackendState = {
   workspace?: {
@@ -859,41 +748,24 @@ type IdePaneLeaf = { type: 'leaf'; id: string; tabs: IdePaneTab[]; activeTabId?:
 type IdePaneSplit = {
   type: 'split';
   id: string;
-
-  /** RPL-IDE-001.2: horizontal or vertical split. */
-  direction: 'horizontal' | 'vertical';
-
-  /** Fraction occupied by `first`, clamped 0.1–0.9. Undefined = default 50/50. */
-  ratio?: number;
+  direction: 'horizontal';
   first: IdePaneNode;
   second: IdePaneNode;
 };
 type IdePaneNode = IdePaneLeaf | IdePaneSplit;
 
-/** RPL-IDE-001.3: a pane popped out of the docked tree into a floating window. */
-type IdeFloatingPane = {
-  id: string;
-  pane: IdePaneLeaf;
-  bounds: { x: number; y: number; width: number; height: number };
-  zIndex: number;
-  dockOrigin?: unknown;
-};
-
-function runtimeStatusText(
-  t: TFunction,
-  input: {
-    workspaceStatus?: { status?: string; ports?: Array<{ port?: number; ready?: boolean }> } | null;
-    ports?: Array<{ port?: number; ready?: boolean }>;
-    workspaceLoading: boolean;
-    workspaceError?: string;
-  },
-) {
+function runtimeStatusText(input: {
+  workspaceStatus?: { status?: string; ports?: Array<{ port?: number; ready?: boolean }> } | null;
+  ports?: Array<{ port?: number; ready?: boolean }>;
+  workspaceLoading: boolean;
+  workspaceError?: string;
+}) {
   if (input.workspaceError) {
-    return t('baseChatAst.runtime.error');
+    return 'Runtime: Error';
   }
 
   if (input.workspaceLoading) {
-    return t('baseChatAst.runtime.starting');
+    return 'Runtime: Starting';
   }
 
   const status = workspaceUiState(input.workspaceStatus, {
@@ -901,127 +773,22 @@ function runtimeStatusText(
   });
 
   if (status === 'running') {
-    return t('baseChatAst.runtime.running');
+    return 'Runtime: Running';
   }
 
   if (status === 'starting') {
-    return t('baseChatAst.runtime.starting');
+    return 'Runtime: Starting';
   }
 
   if (status === 'error') {
-    return t('baseChatAst.runtime.error');
+    return 'Runtime: Error';
   }
 
   if (status === 'stopped') {
-    return t('baseChatAst.runtime.stopped');
+    return 'Runtime: Stopped';
   }
 
-  return t('baseChatAst.runtime.notStarted');
-}
-
-function runtimeStateLabel(t: TFunction, status?: string | null): string {
-  const normalized = status?.trim().toLowerCase();
-
-  if (normalized === 'running' || normalized === 'ready' || normalized === 'active') {
-    return t('baseChatAst.status.running');
-  }
-
-  if (normalized === 'starting' || normalized === 'booting' || normalized === 'pending') {
-    return t('baseChatAst.status.starting');
-  }
-
-  if (normalized === 'stopped' || normalized === 'offline') {
-    return t('baseChatAst.status.stopped');
-  }
-
-  if (normalized === 'error' || normalized === 'failed' || normalized === 'crashed') {
-    return t('baseChatAst.status.error');
-  }
-
-  return status || t('baseChatAst.status.unknown');
-}
-
-function platformStateLabel(t: TFunction, status: unknown): string {
-  const raw = String(status ?? '').trim();
-  const normalized = raw.toLowerCase().replace(/[\s-]+/g, '_');
-
-  switch (normalized) {
-    case 'active':
-      return t('baseChatAst.status.active');
-    case 'cancelled':
-    case 'canceled':
-      return t('baseChatAst.status.cancelled');
-    case 'critical':
-      return t('baseChatAst.status.critical');
-    case 'completed':
-      return t('baseChatAst.status.completed');
-    case 'connected':
-      return t('baseChatAst.status.connected');
-    case 'disabled':
-      return t('baseChatAst.status.disabled');
-    case 'enabled':
-      return t('baseChatAst.status.enabled');
-    case 'error':
-      return t('baseChatAst.status.error');
-    case 'failed':
-      return t('baseChatAst.status.failed');
-    case 'high':
-      return t('baseChatAst.status.high');
-    case 'info':
-      return t('baseChatAst.status.info');
-    case 'idle':
-      return t('baseChatAst.presence.idle');
-    case 'offline':
-      return t('baseChatAst.status.offline');
-    case 'low':
-      return t('baseChatAst.status.low');
-    case 'medium':
-      return t('baseChatAst.status.medium');
-    case 'moderate':
-      return t('baseChatAst.status.moderate');
-    case 'paused':
-      return t('baseChatAst.status.paused');
-    case 'pending':
-      return t('baseChatAst.status.pending');
-    case 'preview':
-      return t('baseChatAst.status.preview');
-    case 'production':
-      return t('baseChatAst.status.production');
-    case 'ready':
-      return t('baseChatAst.status.ready');
-    case 'reconnecting':
-      return t('baseChatAst.status.reconnecting');
-    case 'running':
-      return t('baseChatAst.status.running');
-    case 'starting':
-      return t('baseChatAst.status.starting');
-    case 'stopped':
-      return t('baseChatAst.status.stopped');
-    case 'staging':
-      return t('baseChatAst.status.staging');
-    case 'succeeded':
-    case 'success':
-      return t('baseChatAst.status.succeeded');
-    case 'trialing':
-      return t('baseChatAst.status.trialing');
-    case 'approved':
-      return t('baseChatAst.status.approved');
-    case 'quarantined':
-      return t('baseChatAst.status.quarantined');
-    case 'rejected':
-      return t('baseChatAst.status.rejected');
-    case 'revoked':
-      return t('baseChatAst.status.revoked');
-    case 'daily':
-      return t('baseChatAst.status.daily');
-    case 'weekly':
-      return t('baseChatAst.status.weekly');
-    case 'warn':
-    case 'warning':
-      return t('baseChatAst.status.warning');
-    default:
-      return raw || t('baseChatAst.status.unknown');
-  }
+  return 'Runtime: Not started';
 }
 
 function runtimePortsFromPayload(payload: any): Array<{ port?: number; ready?: boolean; url?: string }> {
@@ -1044,43 +811,35 @@ function runtimeWorkspaceFromPanelData(data: any) {
   return data?.workspace ?? null;
 }
 
-function previewPortText(
-  t: TFunction,
-  input: {
-    previews: Array<{ port: number; ready?: boolean }>;
-    workspaceLoading: boolean;
-    workspaceError?: string;
-    previewServerState: { status: string };
-  },
-) {
+function previewPortText(input: {
+  previews: Array<{ port: number; ready?: boolean }>;
+  workspaceLoading: boolean;
+  workspaceError?: string;
+  previewServerState: { status: string };
+}) {
   const activePreview = input.previews.find((preview) => preview.ready !== false) ?? input.previews[0];
 
   if (activePreview) {
-    return t('baseChatAst.port.number', { port: activePreview.port });
+    return `Port ${activePreview.port}`;
   }
 
   if (input.workspaceError) {
-    return t('baseChatAst.port.unavailable');
+    return 'Port: unavailable';
   }
 
   if (input.previewServerState.status === 'static') {
-    return t('baseChatAst.port.static');
+    return 'Port: static';
   }
 
-  return input.workspaceLoading || input.previewServerState.status === 'starting'
-    ? t('baseChatAst.port.detecting')
-    : t('baseChatAst.port.none');
+  return input.workspaceLoading || input.previewServerState.status === 'starting' ? 'Port: detecting' : 'Port: none';
 }
 
-function previewPortCompactText(
-  t: TFunction,
-  input: {
-    previews: Array<{ port: number; ready?: boolean }>;
-    workspaceLoading: boolean;
-    workspaceError?: string;
-    previewServerState: { status: string };
-  },
-) {
+function previewPortCompactText(input: {
+  previews: Array<{ port: number; ready?: boolean }>;
+  workspaceLoading: boolean;
+  workspaceError?: string;
+  previewServerState: { status: string };
+}) {
   const activePreview = input.previews.find((preview) => preview.ready !== false) ?? input.previews[0];
 
   if (activePreview) {
@@ -1088,16 +847,14 @@ function previewPortCompactText(
   }
 
   if (input.workspaceError) {
-    return t('baseChatAst.port.compactUnavailable');
+    return 'Unavailable';
   }
 
   if (input.previewServerState.status === 'static') {
-    return t('baseChatAst.port.compactStatic');
+    return 'Static';
   }
 
-  return input.workspaceLoading || input.previewServerState.status === 'starting'
-    ? t('baseChatAst.port.compactDetecting')
-    : t('baseChatAst.port.compactNone');
+  return input.workspaceLoading || input.previewServerState.status === 'starting' ? 'Detecting' : 'No port';
 }
 
 function previewCommandFromLogs(logs: string[]) {
@@ -1113,28 +870,25 @@ function previewCommandFromLogs(logs: string[]) {
   return undefined;
 }
 
-function devServerStatusText(
-  t: TFunction,
-  input: {
-    previews: Array<{ ready?: boolean }>;
-    workspaceLoading: boolean;
-    workspaceError?: string;
-    logs: string[];
-    previewServerState: { status: string; command?: string; error?: string };
-  },
-) {
+function devServerStatusText(input: {
+  previews: Array<{ ready?: boolean }>;
+  workspaceLoading: boolean;
+  workspaceError?: string;
+  logs: string[];
+  previewServerState: { status: string; command?: string; error?: string };
+}) {
   const command = input.previewServerState.command ?? previewCommandFromLogs(input.logs);
 
   if (input.previews.some((preview) => preview.ready !== false)) {
-    return command ? t('baseChatAst.dev.activeCommand', { command }) : t('baseChatAst.dev.active');
+    return command ? `Dev: active (${command})` : 'Dev: active';
   }
 
   if (input.workspaceError || input.previewServerState.status === 'error') {
-    return t('baseChatAst.dev.blocked');
+    return 'Dev: blocked';
   }
 
   if (input.previewServerState.status === 'static') {
-    return t('baseChatAst.dev.static');
+    return 'Dev: static preview';
   }
 
   if (
@@ -1144,13 +898,13 @@ function devServerStatusText(
     command
   ) {
     if (input.previewServerState.status === 'stopping') {
-      return command ? t('baseChatAst.dev.stoppingCommand', { command }) : t('baseChatAst.dev.stopping');
+      return command ? `Dev: stopping (${command})` : 'Dev: stopping';
     }
 
-    return command ? t('baseChatAst.dev.startingCommand', { command }) : t('baseChatAst.dev.starting');
+    return command ? `Dev: starting (${command})` : 'Dev: starting';
   }
 
-  return t('baseChatAst.dev.idle');
+  return 'Dev: idle';
 }
 
 const PRESENCE_STATUS_WEIGHT: Record<string, number> = {
@@ -1214,70 +968,28 @@ function dedupeCollaborationPresence(presence: any[] = []) {
   return [...byIdentity.values()].sort((a, b) => presenceTimestamp(b) - presenceTimestamp(a));
 }
 
-function presenceDisplayName(t: TFunction, user: any) {
-  return (
-    String(user?.name ?? user?.userId ?? user?.sessionId ?? t('baseChatAst.presence.unknownUser')).trim() ||
-    t('baseChatAst.presence.unknownUser')
-  );
+function presenceDisplayName(user: any) {
+  return String(user?.name ?? user?.userId ?? user?.sessionId ?? 'Unknown user').trim() || 'Unknown user';
 }
 
-function presenceStateLabel(t: TFunction, value: unknown, fallback: 'online' | 'editing') {
-  const state = String(value ?? fallback).toLowerCase();
-
-  const key = {
-    online: 'baseChatAst.presence.online',
-    viewing: 'baseChatAst.presence.viewing',
-    editing: 'baseChatAst.presence.editing',
-    typing: 'baseChatAst.presence.typing',
-    idle: 'baseChatAst.presence.idle',
-  }[state];
-
-  return key ? t(key) : String(value ?? fallback);
-}
-
-function collaborationPresenceTooltip(t: TFunction, language: string, presence: any[]) {
+function collaborationPresenceTooltip(presence: any[]) {
   if (!presence.length) {
-    return t('baseChatAst.presence.none');
+    return 'Collaboration: no one else present';
   }
 
   const names = presence
     .slice(0, 3)
     .map((user) => {
-      const status = presenceStateLabel(t, user?.status, 'online');
-      const mode = presenceStateLabel(t, user?.mode, 'editing');
+      const status = String(user?.status ?? 'online');
+      const mode = String(user?.mode ?? 'editing');
 
-      return `${presenceDisplayName(t, user)} (${status}, ${mode})`;
+      return `${presenceDisplayName(user)} (${status}, ${mode})`;
     })
     .join(', ');
 
-  const overflow = presence.length > 3 ? `, +${formatBaseChatAstNumber(language, presence.length - 3)}` : '';
+  const overflow = presence.length > 3 ? `, +${presence.length - 3}` : '';
 
-  return t('baseChatAst.presence.summary', { count: presence.length, names, overflow });
-}
-
-function collaborationRoleLabel(t: TFunction, role: unknown): string {
-  const normalized = String(role ?? '').toLowerCase();
-
-  const key = {
-    viewer: 'baseChatAst.collaboration.role.viewer',
-    member: 'baseChatAst.collaboration.role.member',
-    admin: 'baseChatAst.collaboration.role.admin',
-    owner: 'baseChatAst.collaboration.role.owner',
-  }[normalized];
-
-  return key ? t(key) : String(role ?? '');
-}
-
-function collaborationRoleDescription(t: TFunction, role: string): string {
-  if (role === 'viewer') {
-    return t('baseChatAst.collaboration.viewerDescription');
-  }
-
-  if (role === 'member') {
-    return t('baseChatAst.collaboration.memberDescription');
-  }
-
-  return t('baseChatAst.collaboration.adminDescription');
+  return `Collaboration: ${presence.length} present - ${names}${overflow}`;
 }
 
 function stringifyMessageContent(value: unknown) {
@@ -1296,7 +1008,7 @@ function stringifyMessageContent(value: unknown) {
   }
 }
 
-function messageText(t: TFunction, message: Message) {
+function messageText(message: Message) {
   const parts = Array.isArray((message as any).parts) ? (message as any).parts : [];
 
   if (parts.length) {
@@ -1311,7 +1023,7 @@ function messageText(t: TFunction, message: Message) {
         }
 
         if (part?.type === 'tool-invocation' || part?.toolInvocation) {
-          return t('baseChatAst.export.toolInvocation');
+          return '[tool invocation]';
         }
 
         return stringifyMessageContent(part);
@@ -1327,13 +1039,13 @@ function messageText(t: TFunction, message: Message) {
   return stringifyMessageContent((message as any).content).trim();
 }
 
-function conversationTranscript(t: TFunction, messages: Message[] = [], title?: string) {
-  const heading = title?.trim() || t('baseChatAst.conversation.project');
+function conversationTranscript(messages: Message[] = [], title?: string) {
+  const heading = title?.trim() || 'Project conversation';
 
   const body = messages
     .map((message, index) => {
       const role = String(message.role ?? 'message');
-      const content = messageText(t, message) || t('baseChatAst.export.emptyMessage');
+      const content = messageText(message) || '[empty message]';
 
       return `## ${index + 1}. ${role}\n\n${content}`;
     })
@@ -1351,7 +1063,7 @@ function safeDownloadName(value: string) {
     .slice(0, 48);
 }
 
-function fileTypeLabel(t: TFunction, filePath?: string) {
+function fileTypeLabel(filePath?: string) {
   const extension = filePath?.split('.').pop()?.toLowerCase();
 
   if (extension === 'ts' || extension === 'tsx') {
@@ -1367,14 +1079,14 @@ function fileTypeLabel(t: TFunction, filePath?: string) {
   }
 
   if (extension === 'css' || extension === 'scss') {
-    return t('baseChatAst.fileType.stylesheet');
+    return 'Stylesheet';
   }
 
   if (extension === 'md' || extension === 'mdx') {
-    return t('baseChatAst.fileType.markdown');
+    return 'Markdown';
   }
 
-  return extension ? extension.toUpperCase() : t('baseChatAst.fileType.project');
+  return extension ? extension.toUpperCase() : 'Project';
 }
 
 function stripPromptScaffold(value: unknown): string {
@@ -1397,7 +1109,7 @@ function stripPromptScaffold(value: unknown): string {
   return text;
 }
 
-function shortContent(value: unknown, fallback = '') {
+function shortContent(value: unknown, fallback = 'Project update') {
   const text = stripPromptScaffold(value)
     .replace(/<[^>]*>/g, ' ')
     .replace(/\s+/g, ' ')
@@ -1406,44 +1118,54 @@ function shortContent(value: unknown, fallback = '') {
   return text ? text.slice(0, 120) : fallback;
 }
 
-function timeAgo(t: TFunction, language: string, value?: string) {
+function timeAgo(value?: string) {
   if (!value) {
-    return formatBaseChatAstRelativeTime(language, Date.now()) ?? t('baseChatAst.time.recorded');
+    return 'just now';
   }
 
-  return formatBaseChatAstRelativeTime(language, value) ?? t('baseChatAst.time.recorded');
+  const timestamp = Date.parse(value);
+
+  if (!Number.isFinite(timestamp)) {
+    return 'recorded';
+  }
+
+  const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000));
+
+  const units: Array<[number, string]> = [
+    [60 * 60 * 24 * 365, 'year'],
+    [60 * 60 * 24 * 30, 'month'],
+    [60 * 60 * 24, 'day'],
+    [60 * 60, 'hour'],
+    [60, 'minute'],
+  ];
+
+  for (const [size, label] of units) {
+    const count = Math.floor(seconds / size);
+
+    if (count >= 1) {
+      return `${count} ${label}${count === 1 ? '' : 's'} ago`;
+    }
+  }
+
+  return 'just now';
 }
 
-function formatBytes(t: TFunction, language: string, bytes?: number) {
+function formatBytes(bytes?: number) {
   if (!Number.isFinite(bytes) || !bytes || bytes <= 0) {
-    return t('baseChatAst.bytes.zero');
+    return '0 KB';
   }
+
+  const units = ['B', 'KB', 'MB', 'GB'];
 
   let value = bytes;
   let unitIndex = 0;
 
-  while (value >= 1024 && unitIndex < 3) {
+  while (value >= 1024 && unitIndex < units.length - 1) {
     value /= 1024;
     unitIndex += 1;
   }
 
-  const formattedValue = formatBaseChatAstNumber(language, value, {
-    maximumFractionDigits: value >= 10 || unitIndex === 0 ? 0 : 1,
-  });
-
-  if (unitIndex === 0) {
-    return t('baseChatAst.storage.bytes', { value: formattedValue });
-  }
-
-  if (unitIndex === 1) {
-    return t('baseChatAst.storage.kilobytes', { value: formattedValue });
-  }
-
-  if (unitIndex === 2) {
-    return t('baseChatAst.storage.megabytes', { value: formattedValue });
-  }
-
-  return t('baseChatAst.storage.gigabytes', { value: formattedValue });
+  return `${value >= 10 || unitIndex === 0 ? Math.round(value) : value.toFixed(1)} ${units[unitIndex]}`;
 }
 
 function snapshotFiles(snapshot: ProjectSnapshot): Array<{ path: string; sizeBytes?: number; updatedAt?: string }> {
@@ -1470,28 +1192,28 @@ function snapshotFiles(snapshot: ProjectSnapshot): Array<{ path: string; sizeByt
     .filter(Boolean) as Array<{ path: string; sizeBytes?: number; updatedAt?: string }>;
 }
 
-function snapshotAuthor(t: TFunction, snapshot: ProjectSnapshot) {
+function snapshotAuthor(snapshot: ProjectSnapshot) {
   if (snapshot.kind === 'before-ai-change' || /ai|agent/i.test(snapshot.label ?? '')) {
-    return t('baseChatAst.snapshot.author.agent');
+    return 'Agent';
   }
 
   if (snapshot.kind === 'automatic') {
-    return t('baseChatAst.snapshot.author.system');
+    return 'System';
   }
 
-  return t('baseChatAst.snapshot.author.manual');
+  return 'Manual';
 }
 
-function snapshotKindLabel(t: TFunction, snapshot: ProjectSnapshot) {
+function snapshotKindLabel(snapshot: ProjectSnapshot) {
   if (snapshot.kind === 'before-ai-change') {
-    return t('baseChatAst.snapshot.kind.beforeAi');
+    return 'Before AI change';
   }
 
   if (snapshot.kind === 'automatic') {
-    return t('baseChatAst.snapshot.kind.automatic');
+    return 'Automatic';
   }
 
-  return t('baseChatAst.snapshot.kind.manual');
+  return 'Manual';
 }
 
 function snapshotDiffSummary(current: ProjectSnapshot, previous?: ProjectSnapshot) {
@@ -1547,7 +1269,6 @@ function projectFileNames(files: FileMap) {
 }
 
 function buildProjectAgentSuggestions(input: {
-  t: TFunction;
   files: FileMap;
   selectedFile?: string;
   messages?: Message[];
@@ -1558,7 +1279,6 @@ function buildProjectAgentSuggestions(input: {
   chatStarted: boolean;
 }): ProjectAgentSuggestion[] {
   const {
-    t,
     files,
     selectedFile,
     messages = [],
@@ -1627,9 +1347,10 @@ function buildProjectAgentSuggestions(input: {
   if (/error|failed|exception|traceback|cannot|econn|invalid/i.test(recentLogs)) {
     add({
       id: 'fix-runtime-error',
-      label: t('chat.copy.fixLatestError_b6da7063'),
-      prompt: t('chat.copy.analyzeTheLatestRuntimeLogsIdentify_680e460a'),
-      reason: t('chat.copy.recentLogsContainErrors_6290ed06'),
+      label: 'Fix latest error',
+      prompt:
+        'Analyze the latest runtime logs, identify the root cause, and patch the project so the preview runs cleanly.',
+      reason: 'Recent logs contain errors',
       icon: 'i-ph:warning',
       priority: 100,
     });
@@ -1638,9 +1359,10 @@ function buildProjectAgentSuggestions(input: {
   if (!previewRunning && hasPackageJson) {
     add({
       id: 'start-preview',
-      label: t('chat.copy.getPreviewRunning_0d5b5104'),
-      prompt: t('chat.copy.inspectTheProjectStartupSetupInstall_f94a95ae'),
-      reason: t('chat.copy.previewHasNoActivePort_18ad3861'),
+      label: 'Get preview running',
+      prompt:
+        'Inspect the project startup setup, install or fix missing dependencies if needed, and get the preview dev server running.',
+      reason: 'Preview has no active port',
       icon: 'i-ph:browser',
       priority: 95,
     });
@@ -1649,9 +1371,9 @@ function buildProjectAgentSuggestions(input: {
   if (selectedFile) {
     add({
       id: 'improve-selected-file',
-      label: t('baseChatAst.suggestion.improveLabel', { file: selectedLabel }),
-      prompt: t('baseChatAst.suggestion.improvePrompt', { path: selectedFile }),
-      reason: t('chat.copy.basedOnTheOpenFile_d8844105'),
+      label: `Improve ${selectedLabel}`,
+      prompt: `Review ${selectedFile}, explain the most important improvement, then implement it with minimal changes.`,
+      reason: 'Based on the open file',
       icon: 'i-ph:file-code',
       priority: 88,
     });
@@ -1660,9 +1382,10 @@ function buildProjectAgentSuggestions(input: {
   if (changedFiles > 0) {
     add({
       id: 'review-changes',
-      label: t('chat.copy.reviewChanges_d174dd6e'),
-      prompt: t('chat.copy.reviewTheCurrentUncommittedProjectChanges_2e7d7a94'),
-      reason: t('baseChatAst.suggestion.changedFiles', { count: changedFiles }),
+      label: 'Review changes',
+      prompt:
+        'Review the current uncommitted project changes, summarize what changed, find likely bugs, and suggest the next safe commit.',
+      reason: `${changedFiles} changed file${changedFiles === 1 ? '' : 's'}`,
       icon: 'i-ph:git-diff',
       priority: 84,
     });
@@ -1671,9 +1394,10 @@ function buildProjectAgentSuggestions(input: {
   if (/deploy|publish|ship|production|prod|domain/.test(recentText) || activePanel === 'deployments') {
     add({
       id: 'prepare-deploy',
-      label: t('chat.copy.prepareDeploy_d5681ade'),
-      prompt: t('chat.copy.checkTheProjectForDeploymentReadiness_57818802'),
-      reason: t('chat.copy.deploymentContextDetected_4ffe7eeb'),
+      label: 'Prepare deploy',
+      prompt:
+        'Check the project for deployment readiness: build command, env vars, output directory, runtime risks, and any blocker before publishing.',
+      reason: 'Deployment context detected',
       icon: 'i-ph:rocket-launch',
       priority: 80,
     });
@@ -1682,9 +1406,10 @@ function buildProjectAgentSuggestions(input: {
   if (!hasTests && filePaths.length > 4) {
     add({
       id: 'add-smoke-tests',
-      label: t('chat.copy.addSmokeTests_7804b150'),
-      prompt: t('chat.copy.addASmallSmokeTestOr_74d572da'),
-      reason: t('chat.copy.noTestsDetected_01e780d6'),
+      label: 'Add smoke tests',
+      prompt:
+        'Add a small smoke test or validation script for the most important user flow in this project, following the existing stack.',
+      reason: 'No tests detected',
       icon: 'i-ph:check-circle',
       priority: 72,
     });
@@ -1693,9 +1418,10 @@ function buildProjectAgentSuggestions(input: {
   if (hasDbFiles || /database|db|data|schema|migration|supabase/.test(recentText)) {
     add({
       id: 'audit-data-layer',
-      label: t('chat.copy.auditDataFlow_3f71c822'),
-      prompt: t('chat.copy.inspectTheProjectDataLayerAnd_78e474e0'),
-      reason: t('chat.copy.databaseDataFilesDetected_a167d972'),
+      label: 'Audit data flow',
+      prompt:
+        'Inspect the project data layer and recent conversation context, then fix the highest-risk data consistency or schema issue.',
+      reason: 'Database/data files detected',
       icon: 'i-ph:database',
       priority: 70,
     });
@@ -1704,9 +1430,10 @@ function buildProjectAgentSuggestions(input: {
   if (hasUiFiles && (/ui|design|button|panel|theme|mobile|responsive/.test(recentText) || activePanel === 'preview')) {
     add({
       id: 'polish-ui',
-      label: t('chat.copy.polishCurrentUi_f37c63be'),
-      prompt: t('chat.copy.auditTheCurrentUiForLayout_7be4ee43'),
-      reason: t('chat.copy.uiWorkIsActive_67802593'),
+      label: 'Polish current UI',
+      prompt:
+        'Audit the current UI for layout, theme, responsive issues and interaction gaps, then patch the most visible problems.',
+      reason: 'UI work is active',
       icon: 'i-ph:paint-brush',
       priority: 68,
     });
@@ -1715,9 +1442,10 @@ function buildProjectAgentSuggestions(input: {
   if (hasEnvExample || /api key|env|secret|provider|openai|anthropic/.test(recentText)) {
     add({
       id: 'check-config',
-      label: t('chat.copy.checkConfig_7a9e01b2'),
-      prompt: t('chat.copy.validateEnvironmentVariablesAndProviderConfiguration_16afcc7c'),
-      reason: t('chat.copy.configProviderContextDetected_f4d95af6'),
+      label: 'Check config',
+      prompt:
+        'Validate environment variables and provider configuration for this project, then fix missing or misleading UI/config states.',
+      reason: 'Config/provider context detected',
       icon: 'i-ph:key',
       priority: 64,
     });
@@ -1726,9 +1454,10 @@ function buildProjectAgentSuggestions(input: {
   if (hasApiFiles) {
     add({
       id: 'harden-api',
-      label: t('chat.copy.hardenApiPaths_87a1be38'),
-      prompt: t('chat.copy.inspectTheApiServerRoutesTouched_4cd1030f'),
-      reason: t('chat.copy.serverApiFilesDetected_a0f3f80e'),
+      label: 'Harden API paths',
+      prompt:
+        'Inspect the API/server routes touched by this project and fix one concrete reliability, error handling, or missing route issue.',
+      reason: 'Server/API files detected',
       icon: 'i-ph:shield-check',
       priority: 58,
     });
@@ -1737,11 +1466,9 @@ function buildProjectAgentSuggestions(input: {
   if (lastUserText && chatStarted) {
     add({
       id: 'continue-last-request',
-      label: t('chat.copy.continueLastRequest_6d14c48e'),
-      prompt: t('baseChatAst.suggestion.continuePrompt', {
-        request: shortContent(lastUserText, t('baseChatAst.suggestion.lastRequestFallback')),
-      }),
-      reason: t('chat.copy.basedOnTheLatestConversation_ec330857'),
+      label: 'Continue last request',
+      prompt: `Continue from my last request: "${shortContent(lastUserText, 'the last request')}". Check what is still missing and finish it.`,
+      reason: 'Based on the latest conversation',
       icon: 'i-ph:arrow-bend-down-right',
       priority: 92,
     });
@@ -1749,18 +1476,20 @@ function buildProjectAgentSuggestions(input: {
 
   add({
     id: 'add-feature',
-    label: t('chat.copy.addAFeature_17a8f96a'),
-    prompt: t('chat.copy.inspectTheCurrentProjectAndAdd_22ca1855'),
-    reason: t('chat.copy.coreECodeWorkflow_2622e876'),
+    label: 'Add a feature',
+    prompt:
+      'Inspect the current project and add one useful, coherent feature. Keep the change small, runnable, and aligned with the existing app structure.',
+    reason: 'Core E-Code workflow',
     icon: 'i-ph:plus-circle',
     priority: 88,
   });
 
   add({
     id: 'next-best-step',
-    label: t('chat.copy.findNextBestStep_aa78d3eb'),
-    prompt: t('chat.copy.analyzeTheCurrentProjectFilesRecent_1735206f'),
-    reason: t('chat.copy.projectAwareFallback_4ffb1415'),
+    label: 'Find next best step',
+    prompt:
+      'Analyze the current project files, recent conversation, preview/runtime state and git changes, then choose and implement the highest-impact next step.',
+    reason: 'Project-aware fallback',
     icon: 'i-ph:sparkle',
     priority: 1,
   });
@@ -1809,10 +1538,7 @@ function normalizePaneTree(node: any): IdePaneNode {
     return {
       type: 'split',
       id: typeof node.id === 'string' ? node.id : 'pane-split-root',
-      direction: node.direction === 'vertical' ? 'vertical' : 'horizontal',
-      ...(typeof node.ratio === 'number' && Number.isFinite(node.ratio)
-        ? { ratio: Math.min(0.9, Math.max(0.1, node.ratio)) }
-        : {}),
+      direction: 'horizontal',
       first: normalizePaneTree(node.first),
       second: normalizePaneTree(node.second),
     };
@@ -1828,46 +1554,6 @@ function normalizePaneTree(node: any): IdePaneNode {
     tabs,
     activeTabId,
   };
-}
-
-function normalizeFloatingPanes(input: unknown): IdeFloatingPane[] {
-  if (!Array.isArray(input)) {
-    return [];
-  }
-
-  const result: IdeFloatingPane[] = [];
-
-  for (const entry of input) {
-    const floating = entry as Partial<IdeFloatingPane> | undefined;
-    const pane = floating?.pane as any;
-
-    if (!floating || !pane || pane.type !== 'leaf' || !Array.isArray(pane.tabs) || pane.tabs.length === 0) {
-      continue;
-    }
-
-    const normalizedPane = normalizePaneTree(pane);
-
-    if (normalizedPane.type !== 'leaf') {
-      continue;
-    }
-
-    const bounds = floating.bounds ?? { x: 72, y: 72, width: 720, height: 480 };
-
-    result.push({
-      id: typeof floating.id === 'string' ? floating.id : `floating-${pane.id ?? 'pane'}`,
-      pane: { ...normalizedPane, id: typeof pane.id === 'string' ? pane.id : normalizedPane.id },
-      bounds: {
-        x: Number.isFinite(bounds.x) ? bounds.x : 72,
-        y: Number.isFinite(bounds.y) ? bounds.y : 72,
-        width: Number.isFinite(bounds.width) ? Math.max(280, bounds.width) : 720,
-        height: Number.isFinite(bounds.height) ? Math.max(180, bounds.height) : 480,
-      },
-      zIndex: typeof floating.zIndex === 'number' ? floating.zIndex : result.length + 1,
-      ...(floating.dockOrigin ? { dockOrigin: floating.dockOrigin } : {}),
-    });
-  }
-
-  return result;
 }
 
 function isIdeRightPanel(panel: string): panel is IdeRightPanel {
@@ -1915,16 +1601,13 @@ function formatRailItemLabel(label: string, badgeLabel?: string) {
   return badgeLabel ? `${label}, ${badgeLabel}` : label;
 }
 
-function formatRailItemTooltip(t: TFunction, label: string, fallbackDescription: string, badgeLabel?: string) {
+function formatRailItemTooltip(label: string, fallbackDescription: string, badgeLabel?: string) {
   const help = IDE_RAIL_TOOLTIP_HELP[label];
-  const description = t(help?.description ?? fallbackDescription);
+  const description = help?.description ?? fallbackDescription;
 
-  const details = [
-    label,
-    description,
-    badgeLabel,
-    help?.shortcut ? t('chat.copy.shortcutValue', { shortcut: help.shortcut }) : undefined,
-  ].filter(Boolean);
+  const details = [label, description, badgeLabel, help?.shortcut ? `Shortcut: ${help.shortcut}` : undefined].filter(
+    Boolean,
+  );
 
   return details.join('. ');
 }
@@ -1933,45 +1616,29 @@ function isIdeHiddenPath(filePath: string) {
   return IDE_FILE_TREE_HIDDEN_PATTERNS.some((pattern) => pattern.test(filePath));
 }
 
-function inferAgentToolAction(t: TFunction, message: string | undefined): AgentToolAction | null {
+function inferAgentToolAction(message: string | undefined): AgentToolAction | null {
   const text = (message ?? '').toLowerCase();
 
   const matches: Array<[RegExp, IdeWorkspacePanel | IdeRightPanel, string]> = [
-    [
-      /\b(open|show|ouvre|affiche).*\b(files?|fichiers?|explorer)\b|\b(files?|fichiers?)\b/,
-      'files',
-      t('baseChatAst.tool.openFiles'),
-    ],
-    [/\b(search|find|recherche)\b/, 'search', t('baseChatAst.tool.openSearch')],
-    [/\b(database|sql|db|base de donn)/, 'database', t('baseChatAst.tool.openDatabase')],
-    [
-      /\b(terminal|console|logs?|shell)\b/,
-      'terminal',
-      t('baseChatAst.tool.openTerminal', { terminal: SHELL_TERMINAL_LABEL }),
-    ],
-    [/\b(preview|webview|aperçu|apercu)\b/, 'preview', t('baseChatAst.tool.openWebview')],
-    [
-      /\b(deploy|deployment|publish|publier|déploiement|deploiement)\b/,
-      'deployments',
-      t('baseChatAst.tool.openDeployments'),
-    ],
-    [/\b(secret|env|environment variable)\b/, 'secrets', t('baseChatAst.tool.openSecrets')],
-    [/\bgit\b|\bbranch\b|\bcommit\b/, 'git', t('baseChatAst.tool.openGit')],
-    [/\b(package|dependency|dependencies|npm|pnpm)\b/, 'packages', t('baseChatAst.tool.openPackages')],
+    [/\b(open|show|ouvre|affiche).*\b(files?|fichiers?|explorer)\b|\b(files?|fichiers?)\b/, 'files', 'Open Files'],
+    [/\b(search|find|recherche)\b/, 'search', 'Open Search'],
+    [/\b(database|sql|db|base de donn)/, 'database', 'Open Database'],
+    [/\b(terminal|console|logs?|shell)\b/, 'terminal', `Open ${SHELL_TERMINAL_LABEL}`],
+    [/\b(preview|webview|aperçu|apercu)\b/, 'preview', 'Open Webview'],
+    [/\b(deploy|deployment|publish|publier|déploiement|deploiement)\b/, 'deployments', 'Open Deployments'],
+    [/\b(secret|env|environment variable)\b/, 'secrets', 'Open Secrets'],
+    [/\bgit\b|\bbranch\b|\bcommit\b/, 'git', 'Open Git'],
+    [/\b(package|dependency|dependencies|npm|pnpm)\b/, 'packages', 'Open Packages'],
     [
       /\b(integration|integrations|webhook|api key|event stream|slack|jira|sentry|stripe|zapier)\b/,
       'integrations',
-      t('baseChatAst.tool.openIntegrations'),
+      'Open Integrations',
     ],
-    [
-      /\b(workflow|workflows|run button|automation|automate|script|task)\b/,
-      'workflows',
-      t('baseChatAst.tool.openWorkflows'),
-    ],
-    [/\b(snapshot|checkpoint|restore|rollback)\b/, 'snapshots', t('baseChatAst.tool.openSnapshots')],
-    [/\b(extension|marketplace)\b/, 'extensions', t('baseChatAst.tool.openExtensions')],
-    [/\bmonitoring|metrics|observability\b/, 'monitoring', t('baseChatAst.tool.openMonitoring')],
-    [/\bsettings|param(è|e)tres|configuration\b/, 'settings', t('baseChatAst.tool.openSettings')],
+    [/\b(workflow|workflows|run button|automation|automate|script|task)\b/, 'workflows', 'Open Workflows'],
+    [/\b(snapshot|checkpoint|restore|rollback)\b/, 'snapshots', 'Open Snapshots'],
+    [/\b(extension|marketplace)\b/, 'extensions', 'Open Extensions'],
+    [/\bmonitoring|metrics|observability\b/, 'monitoring', 'Open Monitoring'],
+    [/\bsettings|param(è|e)tres|configuration\b/, 'settings', 'Open Settings'],
   ];
 
   const match = matches.find(([pattern]) => pattern.test(text));
@@ -1985,7 +1652,7 @@ function inferAgentToolAction(t: TFunction, message: string | undefined): AgentT
   return {
     panel,
     title,
-    description: t(IDE_TOOL_DESCRIPTIONS[panel]),
+    description: IDE_TOOL_DESCRIPTIONS[panel],
     icon: panelIcon(panel),
   };
 }
@@ -2055,14 +1722,12 @@ function resolveMentionedProjectSymbols(message: string, files: FileMap) {
 }
 
 function buildProjectAgentPrompt({
-  t,
   message,
   mode,
   planFirst,
   mentionedFiles,
   mentionedSymbols,
 }: {
-  t: TFunction;
   message: string;
   mode: ProjectAgentExecutionMode;
   planFirst: boolean;
@@ -2072,7 +1737,7 @@ function buildProjectAgentPrompt({
   const modeConfig = PROJECT_AGENT_EXECUTION_MODES.find((item) => item.id === mode) ?? PROJECT_AGENT_EXECUTION_MODES[2];
 
   const guardrails = [
-    `Mode: ${t(modeConfig.label)}. ${t(modeConfig.description)}`,
+    `Mode: ${modeConfig.label}. ${modeConfig.description}`,
     planFirst
       ? 'Plan first is enabled: produce a concise, reviewable plan and wait for explicit approval before editing files, running shell commands, deploying, or applying destructive actions.'
       : 'Plan first is disabled: proceed according to the selected mode, but keep changes scoped and verify them.',
@@ -2148,75 +1813,6 @@ function flattenTabs(node: IdePaneNode): IdePaneTab[] {
   return [...flattenTabs(node.first), ...flattenTabs(node.second)];
 }
 
-function countLeaves(node: IdePaneNode | null): number {
-  if (!node) {
-    return 0;
-  }
-
-  return node.type === 'leaf' ? 1 : countLeaves(node.first) + countLeaves(node.second);
-}
-
-function flattenPaneLeafIds(node: IdePaneNode | null): string[] {
-  if (!node) {
-    return [];
-  }
-
-  return node.type === 'leaf' ? [node.id] : [...flattenPaneLeafIds(node.first), ...flattenPaneLeafIds(node.second)];
-}
-
-/**
- * RPL-IDE-001.1/.2/.3 — the docked pane tree, floating panes and active pane of
- * a single browser window. Structurally identical to the pure engine's
- * `ProjectEditorWindowState`; the app-side tool union (`IdeWorkspacePanel`) is a
- * subset of the engine's, so the cast at the engine boundary is sound.
- */
-type IdeWindowState = {
-  root: IdePaneNode | null;
-  floatingPanes: IdeFloatingPane[];
-  activePaneId: string;
-  maximizedPaneId?: string;
-};
-
-/**
- * Bridge to the pure layout engine. We keep the app's own pane state as the
- * source of truth (incremental, no wholesale rewrite) and delegate the tree
- * transforms — split H/V, resize, float, dock (with origin restore) — to the
- * tested engine, casting at the single boundary here.
- */
-function runProjectEditorWindowOp(
-  state: IdeWindowState,
-  op: (windowState: ProjectEditorWindowState) => ProjectEditorWindowState,
-): IdeWindowState {
-  const engineInput = {
-    id: 'window',
-    root: state.root,
-    floatingPanes: state.floatingPanes,
-    activePaneId: state.activePaneId,
-    ...(state.maximizedPaneId ? { maximizedPaneId: state.maximizedPaneId } : {}),
-  } as unknown as ProjectEditorWindowState;
-
-  const next = op(engineInput);
-
-  return {
-    root: (next.root as unknown as IdePaneNode | null) ?? null,
-    floatingPanes: next.floatingPanes as unknown as IdeFloatingPane[],
-    activePaneId: next.activePaneId,
-    maximizedPaneId: next.maximizedPaneId,
-  };
-}
-
-const PROJECT_EDITOR_WINDOW_PARAM = 'peWindow';
-const DEFAULT_PROJECT_EDITOR_WINDOW = 'window-main';
-
-/** Structural signature of a window layout, excluding volatile timestamps. */
-function projectEditorLayoutSignature(
-  root: IdePaneNode | null,
-  floatingPanes: IdeFloatingPane[],
-  activePaneId: string,
-): string {
-  return JSON.stringify({ root, floatingPanes, activePaneId });
-}
-
 function HeaderTip({
   label,
   children,
@@ -2270,7 +1866,6 @@ function HeaderTip({
 }
 
 function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any[]; autoApplyEnabled?: boolean }) {
-  const { t } = useTranslation();
   const [selectedHunksByProposal, setSelectedHunksByProposal] = useState<Record<string, Set<string>>>({});
 
   const visibleProposals = useMemo(() => {
@@ -2360,14 +1955,14 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
   };
 
   return (
-    <section className="bolt-project-agent-patch-review" aria-label={t('chat.copy.aiPatchReviewQueue_b6f83c83')}>
+    <section className="bolt-project-agent-patch-review" aria-label="AI patch review queue">
       <div className="bolt-project-agent-patch-review-head">
         <div>
-          <strong>{t('chat.copy.reviewAiChanges_5c09969d')}</strong>
+          <strong>Review AI changes</strong>
           <span>
             {autoApplyEnabled
-              ? t('baseChatAst.patch.failed', { count: visibleProposals.length })
-              : t('baseChatAst.patch.review', { count: visibleProposals.length })}
+              ? `${visibleProposals.length} AI change${visibleProposals.length === 1 ? '' : 's'} failed and need a manual decision`
+              : `${visibleProposals.length} AI change${visibleProposals.length === 1 ? '' : 's'} to review`}
           </span>
         </div>
         <div className="bolt-project-agent-patch-review-bulk">
@@ -2377,7 +1972,7 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
             disabled={pendingForBulk.length === 0}
             onClick={acceptAll}
           >
-            {t('chat.copy.acceptAll_821d1f79')}
+            Accept all
           </button>
           <button
             type="button"
@@ -2385,7 +1980,7 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
             disabled={pendingForBulk.length === 0}
             onClick={rejectAll}
           >
-            {t('chat.copy.rejectAll_35c291a4')}
+            Reject all
           </button>
         </div>
       </div>
@@ -2403,13 +1998,7 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
                 <div>
                   <strong title={proposal.relativePath}>{proposal.relativePath}</strong>
                   <span>
-                    {/*
-                     * BUG-QA-I18N-COUNT-002 : compteurs collés au libellé, et
-                     * pluriel fabriqué avec un « s » ANGLAIS ajouté à une chaîne
-                     * traduite (« Segments » en français par accident).
-                     */}
-                    {t('baseChatAst.patch.hunks', { count: proposal.hunks.length })} ·{' '}
-                    {t('baseChatAst.patch.selected', { count: selectedCount })}
+                    {proposal.hunks.length} hunk{proposal.hunks.length === 1 ? '' : 's'} · {selectedCount} selected
                   </span>
                 </div>
                 <div className="bolt-project-agent-patch-actions">
@@ -2418,14 +2007,14 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
                     disabled={busy || selectedCount === 0}
                     onClick={() => workbenchStore.acceptAgentPatchProposal(proposal.id, Array.from(selectedHunks))}
                   >
-                    {t('chat.copy.acceptFile_72208421')}
+                    Accept file
                   </button>
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => workbenchStore.rejectAgentPatchProposal(proposal.id)}
                   >
-                    {t('chat.copy.rejectFile_a52b87d3')}
+                    Reject file
                   </button>
                 </div>
               </div>
@@ -2433,9 +2022,9 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
               <details className="bolt-project-agent-patch-hunks-toggle">
                 <summary>
                   <span className="bolt-project-agent-patch-hunks-toggle-label">
-                    {t('chat.copy.showDiff_78016e77')}
+                    Show diff
                     <span className="bolt-project-agent-patch-hunks-toggle-count">
-                      {t('baseChatAst.counts.hunks', { count: proposal.hunks.length })}
+                      {proposal.hunks.length} hunk{proposal.hunks.length === 1 ? '' : 's'}
                     </span>
                   </span>
                   <span className="bolt-project-agent-patch-hunks-toggle-chevron i-ph:caret-down" aria-hidden />
@@ -2453,19 +2042,13 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
                               checked={checked}
                               onChange={() => toggleHunk(proposal.id, hunk.id)}
                             />
-                            {t('chat.copy.hunk_1920d3ca')}
-                            {index + 1}
+                            Hunk {index + 1}
                           </label>
                           <span>
                             -{hunk.oldStart},{hunk.oldLines} +{hunk.newStart},{hunk.newLines}
                           </span>
                         </div>
-                        <pre
-                          aria-label={t('chat.copy.diffHunkValue0ForValue1_15b99314', {
-                            value0: index + 1,
-                            value1: proposal.relativePath,
-                          })}
-                        >
+                        <pre aria-label={`Diff hunk ${index + 1} for ${proposal.relativePath}`}>
                           {hunk.lines.map((line: any) => (
                             <code key={line.id} data-line-type={line.type}>
                               {line.type === 'add' ? '+' : line.type === 'remove' ? '-' : ' '}
@@ -2598,54 +2181,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     },
     ref,
   ) => {
-    const { t, i18n } = useTranslation();
-    const language = resolvedBaseChatLanguage(i18n);
-
-    const ECODE_MOBILE_TAB_META = useMemo(
-      () =>
-        Object.fromEntries(
-          Object.entries(ECODE_MOBILE_TAB_META_BASE).map(([id, meta]) => {
-            const aliases: Record<string, string> = {
-              agent: 'agent',
-              actions: 'agent',
-              assistant: 'agent',
-              deploy: 'deployments',
-              publishing: 'deployments',
-              'app-storage': 'object-storage',
-              storage: 'object-storage',
-              auth: 'settings',
-              console: 'terminal',
-              shell: 'terminal',
-              debug: 'debugger',
-              developer: 'debugger',
-              history: 'activity',
-              multiplayer: 'collaborators',
-              collaboration: 'collaborators',
-              collaborate: 'collaborators',
-              checkpoints: 'snapshots',
-              'kv-store': 'database',
-              web: 'preview',
-            };
-
-            const canonicalPanel = aliases[id] ?? id;
-
-            return [
-              id,
-              {
-                ...meta,
-                name:
-                  canonicalPanel === 'agent'
-                    ? t('chat.copy.agent_5ce2e6f4')
-                    : canonicalPanel === 'tools'
-                      ? t('baseChatAst.common.tools')
-                      : panelTitle(canonicalPanel, t),
-              },
-            ];
-          }),
-        ),
-      [language, t],
-    );
-
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
     const [searchParams, setSearchParams] = useSearchParams();
     const layout = useResponsiveLayout();
@@ -2884,26 +2419,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           method: 'POST',
           credentials: 'include',
           headers: { accept: 'application/json', 'content-type': 'application/json' },
-          body: JSON.stringify({
-            label: t('chat.copy.manualCheckpointViaSnapshot_11e1a834'),
-            kind: 'manual',
-            manifest: {},
-          }),
+          body: JSON.stringify({ label: 'Manual checkpoint via /snapshot', kind: 'manual', manifest: {} }),
         });
 
         if (!response.ok) {
-          console.warn('Snapshot creation failed', { status: response.status });
-          toast.error(t('baseChatAst.snapshot.failedHttp', { status: response.status }));
-
-          return;
+          throw new Error(`Snapshot failed (${response.status})`);
         }
 
-        toast.success(t('chat.copy.snapshotCreated_69d5db4f'));
+        toast.success('Snapshot created');
       } catch (error) {
-        console.error('Snapshot creation request failed', error);
-        toast.error(t('baseChatAst.snapshot.failed'));
+        toast.error(`Snapshot failed: ${(error as Error).message}`);
       }
-    }, [projectId, t]);
+    }, [projectId]);
 
     const getLastPreviewError = useCallback(() => {
       const state = workbenchStore.previewServerState.get();
@@ -2944,24 +2471,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * The output streams into the IDE terminal panel; we surface a
      * toast on failure so the user knows when it crashed silently.
      */
-    const runShellCommandFromSlash = useCallback(
-      async (command: string) => {
-        const shell = workbenchStore.boltTerminal;
+    const runShellCommandFromSlash = useCallback(async (command: string) => {
+      const shell = workbenchStore.boltTerminal;
 
-        if (!shell || typeof shell.executeCommand !== 'function') {
-          toast.error(t('chat.copy.shellUnavailableOpenTheTerminalPanel_578d6a74'));
-          return;
-        }
+      if (!shell || typeof shell.executeCommand !== 'function') {
+        toast.error('Shell unavailable — open the terminal panel first');
+        return;
+      }
 
-        try {
-          await shell.executeCommand(`slash-run:${Date.now()}`, command);
-        } catch (error) {
-          console.error('Slash shell command failed', error);
-          toast.error(t('baseChatAst.shell.commandFailed'));
-        }
-      },
-      [t],
-    );
+      try {
+        await shell.executeCommand(`slash-run:${Date.now()}`, command);
+      } catch (error) {
+        toast.error(`Shell command failed: ${(error as Error).message}`);
+      }
+    }, []);
 
     const useMobileIde = layout.isMobile || layout.isTablet;
     const navigate = useNavigate();
@@ -3222,29 +2745,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       ECODE_MOBILE_DEFAULT_TABS.map((tab) => ECODE_MOBILE_TAB_META[tab]),
     );
 
-    useEffect(() => {
-      setMobileOpenTabs((current) =>
-        current.map((tab) => ECODE_MOBILE_TAB_META[tab.id] ?? { ...tab, name: panelTitle(tab.id, t) }),
-      );
-    }, [ECODE_MOBILE_TAB_META, t]);
-
     const [activeMobileOpenTabId, setActiveMobileOpenTabId] = useState('agent');
 
     const { setActivePanel: persistMobilePanel } = useMobileIdePersistence(projectIdeMode ? projectId : undefined);
 
-    const ensureMobileOpenTab = useCallback(
-      (tabId: string) => {
-        const tab = ECODE_MOBILE_TAB_META[tabId] ?? {
-          id: tabId,
-          name: panelTitle(tabId, t),
-          icon: panelIcon(tabId),
-        };
+    const ensureMobileOpenTab = useCallback((tabId: string) => {
+      const tab = ECODE_MOBILE_TAB_META[tabId] ?? {
+        id: tabId,
+        name: panelTitle(tabId),
+        icon: panelIcon(tabId),
+      };
 
-        setMobileOpenTabs((current) => (current.some((item) => item.id === tab.id) ? current : [...current, tab]));
-        setActiveMobileOpenTabId(tab.id);
-      },
-      [t],
-    );
+      setMobileOpenTabs((current) => (current.some((item) => item.id === tab.id) ? current : [...current, tab]));
+      setActiveMobileOpenTabId(tab.id);
+    }, []);
     const setMobileIdePanel = useCallback(
       (panel: (typeof MOBILE_IDE_PANELS)[number], options: { activeTabId?: string } = {}) => {
         setMobilePanel(panel);
@@ -3257,25 +2771,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       },
       [ensureMobileOpenTab, persistMobilePanel],
     );
-    const localizedMobileTools = useMemo(
-      () =>
-        ECODE_MOBILE_TOOLS.map((item) => ({ ...item, title: t(item.titleKey), description: t(item.descriptionKey) })),
-      [t],
-    );
     const filteredMobileToolsSheetItems = useMemo(() => {
       const query = mobileToolsQuery.trim().toLowerCase();
 
       if (!query) {
-        return localizedMobileTools;
+        return ECODE_MOBILE_TOOLS;
       }
 
-      return localizedMobileTools.filter(
+      return ECODE_MOBILE_TOOLS.filter(
         (item) =>
           item.title.toLowerCase().includes(query) ||
           item.description.toLowerCase().includes(query) ||
           item.id.toLowerCase().includes(query),
       );
-    }, [localizedMobileTools, mobileToolsQuery]);
+    }, [mobileToolsQuery]);
     const filteredMobileOpenTabs = useMemo(() => {
       const query = mobileTabSearchQuery.trim().toLowerCase();
 
@@ -3287,9 +2796,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         (tab) =>
           tab.name.toLowerCase().includes(query) ||
           tab.id.toLowerCase().includes(query) ||
-          panelTitle(tab.id, t).toLocaleLowerCase(language).includes(query),
+          panelTitle(tab.id).toLowerCase().includes(query),
       );
-    }, [language, mobileOpenTabs, mobileTabSearchQuery, t]);
+    }, [mobileOpenTabs, mobileTabSearchQuery]);
     const goToAdjacentMobilePanel = useCallback(
       (direction: 1 | -1) => {
         const currentIndex = MOBILE_IDE_PANELS.indexOf(mobilePanel);
@@ -3390,24 +2899,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [activePaneId, setActivePaneId] = useState('pane-main');
     const [paneDropTarget, setPaneDropTarget] = useState<string | null>(null);
 
-    /** RPL-IDE-001.3 — panes popped out of the docked tree in this window. */
-    const [floatingPanes, setFloatingPanes] = useState<IdeFloatingPane[]>([]);
-
-    /** RPL-IDE-001.1 — last layout signature applied, to skip redundant cross-tab echoes. */
-    const projectEditorWindowSyncRef = useRef<string>('');
-
-    /**
-     * RPL-IDE-001.1 — this browser tab's Project Editor window id. `window-main`
-     * is the primary; secondary windows opened via "Open in new window" carry a
-     * `?peWindow=<id>` param and persist their layout independently.
-     */
-    const projectEditorWindowId = useMemo(
-      () => searchParams.get(PROJECT_EDITOR_WINDOW_PARAM) || DEFAULT_PROJECT_EDITOR_WINDOW,
-      [searchParams],
-    );
-
-    const isSecondaryProjectEditorWindow = projectEditorWindowId !== DEFAULT_PROJECT_EDITOR_WINDOW;
-
     const [agentWidth, setAgentWidth] = useState(() =>
       defaultProjectAgentPanelWidth(typeof window === 'undefined' ? undefined : window.innerWidth),
     );
@@ -3450,7 +2941,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [confirmClearHistoryOpen, setConfirmClearHistoryOpen] = useState(false);
     const [projectAgentExecutionMode, setProjectAgentExecutionMode] = useState<ProjectAgentExecutionMode>('agent');
     const isAgentRunning = projectIdeMode && isStreaming;
-    const stopAgentLabel = projectAgentStopLabel(provider?.name, model, language);
+    const stopAgentLabel = projectAgentStopLabel(provider?.name, model);
     const [projectAgentPanelOpen, setProjectAgentPanelOpen] = useState(true);
 
     const [projectPlanFirst, setProjectPlanFirst] = useState(() => {
@@ -3664,21 +3155,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               return;
             }
 
-            toast.error(describeAutoApplyFailure(filePath, undefined, language), {
-              toastId: `auto-apply-error-${filePath}`,
-            });
+            toast.error(describeAutoApplyFailure(filePath), { toastId: `auto-apply-error-${filePath}` });
           })
           .catch((error) => {
             if (failureIsSuperseded()) {
               return;
             }
 
-            toast.error(describeAutoApplyFailure(filePath, error, language), {
-              toastId: `auto-apply-error-${filePath}`,
-            });
+            toast.error(describeAutoApplyFailure(filePath, error), { toastId: `auto-apply-error-${filePath}` });
           });
       }
-    }, [agentPatchProposals, language, scheduleAppliedFilesToast, projectAutoApply]);
+    }, [agentPatchProposals, scheduleAppliedFilesToast, projectAutoApply]);
 
     const [archivedProjectConversations, setArchivedProjectConversations] = useState<
       Array<{ id: string; title?: string; messages: Message[]; createdAt?: string; updatedAt?: string }>
@@ -3721,26 +3208,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           const result = (await response.json().catch(() => ({}))) as { error?: string };
 
           if (!response.ok) {
-            console.warn('Git synchronization request failed', {
-              intent,
-              status: response.status,
-              serverError: result.error,
-            });
-            toast.error(
-              t('baseChatAst.git.failedHttp', {
-                action: t(intent === 'push' ? 'baseChatAst.git.push' : 'baseChatAst.git.pull'),
-                status: response.status,
-              }),
-            );
-
-            return;
+            throw new Error(result.error ?? `Git ${intent} failed`);
           }
 
-          toast.success(
-            t('baseChatAst.git.completed', {
-              action: t(intent === 'push' ? 'baseChatAst.git.push' : 'baseChatAst.git.pull'),
-            }),
-          );
+          toast.success(`Git ${intent} completed`);
 
           // Refresh the ahead/behind counts right away instead of waiting for the overview stream.
           const refreshed = await fetch(`/api/projects/${projectId}/ide-panel/overview`, {
@@ -3758,17 +3229,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             }
           }
         } catch (error) {
-          console.error('Git synchronization failed', { intent, error });
-          toast.error(
-            t('baseChatAst.git.failed', {
-              action: t(intent === 'push' ? 'baseChatAst.git.push' : 'baseChatAst.git.pull'),
-            }),
-          );
+          toast.error(error instanceof Error ? error.message : `Git ${intent} failed`);
         } finally {
           setStatusbarGitBusy(false);
         }
       },
-      [projectId, statusbarGitBranch, statusbarGitBusy, t],
+      [projectId, statusbarGitBranch, statusbarGitBusy],
     );
 
     const setDiagnosticsForSource = useDiagnosticsStore((state) => state.setDiagnosticsForSource);
@@ -3890,13 +3356,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * "Error runtime … 500" in Problems and a stuck PENDING/Error status after the
      * preview has already come up. If the runtime errors again the store re-sets it.
      */
-    /*
-     * Must stay identical to `hasLivePreviewPort`: a URL is stamped on EVERY port
-     * the API reports, so the old `|| Boolean(port.url)` made this vacuously true
-     * and wiped genuine runtime errors out of Problems the moment any port existed
-     * (SOLUTIONS_REAL_PROOF_BLOCKERS.md §5).
-     */
-    const previewPortLive = hasLivePreviewPort(runtimePorts);
+    const previewPortLive = runtimePorts.some((port) => port.ready === true || Boolean(port.url));
     useEffect(() => {
       /*
        * Re-run on workspaceError too: a transient 500 can be re-set AFTER the port
@@ -3931,7 +3391,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const isMobilePreviewRunActive = isCompactPreviewRunActive(mobilePreviewRunState);
     const isMobilePreviewStopping = mobilePreviewRunState === 'stopping';
     const isMobilePreviewTransitioning = mobilePreviewRunState === 'starting' || mobilePreviewRunState === 'stopping';
-    const mobilePreviewRunLabel = compactPreviewRunAriaLabel(mobilePreviewRunState, language);
+    const mobilePreviewRunLabel = compactPreviewRunAriaLabel(mobilePreviewRunState);
     const mobilePreviewRunIcon = compactPreviewRunIcon(mobilePreviewRunState);
 
     useEffect(() => {
@@ -3953,73 +3413,71 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const runtimeStatusSummary = useMemo(
       () =>
-        runtimeStatusText(t, {
+        runtimeStatusText({
           workspaceStatus: projectRuntimeState.workspace,
           ports: runtimePorts,
           workspaceLoading,
           workspaceError,
         }),
-      [projectRuntimeState.workspace, runtimePorts, t, workspaceError, workspaceLoading],
+      [projectRuntimeState.workspace, runtimePorts, workspaceError, workspaceLoading],
     );
     const runtimePortSummary = useMemo(
       () =>
-        previewPortText(t, {
+        previewPortText({
           previews: runtimePreviews,
           workspaceLoading,
           workspaceError,
           previewServerState,
         }),
-      [previewServerState, runtimePreviews, t, workspaceError, workspaceLoading],
+      [previewServerState, runtimePreviews, workspaceError, workspaceLoading],
     );
     const runtimePortCompactSummary = useMemo(
       () =>
-        previewPortCompactText(t, {
+        previewPortCompactText({
           previews: runtimePreviews,
           workspaceLoading,
           workspaceError,
           previewServerState,
         }),
-      [previewServerState, runtimePreviews, t, workspaceError, workspaceLoading],
+      [previewServerState, runtimePreviews, workspaceError, workspaceLoading],
     );
     const runtimeDevServerSummary = useMemo(
       () =>
-        devServerStatusText(t, {
+        devServerStatusText({
           previews: runtimePreviews,
           workspaceLoading,
           workspaceError,
           logs: workspaceLogs,
           previewServerState,
         }),
-      [previewServerState, runtimePreviews, t, workspaceError, workspaceLoading, workspaceLogs],
+      [previewServerState, runtimePreviews, workspaceError, workspaceLoading, workspaceLogs],
     );
     const workspaceStatusLabel = useMemo(() => {
       // A live serving port means Running — beats a stale error or a lagging status.
       if (isRuntimeReallyRunning || previewPortLive) {
-        return t('baseChatAst.status.running');
+        return 'Running';
       }
 
       if (workspaceError) {
-        return t('baseChatAst.status.error');
+        return 'Error';
       }
 
       if (workspaceLoading) {
-        return t('baseChatAst.status.starting');
+        return 'Starting';
       }
 
       const status = projectRuntimeState.workspace?.status?.toLowerCase();
 
       if (status === 'running') {
-        return t('baseChatAst.status.running');
+        return 'Running';
       }
 
       if (status === 'booting' || status === 'starting') {
-        return t('baseChatAst.status.starting');
+        return 'Starting';
       }
 
-      return projectRuntimeState.workspace?.status
-        ? platformStateLabel(t, projectRuntimeState.workspace.status)
-        : t('baseChatAst.status.stopped');
-    }, [isRuntimeReallyRunning, previewPortLive, projectRuntimeState.workspace, t, workspaceError, workspaceLoading]);
+      return projectRuntimeState.workspace?.status ?? 'Stopped';
+    }, [isRuntimeReallyRunning, previewPortLive, projectRuntimeState.workspace, workspaceError, workspaceLoading]);
     const handleMobilePreviewRunToggle = useCallback(() => {
       setMobileIdePanel('preview');
       setProjectPanelSearchParam('preview');
@@ -4028,8 +3486,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setMobilePreviewRunFeedbackState('stopping');
         void workbenchStore.stopPreviewServer().catch((error) => {
           setMobilePreviewRunFeedbackState(null);
-          console.error('Preview server stop failed', error);
-          toast.error(t('baseChatAst.preview.stopFailed'));
+          toast.error(error instanceof Error ? error.message : 'Failed to stop the preview server');
         });
 
         return;
@@ -4038,22 +3495,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       setMobilePreviewRunFeedbackState('starting');
       void workbenchStore.startPreviewServer().catch((error) => {
         setMobilePreviewRunFeedbackState(null);
-        console.error('Preview server start failed', error);
-        toast.error(t('baseChatAst.preview.startFailed'));
+        toast.error(error instanceof Error ? error.message : 'Failed to start the preview server');
       });
-    }, [isMobilePreviewRunActive, setMobileIdePanel, setProjectPanelSearchParam, t]);
+    }, [isMobilePreviewRunActive, setMobileIdePanel, setProjectPanelSearchParam]);
     const workspaceStatusTitle = useMemo(
       () =>
         [
-          t('baseChatAst.runtime.workspaceState', { status: workspaceStatusLabel }),
+          `Workspace: ${workspaceStatusLabel}`,
           workspaceError,
           quotaWarning,
           billingUpgradePrompt,
-          workspaceLogs.length > 0 ? t('baseChatAst.runtime.logLines', { count: workspaceLogs.length }) : undefined,
+          workspaceLogs.length > 0 ? `${workspaceLogs.length} log lines` : undefined,
         ]
           .filter(Boolean)
           .join(' | '),
-      [billingUpgradePrompt, quotaWarning, t, workspaceError, workspaceLogs.length, workspaceStatusLabel],
+      [billingUpgradePrompt, quotaWarning, workspaceError, workspaceLogs.length, workspaceStatusLabel],
     );
     useEffect(() => {
       setDiagnosticsForSource(
@@ -4089,25 +3545,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * workspace status for the 'Reconnecting' nuance.
      */
     const statusbarConnection = !isOnline
-      ? ({
-          state: 'offline',
-          label: t('chat.copy.offline_e01fa717'),
-          color: 'var(--vc-ide-accent-error)',
-          text: t('chat.copy.varStatusErrorText_f1e5857c'),
-        } as const)
+      ? ({ label: 'Offline', color: 'var(--vc-ide-accent-error)', text: 'var(--status-error-text)' } as const)
       : workspaceLoading || runtimeWorkspaceStatus === 'STARTING' || runtimeWorkspaceStatus === 'PENDING'
         ? ({
-            state: 'reconnecting',
-            label: t('chat.copy.reconnecting_9d80f91f'),
+            label: 'Reconnecting',
             color: 'var(--vc-ide-accent-warning)',
-            text: t('chat.copy.varStatusWarningText_58e57537'),
+            text: 'var(--status-warning-text)',
           } as const)
-        : ({
-            state: 'connected',
-            label: t('chat.copy.connected_c2f9b7b4'),
-            color: 'var(--vc-ide-accent-success)',
-            text: t('chat.copy.varStatusSuccessText_8712f526'),
-          } as const);
+        : ({ label: 'Connected', color: 'var(--vc-ide-accent-success)', text: 'var(--status-success-text)' } as const);
 
     const projectConversationCheckpoints = useMemo<ProjectConversationCheckpoint[]>(() => {
       if (!projectIdeMode || !projectId) {
@@ -4117,7 +3562,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const conversationSources = [
         ...archivedProjectConversations.map((conversation) => ({
           id: conversation.id,
-          title: conversation.title ?? t('baseChatAst.conversation.project'),
+          title: conversation.title ?? 'Project conversation',
           messages: conversation.messages,
           createdAt: conversation.createdAt,
           updatedAt: conversation.updatedAt,
@@ -4125,7 +3570,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         })),
         {
           id: `project:${projectId}`,
-          title: t('chat.copy.currentProjectConversation_1df5a771'),
+          title: 'Current project conversation',
           messages: messages ?? [],
           createdAt: undefined,
           updatedAt: undefined,
@@ -4222,12 +3667,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             checkpointNumber - 1,
           );
 
-          const title = shortContent(
-            lastUserMessage?.content,
-            t('baseChatAst.snapshot.checkpoint', { count: checkpointNumber }),
-          );
-
-          const description = shortContent(message.content, t('baseChatAst.snapshot.agentResponse'));
+          const title = shortContent(lastUserMessage?.content, `Checkpoint ${checkpointNumber}`);
+          const description = shortContent(message.content, 'Agent response checkpoint');
 
           checkpoints.push({
             id: `${conversation.id}:${message.id ?? index}`,
@@ -4238,7 +3679,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             conversationId: conversation.id,
             conversationTitle: conversation.title,
             createdAt,
-            ageLabel: timeAgo(t, language, createdAt ?? snapshot?.createdAt ?? conversation.createdAt),
+            ageLabel: timeAgo(createdAt ?? snapshot?.createdAt ?? conversation.createdAt),
             commitSha: snapshot?.id?.slice(0, 8),
             snapshot,
             messages: conversation.messages.slice(0, index + 1),
@@ -4265,14 +3706,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             title: shortContent(firstUserMessage?.content ?? lastMessage.content, conversation.title),
             description:
               lastMessage.role === 'user'
-                ? t('baseChatAst.conversation.waiting')
-                : shortContent(lastMessage.content, t('baseChatAst.conversation.checkpoint')),
+                ? 'Waiting for the agent response'
+                : shortContent(lastMessage.content, 'Project conversation checkpoint'),
             messageId: lastMessage.id,
             messageIndex: conversation.messages.length - 1,
             conversationId: conversation.id,
             conversationTitle: conversation.title,
             createdAt,
-            ageLabel: timeAgo(t, language, createdAt ?? snapshot?.createdAt ?? conversation.createdAt),
+            ageLabel: timeAgo(createdAt ?? snapshot?.createdAt ?? conversation.createdAt),
             commitSha: snapshot?.id?.slice(0, 8),
             snapshot,
             messages: conversation.messages,
@@ -4289,17 +3730,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         checkpoints.push({
           id: `${lastMessage.id ?? 'current'}`,
-          title: shortContent(
-            sourceMessages.find((message) => message.role === 'user')?.content,
-            t('baseChatAst.conversation.currentChat'),
-          ),
-          description: t('chat.copy.currentProjectConversation_1df5a771'),
+          title: shortContent(sourceMessages.find((message) => message.role === 'user')?.content, 'Current chat'),
+          description: 'Current project conversation',
           messageId: lastMessage.id,
           messageIndex: sourceMessages.length - 1,
           conversationId: `project:${projectId}`,
-          conversationTitle: t('baseChatAst.conversation.current'),
+          conversationTitle: 'Current project conversation',
           createdAt,
-          ageLabel: timeAgo(t, language, createdAt ?? snapshot?.createdAt),
+          ageLabel: timeAgo(createdAt ?? snapshot?.createdAt),
           commitSha: snapshot?.id?.slice(0, 8),
           snapshot,
           messages: sourceMessages,
@@ -4307,16 +3745,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       return checkpoints.reverse();
-    }, [
-      archivedProjectConversations,
-      currentAiConversationId,
-      messages,
-      projectId,
-      projectIdeMode,
-      projectSnapshots,
-      language,
-      t,
-    ]);
+    }, [archivedProjectConversations, currentAiConversationId, messages, projectId, projectIdeMode, projectSnapshots]);
     const filteredProjectConversationCheckpoints = useMemo(() => {
       const query = conversationHistoryQuery.trim().toLowerCase();
 
@@ -4343,7 +3772,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const projectAgentSuggestions = useMemo(
       () =>
         buildProjectAgentSuggestions({
-          t,
           files: projectFiles,
           selectedFile,
           messages,
@@ -4361,7 +3789,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         projectFiles,
         projectRuntimeState,
         selectedFile,
-        t,
         workspaceLogs,
       ],
     );
@@ -4384,18 +3811,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     }, [selectedFile]);
 
     const mobileAgentStatusLabel = isAgentRunning
-      ? t('baseChatAst.mobile.working')
+      ? 'Working'
       : chatStarted || visibleProjectMessageCount > 0
-        ? t('baseChatAst.mobile.messageCount', { count: visibleProjectMessageCount })
-        : t('baseChatAst.mobile.ready');
+        ? `${visibleProjectMessageCount} messages`
+        : 'Ready';
 
     const shouldShowMobileAgentStartState = projectIdeMode && useMobileIde && visibleProjectMessageCount === 0;
 
     const mobileAgentContextLabel = mobileAgentSelectedFileLabel
       ? mobileAgentSelectedFileLabel
       : mobileAgentFileCount > 0
-        ? t('baseChatAst.mobile.filesLoaded', { count: mobileAgentFileCount })
-        : t('baseChatAst.mobile.workspaceReady');
+        ? `${mobileAgentFileCount} files loaded`
+        : 'Workspace ready';
     useEffect(() => {
       setProjectStateReady(!projectIdeMode || !projectId);
       restoredProjectId.current = undefined;
@@ -4681,7 +4108,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
             return {
               id: conversation.id!,
-              title: conversation.title || t('baseChatAst.conversation.project'),
+              title: conversation.title || 'Project conversation',
               messages: hydratedMessages,
               createdAt: conversation.createdAt,
               updatedAt: conversation.createdAt,
@@ -4777,45 +4204,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             setActiveWorkspacePanel(ui.activeWorkspacePanel);
           }
 
-          /*
-           * RPL-IDE-001.1 — restore this window's own layout slice. window-main
-           * keeps reading the legacy top-level fields; secondary windows read
-           * their entry from the per-window map.
-           */
-          const windowSlice = isSecondaryProjectEditorWindow
-            ? ui?.projectEditorWindows?.[projectEditorWindowId]
-            : { paneTree: ui?.paneTree, activePaneId: ui?.activePaneId, floatingPanes: ui?.floatingPanes };
-
-          const restoredTree =
-            windowSlice?.paneTree && typeof windowSlice.paneTree === 'object'
-              ? normalizePaneTree(windowSlice.paneTree)
-              : undefined;
-
-          if (restoredTree) {
-            setPaneTree(restoredTree);
+          if (ui?.paneTree && typeof ui.paneTree === 'object') {
+            setPaneTree(normalizePaneTree(ui.paneTree));
           }
 
-          const restoredFloating = normalizeFloatingPanes(windowSlice?.floatingPanes);
-          setFloatingPanes(restoredFloating);
-
-          const dockedLeafIds = new Set(restoredTree ? flattenPaneLeafIds(restoredTree) : flattenPaneLeafIds(paneTree));
-          restoredFloating.forEach((floating) => dockedLeafIds.add(floating.pane.id));
-
-          const restoredActivePaneId =
-            typeof windowSlice?.activePaneId === 'string' && dockedLeafIds.has(windowSlice.activePaneId)
-              ? windowSlice.activePaneId
-              : restoredTree
-                ? (findFirstLeaf(restoredTree)?.id ?? 'pane-main')
-                : 'pane-main';
-          setActivePaneId(restoredActivePaneId);
-
-          if (restoredTree) {
-            projectEditorWindowSyncRef.current = projectEditorLayoutSignature(
-              restoredTree,
-              restoredFloating,
-              restoredActivePaneId,
-            );
-          }
+          setActivePaneId('pane-main');
 
           if (typeof ui?.agentWidth === 'number') {
             setAgentWidth(clampProjectAgentPanelWidth(ui.agentWidth));
@@ -5051,23 +4444,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           const contextualHelp =
             directHelp ||
             (normalizedLabel.startsWith('Pin ') || normalizedLabel.startsWith('Unpin ')
-              ? { description: chatKey('chat.copy.keepThisTabVisibleInThe_506ff6ed'), shortcut: 'Alt+P' }
+              ? { description: 'Keep this tab visible in the tab strip while you switch context.', shortcut: 'Alt+P' }
               : normalizedLabel.startsWith('Close ')
                 ? {
-                    description: chatKey('chat.copy.closeThisViewWithoutDeletingFiles_8643fd37'),
+                    description: 'Close this view without deleting files or stopping the workspace.',
                     shortcut: 'Cmd+W',
                   }
                 : normalizedLabel.startsWith('Save ')
                   ? {
-                      description: chatKey('chat.copy.saveTheCurrentFileImmediatelyAutosave_0d1746e1'),
+                      description: 'Save the current file immediately. Autosave still handles normal edits.',
                       shortcut: 'Cmd+S',
                     }
                   : undefined);
           const tooltip = contextualHelp
-            ? `${normalizedLabel}. ${t(contextualHelp.description)}${
-                contextualHelp.shortcut
-                  ? ` ${t('chat.copy.shortcutValue', { shortcut: contextualHelp.shortcut })}.`
-                  : ''
+            ? `${normalizedLabel}. ${contextualHelp.description}${
+                contextualHelp.shortcut ? ` Shortcut: ${contextualHelp.shortcut}.` : ''
               }`
             : normalizedLabel;
 
@@ -5101,7 +4492,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       return () => observer.disconnect();
-    }, [projectIdeMode, t]);
+    }, [projectIdeMode]);
 
     useEffect(() => {
       if (!projectIdeMode) {
@@ -5183,19 +4574,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
 
       const saveTimer = window.setTimeout(() => {
-        /*
-         * RPL-IDE-001.1 — persist this window's layout slice, merging the
-         * per-window map so sibling windows opened in other tabs survive.
-         */
-        const existingWindows = getProjectIdeMemorySync(projectId, currentWorkspaceId)?.ui?.projectEditorWindows ?? {};
-
-        const windowSlice = {
-          paneTree,
-          activePaneId,
-          floatingPanes,
-          updatedAt: new Date().toISOString(),
-        };
-
         saveProjectIdeMemory(
           projectId,
           {
@@ -5207,13 +4585,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               rightPanelWidth,
               workspaceTabs,
               activeWorkspacePanel,
-
-              /*
-               * Only the primary window owns the legacy top-level fields; a
-               * secondary window must never clobber window-main's tree.
-               */
-              ...(isSecondaryProjectEditorWindow ? {} : { paneTree, activePaneId, floatingPanes }),
-              projectEditorWindows: { ...existingWindows, [projectEditorWindowId]: windowSlice },
+              paneTree,
+              activePaneId,
               agentWidth,
               terminalBottomOpen,
               terminalBottomHeight,
@@ -5249,9 +4622,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       activeWorkspacePanel,
       paneTree,
       activePaneId,
-      floatingPanes,
-      projectEditorWindowId,
-      isSecondaryProjectEditorWindow,
       agentWidth,
       terminalBottomOpen,
       terminalBottomHeight,
@@ -5264,55 +4634,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       backendLockedItems,
       backendDeletedPaths,
     ]);
-
-    /**
-     * RPL-IDE-001.1 — cross-tab coherence. Storage events only fire in OTHER
-     * tabs, so this never echoes our own writes. When another tab persists THIS
-     * window's slice (e.g. the same window open on a second screen), mirror it;
-     * distinct windows write distinct map keys, so their slices stay untouched.
-     */
-    useEffect(() => {
-      if (!projectIdeMode || !projectId) {
-        return undefined;
-      }
-
-      const unsubscribe = subscribeProjectIdeMemory(
-        projectId,
-        (memory) => {
-          const slice = isSecondaryProjectEditorWindow
-            ? memory.ui?.projectEditorWindows?.[projectEditorWindowId]
-            : {
-                paneTree: memory.ui?.paneTree,
-                activePaneId: memory.ui?.activePaneId,
-                floatingPanes: memory.ui?.floatingPanes,
-              };
-
-          if (!slice?.paneTree || typeof slice.paneTree !== 'object') {
-            return;
-          }
-
-          const nextTree = normalizePaneTree(slice.paneTree);
-          const nextFloating = normalizeFloatingPanes(slice.floatingPanes);
-
-          const nextActive =
-            typeof slice.activePaneId === 'string' ? slice.activePaneId : (findFirstLeaf(nextTree)?.id ?? 'pane-main');
-
-          const signature = projectEditorLayoutSignature(nextTree, nextFloating, nextActive);
-
-          if (signature === projectEditorWindowSyncRef.current) {
-            return;
-          }
-
-          projectEditorWindowSyncRef.current = signature;
-          setPaneTree(nextTree);
-          setFloatingPanes(nextFloating);
-          setActivePaneId(nextActive);
-        },
-        currentWorkspaceId,
-      );
-
-      return unsubscribe;
-    }, [projectId, projectIdeMode, currentWorkspaceId, projectEditorWindowId, isSecondaryProjectEditorWindow]);
 
     const openWorkspacePanel = useCallback(
       (
@@ -5465,18 +4786,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           const projectLink = `${window.location.origin}${projectUrl ?? `/projects/${projectId}`}`;
 
           if (!navigator.clipboard?.writeText) {
-            toast.error(t('chat.copy.clipboardUnavailable_bec46a29'));
+            toast.error('Clipboard unavailable');
 
             return;
           }
 
           void navigator.clipboard
             .writeText(projectLink)
-            .then(() => toast.success(t('chat.copy.projectLinkCopied_d1bf8999')))
-            .catch((error) => {
-              console.error('Project link copy failed', error);
-              toast.error(t('baseChatAst.clipboard.copyFailed'));
-            });
+            .then(() => toast.success('Project link copied'))
+            .catch((error) => toast.error(`Copy failed: ${(error as Error).message}`));
 
           return;
         }
@@ -5665,16 +4983,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      * runtime write error — left the user believing the file was saved when
      * it was not (silent data loss).
      */
-    const handleSaveError = useCallback(
-      (error: unknown) => {
-        console.error('Project file save failed', error);
-        toast.error(t('baseChatAst.editor.saveFailed'));
-      },
-      [t],
-    );
+    const handleSaveError = useCallback((error: unknown) => {
+      toast.error(`Failed to save file: ${error instanceof Error ? error.message : 'unknown error'}`);
+    }, []);
 
+    /*
+     * Route saves through the conflict-aware path: a "changed on disk" race
+     * opens the resolution dialog (reload / keep mine / diff) instead of the
+     * dead-end toast that left the edit stranded (BUG-IDE-004). Every other
+     * failure still reaches handleSaveError.
+     */
     const onProjectEditorSave = useCallback(() => {
-      workbenchStore.saveCurrentDocument().catch(handleSaveError);
+      const filePath = workbenchStore.currentDocument.get()?.filePath;
+
+      if (!filePath) {
+        return;
+      }
+
+      workbenchStore.saveFileWithConflictPrompt(filePath).catch(handleSaveError);
     }, [handleSaveError]);
 
     /*
@@ -5685,7 +5011,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      */
     const saveProjectEditorFile = useCallback(
       (filePath: string) => {
-        workbenchStore.saveFile(filePath).catch(handleSaveError);
+        workbenchStore.saveFileWithConflictPrompt(filePath).catch(handleSaveError);
       },
       [handleSaveError],
     );
@@ -5956,20 +5282,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       () =>
         applyKeybindingOverrides(
           [
-            ...localizeProjectKeybindings(PROJECT_KEYBINDINGS, language),
-            ...Array.from({ length: 9 }, (_, index) => createProjectFocusTabKeybinding(index + 1, language)),
+            ...PROJECT_KEYBINDINGS,
+            ...Array.from({ length: 9 }, (_, index) => ({
+              combo: `cmd+${index + 1}`,
+              action: `tab.focus.${index + 1}`,
+              label: `Focus tab ${index + 1}`,
+              description: `Focus workspace tab ${index + 1}.`,
+              category: 'Workbench' as const,
+              preventDefault: true,
+            })),
             {
               combo: 'cmd+tab',
               action: 'tab.next',
-              label: t('chat.copy.nextTab_84c508a2'),
-              description: t('chat.copy.cycleToTheNextOpenWorkspace_0b3b1e8d'),
+              label: 'Next tab',
+              description: 'Cycle to the next open workspace tab.',
               category: 'Workbench' as const,
               preventDefault: true,
             },
           ],
           projectKeybindingOverrides,
         ),
-      [language, projectKeybindingOverrides, t],
+      [projectKeybindingOverrides],
     );
 
     useKeybindings({
@@ -6066,7 +5399,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (transition === 'offline') {
           if (networkToastRef.current.offline === undefined) {
-            networkToastRef.current.offline = toast.warn(t('chat.copy.connectionLostReconnecting_f155d22d'), {
+            networkToastRef.current.offline = toast.warn('Connection lost. Reconnecting…', {
               autoClose: false,
               closeOnClick: false,
               icon: false,
@@ -6079,7 +5412,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           }
 
           if (!networkToastRef.current.first) {
-            toast.success(t('chat.copy.reconnected_43e3de6a'), { autoClose: 2500, icon: false });
+            toast.success('Reconnected', { autoClose: 2500, icon: false });
           }
         }
 
@@ -6169,9 +5502,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             }
 
             if (!alreadyExplained) {
-              toast.error(t('chat.copy.microphoneAccessIsBlockedAllowThe_84aa8fa0'), {
-                toastId: 'mic-permission-blocked',
-              });
+              toast.error(
+                'Microphone access is blocked. Allow the microphone permission for this site in your browser settings to use speech-to-text.',
+                { toastId: 'mic-permission-blocked' },
+              );
             }
           }
         };
@@ -6213,7 +5547,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         fetch('/api/models')
           .then((response) => {
             if (!response.ok) {
-              throw new Error(t('baseChatAst.models.loadFailedHttp', { status: response.status }));
+              throw new Error(`Failed to fetch model list: ${response.status}`);
             }
 
             return response.json();
@@ -6229,7 +5563,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
              * Surface the failure so the model picker shows an error instead of a
              * permanently empty list with no explanation.
              */
-            setModelError(t('baseChatAst.models.loadFailed'));
+            setModelError("Couldn't load the model list. Check your connection and reopen the picker.");
           })
           .finally(() => {
             setIsModelLoading(undefined);
@@ -6250,12 +5584,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         const response = await fetch(`/api/models/${encodeURIComponent(providerName)}`);
 
         if (!response.ok) {
-          throw new Error(
-            t('baseChatAst.models.providerLoadFailedHttp', {
-              provider: providerName,
-              status: response.status,
-            }),
-          );
+          throw new Error(`Failed to fetch models for ${providerName}: ${response.status}`);
         }
 
         const data = await response.json();
@@ -6275,7 +5604,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const startListening = () => {
       if (!recognition) {
         // The mic button hides itself when the API is absent, but never let a click be inert.
-        toast.error(t('chat.copy.speechRecognitionIsNotAvailableIn_af2b2f6a'), { toastId: 'speech-unavailable' });
+        toast.error('Speech recognition is not available in this browser.', { toastId: 'speech-unavailable' });
         return;
       }
 
@@ -6347,7 +5676,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         const image = await new Promise<HTMLImageElement>((resolve, reject) => {
           const element = new Image();
           element.onload = () => resolve(element);
-          element.onerror = () => reject(new Error(t('baseChatAst.images.decodeFailed', { file: file.name })));
+          element.onerror = () => reject(new Error(`Failed to decode image: ${file.name}`));
           element.src = objectUrl;
         });
 
@@ -6402,7 +5731,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const decision = decideImageAttachment({
         fileSizeBytes: file.size,
         currentAttachmentCount: uploadedFiles.length,
-        language,
       });
 
       if (decision.action === 'reject') {
@@ -6422,9 +5750,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         reader.onerror = () => {
           console.error(`Failed to read ${source} file:`, processedFile.name, reader.error);
-          toast.error(
-            t(source === 'selected' ? 'baseChatAst.images.readSelectedFailed' : 'baseChatAst.images.readPastedFailed'),
-          );
+          toast.error(`Failed to read the ${source} image. Please try again.`);
         };
         reader.readAsDataURL(processedFile);
       });
@@ -6473,7 +5799,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         const rawMessage = messageInput ?? input;
 
         if (projectIdeMode) {
-          const action = inferAgentToolAction(t, rawMessage);
+          const action = inferAgentToolAction(rawMessage);
 
           if (action) {
             setAgentToolAction(action);
@@ -6483,7 +5809,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           const mentionedSymbols = resolveMentionedProjectSymbols(rawMessage, projectFiles);
 
           const agentMessage = buildProjectAgentPrompt({
-            t,
             message: rawMessage,
             mode: projectAgentExecutionMode,
             planFirst: projectPlanFirst,
@@ -6506,7 +5831,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         projectFiles,
         projectIdeMode,
         projectPlanFirst,
-        t,
       ],
     );
 
@@ -6630,7 +5954,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
            */
           if (!response.ok) {
             const payload = await response.json().catch(() => undefined);
-            toast.error(describeSnapshotRestoreFailure(response.status, payload, language));
+            toast.error(describeSnapshotRestoreFailure(response.status, payload));
 
             return;
           }
@@ -6660,46 +5984,45 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         window.location.reload();
       } catch (error) {
         console.error('Failed to rollback project checkpoint', error);
-        toast.error(describeSnapshotRestoreFailure(0, undefined, language));
+        toast.error(describeSnapshotRestoreFailure(0, undefined));
       } finally {
         setRollbackBusy(false);
       }
-    }, [projectId, currentWorkspaceId, language, rollbackDatabase, rollbackTarget]);
+    }, [projectId, currentWorkspaceId, rollbackDatabase, rollbackTarget]);
 
     const headerPresence = useMemo(
       () => dedupeCollaborationPresence(headerCollaboration.snapshot?.presence ?? []),
       [headerCollaboration.snapshot?.presence],
     );
 
-    const headerPresenceTooltip = collaborationPresenceTooltip(t, language, headerPresence);
+    const headerPresenceTooltip = collaborationPresenceTooltip(headerPresence);
 
     const copyProjectConversation = useCallback(async () => {
       const currentMessages = messages ?? [];
 
       if (!currentMessages.length) {
-        toast.info(t('chat.copy.noConversationToCopy_cac64e35'));
+        toast.info('No conversation to copy');
         return;
       }
 
       if (typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
-        toast.error(t('chat.copy.clipboardIsUnavailable_977bef31'));
+        toast.error('Clipboard is unavailable');
         return;
       }
 
       try {
-        await navigator.clipboard.writeText(conversationTranscript(t, currentMessages, description));
-        toast.success(t('chat.copy.conversationCopied_f68386e5'));
+        await navigator.clipboard.writeText(conversationTranscript(currentMessages, description));
+        toast.success('Conversation copied');
       } catch (error) {
-        console.error('Conversation copy failed', error);
-        toast.error(t('baseChatAst.clipboard.copyFailed'));
+        toast.error(`Copy failed: ${(error as Error).message}`);
       }
-    }, [description, messages, t]);
+    }, [description, messages]);
 
     const clearProjectConversation = useCallback(() => {
       const currentMessages = messages ?? [];
 
       if (!currentMessages.length) {
-        toast.info(t('chat.copy.noHistoryToClear_790efa27'));
+        toast.info('No history to clear');
         return;
       }
 
@@ -6709,18 +6032,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const confirmClearProjectConversation = useCallback(() => {
       setConfirmClearHistoryOpen(false);
       resetChat?.();
-      toast.success(t('chat.copy.historyCleared_5a2d82b8'));
+      toast.success('History cleared');
     }, [resetChat]);
 
     const exportProjectConversation = useCallback(() => {
       const currentMessages = messages ?? [];
 
       if (!currentMessages.length) {
-        toast.info(t('chat.copy.noConversationToExport_424b736d'));
+        toast.info('No conversation to export');
         return;
       }
 
-      const title = description?.trim() || t('baseChatAst.conversation.project');
+      const title = description?.trim() || 'Project conversation';
       const exportDate = new Date().toISOString();
 
       const payload = {
@@ -6728,7 +6051,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         projectId,
         exportDate,
         messages: currentMessages,
-        transcript: conversationTranscript(t, currentMessages, title),
+        transcript: conversationTranscript(currentMessages, title),
       };
 
       const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
@@ -6742,8 +6065,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       anchor.click();
       document.body.removeChild(anchor);
       URL.revokeObjectURL(url);
-      toast.success(t('chat.copy.conversationExported_1fd2dd87'));
-    }, [description, messages, projectId, t]);
+      toast.success('Conversation exported');
+    }, [description, messages, projectId]);
 
     const startMobileAgentChat = useCallback(() => {
       closeMobileOverlays();
@@ -6808,31 +6131,24 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           isOpen={confirmClearHistoryOpen}
           onClose={() => setConfirmClearHistoryOpen(false)}
           onConfirm={confirmClearProjectConversation}
-          title={t('chat.copy.clearConversationHistory_95f3d926')}
-          description={t('chat.copy.theHistoryOfThisConversationIs_36dfc6fb')}
-          confirmLabel={t('chat.copy.clearHistory_53b5158b')}
+          title="Clear conversation history?"
+          description="The history of this conversation is cleared. This cannot be undone."
+          confirmLabel="Clear history"
           variant="destructive"
         />
         {useMobileIde && conversationHistoryOpen && (
-          <div
-            className="bolt-project-conversation-history"
-            role="dialog"
-            aria-label={t('chat.copy.projectAgentHistory_c9f06d3e')}
-          >
+          <div className="bolt-project-conversation-history" role="dialog" aria-label="Project agent history">
             <div className="bolt-project-conversation-history-head">
               <div>
-                <strong>{t('chat.copy.agentHistory_c783eeb3')}</strong>
+                <strong>Agent history</strong>
                 <span>
-                  {t('baseChatAst.counts.checkpointsFiltered', {
-                    shown: filteredProjectConversationCheckpoints.length,
-                    count: projectConversationCheckpoints.length,
-                  })}
+                  {filteredProjectConversationCheckpoints.length} of {projectConversationCheckpoints.length} checkpoints
                 </span>
               </div>
               <button
                 type="button"
                 className="bolt-project-ide-icon-button"
-                aria-label={t('chat.copy.closeHistory_7bf06ef3')}
+                aria-label="Close history"
                 onClick={() => setConversationHistoryOpen(false)}
               >
                 <span className="i-ph:x" aria-hidden />
@@ -6843,16 +6159,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <input
                 type="search"
                 value={conversationHistoryQuery}
-                placeholder={t('chat.copy.searchCheckpointsCommitsPromptsOrAgent_7b472db0')}
-                aria-label={t('chat.copy.searchAgentCheckpoints_471244eb')}
+                placeholder="Search checkpoints, commits, prompts, or agent replies"
+                aria-label="Search agent checkpoints"
                 onChange={(event) => setConversationHistoryQuery(event.currentTarget.value)}
               />
               {conversationHistoryQuery && (
-                <button
-                  type="button"
-                  aria-label={t('chat.copy.clearHistorySearch_9758bed5')}
-                  onClick={() => setConversationHistoryQuery('')}
-                >
+                <button type="button" aria-label="Clear history search" onClick={() => setConversationHistoryQuery('')}>
                   <span className="i-ph:x" aria-hidden />
                 </button>
               )}
@@ -6874,38 +6186,38 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <div className="bolt-project-history-checkpoint-actions">
                       <button
                         type="button"
-                        aria-label={t('chat.copy.viewChatAtCheckpointValue0_7e82ca09', { value0: checkpoint.title })}
+                        aria-label={`View chat at checkpoint ${checkpoint.title}`}
                         onClick={() => viewProjectCheckpoint(checkpoint)}
                       >
-                        {t('chat.copy.viewChat_7dd435d1')}
+                        View Chat
                       </button>
                       <button
                         type="button"
                         disabled={!rollbackAvailable}
-                        aria-label={t('chat.copy.rollbackToCheckpointValue0_2131e13b', { value0: checkpoint.title })}
+                        aria-label={`Rollback to checkpoint ${checkpoint.title}`}
                         onClick={() => {
                           setRollbackDatabase(false);
                           setRollbackTarget(checkpoint);
                         }}
                       >
-                        {t('chat.copy.rollbackHere_643ef4ec')}
+                        Rollback here
                       </button>
                       <button
                         type="button"
-                        aria-label={t('chat.copy.reviewDiffForCheckpointValue0_7903beba', { value0: checkpoint.title })}
+                        aria-label={`Review diff for checkpoint ${checkpoint.title}`}
                         onClick={() => openCheckpointChanges(checkpoint)}
                       >
-                        {t('chat.copy.reviewDiff_cfcf10aa')}
+                        Review diff
                       </button>
                     </div>
                   </article>
                 );
               })}
               {!projectConversationCheckpoints.length && (
-                <div className="bolt-project-history-empty">{t('chat.copy.noProjectAgentHistoryYet_3aa0ec67')}</div>
+                <div className="bolt-project-history-empty">No project agent history yet.</div>
               )}
               {projectConversationCheckpoints.length > 0 && !filteredProjectConversationCheckpoints.length && (
-                <div className="bolt-project-history-empty">{t('chat.copy.noCheckpointsMatchThisSearch_aef33bf2')}</div>
+                <div className="bolt-project-history-empty">No checkpoints match this search.</div>
               )}
             </div>
           </div>
@@ -6921,10 +6233,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         ) : !chatStarted ? (
           <div id="intro" className="mt-[16vh] max-w-2xl mx-auto text-center px-4 lg:px-0">
             <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
-              {t('chat.copy.turnIdeasIntoWorkingSoftware_c5341c2f')}
+              Turn ideas into working software
             </h1>
             <p className="text-md lg:text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
-              {t('chat.copy.describeWhatYouWantToBuild_c9de63b3')}
+              Describe what you want to build, or ask E-Code to improve an existing project.
             </p>
           </div>
         ) : null}
@@ -6943,7 +6255,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             role={projectIdeMode ? 'log' : undefined}
             aria-live={projectIdeMode ? 'polite' : undefined}
             aria-relevant={projectIdeMode ? 'additions text' : undefined}
-            aria-label={projectIdeMode ? t('chat.copy.agentConversationHistory_207d557d') : undefined}
+            aria-label={projectIdeMode ? 'Agent conversation history' : undefined}
           >
             {/*
              * Thin agent status line, sticky at the TOP of the panel (agent-panel
@@ -6953,11 +6265,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
              */}
             {progressAnnotations && (
               <div className="sticky top-0 z-10 -mt-6 -mx-2 sm:-mx-6">
-                <ProgressCompilation
-                  data={progressAnnotations}
-                  streaming={isStreaming}
-                  failed={Boolean(llmErrorAlert)}
-                />
+                <ProgressCompilation data={progressAnnotations} />
               </div>
             )}
             <ClientOnly>
@@ -7065,20 +6373,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         setAgentToolAction(null);
                       }}
                     >
-                      {t('chat.copy.open_6f4789b0')}
+                      Open →
                     </button>
                   </div>
                 )}
               </div>
               {projectIdeMode && isStreaming && (
                 <div className="vc-sr-only" role="status" aria-live="polite">
-                  {t('chat.copy.agentIsThinking_34aec774')}
+                  Agent is thinking
                 </div>
               )}
               {projectIdeMode &&
                 !shouldShowMobileAgentStartState &&
                 (!useMobileIde || visibleProjectMessageCount === 0) && (
-                  <div className="bolt-project-agent-suggestions" aria-label={t('chat.copy.agentSuggestions_1622dc2b')}>
+                  <div className="bolt-project-agent-suggestions" aria-label="Agent suggestions">
                     {projectAgentSuggestions.map((suggestion) => (
                       <button
                         key={suggestion.id}
@@ -7177,12 +6485,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 }}
                 placeholder={
                   projectIdeMode
-                    ? `${t(
+                    ? `${
                         (
                           PROJECT_AGENT_EXECUTION_MODES.find((mode) => mode.id === projectAgentExecutionMode) ??
                           PROJECT_AGENT_EXECUTION_MODES[2]
-                        ).placeholder,
-                      )}${projectPlanFirst ? ` ${t('chat.copy.planFirstSuffix')}` : ''}`
+                        ).placeholder
+                      }${projectPlanFirst ? ' (Plan first)' : ''}`
                     : undefined
                 }
               />
@@ -7300,147 +6608,49 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       );
     }, []);
 
-    /**
-     * RPL-IDE-001.1/.2/.3 — apply a pure-engine transform to this window's live
-     * state (docked tree + floating panes + active pane) and fan the result back
-     * into the three React atoms atomically.
-     */
-    const applyProjectEditorWindowOp = useCallback(
-      (op: (windowState: ProjectEditorWindowState) => ProjectEditorWindowState) => {
-        const next = runProjectEditorWindowOp({ root: paneTree, floatingPanes, activePaneId }, op);
+    const splitPaneRight = useCallback((paneId: string, tabId?: string) => {
+      let nextActivePaneId: string | undefined;
 
-        if (next.root) {
-          setPaneTree(next.root);
-        }
+      setPaneTree((currentTree) =>
+        updateLeaf(currentTree, paneId, (leaf) => {
+          const targetTab =
+            leaf.tabs.find((tab) => tab.id === tabId) ??
+            leaf.tabs.find((tab) => tab.id === leaf.activeTabId) ??
+            leaf.tabs[leaf.tabs.length - 1];
 
-        setFloatingPanes(next.floatingPanes);
-        setActivePaneId(next.activePaneId);
-      },
-      [paneTree, floatingPanes, activePaneId],
-    );
+          if (!targetTab || leaf.tabs.length < 2) {
+            return leaf;
+          }
 
-    /** RPL-IDE-001.2 — split a pane horizontally or vertically (engine-backed). */
-    const splitActivePane = useCallback(
-      (paneId: string, direction: 'horizontal' | 'vertical', tabId?: string) => {
-        applyProjectEditorWindowOp((windowState) => engineSplitPane(windowState, { paneId, direction, tabId }));
-      },
-      [applyProjectEditorWindowOp],
-    );
+          const remainingTabs = leaf.tabs.filter((tab) => tab.id !== targetTab.id);
+          const nextPaneId = `pane-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+          nextActivePaneId = nextPaneId;
 
-    const splitPaneRight = useCallback(
-      (paneId: string, tabId?: string) => splitActivePane(paneId, 'horizontal', tabId),
-      [splitActivePane],
-    );
-
-    const splitPaneDown = useCallback(
-      (paneId: string, tabId?: string) => splitActivePane(paneId, 'vertical', tabId),
-      [splitActivePane],
-    );
-
-    /** RPL-IDE-001.2 — persist a resized split ratio. */
-    const setPaneSplitRatio = useCallback(
-      (splitId: string, ratio: number) => {
-        setPaneTree((currentTree) => {
-          const next = runProjectEditorWindowOp({ root: currentTree, floatingPanes, activePaneId }, (windowState) =>
-            engineSetSplitRatio(windowState, splitId, ratio),
-          );
-
-          return next.root ?? currentTree;
-        });
-      },
-      [floatingPanes, activePaneId],
-    );
-
-    /** RPL-IDE-001.3 — float a docked pane, or dock a floating one back to origin. */
-    const togglePaneFloating = useCallback(
-      (paneId: string) => {
-        const isFloating = floatingPanes.some((floating) => floating.pane.id === paneId);
-
-        if (isFloating) {
-          applyProjectEditorWindowOp((windowState) => engineDockPane(windowState, { paneId }));
-          return;
-        }
-
-        // Keep at least one docked pane so the workspace never goes blank.
-        if (countLeaves(paneTree) < 2) {
-          return;
-        }
-
-        applyProjectEditorWindowOp((windowState) => engineFloatPane(windowState, { paneId }));
-      },
-      [applyProjectEditorWindowOp, floatingPanes, paneTree],
-    );
-
-    /** RPL-IDE-001.3 — move/resize a floating pane frame. */
-    const changeFloatingPaneBounds = useCallback(
-      (paneId: string, bounds: { x: number; y: number; width: number; height: number }) => {
-        setFloatingPanes((current) => {
-          const next = runProjectEditorWindowOp(
-            { root: paneTree, floatingPanes: current, activePaneId },
-            (windowState) => engineUpdateFloatingBounds(windowState, paneId, bounds),
-          );
-
-          return next.floatingPanes;
-        });
-      },
-      [paneTree, activePaneId],
-    );
-
-    /** RPL-IDE-001.3 — raise a floating pane above its siblings. */
-    const focusFloatingPane = useCallback(
-      (paneId: string) => {
-        applyProjectEditorWindowOp((windowState) => engineBringFloatingPaneToFront(windowState, paneId));
-      },
-      [applyProjectEditorWindowOp],
-    );
-
-    /**
-     * RPL-IDE-001.1 — open the Project Editor in a new browser window/tab. The
-     * new window carries a distinct `peWindow` id and starts from a seeded
-     * layout (the chosen tab, or a fresh editor) persisted independently so both
-     * screens stay coherent across reloads. The seed is merged into the existing
-     * per-window map (see the shallow-merge caveat) so sibling windows survive.
-     */
-    const openProjectEditorWindow = useCallback(
-      (sourceTab?: IdePaneTab) => {
-        if (typeof window === 'undefined' || !projectId) {
-          return;
-        }
-
-        const newWindowId = `window-${Date.now().toString(36)}-${Math.random().toString(16).slice(2, 6)}`;
-
-        const seedTab = makePaneTab(sourceTab?.panel ?? 'editor', {
-          ...(sourceTab?.filePath ? { filePath: sourceTab.filePath } : {}),
-        });
-
-        const seedPane: IdePaneLeaf = { type: 'leaf', id: 'pane-main', tabs: [seedTab], activeTabId: seedTab.id };
-
-        const existingWindows = getProjectIdeMemorySync(projectId, currentWorkspaceId)?.ui?.projectEditorWindows ?? {};
-
-        saveProjectIdeMemory(
-          projectId,
-          {
-            ui: {
-              projectEditorWindows: {
-                ...existingWindows,
-                [newWindowId]: {
-                  paneTree: seedPane,
-                  activePaneId: 'pane-main',
-                  floatingPanes: [],
-                  updatedAt: new Date().toISOString(),
-                },
-              },
+          return {
+            type: 'split',
+            id: `split-${leaf.id}-${nextPaneId}`,
+            direction: 'horizontal',
+            first: {
+              ...leaf,
+              tabs: remainingTabs,
+              activeTabId: remainingTabs.some((tab) => tab.id === leaf.activeTabId)
+                ? leaf.activeTabId
+                : remainingTabs[remainingTabs.length - 1]?.id,
             },
-          },
-          currentWorkspaceId,
-        ).catch((error) => console.error('Failed to seed new Project Editor window', error));
+            second: {
+              type: 'leaf',
+              id: nextPaneId,
+              tabs: [targetTab],
+              activeTabId: targetTab.id,
+            },
+          };
+        }),
+      );
 
-        const url = new URL(window.location.href);
-        url.searchParams.set(PROJECT_EDITOR_WINDOW_PARAM, newWindowId);
-        window.open(url.toString(), '_blank', 'noopener');
-      },
-      [projectId, currentWorkspaceId],
-    );
+      if (nextActivePaneId) {
+        setActivePaneId(nextActivePaneId);
+      }
+    }, []);
 
     const swapPaneTabs = useCallback(
       (sourcePaneId: string, sourceTabId: string, targetPaneId: string, targetTabId?: string) => {
@@ -7514,19 +6724,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         if (panel === 'editor') {
           return (
             <div
-              className="bolt-project-editor-tool relative min-h-0 flex-1 overflow-hidden"
+              className="bolt-project-editor-tool min-h-0 flex-1 overflow-hidden"
               data-testid="responsive-code-editor"
             >
               <ProjectEditorToolbar
-                fileLabel={currentDocument?.filePath?.replace(WORK_DIR, '') || t('baseChatAst.files.noneSelected')}
+                fileLabel={currentDocument?.filePath?.replace(WORK_DIR, '') || 'No file selected'}
                 hasDocument={Boolean(currentDocument)}
                 minimapEnabled={editorMinimapEnabled}
                 monacoActive={editorKindForLayout(layout) === 'monaco'}
                 onToggleMinimap={() => setEditorMinimapEnabled((enabled) => !enabled)}
                 onFormat={() => {
                   workbenchStore.formatCurrentDocument().catch((error) => {
-                    console.error('Project file format failed', error);
-                    toast.error(t('baseChatAst.editor.formatFailed'));
+                    toast.error(`Format failed: ${(error as Error).message}`);
                   });
                 }}
                 onGoToDefinition={() => runProjectEditorCommand('goToDefinition')}
@@ -7576,10 +6785,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   onOpenTool={openIdeTool}
                   onOpenFile={(filePath) => openProjectFile(filePath, { preview: false })}
                 />
-              )}
-              {/* File History — bottom-right toggle + standalone panel (independent of Git) */}
-              {currentDocument && !currentDocument.isBinary && (
-                <EditorHistoryOverlay filePath={currentDocument.filePath} content={currentDocument.value} />
               )}
             </div>
           );
@@ -7690,7 +6895,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setSelectedElement,
         setMobileIdePanel,
         setProjectPanelSearchParam,
-        t,
         theme,
         unsavedFiles,
         useMobileIde,
@@ -7752,8 +6956,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   tab.panel === 'editor'
                     ? tab.filePath?.replace(WORK_DIR, '') ||
                       currentDocument?.filePath?.replace(WORK_DIR, '') ||
-                      t('baseChatAst.common.editor')
-                    : panelTitle(tab.panel, t);
+                      'Editor'
+                    : panelTitle(tab.panel);
 
                 return {
                   ...tab,
@@ -7792,10 +6996,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               onCloseAll={() => closePaneTabs(leaf.id, 'all')}
               onCloseSaved={() => closePaneTabs(leaf.id, 'saved')}
               onSplitActiveRight={(tabId) => splitPaneRight(leaf.id, tabId)}
-              onSplitActiveDown={(tabId) => splitPaneDown(leaf.id, tabId)}
-              onToggleFloating={() => togglePaneFloating(leaf.id)}
-              onOpenNewWindow={(tabId) => openProjectEditorWindow(leaf.tabs.find((tab) => tab.id === tabId))}
-              isFloating={floatingPanes.some((floating) => floating.pane.id === leaf.id)}
               onSwapTab={(sourcePaneId, sourceTabId, targetTabId) =>
                 swapPaneTabs(sourcePaneId, sourceTabId, leaf.id, targetTabId)
               }
@@ -7828,7 +7028,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             >
               {activeTab ? (
                 <PanelErrorBoundary
-                  panel={panelTitle(activeTab.panel, t)}
+                  panel={panelTitle(activeTab.panel)}
                   boundaryId={`project:${projectId}:pane:${leaf.id}:${activeTab.panel}`}
                   projectId={projectId}
                   getSnapshot={() => ({
@@ -7867,13 +7067,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         renderPaneContent,
         selectPaneTab,
         splitPaneRight,
-        splitPaneDown,
-        togglePaneFloating,
-        openProjectEditorWindow,
-        floatingPanes,
         scrollPositions,
         swapPaneTabs,
-        t,
         unsavedFiles,
       ],
     );
@@ -7884,129 +7079,65 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           return renderPaneLeaf(node);
         }
 
-        const ratio = Math.min(0.9, Math.max(0.1, node.ratio ?? 0.5));
-
         return (
-          <PanelGroup
-            key={node.id}
-            id={`project-pane-split-${node.id}`}
-            className="bolt-project-pane-split"
-            data-direction={node.direction}
-            direction={node.direction}
-            onLayout={(sizes) => {
-              const nextRatio = Math.min(0.9, Math.max(0.1, (sizes[0] ?? 50) / 100));
-
-              // Ignore layout echoes that don't materially move the divider.
-              if (Math.abs(nextRatio - ratio) < 0.004) {
-                return;
-              }
-
-              setPaneSplitRatio(node.id, nextRatio);
-            }}
-          >
-            <Panel id={`${node.id}-first`} order={1} defaultSize={ratio * 100} minSize={15}>
-              {renderPaneNode(node.first)}
-            </Panel>
-            <PanelResizeHandle
-              className="bolt-project-pane-split-divider"
-              aria-label={
-                node.direction === 'horizontal'
-                  ? t('chat.copy.resizePanesHorizontally_2340f8da')
-                  : t('chat.copy.resizePanesVertically_5ecc3ff6')
-              }
-              data-testid={`pane-resize-${node.id}`}
-            />
-            <Panel id={`${node.id}-second`} order={2} defaultSize={(1 - ratio) * 100} minSize={15}>
-              {renderPaneNode(node.second)}
-            </Panel>
-          </PanelGroup>
+          <div key={node.id} className="bolt-project-pane-split" data-direction={node.direction}>
+            {renderPaneNode(node.first)}
+            <div className="bolt-project-pane-split-divider" aria-hidden />
+            {renderPaneNode(node.second)}
+          </div>
         );
       },
-      [renderPaneLeaf, setPaneSplitRatio],
+      [renderPaneLeaf],
     );
 
     const ideRailToolItems = [
       {
         panel: 'files',
-        label: t('chat.copy.library_b8100f5b'),
+        label: 'Library',
         icon: 'i-ph:files',
         badge: visibleProjectFilePaths.length || undefined,
         badgeLabel:
           visibleProjectFilePaths.length > 0
-            ? t('baseChatAst.files.count', { count: visibleProjectFilePaths.length })
+            ? `${visibleProjectFilePaths.length} file${visibleProjectFilePaths.length === 1 ? '' : 's'}`
             : undefined,
         tone: 'neutral',
         active: rightPanelOpen && rightPanelMode === 'files',
-        title: t('baseChatAst.files.projectCount', { count: visibleProjectFilePaths.length }),
+        title: `${visibleProjectFilePaths.length} file${visibleProjectFilePaths.length === 1 ? '' : 's'} in the project`,
       },
-      {
-        panel: 'search',
-        label: t('chat.copy.search_bce06414'),
-        icon: 'i-ph:magnifying-glass',
-        badge: undefined,
-        tone: 'neutral',
-      },
+      { panel: 'search', label: 'Search', icon: 'i-ph:magnifying-glass', badge: undefined, tone: 'neutral' },
       {
         panel: 'git',
-        label: t('chat.copy.git_58197788'),
+        label: 'Git',
         icon: 'i-ph:git-branch',
         badge: statusbarChangedFiles || undefined,
         badgeLabel:
-          statusbarChangedFiles > 0 ? t('baseChatAst.files.changedCount', { count: statusbarChangedFiles }) : undefined,
+          statusbarChangedFiles > 0
+            ? `${statusbarChangedFiles} changed file${statusbarChangedFiles === 1 ? '' : 's'}`
+            : undefined,
         tone: 'neutral',
       },
-      {
-        panel: 'packages',
-        label: t('chat.copy.packages_0a999012'),
-        icon: 'i-ph:cube',
-        badge: undefined,
-        tone: 'neutral',
-      },
-      {
-        panel: 'database',
-        label: t('chat.copy.database_61074f1c'),
-        icon: 'i-ph:database',
-        badge: undefined,
-        tone: 'neutral',
-      },
-      {
-        panel: 'secrets',
-        label: t('chat.copy.secrets_1e3732ae'),
-        icon: 'i-ph:lock',
-        badge: undefined,
-        tone: 'neutral',
-      },
-      {
-        panel: 'deployments',
-        label: t('chat.copy.deployments_8d458ed0'),
-        icon: 'i-ph:rocket-launch',
-        badge: undefined,
-        tone: 'neutral',
-      },
+      { panel: 'packages', label: 'Packages', icon: 'i-ph:cube', badge: undefined, tone: 'neutral' },
+      { panel: 'database', label: 'Database', icon: 'i-ph:database', badge: undefined, tone: 'neutral' },
+      { panel: 'secrets', label: 'Secrets', icon: 'i-ph:lock', badge: undefined, tone: 'neutral' },
+      { panel: 'deployments', label: 'Deployments', icon: 'i-ph:rocket-launch', badge: undefined, tone: 'neutral' },
       {
         panel: 'monitoring',
-        label: t('chat.copy.monitoring_a8143458'),
+        label: 'Monitoring',
         icon: 'i-ph:chart-line',
         badge: statusbarDiagnostics.errors || undefined,
         badgeLabel:
           statusbarDiagnostics.errors > 0
-            ? t('baseChatAst.diagnostics.count', { count: statusbarDiagnostics.errors })
+            ? `${statusbarDiagnostics.errors} project error${statusbarDiagnostics.errors === 1 ? '' : 's'}`
             : undefined,
         tone: statusbarDiagnostics.errors > 0 ? 'danger' : 'neutral',
       },
-      {
-        panel: 'settings',
-        label: t('chat.copy.settings_c7f73bb5'),
-        icon: 'i-ph:gear',
-        badge: undefined,
-        tone: 'neutral',
-      },
+      { panel: 'settings', label: 'Settings', icon: 'i-ph:gear', badge: undefined, tone: 'neutral' },
     ] as const;
 
     const renderIdeRailToolItem = (item: (typeof ideRailToolItems)[number]) => {
       const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
       const title = 'title' in item && item.title ? item.title : IDE_TOOL_DESCRIPTIONS[item.panel];
-      const tooltip = formatRailItemTooltip(t, item.label, title, badgeLabel);
+      const tooltip = formatRailItemTooltip(item.label, title, badgeLabel);
       const active = 'active' in item ? item.active : activeWorkspacePanel === item.panel;
 
       return (
@@ -8025,7 +7156,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <span className="bolt-project-ide-rail-label">{item.label}</span>
             {item.badge ? (
               <span className="bolt-project-ide-rail-badge" aria-hidden>
-                {formatRailBadgeValue(item.badge, language)}
+                {formatRailBadgeValue(item.badge)}
               </span>
             ) : null}
           </button>
@@ -8089,7 +7220,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       >
         <ZoneErrorBoundary
           zone="sidebar"
-          title={t('chat.copy.workspaceTools_7b36c62b')}
+          title="Workspace tools"
           boundaryId={`project:${projectId}:sidebar`}
           projectId={projectId}
           getSnapshot={() => ({
@@ -8099,7 +7230,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             changedFiles: statusbarChangedFiles,
           })}
         >
-          <aside className="bolt-project-ide-rail" aria-label={t('chat.copy.workspaceTools_7b36c62b')}>
+          <aside className="bolt-project-ide-rail" aria-label="Workspace tools">
             <div className="bolt-project-ide-rail-tools">{ideRailToolItems.map(renderIdeRailToolItem)}</div>
           </aside>
         </ZoneErrorBoundary>
@@ -8113,7 +7244,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           >
             <ZoneErrorBoundary
               zone="editor"
-              title={t('chat.copy.workspace_4ca0a75c')}
+              title="Workspace"
               boundaryId={`project:${projectId}:workspace`}
               projectId={projectId}
               getSnapshot={() => ({
@@ -8125,11 +7256,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               })}
             >
               <div className="bolt-project-workspace-shell">
-                <section className="bolt-project-ide-panel" aria-label={t('chat.copy.editorAndPreview_c279cf0b')}>
+                <section className="bolt-project-ide-panel" aria-label="Editor and preview">
                   <div className="bolt-project-main-stack">
                     <div
                       className="bolt-project-main-panes"
-                      data-window-id={projectEditorWindowId}
                       style={
                         {
                           '--project-terminal-bottom-height': terminalBottomOpen ? `${terminalBottomHeight}px` : '0px',
@@ -8137,27 +7267,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       }
                     >
                       {renderPaneNode(paneTree)}
-                      {floatingPanes.map((floating) => {
-                        const activeTab =
-                          floating.pane.tabs.find((tab) => tab.id === floating.pane.activeTabId) ??
-                          floating.pane.tabs[0];
-
-                        return (
-                          <FloatingPaneFrame
-                            key={floating.id}
-                            paneId={floating.pane.id}
-                            title={activeTab ? panelTitle(activeTab.panel, t) : t('chat.copy.projectEditor_f0067be1')}
-                            bounds={floating.bounds}
-                            zIndex={20 + floating.zIndex}
-                            active={activePaneId === floating.pane.id}
-                            onBoundsChange={(bounds) => changeFloatingPaneBounds(floating.pane.id, bounds)}
-                            onDock={() => togglePaneFloating(floating.pane.id)}
-                            onFocus={() => focusFloatingPane(floating.pane.id)}
-                          >
-                            {renderPaneLeaf(floating.pane)}
-                          </FloatingPaneFrame>
-                        );
-                      })}
                     </div>
                     {terminalBottomOpen && (
                       <div
@@ -8168,7 +7277,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           className="bolt-project-terminal-resize-handle"
                           role="separator"
                           aria-orientation="horizontal"
-                          aria-label={t('chat.copy.resizePinnedTerminal_a5c5a9c6')}
+                          aria-label="Resize pinned terminal"
                           onMouseDown={startTerminalResize}
                         />
                         <div className="bolt-project-bottom-terminal-frame">
@@ -8192,8 +7301,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <>
               <PanelResizeHandle
                 className="bolt-project-panel-resize-handle"
-                aria-label={t('chat.copy.resizeFilesPanel_95c3842c')}
-                title={t('chat.copy.resizeFilesPanel_95c3842c')}
+                aria-label="Resize files panel"
+                title="Resize files panel"
               />
               <Panel
                 id="project-right-panel"
@@ -8218,24 +7327,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               >
                 <aside
                   className="bolt-project-right-panel-shell"
-                  aria-label={
-                    rightPanelMode === 'files'
-                      ? t('chat.copy.projectLibraryPanel_03bdd26b')
-                      : t('chat.copy.previewLogsPanel_03bc2bda')
-                  }
+                  aria-label={rightPanelMode === 'files' ? 'Project library panel' : 'Preview logs panel'}
                   style={{ '--project-right-panel-width': `${rightPanelWidth}px` } as React.CSSProperties}
                 >
                   <div className="bolt-project-right-files-header">
                     <span className={rightPanelMode === 'files' ? 'i-ph:files' : 'i-ph:terminal-window'} aria-hidden />
-                    <span>
-                      {rightPanelMode === 'files'
-                        ? t('chat.copy.library_b8100f5b')
-                        : t('chat.copy.previewLogs_d42e29e7')}
-                    </span>
+                    <span>{rightPanelMode === 'files' ? 'Library' : 'Preview logs'}</span>
                     <button
                       type="button"
                       className="bolt-project-ide-icon-button ml-auto"
-                      aria-label={t('chat.copy.closeRightPanel_b31ffa0e')}
+                      aria-label="Close right panel"
                       onClick={() => {
                         setRightPanelOpen(false);
                         setProjectPanelSearchParam();
@@ -8246,11 +7347,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </div>
                   <div className="bolt-project-right-panel-content">
                     <PanelErrorBoundary
-                      panel={
-                        rightPanelMode === 'files'
-                          ? t('baseChatAst.common.library')
-                          : t('baseChatAst.common.previewLogs')
-                      }
+                      panel={rightPanelMode === 'files' ? 'Library' : 'Preview logs'}
                       boundaryId={`project:${projectId}:right:${rightPanelMode}`}
                       projectId={projectId}
                       getSnapshot={() => ({
@@ -8295,8 +7392,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <>
               <PanelResizeHandle
                 className="bolt-project-panel-resize-handle bolt-project-agent-resize-handle"
-                aria-label={t('chat.copy.resizeAiAgentPanel_2b57c38b')}
-                title={t('chat.copy.resizeAiAgentPanel_2b57c38b')}
+                aria-label="Resize AI agent panel"
+                title="Resize AI agent panel"
               />
               <Panel
                 id="project-agent-panel"
@@ -8307,19 +7404,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 className="bolt-project-panel-slot bolt-project-panel-slot-agent"
                 onResize={(size) => setAgentWidth(clampProjectAgentPanelWidth(panelPercentToPixels(size)))}
               >
-                <section
-                  className="bolt-project-ide-panel bolt-project-agent-shell"
-                  aria-label={t('chat.copy.aiAgent_ab15eb3d')}
-                >
+                <section className="bolt-project-ide-panel bolt-project-agent-shell" aria-label="AI agent">
                   <div className="bolt-project-agent-header">
                     <div className="bolt-project-agent-avatar" aria-hidden>
                       <span className="i-ph:sparkle" />
                     </div>
-                    <span
-                      className="bolt-project-agent-title"
-                      title={description?.trim() || t('chat.copy.newChat_009bf6b9')}
-                    >
-                      {description?.trim() || t('chat.copy.newChat_009bf6b9')}
+                    <span className="bolt-project-agent-title" title={description?.trim() || 'New chat'}>
+                      {description?.trim() || 'New chat'}
                     </span>
                     <div className="ml-auto flex min-w-max items-center gap-1">
                       <HeaderTip label={headerPresenceTooltip}>
@@ -8338,12 +7429,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         </button>
                       </HeaderTip>
                       {projectId ? (
-                        <HeaderTip label={t('chat.copy.browseConversationBranches_f8505149')}>
+                        <HeaderTip label="Browse conversation branches">
                           <ConversationBranchesMenu projectId={projectId} className="bolt-project-ide-icon-button" />
                         </HeaderTip>
                       ) : null}
                       {projectId ? (
-                        <HeaderTip label={t('chat.copy.shareThisConversationAsARead_86f1bf77')}>
+                        <HeaderTip label="Share this conversation as a read-only link">
                           <ShareConversationButton
                             conversationId={`project:${projectId}`}
                             projectId={projectId}
@@ -8354,11 +7445,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           />
                         </HeaderTip>
                       ) : null}
-                      <HeaderTip label={t('chat.copy.conversationHistory_a03d887e')}>
+                      <HeaderTip label="Conversation history">
                         <button
                           type="button"
                           className="bolt-project-ide-icon-button"
-                          aria-label={t('chat.copy.conversationHistory_a03d887e')}
+                          aria-label="Conversation history"
                           onClick={() => setConversationHistoryOpen((value) => !value)}
                         >
                           <span className="i-ph:clock" aria-hidden />
@@ -8371,60 +7462,60 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                        * interactive popovers (presence, branches, share) stay inline
                        * because they don't nest cleanly inside another menu.
                        */}
-                      <HeaderOverflowMenu label={t('chat.copy.moreAgentActions_b515ee74')}>
+                      <HeaderOverflowMenu label="More agent actions">
                         <button
                           type="button"
                           role="menuitem"
                           className="bolt-header-overflow-item"
-                          aria-label={t('chat.copy.copyConversation_4f1cbe7c')}
+                          aria-label="Copy conversation"
                           onClick={() => void copyProjectConversation()}
                         >
                           <Copy size={14} strokeWidth={2} aria-hidden />
-                          <span>{t('chat.copy.copyConversation_4f1cbe7c')}</span>
+                          <span>Copy conversation</span>
                         </button>
                         <button
                           type="button"
                           role="menuitem"
                           className="bolt-header-overflow-item"
-                          aria-label={t('chat.copy.exportConversation_6b17f1ef')}
+                          aria-label="Export conversation"
                           onClick={exportProjectConversation}
                         >
                           <Download size={14} strokeWidth={2} aria-hidden />
-                          <span>{t('chat.copy.exportConversation_6b17f1ef')}</span>
+                          <span>Export conversation</span>
                         </button>
                         <button
                           type="button"
                           role="menuitem"
                           className="bolt-header-overflow-item"
-                          aria-label={t('chat.copy.agentSettings_b02d736f')}
+                          aria-label="Agent settings"
                           onClick={() => openWorkspacePanel('settings')}
                         >
                           <span className="i-ph:sliders-horizontal" aria-hidden />
-                          <span>{t('chat.copy.agentSettings_b02d736f')}</span>
+                          <span>Agent settings</span>
                         </button>
                         <div className="bolt-header-overflow-item bolt-header-overflow-item--static">
                           <span className="flex items-center gap-2">
                             <span className="i-ph:moon" aria-hidden />
-                            <span>{t('chat.copy.appearance_41def7a0')}</span>
+                            <span>Appearance</span>
                           </span>
-                          <ThemeSwitch size="sm" title={t('chat.copy.switchLightDarkTheme_4f952812')} />
+                          <ThemeSwitch size="sm" title="Switch light/dark theme" />
                         </div>
                         <button
                           type="button"
                           role="menuitem"
                           className="bolt-header-overflow-item bolt-header-overflow-item--danger"
-                          aria-label={t('chat.copy.clearHistory_53b5158b')}
+                          aria-label="Clear history"
                           onClick={clearProjectConversation}
                         >
                           <Trash2 size={14} strokeWidth={2} aria-hidden />
-                          <span>{t('chat.copy.clearHistory_53b5158b')}</span>
+                          <span>Clear history</span>
                         </button>
                       </HeaderOverflowMenu>
-                      <HeaderTip label={t('chat.copy.hideAgentPanelCmdL_9b94ba4c')}>
+                      <HeaderTip label="Hide agent panel (Cmd+L)">
                         <button
                           type="button"
                           className="bolt-project-ide-icon-button"
-                          aria-label={t('chat.copy.hideAiAgentPanel_65280672')}
+                          aria-label="Hide AI agent panel"
                           onClick={() => setProjectAgentPanelOpen(false)}
                         >
                           <span className="i-ph:x" aria-hidden />
@@ -8441,25 +7532,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                    */}
                   {isAgentRunning && <ProjectAgentRunStatus stopLabel={stopAgentLabel} onStop={handleStop} />}
                   {conversationHistoryOpen && (
-                    <div
-                      className="bolt-project-conversation-history"
-                      role="dialog"
-                      aria-label={t('chat.copy.projectAgentHistory_c9f06d3e')}
-                    >
+                    <div className="bolt-project-conversation-history" role="dialog" aria-label="Project agent history">
                       <div className="bolt-project-conversation-history-head">
                         <div>
-                          <strong>{t('chat.copy.agentHistory_c783eeb3')}</strong>
+                          <strong>Agent history</strong>
                           <span>
-                            {t('baseChatAst.counts.checkpointsFiltered', {
-                              shown: filteredProjectConversationCheckpoints.length,
-                              count: projectConversationCheckpoints.length,
-                            })}
+                            {filteredProjectConversationCheckpoints.length} of {projectConversationCheckpoints.length}{' '}
+                            checkpoints
                           </span>
                         </div>
                         <button
                           type="button"
                           className="bolt-project-ide-icon-button"
-                          aria-label={t('chat.copy.closeHistory_7bf06ef3')}
+                          aria-label="Close history"
                           onClick={() => setConversationHistoryOpen(false)}
                         >
                           <span className="i-ph:x" aria-hidden />
@@ -8470,14 +7555,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         <input
                           type="search"
                           value={conversationHistoryQuery}
-                          placeholder={t('chat.copy.searchCheckpointsCommitsPromptsOrAgent_7b472db0')}
-                          aria-label={t('chat.copy.searchAgentCheckpoints_471244eb')}
+                          placeholder="Search checkpoints, commits, prompts, or agent replies"
+                          aria-label="Search agent checkpoints"
                           onChange={(event) => setConversationHistoryQuery(event.currentTarget.value)}
                         />
                         {conversationHistoryQuery && (
                           <button
                             type="button"
-                            aria-label={t('chat.copy.clearHistorySearch_9758bed5')}
+                            aria-label="Clear history search"
                             onClick={() => setConversationHistoryQuery('')}
                           >
                             <span className="i-ph:x" aria-hidden />
@@ -8501,56 +7586,46 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                               <div className="bolt-project-history-checkpoint-actions">
                                 <button
                                   type="button"
-                                  aria-label={t('chat.copy.viewChatAtCheckpointValue0_7e82ca09', {
-                                    value0: checkpoint.title,
-                                  })}
+                                  aria-label={`View chat at checkpoint ${checkpoint.title}`}
                                   onClick={() => viewProjectCheckpoint(checkpoint)}
                                 >
-                                  {t('chat.copy.viewChat_7dd435d1')}
+                                  View Chat
                                 </button>
                                 <button
                                   type="button"
                                   disabled={!rollbackAvailable}
-                                  aria-label={t('chat.copy.rollbackToCheckpointValue0_2131e13b', {
-                                    value0: checkpoint.title,
-                                  })}
+                                  aria-label={`Rollback to checkpoint ${checkpoint.title}`}
                                   onClick={() => {
                                     setRollbackDatabase(false);
                                     setRollbackTarget(checkpoint);
                                   }}
                                 >
-                                  {t('chat.copy.rollbackHere_643ef4ec')}
+                                  Rollback here
                                 </button>
                                 <button
                                   type="button"
-                                  aria-label={t('chat.copy.reviewDiffForCheckpointValue0_7903beba', {
-                                    value0: checkpoint.title,
-                                  })}
+                                  aria-label={`Review diff for checkpoint ${checkpoint.title}`}
                                   onClick={() => openCheckpointChanges(checkpoint)}
                                 >
-                                  {t('chat.copy.reviewDiff_cfcf10aa')}
+                                  Review diff
                                 </button>
                               </div>
                             </article>
                           );
                         })}
                         {!projectConversationCheckpoints.length && (
-                          <div className="bolt-project-history-empty">
-                            {t('chat.copy.noProjectAgentHistoryYet_3aa0ec67')}
-                          </div>
+                          <div className="bolt-project-history-empty">No project agent history yet.</div>
                         )}
                         {projectConversationCheckpoints.length > 0 &&
                           !filteredProjectConversationCheckpoints.length && (
-                            <div className="bolt-project-history-empty">
-                              {t('chat.copy.noCheckpointsMatchThisSearch_aef33bf2')}
-                            </div>
+                            <div className="bolt-project-history-empty">No checkpoints match this search.</div>
                           )}
                       </div>
                     </div>
                   )}
                   <ZoneErrorBoundary
                     zone="agent"
-                    title={t('chat.copy.agent_5ce2e6f4')}
+                    title="Agent"
                     boundaryId={`project:${projectId}:agent`}
                     projectId={projectId}
                     getSnapshot={() => ({
@@ -8572,15 +7647,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           <button
             type="button"
             className="bolt-project-agent-panel-toggle"
-            aria-label={t('chat.copy.openAiAgentPanel_17b0ac72')}
-            title={t('chat.copy.openAiAgentPanelCmdL_e8c479b3')}
+            aria-label="Open AI agent panel"
+            title="Open AI agent panel (Cmd+L)"
             onClick={() => {
               setProjectAgentPanelOpen(true);
               window.setTimeout(() => textareaRef?.current?.focus(), 0);
             }}
           >
             <span className="i-ph:sparkle" aria-hidden />
-            <span>{t('chat.copy.agent_5ce2e6f4')}</span>
+            <span>Agent</span>
             <kbd>{formatKeybindingCombo('cmd+l')}</kbd>
           </button>
         )}
@@ -8592,54 +7667,54 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         [
           ...projectFilePaths.slice(0, 20).map((filePath) => ({
             id: `file:${filePath}`,
-            section: t('baseChatAst.common.files'),
+            section: 'Files',
             title: filePath.replace(WORK_DIR, '') || filePath,
-            description: t('chat.copy.openProjectFile_f9fc8bf6'),
+            description: 'Open project file',
             shortcut: formatKeybindingCombo('cmd+p'),
             icon: 'i-ph:file-code',
             kind: 'file' as const,
             filePath,
           })),
           ...[
-            ['files', formatKeybindingCombo('cmd+p')],
-            ['search', ''],
-            ['terminal', formatKeybindingCombo('cmd+`')],
-            ['preview', formatKeybindingCombo('cmd+enter')],
-            ['database', ''],
-            ['object-storage', ''],
-            ['env', ''],
-            ['secrets', ''],
-            ['git', ''],
-            ['packages', ''],
-            ['skills', ''],
-            ['integrations', ''],
-            ['workflows', ''],
-            ['deployments', ''],
-            ['security', ''],
-            ['monitoring', ''],
-            ['ports', ''],
-            ['extensions', ''],
-            ['snapshots', ''],
-            ['settings', formatKeybindingCombo('cmd+,')],
-          ].map(([panel, shortcut]) => ({
+            ['files', 'Files', 'Browse project files', formatKeybindingCombo('cmd+p')],
+            ['search', 'Search', 'Find in files', ''],
+            ['terminal', SHELL_TERMINAL_LABEL, 'Workspace shell', formatKeybindingCombo('cmd+`')],
+            ['preview', 'Webview', 'App preview', formatKeybindingCombo('cmd+enter')],
+            ['database', 'Database', 'SQL browser', ''],
+            ['object-storage', 'Object Storage', 'File storage', ''],
+            ['env', 'Environment variables', 'Environment variables', ''],
+            ['secrets', 'Secrets', 'Encrypted project secrets', ''],
+            ['git', 'Git', 'Version control', ''],
+            ['packages', 'Packages', 'Dependencies manager', ''],
+            ['skills', 'Skills', 'Agent skills', ''],
+            ['integrations', 'Integrations', 'Connected services', ''],
+            ['workflows', 'Workflows', 'Task automation', ''],
+            ['deployments', 'Deployments', 'Publish your app', ''],
+            ['security', 'Security', 'Security scanner', ''],
+            ['monitoring', 'Monitoring', 'App metrics', ''],
+            ['ports', 'Ports', 'Forwarded ports', ''],
+            ['extensions', 'Extensions', 'Marketplace', ''],
+            ['snapshots', 'Snapshots', 'Create or restore checkpoints', ''],
+            ['settings', 'Settings', 'Project settings', formatKeybindingCombo('cmd+,')],
+          ].map(([panel, title, description, shortcut]) => ({
             id: `tool:${panel}`,
-            section: t('baseChatAst.common.tools'),
-            title: panelTitle(panel, t),
-            description: t(IDE_TOOL_DESCRIPTIONS[panel as keyof typeof IDE_TOOL_DESCRIPTIONS]),
+            section: 'Tools',
+            title,
+            description,
             shortcut,
             icon: panelIcon(panel),
             kind: 'tool' as const,
             panel: panel as IdeWorkspacePanel | IdeRightPanel,
           })),
           ...[
-            ['run', t('baseChatAst.command.runApp'), t('baseChatAst.command.runAppDescription'), ''],
-            ['stop', t('baseChatAst.command.stopApp'), t('baseChatAst.command.stopAppDescription'), ''],
-            ['deploy', t('baseChatAst.command.deploy'), t('baseChatAst.command.deployDescription'), ''],
-            ['theme', t('baseChatAst.command.theme'), t('baseChatAst.command.themeDescription'), ''],
-            ['reset-layout', t('baseChatAst.command.resetLayout'), t('baseChatAst.command.resetLayoutDescription'), ''],
+            ['run', 'Run app', 'Open preview runtime', ''],
+            ['stop', 'Stop app', 'Open logs to stop runtime process', ''],
+            ['deploy', 'Deployments', 'Open Deployments panel', ''],
+            ['theme', 'Toggle theme', 'Use existing theme controls', ''],
+            ['reset-layout', 'Reset layout', 'Restore default IDE layout', ''],
           ].map(([command, title, description, shortcut]) => ({
             id: `command:${command}`,
-            section: t('baseChatAst.common.commands'),
+            section: 'Commands',
             title,
             description,
             shortcut,
@@ -8649,9 +7724,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           })),
           ...flattenTabs(paneTree).map((tab) => ({
             id: `recent:${tab.id}`,
-            section: t('baseChatAst.common.recent'),
-            title: tab.filePath?.replace(WORK_DIR, '') || panelTitle(tab.panel, t),
-            description: t('chat.copy.focusOpenTab_9394aa42'),
+            section: 'Recent',
+            title: tab.filePath?.replace(WORK_DIR, '') || panelTitle(tab.panel),
+            description: 'Focus open tab',
             shortcut: '',
             icon: tab.panel === 'editor' ? 'i-ph:code' : panelIcon(tab.panel),
             kind: 'recent' as const,
@@ -8667,16 +7742,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               return false;
             }
 
-            const query = commandPaletteQuery.trim().toLocaleLowerCase(language);
+            const query = commandPaletteQuery.trim().toLowerCase();
 
             if (!query) {
               return true;
             }
 
-            return `${entry.title} ${entry.description} ${entry.section}`.toLocaleLowerCase(language).includes(query);
+            return `${entry.title} ${entry.description} ${entry.section}`.toLowerCase().includes(query);
           })
           .slice(0, 60),
-      [commandPaletteMode, commandPaletteQuery, language, paneTree, projectFilePaths, t],
+      [commandPaletteMode, commandPaletteQuery, paneTree, projectFilePaths],
     );
 
     const runCommandPaletteEntry = (entry = commandPaletteEntries[commandPaletteIndex]) => {
@@ -8719,16 +7794,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const commandPaletteSections = useMemo(
       () =>
-        [
-          t('baseChatAst.common.files'),
-          t('baseChatAst.common.tools'),
-          t('baseChatAst.common.commands'),
-          t('baseChatAst.common.recent'),
-        ].map((name) => ({
+        (['Files', 'Tools', 'Commands', 'Recent'] as const).map((name) => ({
           name,
           entries: commandPaletteEntries.filter((entry) => entry.section === name),
         })),
-      [commandPaletteEntries, t],
+      [commandPaletteEntries],
     );
 
     const keybindingConflicts = useMemo(() => detectKeybindingConflicts(projectKeybindings), [projectKeybindings]);
@@ -8754,12 +7824,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
           return {
             id: itemId,
-            title: tool ? t(tool.titleKey) : (meta?.name ?? panelTitle(itemId)),
+            title: tool?.title ?? meta?.name ?? panelTitle(itemId),
             icon: tool?.icon ?? meta?.icon ?? panelIcon(itemId),
             tone: tool && 'tone' in tool ? tool.tone : undefined,
           };
         }),
-      [t],
+      [],
     );
 
     const mobileBottomTabSlotCount = 4;
@@ -8777,12 +7847,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const keybindingSections = useMemo(
       () =>
-        PROJECT_KEYBINDING_CATEGORIES.map((category) => ({
-          category,
-          label: getKeybindingCategoryLabel(language, category),
-          bindings: projectKeybindings.filter((binding) => binding.category === category),
-        })).filter((section) => section.bindings.length > 0),
-      [language, projectKeybindings],
+        (['File', 'Navigation', 'Workbench', 'Editor', 'Agent', 'Terminal', 'Help'] as const)
+          .map((category) => ({
+            category,
+            bindings: projectKeybindings.filter((binding) => binding.category === category),
+          }))
+          .filter((section) => section.bindings.length > 0),
+      [projectKeybindings],
     );
 
     const baseChat = (
@@ -8807,6 +7878,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         {...(useMobileIde ? mobileSwipeHandlers : {})}
       >
         {!projectIdeMode && <ClientOnly>{() => <Menu />}</ClientOnly>}
+        {/*
+         * Save-conflict resolution, mounted at the IDE root so it covers every
+         * save surface (project editor, workbench, diff view) on desktop and
+         * mobile alike. Renders null unless a conflict is pending.
+         */}
+        <ClientOnly>{() => <FileSaveConflictDialog />}</ClientOnly>
         {/* DO NOT MODIFY — mobile Terminal tab frozen per Avi (ref IMG_9149). Header structure
             (back · activity · "Shell (Terminal)" · + · ⋮) is the reference; exclude from responsive/
             fan-out/parity passes. */}
@@ -8816,7 +7893,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <div className="bolt-mobile-ecode-header-side">
                 <button
                   type="button"
-                  aria-label={t('baseChatMobileHeader.back')}
+                  aria-label="Back to dashboard"
                   data-testid="button-back"
                   onClick={() => navigate('/dashboard')}
                 >
@@ -8824,7 +7901,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </button>
                 <button
                   type="button"
-                  aria-label={t('baseChatMobileHeader.activity')}
+                  aria-label="Activity"
                   data-testid="button-history"
                   onClick={() => activateMobileTool('activity')}
                 >
@@ -8847,7 +7924,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <div className="bolt-mobile-ecode-header-side bolt-mobile-ecode-header-side--right">
                 <button
                   type="button"
-                  aria-label={t('baseChatMobileHeader.openTools')}
+                  aria-label="Open tools"
                   aria-haspopup="dialog"
                   aria-expanded={mobileToolsSheetOpen}
                   data-testid="button-new-tab"
@@ -8857,9 +7934,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </button>
                 <button
                   type="button"
-                  aria-label={
-                    isMobileAgentActive ? t('baseChatMobileHeader.agentOptions') : t('baseChatMobileHeader.moreOptions')
-                  }
+                  aria-label={isMobileAgentActive ? 'Agent options' : 'More options'}
                   aria-haspopup="dialog"
                   aria-expanded={isMobileAgentActive ? mobileAgentMenuOpen : mobileMoreMenuOpen}
                   data-testid={isMobileAgentActive ? 'mobile-agent-menu-trigger' : 'button-more'}
@@ -8873,49 +7948,36 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <div className="bolt-mobile-agent-context-bar" data-running={isAgentRunning ? 'true' : 'false'}>
                 <span className={isAgentRunning ? 'i-svg-spinners:3-dots-fade' : 'i-ph:check-circle'} aria-hidden />
                 <span>
-                  <strong>
-                    {isAgentRunning ? t('baseChatMobileHeader.agentWorking') : t('baseChatMobileHeader.agentReady')}
-                  </strong>
+                  <strong>{isAgentRunning ? 'Working on this workspace' : 'Ready for the next change'}</strong>
                   <small>{mobileAgentContextLabel}</small>
                 </span>
-                <button
-                  type="button"
-                  aria-label={t('baseChatMobileHeader.focusPrompt')}
-                  onClick={() => textareaRef?.current?.focus()}
-                >
-                  {t('baseChatMobileHeader.promptButton')}
+                <button type="button" aria-label="Focus Agent prompt" onClick={() => textareaRef?.current?.focus()}>
+                  Prompt
                 </button>
               </div>
             ) : null}
           </header>
         )}
         <div className="bolt-connection-status" role="status" aria-live="polite" data-online={isOnline}>
-          {!isOnline
-            ? t('chat.copy.offlineModeEditsStayLocalUntil_d05ea2ef')
-            : t('chat.copy.connectionHealthy_86695b92')}
+          {!isOnline ? 'Offline mode: edits stay local until the workspace connection returns.' : 'Connection healthy'}
         </div>
         {commandPaletteOpen && (
           <>
             <button
               type="button"
               className="bolt-project-command-palette-backdrop"
-              aria-label={t('chat.copy.closeCommandPalette_1f7df2fe')}
+              aria-label="Close command palette"
               data-testid="command-palette-backdrop"
               onClick={() => setCommandPaletteOpen(false)}
             />
-            <div
-              className="bolt-project-command-palette"
-              role="dialog"
-              aria-modal="true"
-              aria-label={t('chat.copy.commandPalette_7b6b539e')}
-            >
+            <div className="bolt-project-command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
               <input
                 type="text"
                 autoFocus
                 autoComplete="off"
                 inputMode="search"
-                placeholder={t('chat.copy.searchToolsFilesAndCommands_c085ba2a')}
-                aria-label={t('chat.copy.searchCommands_5ae3aa24')}
+                placeholder="Search tools, files, and commands..."
+                aria-label="Search commands"
                 role="combobox"
                 aria-expanded
                 aria-controls="project-command-listbox"
@@ -8945,11 +8007,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   }
                 }}
               />
-              <div
-                id="project-command-listbox"
-                role="listbox"
-                aria-label={t('chat.copy.commandsToolsAndFiles_edb9d782')}
-              >
+              <div id="project-command-listbox" role="listbox" aria-label="Commands, tools and files">
                 {commandPaletteSections.map((section) => (
                   <div key={section.name} role="group" aria-label={section.name}>
                     <div className="bolt-project-command-section" role="presentation">
@@ -8983,11 +8041,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 ))}
                 {!commandPaletteEntries.length && (
                   <div className="px-4 py-6 text-sm text-bolt-elements-textTertiary">
-                    {t('chat.copy.noMatchingCommandToolOrFile_949660c4')}
+                    No matching command, tool, or file.
                   </div>
                 )}
               </div>
-              <footer>{t('chat.copy.navigateSelectEscClose_69f03d69')}</footer>
+              <footer>↑↓ navigate · ↵ select · esc close</footer>
             </div>
           </>
         )}
@@ -8997,20 +8055,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             className="bolt-project-command-palette bolt-project-keybindings-palette"
             role="dialog"
             aria-modal="true"
-            aria-label={t('chat.copy.keyboardShortcuts_26669547')}
+            aria-label="Keyboard shortcuts"
           >
             <header className="bolt-project-keybindings-head">
               <div>
-                <strong>{t('chat.copy.keyboardShortcuts_26669547')}</strong>
-                <span>
-                  {projectKeybindings.length}
-                  {t('chat.copy.activeBindingsInThisWorkspace_0a75087f')}
-                </span>
+                <strong>Keyboard shortcuts</strong>
+                <span>{projectKeybindings.length} active bindings in this workspace</span>
               </div>
               <button
                 type="button"
                 className="bolt-project-ide-icon-button"
-                aria-label={t('chat.copy.closeKeyboardShortcuts_b87b092b')}
+                aria-label="Close keyboard shortcuts"
                 onClick={() => setKeyboardShortcutsOpen(false)}
               >
                 <span className="i-ph:x" aria-hidden />
@@ -9018,7 +8073,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </header>
             {keybindingConflicts.length > 0 ? (
               <div className="bolt-project-keybindings-conflicts" role="alert">
-                <strong>{t('chat.copy.shortcutConflictsDetected_4514c8b4')}</strong>
+                <strong>Shortcut conflicts detected</strong>
                 <span>
                   {keybindingConflicts
                     .map((conflict) => `${formatKeybindingCombo(conflict.combo)}: ${conflict.actions.join(', ')}`)
@@ -9028,11 +8083,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             ) : null}
             <div className="bolt-project-keybindings-list">
               {keybindingSections.map((section) => (
-                <section
-                  key={section.category}
-                  aria-label={t('chat.copy.value0Shortcuts_52261c31', { value0: section.label })}
-                >
-                  <h3>{section.label}</h3>
+                <section key={section.category} aria-label={`${section.category} shortcuts`}>
+                  <h3>{section.category}</h3>
                   {section.bindings.map((binding) => (
                     <div key={`${binding.combo}-${binding.action}`} className="bolt-project-keybinding-row">
                       <span>
@@ -9045,7 +8097,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </section>
               ))}
             </div>
-            <footer>{t('chat.copy.pressEscToClose_083ab5a6')}</footer>
+            <footer>Press Esc to close</footer>
           </div>
         )}
         <div
@@ -9060,7 +8112,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <>
               {agentPanel}
               {useMobileIde && mobilePanel === 'locks' ? (
-                <PanelBoundary title={t('chat.copy.locks_01175ae5')}>
+                <PanelBoundary title="Locks">
                   <div
                     className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full"
                     data-testid="mobile-locks-panel"
@@ -9069,7 +8121,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </div>
                 </PanelBoundary>
               ) : useMobileIde && mobilePanel === 'deploy' ? (
-                <PanelBoundary title={t(IDE_TOOL_DESCRIPTIONS[activeMobileServicePanel] ?? 'chat.copy.projectTools')}>
+                <PanelBoundary title={IDE_TOOL_DESCRIPTIONS[activeMobileServicePanel] ?? 'Project tools'}>
                   <div className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full">
                     <ProjectIdeServicePanel
                       key={`${projectId ?? 'project'}:mobile:${activeMobileServicePanel}`}
@@ -9084,8 +8136,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               ) : useMobileIde && mobilePanel === 'chat' ? null : (
                 <ClientOnly>
                   {() => (
-                    <PanelBoundary title={t('chat.copy.workbench_93ef7c63')}>
-                      <Suspense fallback={<PanelLoading title={t('chat.copy.loadingWorkspacePanels_3d3423fa')} />}>
+                    <PanelBoundary title="Workbench">
+                      <Suspense fallback={<PanelLoading title="Loading workspace panels" />}>
                         <LazyWorkbench
                           chatStarted={chatStarted || useMobileIde}
                           isStreaming={isStreaming}
@@ -9113,11 +8165,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             (record/run · tab-switcher · Files · </> · preview · apps · +N · + · ⋮) is the reference;
             exclude from responsive/fan-out/parity passes. */}
         {showMobileChrome && (
-          <nav
-            className="bolt-mobile-replit-nav"
-            aria-label={t('baseChatMobileHeader.idePanels')}
-            data-testid="mobile-bottom-navigation"
-          >
+          <nav className="bolt-mobile-replit-nav" aria-label="IDE panels" data-testid="mobile-bottom-navigation">
             <div className="bolt-mobile-replit-nav-bg" aria-hidden />
             <div className="bolt-mobile-replit-nav-inner">
               <button
@@ -9143,18 +8191,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <button
                   type="button"
                   className="bolt-mobile-replit-icon-tab"
-                  aria-label={t('baseChatMobileHeader.openTabSwitcher')}
+                  aria-label="Open tab switcher"
                   data-testid="button-tab-switcher"
                   onClick={openMobileTabSwitcher}
                 >
                   <span className="i-ph:squares-four" aria-hidden />
                 </button>
                 <span className="bolt-mobile-replit-divider" aria-hidden />
-                <div
-                  className="bolt-mobile-replit-panel-scroll"
-                  role="group"
-                  aria-label={t('baseChatMobileHeader.openTabs')}
-                >
+                <div className="bolt-mobile-replit-panel-scroll" role="group" aria-label="Open tabs">
                   {mobileBottomTabs.map((tab) => {
                     const isActive = activeMobileOpenTabId === tab.id;
 
@@ -9163,7 +8207,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         key={tab.id}
                         type="button"
                         className="bolt-mobile-replit-icon-tab bolt-mobile-replit-panel-tab"
-                        aria-label={t('baseChatMobileHeader.switchToTab', { name: tab.name })}
+                        aria-label={`Switch to ${tab.name} tab`}
                         aria-pressed={isActive}
                         aria-current={isActive ? 'page' : undefined}
                         data-testid={`tab-${tab.id}`}
@@ -9180,7 +8224,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <button
                     type="button"
                     className="bolt-mobile-replit-icon-tab bolt-mobile-replit-more-tabs"
-                    aria-label={t('baseChatMobileHeader.moreTabs', { count: hiddenMobileBottomTabCount })}
+                    aria-label={`Show ${hiddenMobileBottomTabCount} more tabs`}
                     data-testid="button-more-tabs"
                     onClick={openMobileTabSwitcher}
                   >
@@ -9191,7 +8235,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <button
                   type="button"
                   className="bolt-mobile-replit-icon-tab"
-                  aria-label={t('baseChatMobileHeader.addNewTab')}
+                  aria-label="Add new tab"
                   aria-haspopup="dialog"
                   aria-expanded={mobileToolsSheetOpen}
                   data-testid="button-add-tab"
@@ -9204,7 +8248,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <button
                 type="button"
                 className="bolt-mobile-replit-tools"
-                aria-label={t('baseChatMobileHeader.moreOptions')}
+                aria-label="More options"
                 aria-haspopup="dialog"
                 aria-expanded={mobileMoreMenuOpen}
                 data-testid="button-more"
@@ -9220,7 +8264,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <button
               type="button"
               className="bolt-mobile-agent-menu-backdrop"
-              aria-label={t('chat.copy.closeAgentOptions_8e9b146d')}
+              aria-label="Close agent options"
               data-testid="mobile-agent-menu-backdrop"
               onClick={closeMobileOverlays}
             />
@@ -9228,7 +8272,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               className="bolt-mobile-agent-menu-sheet"
               role="dialog"
               aria-modal="true"
-              aria-label={t('chat.copy.agentOptions_a43f3a55')}
+              aria-label="Agent options"
               data-testid="mobile-agent-menu-sheet"
               onKeyDownCapture={handleMobileOverlayEscapeKey}
             >
@@ -9236,11 +8280,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <header className="bolt-mobile-agent-menu-header">
                 <div className="bolt-mobile-agent-menu-title">
                   <MobileReplitAgentIcon />
-                  <h2>{t('chat.copy.agent_5ce2e6f4')}</h2>
+                  <h2>Agent</h2>
                 </div>
                 <button
                   type="button"
-                  aria-label={t('chat.copy.closeAgentOptions_8e9b146d')}
+                  aria-label="Close agent options"
                   data-testid="mobile-agent-menu-close"
                   onClick={closeMobileOverlays}
                 >
@@ -9255,43 +8299,39 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   onClick={startMobileAgentChat}
                 >
                   <span className="i-ph:chat-circle-text" aria-hidden />
-                  <span>{t('chat.copy.newChat_009bf6b9')}</span>
+                  <span>New chat</span>
                   <span className="i-ph:plus" aria-hidden />
                 </button>
                 <button type="button" data-testid="mobile-agent-history" onClick={openMobileAgentHistory}>
                   <span className="i-ph:clock-counter-clockwise" aria-hidden />
-                  <span>{t('chat.copy.history_90ccd649')}</span>
+                  <span>History</span>
                   <span className="i-ph:caret-right" aria-hidden />
                 </button>
                 <button type="button" data-testid="mobile-agent-usage" onClick={openMobileAgentUsage}>
                   <span className="i-ph:gauge" aria-hidden />
-                  <span>{t('chat.copy.usageMonitoring_6e358d3b')}</span>
+                  <span>Usage &amp; monitoring</span>
                   <span className="i-ph:caret-right" aria-hidden />
                 </button>
                 <button type="button" data-testid="mobile-agent-settings" onClick={openMobileAgentSettings}>
                   <span className="i-ph:sliders-horizontal" aria-hidden />
-                  <span>{t('chat.copy.agentSettings_b02d736f')}</span>
+                  <span>Agent settings</span>
                   <span className="i-ph:caret-right" aria-hidden />
                 </button>
                 <button type="button" data-testid="mobile-agent-copy" onClick={copyMobileAgentConversation}>
                   <span className="i-ph:copy" aria-hidden />
-                  <span>{t('chat.copy.copyConversation_4f1cbe7c')}</span>
+                  <span>Copy conversation</span>
                 </button>
                 <button type="button" data-testid="mobile-agent-export" onClick={exportMobileAgentConversation}>
                   <span className="i-ph:download-simple" aria-hidden />
-                  <span>{t('chat.copy.exportConversation_6b17f1ef')}</span>
+                  <span>Export conversation</span>
                 </button>
                 <button type="button" data-testid="mobile-agent-theme" onClick={toggleMobileAgentTheme}>
                   <span className={theme === 'dark' ? 'i-ph:sun' : 'i-ph:moon'} aria-hidden />
-                  <span>
-                    {theme === 'dark'
-                      ? t('chat.copy.switchToLightMode_fc450912')
-                      : t('chat.copy.switchToDarkMode_c29220f9')}
-                  </span>
+                  <span>{theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}</span>
                 </button>
                 <button type="button" data-testid="mobile-agent-feedback" onClick={openMobileAgentFeedback}>
                   <span className="i-ph:megaphone" aria-hidden />
-                  <span>{t('chat.copy.shareFeedback_21af3b1c')}</span>
+                  <span>Share feedback</span>
                   <span className="i-ph:arrow-square-out" aria-hidden />
                 </button>
                 <button
@@ -9301,7 +8341,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   onClick={closeMobileAgentView}
                 >
                   <span className="i-ph:x" aria-hidden />
-                  <span>{t('chat.copy.closeAgentView_b85f8435')}</span>
+                  <span>Close Agent view</span>
                 </button>
               </div>
             </section>
@@ -9312,7 +8352,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <button
               type="button"
               className="bolt-mobile-more-menu-backdrop"
-              aria-label={t('chat.copy.closeMoreMenu_033870ff')}
+              aria-label="Close more menu"
               data-testid="mobile-more-menu-backdrop"
               onClick={closeMobileOverlays}
             />
@@ -9320,16 +8360,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               className="bolt-mobile-more-menu-sheet"
               role="dialog"
               aria-modal="true"
-              aria-label={t('chat.copy.moreIdePanels_d3cb95e1')}
+              aria-label="More IDE panels"
               data-testid="mobile-more-menu-sheet"
               onKeyDownCapture={handleMobileOverlayEscapeKey}
             >
               <div className="bolt-mobile-more-menu-handle" aria-hidden />
               <header className="bolt-mobile-more-menu-header">
-                <h2>{t('chat.copy.panels_8dfeed48')}</h2>
+                <h2>Panels</h2>
                 <button
                   type="button"
-                  aria-label={t('chat.copy.closeMoreMenu_033870ff')}
+                  aria-label="Close more menu"
                   data-testid="mobile-more-menu-close"
                   onClick={closeMobileOverlays}
                 >
@@ -9366,7 +8406,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             className="bolt-mobile-tab-switcher"
             role="dialog"
             aria-modal="true"
-            aria-label={t('chat.copy.tabSwitcher_36e22491')}
+            aria-label="Tab switcher"
             data-testid="mobile-tab-switcher"
             onKeyDownCapture={handleMobileOverlayEscapeKey}
             onClick={(event) => {
@@ -9392,7 +8432,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       <button
                         type="button"
                         className="bolt-mobile-tab-switcher-card-main"
-                        aria-label={t('chat.copy.switchToValue0Tab_f9ebf5a1', { value0: tab.name })}
+                        aria-label={`Switch to ${tab.name} tab`}
                         onClick={() => activateMobileTool(tab.id)}
                       >
                         <span className="bolt-mobile-tab-switcher-card-icon" aria-hidden>
@@ -9404,7 +8444,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         <button
                           type="button"
                           className="bolt-mobile-tab-switcher-close"
-                          aria-label={t('chat.copy.closeValue0Tab_50bbc6b5', { value0: tab.name })}
+                          aria-label={`Close ${tab.name} tab`}
                           data-testid={`button-close-tab-${tab.id}`}
                           onClick={() => closeMobileOpenTab(tab.id)}
                         >
@@ -9415,17 +8455,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   ))}
                   {filteredMobileOpenTabs.length === 0 ? (
                     <div className="bolt-mobile-tab-switcher-empty" role="status">
-                      {t('chat.copy.noOpenTabsMatchYourSearch_c9496ce2')}
+                      No open tabs match your search.
                     </div>
                   ) : null}
                 </div>
               </div>
               <div className="bolt-mobile-tab-switcher-footer">
-                <div
-                  className="bolt-mobile-tab-switcher-quick"
-                  role="group"
-                  aria-label={t('chat.copy.quickAccessTools_3bf4f7bd')}
-                >
+                <div className="bolt-mobile-tab-switcher-quick" role="group" aria-label="Quick access tools">
                   {['secrets', 'database', 'settings'].map((toolId) => {
                     const tool = ECODE_MOBILE_TAB_META[toolId];
 
@@ -9433,7 +8469,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       <button
                         key={toolId}
                         type="button"
-                        aria-label={t('chat.copy.quickAccessValue0_a4477e98', { value0: tool.name })}
+                        aria-label={`Quick access: ${tool.name}`}
                         data-testid={`quick-access-${toolId}`}
                         onClick={() => activateMobileTool(toolId)}
                       >
@@ -9444,20 +8480,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   })}
                   <button
                     type="button"
-                    aria-label={t('chat.copy.openNewTab_22fde835')}
+                    aria-label="Open new tab"
                     data-testid="button-new-tab"
                     onClick={openMobileToolsSheet}
                   >
                     <span className="i-ph:plus" aria-hidden />
-                    <span>{t('chat.copy.newTab_bbeec6fc')}</span>
+                    <span>New Tab</span>
                   </button>
                 </div>
                 <div className="bolt-mobile-tab-switcher-search">
                   <label>
                     <span className="i-ph:files" aria-hidden />
                     <input
-                      placeholder={t('chat.copy.searchTabs_04552c6d')}
-                      aria-label={t('chat.copy.searchOpenTabs_971c2f61')}
+                      placeholder="Search tabs..."
+                      aria-label="Search open tabs"
                       data-testid="input-search-tabs"
                       value={mobileTabSearchQuery}
                       onChange={(event) => setMobileTabSearchQuery(event.target.value)}
@@ -9465,7 +8501,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </label>
                   <button
                     type="button"
-                    aria-label={t('chat.copy.clearSearch_67300d0f')}
+                    aria-label="Clear search"
                     data-testid="button-clear-search"
                     onClick={() => setMobileTabSearchQuery('')}
                   >
@@ -9473,7 +8509,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </button>
                   <button
                     type="button"
-                    aria-label={t('chat.copy.closeTabSwitcher_0bbc0c95')}
+                    aria-label="Close tab switcher"
                     data-testid="button-close-switcher"
                     onClick={closeMobileOverlays}
                   >
@@ -9489,29 +8525,29 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             <button
               type="button"
               className="bolt-mobile-more-backdrop"
-              aria-label={t('chat.copy.closeToolsSheet_3df4541f')}
+              aria-label="Close tools sheet"
               onClick={closeMobileToolsSheet}
             />
             <section
               className="bolt-mobile-more-sheet"
               role="dialog"
               aria-modal="true"
-              aria-label={t('chat.copy.searchForToolsAndFiles_6730018d')}
+              aria-label="Search for tools and files"
               data-testid="tools-sheet"
               onKeyDownCapture={handleMobileOverlayEscapeKey}
             >
               <div className="bolt-mobile-more-handle" aria-hidden />
               <header className="bolt-mobile-more-header">
                 <label className="bolt-mobile-more-search">
-                  <span className="sr-only">{t('chat.copy.searchForToolsAndFiles_6730018d')}</span>
+                  <span className="sr-only">Search for tools and files</span>
                   <input
-                    aria-label={t('chat.copy.searchForToolsAndFiles_6730018d')}
+                    aria-label="Search for tools and files"
                     type="search"
                     inputMode="search"
                     enterKeyHint="search"
                     value={mobileToolsQuery}
                     onChange={(event) => setMobileToolsQuery(event.target.value)}
-                    placeholder={t('chat.copy.searchForToolsAndFiles_6730018d')}
+                    placeholder="Search for tools and files"
                     autoComplete="off"
                     data-testid="tools-search-input"
                   />
@@ -9522,7 +8558,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   data-testid="tools-sheet-close"
                   onClick={closeMobileToolsSheet}
                 >
-                  {t('chat.copy.close_bbfa773e')}
+                  Close
                 </button>
               </header>
               <div className="bolt-mobile-more-scroll">
@@ -9535,9 +8571,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
                   return (
                     <div key={section} className="bolt-mobile-more-group" data-section={section}>
-                      <div className="bolt-mobile-more-section-label">
-                        {section === 'search' ? t('chat.copy.search_bce06414') : t('chat.copy.tools_4fa8cc86')}
-                      </div>
+                      <div className="bolt-mobile-more-section-label">{section === 'search' ? 'Search' : 'Tools'}</div>
                       <div className="bolt-mobile-more-list">
                         {items.map((item) => (
                           <button
@@ -9568,10 +8602,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 })}
               </div>
               {filteredMobileToolsSheetItems.length === 0 && (
-                <div className="bolt-mobile-more-empty">
-                  {t('chat.copy.noToolsFoundFor_57552084')}
-                  {mobileToolsQuery}".
-                </div>
+                <div className="bolt-mobile-more-empty">No tools found for "{mobileToolsQuery}".</div>
               )}
             </section>
           </>
@@ -9581,7 +8612,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             className={classNames('bolt-project-statusbar', {
               'bolt-project-statusbar-mobile': useMobileIde,
             })}
-            aria-label={t('chat.copy.ideStatus_15238998')}
+            aria-label="IDE status"
           >
             <div className="bolt-project-statusbar-primary">
               <span
@@ -9589,18 +8620,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 role="status"
                 aria-live="polite"
                 title={
-                  statusbarConnection.state === 'offline'
-                    ? t('chat.copy.offlineEditsStayLocalUntilThe_6c528a0d')
-                    : statusbarConnection.state === 'reconnecting'
-                      ? t('chat.copy.workspaceRuntimeIsStartingOrReconnecting_dae64fde')
-                      : t('chat.copy.workspaceConnectionHealthy_f87a6d3a')
+                  statusbarConnection.label === 'Offline'
+                    ? 'Offline — edits stay local until the connection returns'
+                    : statusbarConnection.label === 'Reconnecting'
+                      ? 'Workspace runtime is starting or reconnecting'
+                      : 'Workspace connection healthy'
                 }
               >
                 <span
                   aria-hidden
                   className={classNames(
                     'inline-block h-[7px] w-[7px] shrink-0 rounded-full',
-                    statusbarConnection.state === 'reconnecting' && 'animate-pulse',
+                    statusbarConnection.label === 'Reconnecting' && 'animate-pulse',
                   )}
                   style={{ background: statusbarConnection.color }}
                 />
@@ -9611,28 +8642,19 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <button
                 type="button"
                 className="bolt-project-statusbar-pill"
-                aria-label={t('chat.copy.openGitPanelBranchValue0Value1_b3c8a94c', {
-                  value0: projectBackendState.git?.branch ?? 'main',
-                  value1: projectBackendState.git?.ahead ?? 0,
-                  value2: projectBackendState.git?.behind ?? 0,
-                  value3: statusbarChangedFiles,
-                })}
-                title={t('chat.copy.gitBranchValue0AheadValue1Behind_cbe910c1', {
-                  value0: projectBackendState.git?.branch ?? 'main',
-                  value1: projectBackendState.git?.ahead ?? 0,
-                  value2: projectBackendState.git?.behind ?? 0,
-                  value3: statusbarChangedFiles,
-                })}
+                aria-label={`Open Git panel. Branch ${projectBackendState.git?.branch ?? 'main'}, ${
+                  projectBackendState.git?.ahead ?? 0
+                } ahead, ${projectBackendState.git?.behind ?? 0} behind, ${statusbarChangedFiles} changed files.`}
+                title={`Git branch: ${projectBackendState.git?.branch ?? 'main'} | Ahead ${
+                  projectBackendState.git?.ahead ?? 0
+                }, behind ${projectBackendState.git?.behind ?? 0} | ${statusbarChangedFiles} changed files`}
                 onClick={() => openWorkspacePanel('git')}
               >
                 <span className="i-ph:git-branch" aria-hidden />
-                <span className="bolt-project-statusbar-label">{t('chat.copy.git_58197788')}</span>
-                <strong>{projectBackendState.git?.branch ?? t('chat.copy.main_b28b7af6')}</strong>
+                <span className="bolt-project-statusbar-label">Git</span>
+                <strong>{projectBackendState.git?.branch ?? 'main'}</strong>
                 {statusbarChangedFiles > 0 ? (
-                  <span
-                    className="bolt-project-statusbar-count"
-                    aria-label={t('chat.copy.value0ChangedFiles_1a946eed', { value0: statusbarChangedFiles })}
-                  >
+                  <span className="bolt-project-statusbar-count" aria-label={`${statusbarChangedFiles} changed files`}>
                     {statusbarChangedFiles}
                   </span>
                 ) : null}
@@ -9647,14 +8669,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     type="button"
                     className="bolt-project-statusbar-pill bolt-project-statusbar-optional"
                     data-testid="statusbar-git-sync-badge"
-                    aria-label={t('chat.copy.value0CommitsToPushValue1Commits_3da2e29d', {
-                      value0: projectBackendState.git?.ahead ?? 0,
-                      value1: projectBackendState.git?.behind ?? 0,
-                    })}
-                    title={t('chat.copy.value0ToPushValue1ToPull_14e8383b', {
-                      value0: projectBackendState.git?.ahead ?? 0,
-                      value1: projectBackendState.git?.behind ?? 0,
-                    })}
+                    aria-label={`${projectBackendState.git?.ahead ?? 0} commits to push, ${
+                      projectBackendState.git?.behind ?? 0
+                    } commits to pull. Open push and pull actions.`}
+                    title={`${projectBackendState.git?.ahead ?? 0} to push, ${
+                      projectBackendState.git?.behind ?? 0
+                    } to pull — click for Push / Pull`}
                   >
                     <span className="bolt-project-statusbar-muted">
                       {projectBackendState.git?.ahead ?? 0}↑ {projectBackendState.git?.behind ?? 0}↓
@@ -9688,24 +8708,18 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                               aria-hidden
                             />
                             {intent === 'push'
-                              ? `${t('baseChatAst.git.push')}${
-                                  (projectBackendState.git?.ahead ?? 0) > 0 ? ` ${projectBackendState.git?.ahead}` : ''
-                                }`
-                              : `${t('baseChatAst.git.pull')}${
-                                  (projectBackendState.git?.behind ?? 0) > 0
-                                    ? ` ${projectBackendState.git?.behind}`
-                                    : ''
-                                }`}
+                              ? `Push${(projectBackendState.git?.ahead ?? 0) > 0 ? ` ${projectBackendState.git?.ahead}` : ''}`
+                              : `Pull${(projectBackendState.git?.behind ?? 0) > 0 ? ` ${projectBackendState.git?.behind}` : ''}`}
                           </button>
                         </Popover.Close>
                       ))}
                       {statusbarGitRemoteUrl === null ? (
                         <p className="px-1 text-xs leading-4 text-bolt-elements-textSecondary">
-                          {t('chat.copy.noRemoteConfiguredConnectOneIn_c5d82469')}
+                          No remote configured — connect one in the Git panel settings first.
                         </p>
                       ) : projectBackendState.git?.detached ? (
                         <p className="px-1 text-xs leading-4 text-bolt-elements-textSecondary">
-                          {t('chat.copy.detachedHeadCreateABranchIn_c49bc71e')}
+                          Detached HEAD — create a branch in the Git panel before syncing.
                         </p>
                       ) : null}
                     </div>
@@ -9715,39 +8729,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <button
                 type="button"
                 className="bolt-project-statusbar-pill"
-                aria-label={t('chat.copy.openProblemsValue0Value1Value2Value3_cdcc72fd', {
-                  value0: statusbarDiagnostics.errors,
-                  value1:
-                    statusbarDiagnostics.errors === 1 ? t('chat.copy.error_11f9578d') : t('chat.copy.errors_57004359'),
-                  value2: statusbarDiagnostics.warnings,
-                  value3:
-                    statusbarDiagnostics.warnings === 1
-                      ? t('chat.copy.warning_383fd7bf')
-                      : t('chat.copy.warnings_bd207fab'),
-                })}
-                title={t('baseChatAst.diagnostics.summary', {
-                  errors: formatBaseChatAstNumber(language, statusbarDiagnostics.errors),
-                  errorsLabel:
-                    statusbarDiagnostics.errors === 1 ? t('chat.copy.error_11f9578d') : t('chat.copy.errors_57004359'),
-                  warnings: formatBaseChatAstNumber(language, statusbarDiagnostics.warnings),
-                  warningsLabel:
-                    statusbarDiagnostics.warnings === 1
-                      ? t('chat.copy.warning_383fd7bf')
-                      : t('chat.copy.warnings_bd207fab'),
-                })}
+                aria-label={`Open Problems. ${statusbarDiagnostics.errors} ${statusbarDiagnostics.errors === 1 ? 'error' : 'errors'}, ${statusbarDiagnostics.warnings} ${statusbarDiagnostics.warnings === 1 ? 'warning' : 'warnings'}.`}
+                title={`${statusbarDiagnostics.errors} ${statusbarDiagnostics.errors === 1 ? 'error' : 'errors'} · ${statusbarDiagnostics.warnings} ${statusbarDiagnostics.warnings === 1 ? 'warning' : 'warnings'}`}
                 onClick={() => openBottomTerminal('problems')}
               >
-                <span className="bolt-project-statusbar-label">{t('chat.copy.problems_8e6b86dc')}</span>
+                <span className="bolt-project-statusbar-label">Problems</span>
                 <span
                   className="bolt-project-statusbar-error-count"
                   data-empty={statusbarDiagnostics.errors === 0 ? 'true' : undefined}
-                  aria-label={t('baseChatAst.diagnostics.count', {
-                    count: formatBaseChatAstNumber(language, statusbarDiagnostics.errors),
-                    label:
-                      statusbarDiagnostics.errors === 1
-                        ? t('chat.copy.error_11f9578d')
-                        : t('chat.copy.errors_57004359'),
-                  })}
+                  aria-label={`${statusbarDiagnostics.errors} ${statusbarDiagnostics.errors === 1 ? 'error' : 'errors'}`}
                 >
                   <span className="i-ph:x-circle-fill" aria-hidden />
                   {statusbarDiagnostics.errors}
@@ -9755,13 +8745,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <span
                   className="bolt-project-statusbar-warning-count"
                   data-empty={statusbarDiagnostics.warnings === 0 ? 'true' : undefined}
-                  aria-label={t('baseChatAst.diagnostics.count', {
-                    count: formatBaseChatAstNumber(language, statusbarDiagnostics.warnings),
-                    label:
-                      statusbarDiagnostics.warnings === 1
-                        ? t('chat.copy.warning_383fd7bf')
-                        : t('chat.copy.warnings_bd207fab'),
-                  })}
+                  aria-label={`${statusbarDiagnostics.warnings} ${statusbarDiagnostics.warnings === 1 ? 'warning' : 'warnings'}`}
                 >
                   <span className="i-ph:warning-fill" aria-hidden />
                   {statusbarDiagnostics.warnings}
@@ -9772,14 +8756,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 className="bolt-project-statusbar-pill bolt-project-statusbar-workspace"
                 onClick={() => openBottomTerminal('terminal')}
                 title={workspaceStatusTitle}
-                aria-label={workspaceStatusTitle || t('chat.copy.openWorkspaceTerminal_b039db9a')}
+                aria-label={workspaceStatusTitle || 'Open workspace terminal'}
               >
                 <span
                   className="bolt-project-statusbar-runtime-dot"
                   data-state={workspaceError ? 'error' : workspaceLoading ? 'starting' : runtimeUiState}
                   aria-hidden
                 />
-                <span className="bolt-project-statusbar-label">{t('chat.copy.workspace_4ca0a75c')}</span>
+                <span className="bolt-project-statusbar-label">Workspace</span>
                 <strong>{workspaceStatusLabel}</strong>
                 {workspaceError ? <span className="bolt-project-statusbar-error-count">!</span> : null}
                 {quotaWarning || billingUpgradePrompt ? (
@@ -9801,21 +8785,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   }}
                   title={
                     useMobileIde
-                      ? t('chat.copy.showWorkspaceLogs_fb555ca7')
+                      ? 'Show workspace logs'
                       : terminalBottomOpen
-                        ? t('chat.copy.hideWorkspaceLogs_47034470')
-                        : t('chat.copy.showWorkspaceLogs_fb555ca7')
+                        ? 'Hide workspace logs'
+                        : 'Show workspace logs'
                   }
-                  aria-label={t('chat.copy.value0WorkspaceLogsValue1LogLines_8bbbae16', {
-                    value0: terminalBottomOpen ? t('baseChatAst.common.hide') : t('baseChatAst.common.show'),
-                    value1: workspaceLogs.length,
-                  })}
+                  aria-label={`${terminalBottomOpen ? 'Hide' : 'Show'} workspace logs. ${workspaceLogs.length} log lines.`}
                 >
                   <span className="i-ph:list-magnifying-glass" aria-hidden />
                   <span className="bolt-project-statusbar-label">
-                    {!useMobileIde && terminalBottomOpen
-                      ? t('chat.copy.hideLogs_d1fea8c5')
-                      : t('chat.copy.logs_126dd3b7')}
+                    {!useMobileIde && terminalBottomOpen ? 'Hide logs' : 'Logs'}
                   </span>
                   <span className="bolt-project-statusbar-count">{workspaceLogs.length}</span>
                 </button>
@@ -9825,12 +8804,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 className="bolt-project-statusbar-pill bolt-project-statusbar-runtime"
                 aria-label={
                   workspaceError
-                    ? t('chat.copy.crashedRuntime_28a31e36')
+                    ? 'Crashed runtime'
                     : workspaceLoading
-                      ? t('chat.copy.buildingRuntime_054f1799')
+                      ? 'Building runtime'
                       : isRuntimeReallyRunning
-                        ? t('chat.copy.runningOnValue0_0f8bc1d7', { value0: runtimePortSummary })
-                        : t('chat.copy.stoppedRuntime_94f5c638')
+                        ? `Running on ${runtimePortSummary}`
+                        : 'Stopped runtime'
                 }
                 onClick={() => {
                   if (useMobileIde) {
@@ -9841,38 +8820,33 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
                   openWorkspacePanel('preview');
                 }}
-                title={t('chat.copy.openPreviewValue0Value1Value2_a2664c5a', {
-                  value0: runtimeStatusSummary,
-                  value1: runtimePortSummary,
-                  value2: runtimeDevServerSummary,
-                })}
+                title={`Open preview | ${runtimeStatusSummary} | ${runtimePortSummary} | ${runtimeDevServerSummary}`}
               >
                 <span className="i-ph:monitor-play" aria-hidden />
-                <span className="bolt-project-statusbar-label">{t('chat.copy.preview_f1fbb2b4')}</span>
+                <span className="bolt-project-statusbar-label">Preview</span>
                 <span className="bolt-project-statusbar-muted">{runtimePortCompactSummary}</span>
                 <span className="bolt-project-statusbar-muted bolt-project-statusbar-optional">
                   {runtimeDevServerSummary}
                 </span>
               </button>
             </div>
-            <div className="bolt-project-statusbar-secondary" aria-label={t('chat.copy.editorStatus_93f582c4')}>
+            <div className="bolt-project-statusbar-secondary" aria-label="Editor status">
               {(() => {
                 const cursorValue =
                   currentDocument?.filePath && cursorPositions[currentDocument.filePath]
-                    ? t('chat.copy.lnValue0ColValue1_98b8103f', {
-                        value0: cursorPositions[currentDocument.filePath].line,
-                        value1: cursorPositions[currentDocument.filePath].column,
-                      })
-                    : t('chat.copy.ln1Col1_b6c4de39');
+                    ? `Ln ${cursorPositions[currentDocument.filePath].line}, Col ${
+                        cursorPositions[currentDocument.filePath].column
+                      }`
+                    : 'Ln 1, Col 1';
                 const editorItems: Array<{ key: string; tier: 1 | 2 | 3 | 4; title: string; value: string }> = [
-                  { key: 'cursor', tier: 4, title: t('chat.copy.currentCursorPosition_3b9ed6e5'), value: cursorValue },
-                  { key: 'indent', tier: 2, title: t('chat.copy.indentation2Spaces_d1008d4c'), value: 'Spaces: 2' },
-                  { key: 'encoding', tier: 1, title: t('chat.copy.fileEncodingUtf8_b8734a83'), value: 'UTF-8' },
+                  { key: 'cursor', tier: 4, title: 'Current cursor position', value: cursorValue },
+                  { key: 'indent', tier: 2, title: 'Indentation: 2 spaces', value: 'Spaces: 2' },
+                  { key: 'encoding', tier: 1, title: 'File encoding: UTF-8', value: 'UTF-8' },
                   {
                     key: 'language',
                     tier: 3,
-                    title: t('chat.copy.detectedLanguageMode_3617844d'),
-                    value: fileTypeLabel(t, currentDocument?.filePath),
+                    title: 'Detected language mode',
+                    value: fileTypeLabel(currentDocument?.filePath),
                   },
                 ];
 
@@ -9896,8 +8870,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       <Popover.Trigger asChild>
                         <button
                           type="button"
-                          aria-label={t('chat.copy.showEditorStatusDetails_4ad9efe1')}
-                          title={t('chat.copy.moreEditorStatus_8a1aa94a')}
+                          aria-label="Show editor status details"
+                          title="More editor status"
                           className="bolt-project-statusbar-icon-button bolt-project-statusbar-overflow-trigger"
                         >
                           <span className="i-ph:dots-three" aria-hidden />
@@ -9928,8 +8902,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               })()}
               <button
                 type="button"
-                aria-label={t('chat.copy.toggleValue0_f75a5e61', { value0: SHELL_TERMINAL_LABEL })}
-                title={t('chat.copy.toggleValue0_f75a5e61', { value0: SHELL_TERMINAL_LABEL })}
+                aria-label={`Toggle ${SHELL_TERMINAL_LABEL}`}
+                title={`Toggle ${SHELL_TERMINAL_LABEL}`}
                 className="bolt-project-statusbar-icon-button"
                 onClick={() => {
                   setBottomTerminalView('terminal');
@@ -9940,8 +8914,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </button>
               <button
                 type="button"
-                aria-label={t('chat.copy.focusAgentComposer_778a634b')}
-                title={t('chat.copy.focusAgentComposer_778a634b')}
+                aria-label="Focus agent composer"
+                title="Focus agent composer"
                 className="bolt-project-statusbar-icon-button"
                 onClick={() => textareaRef?.current?.focus()}
               >
@@ -9977,7 +8951,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           >
             <div className="bolt-project-rollback-dialog">
               <div className="bolt-project-rollback-body">
-                <h2 id="rollback-title">{t('chat.copy.rollbackToCheckpoint_b3cc16a0')}</h2>
+                <h2 id="rollback-title">Rollback to checkpoint</h2>
                 {/*
                  * No per-checkpoint screenshot is captured or stored, so a static
                  * 'Screenshot — Preview expired' placeholder would misrepresent the
@@ -9985,7 +8959,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                  * truthful checkpoint metadata is shown below.
                  */}
                 <section>
-                  <span className="bolt-project-rollback-label">{t('chat.copy.targetCheckpoint_8dfbabe1')}</span>
+                  <span className="bolt-project-rollback-label">Target checkpoint</span>
                   <h3>{rollbackTarget.title}</h3>
                   <p>{rollbackTarget.description}</p>
                   <small>
@@ -9994,24 +8968,27 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   </small>
                 </section>
                 <section>
-                  <span className="bolt-project-rollback-label">{t('chat.copy.whatWillBeImpacted_e370579d')}</span>
+                  <span className="bolt-project-rollback-label">What will be impacted</span>
                   <div className="bolt-project-rollback-impact">
-                    <strong>{t('chat.copy.files_6ce6c512')}</strong>
+                    <strong>Files</strong>
                     {rollbackTarget.snapshot?.id ? (
-                      <p>{t('chat.copy.allFilesInYourAppWill_216ac181')}</p>
+                      <p>
+                        All files in your app will be restored to the state they were in at the time of this checkpoint.
+                      </p>
                     ) : (
-                      <p>{t('chat.copy.noFileSnapshotIsAvailableFor_43c662d0')}</p>
+                      <p>
+                        No file snapshot is available for this checkpoint, so your files will be left untouched. Only
+                        the Agent's memory will be reset.
+                      </p>
                     )}
-                    <strong>{t('chat.copy.agentMemory_bcf5354f')}</strong>
-                    <p>{t('chat.copy.theAgentSMemoryWillReset_1cccfbd1')}</p>
-                    <strong>{t('chat.copy.tasks_090ec5f5')}</strong>
-                    <p>{t('chat.copy.allInProgressTasksWillFinish_8502f56c')}</p>
+                    <strong>Agent memory</strong>
+                    <p>The Agent's memory will reset to what it knew about your app at the time of this checkpoint.</p>
+                    <strong>Tasks</strong>
+                    <p>All in-progress tasks will finish but will require review</p>
                   </div>
                 </section>
                 <section>
-                  <span className="bolt-project-rollback-label">
-                    {t('chat.copy.additionalRollbackOptions_0a728603')}
-                  </span>
+                  <span className="bolt-project-rollback-label">Additional rollback options</span>
                   <label className="bolt-project-rollback-option">
                     <input
                       type="checkbox"
@@ -10019,20 +8996,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       onChange={(event) => setRollbackDatabase(event.currentTarget.checked)}
                     />
                     <span>
-                      <strong>{t('chat.copy.database_61074f1c')}</strong>
-                      <small>{t('chat.copy.yourDevelopmentDatabaseWillBeRestored_5db4609a')}</small>
+                      <strong>Database</strong>
+                      <small>
+                        Your development database will be restored to the time of this checkpoint. This will not affect
+                        your production database.
+                      </small>
                     </span>
                   </label>
                 </section>
               </div>
               <footer>
                 <button type="button" onClick={() => setRollbackTarget(null)} disabled={rollbackBusy}>
-                  {t('chat.copy.cancel_77dfd213')}
+                  Cancel
                 </button>
                 <button type="button" onClick={confirmProjectRollback} disabled={rollbackBusy}>
-                  {rollbackBusy
-                    ? t('chat.copy.rollingBack_1accbd2a')
-                    : t('chat.copy.rollbackToThisCheckpoint_7d8b2a6c')}
+                  {rollbackBusy ? 'Rolling back...' : 'Rollback to this checkpoint'}
                 </button>
               </footer>
             </div>
@@ -10060,22 +9038,20 @@ function ProjectIdeGuidedTour({
   onNext: () => void;
   onSkip: () => void;
 }) {
-  const { t } = useTranslation();
-
   return (
     <div className="bolt-project-guided-tour" role="dialog" aria-modal="false" aria-labelledby="ide-tour-title">
       <div className="bolt-project-guided-tour-card">
         <div className="bolt-project-guided-tour-kicker">
-          {t('chat.copy.guidedTour_5a0d3068')}
+          Guided tour
           <span>
             {stepIndex + 1}/{totalSteps}
           </span>
         </div>
-        <h2 id="ide-tour-title">{t(step.title)}</h2>
-        <p>{t(step.description)}</p>
+        <h2 id="ide-tour-title">{step.title}</h2>
+        <p>{step.description}</p>
         {'shortcut' in step && step.shortcut ? (
           <div className="bolt-project-guided-tour-shortcut">
-            <span>{t('chat.copy.shortcut_e2012dea')}</span>
+            <span>Shortcut</span>
             <kbd>{step.shortcut}</kbd>
           </div>
         ) : null}
@@ -10086,14 +9062,14 @@ function ProjectIdeGuidedTour({
         </div>
         <footer>
           <button type="button" onClick={onSkip}>
-            {t('chat.copy.skipTour_57bc79e3')}
+            Skip tour
           </button>
           <div>
             <button type="button" onClick={onBack} disabled={stepIndex === 0}>
-              {t('chat.copy.back_b52b36b7')}
+              Back
             </button>
             <button type="button" onClick={onNext}>
-              {stepIndex === totalSteps - 1 ? t('chat.copy.finish') : t('chat.copy.next')}
+              {stepIndex === totalSteps - 1 ? 'Finish' : 'Next'}
             </button>
           </div>
         </footer>
@@ -10196,9 +9172,6 @@ function ProjectIdeServicePanel({
   displayIcon?: string;
   initialPayload?: any;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
-
   /*
    * Seed from SSR payload first, else the in-memory cache from a previous visit
    * to this tab (avoids a re-flash of the loading skeleton on tab switch).
@@ -10231,7 +9204,7 @@ function ProjectIdeServicePanel({
     mode: 'editing',
   });
 
-  const title = displayTitle ?? panelTitle(panel, t);
+  const title = displayTitle ?? panelTitle(panel);
   const icon = displayIcon ?? panelIcon(panel);
   const refreshIntervalMs = projectPanelRefreshIntervalMs(panel);
 
@@ -10269,9 +9242,7 @@ function ProjectIdeServicePanel({
       }
     }
 
-    throw lastNetworkError instanceof Error
-      ? lastNetworkError
-      : new Error(t('chat.copy.unableToReachIdePanelApi_d66f72aa'));
+    throw lastNetworkError instanceof Error ? lastNetworkError : new Error('Unable to reach IDE panel API');
   }, []);
 
   const loadPanel = useCallback(
@@ -10318,23 +9289,12 @@ function ProjectIdeServicePanel({
         }
 
         if (!response.ok) {
-          console.warn('IDE panel request failed', {
-            panel,
-            status: response.status,
-            serverError: result.error,
-          });
-          setError(t('baseChatAst.panel.loadFailedHttp', { status: response.status }));
-
-          if (!options?.silent) {
-            setPayload(undefined);
-          }
-
-          return;
+          const message = typeof result.error === 'string' ? result.error : result.error?.message;
+          throw new Error(message ?? 'Unable to load IDE panel');
         }
 
         if (result.status === 'error' && typeof result.error === 'object' && result.error) {
-          console.warn('IDE panel returned an error envelope', { panel, serverError: result.error });
-          setError(`[${result.error.code}] ${t('baseChatAst.panel.loadFailed')}`);
+          setError(`[${result.error.code}] ${result.error.message}`);
         }
 
         const loadedAt = new Date().toISOString();
@@ -10346,8 +9306,7 @@ function ProjectIdeServicePanel({
           writeProjectPanelCache(`${projectId}:${panel}`, { payload: result, lastLoadedAt: loadedAt });
         }
       } catch (requestError) {
-        console.error('IDE panel request failed', { panel, requestError });
-        setError(t('baseChatAst.panel.loadFailed'));
+        setError(requestError instanceof Error ? requestError.message : 'Unable to load IDE panel');
 
         if (!options?.silent) {
           setPayload(undefined);
@@ -10360,7 +9319,7 @@ function ProjectIdeServicePanel({
         }
       }
     },
-    [fetchPanel, panel, projectId, t],
+    [fetchPanel, panel, projectId],
   );
 
   useEffect(() => {
@@ -10483,7 +9442,7 @@ function ProjectIdeServicePanel({
 
     setBusy(true);
     setError(undefined);
-    setActionNotice(t('baseChatAst.panel.submitting'));
+    setActionNotice('Submitting action...');
 
     const formData = new FormData(form);
     const intent = String(formData.get('intent') ?? 'default');
@@ -10500,31 +9459,17 @@ function ProjectIdeServicePanel({
       };
 
       if (!response.ok) {
-        console.warn('IDE panel action failed', {
-          panel,
-          intent,
-          status: response.status,
-          serverError: result.error,
-        });
-
-        const message = t('baseChatAst.panel.actionFailedHttp', { status: response.status });
-        setError(message);
-        setActionNotice(undefined);
-        window.dispatchEvent(
-          new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent, ok: false, error: message } }),
-        );
-
-        return;
+        throw new Error(result.error ?? 'Panel action failed');
       }
 
       if (result.shareLink?.url) {
         setCreatedShareLink(result.shareLink.url);
-        setActionNotice(t('baseChatAst.panel.shareCreated'));
+        setActionNotice('Share link created.');
         void navigator.clipboard?.writeText(result.shareLink.url).catch(() => {
           // Clipboard may be blocked; the URL is still shown for manual copy.
         });
       } else {
-        setActionNotice(formatProjectPanelActionNotice(t, intent));
+        setActionNotice(formatProjectPanelActionNotice(panel, intent));
       }
 
       if (shouldResetIdePanelFormAfterSubmit(panel, intent)) {
@@ -10534,9 +9479,7 @@ function ProjectIdeServicePanel({
       window.dispatchEvent(new CustomEvent('vibecore:ide-panel-action', { detail: { panel, intent, ok: true } }));
       void loadPanel({ silent: true });
     } catch (requestError) {
-      console.error('IDE panel action request failed', { panel, intent, requestError });
-
-      const message = t('baseChatAst.panel.actionFailed');
+      const message = requestError instanceof Error ? requestError.message : 'Panel action failed';
 
       setError(message);
       setActionNotice(undefined);
@@ -10550,15 +9493,13 @@ function ProjectIdeServicePanel({
 
   const data = payload?.data ?? {};
   const project = payload?.project ?? {};
-  const updatedLabel = formatProjectPanelUpdatedLabel(lastLoadedAt, refreshLabelNow, language);
+  const updatedLabel = formatProjectPanelUpdatedLabel(lastLoadedAt, refreshLabelNow);
 
   const updatedTitle = lastLoadedAt
-    ? t('baseChatAst.runtime.lastUpdated', {
-        date: formatBaseChatAstDateTime(language, lastLoadedAt) ?? t('baseChatAst.status.notAvailable'),
-      })
-    : t('baseChatAst.runtime.autoRefreshPending');
+    ? `Last updated ${new Date(lastLoadedAt).toLocaleString()}`
+    : 'Auto-refresh pending';
 
-  const refreshCadenceLabel = formatProjectPanelRefreshCadence(refreshIntervalMs, language);
+  const refreshCadenceLabel = formatProjectPanelRefreshCadence(refreshIntervalMs);
 
   return (
     <div className="bolt-project-service-panel" data-testid="ide-service-panel" data-panel={panel}>
@@ -10578,7 +9519,7 @@ function ProjectIdeServicePanel({
           <button
             type="button"
             className="inline-flex h-7 w-7 items-center justify-center rounded border border-bolt-elements-borderColor text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary disabled:cursor-not-allowed disabled:opacity-60"
-            aria-label={t('chat.copy.value0PanelActions_4358c33e', { value0: title })}
+            aria-label={`${title} panel actions`}
             aria-haspopup="menu"
             aria-expanded={panelActionsOpen}
             data-testid="ide-panel-actions"
@@ -10591,7 +9532,7 @@ function ProjectIdeServicePanel({
             <div
               className="bolt-project-panel-actions-menu absolute right-0 top-[calc(100%+6px)] z-20 w-[192px] max-w-[calc(100vw-1.5rem)] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-1 text-[12px] text-bolt-elements-textPrimary shadow-lg"
               role="menu"
-              aria-label={t('chat.copy.value0PanelActions_4358c33e', { value0: title })}
+              aria-label={`${title} panel actions`}
             >
               <button
                 type="button"
@@ -10604,12 +9545,11 @@ function ProjectIdeServicePanel({
                 disabled={busy}
               >
                 <span className="i-ph:arrow-clockwise" aria-hidden />
-                {t('chat.copy.refreshNow_29664b3f')}
+                Refresh now
               </button>
               <div className="flex items-center gap-2 px-2 py-1.5 text-bolt-elements-textTertiary" role="presentation">
                 <span className="i-ph:clock" aria-hidden />
-                {t('chat.copy.autoRefreshEvery_f2835242')}
-                {refreshCadenceLabel}
+                Auto-refresh every {refreshCadenceLabel}
               </div>
             </div>
           ) : null}
@@ -10636,7 +9576,7 @@ function ProjectIdeServicePanel({
               onClick={() => void loadPanel()}
               disabled={busy}
             >
-              {t('chat.copy.retry_9f5cd8a2')}
+              Retry
             </button>
           </div>
         ) : null}
@@ -10656,7 +9596,7 @@ function ProjectIdeServicePanel({
             role="status"
           >
             <span className="font-medium text-bolt-elements-textPrimary">
-              {t('chat.copy.shareLinkCreatedCopiedToClipboard_ff151a13')}
+              Share link created — copied to clipboard. It is shown only once:
             </span>
             <div className="flex items-center gap-2">
               <input
@@ -10664,22 +9604,22 @@ function ProjectIdeServicePanel({
                 value={createdShareLink}
                 onFocus={(event) => event.currentTarget.select()}
                 className="min-w-0 flex-1 select-all rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 font-mono text-[12px] text-bolt-elements-textPrimary"
-                aria-label={t('chat.copy.shareLinkUrl_4e30a187')}
+                aria-label="Share link URL"
               />
               <button
                 type="button"
                 className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] hover:bg-bolt-elements-background-depth-3"
                 onClick={() => void navigator.clipboard?.writeText(createdShareLink).catch(() => undefined)}
               >
-                {t('chat.copy.copy_af74f7c5')}
+                Copy
               </button>
               <button
                 type="button"
                 className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] hover:bg-bolt-elements-background-depth-3"
                 onClick={() => setCreatedShareLink(undefined)}
-                aria-label={t('chat.copy.dismissShareLink_275b18df')}
+                aria-label="Dismiss share link"
               >
-                {t('chat.copy.dismiss_70afe9ef')}
+                Dismiss
               </button>
             </div>
           </div>
@@ -10688,7 +9628,7 @@ function ProjectIdeServicePanel({
           <div className="flex flex-col gap-3">
             {/* Discreet skeleton while the first fetch is in flight — no raw
                 "from backend" text and no immediate Retry (which reads as broken). */}
-            <PanelLoading title={t('chat.copy.loadingValue0_99abf3e6', { value0: title.toLowerCase() })} />
+            <PanelLoading title={`Loading ${title.toLowerCase()}…`} />
             {/*
              * Retry only appears once the load is genuinely stuck (past the slow
              * threshold) — e.g. the workspace is still starting, or the panel has
@@ -10699,23 +9639,21 @@ function ProjectIdeServicePanel({
                 className="flex flex-col items-center gap-2 text-center text-xs text-bolt-elements-textSecondary"
                 role="status"
               >
-                <span>{t('chat.copy.thisIsTakingLongerThanUsual_04718c01')}</span>
+                <span>This is taking longer than usual — the workspace may still be starting.</span>
                 <button
                   type="button"
                   className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
                   onClick={() => void loadPanel()}
                 >
-                  {t('chat.copy.retry_9f5cd8a2')}
+                  Retry
                 </button>
               </div>
             ) : null}
           </div>
         ) : payload?.status === 'empty' && !error && !rendersEmptyStateActions ? (
           <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 text-center text-sm text-bolt-elements-textSecondary">
-            <div className="mb-1 font-medium text-bolt-elements-textPrimary">
-              {t('baseChatAst.phrases.emptyYet', { title: title.toLowerCase() })}
-            </div>
-            <div className="text-[12px]">{t('chat.copy.onceYourWorkspaceProducesDataIt_1de76193')}</div>
+            <div className="mb-1 font-medium text-bolt-elements-textPrimary">No {title.toLowerCase()} yet</div>
+            <div className="text-[12px]">Once your workspace produces data, it will appear here automatically.</div>
           </div>
         ) : (
           <PanelErrorBoundary
@@ -10811,22 +9749,24 @@ function shouldResetIdePanelFormAfterSubmit(panel: string, intent: string) {
   return intent === 'change-password' || intent === 'save-ai-key' || intent === 'delete-account';
 }
 
-function formatProjectPanelActionNotice(t: TFunction, intent: string) {
+function formatProjectPanelActionNotice(panel: string, intent: string) {
   const normalizedIntent = intent === 'default' ? 'settings' : intent;
+  const action = normalizedIntent.replace(/-/g, ' ');
+  const label = panelTitle(panel).toLowerCase();
 
   if (normalizedIntent.startsWith('delete') || normalizedIntent.startsWith('revoke')) {
-    return t('baseChatAst.panel.action.destructiveSubmitted');
+    return `${action} submitted for ${label}.`;
   }
 
   if (normalizedIntent.startsWith('run') || normalizedIntent.startsWith('start')) {
-    return t('baseChatAst.panel.action.started');
+    return `${action} started.`;
   }
 
   if (normalizedIntent.startsWith('stop') || normalizedIntent === 'cancel') {
-    return t('baseChatAst.panel.action.requested');
+    return `${action} requested.`;
   }
 
-  return t('baseChatAst.panel.action.saved');
+  return `${action} saved for ${label}.`;
 }
 
 function ProjectBottomTerminal({
@@ -10844,7 +9784,6 @@ function ProjectBottomTerminal({
   onActiveChange: (view: ProjectBottomTerminalView) => void;
   onClose: () => void;
 }) {
-  const { t } = useTranslation();
   const workspaceStatus = useStore(workbenchStore.workspaceStatus);
   const runtimePreviews = useStore(workbenchStore.previews);
   const diagnosticErrorCount = useDiagnosticsStore((state) => state.errors);
@@ -10854,30 +9793,20 @@ function ProjectBottomTerminal({
   const runtimeUiState = workspaceUiState(effectiveWorkspace, { ports: runtimePreviews });
 
   const workspaceLabel = effectiveWorkspace
-    ? t('baseChatAst.runtime.workspaceState', {
-        status:
-          runtimeUiState === 'running'
-            ? t('baseChatAst.status.running').toLowerCase()
-            : runtimeUiState === 'starting'
-              ? t('baseChatAst.status.starting').toLowerCase()
-              : (effectiveWorkspace.status ?? t('baseChatAst.status.unknown').toLowerCase()),
-      })
-    : t('baseChatAst.runtime.noWorkspace');
+    ? `${runtimeUiState === 'running' ? 'running' : runtimeUiState === 'starting' ? 'starting' : (effectiveWorkspace.status ?? 'unknown')} workspace`
+    : 'No backend workspace';
 
   const terminalTabs = [
     ['terminal', SHELL_TERMINAL_LABEL, 'i-ph:terminal-window'],
-    ['output', t('baseChatAst.common.output'), 'i-ph:list-bullets'],
-    ['problems', t('baseChatAst.common.problems'), 'i-ph:warning-circle'],
-    ['debug', t('baseChatAst.common.debugConsole'), 'i-ph:bug'],
+    ['output', 'Output', 'i-ph:list-bullets'],
+    ['problems', 'Problems', 'i-ph:warning-circle'],
+    ['debug', 'Debug Console', 'i-ph:bug'],
   ] as const;
 
   return (
-    <section className="bolt-project-bottom-terminal" aria-label={t('chat.copy.pinnedTerminal_c8fe22f6')}>
+    <section className="bolt-project-bottom-terminal" aria-label="Pinned terminal">
       <div className="bolt-project-bottom-terminal-tabs">
-        <div
-          className="bolt-project-bottom-terminal-tabs-left"
-          aria-label={t('chat.copy.pinnedTerminalViews_49687702')}
-        >
+        <div className="bolt-project-bottom-terminal-tabs-left" aria-label="Pinned terminal views">
           {terminalTabs.map(([id, label, icon]) => (
             <button
               key={id}
@@ -10885,10 +9814,7 @@ function ProjectBottomTerminal({
               aria-current={active === id ? 'page' : undefined}
               aria-label={
                 id === 'problems'
-                  ? t('chat.copy.openProblemsValue0ErrorsAndValue1_ef267d7f', {
-                      value0: diagnosticErrorCount,
-                      value1: diagnosticWarningCount,
-                    })
+                  ? `Open Problems. ${diagnosticErrorCount} errors and ${diagnosticWarningCount} warnings.`
                   : undefined
               }
               onClick={() => onActiveChange(id)}
@@ -10899,10 +9825,7 @@ function ProjectBottomTerminal({
                 <span
                   className="bolt-project-bottom-terminal-problems-badges"
                   aria-hidden="true"
-                  title={t('chat.copy.value0ErrorsValue1Warnings_500056a8', {
-                    value0: diagnosticErrorCount,
-                    value1: diagnosticWarningCount,
-                  })}
+                  title={`${diagnosticErrorCount} errors, ${diagnosticWarningCount} warnings`}
                 >
                   <span className="bolt-project-bottom-terminal-problem-badge" data-severity="error">
                     <span className="i-ph:x-circle-fill" aria-hidden />
@@ -10926,12 +9849,11 @@ function ProjectBottomTerminal({
             {workspaceLabel}
           </span>
           <span className="bolt-project-bottom-terminal-session" title={backendSessionId}>
-            {t('chat.copy.session_f7f1997c')}
-            {backendSessionId === 'no-workspace' ? t('baseChatAst.status.pending') : backendSessionId.slice(0, 8)}
+            Session {backendSessionId === 'no-workspace' ? 'pending' : backendSessionId.slice(0, 8)}
           </span>
           <button
             type="button"
-            aria-label={t('chat.copy.refreshRuntimeLogs_1554f590')}
+            aria-label="Refresh runtime logs"
             onClick={() => {
               onActiveChange('terminal');
               void workbenchStore.refreshRuntimePorts().catch(() => undefined);
@@ -10939,7 +9861,7 @@ function ProjectBottomTerminal({
           >
             <span className="i-ph:arrow-clockwise" aria-hidden />
           </button>
-          <button type="button" aria-label={t('chat.copy.closeTerminalPanel_9f78d80c')} onClick={onClose}>
+          <button type="button" aria-label="Close terminal panel" onClick={onClose}>
             <span className="i-ph:x" aria-hidden />
           </button>
         </div>
@@ -10980,55 +9902,29 @@ function ProjectBottomTerminal({
 }
 
 function TerminalTabsFallback() {
-  const { t } = useTranslation();
   return (
     <div className="h-full">
       <div className="bolt-terminal-tabs-shell bg-bolt-elements-terminals-background flex h-full flex-col">
         <div className="bolt-terminal-tabs-bar" data-testid="terminal-tabs-bar" aria-busy="true">
-          <div className="bolt-terminal-session-switcher" aria-label={t('chat.copy.shellSessions_af5dbf7c')}>
-            <button
-              type="button"
-              className="bolt-terminal-session-button"
-              aria-label={t('chat.copy.shellSessionLoading_f020ee73')}
-              disabled
-            >
+          <div className="bolt-terminal-session-switcher" aria-label="Shell sessions">
+            <button type="button" className="bolt-terminal-session-button" aria-label="Shell session loading" disabled>
               <span className="i-ph:caret-down" aria-hidden />
-              <span className="bolt-terminal-session-label">{t('chat.copy.workspaceBash_f04a2ba1')}</span>
+              <span className="bolt-terminal-session-label">~/workspace: bash</span>
             </button>
           </div>
-          <div className="bolt-terminal-primary-actions" aria-label={t('chat.copy.shellActions_f8a7f542')}>
-            <button
-              type="button"
-              className="bolt-terminal-icon-button"
-              aria-label={t('chat.copy.findInShell_f73f20f0')}
-              disabled
-            >
+          <div className="bolt-terminal-primary-actions" aria-label="Shell actions">
+            <button type="button" className="bolt-terminal-icon-button" aria-label="Find in Shell" disabled>
               <span className="i-ph:magnifying-glass" aria-hidden />
             </button>
-            <button
-              type="button"
-              className="bolt-terminal-icon-button"
-              aria-label={t('chat.copy.clearConversation_751e4570')}
-              disabled
-            >
+            <button type="button" className="bolt-terminal-icon-button" aria-label="Clear conversation" disabled>
               <span className="i-ph:trash" aria-hidden />
             </button>
             <div className="bolt-terminal-more">
-              <button
-                type="button"
-                className="bolt-terminal-more-button"
-                aria-label={t('chat.copy.moreShellActions_b0815143')}
-                disabled
-              >
+              <button type="button" className="bolt-terminal-more-button" aria-label="More Shell actions" disabled>
                 <span className="i-ph:dots-three-vertical-bold" aria-hidden />
               </button>
             </div>
-            <button
-              type="button"
-              className="bolt-terminal-icon-button"
-              aria-label={t('chat.copy.closeTab_296b59cd')}
-              disabled
-            >
+            <button type="button" className="bolt-terminal-icon-button" aria-label="Close tab" disabled>
               <span className="i-ph:x" aria-hidden />
             </button>
           </div>
@@ -11036,7 +9932,7 @@ function TerminalTabsFallback() {
         <div className="bolt-terminal-content-frame">
           <div className="bolt-terminal-viewports">
             <div className="grid h-full place-items-center text-sm text-bolt-elements-textSecondary" role="status">
-              {t('chat.copy.loadingTerminal_641ac822')}
+              Loading terminal...
             </div>
           </div>
         </div>
@@ -11045,14 +9941,17 @@ function TerminalTabsFallback() {
   );
 }
 
+const PROBLEM_LOCATION_PATTERN = /((?:\/|\.{0,2}\/)?[\w@][\w@./-]*\.[a-z]{2,6}):(\d+)(?::\d+)?/i;
+
 /*
  * Runtime diagnostics are parsed log lines with no structured file/line field,
- * so recover the location from the text when one exists (see
- * ~/lib/stores/problem-location for the two dev-server shapes it handles).
- * Entries without a parseable location stay plain rows.
+ * so recover a `path.ext:line` mention from the text when one exists. Entries
+ * without a parseable location stay plain rows.
  */
-function extractProblemLocation(diagnostic: Diagnostic): ProblemLocation | null {
-  return parseProblemLocation(`${diagnostic.message}\n${diagnostic.detail ?? ''}`);
+function extractProblemLocation(diagnostic: Diagnostic): { path: string; line: number } | null {
+  const match = PROBLEM_LOCATION_PATTERN.exec(`${diagnostic.message}\n${diagnostic.detail ?? ''}`);
+
+  return match ? { path: match[1], line: Number.parseInt(match[2], 10) } : null;
 }
 
 function resolveProblemWorkbenchPath(filePath: string): string | undefined {
@@ -11072,7 +9971,6 @@ function resolveProblemWorkbenchPath(filePath: string): string | undefined {
 }
 
 function ProjectProblemsPanel() {
-  const { t } = useTranslation();
   const diagnostics = useDiagnosticsStore((state) => state.diagnostics);
   const errors = useDiagnosticsStore((state) => state.errors);
   const warnings = useDiagnosticsStore((state) => state.warnings);
@@ -11098,25 +9996,17 @@ function ProjectProblemsPanel() {
   };
 
   return (
-    <section
-      ref={panelRef}
-      className="bolt-project-problems-panel"
-      aria-label={t('chat.copy.problems_8e6b86dc')}
-      aria-live="polite"
-    >
+    <section ref={panelRef} className="bolt-project-problems-panel" aria-label="Problems" aria-live="polite">
       <header className="bolt-project-problems-header">
         <div>
-          <h3 tabIndex={-1}>{t('chat.copy.problems_8e6b86dc')}</h3>
-          <p>{t('baseChatAst.counts.problemsSummary', { errors, warnings })}</p>
+          <h3 tabIndex={-1}>Problems</h3>
+          <p>
+            {errors} errors · {warnings} warnings in the current workspace
+          </p>
         </div>
         <div
           className="bolt-project-problems-counts"
-          aria-label={t('baseChatAst.diagnostics.summary', {
-            errors,
-            errorsLabel: errors === 1 ? t('chat.copy.error_11f9578d') : t('chat.copy.errors_57004359'),
-            warnings,
-            warningsLabel: warnings === 1 ? t('chat.copy.warning_383fd7bf') : t('chat.copy.warnings_bd207fab'),
-          })}
+          aria-label={`${errors} ${errors === 1 ? 'error' : 'errors'}, ${warnings} ${warnings === 1 ? 'warning' : 'warnings'}`}
         >
           <span
             className="bolt-project-problems-count bolt-project-problems-count-error"
@@ -11124,9 +10014,7 @@ function ProjectProblemsPanel() {
           >
             <span className="i-ph:x-circle-fill" aria-hidden />
             {errors}
-            <span className="bolt-project-problems-count-suffix">
-              {errors === 1 ? t('chat.copy.error_11f9578d') : t('chat.copy.errors_57004359')}
-            </span>
+            <span className="bolt-project-problems-count-suffix">{errors === 1 ? 'error' : 'errors'}</span>
           </span>
           <span
             className="bolt-project-problems-count bolt-project-problems-count-warning"
@@ -11134,17 +10022,15 @@ function ProjectProblemsPanel() {
           >
             <span className="i-ph:warning-fill" aria-hidden />
             {warnings}
-            <span className="bolt-project-problems-count-suffix">
-              {warnings === 1 ? t('chat.copy.warning_383fd7bf') : t('chat.copy.warnings_bd207fab')}
-            </span>
+            <span className="bolt-project-problems-count-suffix">{warnings === 1 ? 'warning' : 'warnings'}</span>
           </span>
         </div>
       </header>
       {diagnostics.length === 0 ? (
         <div className="bolt-project-problems-empty">
           <span className="i-ph:check-circle" aria-hidden />
-          <h4>{t('chat.copy.noProblemsDetected_2b9a1d7d')}</h4>
-          <p>{t('chat.copy.runtimeDiagnosticsPreviewErrorsAndWarnings_0b9c0dad')}</p>
+          <h4>No problems detected</h4>
+          <p>Runtime diagnostics, preview errors, and warnings will appear here when they are reported.</p>
         </div>
       ) : (
         <ul className="bolt-project-problems-list">
@@ -11160,24 +10046,17 @@ function ProjectProblemsPanel() {
                 />
                 <div className="bolt-project-problem-body">
                   <div className="bolt-project-problem-title">
-                    <strong>
-                      {diagnostic.severity === 'error'
-                        ? t('chat.copy.error_7f2f6a15')
-                        : t('chat.copy.warning_e9c45563')}
-                    </strong>
+                    <strong>{diagnostic.severity === 'error' ? 'Error' : 'Warning'}</strong>
                     <span>{diagnostic.source}</span>
                     {diagnostic.occurrences && diagnostic.occurrences > 1 ? (
-                      <span>{t('baseChatAst.counts.occurrences', { count: diagnostic.occurrences })}</span>
+                      <span>{diagnostic.occurrences} occurrences</span>
                     ) : null}
                     {location && resolvedPath ? (
                       <button
                         type="button"
                         className="bolt-project-problem-open"
                         onClick={() => openProblemLocation(resolvedPath, location.line)}
-                        aria-label={t('chat.copy.openValue0AtLineValue1_d3ee3837', {
-                          value0: location.path,
-                          value1: location.line,
-                        })}
+                        aria-label={`Open ${location.path} at line ${location.line}`}
                       >
                         <span className="i-ph:arrow-square-out" aria-hidden />
                         {location.path}:{location.line}
@@ -11197,11 +10076,10 @@ function ProjectProblemsPanel() {
 }
 
 function ProjectInteractiveTerminalPanel({ projectId }: { projectId?: string }) {
-  const { t } = useTranslation();
   const [toolsOpen, setToolsOpen] = useState(false);
 
   return (
-    <section className="bolt-project-terminal-direct-panel" aria-label={t('chat.copy.interactiveTerminal_a0b76f34')}>
+    <section className="bolt-project-terminal-direct-panel" aria-label="Interactive terminal">
       <div className="bolt-project-terminal-direct-shell">
         <ClientOnly fallback={<TerminalTabsFallback />}>
           {() => (
@@ -11218,7 +10096,7 @@ function ProjectInteractiveTerminalPanel({ projectId }: { projectId?: string }) 
       <div className="bolt-project-terminal-direct-tools">
         <button type="button" aria-expanded={toolsOpen} onClick={() => setToolsOpen((value) => !value)}>
           <span className="i-ph:sliders-horizontal" aria-hidden />
-          {t('chat.copy.runtimePanels_8560a91c')}
+          Runtime panels
         </button>
       </div>
       {toolsOpen ? <ProjectTerminalPanel projectId={projectId} /> : null}
@@ -11227,8 +10105,6 @@ function ProjectInteractiveTerminalPanel({ projectId }: { projectId?: string }) 
 }
 
 function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const [activeTab, setActiveTab] = useState<'shell' | 'environment' | 'scripts' | 'connections'>('shell');
   const [payload, setPayload] = useState<any>();
   const [busy, setBusy] = useState(false);
@@ -11281,30 +10157,20 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       const result = (await response.json()) as any;
 
       if (!response.ok) {
-        console.warn('Terminal panel request failed', {
-          status: response.status,
-          serverError: result?.error,
-        });
-        setError(t('baseChatAst.terminal.loadFailedHttp', { status: response.status }));
-
-        return;
+        throw new Error(result?.error?.message ?? result?.error ?? 'Unable to load terminal panel');
       }
 
       if (result.status === 'error' && result.error) {
-        console.warn('Terminal panel returned an error envelope', result.error);
-
-        const code = typeof result.error?.code === 'string' ? `[${result.error.code}] ` : '';
-        setError(`${code}${t('baseChatAst.terminal.loadFailed')}`);
+        setError(result.error.message ?? 'Terminal panel returned an error');
       }
 
       setPayload(result);
     } catch (requestError) {
-      console.error('Terminal panel request failed', requestError);
-      setError(t('baseChatAst.terminal.loadFailed'));
+      setError(requestError instanceof Error ? requestError.message : 'Unable to load terminal panel');
     } finally {
       setBusy(false);
     }
-  }, [projectId, t]);
+  }, [projectId]);
 
   useEffect(() => {
     void loadPanel();
@@ -11331,13 +10197,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       const result = (await response.json().catch(() => ({}))) as any;
 
       if (!response.ok) {
-        console.warn('Terminal action request failed', {
-          status: response.status,
-          serverError: result.error,
-        });
-        setError(t('baseChatAst.terminal.actionFailedHttp', { status: response.status }));
-
-        return;
+        throw new Error(result.error ?? 'Terminal action failed');
       }
 
       form.reset();
@@ -11348,16 +10208,12 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
       setCustomScript('');
       setMessage(
         result.fingerprint
-          ? t('baseChatAst.terminal.keyPairGenerated', {
-              keyType: result.keyType ?? 'ed25519',
-              fingerprint: result.fingerprint,
-            })
-          : t('baseChatAst.terminal.actionApplied'),
+          ? `Key pair generated (${result.keyType ?? 'ed25519'} · ${result.fingerprint}). Public key shown on the connection below.`
+          : 'Action applied to the workspace backend.',
       );
       await loadPanel();
     } catch (requestError) {
-      console.error('Terminal action request failed', requestError);
-      setError(t('baseChatAst.terminal.actionFailed'));
+      setError(requestError instanceof Error ? requestError.message : 'Terminal action failed');
     } finally {
       setBusy(false);
     }
@@ -11378,13 +10234,8 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
   }
 
   async function copyValue(value: string, label: string) {
-    try {
-      await navigator.clipboard?.writeText(value);
-      setMessage(t('baseChatAst.terminal.valueCopied', { label }));
-    } catch (error) {
-      console.error('Terminal value copy failed', error);
-      setError(t('baseChatAst.clipboard.copyFailed'));
-    }
+    await navigator.clipboard?.writeText(value);
+    setMessage(`${label} copied.`);
   }
 
   async function revealSecret(key: string) {
@@ -11410,9 +10261,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
     const result = (await response.json().catch(() => null)) as any;
 
     if (!response.ok || !result || result.status === 'error') {
-      console.warn('Terminal secret reveal failed', { status: response.status, serverError: result?.error });
-      setError(t('baseChatAst.terminal.revealFailed'));
-
+      setError(result?.error?.message ?? result?.error ?? 'Unable to reveal secret');
       return;
     }
 
@@ -11453,27 +10302,27 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
     <div className="bolt-project-terminal-hub" data-testid="terminal-hub-panel">
       <header className="bolt-terminal-hub-head">
         <div>
-          <h3>{t('chat.copy.shellEnvironment_ceb651a8')}</h3>
+          <h3>Shell Environment</h3>
           <p>
-            {t('chat.copy.liveWorkspaceShellRuntimeFilesProcesses_b135207c')}{' '}
-            {workspaceId ?? t('chat.copy.thisProject_bd0d431c')}.
+            Live workspace shell, runtime files, processes, ports, project environment and SSH checks for{' '}
+            {workspaceId ?? 'this project'}.
           </p>
         </div>
         <div>
           <button type="button" onClick={() => void loadPanel()} disabled={busy}>
             <span className="i-ph:arrows-clockwise" aria-hidden />
-            {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.refresh_56e3badc')}
+            {busy ? 'Refreshing' : 'Refresh'}
           </button>
           <form onSubmit={submit}>
             <input type="hidden" name="intent" value="restart-workspace" />
             <PanelButton disabled={busy} variant="outline">
-              {t('chat.copy.restart_b134bd55')}
+              Restart
             </PanelButton>
           </form>
           <form onSubmit={submit}>
             <input type="hidden" name="intent" value="stop-workspace" />
             <PanelButton disabled={busy} variant="outline">
-              {t('chat.copy.stop_9e253470')}
+              Stop
             </PanelButton>
           </form>
         </div>
@@ -11487,14 +10336,14 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
           <section data-testid="card-file-navigator">
             <h4>
               <span className="i-ph:files" aria-hidden />
-              {t('chat.copy.fileNavigator_35afe31d')}
+              File Navigator
             </h4>
-            <small>{t('chat.copy.workspaceRoot_12c2483d')}</small>
+            <small>Workspace root</small>
             <div className="bolt-terminal-file-tree">
               {runtimeFiles.length ? (
                 renderFileTree(runtimeFiles)
               ) : (
-                <div className="bolt-project-empty-panel">{t('chat.copy.noFilesLoaded_de0672aa')}</div>
+                <div className="bolt-project-empty-panel">No files loaded.</div>
               )}
             </div>
           </section>
@@ -11502,29 +10351,24 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
           <section>
             <h4>
               <span className="i-ph:hard-drives" aria-hidden />
-              {t('chat.copy.runtime_c4740e4c')}
+              Runtime
             </h4>
             <PanelRows
               rows={[
-                [t('baseChatAst.common.workspace'), workspaceId ?? t('baseChatAst.status.none')],
+                ['Workspace', workspaceId ?? 'none'],
                 [
-                  t('baseChatAst.common.status'),
-                  runtimeStatusText(t, {
+                  'Status',
+                  runtimeStatusText({
                     workspaceStatus: workspace,
                     ports: runtimePorts,
                     workspaceLoading: Boolean(workspace && !workspace.status),
                     workspaceError: workspace?.error,
-                  }),
+                  }).replace(/^Runtime:\s*/, ''),
                 ],
-                [
-                  t('baseChatAst.common.ports'),
-                  runtimePorts.length
-                    ? runtimePorts.map((port: any) => `:${port.port}`).join(', ')
-                    : t('baseChatAst.status.none'),
-                ],
-                [t('baseChatAst.common.processes'), formatBaseChatAstNumber(language, runtimeProcesses.length)],
+                ['Ports', runtimePorts.length ? runtimePorts.map((port: any) => `:${port.port}`).join(', ') : 'none'],
+                ['Processes', String(runtimeProcesses.length)],
               ]}
-              empty={t('baseChatAst.runtime.noDetails')}
+              empty="No runtime details."
             />
           </section>
 
@@ -11532,7 +10376,7 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
             <div className="bolt-terminal-section-head">
               <h4>
                 <span className="i-ph:wifi-high" aria-hidden />
-                {t('chat.copy.sshConnections_564ae345')}
+                SSH Connections
               </h4>
               <div className="bolt-terminal-section-actions">
                 <button
@@ -11540,41 +10384,41 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                   onClick={() => setShowKeygenForm((value) => !value)}
                   data-testid="button-ssh-generate-key"
                 >
-                  {t('chat.copy.generateKey_937129af')}
+                  Generate key
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowSshForm((value) => !value)}
                   data-testid="button-ssh-connections"
                 >
-                  {t('chat.copy.add_61cc55aa')}
+                  Add
                 </button>
               </div>
             </div>
             {showSshForm ? (
               <form onSubmit={submit} className="bolt-terminal-compact-form" data-testid="dialog-ssh">
                 <input type="hidden" name="intent" value="add-ssh" />
-                <PanelInput name="name" placeholder={t('chat.copy.productionBastion_786805c7')} required />
-                <PanelInput name="host" placeholder={codeExample('host.example.com')} required />
+                <PanelInput name="name" placeholder="Production bastion" required />
+                <PanelInput name="host" placeholder="host.example.com" required />
                 <PanelInput name="port" placeholder="22" defaultValue="22" />
-                <PanelInput name="username" placeholder={t('chat.copy.deploy_b0d51b9f')} required />
-                <textarea name="privateKey" placeholder={t('chat.copy.optionalPrivateKeyStoredAsA_2aecf154')} />
+                <PanelInput name="username" placeholder="deploy" required />
+                <textarea name="privateKey" placeholder="Optional private key stored as a project secret" />
                 <PanelButton disabled={busy} data-testid="button-add-ssh">
-                  {t('chat.copy.saveSsh_9207c237')}
+                  Save SSH
                 </PanelButton>
               </form>
             ) : null}
             {showKeygenForm ? (
               <form onSubmit={submit} className="bolt-terminal-compact-form" data-testid="dialog-ssh-keygen">
                 <input type="hidden" name="intent" value="generate-keypair" />
-                <PanelInput name="name" placeholder={t('chat.copy.keyLabelEGDeployKey_058a1d24')} required />
-                <select name="type" defaultValue="ed25519" aria-label={t('chat.copy.keyType_3b13fb6c')}>
-                  <option value="ed25519">{t('chat.copy.ed25519Recommended_9405f411')}</option>
-                  <option value="rsa">{t('chat.copy.rsa_01e4715c')}</option>
+                <PanelInput name="name" placeholder="Key label (e.g. deploy key)" required />
+                <select name="type" defaultValue="ed25519" aria-label="Key type">
+                  <option value="ed25519">ed25519 (recommended)</option>
+                  <option value="rsa">rsa</option>
                 </select>
-                <PanelInput name="comment" placeholder={t('chat.copy.optionalCommentEGYouHost_de88ef9c')} />
+                <PanelInput name="comment" placeholder="Optional comment (e.g. you@host)" />
                 <PanelButton disabled={busy} data-testid="button-generate-keypair">
-                  {t('chat.copy.generateKeyPair_27cc8fa3')}
+                  Generate key pair
                 </PanelButton>
               </form>
             ) : null}
@@ -11602,9 +10446,9 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                         <button
                           type="button"
                           onClick={() => void navigator.clipboard?.writeText(connection.publicKey)}
-                          aria-label={t('chat.copy.copyPublicKeyForValue0_8d2691a6', { value0: connection.name })}
+                          aria-label={`Copy public key for ${connection.name}`}
                         >
-                          {t('chat.copy.copyPublicKey_0e8baa3d')}
+                          Copy public key
                         </button>
                       </div>
                     ) : null}
@@ -11617,27 +10461,21 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                     />
                     <input type="hidden" name="connectionId" value={connection.id} />
                     <PanelButton disabled={busy} variant="outline">
-                      {connection.status === 'connected'
-                        ? t('chat.copy.disconnect_ed28e068')
-                        : t('chat.copy.connect_b65463cb')}
+                      {connection.status === 'connected' ? 'Disconnect' : 'Connect'}
                     </PanelButton>
                   </form>
                   <form onSubmit={submit} className="bolt-terminal-ssh-git" data-testid={`ssh-git-${connection.id}`}>
                     <input type="hidden" name="intent" value="git-ssh" />
                     <input type="hidden" name="connectionId" value={connection.id} />
-                    <PanelInput
-                      name="repoUrl"
-                      placeholder={t('chat.copy.gitGithubComOwnerRepoGit_227027b4')}
-                      aria-label={t('chat.copy.sshGitUrl_f6b1fb5f')}
-                    />
+                    <PanelInput name="repoUrl" placeholder="git@github.com:owner/repo.git" aria-label="SSH git URL" />
                     <PanelButton disabled={busy} variant="outline" data-testid={`button-git-ssh-${connection.id}`}>
-                      {t('chat.copy.testGitAccess_ca9d5bc9')}
+                      Test git access
                     </PanelButton>
                   </form>
                 </article>
               ))}
               {!sshConnections.length ? (
-                <div className="bolt-project-empty-panel">{t('chat.copy.noSshConnectionsConfigured_149be10e')}</div>
+                <div className="bolt-project-empty-panel">No SSH connections configured.</div>
               ) : null}
             </div>
           </section>
@@ -11646,10 +10484,10 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
         <main className="bolt-terminal-main">
           <nav className="bolt-terminal-tabs" data-testid="tabs-shell">
             {[
-              ['shell', t('baseChatAst.common.shell'), 'i-ph:terminal-window'],
-              ['environment', t('baseChatAst.common.environment'), 'i-ph:key'],
-              ['scripts', t('baseChatAst.common.scripts'), 'i-ph:lightning'],
-              ['connections', t('baseChatAst.common.processes'), 'i-ph:activity'],
+              ['shell', 'Shell', 'i-ph:terminal-window'],
+              ['environment', 'Environment', 'i-ph:key'],
+              ['scripts', 'Scripts', 'i-ph:lightning'],
+              ['connections', 'Processes', 'i-ph:activity'],
             ].map(([id, label, icon]) => (
               <button
                 key={id}
@@ -11667,12 +10505,8 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
           {activeTab === 'shell' && (
             <section className="bolt-terminal-live-card" data-testid="card-shell-terminal">
               <div className="bolt-terminal-live-toolbar">
-                <strong>{t('chat.copy.interactiveWorkspaceShell_cada4730')}</strong>
-                <small>
-                  {workspace?.status
-                    ? runtimeStateLabel(t, workspace.status)
-                    : t('chat.copy.runtimeStatusLoading_226ec569')}
-                </small>
+                <strong>Interactive workspace shell</strong>
+                <small>{workspace?.status ?? 'runtime status loading'}</small>
               </div>
               <ClientOnly fallback={<TerminalTabsFallback />}>
                 {() => (
@@ -11692,33 +10526,28 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
             <section className="bolt-terminal-card" data-testid="card-env-vars">
               <div className="bolt-terminal-section-head">
                 <div>
-                  <strong>{t('chat.copy.environmentVariables_ec072bba')}</strong>
-                  <small>{t('chat.copy.projectVariablesAndEncryptedSecretsLoaded_095415da')}</small>
+                  <strong>Environment Variables</strong>
+                  <small>Project variables and encrypted secrets loaded from backend stores.</small>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowEnvForm((value) => !value)}
                   data-testid="button-add-env-var"
                 >
-                  {t('chat.copy.addVariable_4c2707bc')}
+                  Add Variable
                 </button>
               </div>
               {showEnvForm ? (
                 <form onSubmit={submit} className="bolt-terminal-env-form" data-testid="dialog-add-env">
                   <input type="hidden" name="intent" value="add-env" />
-                  <PanelInput
-                    name="key"
-                    placeholder={t('chat.copy.myVariable_7d794385')}
-                    required
-                    data-testid="input-env-key"
-                  />
-                  <PanelInput name="value" placeholder={t('chat.copy.value_8dce170d')} data-testid="input-env-value" />
+                  <PanelInput name="key" placeholder="MY_VARIABLE" required data-testid="input-env-key" />
+                  <PanelInput name="value" placeholder="Value" data-testid="input-env-value" />
                   <select name="isSecret" defaultValue="false" data-testid="switch-env-secret">
-                    <option value="false">{t('chat.copy.plainVariable_dd1fe819')}</option>
-                    <option value="true">{t('chat.copy.encryptedSecret_0cdff4dc')}</option>
+                    <option value="false">Plain variable</option>
+                    <option value="true">Encrypted secret</option>
                   </select>
                   <PanelButton disabled={busy} data-testid="button-save-env">
-                    {t('chat.copy.saveVariable_568937f7')}
+                    Save Variable
                   </PanelButton>
                 </form>
               ) : null}
@@ -11728,17 +10557,17 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                     <span className="i-ph:brackets-curly" aria-hidden />
                     <div>
                       <strong>{envVar.key}</strong>
-                      <small>{envVar.value || t('chat.copy.emptyValue_2464254a')}</small>
+                      <small>{envVar.value || 'empty value'}</small>
                     </div>
                     <button type="button" onClick={() => void copyValue(envVar.value ?? '', envVar.key)}>
-                      {t('chat.copy.copy_af74f7c5')}
+                      Copy
                     </button>
                     <form onSubmit={submit}>
                       <input type="hidden" name="intent" value="delete-env" />
                       <input type="hidden" name="key" value={envVar.key} />
                       <input type="hidden" name="isSecret" value="false" />
                       <PanelButton disabled={busy} variant="outline">
-                        {t('chat.copy.delete_f6fdbe48')}
+                        Delete
                       </PanelButton>
                     </form>
                   </article>
@@ -11751,26 +10580,26 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                       <small>{revealedSecrets[secret.key] ?? '••••••••'}</small>
                     </div>
                     <button type="button" onClick={() => void revealSecret(secret.key)}>
-                      {revealedSecrets[secret.key] ? t('chat.copy.hide_34d8b60f') : t('chat.copy.reveal_90c0c2eb')}
+                      {revealedSecrets[secret.key] ? 'Hide' : 'Reveal'}
                     </button>
                     <button
                       type="button"
                       onClick={() => void copyValue(revealedSecrets[secret.key] ?? secret.key, secret.key)}
                     >
-                      {t('chat.copy.copy_af74f7c5')}
+                      Copy
                     </button>
                     <form onSubmit={submit}>
                       <input type="hidden" name="intent" value="delete-env" />
                       <input type="hidden" name="key" value={secret.key} />
                       <input type="hidden" name="isSecret" value="true" />
                       <PanelButton disabled={busy} variant="outline">
-                        {t('chat.copy.delete_f6fdbe48')}
+                        Delete
                       </PanelButton>
                     </form>
                   </article>
                 ))}
                 {!envVars.length && !secrets.length ? (
-                  <div className="bolt-project-empty-panel">{t('chat.copy.noEnvironmentVariables_6b838fa1')}</div>
+                  <div className="bolt-project-empty-panel">No environment variables.</div>
                 ) : null}
               </div>
             </section>
@@ -11780,34 +10609,30 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
             <section className="bolt-terminal-card" data-testid="card-script-runner">
               <div className="bolt-terminal-section-head">
                 <div>
-                  <strong>{t('chat.copy.scriptRunner_0765a7f9')}</strong>
-                  <small>{t('chat.copy.runsCommandsThroughTheRuntimeCommand_7f7c4938')}</small>
+                  <strong>Script Runner</strong>
+                  <small>Runs commands through the runtime command API with abuse prevention.</small>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowScriptForm((value) => !value)}
                   data-testid="button-create-script"
                 >
-                  {t('chat.copy.newScript_03e075be')}
+                  New Script
                 </button>
               </div>
               {showScriptForm ? (
                 <form onSubmit={submit} className="bolt-terminal-script-editor" data-testid="dialog-script-editor">
                   <input type="hidden" name="intent" value="run-script" />
-                  <PanelInput
-                    name="name"
-                    placeholder={t('chat.copy.customScript_929fa0a0')}
-                    data-testid="input-script-name"
-                  />
+                  <PanelInput name="name" placeholder="Custom script" data-testid="input-script-name" />
                   <textarea
                     name="script"
-                    placeholder={t('chat.copy.binShEchoReady_fc10292a')}
+                    placeholder="#!/bin/sh&#10;echo ready"
                     value={customScript}
                     onChange={(event) => setCustomScript(event.target.value)}
                     data-testid="textarea-script-content"
                   />
                   <PanelButton disabled={busy || !customScript.trim()} data-testid="button-run-custom-script">
-                    {t('chat.copy.runScript_9c520cef')}
+                    Run Script
                   </PanelButton>
                 </form>
               ) : null}
@@ -11816,16 +10641,16 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                   <article key={id} data-testid={`script-template-${id}`}>
                     <div>
                       <span className="i-ph:lightning" aria-hidden />
-                      <strong>{t(name)}</strong>
-                      <p>{t(description)}</p>
+                      <strong>{name}</strong>
+                      <p>{description}</p>
                       <code>$ {script}</code>
                     </div>
                     <form onSubmit={submit}>
                       <input type="hidden" name="intent" value="run-script" />
-                      <input type="hidden" name="name" value={t(name)} />
+                      <input type="hidden" name="name" value={name} />
                       <input type="hidden" name="script" value={script} />
                       <PanelButton disabled={busy} variant="outline" data-testid={`button-run-${id}`}>
-                        {t('chat.copy.run_b1b39260')}
+                        Run
                       </PanelButton>
                     </form>
                   </article>
@@ -11837,15 +10662,9 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                     <summary>
                       <span data-status={run.status}>{run.status}</span>
                       <strong>{run.name}</strong>
-                      <small>
-                        {run.finishedAt
-                          ? (formatBaseChatAstDateTime(language, run.finishedAt) ??
-                            t('baseChatAst.status.notAvailable'))
-                          : (formatBaseChatAstDateTime(language, run.startedAt) ??
-                            t('baseChatAst.status.notAvailable'))}
-                      </small>
+                      <small>{run.finishedAt ? new Date(run.finishedAt).toLocaleString() : run.startedAt}</small>
                     </summary>
-                    <pre>{run.output || t('chat.copy.noOutputCaptured_6c86d6de')}</pre>
+                    <pre>{run.output || 'No output captured.'}</pre>
                   </details>
                 ))}
               </div>
@@ -11856,8 +10675,8 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
             <section className="bolt-terminal-card" data-testid="card-runtime-processes">
               <div className="bolt-terminal-section-head">
                 <div>
-                  <strong>{t('chat.copy.processesAndPorts_52df812f')}</strong>
-                  <small>{t('chat.copy.liveProcessAndPreviewPortState_e565a816')}</small>
+                  <strong>Processes and Ports</strong>
+                  <small>Live process and preview port state from the workspace agent.</small>
                 </div>
               </div>
               <div className="bolt-terminal-process-list">
@@ -11872,29 +10691,24 @@ function ProjectTerminalPanel({ projectId }: { projectId?: string }) {
                       <input type="hidden" name="intent" value="stop-process" />
                       <input type="hidden" name="processId" value={process.id} />
                       <PanelButton disabled={busy} variant="outline">
-                        {t('chat.copy.stop_9e253470')}
+                        Stop
                       </PanelButton>
                     </form>
                   </article>
                 ))}
                 {!runtimeProcesses.length ? (
-                  <div className="bolt-project-empty-panel">{t('chat.copy.noRuntimeProcessesReported_f02fbd04')}</div>
+                  <div className="bolt-project-empty-panel">No runtime processes reported.</div>
                 ) : null}
               </div>
               <div className="bolt-terminal-port-grid">
                 {runtimePorts.map((port: any) => (
                   <a key={port.port} href={port.url} target="_blank" rel="noreferrer">
                     <span className="i-ph:link" aria-hidden />
-                    {t('chat.copy.port_fe035157')}
-                    {port.port}
-                    <small>
-                      {port.ready === false ? t('chat.copy.notReady_970258df') : t('chat.copy.ready_75c05337')}
-                    </small>
+                    Port {port.port}
+                    <small>{port.ready === false ? 'not ready' : 'ready'}</small>
                   </a>
                 ))}
-                {!runtimePorts.length ? (
-                  <div className="bolt-project-empty-panel">{t('chat.copy.noPreviewPortsOpen_fb7dda37')}</div>
-                ) : null}
+                {!runtimePorts.length ? <div className="bolt-project-empty-panel">No preview ports open.</div> : null}
               </div>
             </section>
           )}
@@ -11923,7 +10737,6 @@ function ProjectFilesTool({
   onFilePreview: (filePath: string) => void;
   onFileOpen: (filePath: string) => void;
 }) {
-  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const [query, setQuery] = useState('');
   const [showHiddenFiles, setShowHiddenFiles] = useState(false);
@@ -11995,7 +10808,7 @@ function ProjectFilesTool({
      * be truncated to empty content with no confirm — data loss.
      */
     if (workbenchStore.files.get()[target]) {
-      toast.error(t('baseChatAst.files.entryExists', { path: target }));
+      toast.error(`A file or folder already exists at "${target}"`);
       return;
     }
 
@@ -12007,15 +10820,12 @@ function ProjectFilesTool({
     }
   }
 
-  const collapseFilesLabel = collapsed ? t('baseChatAst.files.expandAll') : t('baseChatAst.files.collapseAll');
-  const systemFilesLabel = showHiddenFiles ? t('baseChatAst.files.hideSystem') : t('baseChatAst.files.showSystem');
+  const collapseFilesLabel = collapsed ? 'Expand all files' : 'Collapse all files';
+  const systemFilesLabel = showHiddenFiles ? 'Hide hidden/system files' : 'Show hidden/system files';
 
   const hiddenFilesSummary = hiddenSystemFileCount
-    ? t('baseChatAst.files.hiddenSummary', {
-        count: hiddenSystemFileCount,
-        state: showHiddenFiles ? t('baseChatAst.files.shown') : t('baseChatAst.files.hidden'),
-      })
-    : t('baseChatAst.files.noHidden');
+    ? `${hiddenSystemFileCount} hidden/system files ${showHiddenFiles ? 'shown' : 'hidden'}`
+    : 'No hidden/system files detected';
 
   return (
     <div className="bolt-project-files-tool">
@@ -12030,46 +10840,31 @@ function ProjectFilesTool({
             void createEntry(kind, value);
           }
         }}
-        title={createEntryKind === 'folder' ? t('chat.copy.newFolder_a711999b') : t('chat.copy.newFile_3cb7ea0f')}
-        label={createEntryKind === 'folder' ? t('chat.copy.folderPath_cd6605ee') : t('chat.copy.filePath_1214946f')}
-        placeholder={createEntryKind === 'folder' ? codeExample('src/components') : codeExample('src/index.ts')}
-        confirmLabel={t('baseChatAst.files.create')}
-        validate={(value) => (value.trim() ? undefined : t('baseChatAst.files.enterPath'))}
+        title={createEntryKind === 'folder' ? 'New folder' : 'New file'}
+        label={createEntryKind === 'folder' ? 'Folder path' : 'File path'}
+        placeholder={createEntryKind === 'folder' ? 'src/components' : 'src/index.ts'}
+        confirmLabel="Create"
+        validate={(value) => (value.trim() ? undefined : 'Enter a path')}
       />
       <div className="bolt-project-files-header">
         <span className="bolt-project-files-count" title={hiddenFilesSummary}>
-          {/*
-           * BUG-QA-I18N-COUNT-001 : `{fileCount}` et `{t(...)}` étaient deux
-           * expressions JSX ADJACENTES — React les concatène sans séparateur, d'où
-           * « 8fichiers ». La clé plurielle existait déjà et porte son espace.
-           */}
-          {t('baseChatAst.files.count', { count: fileCount })}
+          {fileCount} files
         </span>
-        <HeaderTip label={t('chat.copy.newFile_3cb7ea0f')} side="top">
-          <button
-            type="button"
-            aria-label={t('chat.copy.newFile_3cb7ea0f')}
-            title={t('chat.copy.newFile_3cb7ea0f')}
-            onClick={() => setCreateEntryKind('file')}
-          >
+        <HeaderTip label="New file" side="top">
+          <button type="button" aria-label="New file" title="New file" onClick={() => setCreateEntryKind('file')}>
             <span className="i-ph:file-plus" aria-hidden />
           </button>
         </HeaderTip>
-        <HeaderTip label={t('chat.copy.newFolder_a711999b')} side="top">
-          <button
-            type="button"
-            aria-label={t('chat.copy.newFolder_a711999b')}
-            title={t('chat.copy.newFolder_a711999b')}
-            onClick={() => setCreateEntryKind('folder')}
-          >
+        <HeaderTip label="New folder" side="top">
+          <button type="button" aria-label="New folder" title="New folder" onClick={() => setCreateEntryKind('folder')}>
             <span className="i-ph:folder-plus" aria-hidden />
           </button>
         </HeaderTip>
-        <HeaderTip label={t('chat.copy.refreshFiles_75bfab07')} side="top">
+        <HeaderTip label="Refresh files" side="top">
           <button
             type="button"
-            aria-label={t('chat.copy.refreshFiles_75bfab07')}
-            title={t('chat.copy.refreshFiles_75bfab07')}
+            aria-label="Refresh files"
+            title="Refresh files"
             onClick={() => void workbenchStore.loadRuntimeFiles('.')}
           >
             <span className="i-ph:arrow-clockwise" aria-hidden />
@@ -12098,12 +10893,12 @@ function ProjectFilesTool({
         </HeaderTip>
       </div>
       <label className="bolt-project-files-search">
-        <span>{t('chat.copy.search_bce06414')}</span>
+        <span>Search</span>
         <input
           value={query}
           onChange={(event) => setQuery(event.currentTarget.value)}
-          placeholder={t('chat.copy.filterFiles_1c07a419')}
-          aria-label={t('chat.copy.searchFiles_ec88257e')}
+          placeholder="Filter files"
+          aria-label="Search files"
         />
       </label>
       <FileTree
@@ -12150,10 +10945,6 @@ function IdeTabBar({
   onCloseAll,
   onCloseSaved,
   onSplitActiveRight,
-  onSplitActiveDown,
-  onToggleFloating,
-  onOpenNewWindow,
-  isFloating,
   onSwapTab,
   onDragEnd,
   onTogglePin,
@@ -12183,17 +10974,12 @@ function IdeTabBar({
   onCloseAll?: () => void;
   onCloseSaved?: () => void;
   onSplitActiveRight?: (tabId?: string) => void;
-  onSplitActiveDown?: (tabId?: string) => void;
-  onToggleFloating?: () => void;
-  onOpenNewWindow?: (tabId?: string) => void;
-  isFloating?: boolean;
   onSwapTab?: (sourcePaneId: string, sourceTabId: string, targetTabId?: string) => void;
   onDragEnd?: () => void;
   onTogglePin?: (tabId?: string) => void;
   recentFiles?: string[];
   onOpenFile?: (filePath: string, preview: boolean) => void;
 }) {
-  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [toolQuery, setToolQuery] = useState('');
@@ -12250,222 +11036,54 @@ function IdeTabBar({
   }, [closeToolMenu, open]);
 
   const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> = [
-    [
-      'overview',
-      panelTitle('overview', t),
-      t(IDE_TOOL_DESCRIPTIONS.overview),
-      'i-ph:gauge',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'editor',
-      t('baseChatAst.common.code'),
-      t(IDE_TOOL_DESCRIPTIONS.editor),
-      'i-ph:code',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'files',
-      panelTitle('files', t),
-      t(IDE_TOOL_DESCRIPTIONS.files),
-      'i-ph:files',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'search',
-      panelTitle('search', t),
-      t(IDE_TOOL_DESCRIPTIONS.search),
-      'i-ph:magnifying-glass',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.workspace'),
-    ],
-    [
-      'locks',
-      panelTitle('locks', t),
-      t(IDE_TOOL_DESCRIPTIONS.locks),
-      'i-ph:lock',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.workspace'),
-    ],
+    ['overview', 'Overview', 'Project summary', 'i-ph:gauge', 'var(--vc-ide-accent-action)', 'Workspace'],
+    ['editor', 'Code', 'Code editor', 'i-ph:code', 'var(--vc-ide-accent-action)', 'Workspace'],
+    ['files', 'Files', 'Browse project files', 'i-ph:files', 'var(--vc-ide-accent-warning)', 'Workspace'],
+    ['search', 'Search', 'Find in files', 'i-ph:magnifying-glass', 'var(--vc-ide-accent-action)', 'Workspace'],
+    ['locks', 'Locks', 'Locked files', 'i-ph:lock', 'var(--vc-ide-accent-warning)', 'Workspace'],
     [
       'terminal',
       SHELL_TERMINAL_LABEL,
-      t(IDE_TOOL_DESCRIPTIONS.terminal),
+      'Workspace shell',
       'i-ph:terminal-window',
       'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.runtime'),
+      'Runtime',
     ],
-    [
-      'logs',
-      panelTitle('logs', t),
-      t(IDE_TOOL_DESCRIPTIONS.logs),
-      'i-ph:list-magnifying-glass',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'preview',
-      panelTitle('preview', t),
-      t(IDE_TOOL_DESCRIPTIONS.preview),
-      'i-ph:browser',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'database',
-      panelTitle('database', t),
-      t(IDE_TOOL_DESCRIPTIONS.database),
-      'i-ph:database',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.data'),
-    ],
-    [
-      'object-storage',
-      panelTitle('object-storage', t),
-      t(IDE_TOOL_DESCRIPTIONS['object-storage']),
-      'i-ph:package',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.data'),
-    ],
+    ['logs', 'Logs', 'Runtime logs', 'i-ph:list-magnifying-glass', 'var(--vc-ide-accent-success)', 'Runtime'],
+    ['preview', 'Webview', 'App preview', 'i-ph:browser', 'var(--vc-ide-accent-action)', 'Runtime'],
+    ['database', 'Database', 'SQL browser', 'i-ph:database', 'var(--vc-ide-accent-action)', 'Data'],
+    ['object-storage', 'Object Storage', 'File storage', 'i-ph:package', 'var(--vc-ide-accent-warning)', 'Data'],
     [
       'env',
-      panelTitle('env', t),
-      t(IDE_TOOL_DESCRIPTIONS.env),
+      'Environment variables',
+      'Environment variables',
       'i-ph:brackets-curly',
       'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.configuration'),
+      'Configuration',
     ],
-    [
-      'secrets',
-      panelTitle('secrets', t),
-      t(IDE_TOOL_DESCRIPTIONS.secrets),
-      'i-ph:lock',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.configuration'),
-    ],
-    [
-      'git',
-      panelTitle('git', t),
-      t(IDE_TOOL_DESCRIPTIONS.git),
-      'i-ph:git-branch',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'packages',
-      panelTitle('packages', t),
-      t(IDE_TOOL_DESCRIPTIONS.packages),
-      'i-ph:cube',
-      'var(--vc-ide-accent-warning)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'skills',
-      panelTitle('skills', t),
-      t(IDE_TOOL_DESCRIPTIONS.skills),
-      'i-ph:sparkle',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.project'),
-    ],
+    ['secrets', 'Secrets', 'Encrypted project secrets', 'i-ph:lock', 'var(--vc-ide-accent-warning)', 'Configuration'],
+    ['git', 'Git', 'Version control', 'i-ph:git-branch', 'var(--vc-ide-accent-success)', 'Project'],
+    ['packages', 'Packages', 'Dependencies manager', 'i-ph:cube', 'var(--vc-ide-accent-warning)', 'Project'],
+    ['skills', 'Skills', 'Agent skills', 'i-ph:sparkle', 'var(--vc-ide-accent-action)', 'Project'],
     [
       'integrations',
-      panelTitle('integrations', t),
-      t(IDE_TOOL_DESCRIPTIONS.integrations),
+      'Integrations',
+      'Connected services',
       'i-ph:plugs-connected',
       'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.project'),
+      'Project',
     ],
-    [
-      'workflows',
-      panelTitle('workflows', t),
-      t(IDE_TOOL_DESCRIPTIONS.workflows),
-      'i-ph:git-branch',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'debugger',
-      panelTitle('debugger', t),
-      t(IDE_TOOL_DESCRIPTIONS.debugger),
-      'i-ph:bug',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'deployments',
-      panelTitle('deployments', t),
-      t(IDE_TOOL_DESCRIPTIONS.deployments),
-      'i-ph:rocket-launch',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.delivery'),
-    ],
-    [
-      'security',
-      panelTitle('security', t),
-      t(IDE_TOOL_DESCRIPTIONS.security),
-      'i-ph:shield-check',
-      'var(--vc-ide-accent-error)',
-      t('baseChatAst.common.security'),
-    ],
-    [
-      'monitoring',
-      panelTitle('monitoring', t),
-      t(IDE_TOOL_DESCRIPTIONS.monitoring),
-      'i-ph:chart-line',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.delivery'),
-    ],
-    [
-      'ports',
-      panelTitle('ports', t),
-      t(IDE_TOOL_DESCRIPTIONS.ports),
-      'i-ph:plugs',
-      'var(--vc-ide-accent-success)',
-      t('baseChatAst.common.runtime'),
-    ],
-    [
-      'extensions',
-      panelTitle('extensions', t),
-      t(IDE_TOOL_DESCRIPTIONS.extensions),
-      'i-ph:puzzle-piece',
-      'var(--vc-ide-text-secondary)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'snapshots',
-      panelTitle('snapshots', t),
-      t(IDE_TOOL_DESCRIPTIONS.snapshots),
-      'i-ph:stack',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.project'),
-    ],
-    [
-      'activity',
-      panelTitle('activity', t),
-      t(IDE_TOOL_DESCRIPTIONS.activity),
-      'i-ph:activity',
-      'var(--vc-ide-accent-action)',
-      t('baseChatAst.common.team'),
-    ],
-    [
-      'collaborators',
-      panelTitle('collaborators', t),
-      t(IDE_TOOL_DESCRIPTIONS.collaborators),
-      'i-ph:users',
-      'var(--vc-ide-text-secondary)',
-      t('baseChatAst.common.team'),
-    ],
-    [
-      'settings',
-      panelTitle('settings', t),
-      t(IDE_TOOL_DESCRIPTIONS.settings),
-      'i-ph:gear',
-      'var(--vc-ide-text-secondary)',
-      t('baseChatAst.common.configuration'),
-    ],
+    ['workflows', 'Workflows', 'Task automation', 'i-ph:git-branch', 'var(--vc-ide-accent-success)', 'Project'],
+    ['debugger', 'Debugger', 'Breakpoints and launch configs', 'i-ph:bug', 'var(--vc-ide-accent-action)', 'Project'],
+    ['deployments', 'Deployments', 'Publish your app', 'i-ph:rocket-launch', 'var(--vc-ide-accent-action)', 'Delivery'],
+    ['security', 'Security', 'Security scanner', 'i-ph:shield-check', 'var(--vc-ide-accent-error)', 'Security'],
+    ['monitoring', 'Monitoring', 'App metrics', 'i-ph:chart-line', 'var(--vc-ide-accent-action)', 'Delivery'],
+    ['ports', 'Ports', 'Forwarded ports', 'i-ph:plugs', 'var(--vc-ide-accent-success)', 'Runtime'],
+    ['extensions', 'Extensions', 'Marketplace', 'i-ph:puzzle-piece', 'var(--vc-ide-text-secondary)', 'Project'],
+    ['snapshots', 'Snapshots', 'Rollback points', 'i-ph:stack', 'var(--vc-ide-accent-action)', 'Project'],
+    ['activity', 'Activity', 'Project timeline', 'i-ph:activity', 'var(--vc-ide-accent-action)', 'Team'],
+    ['collaborators', 'Collaborators', 'Team access', 'i-ph:users', 'var(--vc-ide-text-secondary)', 'Team'],
+    ['settings', 'Settings', 'Project settings', 'i-ph:gear', 'var(--vc-ide-text-secondary)', 'Configuration'],
   ];
 
   const normalizedToolQuery = toolQuery.trim().toLowerCase();
@@ -12480,7 +11098,7 @@ function IdeTabBar({
   const toolGroups = Array.from(
     filteredTools
       .reduce((groups, tool) => {
-        const category = normalizedToolQuery ? t('baseChatAst.common.matches') : tool[5];
+        const category = normalizedToolQuery ? 'Matches' : tool[5];
         const groupTools = groups.get(category) ?? [];
 
         groupTools.push(tool);
@@ -12497,13 +11115,13 @@ function IdeTabBar({
         ref={toolMenuRef}
         className="bolt-project-tool-menu bolt-project-tool-menu--modal"
         role="dialog"
-        aria-label={t('chat.copy.addTabCommandPalette_83a59334')}
+        aria-label="Add tab command palette"
       >
         <div className="bolt-project-tool-menu-header">
           <div className="bolt-project-tool-menu-title">
             <span>
-              <strong>{t('chat.copy.addTab_f7bb0210')}</strong>
-              <small>{t('chat.copy.openAToolProjectFileOr_3d5a9427')}</small>
+              <strong>Add tab</strong>
+              <small>Open a tool, project file, or command in this workspace.</small>
             </span>
             <kbd>{commandPaletteShortcut}</kbd>
           </div>
@@ -12511,15 +11129,15 @@ function IdeTabBar({
             <span className="i-ph:magnifying-glass" aria-hidden />
             <input
               autoFocus
-              placeholder={t('chat.copy.searchCommandsToolsOrFiles_01d43db7')}
-              aria-label={t('chat.copy.searchCommandsToolsOrFiles_b3328825')}
+              placeholder="Search commands, tools, or files..."
+              aria-label="Search commands, tools, or files"
               value={toolQuery}
               onChange={(event) => setToolQuery(event.target.value)}
             />
             <button
               type="button"
-              aria-label={t('chat.copy.closeAddTabCommandPalette_d16caca1')}
-              title={t('chat.copy.close_bbfa773e')}
+              aria-label="Close add tab command palette"
+              title="Close"
               className="bolt-project-tool-search-close"
               onClick={() => closeToolMenu({ restoreFocus: true })}
             >
@@ -12530,7 +11148,7 @@ function IdeTabBar({
         <div className="bolt-project-tool-menu-body">
           {!normalizedToolQuery && (
             <>
-              <div className="bolt-project-tool-section">{t('chat.copy.recentFiles_2944f38c')}</div>
+              <div className="bolt-project-tool-section">RECENT FILES</div>
               {filteredRecentFiles.map((filePath) => (
                 <button
                   key={`recent-file-${filePath}`}
@@ -12551,7 +11169,7 @@ function IdeTabBar({
               ))}
             </>
           )}
-          <div className="bolt-project-tool-section">{t('chat.copy.tools_9d0e510b')}</div>
+          <div className="bolt-project-tool-section">TOOLS</div>
           {toolGroups.map(([category, groupTools]) => (
             <div key={category} className="bolt-project-tool-group">
               <div className="bolt-project-tool-section">{category}</div>
@@ -12571,7 +11189,7 @@ function IdeTabBar({
                     <strong>{title}</strong>
                     <small>{description}</small>
                   </span>
-                  {tabs.some((tab) => tab.panel === id) && <em>{t('chat.copy.open_cf9b7706')}</em>}
+                  {tabs.some((tab) => tab.panel === id) && <em>Open</em>}
                   <span className="bolt-project-tool-item-chevron i-ph:caret-right" aria-hidden />
                 </button>
               ))}
@@ -12580,21 +11198,18 @@ function IdeTabBar({
           {!filteredTools.length && (
             <div className="bolt-project-tool-empty">
               <span className="i-ph:sparkle" aria-hidden />
-              <strong>{t('chat.copy.noFeaturesFound_295ba03b')}</strong>
-              <small>{t('chat.copy.tryADifferentSearchTerm_0ba628a3')}</small>
+              <strong>No features found</strong>
+              <small>Try a different search term.</small>
             </div>
           )}
         </div>
         <div className="bolt-project-tool-footer">
           <span>
-            {t('baseChatAst.tool.featureAvailable', { count: filteredTools.length })}
-            {normalizedToolQuery ? t('chat.copy.matchingValue0_5feb64b4', { value0: toolQuery.trim() }) : ''}
+            {filteredTools.length} feature{filteredTools.length === 1 ? '' : 's'} available
+            {normalizedToolQuery ? ` matching "${toolQuery.trim()}"` : ''}
           </span>
           <span>
-            <kbd>Esc</kbd>
-            {t('chat.copy.close_1ee04a74')}
-            <kbd>{commandPaletteShortcut}</kbd>
-            {t('chat.copy.fullPalette_49524ad9')}
+            <kbd>Esc</kbd> close · <kbd>{commandPaletteShortcut}</kbd> full palette
           </span>
         </div>
       </div>
@@ -12632,15 +11247,7 @@ function IdeTabBar({
               data-panel={tab.panel}
               data-pinned={tab.pinned ? 'true' : undefined}
               data-dirty={tab.dirty ? 'true' : undefined}
-              aria-label={
-                tab.pinned && tab.dirty
-                  ? t('baseChatAst.tab.pinnedUnsaved', { label: tab.label })
-                  : tab.pinned
-                    ? t('baseChatAst.tab.pinned', { label: tab.label })
-                    : tab.dirty
-                      ? t('baseChatAst.tab.unsaved', { label: tab.label })
-                      : tab.label
-              }
+              aria-label={`${tab.pinned ? 'Pinned tab: ' : ''}${tab.label}${tab.dirty ? ', unsaved changes' : ''}`}
               aria-selected={activeTabId === tab.id}
               tabIndex={activeTabId === tab.id ? 0 : -1}
               onKeyDown={(event) => {
@@ -12707,10 +11314,8 @@ function IdeTabBar({
                 <button
                   type="button"
                   className="bolt-project-tab-pin"
-                  aria-label={t(tab.pinned ? 'baseChatAst.tab.unpin' : 'baseChatAst.tab.pin', {
-                    label: tab.label,
-                  })}
-                  title={t(tab.pinned ? 'baseChatAst.tab.unpin' : 'baseChatAst.tab.pin', { label: tab.label })}
+                  aria-label={`${tab.pinned ? 'Unpin' : 'Pin'} ${tab.label}`}
+                  title={`${tab.pinned ? 'Unpin' : 'Pin'} ${tab.label}`}
                   onClick={(event) => {
                     event.preventDefault();
                     event.stopPropagation();
@@ -12724,8 +11329,8 @@ function IdeTabBar({
                 <button
                   type="button"
                   className="bolt-project-tab-save"
-                  aria-label={t('chat.copy.saveValue0_b6c78e5c', { value0: tab.label })}
-                  title={t('chat.copy.saveValue0_b6c78e5c', { value0: tab.label })}
+                  aria-label={`Save ${tab.label}`}
+                  title={`Save ${tab.label}`}
                   onClick={(event) => {
                     event.preventDefault();
                     tab.onSave?.();
@@ -12737,7 +11342,7 @@ function IdeTabBar({
                 <button
                   type="button"
                   className="bolt-project-tab-close"
-                  aria-label={t('chat.copy.closeValue0_15e23702', { value0: tab.label })}
+                  aria-label={`Close ${tab.label}`}
                   onClick={(event) => {
                     event.stopPropagation();
                     onClose(tab.id, tab.panel);
@@ -12759,8 +11364,8 @@ function IdeTabBar({
             ref={addTabButtonRef}
             type="button"
             className="bolt-project-tab-action bolt-project-add-tab-action"
-            aria-label={t('chat.copy.addTabWithCommandPalette_49e6c454')}
-            title={t('chat.copy.addTabValue0_8ed5ba85', { value0: commandPaletteShortcut })}
+            aria-label="Add tab with command palette"
+            title={`Add tab (${commandPaletteShortcut})`}
             data-testid="tab-add"
             aria-haspopup="dialog"
             aria-expanded={open}
@@ -12780,8 +11385,8 @@ function IdeTabBar({
           <button
             type="button"
             className="bolt-project-tab-action"
-            aria-label={t('chat.copy.tabActions_b7a78b89')}
-            title={t('chat.copy.tabActions_b7a78b89')}
+            aria-label="Tab actions"
+            title="Tab actions"
             aria-expanded={actionsOpen}
             onMouseDown={(event) => event.stopPropagation()}
             onClick={() => {
@@ -12801,9 +11406,7 @@ function IdeTabBar({
                 }}
               >
                 <span className="i-ph:push-pin-simple" aria-hidden />
-                {tabs.find((tab) => tab.id === activeTabId)?.pinned
-                  ? t('chat.copy.unpinTab_279bad8b')
-                  : t('chat.copy.pinTab_3623fa20')}
+                {tabs.find((tab) => tab.id === activeTabId)?.pinned ? 'Unpin tab' : 'Pin tab'}
               </button>
               <button
                 type="button"
@@ -12812,7 +11415,7 @@ function IdeTabBar({
                   setActionsOpen(false);
                 }}
               >
-                {t('chat.copy.closeOthers_445ef4ad')}
+                Close others
               </button>
               <button
                 type="button"
@@ -12821,7 +11424,7 @@ function IdeTabBar({
                   setActionsOpen(false);
                 }}
               >
-                {t('chat.copy.closeToRight_8b7725b0')}
+                Close to right
               </button>
               <button
                 type="button"
@@ -12830,7 +11433,7 @@ function IdeTabBar({
                   setActionsOpen(false);
                 }}
               >
-                {t('chat.copy.closeAll_98553cc8')}
+                Close all
               </button>
               <button
                 type="button"
@@ -12839,7 +11442,7 @@ function IdeTabBar({
                   setActionsOpen(false);
                 }}
               >
-                {t('chat.copy.closeSaved_40a993da')}
+                Close saved
               </button>
               <button
                 type="button"
@@ -12848,39 +11451,8 @@ function IdeTabBar({
                   setActionsOpen(false);
                 }}
               >
-                {t('chat.copy.splitActiveRight_59014f08')}
+                Split active right
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  onSplitActiveDown?.(activeTabId ?? tabs[0]?.id);
-                  setActionsOpen(false);
-                }}
-              >
-                {t('chat.copy.splitActiveDown_7468f839')}
-              </button>
-              {onToggleFloating ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onToggleFloating();
-                    setActionsOpen(false);
-                  }}
-                >
-                  {isFloating ? t('chat.copy.dockPane_f6b796f1') : t('chat.copy.floatPane_ca0c0b63')}
-                </button>
-              ) : null}
-              {onOpenNewWindow ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    onOpenNewWindow(activeTabId ?? tabs[0]?.id);
-                    setActionsOpen(false);
-                  }}
-                >
-                  {t('chat.copy.openInNewWindow_a75732d8')}
-                </button>
-              ) : null}
             </div>
           )}
         </div>
@@ -12899,18 +11471,11 @@ function ProjectWelcomeState({
   onOpenTool?: (panel: IdeWorkspacePanel | IdeRightPanel) => void;
   onOpenFile?: (filePath: string) => void;
 }) {
-  const { t } = useTranslation();
-
   const shortcuts: Array<[string, string, string, IdeWorkspacePanel | IdeRightPanel]> = [
-    ['i-ph:files', t('baseChatAst.tool.openFiles'), formatKeybindingCombo('cmd+p'), 'files'],
-    [
-      'i-ph:terminal-window',
-      t('baseChatAst.tool.openTerminal', { terminal: SHELL_TERMINAL_LABEL }),
-      formatKeybindingCombo('cmd+`'),
-      'terminal',
-    ],
-    ['i-ph:browser', t('baseChatAst.tool.viewPreview'), formatKeybindingCombo('cmd+enter'), 'preview'],
-    ['i-ph:command', t('baseChatAst.tool.allCommands'), formatKeybindingCombo('cmd+k'), 'settings'],
+    ['i-ph:files', 'Open Files', formatKeybindingCombo('cmd+p'), 'files'],
+    ['i-ph:terminal-window', `Open ${SHELL_TERMINAL_LABEL}`, formatKeybindingCombo('cmd+`'), 'terminal'],
+    ['i-ph:browser', 'View Preview', formatKeybindingCombo('cmd+enter'), 'preview'],
+    ['i-ph:command', 'All Commands', formatKeybindingCombo('cmd+k'), 'settings'],
   ];
 
   return (
@@ -12918,8 +11483,8 @@ function ProjectWelcomeState({
       <div className="bolt-project-welcome-logo">
         <span className="i-ph:sparkle" aria-hidden />
       </div>
-      <h2>{t('chat.copy.welcomeToYourProject_bc14fca5')}</h2>
-      <p>{t('chat.copy.openAToolOrAskThe_f1c45f7a')}</p>
+      <h2>Welcome to your project</h2>
+      <p>Open a tool or ask the agent to get started.</p>
       <div className="bolt-project-welcome-grid">
         {shortcuts.map(([icon, label, shortcut, panel]) => (
           <button key={label} type="button" className="bolt-project-welcome-card" onClick={() => onOpenTool?.(panel)}>
@@ -12930,7 +11495,7 @@ function ProjectWelcomeState({
         ))}
       </div>
       <div className="bolt-project-welcome-recents">
-        <span>{t('chat.copy.recent_76eec760')}</span>
+        <span>Recent</span>
         {files.length ? (
           files.map((file) => (
             <button key={file} type="button" onClick={() => onOpenFile?.(file)}>
@@ -12939,7 +11504,7 @@ function ProjectWelcomeState({
             </button>
           ))
         ) : (
-          <small>{t('chat.copy.noFilesLoadedYet_8eb60de2')}</small>
+          <small>No files loaded yet.</small>
         )}
       </div>
     </div>
@@ -12965,9 +11530,6 @@ function ProjectIdePanelContent({
   reload?: () => void | Promise<void>;
   lastLoadedAt?: string;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
-
   if (panel === 'overview') {
     return <ProjectOverviewPanel data={data} project={project} />;
   }
@@ -13039,16 +11601,16 @@ function ProjectIdePanelContent({
     });
 
     return (
-      <section className="bolt-project-snapshots-panel" aria-label={t('chat.copy.projectCheckpoints_f1ddc705')}>
+      <section className="bolt-project-snapshots-panel" aria-label="Project checkpoints">
         <div className="bolt-project-snapshots-header">
           <div>
-            <h3>{t('chat.copy.checkpoints_a2b3a59a')}</h3>
-            <p>{t('chat.copy.restoreAKnownGoodProjectState_ae594c01')}</p>
+            <h3>Checkpoints</h3>
+            <p>Restore a known-good project state or create a manual checkpoint before risky changes.</p>
           </div>
           <form onSubmit={onSubmit} className="bolt-project-snapshots-create">
             <input name="intent" value="create" type="hidden" />
-            <PanelInput name="label" placeholder={t('chat.copy.manualCheckpoint_b29f671a')} />
-            <PanelButton disabled={busy}>{t('chat.copy.newCheckpoint_3480863c')}</PanelButton>
+            <PanelInput name="label" placeholder="Manual checkpoint" />
+            <PanelButton disabled={busy}>+ New checkpoint</PanelButton>
           </form>
         </div>
         {snapshots.length ? (
@@ -13058,12 +11620,9 @@ function ProjectIdePanelContent({
               const files = snapshotFiles(snapshot);
               const diff = snapshotDiffSummary(snapshot, previousSnapshot);
               const modifiedCount = diff.added.length + diff.changed.length + diff.removed.length;
-              const fileCountLabel = t('baseChatAst.files.count', { count: files.length });
-              const title = snapshot.label || snapshotKindLabel(t, snapshot);
-
-              const exactDate = snapshot.createdAt
-                ? (formatBaseChatAstDateTime(language, snapshot.createdAt) ?? t('baseChatAst.status.notAvailable'))
-                : t('chat.copy.recorded_d5383ea7');
+              const fileCountLabel = `${files.length} file${files.length === 1 ? '' : 's'}`;
+              const title = snapshot.label || snapshotKindLabel(snapshot);
+              const exactDate = snapshot.createdAt ? new Date(snapshot.createdAt).toLocaleString() : 'Recorded';
 
               return (
                 <article key={snapshot.id} className="bolt-project-snapshot-card">
@@ -13073,29 +11632,18 @@ function ProjectIdePanelContent({
                   <div className="bolt-project-snapshot-body">
                     <div className="bolt-project-snapshot-main">
                       <div className="bolt-project-snapshot-title-row">
-                        <span className="bolt-project-snapshot-kind">{snapshotAuthor(t, snapshot)}</span>
+                        <span className="bolt-project-snapshot-kind">{snapshotAuthor(snapshot)}</span>
                         <strong title={title}>{title}</strong>
                       </div>
-                      <div
-                        className="bolt-project-snapshot-meta"
-                        aria-label={t('chat.copy.checkpointMetadata_2e369897')}
-                      >
-                        <span title={exactDate}>{timeAgo(t, language, snapshot.createdAt)}</span>
+                      <div className="bolt-project-snapshot-meta" aria-label="Checkpoint metadata">
+                        <span title={exactDate}>{timeAgo(snapshot.createdAt)}</span>
                         <span>{fileCountLabel}</span>
-                        <span>{formatBytes(t, language, snapshot.byteLength)}</span>
-                        <span>
-                          {modifiedCount
-                            ? t('chat.copy.value0Changed_3fbc2486', { value0: modifiedCount })
-                            : t('chat.copy.baseline_e6ab7982')}
-                        </span>
+                        <span>{formatBytes(snapshot.byteLength)}</span>
+                        <span>{modifiedCount ? `${modifiedCount} changed` : 'Baseline'}</span>
                       </div>
                       <details className="bolt-project-snapshot-diff">
-                        <summary
-                          title={
-                            diff.sample.length ? diff.sample.join('\n') : t('chat.copy.noFileMetadataRecorded_c8f89f26')
-                          }
-                        >
-                          {t('chat.copy.previewChangedFiles_e59d9680')}
+                        <summary title={diff.sample.length ? diff.sample.join('\n') : 'No file metadata recorded'}>
+                          Preview changed files
                         </summary>
                         {diff.sample.length ? (
                           <ul>
@@ -13117,19 +11665,15 @@ function ProjectIdePanelContent({
                             })}
                           </ul>
                         ) : (
-                          <p>{t('chat.copy.noFileManifestWasRecordedFor_67abbaf6')}</p>
+                          <p>No file manifest was recorded for this checkpoint.</p>
                         )}
                       </details>
                     </div>
                     <form onSubmit={onSubmit} className="bolt-project-snapshot-actions">
                       <input name="intent" value="restore" type="hidden" />
                       <input name="snapshotId" value={snapshot.id} type="hidden" />
-                      <button
-                        type="submit"
-                        disabled={busy}
-                        aria-label={t('chat.copy.restoreCheckpointValue0_4ea16940', { value0: title })}
-                      >
-                        {t('chat.copy.restore_3cbe6d6b')}
+                      <button type="submit" disabled={busy} aria-label={`Restore checkpoint ${title}`}>
+                        Restore
                       </button>
                     </form>
                   </div>
@@ -13139,8 +11683,8 @@ function ProjectIdePanelContent({
           </div>
         ) : (
           <div className="bolt-project-snapshots-empty">
-            <strong>{t('chat.copy.noCheckpointsYet_0cd8841d')}</strong>
-            <p>{t('chat.copy.createACheckpointBeforeMajorEdits_c50a54ac')}</p>
+            <strong>No checkpoints yet</strong>
+            <p>Create a checkpoint before major edits, package upgrades, or AI-led refactors.</p>
           </div>
         )}
       </section>
@@ -13173,31 +11717,24 @@ function ProjectIdePanelContent({
 
     const realtimeLabel =
       realtime.status === 'connected'
-        ? t('baseChatAst.status.live')
+        ? 'Live'
         : realtime.status === 'reconnecting'
-          ? t('baseChatAst.status.reconnecting')
+          ? 'Reconnecting'
           : realtime.status === 'error'
-            ? t('baseChatAst.status.offline')
-            : t('baseChatAst.status.connecting');
+            ? 'Offline'
+            : 'Connecting';
 
     return (
       <div className="bolt-project-collaboration-tool">
         <section className="bolt-project-collaboration-card">
           <div className="bolt-project-collaboration-header">
             <div>
-              <h3>{t('chat.copy.presence_89a8a335')}</h3>
-              <p>
-                {t('baseChatAst.counts.presenceOnline', {
-                  shown: formatBaseChatAstNumber(language, presence.length),
-                  count: presence.length,
-                })}
-              </p>
+              <h3>Presence</h3>
+              <p>{presence.length} online users with live cursor and selection sync.</p>
             </div>
             <span className="bolt-project-collaboration-live">{realtimeLabel}</span>
           </div>
-          {realtime.error ? (
-            <div className="bolt-project-empty-panel">{t('baseChatAst.collaboration.realtimeError')}</div>
-          ) : null}
+          {realtime.error ? <div className="bolt-project-empty-panel">{realtime.error}</div> : null}
           <div className="bolt-project-collaboration-users">
             {presence.length ? (
               presence.map((user: any) => (
@@ -13206,15 +11743,14 @@ function ProjectIdePanelContent({
                   <div>
                     <strong>{user.userId}</strong>
                     <small>
-                      {presenceStateLabel(t, user.mode, 'editing')}{' '}
-                      {user.filePath ? t('chat.copy.inValue0_79271ca2', { value0: user.filePath }) : ''}
+                      {user.mode ?? 'editing'} {user.filePath ? `in ${user.filePath}` : ''}
                     </small>
                   </div>
-                  <em>{presenceStateLabel(t, user.status, 'online')}</em>
+                  <em>{user.status ?? 'online'}</em>
                 </div>
               ))
             ) : (
-              <div className="bolt-project-empty-panel">{t('chat.copy.noActivePresenceYet_5bb4c6e2')}</div>
+              <div className="bolt-project-empty-panel">No active presence yet.</div>
             )}
           </div>
         </section>
@@ -13222,8 +11758,8 @@ function ProjectIdePanelContent({
         <section className="bolt-project-collaboration-card">
           <div className="bolt-project-collaboration-header">
             <div>
-              <h3>{t('chat.copy.roleBasedCollaborators_cd5ada44')}</h3>
-              <p>{t('chat.copy.projectAccessIsEnforcedByThe_280521ba')}</p>
+              <h3>Role-based collaborators</h3>
+              <p>Project access is enforced by the backend before editing, comments and terminal access.</p>
             </div>
           </div>
           <div className="bolt-project-collaboration-list">
@@ -13231,7 +11767,7 @@ function ProjectIdePanelContent({
               collaborators.map((collaborator: any) => (
                 <div key={collaborator.id} className="bolt-project-collaboration-row">
                   <span>{collaborator.userId}</span>
-                  <strong>{collaborationRoleLabel(t, collaborator.roleKey)}</strong>
+                  <strong>{collaborator.roleKey}</strong>
                   <form method="post" onSubmit={onSubmit}>
                     <input type="hidden" name="intent" value="terminal-permission" />
                     <input type="hidden" name="userId" value={collaborator.userId} />
@@ -13241,63 +11777,64 @@ function ProjectIdePanelContent({
                       value={terminalPermissions[collaborator.userId]?.allowed ? 'false' : 'true'}
                     />
                     <PanelButton disabled={busy} variant="outline">
-                      {terminalPermissions[collaborator.userId]?.allowed
-                        ? t('chat.copy.revokeTerminal_be5ec95d')
-                        : t('chat.copy.allowTerminal_7d1efbc3')}
+                      {terminalPermissions[collaborator.userId]?.allowed ? 'Revoke terminal' : 'Allow terminal'}
                     </PanelButton>
                   </form>
                 </div>
               ))
             ) : (
-              <div className="bolt-project-empty-panel">{t('chat.copy.noProjectCollaborators_3bcac170')}</div>
+              <div className="bolt-project-empty-panel">No project collaborators.</div>
             )}
           </div>
           <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
             <label className="bolt-project-collaboration-field">
-              <span>{t('chat.copy.collaborator_794b34c1')}</span>
+              <span>Collaborator</span>
               <PanelInput
                 name="userId"
-                placeholder={t('chat.copy.emailOrUsername_5af65060')}
+                placeholder="email or username"
                 autoComplete="username email"
                 required
                 pattern="(^[^@\s]+@[^@\s]+\.[^@\s]+$)|(^[a-zA-Z0-9][a-zA-Z0-9._-]{1,62}$)"
-                title={t('chat.copy.enterAValidEmailAddressOr_b9c2422c')}
+                title="Enter a valid email address or username. Usernames can contain letters, numbers, dots, underscores and hyphens."
                 aria-describedby="collaborator-identity-help"
               />
-              <small id="collaborator-identity-help">{t('chat.copy.inviteByEmailOrUsernameThe_83671d35')}</small>
+              <small id="collaborator-identity-help">
+                Invite by email or username. The backend resolves this value before granting project access.
+              </small>
             </label>
             <label className="bolt-project-collaboration-field">
-              <span>{t('chat.copy.role_c3f104d1')}</span>
+              <span>Role</span>
               <select
                 name="roleKey"
                 defaultValue="member"
-                title={t('chat.copy.viewerCanInspectTheProjectMember_a3f28012')}
+                title="Viewer can inspect the project, member can edit, admin can manage collaborators. Owner is reserved for project ownership transfers."
                 aria-describedby="collaborator-role-help"
               >
                 {['viewer', 'member', 'admin', 'owner'].map((role) => (
                   <option key={role} value={role}>
-                    {collaborationRoleLabel(t, role)}
+                    {role}
                   </option>
                 ))}
               </select>
-              <small id="collaborator-role-help">{t('chat.copy.viewerReadOnlyAccessMemberEdit_85ee87ee')}</small>
+              <small id="collaborator-role-help">
+                Viewer: read-only access. Member: edit and comment. Admin: manage project access. Owner: ownership-level
+                access.
+              </small>
             </label>
-            <div className="bolt-project-collaboration-role-guide" aria-label={t('chat.copy.rolePermissions_4b9cd8f7')}>
-              {(['viewer', 'member', 'admin'] as const).map((role) =>
-                (() => {
-                  const description = collaborationRoleDescription(t, role);
-
-                  return (
-                    <span key={role} title={description}>
-                      <strong>{collaborationRoleLabel(t, role)}</strong>
-                      {description}
-                    </span>
-                  );
-                })(),
-              )}
+            <div className="bolt-project-collaboration-role-guide" aria-label="Role permissions">
+              {[
+                ['viewer', 'Can view files, preview and comments without editing.'],
+                ['member', 'Can edit files, comment, and collaborate in the workspace.'],
+                ['admin', 'Can manage collaborators, sharing, comments and access settings.'],
+              ].map(([role, description]) => (
+                <span key={role} title={description}>
+                  <strong>{role}</strong>
+                  {description}
+                </span>
+              ))}
             </div>
             <div>
-              <PanelButton disabled={busy}>{t('chat.copy.inviteToProject_d1cc986a')}</PanelButton>
+              <PanelButton disabled={busy}>Invite to project</PanelButton>
             </div>
           </form>
         </section>
@@ -13305,8 +11842,8 @@ function ProjectIdePanelContent({
         <section className="bolt-project-collaboration-card">
           <div className="bolt-project-collaboration-header">
             <div>
-              <h3>{t('chat.copy.comments_fce06e20')}</h3>
-              <p>{t('chat.copy.membersCanLeaveFileCommentsWithout_9485a8e7')}</p>
+              <h3>Comments</h3>
+              <p>Members can leave file comments without requiring a file lock.</p>
             </div>
           </div>
           <div className="bolt-project-collaboration-list">
@@ -13314,89 +11851,73 @@ function ProjectIdePanelContent({
               comments.slice(-6).map((comment: any) => (
                 <div key={comment.id} className="bolt-project-collaboration-comment">
                   <strong>
-                    {comment.filePath ?? t('chat.copy.project_f6f4da8d')} {comment.line ? `:${comment.line}` : ''}
+                    {comment.filePath ?? 'Project'} {comment.line ? `:${comment.line}` : ''}
                   </strong>
                   <p>{comment.body}</p>
                   <small>{comment.userId}</small>
                 </div>
               ))
             ) : (
-              <div className="bolt-project-empty-panel">{t('chat.copy.noCommentsYet_207b24fc')}</div>
+              <div className="bolt-project-empty-panel">No comments yet.</div>
             )}
           </div>
           <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
             <input type="hidden" name="intent" value="comment" />
-            <PanelInput name="filePath" placeholder={t('chat.copy.srcAppTsx_835da56f')} />
-            <PanelInput name="line" placeholder={t('chat.copy.line_ea967600')} />
-            <PanelInput name="body" placeholder={t('chat.copy.comment_153d7a58')} required />
-            <PanelButton disabled={busy}>{t('chat.copy.addComment_7d3764e4')}</PanelButton>
+            <PanelInput name="filePath" placeholder="src/App.tsx" />
+            <PanelInput name="line" placeholder="Line" />
+            <PanelInput name="body" placeholder="Comment" required />
+            <PanelButton disabled={busy}>Add comment</PanelButton>
           </form>
         </section>
 
         <section className="bolt-project-collaboration-card">
           <div className="bolt-project-collaboration-header">
             <div>
-              <h3>{t('chat.copy.sharingAndPairProgramming_19b5e603')}</h3>
-              <p>{t('chat.copy.expiringLinksSharedAiConversationPolicy_fc638296')}</p>
+              <h3>Sharing and pair programming</h3>
+              <p>Expiring links, shared AI conversation policy and read-only modes stay scoped to this project.</p>
             </div>
           </div>
           <div className="bolt-project-collaboration-grid">
             <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
               <input type="hidden" name="intent" value="share-link" />
               <select name="roleKey" defaultValue="viewer">
-                <option value="viewer">{t('chat.copy.readOnlyLink_532e235f')}</option>
-                <option value="member">{t('chat.copy.pairProgrammingLink_be0c8ac8')}</option>
+                <option value="viewer">Read-only link</option>
+                <option value="member">Pair-programming link</option>
               </select>
-              <PanelInput
-                name="expiresInMinutes"
-                placeholder={t('chat.copy.expiresInMinutes_13812bb6')}
-                defaultValue="1440"
-              />
-              <PanelButton disabled={busy}>{t('chat.copy.createExpiringLink_7830b037')}</PanelButton>
+              <PanelInput name="expiresInMinutes" placeholder="Expires in minutes" defaultValue="1440" />
+              <PanelButton disabled={busy}>Create expiring link</PanelButton>
             </form>
             <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
               <input type="hidden" name="intent" value="ai-sharing" />
               <input type="hidden" name="shared" value={aiConversation.shared ? 'false' : 'true'} />
               <select name="mode" defaultValue={aiConversation.mode ?? 'comment'}>
-                <option value="read-only">{t('chat.copy.aiReadOnly_09b34a79')}</option>
-                <option value="comment">{t('chat.copy.aiComments_a8a02d41')}</option>
-                <option value="pair-programming">{t('chat.copy.aiPairProgramming_4e0c4554')}</option>
+                <option value="read-only">AI read-only</option>
+                <option value="comment">AI comments</option>
+                <option value="pair-programming">AI pair programming</option>
               </select>
               <PanelButton disabled={busy} variant="outline">
-                {aiConversation.shared
-                  ? t('chat.copy.disableSharedAi_d3aeb47b')
-                  : t('chat.copy.enableSharedAi_f00bcdcb')}
+                {aiConversation.shared ? 'Disable shared AI' : 'Enable shared AI'}
               </PanelButton>
             </form>
           </div>
           <PanelRows
-            rows={shareLinks.map((link: any) => [
-              collaborationRoleLabel(t, link.roleKey),
-              t('baseChatAst.collaboration.expires', {
-                date: formatBaseChatAstDateTime(language, link.expiresAt) ?? t('baseChatAst.status.notAvailable'),
-              }),
-            ])}
-            empty={t('baseChatAst.collaboration.noShareLinks')}
+            rows={shareLinks.map((link: any) => [link.roleKey, `Expires ${link.expiresAt}`])}
+            empty="No active share links."
           />
         </section>
 
         <section className="bolt-project-collaboration-card">
           <div className="bolt-project-collaboration-header">
             <div>
-              <h3>{t('chat.copy.activityFeed_35ed39ad')}</h3>
-              <p>{t('chat.copy.collaborationActionsCreateAuditAndProject_694bab3d')}</p>
+              <h3>Activity feed</h3>
+              <p>Collaboration actions create audit and project activity events.</p>
             </div>
           </div>
           <PanelRows
             rows={activity
               .slice(-8)
-              .map((event: any) => [
-                formatProjectActivityAction(t, event.action),
-                event.actorUserId
-                  ? t('baseChatAst.collaboration.by', { user: event.actorUserId })
-                  : t('baseChatAst.collaboration.system'),
-              ])}
-            empty={t('baseChatAst.collaboration.noActivity')}
+              .map((event: any) => [event.action, event.actorUserId ? `By ${event.actorUserId}` : 'System'])}
+            empty="No collaboration activity yet."
           />
         </section>
       </div>
@@ -13429,7 +11950,7 @@ function ProjectIdePanelContent({
     return <ProjectActivityPanel data={data} reload={reload} busy={busy} lastLoadedAt={lastLoadedAt} />;
   }
 
-  return <PanelRows rows={[]} empty={t('baseChatAst.panel.unavailable')} />;
+  return <PanelRows rows={[]} empty="Panel not available." />;
 }
 
 function ProjectDomainsPanel({
@@ -13443,8 +11964,6 @@ function ProjectDomainsPanel({
   busy?: boolean;
   projectId?: string;
 }) {
-  const { t } = useTranslation();
-
   /*
    * Two modes over the SAME /ide-panel/domains loader+action (one domains UI,
    * Replit-style under Deploy):
@@ -13496,19 +12015,17 @@ function ProjectDomainsPanel({
 
         if (!response.ok) {
           const payload = (await response.json().catch(() => ({}))) as { error?: string };
-          console.warn('Domain update request failed', { status: response.status, serverError: payload.error });
-          toast.error(t('baseChatAst.domain.updateFailedHttp', { status: response.status }));
+          toast.error(payload.error ?? 'Domain update failed.');
         }
 
         await loadDomains();
-      } catch (error) {
-        console.error('Domain update request failed', error);
-        toast.error(t('baseChatAst.domain.updateFailed'));
+      } catch {
+        toast.error('Domain update failed — please retry.');
       } finally {
         setSelfBusy(false);
       }
     },
-    [projectId, loadDomains, t],
+    [projectId, loadDomains],
   );
 
   const data = selfMode ? (selfData ?? {}) : (dataProp ?? {});
@@ -13524,17 +12041,20 @@ function ProjectDomainsPanel({
     <div className="bolt-project-domains-panel">
       <section className="bolt-project-domains-hero" aria-labelledby="domains-title">
         <div>
-          <span className="bolt-project-domains-kicker">{t('chat.copy.domains_a0d641b3')}</span>
-          <h3 id="domains-title">{t('chat.copy.productionRoutingDnsVerificationAndManaged_f5631fc2')}</h3>
-          <p>{t('chat.copy.addAHostnamePublishTheDns_c1a019dd')}</p>
+          <span className="bolt-project-domains-kicker">Domains</span>
+          <h3 id="domains-title">Production routing, DNS verification and managed TLS</h3>
+          <p>
+            Add a hostname, publish the DNS records below, then verify. E-Code keeps redirect, wildcard and TLS
+            readiness as backend state for this organization.
+          </p>
         </div>
         <div className="bolt-project-domain-target-card">
-          <span>{t('chat.copy.deploymentTarget_aa5c28e3')}</span>
-          <strong>{deploymentHost ?? t('chat.copy.createAReadyDeploymentFirst_95b9e4fe')}</strong>
+          <span>Deployment target</span>
+          <strong>{deploymentHost ?? 'Create a ready deployment first'}</strong>
           <small>
             {hasRoutingTarget
-              ? t('chat.copy.useThisHostAsTheCname_3faff382')
-              : t('chat.copy.theCnameAInstructionsUnlockAfter_4c5056ef')}
+              ? 'Use this host as the CNAME or ALIAS target.'
+              : 'The CNAME/A instructions unlock after the first successful deployment.'}
           </small>
         </div>
       </section>
@@ -13542,25 +12062,25 @@ function ProjectDomainsPanel({
       <div className="bolt-project-domains-layout">
         <section className="bolt-project-domain-add-card" aria-labelledby="add-domain-title">
           <div>
-            <h4 id="add-domain-title">{t('chat.copy.addDomain_76d74001')}</h4>
-            <p>{t('chat.copy.useAFullyQualifiedDomainWildcards_7dda886c')}</p>
+            <h4 id="add-domain-title">Add domain</h4>
+            <p>Use a fully qualified domain. Wildcards are enabled per domain after it is created.</p>
           </div>
           <form onSubmit={onSubmit} className="bolt-project-domain-add-form">
             <label>
-              {t('chat.copy.domain_9b10914d')}
+              Domain
               <PanelInput
                 name="domain"
                 inputMode="url"
                 autoComplete="off"
-                placeholder={codeExample('app.example.com')}
+                placeholder="app.example.com"
                 pattern="^(?:[A-Za-z0-9](?:(?:[A-Za-z0-9]|-){0,61}[A-Za-z0-9])?[.])+[A-Za-z]{2,}$"
-                title={t('chat.copy.enterAValidDomainSuchAs_763570b5')}
+                title="Enter a valid domain such as app.example.com"
                 aria-describedby="domain-help"
                 required
               />
             </label>
-            <small id="domain-help">{t('chat.copy.noProtocolPathOrPortExample_d3c7f2f8')}</small>
-            <PanelButton disabled={busy}>{t('chat.copy.addDomain_76d74001')}</PanelButton>
+            <small id="domain-help">No protocol, path or port. Example: app.example.com.</small>
+            <PanelButton disabled={busy}>Add domain</PanelButton>
           </form>
         </section>
 
@@ -13578,8 +12098,8 @@ function ProjectDomainsPanel({
           </div>
         ) : (
           <div className="bolt-project-domain-empty">
-            <strong>{t('chat.copy.noCustomDomainsYet_d9c8b21d')}</strong>
-            <span>{t('chat.copy.addADomainToGenerateOrganization_14f8de9b')}</span>
+            <strong>No custom domains yet</strong>
+            <span>Add a domain to generate organization-specific TXT verification records.</span>
           </div>
         )}
       </div>
@@ -13598,27 +12118,23 @@ function DomainVerificationCard({
   onSubmit: any;
   busy: boolean;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const txtName = `_vibecore.${domain.domain}`;
   const txtValue = `vibecore-domain-verification=${domain.verificationToken}`;
   const rootName = domain.domain.split('.').length === 2 ? '@' : domain.domain.split('.')[0];
 
   const records = [
-    { type: 'TXT', name: txtName, value: txtValue, state: t('baseChatAst.status.required') },
+    { type: 'TXT', name: txtName, value: txtValue, state: 'Required' },
     {
       type: 'CNAME',
       name: rootName === '@' ? 'www' : rootName,
-      value: deploymentHost ?? t('baseChatAst.domain.waitingDeployment'),
-      state: deploymentHost ? t('baseChatAst.status.routing') : t('baseChatAst.status.blocked'),
+      value: deploymentHost ?? 'Waiting for a ready deployment',
+      state: deploymentHost ? 'Routing' : 'Blocked',
     },
     {
       type: 'A / ALIAS',
       name: '@',
-      value: deploymentHost
-        ? t('baseChatAst.domain.aliasTarget', { host: deploymentHost })
-        : t('baseChatAst.domain.waitingDeployment'),
-      state: deploymentHost ? t('baseChatAst.status.apex') : t('baseChatAst.status.blocked'),
+      value: deploymentHost ? `ALIAS or ANAME to ${deploymentHost}` : 'Waiting for a ready deployment',
+      state: deploymentHost ? 'Apex' : 'Blocked',
     },
   ];
 
@@ -13626,8 +12142,8 @@ function DomainVerificationCard({
     records.push({
       type: 'CNAME',
       name: `*.${domain.domain}`,
-      value: deploymentHost ?? t('baseChatAst.domain.waitingDeployment'),
-      state: deploymentHost ? t('baseChatAst.status.wildcard') : t('baseChatAst.status.blocked'),
+      value: deploymentHost ?? 'Waiting for a ready deployment',
+      state: deploymentHost ? 'Wildcard' : 'Blocked',
     });
   }
 
@@ -13636,52 +12152,40 @@ function DomainVerificationCard({
       <div className="bolt-project-domain-card-header">
         <div>
           <h4>{domain.domain}</h4>
-          <p>
-            {t('chat.copy.created_accf40c8')}
-            {formatDomainDate(t, language, domain.createdAt)}
-          </p>
+          <p>Created {formatDomainDate(domain.createdAt)}</p>
         </div>
         <span className={classNames('bolt-project-domain-status', domain.verifiedAt ? 'verified' : 'pending')}>
-          {domain.verifiedAt ? t('chat.copy.dnsVerified_ef1eec49') : t('chat.copy.pendingDns_c85e4427')}
+          {domain.verifiedAt ? 'DNS verified' : 'Pending DNS'}
         </span>
       </div>
 
       <div className="bolt-project-domain-status-grid">
         <div>
-          <span>{t('chat.copy.verification_03128bed')}</span>
+          <span>Verification</span>
+          <strong>{domain.verifiedAt ? formatDomainDate(domain.verifiedAt) : 'TXT record required'}</strong>
+        </div>
+        <div>
+          <span>Auto TLS</span>
           <strong>
-            {domain.verifiedAt
-              ? formatDomainDate(t, language, domain.verifiedAt)
-              : t('chat.copy.txtRecordRequired_ca016701')}
+            {domain.sslStatus === 'dns_verified' ? 'Ready for certificate provisioning' : 'Waiting for DNS'}
           </strong>
         </div>
         <div>
-          <span>{t('chat.copy.autoTls_b277ddf3')}</span>
-          <strong>
-            {domain.sslStatus === 'dns_verified'
-              ? t('chat.copy.readyForCertificateProvisioning_e45d337a')
-              : t('chat.copy.waitingForDns_882e37ec')}
-          </strong>
+          <span>WWW redirect</span>
+          <strong>{domain.redirectWww ? 'Enabled' : 'Disabled'}</strong>
         </div>
         <div>
-          <span>{t('chat.copy.wwwRedirect_e9d211d2')}</span>
-          <strong>{domain.redirectWww ? t('chat.copy.enabled_df174a3f') : t('chat.copy.disabled_f4f4473d')}</strong>
-        </div>
-        <div>
-          <span>{t('chat.copy.wildcard_91987ff6')}</span>
-          <strong>{domain.wildcardEnabled ? t('chat.copy.enabled_df174a3f') : t('chat.copy.off_e3de5ab0')}</strong>
+          <span>Wildcard</span>
+          <strong>{domain.wildcardEnabled ? 'Enabled' : 'Off'}</strong>
         </div>
       </div>
 
-      <div
-        className="bolt-project-dns-records"
-        aria-label={t('chat.copy.dnsRecordsForValue0_ed418d75', { value0: domain.domain })}
-      >
+      <div className="bolt-project-dns-records" aria-label={`DNS records for ${domain.domain}`}>
         <div className="bolt-project-dns-records-head">
-          <span>{t('chat.copy.type_3deb7456')}</span>
-          <span>{t('chat.copy.name_709a2322')}</span>
-          <span>{t('chat.copy.value_8dce170d')}</span>
-          <span>{t('chat.copy.status_bae7d5be')}</span>
+          <span>Type</span>
+          <span>Name</span>
+          <span>Value</span>
+          <span>Status</span>
         </div>
         {records.map((record) => (
           <div key={`${record.type}-${record.name}`} className="bolt-project-dns-record">
@@ -13698,7 +12202,7 @@ function DomainVerificationCard({
           <input name="intent" value="verify" type="hidden" />
           <input name="domain" value={domain.domain} type="hidden" />
           <PanelButton disabled={busy} variant={domain.verifiedAt ? 'outline' : undefined}>
-            {domain.verifiedAt ? t('chat.copy.recheckDns_76c0201d') : t('chat.copy.verifyDns_4d255ccc')}
+            {domain.verifiedAt ? 'Recheck DNS' : 'Verify DNS'}
           </PanelButton>
         </form>
 
@@ -13708,15 +12212,15 @@ function DomainVerificationCard({
           <input name="redirectWww" value="false" type="hidden" />
           <label>
             <input name="redirectWww" value="true" type="checkbox" defaultChecked={domain.redirectWww} />
-            {t('chat.copy.redirectWww_0450d04e')}
+            Redirect www
           </label>
           <input name="wildcardEnabled" value="false" type="hidden" />
           <label>
             <input name="wildcardEnabled" value="true" type="checkbox" defaultChecked={domain.wildcardEnabled} />
-            {t('chat.copy.wildcardSubdomains_56b5dec7')}
+            Wildcard subdomains
           </label>
           <PanelButton disabled={busy} variant="outline">
-            {t('chat.copy.saveRouting_bedccc70')}
+            Save routing
           </PanelButton>
         </form>
       </div>
@@ -13736,19 +12240,17 @@ function getHostname(url?: string) {
   }
 }
 
-function formatDomainDate(t: TFunction, language: string, value?: string) {
+function formatDomainDate(value?: string) {
   if (!value) {
-    return t('baseChatAst.status.notAvailable');
+    return 'Not available';
   }
 
-  return (
-    formatBaseChatAstDateTime(language, value, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    }) ?? t('baseChatAst.status.notAvailable')
-  );
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
 }
 
 function ProjectActivityPanel({
@@ -13762,8 +12264,6 @@ function ProjectActivityPanel({
   busy: boolean;
   lastLoadedAt?: string;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const events = data.activity ?? [];
   const [query, setQuery] = useState('');
   const [actionFilter, setActionFilter] = useState('all');
@@ -13858,72 +12358,67 @@ function ProjectActivityPanel({
   const importantCount = events.filter((event: any) => classifyProjectActivity(event.action) !== 'routine').length;
 
   return (
-    <section className="bolt-project-activity-panel" aria-label={t('chat.copy.projectActivityAuditTrail_57e9c542')}>
+    <section className="bolt-project-activity-panel" aria-label="Project activity audit trail">
       <header className="bolt-project-activity-hero">
         <div>
-          <span className="bolt-project-activity-eyebrow">{t('chat.copy.auditTrail_33de865a')}</span>
-          <h3>{t('chat.copy.projectActivity_d2b7b50c')}</h3>
-          <p>{t('chat.copy.backendActivityCollaborationChangesAndOperational_ad32cb87')}</p>
+          <span className="bolt-project-activity-eyebrow">Audit trail</span>
+          <h3>Project activity</h3>
+          <p>
+            Backend activity, collaboration changes and operational events. Routine IDE UI saves are suppressed before
+            they reach the activity stream.
+          </p>
         </div>
         <button type="button" onClick={() => void reload?.()} disabled={busy}>
           <span className="i-ph:arrows-clockwise" aria-hidden />
-          {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.refreshNow_29664b3f')}
+          {busy ? 'Refreshing' : 'Refresh now'}
         </button>
       </header>
 
-      <div className="bolt-project-activity-metrics" aria-label={t('chat.copy.activitySummary_70f4ec76')}>
+      <div className="bolt-project-activity-metrics" aria-label="Activity summary">
         <article>
-          <span>{t('chat.copy.totalEvents_65939a4f')}</span>
+          <span>Total events</span>
           <strong>{events.length}</strong>
           <small>
-            {lastLoadedAt
-              ? t('chat.copy.updatedValue0_18c0fe1c', {
-                  value0: formatBaseChatAstTime(language, lastLoadedAt) ?? t('baseChatAst.status.notAvailable'),
-                })
-              : t('chat.copy.liveRefreshEvery15s_9d420b0c')}
+            {lastLoadedAt ? `Updated ${new Date(lastLoadedAt).toLocaleTimeString()}` : 'Live refresh every 15s'}
           </small>
         </article>
         <article>
-          <span>{t('chat.copy.important_4b6d6a30')}</span>
+          <span>Important</span>
           <strong>{importantCount}</strong>
-          <small>{t('chat.copy.exportsDeploysCollaboratorsGitAndRuntime_21970b4b')}</small>
+          <small>Exports, deploys, collaborators, Git and runtime actions</small>
         </article>
         <article data-tone={ideSaveCount > 10 ? 'warning' : 'neutral'}>
-          <span>{t('chat.copy.ideStateSaves_125ba3a6')}</span>
+          <span>IDE state saves</span>
           <strong>{ideSaveCount}</strong>
-          <small>
-            {ideSaveCount > 10
-              ? t('chat.copy.legacyNoiseDetectedInCurrentWindow_32e344cc')
-              : t('chat.copy.noiseControlled_6c7d7929')}
-          </small>
+          <small>{ideSaveCount > 10 ? 'Legacy noise detected in current window' : 'Noise controlled'}</small>
         </article>
       </div>
 
       <div className="bolt-project-activity-filters">
         <label>
-          <span>{t('chat.copy.search_bce06414')}</span>
+          <span>Search</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={t('chat.copy.findActionUserOrPayload_93fbd8a2')}
-            aria-label={t('chat.copy.searchProjectActivity_5066f3e5')}
+            placeholder="Find action, user or payload..."
+            aria-label="Search project activity"
           />
         </label>
         <label>
-          <span>{t('chat.copy.type_3deb7456')}</span>
+          <span>Type</span>
           <select value={actionFilter} onChange={(event) => setActionFilter(event.target.value)}>
-            <option value="all">{t('chat.copy.allEventTypes_85756507')}</option>
+            <option value="all">All event types</option>
             {filterOptions.actions.map((action: string) => (
               <option key={action} value={action}>
-                {formatProjectActivityAction(t, action)}
+                {formatProjectActivityAction(action)}
               </option>
             ))}
           </select>
         </label>
         <label>
-          <span>{t('chat.copy.user_9f8a2389')}</span>
+          <span>User</span>
           <select value={actorFilter} onChange={(event) => setActorFilter(event.target.value)}>
-            <option value="all">{t('chat.copy.allUsers_ce832d9b')}</option>
+            <option value="all">All users</option>
             {filterOptions.actors.map((actor: string) => (
               <option key={actor} value={actor}>
                 {actor}
@@ -13932,23 +12427,23 @@ function ProjectActivityPanel({
           </select>
         </label>
         <label>
-          <span>{t('chat.copy.period_170a28a9')}</span>
+          <span>Period</span>
           <select value={periodFilter} onChange={(event) => setPeriodFilter(event.target.value as any)}>
-            <option value="all">{t('chat.copy.allTime_dbad49d8')}</option>
-            <option value="15m">{t('chat.copy.last15Minutes_7cb95edc')}</option>
-            <option value="1h">{t('chat.copy.lastHour_1e84a813')}</option>
-            <option value="24h">{t('chat.copy.last24Hours_99d63362')}</option>
+            <option value="all">All time</option>
+            <option value="15m">Last 15 minutes</option>
+            <option value="1h">Last hour</option>
+            <option value="24h">Last 24 hours</option>
           </select>
         </label>
       </div>
 
       {quickChips.topActions.length || quickChips.topActors.length ? (
-        <div className="bolt-project-activity-chips" aria-label={t('chat.copy.quickFilters_6bab4fad')}>
+        <div className="bolt-project-activity-chips" aria-label="Quick filters">
           {quickChips.topActions.map(([action, count]) => (
             <FilterChip
               key={`type-${action}`}
               icon="i-ph:tag"
-              label={formatProjectActivityAction(t, action)}
+              label={formatProjectActivityAction(action)}
               value={count}
               active={actionFilter === action}
               onClick={() => setActionFilter((current) => (current === action ? 'all' : action))}
@@ -13967,7 +12462,7 @@ function ProjectActivityPanel({
           {actionFilter !== 'all' || actorFilter !== 'all' ? (
             <FilterChip
               icon="i-ph:x-circle"
-              label={t('chat.copy.clearFilters_41222671')}
+              label="Clear filters"
               onClick={() => {
                 setActionFilter('all');
                 setActorFilter('all');
@@ -13994,15 +12489,13 @@ function ProjectActivityPanel({
                 >
                   <span className="bolt-project-activity-dot" aria-hidden />
                   <span>
-                    <strong>{formatProjectActivityAction(t, event.action)}</strong>
+                    <strong>{formatProjectActivityAction(event.action)}</strong>
                     <small>
-                      {event.createdAt
-                        ? (formatBaseChatAstDateTime(language, event.createdAt) ?? t('baseChatAst.status.notAvailable'))
-                        : t('chat.copy.recordedByBackend_4908e1dc')}
-                      {event.actorUserId ? ` · ${event.actorUserId}` : t('chat.copy.system_1435f3bd')}
+                      {event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded by backend'}
+                      {event.actorUserId ? ` · ${event.actorUserId}` : ' · system'}
                     </small>
                   </span>
-                  <em>{t(`baseChatAst.activity.severity.${severity}`)}</em>
+                  <em>{severity}</em>
                   <span className={expanded ? 'i-ph:caret-up' : 'i-ph:caret-down'} aria-hidden />
                 </button>
                 {deepLink ? (
@@ -14013,7 +12506,7 @@ function ProjectActivityPanel({
                     rel={deepLink.href.startsWith('/') ? undefined : 'noreferrer noopener'}
                   >
                     <span className="i-ph:arrow-square-out" aria-hidden />
-                    {t(deepLink.label)}
+                    {deepLink.label}
                   </a>
                 ) : null}
                 {expanded ? (
@@ -14035,40 +12528,18 @@ function ProjectActivityPanel({
             );
           })
         ) : (
-          <div className="bolt-project-empty-panel">{t('chat.copy.noActivityMatchesTheCurrentFilters_b352e1bf')}</div>
+          <div className="bolt-project-empty-panel">No activity matches the current filters.</div>
         )}
       </div>
     </section>
   );
 }
 
-function formatProjectActivityAction(t: TFunction, action: string) {
-  const labels: Record<string, string> = {
-    activity: t('baseChatAst.common.activity'),
-    collaborator: t('baseChatAst.common.collaborators'),
-    collaborators: t('baseChatAst.common.collaborators'),
-    comment: t('baseChatAst.activity.segment.comment'),
-    create: t('baseChatAst.activity.segment.create'),
-    delete: t('baseChatAst.activity.segment.delete'),
-    deploy: t('baseChatAst.activity.segment.deploy'),
-    deployment: t('baseChatAst.common.deployments'),
-    git: t('baseChatAst.common.git'),
-    ide_state: t('baseChatAst.activity.segment.ideState'),
-    restore: t('baseChatAst.activity.segment.restore'),
-    save: t('baseChatAst.activity.segment.save'),
-    secret: t('baseChatAst.common.secrets'),
-    settings: t('baseChatAst.common.settings'),
-    share: t('baseChatAst.activity.segment.share'),
-    snapshot: t('baseChatAst.common.snapshots'),
-    update: t('baseChatAst.activity.segment.update'),
-    workspace: t('baseChatAst.common.workspace'),
-  };
-
+function formatProjectActivityAction(action: string) {
   return String(action ?? 'project.activity')
     .replace(/^project\./, '')
-    .split('.')
-    .map((segment) => labels[segment] ?? segment.replace(/_/g, ' '))
-    .join(' / ');
+    .replace(/\./g, ' / ')
+    .replace(/_/g, ' ');
 }
 
 /*
@@ -14081,11 +12552,11 @@ function activityDeepLink(event: any): { href: string; label: string } | null {
   const candidate = metadata.url ?? metadata.href ?? metadata.link ?? metadata.deploymentUrl ?? metadata.previewUrl;
 
   if (typeof candidate === 'string' && /^https?:\/\//i.test(candidate)) {
-    return { href: candidate, label: chatKey('chat.copy.open_cf9b7706') };
+    return { href: candidate, label: 'Open' };
   }
 
   if (typeof metadata.path === 'string' && metadata.path.startsWith('/')) {
-    return { href: metadata.path, label: chatKey('chat.copy.view_69bd4ef9') };
+    return { href: metadata.path, label: 'View' };
   }
 
   return null;
@@ -14118,9 +12589,6 @@ function ProjectSettingsPanel({
   onSubmit: any;
   busy: boolean;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
-
   const [draft, setDraft] = useState({
     name: settings.name ?? '',
     description: settings.description ?? '',
@@ -14141,7 +12609,7 @@ function ProjectSettingsPanel({
   const [memoryEditType, setMemoryEditType] = useState('semantic');
   const [memoryEditTags, setMemoryEditTags] = useState('');
   const [settingsNotice, setSettingsNotice] = useState('');
-  const settingsNoticeRef = useRef(t('baseChatAst.settings.saved'));
+  const settingsNoticeRef = useRef('Settings saved.');
   const pendingThemePreferenceRef = useRef<ProjectThemePreference | undefined>(undefined);
   const accountUser = data.account?.user ?? {};
   const sessions = data.sessions?.sessions ?? [];
@@ -14177,44 +12645,26 @@ function ProjectSettingsPanel({
   }> = [
     {
       // Replit parity: three settings groups — Workspace / Account / User.
-      group: t('baseChatAst.settings.group.workspace'),
-      description: t('chat.copy.sharedProjectConfigurationAndGovernance_920219db'),
+      group: 'Workspace',
+      description: 'Shared project configuration and governance.',
       items: [
-        [
-          codeExample('project'),
-          t('baseChatAst.settings.project.label'),
-          t('baseChatAst.settings.project.description'),
-        ],
-        [
-          codeExample('security'),
-          t('baseChatAst.settings.security.label'),
-          t('baseChatAst.settings.security.description'),
-        ],
-        [codeExample('ai'), t('baseChatAst.settings.ai.label'), t('baseChatAst.settings.ai.description')],
+        ['project', 'Project', 'Metadata, repository and export controls'],
+        ['security', 'Security', 'Password policy, sessions and account protection'],
+        ['ai', 'AI', 'Provider routing, agent defaults and keys'],
       ],
     },
     {
-      group: t('baseChatAst.settings.group.account'),
-      description: t('chat.copy.planUsageAndBillingForThis_c9dca5c9'),
-      items: [
-        [codeExample('usage'), t('baseChatAst.settings.usage.label'), t('baseChatAst.settings.usage.description')],
-      ],
+      group: 'Account',
+      description: 'Plan, usage and billing for this account.',
+      items: [['usage', 'Usage', 'Plan, limits, usage events and quotas']],
     },
     {
-      group: t('baseChatAst.settings.group.user'),
-      description: t('chat.copy.yourProfileAgentMemoryAndIde_12d0409c'),
+      group: 'User',
+      description: 'Your profile, agent memory and IDE preferences.',
       items: [
-        [
-          codeExample('account'),
-          t('baseChatAst.settings.account.label'),
-          t('baseChatAst.settings.account.description'),
-        ],
-        [codeExample('memory'), t('baseChatAst.settings.memory.label'), t('baseChatAst.settings.memory.description')],
-        [
-          codeExample('preferences'),
-          t('baseChatAst.settings.preferences.label'),
-          t('baseChatAst.settings.preferences.description'),
-        ],
+        ['account', 'Account', 'Profile and connected accounts'],
+        ['memory', 'Memory', 'Persistent agent memory'],
+        ['preferences', 'Preferences', 'Theme, keyboard and notifications'],
       ],
     },
   ];
@@ -14224,74 +12674,48 @@ function ProjectSettingsPanel({
   const providers: Array<{ id: string; label: string; secretKey: string; models: string[] }> = [
     {
       id: 'openai',
-      label: t('chat.copy.openai_a19ee5a9'),
+      label: 'OpenAI',
       secretKey: 'OPENAI_API_KEY',
       models: ['gpt-5.4', 'gpt-5.4-mini', 'gpt-5.3-codex'],
     },
     {
       id: 'anthropic',
-      label: t('chat.copy.anthropic_b780a23b'),
+      label: 'Anthropic',
       secretKey: 'ANTHROPIC_API_KEY',
       models: ['claude-sonnet-4.5', 'claude-opus-4.1'],
     },
     {
       id: 'google',
-      label: t('chat.copy.google_2b681c0a'),
+      label: 'Google',
       secretKey: 'GOOGLE_API_KEY',
       models: ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-3.5-flash'],
     },
     {
       id: 'openrouter',
-      label: t('chat.copy.openrouter_12ecf701'),
+      label: 'OpenRouter',
       secretKey: 'OPENROUTER_API_KEY',
       models: ['openrouter:auto', 'anthropic/claude-sonnet-4.5'],
     },
   ];
   const notificationRows = [
-    [
-      'agent',
-      t('baseChatAst.settings.notification.agent.label'),
-      t('baseChatAst.settings.notification.agent.description'),
-    ],
-    [
-      'billing',
-      t('baseChatAst.settings.notification.billing.label'),
-      t('baseChatAst.settings.notification.billing.description'),
-    ],
-    [
-      'deployment',
-      t('baseChatAst.settings.notification.deployment.label'),
-      t('baseChatAst.settings.notification.deployment.description'),
-    ],
-    [
-      'security',
-      t('baseChatAst.settings.notification.security.label'),
-      t('baseChatAst.settings.notification.security.description'),
-    ],
-    [
-      'team',
-      t('baseChatAst.settings.notification.team.label'),
-      t('baseChatAst.settings.notification.team.description'),
-    ],
-    [
-      'system',
-      t('baseChatAst.settings.notification.system.label'),
-      t('baseChatAst.settings.notification.system.description'),
-    ],
+    ['agent', 'Agent', 'Agent needs help or finished working'],
+    ['billing', 'Billing', 'Plan changes, quota warnings, payment updates'],
+    ['deployment', 'Deployments', 'Deployment status changes'],
+    ['security', 'Security', 'Security scan results and alerts'],
+    ['team', 'Team', 'Team invitations and member changes'],
+    ['system', 'System', 'System updates and maintenance notices'],
   ];
-
-  const localizedProjectKeybindings = localizeProjectKeybindings(PROJECT_KEYBINDINGS, language);
-
-  const keyboardSections = PROJECT_KEYBINDING_CATEGORIES.map((category) => ({
-    category,
-    label: getKeybindingCategoryLabel(language, category),
-    bindings: applyKeybindingOverrides(localizedProjectKeybindings, keybindingOverrides).filter(
-      (binding) => binding.category === category,
-    ),
-  })).filter((section) => section.bindings.length > 0);
+  const keyboardSections = (['File', 'Navigation', 'Workbench', 'Editor', 'Agent', 'Terminal', 'Help'] as const)
+    .map((category) => ({
+      category,
+      bindings: applyKeybindingOverrides(PROJECT_KEYBINDINGS, keybindingOverrides).filter(
+        (binding) => binding.category === category,
+      ),
+    }))
+    .filter((section) => section.bindings.length > 0);
 
   const keyboardConflicts = detectKeybindingConflicts(
-    applyKeybindingOverrides(localizedProjectKeybindings, keybindingOverrides),
+    applyKeybindingOverrides(PROJECT_KEYBINDINGS, keybindingOverrides),
   );
 
   const initials =
@@ -14323,7 +12747,7 @@ function ProjectSettingsPanel({
       }
 
       settingsNoticeRef.current = message;
-      setSettingsNotice(t('baseChatAst.settings.saving'));
+      setSettingsNotice('Saving changes...');
       onSubmit(event);
     };
   }
@@ -14352,53 +12776,45 @@ function ProjectSettingsPanel({
         pendingThemePreferenceRef.current = undefined;
       }
 
-      setSettingsNotice(detail.ok ? settingsNoticeRef.current : t('baseChatAst.settings.actionFailed'));
+      setSettingsNotice(detail.ok ? settingsNoticeRef.current : (detail.error ?? 'Settings action failed.'));
     }
 
     window.addEventListener('vibecore:ide-panel-action', handlePanelAction);
 
     return () => window.removeEventListener('vibecore:ide-panel-action', handlePanelAction);
-  }, [t]);
+  }, []);
 
   function formatSessionDevice(session: any) {
     const agent = String(session.userAgent ?? '').toLowerCase();
 
     if (agent.includes('mobile')) {
-      return t('baseChatAst.session.mobile');
+      return 'Mobile browser session';
     }
 
     if (agent.includes('chrome')) {
-      return t('baseChatAst.session.chrome');
+      return 'Chrome browser session';
     }
 
     if (agent.includes('firefox')) {
-      return t('baseChatAst.session.firefox');
+      return 'Firefox browser session';
     }
 
     if (agent.includes('safari')) {
-      return t('baseChatAst.session.safari');
+      return 'Safari browser session';
     }
 
     if (agent.includes('node')) {
-      return t('baseChatAst.session.cli');
+      return 'E-Code CLI or local development session';
     }
 
-    return session.userAgent ? t('baseChatAst.session.browser') : t('baseChatAst.session.authenticated');
+    return session.userAgent ? 'Browser session' : 'Authenticated session';
   }
 
   function formatSessionDetail(session: any) {
     const parts = [
       session.ipAddress ?? session.ip,
-      session.createdAt
-        ? t('baseChatAst.session.created', {
-            date: formatBaseChatAstDateTime(language, session.createdAt) ?? t('baseChatAst.status.notAvailable'),
-          })
-        : undefined,
-      session.expiresAt
-        ? t('baseChatAst.session.expires', {
-            date: formatBaseChatAstDateTime(language, session.expiresAt) ?? t('baseChatAst.status.notAvailable'),
-          })
-        : undefined,
+      session.createdAt ? `Created ${new Date(session.createdAt).toLocaleString()}` : undefined,
+      session.expiresAt ? `Expires ${new Date(session.expiresAt).toLocaleString()}` : undefined,
     ].filter(Boolean);
 
     return parts.join(' - ') || session.id;
@@ -14460,35 +12876,21 @@ function ProjectSettingsPanel({
       };
 
       if (!response.ok) {
-        console.warn('Agent memory request failed', { status: response.status, serverError: payload.error });
-        setMemoryError(t('baseChatAst.memory.loadFailedHttp', { status: response.status }));
-
-        return;
+        throw new Error(payload.error ?? 'Unable to load agent memory');
       }
 
       if (!preferenceResponse.ok) {
-        console.warn('Agent memory preference request failed', {
-          status: preferenceResponse.status,
-          serverError: preferencePayload.error,
-        });
-        setMemoryError(
-          t('baseChatAst.memory.preferenceLoadFailedHttp', {
-            status: preferenceResponse.status,
-          }),
-        );
-
-        return;
+        throw new Error(preferencePayload.error ?? 'Unable to load agent memory preference');
       }
 
       setMemories(payload.memories ?? []);
       setMemoryEnabled(preferencePayload.preference?.enabled !== false);
     } catch (error) {
-      console.error('Agent memory request failed', error);
-      setMemoryError(t('baseChatAst.memory.loadFailed'));
+      setMemoryError(error instanceof Error ? error.message : 'Unable to load agent memory');
     } finally {
       setMemoryLoading(false);
     }
-  }, [settings.id, t]);
+  }, [settings.id]);
 
   useEffect(() => {
     if (settingsTab === 'memory') {
@@ -14527,11 +12929,7 @@ function ProjectSettingsPanel({
       };
 
       if (!response.ok) {
-        console.warn('Agent memory save request failed', { status: response.status, serverError: payload.error });
-        setMemoryError(t('baseChatAst.memory.saveFailedHttp', { status: response.status }));
-        setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-
-        return;
+        throw new Error(payload.error ?? 'Unable to save memory');
       }
 
       /*
@@ -14539,21 +12937,19 @@ function ProjectSettingsPanel({
        * too_short) when the write was NOT persisted — don't claim "saved".
        */
       if (response.status === 202 || payload.skipped) {
-        console.warn('Agent memory save was skipped', { reason: payload.skipped });
-        setMemoryError(t('baseChatAst.memory.notSaved'));
-        setSettingsNotice(t('baseChatAst.memory.notSaved'));
+        setMemoryError(`Memory not saved: ${payload.skipped ?? 'rejected by the server'}.`);
+        setSettingsNotice('Memory not saved.');
 
         return;
       }
 
       setMemoryDraft('');
       setMemoryTags('');
-      setSettingsNotice(t('baseChatAst.memory.saved'));
+      setSettingsNotice('Memory saved.');
       await loadMemories();
     } catch (error) {
-      console.error('Agent memory save request failed', error);
-      setMemoryError(t('baseChatAst.memory.actionFailed'));
-      setSettingsNotice(t('baseChatAst.memory.actionFailed'));
+      setMemoryError(error instanceof Error ? error.message : 'Unable to save memory');
+      setSettingsNotice('Memory action failed.');
     } finally {
       setMemoryLoading(false);
     }
@@ -14572,19 +12968,14 @@ function ProjectSettingsPanel({
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
 
       if (!response.ok) {
-        console.warn('Agent memory delete request failed', { status: response.status, serverError: payload.error });
-        setMemoryError(t('baseChatAst.memory.deleteFailedHttp', { status: response.status }));
-        setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-
-        return;
+        throw new Error(payload.error ?? 'Unable to delete memory');
       }
 
-      setSettingsNotice(t('baseChatAst.memory.deleted'));
+      setSettingsNotice('Memory deleted.');
       await loadMemories();
     } catch (error) {
-      console.error('Agent memory delete request failed', error);
-      setMemoryError(t('baseChatAst.memory.actionFailed'));
-      setSettingsNotice(t('baseChatAst.memory.actionFailed'));
+      setMemoryError(error instanceof Error ? error.message : 'Unable to delete memory');
+      setSettingsNotice('Memory action failed.');
     } finally {
       setMemoryLoading(false);
     }
@@ -14606,22 +12997,14 @@ function ProjectSettingsPanel({
       };
 
       if (!response.ok) {
-        console.warn('Agent memory preference update failed', {
-          status: response.status,
-          serverError: payload.error,
-        });
-        setMemoryError(t('baseChatAst.memory.preferenceUpdateFailedHttp', { status: response.status }));
-        setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-
-        return;
+        throw new Error(payload.error ?? 'Unable to update agent memory preference');
       }
 
       setMemoryEnabled(payload.preference?.enabled !== false);
-      setSettingsNotice(t(enabled ? 'baseChatAst.memory.enabled' : 'baseChatAst.memory.disabled'));
+      setSettingsNotice(enabled ? 'Agent memory enabled.' : 'Agent memory disabled.');
     } catch (error) {
-      console.error('Agent memory preference update failed', error);
-      setMemoryError(t('baseChatAst.memory.actionFailed'));
-      setSettingsNotice(t('baseChatAst.memory.actionFailed'));
+      setMemoryError(error instanceof Error ? error.message : 'Unable to update agent memory preference');
+      setSettingsNotice('Memory action failed.');
     } finally {
       setMemoryLoading(false);
     }
@@ -14656,22 +13039,17 @@ function ProjectSettingsPanel({
       const payload = (await response.json().catch(() => ({}))) as { error?: string };
 
       if (!response.ok) {
-        console.warn('Agent memory update request failed', { status: response.status, serverError: payload.error });
-        setMemoryError(t('baseChatAst.memory.updateFailedHttp', { status: response.status }));
-        setSettingsNotice(t('baseChatAst.memory.actionFailed'));
-
-        return;
+        throw new Error(payload.error ?? 'Unable to update memory');
       }
 
       setMemoryEditId(undefined);
       setMemoryEditDraft('');
       setMemoryEditTags('');
-      setSettingsNotice(t('baseChatAst.memory.updated'));
+      setSettingsNotice('Memory updated.');
       await loadMemories();
     } catch (error) {
-      console.error('Agent memory update request failed', error);
-      setMemoryError(t('baseChatAst.memory.actionFailed'));
-      setSettingsNotice(t('baseChatAst.memory.actionFailed'));
+      setMemoryError(error instanceof Error ? error.message : 'Unable to update memory');
+      setSettingsNotice('Memory action failed.');
     } finally {
       setMemoryLoading(false);
     }
@@ -14681,8 +13059,8 @@ function ProjectSettingsPanel({
     <div className="bolt-project-settings-hub" data-testid="settings-hub-panel">
       <header>
         <div>
-          <h3>{t('chat.copy.accountSettings_e3270761')}</h3>
-          <p>{t('chat.copy.projectIdentitySecurityBillingAiCredentials_63be3c90')}</p>
+          <h3>Account Settings</h3>
+          <p>Project, identity, security, billing, AI credentials and IDE preferences backed by platform APIs.</p>
         </div>
         {settingsNotice ? (
           <span className="bolt-project-settings-status" role="status" aria-live="polite">
@@ -14690,12 +13068,12 @@ function ProjectSettingsPanel({
           </span>
         ) : null}
         <a href={`/api/projects/${settings.id}/project-action?intent=export`} target="_blank" rel="noreferrer">
-          {t('chat.copy.exportProject_5eff3aab')}
+          Export project
         </a>
       </header>
 
       <div className="bolt-project-settings-layout">
-        <nav aria-label={t('chat.copy.settingsSections_2e7109bd')} className="bolt-project-settings-sidebar">
+        <nav aria-label="Settings sections" className="bolt-project-settings-sidebar">
           {settingsSections.map((section) => (
             <section key={section.group}>
               <div>
@@ -14728,133 +13106,121 @@ function ProjectSettingsPanel({
 
           {settingsTab === 'project' && (
             <form
-              onSubmit={submitWithNotice(t('baseChatAst.settings.notice.projectSaved'))}
+              onSubmit={submitWithNotice('Project settings saved to backend.')}
               className="bolt-project-settings-card"
             >
               <div className="bolt-project-settings-card-title">
-                <h4>{t('chat.copy.projectMetadata_fca99c55')}</h4>
-                <small>{t('chat.copy.theseFieldsUpdateProjectsIdSettings_cd1c0bbf')}</small>
+                <h4>Project Metadata</h4>
+                <small>These fields update `/projects/:id/settings` and are reflected in the IDE breadcrumb.</small>
               </div>
               <label>
-                {t('chat.copy.projectName_ab9773fc')}
+                Project name
                 <PanelInput
                   name="name"
                   value={draft.name}
                   onChange={updateDraft('name')}
                   required
-                  aria-label={t('chat.copy.projectName_ab9773fc')}
+                  aria-label="Project name"
                 />
               </label>
               <label>
-                {t('chat.copy.description_55f8ebc8')}
+                Description
                 <PanelInput
                   name="description"
                   value={draft.description}
                   onChange={updateDraft('description')}
-                  aria-label={t('chat.copy.projectDescription_f9e31cfd')}
+                  aria-label="Project description"
                 />
               </label>
               <label>
-                {t('chat.copy.gitRepositoryUrl_fa85202a')}
+                Git repository URL
                 <PanelInput
                   name="gitRepositoryUrl"
                   type="url"
                   value={draft.gitRepositoryUrl}
                   onChange={updateDraft('gitRepositoryUrl')}
-                  placeholder={t('chat.copy.httpsGithubComOrgRepo_c3460b93')}
-                  aria-label={t('chat.copy.gitRepositoryUrl_fa85202a')}
+                  placeholder="https://github.com/org/repo"
+                  aria-label="Git repository URL"
                 />
               </label>
               <label>
-                {t('chat.copy.defaultBranch_80f8aa6a')}
+                Default branch
                 <PanelInput
                   name="gitDefaultBranch"
                   value={draft.gitDefaultBranch}
                   onChange={updateDraft('gitDefaultBranch')}
-                  aria-label={t('chat.copy.defaultGitBranch_f6c17ffb')}
+                  aria-label="Default Git branch"
                 />
               </label>
-              <PanelButton disabled={busy || !draft.name.trim()}>{t('chat.copy.saveSettings_913aba9f')}</PanelButton>
+              <PanelButton disabled={busy || !draft.name.trim()}>Save settings</PanelButton>
             </form>
           )}
 
           {settingsTab === 'account' && (
             <div className="bolt-project-settings-grid">
-              <form
-                onSubmit={submitWithNotice(t('baseChatAst.settings.notice.profileSaved'))}
-                className="bolt-project-settings-card"
-              >
+              <form onSubmit={submitWithNotice('Profile saved to account API.')} className="bolt-project-settings-card">
                 <input name="intent" value="profile" type="hidden" />
                 <div className="bolt-project-settings-card-title">
-                  <h4>{t('chat.copy.profile_ff4fc027')}</h4>
-                  <small>{t('chat.copy.visibleIdentityUsedByCommentsAudit_b250290b')}</small>
+                  <h4>Profile</h4>
+                  <small>Visible identity used by comments, audit events and collaboration surfaces.</small>
                 </div>
                 <div className="bolt-project-settings-profile">
                   <span>{initials}</span>
                   <div>
-                    <strong>{accountUser.name ?? t('chat.copy.user_9f8a2389')}</strong>
-                    <small>{accountUser.email ?? t('chat.copy.noEmailReturnedByApi_dfb6c309')}</small>
+                    <strong>{accountUser.name ?? 'User'}</strong>
+                    <small>{accountUser.email ?? 'No email returned by API'}</small>
                   </div>
                 </div>
                 <label>
-                  {t('chat.copy.displayName_c7874aaa')}
-                  <PanelInput
-                    name="name"
-                    defaultValue={accountUser.name ?? ''}
-                    required
-                    aria-label={t('chat.copy.displayName_c7874aaa')}
-                  />
+                  Display name
+                  <PanelInput name="name" defaultValue={accountUser.name ?? ''} required aria-label="Display name" />
                 </label>
                 <label>
-                  {t('chat.copy.emailAddress_c94d3175')}
+                  Email address
                   <PanelInput
                     name="email"
                     type="email"
                     defaultValue={accountUser.email ?? ''}
                     required
-                    aria-label={t('chat.copy.emailAddress_c94d3175')}
+                    aria-label="Email address"
                   />
                 </label>
-                <PanelButton disabled={busy}>{t('chat.copy.saveProfile_f597c0e8')}</PanelButton>
+                <PanelButton disabled={busy}>Save profile</PanelButton>
               </form>
 
               <section className="bolt-project-settings-card">
                 <div className="bolt-project-settings-card-title">
-                  <h4>{t('chat.copy.connectedAccountsData_b6b14f3b')}</h4>
-                  <small>{t('chat.copy.onlyActionsBackedByPlatformRoutes_8db7a78b')}</small>
+                  <h4>Connected Accounts & Data</h4>
+                  <small>Only actions backed by platform routes are shown here.</small>
                 </div>
                 <div className="bolt-project-account-connectors">
                   <div>
-                    <strong>{t('chat.copy.emailVerification_a674e88b')}</strong>
-                    <small>
-                      {accountUser.emailVerifiedAt
-                        ? t('chat.copy.verified_aed3b8c6')
-                        : t('chat.copy.notVerifiedYet_ae8be834')}
-                    </small>
+                    <strong>Email verification</strong>
+                    <small>{accountUser.emailVerifiedAt ? 'Verified' : 'Not verified yet'}</small>
                   </div>
                   <div>
-                    <strong>{t('chat.copy.githubOauth_b37815ca')}</strong>
-                    <small>{t('chat.copy.useOauthToImportRepositoriesAnd_f0b172ff')}</small>
+                    <strong>GitHub OAuth</strong>
+                    <small>Use OAuth to import repositories and unlock GitHub project flows.</small>
                   </div>
                   <div>
-                    <strong>{t('chat.copy.accountExport_a83de782')}</strong>
-                    <small>{t('chat.copy.profileSessionsOrganizationsProjectsUsageAnd_fc485c37')}</small>
+                    <strong>Account export</strong>
+                    <small>Profile, sessions, organizations, projects, usage and AI costs as JSON.</small>
                   </div>
                 </div>
                 {!accountUser.emailVerifiedAt && (
                   <form
-                    onSubmit={submitWithNotice(t('baseChatAst.settings.notice.verificationRequested'))}
+                    onSubmit={submitWithNotice('Verification email requested.')}
                     className="bolt-project-inline-action"
                   >
                     <input name="intent" value="send-verification" type="hidden" />
                     <PanelButton disabled={busy} variant="outline">
-                      {t('chat.copy.sendVerificationEmail_d8fa8944')}
+                      Send verification email
                     </PanelButton>
                   </form>
                 )}
-                <a href="/auth/oauth/github">{t('chat.copy.connectGithub_ab6f5ed0')}</a>
+                <a href="/auth/oauth/github">Connect GitHub</a>
                 <a href="/api/auth/export" target="_blank" rel="noreferrer">
-                  {t('chat.copy.exportAccountJson_90f35d95')}
+                  Export account JSON
                 </a>
               </section>
             </div>
@@ -14862,77 +13228,69 @@ function ProjectSettingsPanel({
 
           {settingsTab === 'security' && (
             <div className="bolt-project-settings-grid">
-              <form
-                onSubmit={submitWithNotice(t('baseChatAst.settings.notice.passwordSubmitted'))}
-                className="bolt-project-settings-card"
-              >
+              <form onSubmit={submitWithNotice('Password update submitted.')} className="bolt-project-settings-card">
                 <input name="intent" value="change-password" type="hidden" />
                 <div className="bolt-project-settings-card-title">
-                  <h4>{t('chat.copy.changePassword_49289db4')}</h4>
-                  <small>{t('chat.copy.passwordChangesAreProcessedByAuth_e49364ef')}</small>
+                  <h4>Change Password</h4>
+                  <small>Password changes are processed by `/auth/password` and audited.</small>
                 </div>
                 <label>
-                  {t('chat.copy.currentPassword_19dff4da')}
+                  Current password
                   <PanelInput
                     name="currentPassword"
                     type="password"
                     autoComplete="current-password"
                     required
-                    aria-label={t('chat.copy.currentPassword_19dff4da')}
+                    aria-label="Current password"
                   />
                 </label>
                 <label>
-                  {t('chat.copy.newPassword_d850ee18')}
+                  New password
                   <PanelInput
                     name="newPassword"
                     type="password"
                     autoComplete="new-password"
-                    placeholder={t('chat.copy.minimum8Characters_77c6662e')}
+                    placeholder="Minimum 8 characters"
                     required
-                    aria-label={t('chat.copy.newPassword_d850ee18')}
+                    aria-label="New password"
                   />
                 </label>
-                <PanelButton disabled={busy}>{t('chat.copy.updatePassword_350c355e')}</PanelButton>
-                <small>{t('chat.copy.successfulPasswordChangesRevokeOtherSessions_255563ef')}</small>
+                <PanelButton disabled={busy}>Update password</PanelButton>
+                <small>Successful password changes revoke other sessions through the API.</small>
               </form>
 
               <section className="bolt-project-settings-card">
                 <div className="bolt-project-settings-card-title">
-                  <h4>{t('chat.copy.signInProtection_dc3322d4')}</h4>
-                  <small>{t('chat.copy.securityControlsCurrentlyBackedByThe_519a5a03')}</small>
+                  <h4>Sign-in Protection</h4>
+                  <small>Security controls currently backed by the authentication service.</small>
                 </div>
                 <div className="bolt-project-security-methods">
                   <a href="/mfa-setup">
-                    <strong>{t('chat.copy.multiFactorAuthentication_2ee1f6c6')}</strong>
+                    <strong>Multi-factor authentication</strong>
                     <small>
-                      {accountUser.mfaEnabled
-                        ? t('chat.copy.enabledForThisAccount_60b56529')
-                        : t('chat.copy.setUpTotpMfaAndRecovery_641e8eea')}
+                      {accountUser.mfaEnabled ? 'Enabled for this account' : 'Set up TOTP MFA and recovery codes'}
                     </small>
                   </a>
                   <a href="/security-settings">
-                    <strong>{t('chat.copy.securityRules_0148ac1c')}</strong>
-                    <small>{t('chat.copy.reviewMfaPolicyRecoveryAndSecurity_753c4979')}</small>
+                    <strong>Security rules</strong>
+                    <small>Review MFA policy, recovery and security settings.</small>
                   </a>
                   <a href="/enterprise-sso-settings">
-                    <strong>{t('chat.copy.enterpriseSso_2a5603da')}</strong>
-                    <small>{t('chat.copy.configureSamlOrOidcForOrganizations_19fa6e90')}</small>
+                    <strong>Enterprise SSO</strong>
+                    <small>Configure SAML or OIDC for organizations that require SSO.</small>
                   </a>
                 </div>
               </section>
 
               <section className="bolt-project-settings-card">
                 <div className="bolt-project-settings-card-title">
-                  <h4>{t('chat.copy.activeSessions_c71ffaf9')}</h4>
-                  <small>{t('chat.copy.sessionNamesAreNormalizedFromUser_98537608')}</small>
+                  <h4>Active Sessions</h4>
+                  <small>Session names are normalized from user-agent data returned by `/auth/sessions`.</small>
                 </div>
                 <div className="bolt-project-settings-list">
                   {sessions.length ? (
                     sessions.slice(0, 8).map((session: any) => (
-                      <form
-                        key={session.id}
-                        onSubmit={submitWithNotice(t('baseChatAst.settings.notice.sessionRevokeSubmitted'))}
-                      >
+                      <form key={session.id} onSubmit={submitWithNotice('Session revoke submitted.')}>
                         <input name="intent" value="revoke-session" type="hidden" />
                         <input name="sessionId" value={session.id} type="hidden" />
                         <span>
@@ -14942,48 +13300,49 @@ function ProjectSettingsPanel({
                         <PanelButton
                           disabled={busy}
                           variant="outline"
-                          aria-label={t('chat.copy.revokeValue0_34640d6a', { value0: formatSessionDevice(session) })}
+                          aria-label={`Revoke ${formatSessionDevice(session)}`}
                         >
-                          {t('chat.copy.revoke_0be72075')}
+                          Revoke
                         </PanelButton>
                       </form>
                     ))
                   ) : (
-                    <div className="bolt-project-empty-panel">
-                      {t('chat.copy.noActiveSessionsReturnedByApi_93156dfd')}
-                    </div>
+                    <div className="bolt-project-empty-panel">No active sessions returned by API.</div>
                   )}
                 </div>
                 <form
-                  onSubmit={submitWithNotice(t('baseChatAst.settings.notice.otherSessionsSubmitted'))}
+                  onSubmit={submitWithNotice('Other sessions sign-out submitted.')}
                   className="bolt-project-inline-action"
                 >
                   <input name="intent" value="logout-all" type="hidden" />
                   <PanelButton disabled={busy} variant="outline">
-                    {t('chat.copy.signOutOtherSessions_0f67c3ff')}
+                    Sign out other sessions
                   </PanelButton>
                 </form>
               </section>
 
               <section className="bolt-project-settings-card danger">
-                <h4>{t('chat.copy.dangerZone_8fc83aac')}</h4>
-                <p>{t('chat.copy.permanentlyDeleteThisAccountTheApi_002c6691')}</p>
+                <h4>Danger Zone</h4>
+                <p>
+                  Permanently delete this account. The API audits the request, deletes the user, and clears this
+                  session.
+                </p>
                 <form
-                  onSubmit={submitWithNotice(t('baseChatAst.settings.notice.accountDeletionSubmitted'))}
+                  onSubmit={submitWithNotice('Account deletion request submitted.')}
                   className="bolt-project-danger-form"
                 >
                   <input name="intent" value="delete-account" type="hidden" />
                   <label>
-                    {t('chat.copy.typeDeleteMyAccountToConfirm_1eff2ac0')}
+                    Type DELETE MY ACCOUNT to confirm
                     <input
                       name="confirmation"
-                      placeholder={t('chat.copy.deleteMyAccount_93b6c0a2')}
+                      placeholder="DELETE MY ACCOUNT"
                       required
-                      aria-label={t('chat.copy.deleteAccountConfirmation_344b143a')}
+                      aria-label="Delete account confirmation"
                     />
                   </label>
                   <PanelButton disabled={busy} variant="outline">
-                    {t('chat.copy.deleteAccount_1753c206')}
+                    Delete account
                   </PanelButton>
                 </form>
               </section>
@@ -14994,37 +13353,22 @@ function ProjectSettingsPanel({
             <div className="bolt-project-settings-grid">
               <section className="bolt-project-settings-card">
                 <div className="bolt-project-settings-card-title">
-                  <h4>{t('chat.copy.billingPlan_c8f1555a')}</h4>
-                  <small>{t('chat.copy.limitsAreRenderedFromTheBilling_d2a0ca4f')}</small>
+                  <h4>Billing & Plan</h4>
+                  <small>Limits are rendered from the billing API instead of a flat comma-separated string.</small>
                 </div>
                 <PanelRows
                   rows={[
-                    [
-                      t('baseChatAst.common.plan'),
-                      billing.plan?.name ?? billing.plan?.key ?? t('baseChatAst.settings.noPlan'),
-                    ],
-                    [
-                      t('baseChatAst.common.subscription'),
-                      billing.subscription?.status
-                        ? platformStateLabel(t, billing.subscription.status)
-                        : (billing.error ?? t('baseChatAst.settings.noSubscription')),
-                    ],
-                    [
-                      t('baseChatAst.common.usageEvents'),
-                      formatBaseChatAstNumber(language, billing.usage?.length ?? 0),
-                    ],
+                    ['Plan', billing.plan?.name ?? billing.plan?.key ?? 'No billing plan returned'],
+                    ['Subscription', billing.subscription?.status ?? billing.error ?? 'No active subscription'],
+                    ['Usage events', String(billing.usage?.length ?? 0)],
                   ]}
                 />
                 {limitEntries.length ? (
-                  <div
-                    className="bolt-project-usage-limits"
-                    role="table"
-                    aria-label={t('chat.copy.billingLimits_44423a56')}
-                  >
+                  <div className="bolt-project-usage-limits" role="table" aria-label="Billing limits">
                     <div role="row">
-                      <span role="columnheader">{t('chat.copy.limit_24d948e4')}</span>
-                      <span role="columnheader">{t('chat.copy.used_02c0e4a1')}</span>
-                      <span role="columnheader">{t('chat.copy.quota_c6ecc23d')}</span>
+                      <span role="columnheader">Limit</span>
+                      <span role="columnheader">Used</span>
+                      <span role="columnheader">Quota</span>
                     </div>
                     {limitEntries.map(([key, value]: any) => {
                       const limit = Number(value?.limit ?? value?.max ?? value ?? 0);
@@ -15034,9 +13378,9 @@ function ProjectSettingsPanel({
                       return (
                         <div key={key} role="row">
                           <span role="cell">{key.replaceAll('.', ' ')}</span>
-                          <span role="cell">{formatBaseChatAstNumber(language, used)}</span>
+                          <span role="cell">{used.toLocaleString()}</span>
                           <span role="cell">
-                            {limit ? formatBaseChatAstNumber(language, limit) : t('chat.copy.unlimited_b8bef37b')}
+                            {limit ? limit.toLocaleString() : 'Unlimited'}
                             <em style={{ inlineSize: `${percent}%` }} aria-hidden />
                           </span>
                         </div>
@@ -15044,50 +13388,42 @@ function ProjectSettingsPanel({
                     })}
                   </div>
                 ) : (
-                  <div className="bolt-project-empty-panel">{t('chat.copy.noBillingLimitsReturnedByApi_68d00609')}</div>
+                  <div className="bolt-project-empty-panel">No billing limits returned by API.</div>
                 )}
                 <a href="/billing" target="_blank" rel="noreferrer">
-                  {t('chat.copy.openBillingManagement_e4f3b4fc')}
+                  Open billing management
                 </a>
               </section>
 
               <section className="bolt-project-settings-card">
                 <div className="bolt-project-settings-card-title">
-                  <h4>{t('chat.copy.aiUsageCosts_67a38db2')}</h4>
-                  <small>{t('chat.copy.tokenTotalsAreCalculatedFromThe_40e3f3be')}</small>
+                  <h4>AI Usage & Costs</h4>
+                  <small>Token totals are calculated from the real `/ai/usage` response.</small>
                 </div>
                 <div className="bolt-project-usage-metrics">
                   <span>
-                    <strong>{formatBaseChatAstNumber(language, aiUsageTotals.inputTokens)}</strong>
-                    <small>{t('chat.copy.inputTokens_92f7d222')}</small>
+                    <strong>{aiUsageTotals.inputTokens.toLocaleString()}</strong>
+                    <small>Input tokens</small>
                   </span>
                   <span>
-                    <strong>{formatBaseChatAstNumber(language, aiUsageTotals.outputTokens)}</strong>
-                    <small>{t('chat.copy.outputTokens_b879f52d')}</small>
+                    <strong>{aiUsageTotals.outputTokens.toLocaleString()}</strong>
+                    <small>Output tokens</small>
                   </span>
                   <span>
-                    <strong>
-                      {formatBaseChatAstNumber(language, aiUsageTotals.cost, {
-                        style: 'currency',
-                        currency: 'USD',
-                        minimumFractionDigits: 4,
-                        maximumFractionDigits: 4,
-                      })}
-                    </strong>
-                    <small>{t('chat.copy.estimatedCost_516cbee2')}</small>
+                    <strong>${aiUsageTotals.cost.toFixed(4)}</strong>
+                    <small>Estimated cost</small>
                   </span>
                 </div>
                 <PanelRows
                   rows={
                     aiUsage.length
-                      ? aiUsage.slice(0, 10).map((item: any) => [
-                          item.provider ?? item.model ?? item.type ?? t('baseChatAst.settings.aiCall'),
-                          t('baseChatAst.settings.tokensInOut', {
-                            input: formatBaseChatAstNumber(language, item.inputTokens ?? item.promptTokens ?? 0),
-                            output: formatBaseChatAstNumber(language, item.outputTokens ?? item.completionTokens ?? 0),
-                          }),
-                        ])
-                      : [[t('baseChatAst.common.usage'), data.aiUsage?.error ?? t('baseChatAst.settings.noAiUsage')]]
+                      ? aiUsage
+                          .slice(0, 10)
+                          .map((item: any) => [
+                            item.provider ?? item.model ?? item.type ?? 'AI call',
+                            `${item.inputTokens ?? item.promptTokens ?? 0} in / ${item.outputTokens ?? item.completionTokens ?? 0} out`,
+                          ])
+                      : [['Usage', data.aiUsage?.error ?? 'No AI usage recorded yet']]
                   }
                 />
               </section>
@@ -15097,32 +13433,34 @@ function ProjectSettingsPanel({
           {settingsTab === 'ai' && (
             <section className="bolt-project-settings-card">
               <div className="bolt-project-settings-card-title">
-                <h4>{t('chat.copy.aiProviderControls_5c3d5cbf')}</h4>
-                <small>{t('chat.copy.providerModesKeysAndRoutingAre_9774aeff')}</small>
+                <h4>AI Provider Controls</h4>
+                <small>
+                  Provider modes, keys and routing are persisted in project secrets; agent behaviour is surfaced here.
+                </small>
               </div>
-              <div className="bolt-project-agent-policy" aria-label={t('chat.copy.agentPatchPolicy_90d5bd27')}>
+              <div className="bolt-project-agent-policy" aria-label="Agent patch policy">
                 <article>
                   <span>
-                    <strong>{t('chat.copy.autoApplySuccessfulPatches_3c5397c8')}</strong>
-                    <small>{t('chat.copy.successfulPatchesAreAppliedAutomaticallyFailed_2f5dae7d')}</small>
+                    <strong>Auto-apply successful patches</strong>
+                    <small>
+                      Successful patches are applied automatically; failed validation stays in review with retry and
+                      reject actions.
+                    </small>
                   </span>
-                  <em>{t('chat.copy.enabled_df174a3f')}</em>
+                  <em>Enabled</em>
                 </article>
                 <article>
                   <span>
-                    <strong>{t('chat.copy.planControl_b30ffa4e')}</strong>
-                    <small>{t('chat.copy.useThePlanButtonInThe_295a8a73')}</small>
+                    <strong>Plan control</strong>
+                    <small>Use the Plan button in the prompt toolbar when you want approval before edits.</small>
                   </span>
-                  <em>{t('chat.copy.composer_10c35d71')}</em>
+                  <em>Composer</em>
                 </article>
               </div>
-              <form
-                onSubmit={submitWithNotice(t('baseChatAst.settings.notice.aiRoutingSaved'))}
-                className="bolt-project-ai-routing"
-              >
+              <form onSubmit={submitWithNotice('AI routing preferences saved.')} className="bolt-project-ai-routing">
                 <input name="intent" value="ai-routing" type="hidden" />
                 <label>
-                  {t('chat.copy.defaultProvider_8428a03f')}
+                  Default provider
                   <select name="defaultProvider" defaultValue={aiRouting.defaultProvider}>
                     {providers.map((provider) => (
                       <option key={provider.id} value={provider.id}>
@@ -15132,7 +13470,7 @@ function ProjectSettingsPanel({
                   </select>
                 </label>
                 <label>
-                  {t('chat.copy.defaultModel_5fbae11e')}
+                  Default model
                   <select name="defaultModel" defaultValue={aiRouting.defaultModel}>
                     {providers.flatMap((provider) =>
                       provider.models.map((model) => (
@@ -15144,7 +13482,7 @@ function ProjectSettingsPanel({
                   </select>
                 </label>
                 <label>
-                  {t('chat.copy.fallbackProvider_595064ee')}
+                  Fallback provider
                   <select name="fallbackProvider" defaultValue={aiRouting.fallbackProvider}>
                     {providers.map((provider) => (
                       <option key={provider.id} value={provider.id}>
@@ -15160,9 +13498,9 @@ function ProjectSettingsPanel({
                     value="true"
                     defaultChecked={aiRouting.fallbackEnabled !== false}
                   />
-                  <span>{t('chat.copy.useFallbackWhenThePrimaryProvider_b9aae73b')}</span>
+                  <span>Use fallback when the primary provider errors or exceeds quota</span>
                 </label>
-                <PanelButton disabled={busy}>{t('chat.copy.saveAiRouting_70900185')}</PanelButton>
+                <PanelButton disabled={busy}>Save AI routing</PanelButton>
               </form>
               {/*
                * Managed (Replit-parity) mode: the platform admin owns the
@@ -15174,13 +13512,16 @@ function ProjectSettingsPanel({
                */}
               {import.meta.env.VITE_BYOK_DISABLED === 'true' ? (
                 <div className="bolt-project-managed-note" data-testid="ai-keys-managed-note">
-                  <p>{t('chat.copy.aiProviderKeysAreManagedBy_81a3fe0b')}</p>
+                  <p>
+                    AI provider keys are managed by E-Code. Calls are billed to your plan's included credits — there's
+                    no key to enter. Pick your default model and routing above.
+                  </p>
                 </div>
               ) : (
                 <div className="bolt-project-settings-provider-grid">
                   {providers.map((provider) => {
                     const configured = secrets.some((secret: any) => secret.key === provider.secretKey);
-                    const mode = state.aiCredentials?.[provider.id]?.mode ?? t('chat.copy.managed_9fdf36c7');
+                    const mode = state.aiCredentials?.[provider.id]?.mode ?? 'managed';
 
                     return (
                       <article key={provider.id}>
@@ -15190,60 +13531,48 @@ function ProjectSettingsPanel({
                             <small>
                               {mode === 'byok'
                                 ? configured
-                                  ? t('chat.copy.byokKeyConfigured_b10d2fa8')
-                                  : t('chat.copy.byokEnabledKeyMissing_dac0cf84')
-                                : t('chat.copy.managedCredits_16478357')}
+                                  ? 'BYOK key configured'
+                                  : 'BYOK enabled, key missing'
+                                : 'Managed credits'}
                             </small>
                           </span>
-                          <em title={t('chat.copy.managedCreditsUseECodePlatform_ee651c81')}>
-                            {mode === 'byok' ? t('chat.copy.byok_36068183') : t('chat.copy.managed_7f0cab64')}
+                          <em title="Managed credits use E-Code platform billing. BYOK stores a project secret and routes calls through your provider key.">
+                            {mode === 'byok' ? 'BYOK' : 'Managed'}
                           </em>
                         </div>
-                        <form
-                          onSubmit={submitWithNotice(
-                            t('baseChatAst.settings.notice.providerModeSaved', { provider: provider.label }),
-                          )}
-                        >
+                        <form onSubmit={submitWithNotice(`${provider.label} provider mode saved.`)}>
                           <input name="intent" value="ai-credential-mode" type="hidden" />
                           <input name="provider" value={provider.id} type="hidden" />
                           <label>
-                            {t('chat.copy.credentialMode_23fdd899')}
+                            Credential mode
                             <select name="mode" defaultValue={mode}>
-                              <option value="managed">{t('chat.copy.managedPlatformCredits_0f0a513d')}</option>
-                              <option value="byok">{t('chat.copy.bringYourOwnKey_1cc3a1bb')}</option>
+                              <option value="managed">Managed platform credits</option>
+                              <option value="byok">Bring your own key</option>
                             </select>
                           </label>
-                          <PanelButton disabled={busy}>{t('chat.copy.saveMode_5e23f893')}</PanelButton>
+                          <PanelButton disabled={busy}>Save mode</PanelButton>
                         </form>
-                        <form
-                          onSubmit={submitWithNotice(
-                            t('baseChatAst.settings.notice.apiKeySaved', { provider: provider.label }),
-                          )}
-                        >
+                        <form onSubmit={submitWithNotice(`${provider.label} API key saved as a project secret.`)}>
                           <input name="intent" value="save-ai-key" type="hidden" />
                           <input name="provider" value={provider.id} type="hidden" />
                           <label>
-                            {t('chat.copy.apiKeySecret_00b16050')}
+                            API key secret
                             <input
                               name="apiKey"
                               type="password"
                               placeholder={`${provider.secretKey}`}
                               required
-                              aria-label={t('chat.copy.value0ApiKey_b57b5786', { value0: provider.label })}
+                              aria-label={`${provider.label} API key`}
                             />
                           </label>
-                          <PanelButton disabled={busy}>{t('chat.copy.saveKey_f5216b3a')}</PanelButton>
+                          <PanelButton disabled={busy}>Save key</PanelButton>
                         </form>
                         {configured && (
-                          <form
-                            onSubmit={submitWithNotice(
-                              t('baseChatAst.settings.notice.apiKeyRemovalSubmitted', { provider: provider.label }),
-                            )}
-                          >
+                          <form onSubmit={submitWithNotice(`${provider.label} API key removal submitted.`)}>
                             <input name="intent" value="delete-ai-key" type="hidden" />
                             <input name="provider" value={provider.id} type="hidden" />
                             <PanelButton disabled={busy} variant="outline">
-                              {t('chat.copy.removeKey_582d9a78')}
+                              Remove key
                             </PanelButton>
                           </form>
                         )}
@@ -15259,8 +13588,11 @@ function ProjectSettingsPanel({
             <div className="bolt-project-settings-grid">
               <form onSubmit={saveMemory} className="bolt-project-settings-card">
                 <div className="bolt-project-settings-card-title">
-                  <h4>{t('chat.copy.persistentAgentMemory_46293406')}</h4>
-                  <small>{t('chat.copy.projectScopedMemoriesAreEmbeddedWith_392a706f')}</small>
+                  <h4>Persistent Agent Memory</h4>
+                  <small>
+                    Project-scoped memories are embedded with the configured backend provider and retrieved before
+                    future IDE agent runs.
+                  </small>
                 </div>
                 <label className="bolt-project-memory-toggle">
                   <input
@@ -15270,26 +13602,26 @@ function ProjectSettingsPanel({
                     disabled={memoryLoading}
                   />
                   <span>
-                    <strong>{t('chat.copy.useMemoryInFutureAgentResponses_63f5aa36')}</strong>
+                    <strong>Use memory in future agent responses</strong>
                     <small>
                       {memoryEnabled
-                        ? t('chat.copy.retrievalAndAutomaticCaptureAreEnabled_12e2c9a0')
-                        : t('chat.copy.storedMemoriesStayVisibleButAre_207d1495')}
+                        ? 'Retrieval and automatic capture are enabled.'
+                        : 'Stored memories stay visible but are not injected.'}
                     </small>
                   </span>
                 </label>
                 <label>
-                  {t('chat.copy.newMemory_c8ff73b0')}
+                  New memory
                   <textarea
                     value={memoryDraft}
                     onChange={(event) => setMemoryDraft(event.target.value)}
-                    placeholder={t('chat.copy.exampleAlwaysPushToMainAfter_3934df0b')}
+                    placeholder="Example: Always push to main after validation checks pass."
                     rows={5}
                   />
                 </label>
                 {memoryDraft.trim() ? (
                   <details className="bolt-project-memory-preview">
-                    <summary>{t('chat.copy.previewMemoryPayload_23b406cf')}</summary>
+                    <summary>Preview memory payload</summary>
                     <pre>
                       {JSON.stringify(
                         {
@@ -15307,28 +13639,26 @@ function ProjectSettingsPanel({
                 ) : null}
                 <div className="bolt-project-memory-fields">
                   <label>
-                    {t('chat.copy.type_3deb7456')}
+                    Type
                     <select value={memoryType} onChange={(event) => setMemoryType(event.target.value)}>
-                      <option value="semantic">{t('chat.copy.semantic_2b3a5e30')}</option>
-                      <option value="procedural">{t('chat.copy.procedural_4fce7cb8')}</option>
-                      <option value="episodic">{t('chat.copy.episodic_2de3ef9c')}</option>
-                      <option value="working">{t('chat.copy.working_3b4dfc97')}</option>
-                      <option value="cache">{t('chat.copy.cache_50338b3b')}</option>
+                      <option value="semantic">Semantic</option>
+                      <option value="procedural">Procedural</option>
+                      <option value="episodic">Episodic</option>
+                      <option value="working">Working</option>
+                      <option value="cache">Cache</option>
                     </select>
                   </label>
                   <label>
-                    {t('chat.copy.tags_848eed0f')}
+                    Tags
                     <input
                       value={memoryTags}
                       onChange={(event) => setMemoryTags(event.target.value)}
-                      placeholder={t('chat.copy.validationWorkflow_bfc0d82a')}
+                      placeholder="validation, workflow"
                     />
                   </label>
                 </div>
                 <div className="bolt-project-form-actions">
-                  <PanelButton disabled={memoryLoading || !memoryDraft.trim()}>
-                    {t('chat.copy.saveMemory_d739576e')}
-                  </PanelButton>
+                  <PanelButton disabled={memoryLoading || !memoryDraft.trim()}>Save memory</PanelButton>
                   <button
                     type="button"
                     onClick={() => {
@@ -15338,14 +13668,14 @@ function ProjectSettingsPanel({
                     }}
                     disabled={memoryLoading || (!memoryDraft && !memoryTags && memoryType === 'semantic')}
                   >
-                    {t('chat.copy.resetDraft_cdca2702')}
+                    Reset draft
                   </button>
                 </div>
                 {memoryError ? (
                   <div className="bolt-project-settings-memory-error" role="alert">
                     <span>{memoryError}</span>
                     <button type="button" onClick={() => void loadMemories()} disabled={memoryLoading}>
-                      {t('chat.copy.retry_9f5cd8a2')}
+                      Retry
                     </button>
                   </div>
                 ) : null}
@@ -15353,13 +13683,13 @@ function ProjectSettingsPanel({
 
               <section className="bolt-project-settings-card">
                 <div className="bolt-project-memory-card-header">
-                  <h4>{t('chat.copy.storedMemories_fcb0b767')}</h4>
+                  <h4>Stored Memories</h4>
                   <a
                     href={`/api/agent-memory/export?projectId=${encodeURIComponent(settings.id)}`}
                     target="_blank"
                     rel="noreferrer"
                   >
-                    {t('chat.copy.exportJson_bc399052')}
+                    Export JSON
                   </a>
                 </div>
                 {memoryLoading && !memories.length ? (
@@ -15375,7 +13705,7 @@ function ProjectSettingsPanel({
                         {memoryEditId === memory.id ? (
                           <div className="bolt-project-memory-edit">
                             <label>
-                              {t('chat.copy.memoryContent_66fe7c72')}
+                              Memory content
                               <textarea
                                 value={memoryEditDraft}
                                 onChange={(event) => setMemoryEditDraft(event.target.value)}
@@ -15384,24 +13714,24 @@ function ProjectSettingsPanel({
                             </label>
                             <div className="bolt-project-memory-fields">
                               <label>
-                                {t('chat.copy.type_3deb7456')}
+                                Type
                                 <select
                                   value={memoryEditType}
                                   onChange={(event) => setMemoryEditType(event.target.value)}
                                 >
-                                  <option value="semantic">{t('chat.copy.semantic_2b3a5e30')}</option>
-                                  <option value="procedural">{t('chat.copy.procedural_4fce7cb8')}</option>
-                                  <option value="episodic">{t('chat.copy.episodic_2de3ef9c')}</option>
-                                  <option value="working">{t('chat.copy.working_3b4dfc97')}</option>
-                                  <option value="cache">{t('chat.copy.cache_50338b3b')}</option>
+                                  <option value="semantic">Semantic</option>
+                                  <option value="procedural">Procedural</option>
+                                  <option value="episodic">Episodic</option>
+                                  <option value="working">Working</option>
+                                  <option value="cache">Cache</option>
                                 </select>
                               </label>
                               <label>
-                                {t('chat.copy.tags_848eed0f')}
+                                Tags
                                 <input
                                   value={memoryEditTags}
                                   onChange={(event) => setMemoryEditTags(event.target.value)}
-                                  placeholder={t('chat.copy.validationWorkflow_bfc0d82a')}
+                                  placeholder="validation, workflow"
                                 />
                               </label>
                             </div>
@@ -15411,7 +13741,7 @@ function ProjectSettingsPanel({
                                 onClick={() => void saveEditedMemory(memory.id)}
                                 disabled={memoryLoading || !memoryEditDraft.trim()}
                               >
-                                {t('chat.copy.save_efc007a3')}
+                                Save
                               </button>
                               <button
                                 type="button"
@@ -15422,7 +13752,7 @@ function ProjectSettingsPanel({
                                 }}
                                 disabled={memoryLoading}
                               >
-                                {t('chat.copy.cancel_77dfd213')}
+                                Cancel
                               </button>
                             </div>
                           </div>
@@ -15431,15 +13761,9 @@ function ProjectSettingsPanel({
                             <span>
                               <strong>{memory.summary}</strong>
                               <small>
-                                {memory.scope} - {memory.memoryType ?? t('chat.copy.semantic_94fb17e3')}
-                                {t('chat.copy.importance_1f63883f')} {Math.round((memory.importance ?? 0) * 100)}
-                                {t('chat.copy.used_a073030d')}
-                                {memory.accessCount ?? 0}
-                                {t('chat.copy.x_74e0fa34')}{' '}
-                                {memory.updatedAt
-                                  ? (formatBaseChatAstDateTime(language, memory.updatedAt) ??
-                                    t('baseChatAst.status.notAvailable'))
-                                  : t('chat.copy.stored_ab514b9a')}
+                                {memory.scope} - {memory.memoryType ?? 'semantic'} - importance{' '}
+                                {Math.round((memory.importance ?? 0) * 100)}% - used {memory.accessCount ?? 0}x -{' '}
+                                {memory.updatedAt ? new Date(memory.updatedAt).toLocaleString() : 'stored'}
                               </small>
                               {Array.isArray(memory.tags) && memory.tags.length ? (
                                 <span className="bolt-project-memory-tags">
@@ -15451,14 +13775,14 @@ function ProjectSettingsPanel({
                             </span>
                             <div className="bolt-project-memory-actions">
                               <button type="button" onClick={() => startEditMemory(memory)} disabled={memoryLoading}>
-                                {t('chat.copy.edit_5301648d')}
+                                Edit
                               </button>
                               <button
                                 type="button"
                                 onClick={() => void deleteMemory(memory.id)}
                                 disabled={memoryLoading}
                               >
-                                {t('chat.copy.delete_f6fdbe48')}
+                                Delete
                               </button>
                             </div>
                           </>
@@ -15467,9 +13791,7 @@ function ProjectSettingsPanel({
                     ))}
                   </div>
                 ) : (
-                  <div className="bolt-project-empty-panel">
-                    {t('chat.copy.noPersistentMemoriesStoredForThis_322165dc')}
-                  </div>
+                  <div className="bolt-project-empty-panel">No persistent memories stored for this project yet.</div>
                 )}
               </section>
             </div>
@@ -15477,32 +13799,29 @@ function ProjectSettingsPanel({
 
           {settingsTab === 'preferences' && (
             <div className="bolt-project-settings-grid">
-              <form
-                onSubmit={submitWithNotice(t('baseChatAst.settings.notice.idePreferencesSaved'))}
-                className="bolt-project-settings-card"
-              >
+              <form onSubmit={submitWithNotice('IDE preferences saved.')} className="bolt-project-settings-card">
                 <input name="intent" value="preferences" type="hidden" />
                 <div className="bolt-project-settings-card-title">
-                  <h4>{t('chat.copy.appearanceKeyboard_9ee473c9')}</h4>
-                  <small>{t('chat.copy.workspacePreferencesAreStoredPerProject_bd451dcb')}</small>
+                  <h4>Appearance & Keyboard</h4>
+                  <small>Workspace preferences are stored per project and default to dark mode.</small>
                 </div>
                 <label>
-                  {t('chat.copy.theme_a797e309')}
+                  Theme
                   <select name="theme" defaultValue={preferences.theme}>
-                    <option value="dark">{t('chat.copy.dark_ae1ef014')}</option>
-                    <option value="light">{t('chat.copy.light_a36ef8ab')}</option>
-                    <option value="system">{t('chat.copy.system_bc0792d8')}</option>
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="system">System</option>
                   </select>
                 </label>
                 <label>
-                  {t('chat.copy.keyboardMode_648b32a7')}
+                  Keyboard mode
                   <select name="keyboardMode" defaultValue={String(Boolean(preferences.keyboardMode))}>
-                    <option value="false">{t('chat.copy.standardBrowserShortcuts_ac1cbde1')}</option>
-                    <option value="true">{t('chat.copy.hardwareKeyboardIdeShortcuts_80e616e2')}</option>
+                    <option value="false">Standard browser shortcuts</option>
+                    <option value="true">Hardware keyboard IDE shortcuts</option>
                   </select>
                 </label>
                 <label>
-                  {t('chat.copy.creditAlertThreshold_40535a69')}
+                  Credit alert threshold
                   <input
                     name="creditAlertThreshold"
                     type="number"
@@ -15511,21 +13830,21 @@ function ProjectSettingsPanel({
                     defaultValue={preferences.creditAlertThreshold ?? 80}
                   />
                 </label>
-                <PanelButton disabled={busy}>{t('chat.copy.savePreferences_d8ab74e1')}</PanelButton>
+                <PanelButton disabled={busy}>Save preferences</PanelButton>
               </form>
 
-              <form
-                onSubmit={submitWithNotice(t('baseChatAst.settings.notice.shortcutsSaved'))}
-                className="bolt-project-settings-card"
-              >
+              <form onSubmit={submitWithNotice('Keyboard shortcuts saved.')} className="bolt-project-settings-card">
                 <input name="intent" value="keybindings" type="hidden" />
                 <div className="bolt-project-settings-card-title">
-                  <h4>{t('chat.copy.keyboardShortcuts_b465751c')}</h4>
-                  <small>{t('chat.copy.editShortcutsWithCombosLikeCmd_ace80b63')}</small>
+                  <h4>Keyboard Shortcuts</h4>
+                  <small>
+                    Edit shortcuts with combos like cmd+s, cmd+shift+p or f12. Contextual editor shortcuts win over
+                    globals.
+                  </small>
                 </div>
                 {keyboardConflicts.length > 0 ? (
                   <div className="bolt-project-keybindings-conflicts" role="alert">
-                    <strong>{t('chat.copy.shortcutConflictsDetected_4514c8b4')}</strong>
+                    <strong>Shortcut conflicts detected</strong>
                     <span>
                       {keyboardConflicts
                         .map((conflict) => `${formatKeybindingCombo(conflict.combo)}: ${conflict.actions.join(', ')}`)
@@ -15535,11 +13854,8 @@ function ProjectSettingsPanel({
                 ) : null}
                 <div className="bolt-project-settings-keybindings">
                   {keyboardSections.map((section) => (
-                    <section
-                      key={section.category}
-                      aria-label={t('chat.copy.value0Shortcuts_52261c31', { value0: section.label })}
-                    >
-                      <h5>{section.label}</h5>
+                    <section key={section.category} aria-label={`${section.category} shortcuts`}>
+                      <h5>{section.category}</h5>
                       {section.bindings.map((binding) => (
                         <div key={`${binding.combo}-${binding.action}`} className="bolt-project-keybinding-row">
                           <span>
@@ -15547,15 +13863,13 @@ function ProjectSettingsPanel({
                             <small>{binding.description}</small>
                           </span>
                           <label>
-                            <span className="sr-only">
-                              {t('baseChatAst.phrases.shortcutFor', { label: binding.label })}
-                            </span>
+                            <span className="sr-only">{binding.label} shortcut</span>
                             <input
                               name={`keybinding:${binding.action}`}
                               defaultValue={binding.combo}
                               spellCheck={false}
                               autoCapitalize="none"
-                              aria-label={t('chat.copy.value0Shortcut_3842fc24', { value0: binding.label })}
+                              aria-label={`${binding.label} shortcut`}
                             />
                           </label>
                           <kbd>{formatKeybindingCombo(binding.combo)}</kbd>
@@ -15564,23 +13878,22 @@ function ProjectSettingsPanel({
                     </section>
                   ))}
                 </div>
-                <PanelButton disabled={busy}>{t('chat.copy.saveKeyboardShortcuts_65d1bc6e')}</PanelButton>
+                <PanelButton disabled={busy}>Save keyboard shortcuts</PanelButton>
               </form>
 
               <section className="bolt-project-settings-card">
                 <div className="bolt-project-settings-card-title">
-                  <h4>{t('chat.copy.notificationPreferences_a92e15bc')}</h4>
-                  <small>{t('chat.copy.inAppTogglesArePersistedHere_a5c24093')}</small>
+                  <h4>Notification Preferences</h4>
+                  <small>
+                    In-app toggles are persisted here. Email and push delivery are managed by account channels.
+                  </small>
                 </div>
                 <div className="bolt-project-settings-list">
                   {notificationRows.map(([key, label, desc]) => {
                     const enabled = notifications[key] !== false;
 
                     return (
-                      <form
-                        key={key}
-                        onSubmit={submitWithNotice(t('baseChatAst.settings.notice.notificationSaved', { label }))}
-                      >
+                      <form key={key} onSubmit={submitWithNotice(`${label} notification preference saved.`)}>
                         <input name="intent" value="notification" type="hidden" />
                         <input name="key" value={key} type="hidden" />
                         <input name="enabled" value={String(!enabled)} type="hidden" />
@@ -15588,26 +13901,18 @@ function ProjectSettingsPanel({
                           <strong>{label}</strong>
                           <small>{desc}</small>
                           <span className="bolt-project-notification-channels">
-                            <em data-enabled={enabled}>
-                              {t('chat.copy.inApp_db5a6884')}
-                              {enabled ? t('chat.copy.on_db3d405b') : t('chat.copy.off_da7a6873')}
-                            </em>
-                            <em>{t('chat.copy.emailViaAccount_7de69732')}</em>
-                            <em>{t('chat.copy.pushViaNativeRuntime_91ec78cc')}</em>
+                            <em data-enabled={enabled}>In-app {enabled ? 'on' : 'off'}</em>
+                            <em>Email via account</em>
+                            <em>Push via native runtime</em>
                           </span>
                         </span>
                         <PanelButton
                           disabled={busy}
                           variant="outline"
-                          aria-label={t('chat.copy.value0Value1Notifications_a1f4307f', {
-                            value0: enabled
-                              ? t('baseChatAst.status.disableAction')
-                              : t('baseChatAst.status.enableAction'),
-                            value1: label,
-                          })}
+                          aria-label={`${enabled ? 'Disable' : 'Enable'} ${label} notifications`}
                           aria-pressed={enabled}
                         >
-                          {enabled ? t('chat.copy.turnOff_8807c2b3') : t('chat.copy.turnOn_26563efc')}
+                          {enabled ? 'Turn off' : 'Turn on'}
                         </PanelButton>
                       </form>
                     );
@@ -15629,30 +13934,20 @@ interface ObjectStorageObject {
   contentType?: string | null;
 }
 
-function formatObjectStorageSize(t: TFunction, language: string, size?: number): string {
+function formatObjectStorageSize(size?: number): string {
   if (typeof size !== 'number' || Number.isNaN(size)) {
-    return t('baseChatAst.storage.unknownSize');
+    return 'unknown size';
   }
 
   if (size < 1024) {
-    return t('baseChatAst.storage.bytes', { value: formatBaseChatAstNumber(language, size) });
+    return `${size} B`;
   }
 
   if (size < 1024 * 1024) {
-    return t('baseChatAst.storage.kilobytes', {
-      value: formatBaseChatAstNumber(language, size / 1024, {
-        minimumFractionDigits: 1,
-        maximumFractionDigits: 1,
-      }),
-    });
+    return `${(size / 1024).toFixed(1)} KB`;
   }
 
-  return t('baseChatAst.storage.megabytes', {
-    value: formatBaseChatAstNumber(language, size / (1024 * 1024), {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    }),
-  });
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 /*
@@ -15663,8 +13958,6 @@ function formatObjectStorageSize(t: TFunction, language: string, size?: number):
  * render a clear "not enabled" state rather than any placeholder data.
  */
 function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; busy: boolean }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const [prefix, setPrefix] = useState('');
   const [enabled, setEnabled] = useState<boolean | null>(null);
 
@@ -15731,21 +14024,14 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         setEnabled(Boolean(result.enabled));
         setObjects(Array.isArray(result.objects) ? result.objects : []);
         setFolders(Array.isArray(result.folders) ? result.folders : []);
-
-        if (result.error) {
-          console.warn('Object storage list request failed', { serverError: result.error });
-          setStatus(t('baseChatAst.storage.operationFailed'));
-        } else {
-          setStatus(null);
-        }
-      } catch (error) {
-        console.error('Object storage list request failed', error);
-        setStatus(t('baseChatAst.storage.unreachable'));
+        setStatus(typeof result.error === 'string' ? result.error : null);
+      } catch {
+        setStatus('Unable to reach object storage.');
       } finally {
         setLoading(false);
       }
     },
-    [postIntent, projectId, t],
+    [postIntent, projectId],
   );
 
   /*
@@ -15788,9 +14074,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
       const result = await postIntent({ intent: 'ensure-bucket' });
 
       if (result && result.error) {
-        console.warn('Object storage enable request failed', { serverError: result.error });
-        setStatus(t('baseChatAst.storage.enableFailed'));
-
+        setStatus(typeof result.error === 'string' ? result.error : 'Could not enable Object Storage.');
         return;
       }
 
@@ -15800,15 +14084,14 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
       }
 
       setProvisioned(true);
-      setStatus(t('baseChatAst.storage.enabled'));
+      setStatus('Object Storage enabled.');
       await refresh(prefix);
-    } catch (error) {
-      console.error('Object storage enable request failed', error);
-      setStatus(t('baseChatAst.storage.enableFailed'));
+    } catch {
+      setStatus('Could not enable Object Storage.');
     } finally {
       setEnabling(false);
     }
-  }, [postIntent, prefix, refresh, t]);
+  }, [postIntent, prefix, refresh]);
 
   const runOperation = useCallback(
     async (fields: Record<string, string>, successMessage: string) => {
@@ -15819,22 +14102,19 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         const result = await postIntent(fields);
 
         if (result && result.error) {
-          console.warn('Object storage operation failed', { fields, serverError: result.error });
-          setStatus(t('baseChatAst.storage.operationFailed'));
-
+          setStatus(typeof result.error === 'string' ? result.error : 'Operation failed.');
           return;
         }
 
         setStatus(successMessage);
         await refresh(prefix);
-      } catch (error) {
-        console.error('Object storage operation failed', { fields, error });
-        setStatus(t('baseChatAst.storage.operationFailed'));
+      } catch {
+        setStatus('Operation failed.');
       } finally {
         setWorking(false);
       }
     },
-    [postIntent, prefix, refresh, t],
+    [postIntent, prefix, refresh],
   );
 
   const handleUpload = useCallback(
@@ -15859,9 +14139,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
           const signed = await postIntent({ intent: 'upload-url', key, contentType });
 
           if (!signed || signed.enabled === false || !signed.url) {
-            console.warn('Object storage upload URL request failed', { key, serverError: signed?.error });
-            setStatus(t('baseChatAst.storage.notEnabled'));
-
+            setStatus(signed?.error ?? 'Object storage is not enabled.');
             return;
           }
 
@@ -15872,16 +14150,15 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
           });
 
           if (!put.ok) {
-            setStatus(t('baseChatAst.storage.uploadFailedHttp', { file: file.name, status: put.status }));
+            setStatus(`Upload failed for ${file.name} (${put.status}).`);
             return;
           }
         }
 
-        setStatus(t('baseChatAst.storage.uploadComplete'));
+        setStatus('Upload complete.');
         await refresh(prefix);
-      } catch (error) {
-        console.error('Object storage upload failed', error);
-        setStatus(t('baseChatAst.storage.uploadFailed'));
+      } catch {
+        setStatus('Upload failed.');
       } finally {
         setWorking(false);
 
@@ -15894,7 +14171,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         }
       }
     },
-    [postIntent, prefix, refresh, t],
+    [postIntent, prefix, refresh],
   );
 
   const handleDownload = useCallback(
@@ -15904,11 +14181,10 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
       if (result && result.url) {
         window.open(result.url, '_blank', 'noopener,noreferrer');
       } else {
-        console.warn('Object storage download URL request failed', { key, serverError: result?.error });
-        setStatus(t('baseChatAst.storage.downloadLinkFailed'));
+        setStatus(result?.error ?? 'Unable to create a download link.');
       }
     },
-    [postIntent, t],
+    [postIntent],
   );
 
   const handleRename = useCallback(
@@ -15917,10 +14193,10 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
       setRenameKey(null);
 
       if (key && next.trim() && next.trim() !== key) {
-        void runOperation({ intent: 'move', from: key, to: next.trim() }, t('baseChatAst.storage.objectMoved'));
+        void runOperation({ intent: 'move', from: key, to: next.trim() }, 'Object moved.');
       }
     },
-    [renameKey, runOperation, t],
+    [renameKey, runOperation],
   );
 
   /*
@@ -15942,9 +14218,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         const signed = await postIntent({ intent: 'upload-url', key, contentType: 'application/x-directory' });
 
         if (!signed || signed.enabled === false || !signed.url) {
-          console.warn('Object storage folder upload URL request failed', { key, serverError: signed?.error });
-          setStatus(t('baseChatAst.storage.notEnabled'));
-
+          setStatus(signed?.error ?? 'Object storage is not enabled.');
           return;
         }
 
@@ -15955,20 +14229,19 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         });
 
         if (!put.ok) {
-          setStatus(t('baseChatAst.storage.folderCreateFailedHttp', { status: put.status }));
+          setStatus(`Could not create folder (${put.status}).`);
           return;
         }
 
-        setStatus(t('baseChatAst.storage.folderCreated'));
+        setStatus('Folder created.');
         await refresh(prefix);
-      } catch (error) {
-        console.error('Object storage folder creation failed', error);
-        setStatus(t('baseChatAst.storage.folderCreateFailed'));
+      } catch {
+        setStatus('Could not create folder.');
       } finally {
         setWorking(false);
       }
     },
-    [postIntent, prefix, refresh, t],
+    [postIntent, prefix, refresh],
   );
 
   const parentPrefix = (() => {
@@ -15992,7 +14265,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     return (
       <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
         <div className="bolt-project-empty-panel grid gap-2 text-sm text-bolt-elements-textSecondary">
-          {t('chat.copy.checkingObjectStorage_959b2900')}
+          Checking Object Storage…
         </div>
       </div>
     );
@@ -16002,11 +14275,10 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     return (
       <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
         <div className="bolt-project-empty-panel grid gap-2 text-sm">
-          <strong className="text-bolt-elements-textPrimary">
-            {t('chat.copy.objectStorageIsNotAvailableYet_0f2325e6')}
-          </strong>
+          <strong className="text-bolt-elements-textPrimary">Object Storage is not available yet</strong>
           <span className="text-bolt-elements-textSecondary">
-            {t('chat.copy.cloudObjectStorageHasnTBeen_714efe71')}
+            Cloud Object Storage hasn’t been turned on for this workspace’s platform. Once an administrator enables it,
+            you’ll be able to create this project’s bucket and manage files right here — no further setup on your side.
           </span>
         </div>
       </div>
@@ -16023,10 +14295,11 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         <div className="bolt-project-empty-panel grid gap-3 text-sm">
           <div className="flex items-center gap-2 text-bolt-elements-textPrimary">
             <span className="i-ph:hard-drives text-lg" aria-hidden />
-            <strong>{t('chat.copy.enableObjectStorageForThisProject_6caf063b')}</strong>
+            <strong>Enable Object Storage for this project</strong>
           </div>
           <span className="text-bolt-elements-textSecondary">
-            {t('chat.copy.createAPrivateCloudBucketTo_cedeeb5d')}
+            Create a private cloud bucket to store files, uploads and generated assets for this app. You can list,
+            upload, download, move and delete objects here as soon as it’s ready.
           </span>
           {status ? (
             <span className="text-xs text-bolt-elements-textTertiary" role="status">
@@ -16039,7 +14312,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
             disabled={enabling || busy}
             className="w-fit rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {enabling ? t('chat.copy.enabling_5c258f09') : t('chat.copy.enableObjectStorage_3c4cc0c4')}
+            {enabling ? 'Enabling…' : 'Enable Object Storage'}
           </button>
         </div>
       </div>
@@ -16088,22 +14361,19 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
           aria-hidden
         >
           <span className="i-ph:upload-simple text-2xl text-[var(--vc-ide-accent-action)]" />
-          <span>
-            {t('chat.copy.dropFilesToUploadTo_62098588')}
-            {prefix || t('chat.copy.theBucketRoot_d8754c09')}
-          </span>
+          <span>Drop files to upload to {prefix || 'the bucket root'}</span>
         </div>
       ) : null}
       <InputDialog
         isOpen={renameKey !== null}
         onClose={() => setRenameKey(null)}
         onSubmit={handleRename}
-        title={t('chat.copy.moveRenameObject_4ed5265d')}
-        description={t('chat.copy.movesTheObjectToTheNew_402bdb5f')}
-        label={t('chat.copy.newObjectKey_e45fdbc8')}
+        title="Move / rename object"
+        description="Moves the object to the new key inside the project bucket."
+        label="New object key"
         initialValue={renameKey ?? ''}
-        confirmLabel={t('baseChatAst.storage.move')}
-        validate={(value) => (value.trim() ? undefined : t('baseChatAst.storage.enterObjectKey'))}
+        confirmLabel="Move"
+        validate={(value) => (value.trim() ? undefined : 'Enter an object key')}
       />
       <InputDialog
         isOpen={createFolderOpen}
@@ -16112,25 +14382,23 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
           setCreateFolderOpen(false);
           void handleCreateFolder(value);
         }}
-        title={t('chat.copy.newFolder_a711999b')}
-        description={t('chat.copy.createdUnderValue0_73c7698c', {
-          value0: prefix || t('baseChatAst.storage.bucketRoot'),
-        })}
-        label={t('chat.copy.folderName_b2ce023b')}
-        placeholder={t('chat.copy.assets_3685e330')}
-        confirmLabel={t('baseChatAst.storage.createFolder')}
-        validate={(value) => (value.trim() ? undefined : t('baseChatAst.storage.enterFolderName'))}
+        title="New folder"
+        description={`Created under ${prefix || 'the bucket root'}.`}
+        label="Folder name"
+        placeholder="assets"
+        confirmLabel="Create folder"
+        validate={(value) => (value.trim() ? undefined : 'Enter a folder name')}
       />
       <ConfirmationDialog
         isOpen={confirmDeleteBucket}
         onClose={() => setConfirmDeleteBucket(false)}
         onConfirm={() => {
           setConfirmDeleteBucket(false);
-          void runOperation({ intent: 'delete-bucket' }, t('baseChatAst.storage.bucketDeleted'));
+          void runOperation({ intent: 'delete-bucket' }, 'Bucket deleted.');
         }}
-        title={t('chat.copy.deleteThisBucket_293894e5')}
-        description={t('chat.copy.permanentlyDeletesTheProjectBucketAnd_5f3e0981')}
-        confirmLabel={t('baseChatAst.storage.deleteBucket')}
+        title="Delete this bucket?"
+        description="Permanently deletes the project bucket and ALL its objects. This cannot be undone."
+        confirmLabel="Delete bucket"
         variant="destructive"
       />
       <section className="grid gap-3">
@@ -16138,13 +14406,13 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm text-bolt-elements-textPrimary">
             <span className="i-ph:package" aria-hidden />
-            <strong>{t('chat.copy.projectBucket_b51aaf40')}</strong>
+            <strong>Project bucket</strong>
           </div>
           <div className="bolt-project-tool-tabs">
             {(
               [
-                ['objects', t('baseChatAst.common.objects')],
-                ['settings', t('baseChatAst.common.settings')],
+                ['objects', 'Objects'],
+                ['settings', 'Settings'],
               ] as const
             ).map(([id, label]) => (
               <button
@@ -16162,35 +14430,34 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         {view === 'settings' ? (
           <div className="grid gap-4 text-sm">
             <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                {t('chat.copy.bucket_40dafe4c')}
-              </h4>
+              <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">Bucket</h4>
               <p className="text-xs text-bolt-elements-textSecondary">
-                {t('chat.copy.aSingleGcsBucketIsProvisioned_0d81fecc')}
+                A single GCS bucket is provisioned per project (server-managed name). Use “Ensure bucket” to create it
+                on first use.
               </p>
               <button
                 type="button"
                 className="w-fit rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
-                onClick={() => void runOperation({ intent: 'ensure-bucket' }, t('baseChatAst.storage.bucketReady'))}
+                onClick={() => void runOperation({ intent: 'ensure-bucket' }, 'Bucket ready.')}
                 disabled={busy || working}
               >
-                {t('chat.copy.ensureBucketExists_5c9d55b8')}
+                Ensure bucket exists
               </button>
             </section>
             <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                {t('chat.copy.sharing_78779bad')}
+                Sharing
               </h4>
               <p className="text-xs text-bolt-elements-textTertiary">
-                {t('chat.copy.addingOrRemovingThisBucketFrom_63b69b72')}
+                Adding or removing this bucket from other apps is coming soon — backend pending.
               </p>
             </section>
             <section className="grid gap-2 rounded-lg border border-red-500/30 bg-bolt-elements-background-depth-2 p-3">
               <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                {t('chat.copy.deleteBucket_0d2c8e99')}
+                Delete bucket
               </h4>
               <p className="text-xs text-bolt-elements-textTertiary">
-                {t('chat.copy.permanentlyDeletesTheProjectBucketAnd_850cc916')}
+                Permanently deletes the project bucket and every object in it. This cannot be undone.
               </p>
               <button
                 type="button"
@@ -16198,7 +14465,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                 disabled={busy || working}
                 onClick={() => setConfirmDeleteBucket(true)}
               >
-                {t('chat.copy.deleteBucket_0d2c8e99')}
+                Delete bucket
               </button>
             </section>
             {status ? (
@@ -16211,33 +14478,33 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
           <>
             <div className="bolt-project-panel-toolbar flex flex-wrap items-end gap-2">
               <label className="grid gap-1 text-xs text-bolt-elements-textSecondary">
-                {t('chat.copy.prefixFolder_db73cfed')}
+                Prefix (folder)
                 <input
                   value={prefix}
                   onChange={(event) => setPrefix(event.target.value)}
-                  placeholder={t('chat.copy.assets_79f5d556')}
+                  placeholder="assets/"
                   autoCapitalize="none"
                   spellCheck={false}
                 />
               </label>
               <button type="button" onClick={() => void refresh(prefix)} disabled={loading || working}>
-                {loading ? t('chat.copy.loading_33ce4174') : t('chat.copy.refresh_56e3badc')}
+                {loading ? 'Loading…' : 'Refresh'}
               </button>
               <button type="button" onClick={() => uploadInputRef.current?.click()} disabled={busy || working}>
-                {t('chat.copy.uploadFiles_41aca16f')}
+                Upload files
               </button>
               <button type="button" onClick={() => folderInputRef.current?.click()} disabled={busy || working}>
-                {t('chat.copy.uploadFolder_e77a1496')}
+                Upload folder
               </button>
               <button type="button" onClick={() => setCreateFolderOpen(true)} disabled={busy || working}>
-                {t('chat.copy.createFolder_e59f63fa')}
+                Create folder
               </button>
               <button
                 type="button"
-                onClick={() => void runOperation({ intent: 'ensure-bucket' }, t('baseChatAst.storage.bucketReady'))}
+                onClick={() => void runOperation({ intent: 'ensure-bucket' }, 'Bucket ready.')}
                 disabled={busy || working}
               >
-                {t('chat.copy.ensureBucket_59b7cad5')}
+                Ensure bucket
               </button>
               <input
                 ref={uploadInputRef}
@@ -16258,13 +14525,13 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
 
             <p className="flex items-center gap-1 text-xs text-bolt-elements-textTertiary">
               <span className="i-ph:upload-simple" aria-hidden />
-              {t('chat.copy.tipDragDropFilesAnywhereIn_330e97ac')}
+              Tip: drag &amp; drop files anywhere in this panel to upload them to the current folder.
             </p>
 
             {prefix ? (
               <div className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
                 <button type="button" onClick={() => setPrefix(parentPrefix)} className="underline">
-                  {t('chat.copy.up_12493f7d')}
+                  ⬆ Up
                 </button>
                 <span className="font-mono">{prefix}</span>
               </div>
@@ -16273,10 +14540,10 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
             <input
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
-              placeholder={t('chat.copy.searchThisFolder_3bbb9af2')}
+              placeholder="Search this folder…"
               autoCapitalize="none"
               spellCheck={false}
-              aria-label={t('chat.copy.searchObjects_e9aa6bcc')}
+              aria-label="Search objects"
               className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
             />
 
@@ -16293,13 +14560,8 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                     </button>
                     <button
                       type="button"
-                      onClick={() =>
-                        void runOperation(
-                          { intent: 'delete-object', prefix: folder },
-                          t('baseChatAst.storage.folderDeleted'),
-                        )
-                      }
-                      aria-label={t('chat.copy.deleteFolderValue0_f97d9e9f', { value0: folder })}
+                      onClick={() => void runOperation({ intent: 'delete-object', prefix: folder }, 'Folder deleted.')}
+                      aria-label={`Delete folder ${folder}`}
                       className="text-bolt-elements-textTertiary hover:text-bolt-elements-item-contentDanger"
                       disabled={working}
                     >
@@ -16322,29 +14584,26 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                         {object.key.replace(prefix, '')}
                       </strong>
                       <span className="text-bolt-elements-textSecondary">
-                        {formatObjectStorageSize(t, language, object.size)}
-                        {object.updated ? ` · ${formatBaseChatAstDateTime(language, object.updated) ?? ''}` : ''}
+                        {formatObjectStorageSize(object.size)}
+                        {object.updated ? ` · ${new Date(object.updated).toLocaleString()}` : ''}
                       </span>
                     </div>
                     <div className="bolt-project-object-actions flex shrink-0 items-center gap-2">
                       <button type="button" onClick={() => void handleDownload(object.key)} disabled={working}>
-                        {t('chat.copy.download_a479c9c3')}
+                        Download
                       </button>
                       <button type="button" onClick={() => setRenameKey(object.key)} disabled={working}>
-                        {t('chat.copy.move_76cdb950')}
+                        Move
                       </button>
                       <button
                         type="button"
                         onClick={() =>
-                          void runOperation(
-                            { intent: 'delete-object', key: object.key },
-                            t('baseChatAst.storage.objectDeleted'),
-                          )
+                          void runOperation({ intent: 'delete-object', key: object.key }, 'Object deleted.')
                         }
                         disabled={working}
                         className="text-bolt-elements-item-contentDanger"
                       >
-                        {t('chat.copy.delete_f6fdbe48')}
+                        Delete
                       </button>
                     </div>
                   </div>
@@ -16353,12 +14612,12 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
             ) : (
               <div className="bolt-project-empty-panel">
                 {loading
-                  ? t('chat.copy.loadingObjects_9bcff057')
+                  ? 'Loading objects…'
                   : normalizedFilter
-                    ? t('chat.copy.noObjectsMatchYourSearch_15d8d7b9')
+                    ? 'No objects match your search.'
                     : prefix
-                      ? t('chat.copy.noObjectsUnderThisPrefix_a8bfd956')
-                      : t('chat.copy.theBucketIsEmpty_18809c5d')}
+                      ? 'No objects under this prefix.'
+                      : 'The bucket is empty.'}
               </div>
             )}
 
@@ -16463,7 +14722,6 @@ function ProjectSkillsPanel({
   busy: boolean;
   reload?: () => void | Promise<void>;
 }) {
-  const { t } = useTranslation();
   const skills = (data?.skills ?? []) as ProjectSkill[];
   const catalog = (data?.catalog ?? []) as SkillCatalogEntry[];
   const installedProject = (data?.installedProject ?? []) as InstalledSkill[];
@@ -16501,10 +14759,7 @@ function ProjectSkillsPanel({
         const result = (await response.json().catch(() => ({}))) as { error?: string; note?: string };
 
         if (!response.ok) {
-          console.warn('Skills update request failed', { status: response.status, serverError: result.error });
-          setError(t('baseChatAst.skills.updateFailedHttp', { status: response.status }));
-
-          return false;
+          throw new Error(result.error ?? 'Unable to update skills.');
         }
 
         if (result.note) {
@@ -16515,15 +14770,14 @@ function ProjectSkillsPanel({
 
         return true;
       } catch (actionError) {
-        console.error('Skills update request failed', actionError);
-        setError(t('baseChatAst.skills.updateFailed'));
+        setError(actionError instanceof Error ? actionError.message : 'Unable to update skills.');
 
         return false;
       } finally {
         setPending(null);
       }
     },
-    [projectId, reload, t],
+    [projectId, reload],
   );
 
   const toggleBuiltin = useCallback(
@@ -16582,13 +14836,9 @@ function ProjectSkillsPanel({
     : catalog;
 
   const tabs: Array<{ id: SkillsTab; label: string; count: number }> = [
-    {
-      id: 'project',
-      label: t('chat.copy.project_f6f4da8d'),
-      count: skills.filter((s) => s.enabled).length + installedProject.length,
-    },
-    { id: 'workspace', label: t('chat.copy.workspace_4ca0a75c'), count: installedWorkspace.length },
-    { id: 'community', label: t('chat.copy.community_bfd58ee3'), count: catalog.length },
+    { id: 'project', label: 'Project', count: skills.filter((s) => s.enabled).length + installedProject.length },
+    { id: 'workspace', label: 'Workspace', count: installedWorkspace.length },
+    { id: 'community', label: 'Community', count: catalog.length },
   ];
 
   const tabButtonClass = (active: boolean) =>
@@ -16633,10 +14883,10 @@ function ProjectSkillsPanel({
         <section className="mt-3 grid gap-4">
           <div className="grid gap-2">
             <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-              {t('chat.copy.builtinSkills_e1514b4a')}
+              Builtin skills
             </h4>
             <p className="text-xs text-bolt-elements-textSecondary">
-              {t('chat.copy.togglesAreStoredPerProjectOver_7e9883ea')}
+              Toggles are stored per project over a builtin catalog; the agent applies enabled skills as capabilities.
             </p>
             {skills.length ? (
               skills.map((skill) => (
@@ -16661,22 +14911,18 @@ function ProjectSkillsPanel({
                     }`}
                     aria-pressed={Boolean(skill.enabled)}
                   >
-                    {pending === `b:${skill.id}`
-                      ? '…'
-                      : skill.enabled
-                        ? t('chat.copy.enabled_df174a3f')
-                        : t('chat.copy.disabled_f4f4473d')}
+                    {pending === `b:${skill.id}` ? '…' : skill.enabled ? 'Enabled' : 'Disabled'}
                   </button>
                 </div>
               ))
             ) : (
-              <div className="bolt-project-empty-panel">{t('chat.copy.noBuiltinSkillsAreAvailable_22eb212a')}</div>
+              <div className="bolt-project-empty-panel">No builtin skills are available.</div>
             )}
           </div>
 
           <InstalledSkillsList
-            title={t('chat.copy.installedFromGithubProject_e3344d94')}
-            emptyLabel={t('baseChatAst.skills.noProject')}
+            title="Installed from GitHub (project)"
+            emptyLabel="No project-scoped skills installed yet. Browse the Community tab to add some."
             skills={installedProject}
             scope="project"
             busy={busy}
@@ -16698,11 +14944,13 @@ function ProjectSkillsPanel({
       {tab === 'workspace' ? (
         <section className="mt-3 grid gap-4">
           {!hasWorkspace ? (
-            <div className="bolt-project-empty-panel">{t('chat.copy.thisProjectHasNoWorkspaceYet_c3f6040c')}</div>
+            <div className="bolt-project-empty-panel">
+              This project has no workspace yet. Open the project once, then install workspace-scoped skills.
+            </div>
           ) : (
             <InstalledSkillsList
-              title={t('chat.copy.installedFromGithubWorkspace_f3607e99')}
-              emptyLabel={t('baseChatAst.skills.noWorkspace')}
+              title="Installed from GitHub (workspace)"
+              emptyLabel="No workspace-scoped skills installed yet."
               skills={installedWorkspace}
               scope="workspace"
               busy={busy}
@@ -16726,12 +14974,12 @@ function ProjectSkillsPanel({
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={t('chat.copy.searchSkillsByNameRepoOr_32760210')}
+            placeholder="Search skills by name, repo, or category"
             className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-sm text-bolt-elements-textPrimary placeholder:text-bolt-elements-textTertiary focus:border-bolt-elements-focus focus:outline-none"
           />
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
-            <span>{t('chat.copy.installTo_358c06d6')}</span>
+            <span>Install to:</span>
             {(['project', 'workspace'] as SkillInstallScope[]).map((scope) => (
               <button
                 key={scope}
@@ -16744,7 +14992,7 @@ function ProjectSkillsPanel({
                     : 'border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3'
                 }`}
               >
-                {scope === 'project' ? t('baseChatAst.common.project') : t('baseChatAst.common.workspace')}
+                {scope}
               </button>
             ))}
           </div>
@@ -16781,7 +15029,9 @@ function ProjectSkillsPanel({
                           <span className="rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 capitalize">
                             {entry.category}
                           </span>
-                          <span>{t('baseChatAst.skills.installCount', { count: entry.installCount })}</span>
+                          <span>
+                            {entry.installCount} install{entry.installCount === 1 ? '' : 's'}
+                          </span>
                         </span>
                       </span>
                     </button>
@@ -16793,7 +15043,7 @@ function ProjectSkillsPanel({
                         disabled={busy || pending === `u:${communityScope}:${entry.ownerRepo}`}
                         className="shrink-0 rounded-md border border-[var(--vc-ide-accent-error)]/50 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10 disabled:opacity-60"
                       >
-                        {pending === `u:${communityScope}:${entry.ownerRepo}` ? '…' : t('chat.copy.uninstall_a735da1d')}
+                        {pending === `u:${communityScope}:${entry.ownerRepo}` ? '…' : 'Uninstall'}
                       </button>
                     ) : (
                       <button
@@ -16802,9 +15052,7 @@ function ProjectSkillsPanel({
                         disabled={busy || pending === `i:${entry.ownerRepo}`}
                         className="shrink-0 rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                       >
-                        {pending === `i:${entry.ownerRepo}`
-                          ? t('chat.copy.installing_8d278823')
-                          : t('chat.copy.install_fd6c3ebf')}
+                        {pending === `i:${entry.ownerRepo}` ? 'Installing…' : 'Install'}
                       </button>
                     )}
                   </div>
@@ -16826,10 +15074,7 @@ function ProjectSkillsPanel({
               );
             })
           ) : (
-            <div className="bolt-project-empty-panel">
-              {t('chat.copy.noCommunitySkillsMatch_7bc0a3ba')}
-              {query}”.
-            </div>
+            <div className="bolt-project-empty-panel">No community skills match “{query}”.</div>
           )}
         </section>
       ) : null}
@@ -16840,8 +15085,6 @@ function ProjectSkillsPanel({
 /** Shared list of installed GitHub-repo skills with toggle + confirm-uninstall + chevron detail. */
 /** The append-only skill audit journal for the project scope (RPL-SK-001.3). */
 function SkillAuditLog({ events }: { events: SkillAuditEvent[] }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const [open, setOpen] = useState(false);
 
   if (!events.length) {
@@ -16863,7 +15106,7 @@ function SkillAuditLog({ events }: { events: SkillAuditEvent[] }) {
         aria-expanded={open}
       >
         <span className={`i-ph:caret-right transition-transform ${open ? 'rotate-90' : ''}`} />
-        {t('chat.copy.auditLog_3cfc5f1c')}
+        Audit log
         <span className="opacity-70">{events.length}</span>
       </button>
 
@@ -16880,7 +15123,7 @@ function SkillAuditLog({ events }: { events: SkillAuditEvent[] }) {
               <span className="text-bolt-elements-textSecondary">{event.ownerRepo}</span>
               {event.verdict ? <span className="text-bolt-elements-textTertiary">({event.verdict})</span> : null}
               <span className="ml-auto text-bolt-elements-textTertiary">
-                {formatBaseChatAstDateTime(language, event.createdAt)}
+                {new Date(event.createdAt).toLocaleString()}
               </span>
             </li>
           ))}
@@ -16892,7 +15135,6 @@ function SkillAuditLog({ events }: { events: SkillAuditEvent[] }) {
 
 /** Provenance + audit-state badges for an installed skill (RPL-SK-001.4). */
 function SkillProvenanceBadges({ skill }: { skill: InstalledSkill }) {
-  const { t } = useTranslation();
   const verdict = skill.revokedAt ? 'revoked' : (skill.auditVerdict ?? null);
 
   const verdictStyle: Record<string, string> = {
@@ -16916,16 +15158,16 @@ function SkillProvenanceBadges({ skill }: { skill: InstalledSkill }) {
           className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium capitalize ${
             verdictStyle[verdict] ?? 'border-bolt-elements-borderColor text-bolt-elements-textSecondary'
           }`}
-          title={t('chat.copy.securityAuditVerdict_291c3bac')}
+          title="Security-audit verdict"
         >
           <span className={verdictIcon[verdict] ?? 'i-ph:shield'} />
-          {platformStateLabel(t, verdict)}
+          {verdict}
         </span>
       ) : null}
       {skill.origin ? (
         <span
           className="inline-flex items-center gap-1 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 capitalize text-bolt-elements-textTertiary"
-          title={t('chat.copy.whereThisSkillCameFrom_1f68b118')}
+          title="Where this skill came from"
         >
           <span className="i-ph:git-fork" />
           {skill.origin}
@@ -16933,7 +15175,7 @@ function SkillProvenanceBadges({ skill }: { skill: InstalledSkill }) {
       ) : null}
       {skill.auditFindings && skill.auditFindings.length ? (
         <span className="text-bolt-elements-textTertiary">
-          {t('baseChatAst.skills.findingCount', { count: skill.auditFindings.length })}
+          {skill.auditFindings.length} finding{skill.auditFindings.length === 1 ? '' : 's'}
         </span>
       ) : null}
     </span>
@@ -16979,9 +15221,6 @@ function InstalledSkillsList({
   onRevoke: (ownerRepo: string, scope: SkillInstallScope) => void | Promise<unknown>;
   onApprove: (ownerRepo: string, scope: SkillInstallScope) => void | Promise<unknown>;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
-
   return (
     <div className="grid gap-2">
       <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">{title}</h4>
@@ -17019,9 +15258,9 @@ function InstalledSkillsList({
                       onClick={() => void onApprove(skill.ownerRepo, scope)}
                       disabled={busy || pending === `a:${rowKey}`}
                       className="rounded-md border border-[var(--vc-ide-accent-warning,#d97706)]/60 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-warning,#d97706)] transition-colors hover:bg-[var(--vc-ide-accent-warning,#d97706)]/10 disabled:opacity-60"
-                      title={t('chat.copy.approveThisQuarantinedSkillAndEnable_0a63e78a')}
+                      title="Approve this quarantined skill and enable it"
                     >
-                      {pending === `a:${rowKey}` ? '…' : t('chat.copy.approve_7b2c7f14')}
+                      {pending === `a:${rowKey}` ? '…' : 'Approve'}
                     </button>
                   ) : null}
                   <button
@@ -17034,13 +15273,9 @@ function InstalledSkillsList({
                         : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
                     }`}
                     aria-pressed={skill.enabled}
-                    title={skill.revokedAt ? t('chat.copy.revokedReInstallToReconsider_50d9d496') : undefined}
+                    title={skill.revokedAt ? 'Revoked — re-install to reconsider' : undefined}
                   >
-                    {pending === `t:${rowKey}`
-                      ? '…'
-                      : skill.enabled
-                        ? t('chat.copy.enabled_df174a3f')
-                        : t('chat.copy.disabled_f4f4473d')}
+                    {pending === `t:${rowKey}` ? '…' : skill.enabled ? 'Enabled' : 'Disabled'}
                   </button>
 
                   {!skill.revokedAt ? (
@@ -17049,9 +15284,9 @@ function InstalledSkillsList({
                       onClick={() => void onRevoke(skill.ownerRepo, scope)}
                       disabled={busy || pending === `r:${rowKey}`}
                       className="rounded-md border border-[var(--vc-ide-accent-error)]/50 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10 disabled:opacity-60"
-                      title={t('chat.copy.revokeHardDisableAndKeepFor_cfee988f')}
+                      title="Revoke: hard-disable and keep for the audit trail"
                     >
-                      {pending === `r:${rowKey}` ? '…' : t('chat.copy.revoke_0be72075')}
+                      {pending === `r:${rowKey}` ? '…' : 'Revoke'}
                     </button>
                   ) : null}
 
@@ -17063,14 +15298,14 @@ function InstalledSkillsList({
                         disabled={busy || pending === `u:${rowKey}`}
                         className="rounded-md bg-[var(--vc-ide-accent-error)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                       >
-                        {pending === `u:${rowKey}` ? '…' : t('chat.copy.confirm_04a21221')}
+                        {pending === `u:${rowKey}` ? '…' : 'Confirm'}
                       </button>
                       <button
                         type="button"
                         onClick={() => onConfirm(null)}
                         className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
                       >
-                        {t('chat.copy.cancel_77dfd213')}
+                        Cancel
                       </button>
                     </>
                   ) : (
@@ -17079,7 +15314,7 @@ function InstalledSkillsList({
                       onClick={() => onConfirm(rowKey)}
                       className="rounded-md border border-[var(--vc-ide-accent-error)]/50 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10"
                     >
-                      {t('chat.copy.uninstall_a735da1d')}
+                      Uninstall
                     </button>
                   )}
                 </div>
@@ -17103,30 +15338,29 @@ function InstalledSkillsList({
                   <dl className="mt-1 grid grid-cols-[auto,1fr] gap-x-3 gap-y-0.5 text-[11px] text-bolt-elements-textTertiary">
                     {skill.contentHash ? (
                       <>
-                        <dt>{t('chat.copy.contentHash_16586c72')}</dt>
+                        <dt>Content hash</dt>
                         <dd className="truncate font-mono" title={skill.contentHash}>
-                          {t('chat.copy.sha256_b2d28e41')}
-                          {skill.contentHash.slice(0, 16)}…
+                          sha256:{skill.contentHash.slice(0, 16)}…
                         </dd>
                       </>
                     ) : null}
                     {skill.manifestName ? (
                       <>
-                        <dt>{t('chat.copy.manifest_e63e4519')}</dt>
+                        <dt>Manifest</dt>
                         <dd className="truncate">{skill.manifestName}</dd>
                       </>
                     ) : null}
                     {skill.auditedAt ? (
                       <>
-                        <dt>{t('chat.copy.audited_9d320122')}</dt>
-                        <dd>{formatBaseChatAstDateTime(language, skill.auditedAt)}</dd>
+                        <dt>Audited</dt>
+                        <dd>{new Date(skill.auditedAt).toLocaleString()}</dd>
                       </>
                     ) : null}
                     {skill.revokedAt ? (
                       <>
-                        <dt>{t('chat.copy.revoked_85f17ac0')}</dt>
+                        <dt>Revoked</dt>
                         <dd className="text-[var(--vc-ide-accent-error)]">
-                          {formatBaseChatAstDateTime(language, skill.revokedAt)}
+                          {new Date(skill.revokedAt).toLocaleString()}
                           {skill.revokeReason ? ` — ${skill.revokeReason}` : ''}
                         </dd>
                       </>
@@ -17135,7 +15369,7 @@ function InstalledSkillsList({
 
                   {skill.resources && skill.resources.length ? (
                     <div className="mt-1.5 text-[11px] text-bolt-elements-textTertiary">
-                      <span className="font-medium">{t('chat.copy.bundledResourcesLoadedOnDemand_afd948a9')}</span>{' '}
+                      <span className="font-medium">Bundled resources (loaded on demand):</span>{' '}
                       {skill.resources.map((resource) => resource.path).join(', ')}
                     </div>
                   ) : null}
@@ -17149,7 +15383,7 @@ function InstalledSkillsList({
                           className="rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1.5 text-[11px]"
                         >
                           <span className={`font-semibold uppercase ${SEVERITY_STYLE[finding.severity] ?? ''}`}>
-                            {platformStateLabel(t, finding.severity)}
+                            {finding.severity}
                           </span>{' '}
                           <span className="text-bolt-elements-textPrimary">{finding.title}</span>
                           <span className="block text-bolt-elements-textSecondary">{finding.detail}</span>
@@ -17177,8 +15411,6 @@ function InstalledSkillsList({
 }
 
 function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const [query, setQuery] = useState('');
   const detectedPackageManager = data.packageManager || 'npm';
   const [packageManager, setPackageManager] = useState(detectedPackageManager);
@@ -17206,84 +15438,64 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
     <div className="bolt-project-packages-panel">
       <section className="bolt-project-packages-hero">
         <div>
-          <span>{t('chat.copy.packageIntelligence_2bfabe16')}</span>
-          <h3>
-            {manifests.length
-              ? t('chat.copy.value0DependenciesDetected_f8e7ed82', { value0: dependencies.length })
-              : t('chat.copy.noPackageManifestDetected_635f4471')}
-          </h3>
-          <p>{t('chat.copy.eCodeReadsPackageManifestsAnd_43bae185')}</p>
+          <span>Package intelligence</span>
+          <h3>{manifests.length ? `${dependencies.length} dependencies detected` : 'No package manifest detected'}</h3>
+          <p>
+            E-Code reads package manifests and lockfiles directly from the project/runtime, then runs install, audit,
+            and outdated checks against the real workspace terminal.
+          </p>
         </div>
         <form onSubmit={onSubmit}>
           <input name="intent" value="install-all" type="hidden" />
           <input name="packageManager" value={packageManager} type="hidden" />
-          <PanelButton disabled={busy || !manifests.length}>{t('chat.copy.installFromLockfile_0216ef44')}</PanelButton>
+          <PanelButton disabled={busy || !manifests.length}>Install from lockfile</PanelButton>
         </form>
       </section>
 
       <section className="bolt-project-package-manager-card">
         <div className="bolt-project-package-summary-header">
           <div>
-            <span>{t('chat.copy.workspacePackageSummary_22202f6b')}</span>
+            <span>Workspace package summary</span>
             <strong>{packageManager}</strong>
           </div>
-          <small>
-            {lockfiles.length
-              ? // BUG-QA-I18N-COUNT-002 : « 1 fichier(s) » -> pluriel réel par langue.
-                t('chat.copy.value0LockfileSDetected_e2f1f51c', {
-                  value0: lockfiles.length,
-                  count: lockfiles.length,
-                })
-              : t('chat.copy.noLockfileDetectedYet_33076d29')}
-          </small>
+          <small>{lockfiles.length ? `${lockfiles.length} lockfile(s) detected` : 'No lockfile detected yet'}</small>
         </div>
         <div className="bolt-project-package-stat-grid">
           <article>
-            <span>{t('chat.copy.manifests_7bd7947c')}</span>
+            <span>Manifests</span>
             <strong>{manifests.length}</strong>
             <small>
-              {packageFiles.length
-                ? packageFiles.map((file: any) => file.path).join(', ')
-                : t('chat.copy.noPackageJson_75c1100f')}
+              {packageFiles.length ? packageFiles.map((file: any) => file.path).join(', ') : 'No package.json'}
             </small>
           </article>
           <article>
-            <span>{t('chat.copy.indexedFiles_4816e84e')}</span>
+            <span>Indexed files</span>
             <strong>{data.files?.length ?? 0}</strong>
-            <small>{t('chat.copy.projectStoragePlusRuntimePackageFiles_493e5b95')}</small>
+            <small>Project storage plus runtime package files</small>
           </article>
           <article>
-            <span>{t('chat.copy.runtime_c4740e4c')}</span>
-            <strong>{platformStateLabel(t, data.workspace?.status ?? 'unknown')}</strong>
-            <small>{data.workspace?.runtimeMode ?? t('chat.copy.workspaceCommandRunner_d6e87e0b')}</small>
+            <span>Runtime</span>
+            <strong>{data.workspace?.status ?? 'unknown'}</strong>
+            <small>{data.workspace?.runtimeMode ?? 'Workspace command runner'}</small>
           </article>
           <article>
-            <span>{t('chat.copy.lockfiles_9596c974')}</span>
+            <span>Lockfiles</span>
             <strong>{lockfiles.length}</strong>
             <small>
-              {lockfiles.length
-                ? lockfiles.map((file: any) => file.path).join(', ')
-                : t('chat.copy.installWillCreateOne_f12e5457')}
+              {lockfiles.length ? lockfiles.map((file: any) => file.path).join(', ') : 'Install will create one'}
             </small>
           </article>
         </div>
       </section>
 
-      <section
-        className="bolt-project-package-actions"
-        aria-label={t('chat.copy.packageInstallAndMaintenanceActions_7e7d15e6')}
-      >
+      <section className="bolt-project-package-actions" aria-label="Package install and maintenance actions">
         <div className="bolt-project-package-action-header">
           <div>
-            <span>{t('chat.copy.addPackage_4db3997e')}</span>
-            <h4>{t('chat.copy.installIntoTheRealWorkspace_9aae5ad8')}</h4>
-            <p>{t('chat.copy.chooseTheDetectedPackageManagerThen_0f9e0f75')}</p>
+            <span>Add package</span>
+            <h4>Install into the real workspace</h4>
+            <p>Choose the detected package manager, then install one or more packages against this project.</p>
           </div>
-          <div
-            className="bolt-project-package-manager-options"
-            role="group"
-            aria-label={t('chat.copy.packageManager_a069a02e')}
-          >
+          <div className="bolt-project-package-manager-options" role="group" aria-label="Package manager">
             {managerOptions.map((manager) => (
               <button
                 key={manager}
@@ -17302,11 +15514,11 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
           <input name="packages" value={packageInput} type="hidden" />
           <input name="devDependency" value={installAsDevDependency ? 'true' : 'false'} type="hidden" />
           <label>
-            {t('chat.copy.addPackage_4db3997e')}
+            Add package
             <input
               value={packageInput}
               onChange={(event) => setPackageInput(event.target.value)}
-              placeholder={t('chat.copy.scopeNameReactQueryViteLatest_2c453a8a')}
+              placeholder="@scope/name, react-query, vite@latest"
               autoComplete="off"
             />
           </label>
@@ -17316,23 +15528,23 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
               checked={installAsDevDependency}
               onChange={(event) => setInstallAsDevDependency(event.target.checked)}
             />
-            {t('chat.copy.devDependency_77dacb21')}
+            Dev dependency
           </label>
-          <PanelButton disabled={busy || !packageInput.trim()}>{t('chat.copy.installPackage_cb1fe356')}</PanelButton>
+          <PanelButton disabled={busy || !packageInput.trim()}>Install package</PanelButton>
         </form>
-        <div className="bolt-project-package-command-row" aria-label={t('chat.copy.packageHealthChecks_f1ef1cd6')}>
+        <div className="bolt-project-package-command-row" aria-label="Package health checks">
           <form onSubmit={onSubmit}>
             <input name="intent" value="audit" type="hidden" />
             <input name="packageManager" value={packageManager} type="hidden" />
             <PanelButton variant="outline" disabled={busy || !manifests.length}>
-              {t('chat.copy.runSecurityAudit_2cc855d6')}
+              Run security audit
             </PanelButton>
           </form>
           <form onSubmit={onSubmit}>
             <input name="intent" value="outdated" type="hidden" />
             <input name="packageManager" value={packageManager} type="hidden" />
             <PanelButton variant="outline" disabled={busy || !manifests.length}>
-              {t('chat.copy.checkOutdated_5f9aa679')}
+              Check outdated
             </PanelButton>
           </form>
         </div>
@@ -17342,11 +15554,11 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
         <div>
           <div className="bolt-project-panel-toolbar">
             <label>
-              {t('chat.copy.filterInstalledPackages_40f3effe')}
+              Filter installed packages
               <input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder={t('chat.copy.searchNameVersionManifestScope_c42b6712')}
+                placeholder="Search name, version, manifest, scope"
               />
             </label>
           </div>
@@ -17367,8 +15579,8 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
             {!visibleDependencies.length && (
               <div className="bolt-project-empty-panel">
                 {dependencies.length
-                  ? t('chat.copy.noInstalledPackageMatchesThisFilter_e346163e')
-                  : t('chat.copy.noDependenciesFoundInPackageJson_8f3d26bd')}
+                  ? 'No installed package matches this filter.'
+                  : 'No dependencies found in package.json.'}
               </div>
             )}
           </div>
@@ -17376,26 +15588,23 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
 
         <aside className="bolt-project-package-sidebar">
           <div>
-            <h4>{t('chat.copy.manifests_7bd7947c')}</h4>
+            <h4>Manifests</h4>
             {manifests.length ? (
               manifests.map((manifest: any) => (
                 <article key={manifest.path}>
                   <strong>{manifest.name}</strong>
                   <span>{manifest.path}</span>
                   <small>
-                    {t('baseChatAst.counts.dependencies', {
-                      prod: manifest.dependencyCount,
-                      dev: manifest.devDependencyCount,
-                    })}
+                    {manifest.dependencyCount} prod / {manifest.devDependencyCount} dev
                   </small>
                 </article>
               ))
             ) : (
-              <p>{t('chat.copy.noPackageJsonHasBeenIndexed_1523ebeb')}</p>
+              <p>No package.json has been indexed for this workspace.</p>
             )}
           </div>
           <div>
-            <h4>{t('chat.copy.installRuntimeChecks_5fcca529')}</h4>
+            <h4>Install &amp; runtime checks</h4>
             {runs.length ? (
               runs.map((run: any) => {
                 const failed = run.status === 'failed' || (run.exitCode != null && run.exitCode !== 0);
@@ -17405,26 +15614,25 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
                   <article key={run.id}>
                     <strong>{run.name}</strong>
                     <span className={failed ? 'text-bolt-elements-icon-error' : 'text-bolt-elements-icon-success'}>
-                      {t('baseChatAst.phrases.runOutcome', {
-                        status: failed ? t('chat.copy.failed_5f5f8758') : t('chat.copy.succeeded_88c2e0b3'),
-                        code: run.exitCode ?? 0,
-                      })}
+                      {failed ? 'failed' : 'succeeded'} · exit {run.exitCode ?? 0}
                     </span>
                     <small>{run.script}</small>
                     {outputTail ? (
                       <pre
                         className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words rounded-md bg-bolt-elements-background-depth-3 p-2 text-[11px] leading-snug text-bolt-elements-textSecondary"
-                        aria-label={t('chat.copy.value0Output_4e0948e7', { value0: run.name })}
+                        aria-label={`${run.name} output`}
                       >
                         {outputTail}
                       </pre>
                     ) : null}
-                    <small>{run.finishedAt ? formatBaseChatAstDateTime(language, run.finishedAt) : ''}</small>
+                    <small>{run.finishedAt ? new Date(run.finishedAt).toLocaleString() : ''}</small>
                   </article>
                 );
               })
             ) : (
-              <p>{t('chat.copy.installAPackageOrRunAudit_619e2f89')}</p>
+              <p>
+                Install a package, or run audit/outdated, to capture real package-manager output from the workspace.
+              </p>
             )}
           </div>
         </aside>
@@ -17450,7 +15658,6 @@ function ProjectPortsPanel({
   onSubmit: any;
   busy: boolean;
 }) {
-  const { t } = useTranslation();
   const ports = runtimePortsFromPayload(data);
   const portsState = data.portsState ?? {};
   const primaryPort = portsState.primaryPort;
@@ -17460,7 +15667,8 @@ function ProjectPortsPanel({
     <div className="bolt-project-managed-panel bolt-project-ports-panel">
       <section className="grid gap-3">
         <p className="text-xs text-bolt-elements-textSecondary">
-          {t('chat.copy.portsOpenedByTheRunningWorkspace_ef815c2c')}
+          Ports opened by the running workspace. Open a port&apos;s preview, choose the primary port, or set its
+          visibility.
         </p>
 
         {ports.length ? (
@@ -17468,7 +15676,7 @@ function ProjectPortsPanel({
             {ports.map((entry) => {
               const portNumber = entry.port;
               const isPrimary = primaryPort != null && Number(primaryPort) === Number(portNumber);
-              const vis = visibility[String(portNumber)] ?? t('chat.copy.public_61c9b2b1');
+              const vis = visibility[String(portNumber)] ?? 'public';
 
               return (
                 <div
@@ -17478,12 +15686,12 @@ function ProjectPortsPanel({
                   <div className="min-w-0">
                     <strong className="text-bolt-elements-textPrimary">
                       :{portNumber}
-                      {isPrimary ? t('chat.copy.primary_f37ab377') : ''}
+                      {isPrimary ? ' · primary' : ''}
                     </strong>
                     <span
                       className={`ml-2 ${entry.ready ? 'text-[var(--status-success-text)]' : 'text-[var(--status-warning-text)]'}`}
                     >
-                      {entry.ready ? t('chat.copy.ready_75c05337') : t('chat.copy.starting_9493af05')}
+                      {entry.ready ? 'ready' : 'starting'}
                     </span>
                     <span className="ml-2 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-bolt-elements-textSecondary">
                       {vis}
@@ -17495,14 +15703,14 @@ function ProjectPortsPanel({
                   <div className="flex shrink-0 flex-wrap items-center gap-2">
                     {entry.url ? (
                       <a href={entry.url} target="_blank" rel="noreferrer" className="underline">
-                        {t('chat.copy.openPreview_7a3aa872')}
+                        Open preview
                       </a>
                     ) : null}
                     <form onSubmit={onSubmit}>
                       <input type="hidden" name="intent" value="set-primary" />
                       <input type="hidden" name="port" value={String(portNumber)} />
                       <button type="submit" disabled={busy || isPrimary}>
-                        {isPrimary ? t('chat.copy.primary_a9a96ec0') : t('chat.copy.setPrimary_582333f3')}
+                        {isPrimary ? 'Primary' : 'Set primary'}
                       </button>
                     </form>
                     <form onSubmit={onSubmit}>
@@ -17510,7 +15718,7 @@ function ProjectPortsPanel({
                       <input type="hidden" name="port" value={String(portNumber)} />
                       <input type="hidden" name="visibility" value={vis === 'public' ? 'private' : 'public'} />
                       <button type="submit" disabled={busy || !projectId}>
-                        {vis === 'public' ? t('chat.copy.makePrivate_df1b5c0a') : t('chat.copy.makePublic_012e4893')}
+                        {vis === 'public' ? 'Make private' : 'Make public'}
                       </button>
                     </form>
                   </div>
@@ -17519,7 +15727,9 @@ function ProjectPortsPanel({
             })}
           </div>
         ) : (
-          <div className="bolt-project-empty-panel">{t('chat.copy.noPortsDetectedYetStartYour_3bba07f1')}</div>
+          <div className="bolt-project-empty-panel">
+            No ports detected yet. Start your app (it must listen on a port) and refresh.
+          </div>
         )}
       </section>
     </div>
@@ -17548,10 +15758,10 @@ interface ConsensusRecordView {
 }
 
 const CONSENSUS_OUTCOME_LABEL: Record<string, string> = {
-  ACCEPTED: 'chat.copy.accepted_61a0572c',
-  REJECTED: 'chat.copy.rejected_27eeb7a2',
-  PARTIAL: 'chat.copy.partial_65de2e2a',
-  ABSTAINED: 'chat.copy.abstained_4b9d7cf5',
+  ACCEPTED: 'Accepted',
+  REJECTED: 'Rejected',
+  PARTIAL: 'Partial',
+  ABSTAINED: 'Abstained',
 };
 
 const CONSENSUS_OUTCOME_CLASS: Record<string, string> = {
@@ -17562,47 +15772,43 @@ const CONSENSUS_OUTCOME_CLASS: Record<string, string> = {
 };
 
 const CONSENSUS_ALGORITHM_LABEL: Record<string, string> = {
-  QUORUM: 'chat.copy.quorum_fdaafe2d',
-  BYZANTINE_PBFT: 'chat.copy.byzantinePbft_95a6d828',
-  WEIGHTED_PLURALITY: 'chat.copy.weightedPlurality_f4ca4c45',
+  QUORUM: 'Quorum',
+  BYZANTINE_PBFT: 'Byzantine (PBFT)',
+  WEIGHTED_PLURALITY: 'Weighted plurality',
 };
 
 function AgentConsensusOutcomeBadge({ outcome }: { outcome: string }) {
-  const { t } = useTranslation();
   const label = CONSENSUS_OUTCOME_LABEL[outcome] ?? outcome;
 
   const className =
     CONSENSUS_OUTCOME_CLASS[outcome] ?? 'text-bolt-elements-textSecondary border-bolt-elements-borderColor';
 
-  return <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${className}`}>{t(label)}</span>;
+  return <span className={`rounded-full border px-2 py-0.5 text-xs font-medium ${className}`}>{label}</span>;
 }
 
-function formatConsensusScore(t: TFunction, score: number) {
+function formatConsensusScore(score: number) {
   if (!Number.isFinite(score)) {
     return '—';
   }
 
   // Scores are 0–1 agreement ratios; show as a percentage.
-  return t('chat.copy.consensusAgreement', { value: Math.round(Math.max(0, Math.min(1, score)) * 100) });
+  return `${Math.round(Math.max(0, Math.min(1, score)) * 100)}% agreement`;
 }
 
-function formatConsensusAlgorithm(t: TFunction, algorithm: string) {
-  return t(CONSENSUS_ALGORITHM_LABEL[algorithm] ?? algorithm);
+function formatConsensusAlgorithm(algorithm: string) {
+  return CONSENSUS_ALGORITHM_LABEL[algorithm] ?? algorithm;
 }
 
-function formatConsensusDuration(language: string, durationMs: number) {
+function formatConsensusDuration(durationMs: number) {
   if (!Number.isFinite(durationMs) || durationMs < 0) {
     return '—';
   }
 
   if (durationMs < 1000) {
-    return `${formatBaseChatAstNumber(language, Math.round(durationMs))} ms`;
+    return `${Math.round(durationMs)} ms`;
   }
 
-  return `${formatBaseChatAstNumber(language, durationMs / 1000, {
-    minimumFractionDigits: durationMs < 10_000 ? 1 : 0,
-    maximumFractionDigits: durationMs < 10_000 ? 1 : 0,
-  })} s`;
+  return `${(durationMs / 1000).toFixed(durationMs < 10_000 ? 1 : 0)} s`;
 }
 
 /*
@@ -17643,21 +15849,19 @@ interface ConsensusRecordDetailView extends ConsensusRecordView {
 
 // Specialist lane ids → human labels (the agents that vote in a run).
 const CONSENSUS_LANE_LABEL: Record<string, string> = {
-  architect: 'chat.copy.architect_16639cf7',
-  frontend: 'chat.copy.frontend_152d1cf2',
-  backend: 'chat.copy.backend_e758ca64',
-  devops: 'chat.copy.devops_7f3f11f5',
-  qa: 'chat.copy.qa_d851aefa',
+  architect: 'Architect',
+  frontend: 'Frontend',
+  backend: 'Backend',
+  devops: 'DevOps',
+  qa: 'QA',
 };
 
-function consensusLaneLabel(t: TFunction, roleId: string): string {
-  return t(CONSENSUS_LANE_LABEL[roleId] ?? roleId);
+function consensusLaneLabel(roleId: string): string {
+  return CONSENSUS_LANE_LABEL[roleId] ?? roleId;
 }
 
 /** A row of lane chips (supporters / dissenters / abstainers) for one claim. */
 function ConsensusLaneChips({ label, roles, tone }: { label: string; roles: string[]; tone: string }) {
-  const { t } = useTranslation();
-
   if (roles.length === 0) {
     return null;
   }
@@ -17667,7 +15871,7 @@ function ConsensusLaneChips({ label, roles, tone }: { label: string; roles: stri
       <span className="text-[11px] uppercase tracking-wide text-bolt-elements-textSecondary">{label}</span>
       {roles.map((role) => (
         <span key={role} className={`rounded-full border px-1.5 py-0.5 text-[11px] ${tone}`}>
-          {consensusLaneLabel(t, role)}
+          {consensusLaneLabel(role)}
         </span>
       ))}
     </div>
@@ -17692,14 +15896,11 @@ const CONSENSUS_SEVERITY_CLASS: Record<string, string> = {
  * consolidated summary. Renders the persisted ConsensusRecord detail.
  */
 function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) {
-  const { t } = useTranslation();
   return (
     <>
       <div>
         <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-          {t('chat.copy.vote_f3f11c36')}
-          {detail.claimVotes.length}{' '}
-          {detail.claimVotes.length === 1 ? t('chat.copy.claim_013872e3') : t('chat.copy.claims_d72041bc')}
+          Vote · {detail.claimVotes.length} {detail.claimVotes.length === 1 ? 'claim' : 'claims'}
         </h4>
         {detail.claimVotes.length ? (
           <ul className="mt-1 space-y-2">
@@ -17717,24 +15918,23 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
                     {vote.type}
                   </span>
                   <span className="ml-auto text-[11px] text-bolt-elements-textSecondary">
-                    {Math.round(Math.max(0, Math.min(1, vote.agreementRatio)) * 100)}
-                    {t('chat.copy.agreement_fc61aa8b')}
+                    {Math.round(Math.max(0, Math.min(1, vote.agreementRatio)) * 100)}% agreement
                   </span>
                 </div>
                 <p className="mt-1 text-xs text-bolt-elements-textPrimary">{vote.claim}</p>
                 <div className="mt-1.5 space-y-1">
                   <ConsensusLaneChips
-                    label={t('chat.copy.for_f7880600')}
+                    label="For"
                     roles={vote.supporters}
                     tone="text-[var(--status-success-text)] border-green-500/40"
                   />
                   <ConsensusLaneChips
-                    label={t('chat.copy.against_2d19e3d7')}
+                    label="Against"
                     roles={vote.dissenters}
                     tone="text-[var(--status-error-text)] border-red-500/40"
                   />
                   <ConsensusLaneChips
-                    label={t('chat.copy.abstain_bc39d849')}
+                    label="Abstain"
                     roles={vote.abstainers}
                     tone="text-bolt-elements-textSecondary border-bolt-elements-borderColor"
                   />
@@ -17743,17 +15943,14 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
             ))}
           </ul>
         ) : (
-          <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-            {t('chat.copy.noIndividualClaimsWereVotedOn_b957dd3e')}
-          </p>
+          <p className="mt-1 text-xs text-bolt-elements-textSecondary">No individual claims were voted on.</p>
         )}
       </div>
 
       {detail.conflicts.length ? (
         <div>
           <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-            {t('chat.copy.conflicts_19401428')}
-            {detail.conflicts.length}
+            Conflicts · {detail.conflicts.length}
           </h4>
           <ul className="mt-1 space-y-1">
             {detail.conflicts.map((conflict, index) => (
@@ -17782,7 +15979,7 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
       {detail.consolidated && detail.consolidated.summary ? (
         <div>
           <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-            {t('chat.copy.consolidated_067fc063')}
+            Consolidated
           </h4>
           <p className="mt-1 whitespace-pre-wrap text-xs text-bolt-elements-textPrimary">
             {detail.consolidated.summary}
@@ -17824,8 +16021,6 @@ function ProjectAgentStudioPanel({
   reload?: () => void | Promise<void>;
   busy: boolean;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const agentPatchProposals = useStore(workbenchStore.agentPatchProposals);
 
   const pendingProposals = useMemo(
@@ -17913,13 +16108,7 @@ function ProjectAgentStudioPanel({
       };
 
       if (!memoriesResponse.ok) {
-        console.warn('Agent Studio memory request failed', {
-          status: memoriesResponse.status,
-          serverError: payload.error,
-        });
-        setMemoryError(t('baseChatAst.memory.loadFailedHttp', { status: memoriesResponse.status }));
-
-        return;
+        throw new Error(payload.error ?? 'Unable to load agent memory');
       }
 
       const memories = Array.isArray(payload.memories) ? payload.memories : [];
@@ -17936,10 +16125,9 @@ function ProjectAgentStudioPanel({
         })),
       });
     } catch (error) {
-      console.error('Agent Studio memory request failed', error);
-      setMemoryError(t('baseChatAst.memory.loadFailed'));
+      setMemoryError(error instanceof Error ? error.message : 'Unable to load agent memory');
     }
-  }, [projectId, t]);
+  }, [projectId]);
 
   useEffect(() => {
     void loadMemory();
@@ -17949,46 +16137,34 @@ function ProjectAgentStudioPanel({
 
   const metrics = [
     [
-      t('baseChatAst.agentStudio.pendingChanges'),
-      formatBaseChatAstNumber(language, pendingProposals.length),
-      pendingProposals.length ? t('baseChatAst.agentStudio.awaitingReview') : t('baseChatAst.agentStudio.noReview'),
+      'Pending changes',
+      String(pendingProposals.length),
+      pendingProposals.length ? 'Awaiting your review below' : 'No AI changes to review',
+    ],
+    ['Recorded proposals', String(serverProposalCount), 'Open proposals tracked server-side'],
+    [
+      'Self-repair events',
+      String(repairEventsCount),
+      repairEventsCount ? 'AST repair loop activity' : 'No self-repair recorded',
     ],
     [
-      t('baseChatAst.agentStudio.recordedProposals'),
-      formatBaseChatAstNumber(language, serverProposalCount),
-      t('baseChatAst.agentStudio.openProposals'),
+      'Multi-agent runs',
+      String(consensusRecords.length),
+      consensusRecords.length ? 'Consensus records logged' : 'No consensus runs yet',
     ],
+    ['Conversation branches', String(branchCount), branchCount ? 'Archived agent threads' : 'No branches yet'],
     [
-      t('baseChatAst.agentStudio.selfRepair'),
-      formatBaseChatAstNumber(language, repairEventsCount),
-      repairEventsCount ? t('baseChatAst.agentStudio.repairActivity') : t('baseChatAst.agentStudio.noRepair'),
-    ],
-    [
-      t('baseChatAst.agentStudio.multiAgent'),
-      formatBaseChatAstNumber(language, consensusRecords.length),
-      consensusRecords.length ? t('baseChatAst.agentStudio.consensusLogged') : t('baseChatAst.agentStudio.noConsensus'),
-    ],
-    [
-      t('baseChatAst.agentStudio.branches'),
-      formatBaseChatAstNumber(language, branchCount),
-      branchCount ? t('baseChatAst.agentStudio.archivedThreads') : t('baseChatAst.agentStudio.noBranches'),
-    ],
-    [
-      t('baseChatAst.agentStudio.memories'),
-      memory ? formatBaseChatAstNumber(language, memory.total) : '—',
-      memory
-        ? memory.enabled
-          ? t('baseChatAst.agentStudio.memoryEnabled')
-          : t('baseChatAst.agentStudio.memoryDisabled')
-        : t('chat.copy.loading_33ce4174'),
+      'Agent memories',
+      memory ? String(memory.total) : '—',
+      memory ? (memory.enabled ? 'Memory enabled' : 'Memory disabled') : 'Loading…',
     ],
   ] as const;
 
   return (
-    <div className="bolt-project-monitoring-panel" aria-label={t('chat.copy.agentStudioSupervisor_fc1ab50e')}>
+    <div className="bolt-project-monitoring-panel" aria-label="Agent Studio supervisor">
       <div className="bolt-project-panel-toolbar">
         <button type="button" onClick={() => void reload?.()} disabled={busy}>
-          {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.refresh_56e3badc')}
+          {busy ? 'Refreshing' : 'Refresh'}
         </button>
       </div>
 
@@ -18004,30 +16180,30 @@ function ProjectAgentStudioPanel({
 
       <section
         className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
-        aria-label={t('chat.copy.pendingAiChanges_69a074a3')}
+        aria-label="Pending AI changes"
       >
-        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
-          {t('chat.copy.pendingAiChanges_69a074a3')}
-        </h3>
+        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Pending AI changes</h3>
         {pendingProposals.length ? (
           <AgentPatchReviewQueue proposals={pendingProposals} />
         ) : (
-          <p className="text-sm text-bolt-elements-textSecondary">{t('chat.copy.noAiChangesAreWaitingFor_625a8e45')}</p>
+          <p className="text-sm text-bolt-elements-textSecondary">
+            No AI changes are waiting for review. Accepted and rejected changes are applied automatically.
+          </p>
         )}
       </section>
 
       {projectId ? (
-        <section className="mt-3" aria-label={t('chat.copy.selfRepairHistory_79447f7a')}>
+        <section className="mt-3" aria-label="Self-repair history">
           <AgentRepairHistory projectId={projectId} />
         </section>
       ) : null}
 
       <section
         className="mt-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
-        aria-label={t('chat.copy.multiAgentConsensus_6ab6c619')}
+        aria-label="Multi-agent consensus"
       >
         <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
-          {t('chat.copy.multiAgentConsensus_6ab6c619')}
+          Multi-agent consensus
           <span className="ml-2 rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
             {consensusRecords.length}
           </span>
@@ -18050,32 +16226,29 @@ function ProjectAgentStudioPanel({
                     <span className={expanded ? 'i-ph:caret-down' : 'i-ph:caret-right'} aria-hidden />
                     <AgentConsensusOutcomeBadge outcome={record.outcome} />
                     <span className="font-medium text-bolt-elements-textPrimary">
-                      {formatConsensusScore(t, record.agreementScore)}
+                      {formatConsensusScore(record.agreementScore)}
                     </span>
                     <span className="text-xs text-bolt-elements-textSecondary">
-                      {formatConsensusAlgorithm(t, record.algorithm)}
+                      {formatConsensusAlgorithm(record.algorithm)}
                     </span>
                     <span className="text-xs text-bolt-elements-textSecondary">
-                      {record.roundCount}{' '}
-                      {record.roundCount === 1 ? t('chat.copy.round_f0590a6d') : t('chat.copy.rounds_75a7b395')}
+                      {record.roundCount} {record.roundCount === 1 ? 'round' : 'rounds'}
                     </span>
                     <span className="text-xs text-bolt-elements-textSecondary">
-                      {formatConsensusDuration(language, record.durationMs)}
+                      {formatConsensusDuration(record.durationMs)}
                     </span>
                     <span className="ml-auto text-xs text-bolt-elements-textSecondary" title={record.createdAt}>
-                      {timeAgo(t, language, record.createdAt)}
+                      {timeAgo(record.createdAt)}
                     </span>
                   </button>
 
                   {expanded ? (
                     <div className="mt-2 space-y-3 border-l-2 border-bolt-elements-borderColor pl-3">
                       {detail === 'loading' || detail === undefined ? (
-                        <p className="text-xs text-bolt-elements-textSecondary">
-                          {t('chat.copy.loadingTheVote_56f791d9')}
-                        </p>
+                        <p className="text-xs text-bolt-elements-textSecondary">Loading the vote…</p>
                       ) : detail === 'error' ? (
                         <p className="text-xs text-[var(--status-error-text)]">
-                          {t('chat.copy.couldNotLoadTheConsensusDetail_862d66ca')}
+                          Could not load the consensus detail. Try again.
                         </p>
                       ) : (
                         <ConsensusVoteDetail detail={detail} />
@@ -18088,17 +16261,18 @@ function ProjectAgentStudioPanel({
           </ul>
         ) : (
           <p className="text-sm text-bolt-elements-textSecondary">
-            {t('chat.copy.noMultiAgentConsensusRunsRecorded_333b707f')}
+            No multi-agent consensus runs recorded for this project yet. Consensus records appear here after a
+            parallel-subagent run reaches a decision.
           </p>
         )}
       </section>
 
       <section
         className="mt-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
-        aria-label={t('chat.copy.conversationBranches_ab9b421a')}
+        aria-label="Conversation branches"
       >
         <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
-          {t('chat.copy.conversationBranches_ab9b421a')}
+          Conversation branches
           <span className="ml-2 rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
             {branchCount}
           </span>
@@ -18119,7 +16293,7 @@ function ProjectAgentStudioPanel({
                     {label}
                   </span>
                   <span className="ml-auto text-xs text-bolt-elements-textSecondary">
-                    {t('baseChatAst.counts.messages', { count: node.conversation.messages.length })}
+                    {node.conversation.messages.length} msg
                   </span>
                 </li>,
                 ...node.children.flatMap((child) => flatten(child, depth + 1)),
@@ -18128,26 +16302,22 @@ function ProjectAgentStudioPanel({
           </ul>
         ) : (
           <p className="text-sm text-bolt-elements-textSecondary">
-            {t('chat.copy.noArchivedConversationBranchesForThis_d64f39a6')}
+            No archived conversation branches for this project yet.
           </p>
         )}
       </section>
 
       <section
         className="mt-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
-        aria-label={t('chat.copy.agentMemory_bcf5354f')}
+        aria-label="Agent memory"
       >
-        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
-          {t('chat.copy.agentMemory_bcf5354f')}
-        </h3>
+        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">Agent memory</h3>
         {memoryError ? (
           <p className="text-sm text-[var(--status-error-text)]">{memoryError}</p>
         ) : !memory ? (
-          <p className="text-sm text-bolt-elements-textSecondary">{t('chat.copy.loadingAgentMemory_947414eb')}</p>
+          <p className="text-sm text-bolt-elements-textSecondary">Loading agent memory…</p>
         ) : memory.recent.length === 0 ? (
-          <p className="text-sm text-bolt-elements-textSecondary">
-            {t('chat.copy.noAgentMemoriesRecordedForThis_538bbffe')}
-          </p>
+          <p className="text-sm text-bolt-elements-textSecondary">No agent memories recorded for this project yet.</p>
         ) : (
           <ul className="divide-y divide-bolt-elements-borderColor">
             {memory.recent.map((item) => (
@@ -18176,16 +16346,6 @@ function ProjectMonitoringPanel({
   reload?: () => void | Promise<void>;
   busy: boolean;
 }) {
-  /*
-   * `i18n` was missing here while the body already called
-   * `formatBaseChatAstDateTime(language, …)` and `formatBaseChatAstNumber(language, …)`
-   * in five places — so the panel threw `ReferenceError: language is not defined`
-   * on every render and the Monitoring tab crashed 100 % of the time
-   * (BUG-QA-MONITORING-CRASH-001). The sibling components below already resolve
-   * it exactly this way.
-   */
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const [windowSize, setWindowSize] = useState<'15m' | '1h' | '24h'>('1h');
   const deployments: any[] = Array.isArray(data.deployments) ? data.deployments : [];
   const allActivity: any[] = Array.isArray(data.recentActivity) ? data.recentActivity : [];
@@ -18208,7 +16368,7 @@ function ProjectMonitoringPanel({
   const runtimePorts = runtimePortsFromPayload(data.runtimePorts);
   const workspace = runtimeWorkspaceFromPanelData(data);
 
-  const workspaceLabel = runtimeStatusText(t, {
+  const workspaceLabel = runtimeStatusText({
     workspaceStatus: workspace,
     ports: runtimePorts,
     workspaceLoading: Boolean(workspace && !workspace.status),
@@ -18218,32 +16378,16 @@ function ProjectMonitoringPanel({
   const lastDeployment = deployments[0];
 
   const lastDeploymentDetail = lastDeployment
-    ? `${platformStateLabel(t, lastDeployment.status ?? 'unknown')}${
-        lastDeployment.createdAt ? ` · ${formatBaseChatAstDateTime(language, lastDeployment.createdAt) ?? ''}` : ''
+    ? `${lastDeployment.status ?? 'unknown'}${
+        lastDeployment.createdAt ? ` · ${new Date(lastDeployment.createdAt).toLocaleString()}` : ''
       }`
-    : t('baseChatAst.runtime.noDeployment');
+    : 'No deployment recorded';
 
   const metrics = [
-    [
-      t('baseChatAst.monitoring.workspace'),
-      workspaceLabel,
-      workspace?.runtimeMode ?? t('baseChatAst.runtime.noSession'),
-    ],
-    [
-      t('baseChatAst.monitoring.deployments'),
-      formatBaseChatAstNumber(language, deployments.length),
-      lastDeploymentDetail,
-    ],
-    [
-      t('baseChatAst.monitoring.userEvents'),
-      formatBaseChatAstNumber(language, userFacingEvents.length),
-      t('baseChatAst.runtime.routineHidden', { count: hiddenRoutineCount, window: windowSize }),
-    ],
-    [
-      t('baseChatAst.monitoring.trackedFiles'),
-      formatBaseChatAstNumber(language, data.files?.length ?? 0),
-      t('baseChatAst.monitoring.window', { window: windowSize }),
-    ],
+    ['Workspace', workspaceLabel, workspace?.runtimeMode ?? 'No runtime session reported'],
+    ['Deployments', String(deployments.length), lastDeploymentDetail],
+    ['User events', String(userFacingEvents.length), `${windowSize} window · ${hiddenRoutineCount} routine hidden`],
+    ['Tracked files', String(data.files?.length ?? 0), `${windowSize} window`],
   ] as const;
 
   return (
@@ -18260,7 +16404,7 @@ function ProjectMonitoringPanel({
           </button>
         ))}
         <button type="button" onClick={() => void reload?.()} disabled={busy}>
-          {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.refreshMetrics_d4cc03bc')}
+          {busy ? 'Refreshing' : 'Refresh metrics'}
         </button>
       </div>
       <div className="bolt-project-metric-grid">
@@ -18276,30 +16420,22 @@ function ProjectMonitoringPanel({
       <ProjectMonitoringActivitySparkline
         events={userFacingEvents}
         windowMs={windowMs}
-        emptyLabel={t('baseChatAst.runtime.noEventsWindow')}
+        emptyLabel="No user-facing events in this window."
       />
       <PanelRows
         rows={userFacingEvents
           .slice(0, 12)
           .map((event: any) => [
-            formatProjectActivityAction(t, event.action ?? 'project.activity'),
-            event.createdAt
-              ? (formatBaseChatAstDateTime(language, event.createdAt) ?? t('baseChatAst.runtime.recordedByApi'))
-              : t('baseChatAst.runtime.recordedByApi'),
+            formatProjectActivityAction(event.action ?? 'project.activity'),
+            event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded by API',
           ])}
-        empty={t('baseChatAst.runtime.noEvents')}
+        empty="No user-facing events yet. Routine IDE state saves are hidden — see logs for raw audit."
       />
       {hiddenRoutineCount > 0 ? (
         <div className="bolt-project-monitoring-routine-note" role="note">
-          {/*
-           * BUG-QA-I18N-COUNT-002 : compteur et libellé étaient adjacents (donc
-           * collés), et le pluriel était fabriqué en ajoutant un « s » ANGLAIS à
-           * une chaîne traduite — « événement interne de routines ». Une clé
-           * plurielle par langue règle les deux.
-           */}
-          {t('baseChatAst.monitoring.hiddenRoutine', { count: hiddenRoutineCount })}
+          {hiddenRoutineCount} routine internal event{hiddenRoutineCount === 1 ? '' : 's'} hidden (
           <code>project.ide_state.*</code>
-          {t('chat.copy.openTheLogsPanelToInspect_cc12758f')}
+          ). Open the Logs panel to inspect the raw audit trail.
         </div>
       ) : null}
     </div>
@@ -18307,16 +16443,14 @@ function ProjectMonitoringPanel({
 }
 
 function ProjectMonitoringDeploymentTimeline({ deployments }: { deployments: any[] }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const visible = deployments.slice(0, 24);
 
   if (visible.length === 0) {
     return (
-      <section className="bolt-project-monitoring-timeline" aria-label={t('chat.copy.deploymentHistory_2312352b')}>
+      <section className="bolt-project-monitoring-timeline" aria-label="Deployment history">
         <header>
-          <strong>{t('chat.copy.deployments_8d458ed0')}</strong>
-          <small>{t('chat.copy.noDeploymentRecordedForThisProject_8c58faca')}</small>
+          <strong>Deployments</strong>
+          <small>No deployment recorded for this project yet.</small>
         </header>
       </section>
     );
@@ -18326,17 +16460,14 @@ function ProjectMonitoringDeploymentTimeline({ deployments }: { deployments: any
   const barWidth = width / visible.length;
 
   return (
-    <section className="bolt-project-monitoring-timeline" aria-label={t('chat.copy.deploymentHistory_2312352b')}>
+    <section className="bolt-project-monitoring-timeline" aria-label="Deployment history">
       <header>
-        <strong>{t('chat.copy.deployments_8d458ed0')}</strong>
-        <small>{t('baseChatAst.counts.lastDeployments', { count: visible.length })}</small>
+        <strong>Deployments</strong>
+        <small>
+          Last {visible.length} deployment{visible.length === 1 ? '' : 's'}, newest on the right.
+        </small>
       </header>
-      <svg
-        viewBox={`0 0 ${width} 20`}
-        preserveAspectRatio="none"
-        role="img"
-        aria-label={t('chat.copy.deploymentStatusTimeline_33142e05')}
-      >
+      <svg viewBox={`0 0 ${width} 20`} preserveAspectRatio="none" role="img" aria-label="Deployment status timeline">
         {visible
           .slice()
           .reverse()
@@ -18350,9 +16481,9 @@ function ProjectMonitoringDeploymentTimeline({ deployments }: { deployments: any
               fill={deploymentStatusColor(deployment.status)}
             >
               <title>
-                {platformStateLabel(t, deployment.status ?? 'unknown') +
+                {(deployment.status ?? 'unknown') +
                   (deployment.provider ? ` · ${deployment.provider}` : '') +
-                  (deployment.createdAt ? ` · ${formatBaseChatAstDateTime(language, deployment.createdAt) ?? ''}` : '')}
+                  (deployment.createdAt ? ` · ${new Date(deployment.createdAt).toLocaleString()}` : '')}
               </title>
             </rect>
           ))}
@@ -18370,15 +16501,13 @@ function ProjectMonitoringActivitySparkline({
   windowMs: number;
   emptyLabel: string;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const [zoomLevel, setZoomLevel] = useState<'fit' | '2x' | '4x'>('fit');
 
   if (events.length === 0) {
     return (
-      <section className="bolt-project-monitoring-sparkline" aria-label={t('chat.copy.activityRate_d137b2cc')}>
+      <section className="bolt-project-monitoring-sparkline" aria-label="Activity rate">
         <header>
-          <strong>{t('chat.copy.activityRate_d137b2cc')}</strong>
+          <strong>Activity rate</strong>
           <small>{emptyLabel}</small>
         </header>
       </section>
@@ -18404,12 +16533,8 @@ function ProjectMonitoringActivitySparkline({
 
     const formatBucketTime = (timestamp: number) =>
       visibleWindowMs <= 60 * 60_000
-        ? (formatBaseChatAstTime(language, timestamp, { hour: '2-digit', minute: '2-digit' }) ?? '')
-        : (formatBaseChatAstDateTime(language, timestamp, {
-            month: 'short',
-            day: '2-digit',
-            hour: '2-digit',
-          }) ?? '');
+        ? new Date(timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : new Date(timestamp).toLocaleString([], { month: 'short', day: '2-digit', hour: '2-digit' });
 
     return `${formatBucketTime(bucketStart)}-${formatBucketTime(bucketEnd)}`;
   });
@@ -18417,7 +16542,7 @@ function ProjectMonitoringActivitySparkline({
     labels,
     datasets: [
       {
-        label: t('chat.copy.events_c5497bca'),
+        label: 'Events',
         data: counts,
         borderColor: 'rgba(56, 189, 248, 0.95)',
         backgroundColor: 'rgba(56, 189, 248, 0.32)',
@@ -18445,8 +16570,8 @@ function ProjectMonitoringActivitySparkline({
       },
       tooltip: {
         callbacks: {
-          title: (items: any[]) => items[0]?.label ?? t('baseChatAst.monitoring.bucket'),
-          label: (item: any) => t('baseChatAst.monitoring.eventCount', { count: Number(item.raw) }),
+          title: (items: any[]) => items[0]?.label ?? 'Bucket',
+          label: (item: any) => `${item.raw} event${item.raw === 1 ? '' : 's'}`,
         },
       },
     },
@@ -18454,7 +16579,7 @@ function ProjectMonitoringActivitySparkline({
       x: {
         title: {
           display: true,
-          text: t('chat.copy.time_6c82e6dd'),
+          text: 'Time',
           color: 'rgb(148, 163, 184)',
         },
         ticks: {
@@ -18472,7 +16597,7 @@ function ProjectMonitoringActivitySparkline({
         suggestedMax: max,
         title: {
           display: true,
-          text: t('chat.copy.count_66e12969'),
+          text: 'Count',
           color: 'rgb(148, 163, 184)',
         },
         ticks: {
@@ -18488,23 +16613,16 @@ function ProjectMonitoringActivitySparkline({
   };
 
   return (
-    <section className="bolt-project-monitoring-sparkline" aria-label={t('chat.copy.activityRate_d137b2cc')}>
+    <section className="bolt-project-monitoring-sparkline" aria-label="Activity rate">
       <header>
         <div>
-          <strong>{t('chat.copy.activityRate_d137b2cc')}</strong>
+          <strong>Activity rate</strong>
           <small>
-            {t('baseChatAst.counts.eventsShown', {
-              shown: formatBaseChatAstNumber(language, visibleEvents.length),
-              count: events.length,
-            })}{' '}
-            ·{' '}
-            {t('baseChatAst.counts.bucketsPeak', {
-              count: buckets,
-              peak: formatBaseChatAstNumber(language, max),
-            })}
+            {visibleEvents.length} of {events.length} event{events.length === 1 ? '' : 's'} · {buckets} buckets · peak{' '}
+            {max}/bucket
           </small>
         </div>
-        <div className="bolt-project-monitoring-zoom" aria-label={t('chat.copy.activityChartZoom_3789999d')}>
+        <div className="bolt-project-monitoring-zoom" aria-label="Activity chart zoom">
           {(['fit', '2x', '4x'] as const).map((level) => (
             <button
               key={level}
@@ -18512,17 +16630,13 @@ function ProjectMonitoringActivitySparkline({
               className={zoomLevel === level ? 'selected' : ''}
               onClick={() => setZoomLevel(level)}
             >
-              {level === 'fit' ? t('chat.copy.fit_dab564d8') : level}
+              {level === 'fit' ? 'Fit' : level}
             </button>
           ))}
         </div>
       </header>
-      <div
-        className="bolt-project-monitoring-chart"
-        role="img"
-        aria-label={t('chat.copy.activityEventsByTimeBucket_49ff7752')}
-      >
-        <ClientOnly fallback={<div className="bolt-project-chart-loading">{t('chat.copy.loadingChart_f9755ad2')}</div>}>
+      <div className="bolt-project-monitoring-chart" role="img" aria-label="Activity events by time bucket">
+        <ClientOnly fallback={<div className="bolt-project-chart-loading">Loading chart...</div>}>
           {() => <Bar data={chartData} options={chartOptions} />}
         </ClientOnly>
       </div>
@@ -18531,8 +16645,6 @@ function ProjectMonitoringActivitySparkline({
 }
 
 function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
-  const { t } = useTranslation();
-
   /*
    * Extensions are MCP marketplace servers: install/enable/remove all map to
    * real McpInstall records, which also surface in the MCP settings tab.
@@ -18575,29 +16687,27 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
     <div className="bolt-project-extensions-panel">
       <header className="bolt-project-extensions-hero">
         <div>
-          <strong>{t('chat.copy.extensions_656bcfe2')}</strong>
-          <span>{t('chat.copy.installMcpServersToExtendThe_2040a281')}</span>
+          <strong>Extensions</strong>
+          <span>
+            Install MCP servers to extend the agent with new tools. Installs are shared with the MCP settings tab.
+          </span>
         </div>
-        <div className="bolt-project-extensions-summary" aria-label={t('chat.copy.installedExtensionSummary_16466bd6')}>
+        <div className="bolt-project-extensions-summary" aria-label="Installed extension summary">
           <strong>{installs.length}</strong>
-          <span>{t('chat.copy.installed_85841abd')}</span>
+          <span>installed</span>
         </div>
       </header>
 
       <div className="bolt-project-panel-toolbar">
         <label>
-          {t('chat.copy.searchTheMcpMarketplace_48179a04')}
+          Search the MCP marketplace
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={t('chat.copy.nameAuthorTagOrCapability_a6726d8f')}
+            placeholder="Name, author, tag or capability..."
           />
         </label>
-        <div
-          className="bolt-project-extension-categories"
-          role="group"
-          aria-label={t('chat.copy.extensionDomains_abc98b01')}
-        >
+        <div className="bolt-project-extension-categories" role="group" aria-label="Extension domains">
           {domains.map((item) => (
             <button
               key={item}
@@ -18606,16 +16716,16 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
               className={domain === item ? 'selected' : ''}
               onClick={() => setDomain(item)}
             >
-              {item === 'All' ? t('chat.copy.all_6a720856') : String(item).replace(/_/g, ' ').toLowerCase()}
+              {item === 'All' ? 'All' : String(item).replace(/_/g, ' ').toLowerCase()}
             </button>
           ))}
         </div>
       </div>
 
-      <section className="bolt-project-installed-extensions" aria-label={t('chat.copy.installedExtensions_749ba7d5')}>
+      <section className="bolt-project-installed-extensions" aria-label="Installed extensions">
         <div className="bolt-project-section-heading">
-          <strong>{t('chat.copy.installed_7bb4405c')}</strong>
-          <span>{t('chat.copy.enableDisableOrRemoveExtensionsWithout_fd2603b1')}</span>
+          <strong>Installed</strong>
+          <span>Enable, disable or remove extensions without leaving the IDE.</span>
         </div>
         {installs.length ? (
           <div className="bolt-project-extension-catalog installed">
@@ -18624,30 +16734,24 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
                 <div>
                   <strong>{install.catalogEntry?.name ?? install.alias}</strong>
                   <span>
-                    {t('baseChatAst.phrases.authorVersion', {
-                      // « MCP » est un acronyme de protocole : le catalogue le « traduisait » en « PCM ».
-                      author: install.catalogEntry?.author ?? 'MCP',
-                      version: install.catalogEntry?.version ?? '1',
-                    })}
+                    {install.catalogEntry?.author ?? 'MCP'} · v{install.catalogEntry?.version ?? '1'}
                   </span>
                 </div>
-                <p>
-                  {install.catalogEntry?.description ?? t('chat.copy.aliasValue0_e4780a7c', { value0: install.alias })}
-                </p>
+                <p>{install.catalogEntry?.description ?? `alias: ${install.alias}`}</p>
                 <div className="bolt-project-extension-card-footer">
-                  <em>{install.enabled ? t('chat.copy.enabled_df174a3f') : t('chat.copy.disabled_f4f4473d')}</em>
+                  <em>{install.enabled ? 'Enabled' : 'Disabled'}</em>
                   <form onSubmit={onSubmit}>
                     <input name="installId" value={install.id} type="hidden" />
                     <input name="extensionAction" value={install.enabled ? 'disable' : 'enable'} type="hidden" />
                     <PanelButton disabled={busy} variant="outline">
-                      {install.enabled ? t('chat.copy.disable_9a7d4e06') : t('chat.copy.enable_20063ad9')}
+                      {install.enabled ? 'Disable' : 'Enable'}
                     </PanelButton>
                   </form>
                   <form onSubmit={onSubmit}>
                     <input name="installId" value={install.id} type="hidden" />
                     <input name="extensionAction" value="remove" type="hidden" />
                     <PanelButton disabled={busy} variant="outline">
-                      {t('chat.copy.remove_e963907d')}
+                      Remove
                     </PanelButton>
                   </form>
                 </div>
@@ -18655,20 +16759,23 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
             ))}
           </div>
         ) : (
-          <div className="bolt-project-empty-panel">{t('chat.copy.noExtensionsInstalledYetInstallOne_d6597fc4')}</div>
+          <div className="bolt-project-empty-panel">
+            No extensions installed yet. Install one from the marketplace below.
+          </div>
         )}
         {legacyInstalled.length ? (
           <p className="bolt-project-extension-legacy-note">
-            {t('chat.copy.legacyWorkspaceExtensionsReadOnly_a2563ac6')}
-            {legacyInstalled.join(', ')}
+            Legacy workspace extensions (read-only): {legacyInstalled.join(', ')}
           </p>
         ) : null}
       </section>
 
-      <section aria-label={t('chat.copy.marketplaceExtensions_c006e268')}>
+      <section aria-label="Marketplace extensions">
         <div className="bolt-project-section-heading">
-          <strong>{t('chat.copy.marketplace_983095c0')}</strong>
-          <span>{t('baseChatAst.counts.extensionsShown', { count: visibleCatalog.length })}</span>
+          <strong>Marketplace</strong>
+          <span>
+            {visibleCatalog.length} extension{visibleCatalog.length === 1 ? '' : 's'} shown
+          </span>
         </div>
         {visibleCatalog.length ? (
           <div className="bolt-project-extension-catalog">
@@ -18684,22 +16791,16 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
                       {String(entry.domain ?? '')
                         .replace(/_/g, ' ')
                         .toLowerCase()}
-                      {entry.verified ? t('chat.copy.verified_5de33a87') : ''}
+                      {entry.verified ? ' · verified' : ''}
                     </span>
                   </div>
                   <p>{entry.description}</p>
                   <div className="bolt-project-extension-card-footer">
-                    <em>
-                      {isInstalled
-                        ? t('chat.copy.installed_7bb4405c')
-                        : t('chat.copy.value0Installs_caea0dc2', { value0: entry.installCount ?? 0 })}
-                    </em>
+                    <em>{isInstalled ? 'Installed' : `${entry.installCount ?? 0} installs`}</em>
                     <form onSubmit={onSubmit}>
                       <input name="extension" value={entry.slug} type="hidden" />
                       <input name="extensionAction" value="install" type="hidden" />
-                      <PanelButton disabled={busy || isInstalled}>
-                        {isInstalled ? t('chat.copy.installed_7bb4405c') : t('chat.copy.install_fd6c3ebf')}
-                      </PanelButton>
+                      <PanelButton disabled={busy || isInstalled}>{isInstalled ? 'Installed' : 'Install'}</PanelButton>
                     </form>
                   </div>
                 </article>
@@ -18709,8 +16810,8 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
         ) : (
           <div className="bolt-project-empty-panel">
             {catalog.length
-              ? t('chat.copy.noExtensionsMatchTheCurrentSearch_98b63cc6')
-              : t('chat.copy.theMcpMarketplaceCatalogIsEmpty_be25c277')}
+              ? 'No extensions match the current search and domain filters.'
+              : 'The MCP marketplace catalog is empty or unavailable.'}
           </div>
         )}
       </section>
@@ -18719,7 +16820,7 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
 }
 
 /** Human duration between a run's start and finish, or null if not finished. */
-function formatRunDuration(language: string, startedAt?: string, finishedAt?: string): string | null {
+function formatRunDuration(startedAt?: string, finishedAt?: string): string | null {
   if (!startedAt || !finishedAt) {
     return null;
   }
@@ -18731,29 +16832,21 @@ function formatRunDuration(language: string, startedAt?: string, finishedAt?: st
   }
 
   if (ms < 1000) {
-    return `${formatBaseChatAstNumber(language, ms)} ms`;
+    return `${ms}ms`;
   }
 
   const seconds = ms / 1000;
 
   if (seconds < 60) {
-    return `${formatBaseChatAstNumber(language, seconds, {
-      minimumFractionDigits: seconds < 10 ? 1 : 0,
-      maximumFractionDigits: seconds < 10 ? 1 : 0,
-    })} s`;
+    return `${seconds.toFixed(seconds < 10 ? 1 : 0)}s`;
   }
 
   const minutes = Math.floor(seconds / 60);
 
-  return `${formatBaseChatAstNumber(language, minutes)} min ${formatBaseChatAstNumber(
-    language,
-    Math.round(seconds % 60),
-  )} s`;
+  return `${minutes}m ${Math.round(seconds % 60)}s`;
 }
 
 function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const state = data.workflowsState ?? {};
 
   const workflows = (state.workflows ?? []).slice().sort((left: any, right: any) => {
@@ -18761,7 +16854,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
       return left.isGenerated ? -1 : 1;
     }
 
-    return String(left.name ?? '').localeCompare(String(right.name ?? ''), language);
+    return String(left.name ?? '').localeCompare(String(right.name ?? ''));
   });
 
   const runs = state.runs ?? [];
@@ -18812,11 +16905,9 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
             <strong>{workflow.name}</strong>
           </button>
           <div>
-            {workflow.isRunButton && <em data-kind="run-button">{t('chat.copy.runButton_d1e247ba')}</em>}
-            {workflow.isGenerated && <em data-kind="generated">{t('chat.copy.generated_8eefdd52')}</em>}
-            {workflow.lastRunStatus && (
-              <em data-status={workflow.lastRunStatus}>{platformStateLabel(t, workflow.lastRunStatus)}</em>
-            )}
+            {workflow.isRunButton && <em data-kind="run-button">Run Button</em>}
+            {workflow.isGenerated && <em data-kind="generated">Generated</em>}
+            {workflow.lastRunStatus && <em data-status={workflow.lastRunStatus}>{workflow.lastRunStatus}</em>}
             <form onSubmit={onSubmit} className="bolt-project-workflow-run-now">
               <input type="hidden" name="intent" value="run-workflow" />
               <input type="hidden" name="workflowId" value={workflow.id} />
@@ -18825,41 +16916,33 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 data-testid={`workflow-run-now-${workflow.id}`}
               >
                 <span className="i-ph:play" aria-hidden />
-                {t('chat.copy.runNow_2af00e23')}
+                Run now
               </PanelButton>
             </form>
           </div>
         </header>
 
         <small>
-          {t('baseChatAst.counts.tasks', { count: tasks.length })} ·{' '}
-          {workflow.executionMode === 'parallel'
-            ? t('chat.copy.parallel_afc12957')
-            : t('chat.copy.sequential_0edc0112')}
-          {workflow.lastRunAt
-            ? t('chat.copy.lastRunValue0_203ff58b', {
-                value0: formatBaseChatAstDateTime(language, workflow.lastRunAt) ?? '',
-              })
-            : ''}
+          {tasks.length} task{tasks.length === 1 ? '' : 's'} · {workflow.executionMode}
+          {workflow.lastRunAt ? ` · last run ${new Date(workflow.lastRunAt).toLocaleString()}` : ''}
         </small>
 
         {workflowRuns.length ? (
           <section className="bolt-project-workflow-runs">
-            <strong>{t('chat.copy.recentRuns_af7051db')}</strong>
+            <strong>Recent runs</strong>
             {workflowRuns.map((run: any) => (
               <details key={run.id} open={run.id === latestRun?.id}>
                 <summary>
-                  <span data-status={run.status}>{platformStateLabel(t, run.status)}</span>
-                  <small>{formatBaseChatAstDateTime(language, run.startedAt)}</small>
-                  {formatRunDuration(language, run.startedAt, run.finishedAt) ? (
+                  <span data-status={run.status}>{run.status}</span>
+                  <small>{new Date(run.startedAt).toLocaleString()}</small>
+                  {formatRunDuration(run.startedAt, run.finishedAt) ? (
                     <small className="bolt-project-workflow-run-meta">
-                      <span className="i-ph:timer" aria-hidden />{' '}
-                      {formatRunDuration(language, run.startedAt, run.finishedAt)}
+                      <span className="i-ph:timer" aria-hidden /> {formatRunDuration(run.startedAt, run.finishedAt)}
                     </small>
                   ) : null}
                   <small className="bolt-project-workflow-run-meta">
                     <span className="i-ph:lightning" aria-hidden />{' '}
-                    {run.trigger === 'schedule' ? t('chat.copy.scheduled_1cd1bdad') : t('chat.copy.manual_4e836fdc')}
+                    {run.trigger === 'schedule' ? 'Scheduled' : 'Manual'}
                   </small>
                 </summary>
                 {Array.isArray(run.steps) && run.steps.length ? (
@@ -18867,13 +16950,10 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                     {run.steps.map((step: any, stepIndex: number) => (
                       <li key={`${step.taskId}-${stepIndex}`} data-status={step.status}>
                         <div className="bolt-project-workflow-run-step-head">
-                          <span data-status={step.status}>{platformStateLabel(t, step.status)}</span>
-                          <code>{step.command || t('chat.copy.noCommand_96ba3230')}</code>
+                          <span data-status={step.status}>{step.status}</span>
+                          <code>{step.command || '(no command)'}</code>
                           {step.exitCode !== null && step.exitCode !== undefined ? (
-                            <small>
-                              {t('chat.copy.exit_de3ac217')}
-                              {step.exitCode}
-                            </small>
+                            <small>exit {step.exitCode}</small>
                           ) : null}
                         </div>
                         {step.outputTail ? <pre>{step.outputTail}</pre> : null}
@@ -18883,7 +16963,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 ) : (
                   <pre>
                     {(run.logs ?? []).map((log: any) => `[${log.level}] ${log.message}`).join('\n') ||
-                      t('chat.copy.noOutputCaptured_6c86d6de')}
+                      'No output captured.'}
                   </pre>
                 )}
               </details>
@@ -18901,17 +16981,17 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 <input type="hidden" name="executionMode" value={workflow.executionMode} />
                 <input type="hidden" name="enabled" value={workflow.enabled === false ? 'false' : 'true'} />
                 <label>
-                  {t('chat.copy.workflow_d7a48414')}
+                  Workflow
                   <PanelInput name="name" defaultValue={workflow.name} data-testid={`workflow-name-${workflow.id}`} />
                 </label>
-                <PanelButton disabled={busy}>{t('chat.copy.save_efc007a3')}</PanelButton>
+                <PanelButton disabled={busy}>Save</PanelButton>
               </form>
               {/* Sequential / Parallel toggle (instant, Replit parity) */}
               <form
                 onSubmit={onSubmit}
                 className="bolt-project-workflow-mode-toggle"
                 role="group"
-                aria-label={t('chat.copy.executionMode_cb9e185b')}
+                aria-label="Execution mode"
               >
                 <input type="hidden" name="intent" value="update-workflow" />
                 <input type="hidden" name="workflowId" value={workflow.id} />
@@ -18926,7 +17006,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                   disabled={busy}
                   data-testid={`workflow-mode-sequential-${workflow.id}`}
                 >
-                  {t('chat.copy.sequential_0edc0112')}
+                  Sequential
                 </button>
                 <button
                   type="submit"
@@ -18937,7 +17017,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                   disabled={busy}
                   data-testid={`workflow-mode-parallel-${workflow.id}`}
                 >
-                  {t('chat.copy.parallel_afc12957')}
+                  Parallel
                 </button>
               </form>
               {/* Schedule (persisted cron + enable toggle + computed nextRunAt). */}
@@ -18949,7 +17029,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 <input type="hidden" name="intent" value="set-schedule" />
                 <input type="hidden" name="workflowId" value={workflow.id} />
                 <label>
-                  {t('chat.copy.scheduleCron_dc5dc87e')}
+                  Schedule (cron)
                   <PanelInput
                     name="cron"
                     defaultValue={workflow.schedule?.cron ?? ''}
@@ -18965,20 +17045,18 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                     defaultChecked={workflow.schedule?.enabled === true}
                     data-testid={`workflow-schedule-enabled-${workflow.id}`}
                   />
-                  {t('chat.copy.enabled_df174a3f')}
+                  Enabled
                 </label>
-                <PanelButton disabled={busy}>{t('chat.copy.saveSchedule_f2202071')}</PanelButton>
+                <PanelButton disabled={busy}>Save schedule</PanelButton>
                 {workflow.schedule?.enabled && workflow.schedule?.nextRunAt ? (
                   <small className="bolt-project-workflow-nextrun" data-testid={`workflow-nextrun-${workflow.id}`}>
-                    {t('chat.copy.nextRun_6c03cbdc')}
-                    {formatBaseChatAstDateTime(language, workflow.schedule.nextRunAt)} (
-                    {workflow.schedule.timezone ?? t('chat.copy.utc_bdfd4d8d')})
+                    Next run {new Date(workflow.schedule.nextRunAt).toLocaleString()} (
+                    {workflow.schedule.timezone ?? 'UTC'})
                   </small>
                 ) : (
                   <small className="bolt-project-workflow-nextrun">
-                    {t('chat.copy.notScheduledEnterACronExpression_4b9e799a')}
-                    <code>0 3 * * *</code>
-                    {t('chat.copy.andEnableItTheSchedulerWill_c6c6f347')}
+                    Not scheduled. Enter a cron expression (e.g. <code>0 3 * * *</code>) and enable it — the scheduler
+                    will actually run it.
                   </small>
                 )}
               </form>
@@ -18990,44 +17068,29 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
               {workflow.scheduledTaskId ? (
                 <div className="bolt-project-workflow-runs" data-testid={`workflow-scheduled-runs-${workflow.id}`}>
                   <div className="bolt-project-workflow-subhead">
-                    <strong>{t('chat.copy.scheduledRuns_8776dc41')}</strong>
+                    <strong>Scheduled runs</strong>
                     <form onSubmit={onSubmit}>
                       <input type="hidden" name="intent" value="run-scheduled-now" />
                       <input type="hidden" name="workflowId" value={workflow.id} />
                       <input type="hidden" name="scheduledTaskId" value={workflow.scheduledTaskId} />
                       <PanelButton disabled={busy} data-testid={`workflow-run-now-${workflow.id}`}>
-                        {t('chat.copy.runNow_2af00e23')}
+                        Run now
                       </PanelButton>
                     </form>
                   </div>
                   {(workflow.scheduledRuns ?? []).length === 0 ? (
-                    <small>{t('chat.copy.noRunsYetTheFirstOne_ba1ed340')}</small>
+                    <small>No runs yet. The first one will appear here after the schedule fires.</small>
                   ) : (
                     <ul className="bolt-project-workflow-run-list">
                       {(workflow.scheduledRuns ?? []).map((run: any) => (
                         <li key={run.id} data-testid={`workflow-scheduled-run-${run.id}`} data-status={run.status}>
-                          <span className="bolt-project-workflow-run-status">{platformStateLabel(t, run.status)}</span>
-                          <span>{formatBaseChatAstDateTime(language, run.startedAt)}</span>
-                          <span>
-                            {run.durationMs == null
-                              ? '—'
-                              : t('chat.copy.value0S_659ddab8', {
-                                  value0: formatBaseChatAstNumber(language, Math.round(run.durationMs / 100) / 10),
-                                })}
-                          </span>
-                          <span>
-                            {run.exitCode == null ? '' : t('chat.copy.exitValue0_2ccaa3a9', { value0: run.exitCode })}
-                          </span>
-                          <span>
-                            {run.trigger === 'manual' ? t('chat.copy.manual_b363713a') : t('chat.copy.cron_02f91914')}
-                          </span>
-                          <span title={t('chat.copy.billedComputeForThisRun_41d5a36e')}>
-                            {run.costCents == null
-                              ? ''
-                              : `${formatBaseChatAstNumber(language, run.costCents, {
-                                  minimumFractionDigits: 4,
-                                  maximumFractionDigits: 4,
-                                })} ¢`}
+                          <span className="bolt-project-workflow-run-status">{run.status}</span>
+                          <span>{new Date(run.startedAt).toLocaleString()}</span>
+                          <span>{run.durationMs == null ? '—' : `${Math.round(run.durationMs / 100) / 10}s`}</span>
+                          <span>{run.exitCode == null ? '' : `exit ${run.exitCode}`}</span>
+                          <span>{run.trigger === 'manual' ? 'manual' : 'cron'}</span>
+                          <span title="Billed compute for this run">
+                            {run.costCents == null ? '' : `${run.costCents.toFixed(4)}¢`}
                           </span>
                         </li>
                       ))}
@@ -19035,10 +17098,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                   )}
                   {workflow.latestScheduledRun?.logs ? (
                     <details data-testid={`workflow-scheduled-logs-${workflow.id}`}>
-                      <summary>
-                        {t('chat.copy.logsLatestRun_b1c6c18a')}
-                        {platformStateLabel(t, workflow.latestScheduledRun.status)})
-                      </summary>
+                      <summary>Logs — latest run ({workflow.latestScheduledRun.status})</summary>
                       <pre className="bolt-project-workflow-run-logs">{workflow.latestScheduledRun.logs}</pre>
                     </details>
                   ) : null}
@@ -19048,12 +17108,8 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
 
             <div className="bolt-project-workflow-task-list">
               <div className="bolt-project-workflow-subhead">
-                <strong>{t('chat.copy.tasks_090ec5f5')}</strong>
-                <span>
-                  {workflow.executionMode === 'parallel'
-                    ? t('chat.copy.runTogether_8eab02f9')
-                    : t('chat.copy.runInOrder_56733fe3')}
-                </span>
+                <strong>Tasks</strong>
+                <span>{workflow.executionMode === 'parallel' ? 'Run together' : 'Run in order'}</span>
               </div>
               {tasks.map((task: any, index: number) => (
                 <article
@@ -19082,7 +17138,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                   {/* Drag handle — reorder by dragging (Replit parity), not just Up/Down. */}
                   <span
                     className="bolt-project-workflow-task-drag i-ph:dots-six-vertical"
-                    aria-label={t('chat.copy.dragToReorder_e7541faf')}
+                    aria-label="Drag to reorder"
                     role="button"
                     draggable
                     onDragStart={(event) => {
@@ -19103,9 +17159,9 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                       data-testid={`task-type-${task.id}`}
                       onChange={(event) => event.currentTarget.form?.requestSubmit()}
                     >
-                      <option value="shell">{t('chat.copy.executeShellCommand_ded81fd3')}</option>
-                      <option value="packages">{t('chat.copy.installPackages_b0907ce4')}</option>
-                      <option value="workflow">{t('chat.copy.runWorkflow_f59d958d')}</option>
+                      <option value="shell">Execute Shell Command</option>
+                      <option value="packages">Install Packages</option>
+                      <option value="workflow">Run Workflow</option>
                     </select>
                   </form>
                   {/* Type-specific control + Save. */}
@@ -19120,7 +17176,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                         defaultValue={task.command || `${packageManager} install`}
                         data-testid={`task-packages-${task.id}`}
                       >
-                        <option value={`${packageManager} install`}>{t('chat.copy.all_d87c4480')}</option>
+                        <option value={`${packageManager} install`}>all</option>
                         {dependencies
                           .filter((dep) => dep?.name)
                           .map((dep) => (
@@ -19131,7 +17187,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                       </select>
                     ) : task.taskType === 'workflow' ? (
                       <select name="targetWorkflowId" defaultValue={task.targetWorkflowId ?? ''}>
-                        <option value="">{t('chat.copy.noTargetWorkflow_eb5ef507')}</option>
+                        <option value="">No target workflow</option>
                         {workflows
                           .filter((item: any) => item.id !== workflow.id)
                           .map((item: any) => (
@@ -19144,29 +17200,24 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                       <PanelInput
                         name="command"
                         defaultValue={task.command ?? ''}
-                        placeholder={t('chat.copy.npmRunDev_4eedebe9')}
+                        placeholder="npm run dev"
                         data-testid={`task-command-${task.id}`}
                       />
                     )}
-                    <PanelButton disabled={busy}>{t('chat.copy.save_efc007a3')}</PanelButton>
+                    <PanelButton disabled={busy}>Save</PanelButton>
                   </form>
                   {/* Trash (Replit parity). */}
                   <ConfirmSubmitForm
                     onSubmit={onSubmit}
-                    title={t('chat.copy.removeThisTask_0eb078df')}
-                    description={t('chat.copy.theTaskIsRemovedFromThe_42e10863')}
-                    confirmLabel={t('baseChatAst.workflows.removeTask')}
+                    title="Remove this task?"
+                    description="The task is removed from the workflow. This cannot be undone."
+                    confirmLabel="Remove task"
                     className="bolt-project-workflow-task-delete"
                   >
                     <input type="hidden" name="intent" value="delete-task" />
                     <input type="hidden" name="workflowId" value={workflow.id} />
                     <input type="hidden" name="taskId" value={task.id} />
-                    <button
-                      type="submit"
-                      disabled={busy}
-                      aria-label={t('chat.copy.deleteTask_9ad9dc2d')}
-                      title={t('chat.copy.deleteTask_9ad9dc2d')}
-                    >
+                    <button type="submit" disabled={busy} aria-label="Delete task" title="Delete task">
                       <span className="i-ph:trash" aria-hidden />
                     </button>
                   </ConfirmSubmitForm>
@@ -19179,11 +17230,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                   </form>
                 </article>
               ))}
-              {!tasks.length && (
-                <div className="bolt-project-empty-panel">
-                  {t('chat.copy.noTasksConfiguredForThisWorkflow_e345761c')}
-                </div>
-              )}
+              {!tasks.length && <div className="bolt-project-empty-panel">No tasks configured for this workflow.</div>}
             </div>
 
             <div className="bolt-project-workflow-add-task">
@@ -19193,7 +17240,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 <input type="hidden" name="taskType" value="shell" />
                 <PanelButton disabled={busy} variant="outline" data-testid={`add-task-${workflow.id}`}>
                   <span className="i-ph:plus" aria-hidden />
-                  {t('chat.copy.addTask_24700e60')}
+                  Add task
                 </PanelButton>
               </form>
             </div>
@@ -19203,22 +17250,20 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 <input type="hidden" name="intent" value="set-run-button" />
                 <input type="hidden" name="workflowId" value={workflow.id} />
                 <PanelButton disabled={busy || workflow.isRunButton} variant="outline">
-                  {workflow.isRunButton
-                    ? t('chat.copy.assignedToRunButton_029605f0')
-                    : t('chat.copy.assignToRunButton_8208483f')}
+                  {workflow.isRunButton ? 'Assigned to Run Button' : 'Assign to Run Button'}
                 </PanelButton>
               </form>
               {!workflow.isSystem && (
                 <ConfirmSubmitForm
                   onSubmit={onSubmit}
-                  title={t('chat.copy.deleteWorkflowValue0_7521eaaf', { value0: workflow.name ?? workflow.id })}
-                  description={t('chat.copy.theWorkflowAndItsTasksAre_d3966253')}
-                  confirmLabel={t('baseChatAst.workflows.delete')}
+                  title={`Delete workflow "${workflow.name ?? workflow.id}"?`}
+                  description="The workflow and its tasks are deleted. This cannot be undone."
+                  confirmLabel="Delete workflow"
                 >
                   <input type="hidden" name="intent" value="delete-workflow" />
                   <input type="hidden" name="workflowId" value={workflow.id} />
                   <PanelButton disabled={busy} variant="outline">
-                    {t('chat.copy.deleteWorkflow_0edaeb8e')}
+                    Delete Workflow
                   </PanelButton>
                 </ConfirmSubmitForm>
               )}
@@ -19233,15 +17278,15 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
     <div className="bolt-project-workflows-tool" data-testid="workflows-panel">
       <header className="bolt-project-workflows-head">
         <div>
-          <h3>{t('chat.copy.workflows_825ce9e9')}</h3>
+          <h3>Workflows</h3>
           <p>
-            {t('chat.copy.projectAutomationRunsAgainstTheActive_bec66266')}
+            Project automation runs against the active isolated workspace
             {workspace?.id ? ` (${workspace.id})` : ''}.
           </p>
         </div>
         <button type="button" onClick={() => setCreateOpen((value) => !value)} data-testid="new-workflow-button">
           <span className="i-ph:plus" aria-hidden />
-          {t('chat.copy.newWorkflow_c1418c2d')}
+          New Workflow
         </button>
       </header>
 
@@ -19249,14 +17294,14 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
         <label>
           <span className="i-ph:magnifying-glass" aria-hidden />
           <input
-            placeholder={t('chat.copy.searchForAWorkflow_77008afd')}
+            placeholder="Search for a workflow..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             data-testid="search-workflows"
           />
         </label>
         <a href="/docs" target="_blank" rel="noreferrer">
-          {t('chat.copy.configureWorkflows_20afd690')}
+          Configure workflows
           <span className="i-ph:arrow-square-out" aria-hidden />
         </a>
       </div>
@@ -19264,31 +17309,18 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
       {createOpen && (
         <form onSubmit={onSubmit} className="bolt-project-workflow-create" data-testid="create-workflow-form">
           <input type="hidden" name="intent" value="create-workflow" />
-          <PanelInput
-            name="name"
-            placeholder={t('chat.copy.myWorkflow_c637a95c')}
-            required
-            data-testid="workflow-name-input"
-          />
+          <PanelInput name="name" placeholder="My Workflow" required data-testid="workflow-name-input" />
           <select name="executionMode" defaultValue="sequential">
-            <option value="sequential">{t('chat.copy.sequential_0edc0112')}</option>
-            <option value="parallel">{t('chat.copy.parallel_afc12957')}</option>
+            <option value="sequential">Sequential</option>
+            <option value="parallel">Parallel</option>
           </select>
-          <PanelInput name="command" placeholder={t('chat.copy.npmRunDev_4eedebe9')} defaultValue="npm run dev" />
-          <PanelButton disabled={busy}>{t('chat.copy.createWorkflow_b2c26d5c')}</PanelButton>
+          <PanelInput name="command" placeholder="npm run dev" defaultValue="npm run dev" />
+          <PanelButton disabled={busy}>Create Workflow</PanelButton>
         </form>
       )}
 
-      <WorkflowSection
-        title={t('chat.copy.agentWorkflows_fb8c5af7')}
-        items={agentWorkflows}
-        empty={t('baseChatAst.workflows.noAgent')}
-      />
-      <WorkflowSection
-        title={t('chat.copy.myWorkflows_681b11f1')}
-        items={userWorkflows}
-        empty={t('baseChatAst.workflows.noCustom')}
-      />
+      <WorkflowSection title="Agent Workflows" items={agentWorkflows} empty="No agent workflows yet." />
+      <WorkflowSection title="My Workflows" items={userWorkflows} empty="No custom workflows yet." />
     </div>
   );
 }
@@ -19300,7 +17332,6 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
  * provisions AUTH_JWT_SECRET). Self-contained; shows the written files + wiring.
  */
 function AddAuthenticationCard({ projectId }: { projectId?: string }) {
-  const { t } = useTranslation();
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ scaffolded?: string[]; skipped?: string[]; error?: string } | null>(null);
 
@@ -19323,39 +17354,26 @@ function AddAuthenticationCard({ projectId }: { projectId?: string }) {
       };
 
       if (!response.ok || payload.error) {
-        console.warn('Authentication scaffold request failed', {
-          status: response.status,
-          serverError: payload.error,
-        });
-        setResult({
-          error: response.ok
-            ? t('baseChatAst.authScaffold.failed')
-            : t('baseChatAst.authScaffold.failedHttp', { status: response.status }),
-        });
+        setResult({ error: payload.error ?? 'Could not add authentication.' });
       } else {
         setResult({ scaffolded: payload.scaffolded ?? [], skipped: payload.skipped ?? [] });
       }
-    } catch (error) {
-      console.error('Authentication scaffold request failed', error);
-      setResult({ error: t('baseChatAst.authScaffold.unreachable') });
+    } catch {
+      setResult({ error: 'Could not reach the auth scaffold service.' });
     } finally {
       setBusy(false);
     }
-  }, [projectId, t]);
+  }, [projectId]);
 
   return (
     <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-            {t('chat.copy.addAuthentication_2855841d')}
-          </h3>
+          <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Add Authentication</h3>
           <p className="text-xs text-bolt-elements-textSecondary">
-            {t('chat.copy.scaffoldRealEmailPasswordAuthInto_9954f11b')}
-            <code>users</code>
-            {t('chat.copy.tableMigrationAnExpressSessionJwt_120a5fe5')}
-            <code>AUTH_JWT_SECRET</code>
-            {t('chat.copy.forYou_c10f85ac')}
+            Scaffold real email/password auth into this app — a <code>users</code> table migration, an Express
+            session/JWT router (signup / login / logout / me), and a login page — backed by your project Postgres.
+            Idempotent; sets <code>AUTH_JWT_SECRET</code> for you.
           </p>
         </div>
         <button
@@ -19364,7 +17382,7 @@ function AddAuthenticationCard({ projectId }: { projectId?: string }) {
           disabled={busy || !projectId}
           className="shrink-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1 disabled:opacity-60"
         >
-          {busy ? t('chat.copy.adding_ffb2e628') : t('chat.copy.addAuthentication_2855841d')}
+          {busy ? 'Adding…' : 'Add Authentication'}
         </button>
       </div>
       {result?.error ? <p className="text-xs text-bolt-elements-item-contentDanger">{result.error}</p> : null}
@@ -19372,18 +17390,15 @@ function AddAuthenticationCard({ projectId }: { projectId?: string }) {
         <div className="text-xs text-bolt-elements-textSecondary">
           {result.scaffolded?.length ? (
             <>
-              <span className="text-[var(--status-success-text)]">{t('chat.copy.added_0ae84aa1')}</span>{' '}
-              <span className="font-mono">{result.scaffolded.join(', ')}</span>
-              {t('chat.copy.next_8bbb03ad')}{' '}
-              <span className="font-mono">{t('chat.copy.npmIPgBcryptjsJsonwebtokenCookie_479d8370')}</span>
-              {t('chat.copy.runTheMigrationThen_e18920e3')}{' '}
-              <span className="font-mono">{t('chat.copy.appUseRequireAuthRouter_86b3c0e7')}</span>
-              {t('chat.copy.seeAuthReadmeMd_b0365c1e')}
+              <span className="text-[var(--status-success-text)]">Added:</span>{' '}
+              <span className="font-mono">{result.scaffolded.join(', ')}</span>. Next:{' '}
+              <span className="font-mono">npm i pg bcryptjs jsonwebtoken cookie-parser</span>, run the migration, then{' '}
+              <span className="font-mono">app.use(require(&apos;./auth&apos;).router)</span> (see auth/README.md).
             </>
           ) : (
             <span>
-              {t('chat.copy.alreadyScaffoldedAuthFilesAlreadyExist_6ffb7ffc')}
-              {result.skipped?.length ? t('chat.copy.value0Files_756fd7e6', { value0: result.skipped.length }) : ''}.
+              Already scaffolded — auth files already exist
+              {result.skipped?.length ? ` (${result.skipped.length} files)` : ''}.
             </span>
           )}
         </div>
@@ -19403,7 +17418,6 @@ function ProjectIntegrationsPanel({
   onSubmit: any;
   busy: boolean;
 }) {
-  const { t } = useTranslation();
   const state = data.integrationsState ?? {};
   const integrationState = state.integrations ?? {};
   const webhooks = state.webhooks ?? [];
@@ -19421,7 +17435,7 @@ function ProjectIntegrationsPanel({
   const catalog = INTEGRATION_CATALOG.map(([id, name, description, itemCategory, icon]) => ({
     id,
     name,
-    description: t(description),
+    description,
     category: itemCategory,
     icon,
     ...(integrationState[id] ?? {}),
@@ -19442,32 +17456,26 @@ function ProjectIntegrationsPanel({
     return status === 'error' ? 'error' : status === 'syncing' ? 'syncing' : status === 'active' ? 'active' : 'idle';
   }
 
-  function integrationCategoryLabel(categoryId?: string) {
-    const categoryEntry = INTEGRATION_CATEGORIES.find(([id]) => id === categoryId);
-
-    return categoryEntry ? t(categoryEntry[1]) : (categoryId ?? '');
-  }
-
   return (
     <div className="bolt-project-integrations-tool" data-testid="integrations-panel">
       <AddAuthenticationCard projectId={projectId} />
       <header className="bolt-project-integrations-head">
         <div>
-          <h3>{t('chat.copy.integrationHub_689b11c8')}</h3>
-          <p>{t('chat.copy.connectProjectToolsWebhooksApiKeys_8c15c5e1')}</p>
+          <h3>Integration Hub</h3>
+          <p>Connect project tools, webhooks, API keys and event streams through backend-persisted project config.</p>
         </div>
         <div className="bolt-project-integrations-actions">
           <button type="button" onClick={() => setShowApiKeyForm((value) => !value)}>
             <span className="i-ph:key" aria-hidden />
-            {t('chat.copy.apiKeys_e18ffc8d')}
+            API Keys
           </button>
           <button type="button" onClick={() => setShowWebhookForm((value) => !value)}>
             <span className="i-ph:webhooks-logo" aria-hidden />
-            {t('chat.copy.webhooks_fdfe2da7')}
+            Webhooks
           </button>
           <button type="button" onClick={() => setShowStreamForm((value) => !value)}>
             <span className="i-ph:broadcast" aria-hidden />
-            {t('chat.copy.eventStreaming_d053a572')}
+            Event Streaming
           </button>
         </div>
       </header>
@@ -19475,7 +17483,7 @@ function ProjectIntegrationsPanel({
       <div className="bolt-project-integrations-layout">
         <aside className="bolt-project-integrations-sidebar">
           <section>
-            <h4>{t('chat.copy.categories_6ccb6007')}</h4>
+            <h4>Categories</h4>
             {INTEGRATION_CATEGORIES.map(([id, label, icon]) => {
               const count = id === 'all' ? catalog.length : catalog.filter((item) => item.category === id).length;
 
@@ -19487,14 +17495,14 @@ function ProjectIntegrationsPanel({
                   onClick={() => setCategory(id)}
                 >
                   <span className={icon} aria-hidden />
-                  <span>{t(label)}</span>
+                  <span>{label}</span>
                   <em>{count}</em>
                 </button>
               );
             })}
           </section>
           <section>
-            <h4>{t('chat.copy.connected_c2f9b7b4')}</h4>
+            <h4>Connected</h4>
             <strong>{connected.length}</strong>
             <div className="bolt-project-integrations-connected-list">
               {connected.slice(0, 10).map((item) => (
@@ -19504,7 +17512,7 @@ function ProjectIntegrationsPanel({
                   <i data-status={statusClass(item.status)} />
                 </button>
               ))}
-              {!connected.length && <small>{t('chat.copy.noConnectedIntegrationsYet_23fcaf4d')}</small>}
+              {!connected.length && <small>No connected integrations yet.</small>}
             </div>
           </section>
         </aside>
@@ -19512,10 +17520,10 @@ function ProjectIntegrationsPanel({
         <main className="bolt-project-integrations-main">
           <div className="bolt-project-integrations-tabs">
             {[
-              ['browse', t('baseChatAst.integrations.browse')],
-              ['connected', t('chat.copy.connectedValue0_0b1b1081', { value0: connected.length })],
-              ['webhooks', t('chat.copy.webhooksValue0_598b5795', { value0: webhooks.length })],
-              ['api-keys', t('chat.copy.apiKeysValue0_41fce3bd', { value0: apiKeys.length })],
+              ['browse', 'Browse All'],
+              ['connected', `Connected (${connected.length})`],
+              ['webhooks', `Webhooks (${webhooks.length})`],
+              ['api-keys', `API Keys (${apiKeys.length})`],
             ].map(([id, label]) => (
               <button
                 key={id}
@@ -19529,7 +17537,7 @@ function ProjectIntegrationsPanel({
             <label>
               <span className="i-ph:magnifying-glass" aria-hidden />
               <input
-                placeholder={t('chat.copy.searchIntegrations_febbd60d')}
+                placeholder="Search integrations..."
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
               />
@@ -19549,21 +17557,21 @@ function ProjectIntegrationsPanel({
               >
                 <strong>
                   {selected.connected
-                    ? t('chat.copy.value0CurrentlyHasAccessTo_25db6291', { value0: selected.name })
-                    : t('chat.copy.beforeYouConnectValue0WillBe_513f1b91', { value0: selected.name })}
+                    ? `${selected.name} currently has access to:`
+                    : `Before you connect, ${selected.name} will be able to:`}
                 </strong>
                 <ul>
                   {integrationPermissions(selected.category).map((permission: string) => (
                     <li key={permission}>
                       <span className="i-ph:check-circle" aria-hidden />
-                      {t(permission)}
+                      {permission}
                     </li>
                   ))}
                 </ul>
                 <small>
                   {selected.connected
-                    ? t('chat.copy.revokingRemovesTheStoredTokenAnd_2da0fa0d')
-                    : t('chat.copy.youCanRevokeThisAccessAt_76f2b594')}
+                    ? 'Revoking removes the stored token and stops all syncs immediately.'
+                    : 'You can revoke this access at any time.'}
                 </small>
               </div>
               <form onSubmit={onSubmit}>
@@ -19571,48 +17579,32 @@ function ProjectIntegrationsPanel({
                 <input type="hidden" name="integrationId" value={selected.id} />
                 {selected.connected ? null : (
                   <>
-                    <PanelInput
-                      name="apiToken"
-                      type="password"
-                      placeholder={t('chat.copy.apiTokenOauthTokenOrApp_76acb24f')}
-                    />
+                    <PanelInput name="apiToken" type="password" placeholder="API token, OAuth token or app password" />
                     <PanelInput
                       name="organization"
-                      placeholder={t('chat.copy.organizationOrWorkspace_f81f84d0')}
+                      placeholder="Organization or workspace"
                       defaultValue={selected.config?.organization ?? ''}
                     />
                   </>
                 )}
                 <PanelButton disabled={busy} variant={selected.connected ? 'outline' : undefined}>
-                  {selected.connected
-                    ? t('chat.copy.revokeAccess_094386f6', {})
-                    : t('chat.copy.connectValue0_521bd823', { value0: selected.name })}
+                  {selected.connected ? `Revoke access` : `Connect ${selected.name}`}
                 </PanelButton>
               </form>
               <PanelRows
                 rows={[
+                  ['Status', selected.connected ? (selected.status ?? 'active') : 'Not connected'],
+                  ['Last sync', selected.lastSync ? new Date(selected.lastSync).toLocaleString() : 'Never'],
                   [
-                    t('baseChatAst.common.status'),
-                    selected.connected
-                      ? platformStateLabel(t, selected.status ?? 'active')
-                      : t('baseChatAst.status.notConnected'),
-                  ],
-                  [
-                    t('baseChatAst.integrations.lastSync'),
-                    selected.lastSync
-                      ? (formatBaseChatAstDateTime(language, selected.lastSync) ?? t('baseChatAst.status.never'))
-                      : t('baseChatAst.status.never'),
-                  ],
-                  [
-                    t('baseChatAst.integrations.secretStored'),
+                    'Secret stored',
                     secretKeys.has(`INTEGRATION_TOKEN_${selected.id.toUpperCase().replace(/[^A-Z0-9_]/g, '_')}`)
-                      ? t('baseChatAst.status.yes')
-                      : t('baseChatAst.status.noToken'),
+                      ? 'Yes'
+                      : 'No token stored',
                   ],
                 ]}
               />
               <button type="button" onClick={() => setSelectedIntegrationId(null)}>
-                {t('chat.copy.closeConfiguration_0675f715')}
+                Close configuration
               </button>
             </section>
           ) : null}
@@ -19627,18 +17619,16 @@ function ProjectIntegrationsPanel({
                       <strong>{item.name}</strong>
                       <p>{item.description}</p>
                     </div>
-                    {item.connected && (
-                      <em data-status={statusClass(item.status)}>{platformStateLabel(t, item.status ?? 'active')}</em>
-                    )}
+                    {item.connected && <em data-status={statusClass(item.status)}>{item.status ?? 'active'}</em>}
                   </div>
                   <footer>
-                    <small>{integrationCategoryLabel(item.category)}</small>
+                    <small>{item.category}</small>
                     <button
                       type="button"
                       onClick={() => setSelectedIntegrationId(item.id)}
                       data-testid={`button-connect-${item.id}`}
                     >
-                      {item.connected ? t('chat.copy.manage_bf58d17e') : t('chat.copy.connect_b65463cb')}
+                      {item.connected ? 'Manage' : 'Connect'}
                     </button>
                   </footer>
                 </article>
@@ -19654,22 +17644,18 @@ function ProjectIntegrationsPanel({
                   <div>
                     <strong>{item.name}</strong>
                     <small>
-                      {item.lastSync
-                        ? t('chat.copy.lastSyncValue0_f4f23a01', {
-                            value0: formatBaseChatAstDateTime(language, item.lastSync) ?? '',
-                          })
-                        : t('chat.copy.noSyncYet_d2ba97a9')}
+                      {item.lastSync ? `Last sync: ${new Date(item.lastSync).toLocaleString()}` : 'No sync yet'}
                     </small>
                   </div>
                   <form onSubmit={onSubmit}>
                     <input type="hidden" name="intent" value="sync" />
                     <input type="hidden" name="integrationId" value={item.id} />
                     <PanelButton disabled={busy} variant="outline">
-                      {t('chat.copy.sync_905f6309')}
+                      Sync
                     </PanelButton>
                   </form>
                   <button type="button" onClick={() => setSelectedIntegrationId(item.id)}>
-                    {t('chat.copy.configure_792c81a4')}
+                    Configure
                   </button>
                 </article>
               ))}
@@ -19677,9 +17663,9 @@ function ProjectIntegrationsPanel({
                 <EmptyState
                   variant="compact"
                   icon="i-ph:plugs-connected"
-                  title={t('chat.copy.noConnectedIntegrations_b428bc03')}
-                  description={t('chat.copy.connectAServiceToSyncData_643c4e95')}
-                  actionLabel={t('baseChatAst.integrations.browse')}
+                  title="No connected integrations"
+                  description="Connect a service to sync data and automate your project."
+                  actionLabel="Browse integrations"
                   onAction={() => setActiveTab('browse')}
                 />
               )}
@@ -19690,29 +17676,21 @@ function ProjectIntegrationsPanel({
             <section className="bolt-project-integrations-list" data-testid="card-webhooks-list">
               <div className="bolt-project-integrations-section-head">
                 <div>
-                  <strong>{t('chat.copy.webhooks_fdfe2da7')}</strong>
-                  <small>{t('chat.copy.outgoingEndpointsPersistedInProjectBackend_e4b52238')}</small>
+                  <strong>Webhooks</strong>
+                  <small>Outgoing endpoints persisted in project backend config.</small>
                 </div>
                 <button type="button" onClick={() => setShowWebhookForm((value) => !value)}>
-                  {t('chat.copy.createWebhook_0e738ec3')}
+                  Create Webhook
                 </button>
               </div>
               {showWebhookForm && (
                 <form onSubmit={onSubmit} className="bolt-project-integrations-form">
                   <input type="hidden" name="intent" value="create-webhook" />
-                  <PanelInput name="name" placeholder={t('chat.copy.deploymentNotifications_d741eccf')} required />
-                  <PanelInput name="url" placeholder={t('chat.copy.httpsExampleComWebhook_251ba43c')} required />
-                  <PanelInput
-                    name="secret"
-                    type="password"
-                    placeholder={t('chat.copy.webhookSigningSecret_4d07255a')}
-                  />
-                  <PanelInput
-                    name="events"
-                    placeholder={t('chat.copy.deploySuccessDeployFail_2b41724e')}
-                    defaultValue="all"
-                  />
-                  <PanelButton disabled={busy}>{t('chat.copy.createWebhook_0e738ec3')}</PanelButton>
+                  <PanelInput name="name" placeholder="Deployment Notifications" required />
+                  <PanelInput name="url" placeholder="https://example.com/webhook" required />
+                  <PanelInput name="secret" type="password" placeholder="Webhook signing secret" />
+                  <PanelInput name="events" placeholder="deploy.success,deploy.fail" defaultValue="all" />
+                  <PanelButton disabled={busy}>Create Webhook</PanelButton>
                 </form>
               )}
               {webhooks.map((webhook: any) => (
@@ -19722,9 +17700,7 @@ function ProjectIntegrationsPanel({
                     <strong>{webhook.name}</strong>
                     <small>{webhook.url}</small>
                     <small>
-                      {(webhook.events ?? []).join(', ')} ·{' '}
-                      {formatBaseChatAstNumber(language, webhook.successRate ?? 100)}
-                      {t('chat.copy.success_319e54bc')}
+                      {(webhook.events ?? []).join(', ')} · {webhook.successRate ?? 100}% success
                     </small>
                   </div>
                   <form onSubmit={onSubmit}>
@@ -19732,14 +17708,14 @@ function ProjectIntegrationsPanel({
                     <input type="hidden" name="webhookId" value={webhook.id} />
                     <input type="hidden" name="active" value={webhook.active ? 'false' : 'true'} />
                     <PanelButton disabled={busy} variant="outline">
-                      {webhook.active ? t('chat.copy.pause_781961bc') : t('chat.copy.resume_b3bd0b5a')}
+                      {webhook.active ? 'Pause' : 'Resume'}
                     </PanelButton>
                   </form>
                   <form onSubmit={onSubmit}>
                     <input type="hidden" name="intent" value="delete-webhook" />
                     <input type="hidden" name="webhookId" value={webhook.id} />
                     <PanelButton disabled={busy} variant="outline">
-                      {t('chat.copy.delete_f6fdbe48')}
+                      Delete
                     </PanelButton>
                   </form>
                 </article>
@@ -19748,9 +17724,9 @@ function ProjectIntegrationsPanel({
                 <EmptyState
                   variant="compact"
                   icon="i-ph:webhooks-logo"
-                  title={t('chat.copy.noWebhooksConfigured_8cb1dd66')}
-                  description={t('chat.copy.sendProjectEventsToAnOutgoing_18c07ece')}
-                  actionLabel={t('baseChatAst.integrations.createWebhook')}
+                  title="No webhooks configured"
+                  description="Send project events to an outgoing endpoint."
+                  actionLabel="Create webhook"
                   onAction={() => setShowWebhookForm(true)}
                 />
               )}
@@ -19761,35 +17737,35 @@ function ProjectIntegrationsPanel({
             <section className="bolt-project-integrations-list" data-testid="card-api-keys-list">
               <div className="bolt-project-integrations-section-head">
                 <div>
-                  <strong>{t('chat.copy.apiKeys_e18ffc8d')}</strong>
-                  <small>{t('chat.copy.secretsAreStoredInTheBackend_e0a856a4')}</small>
+                  <strong>API Keys</strong>
+                  <small>Secrets are stored in the backend secret store; only prefixes are shown here.</small>
                 </div>
                 <button type="button" onClick={() => setShowApiKeyForm((value) => !value)}>
-                  {t('chat.copy.createApiKey_b68d55de')}
+                  Create API Key
                 </button>
               </div>
               {showApiKeyForm && (
                 <form onSubmit={onSubmit} className="bolt-project-integrations-form">
                   <input type="hidden" name="intent" value="create-api-key" />
-                  <PanelInput name="name" placeholder={t('chat.copy.productionApiKey_43fad6cd')} required />
+                  <PanelInput name="name" placeholder="Production API Key" required />
                   <select name="permissions" defaultValue="read,write">
-                    <option value="read">{t('chat.copy.readOnly_2a6216ee')}</option>
-                    <option value="read,write">{t('chat.copy.readWrite_7c0d355c')}</option>
-                    <option value="read,write,admin">{t('chat.copy.admin_4e7afebc')}</option>
-                    <option value="read,deploy">{t('chat.copy.deploy_fb4192a0')}</option>
+                    <option value="read">Read Only</option>
+                    <option value="read,write">Read & Write</option>
+                    <option value="read,write,admin">Admin</option>
+                    <option value="read,deploy">Deploy</option>
                   </select>
                   <select name="environment" defaultValue="development">
-                    <option value="development">{t('chat.copy.development_4c17aadf')}</option>
-                    <option value="production">{t('chat.copy.production_df70fc79')}</option>
-                    <option value="ci">{t('chat.copy.ciCd_25ef1b43')}</option>
+                    <option value="development">Development</option>
+                    <option value="production">Production</option>
+                    <option value="ci">CI/CD</option>
                   </select>
                   <select name="expiration" defaultValue="never">
-                    <option value="30">{t('chat.copy.30Days_7d4278a8')}</option>
-                    <option value="90">{t('chat.copy.90Days_170621ac')}</option>
-                    <option value="365">{t('chat.copy.1Year_afe36da6')}</option>
-                    <option value="never">{t('chat.copy.never_80c3052d')}</option>
+                    <option value="30">30 days</option>
+                    <option value="90">90 days</option>
+                    <option value="365">1 year</option>
+                    <option value="never">Never</option>
                   </select>
-                  <PanelButton disabled={busy}>{t('chat.copy.generateKey_174bfb65')}</PanelButton>
+                  <PanelButton disabled={busy}>Generate Key</PanelButton>
                 </form>
               )}
               {apiKeys.map((apiKey: any) => (
@@ -19800,18 +17776,14 @@ function ProjectIntegrationsPanel({
                     <small>{apiKey.prefix}••••••••••••••••••••</small>
                     <small>
                       {(apiKey.permissions ?? []).join(', ')}
-                      {apiKey.expiresAt
-                        ? t('chat.copy.expiresValue0_db310163', {
-                            value0: formatBaseChatAstDate(language, apiKey.expiresAt) ?? '',
-                          })
-                        : ''}
+                      {apiKey.expiresAt ? ` · expires ${new Date(apiKey.expiresAt).toLocaleDateString()}` : ''}
                     </small>
                   </div>
                   <form onSubmit={onSubmit}>
                     <input type="hidden" name="intent" value="revoke-api-key" />
                     <input type="hidden" name="apiKeyId" value={apiKey.id} />
                     <PanelButton disabled={busy} variant="outline">
-                      {t('chat.copy.revoke_0be72075')}
+                      Revoke
                     </PanelButton>
                   </form>
                 </article>
@@ -19820,9 +17792,9 @@ function ProjectIntegrationsPanel({
                 <EmptyState
                   variant="compact"
                   icon="i-ph:key"
-                  title={t('chat.copy.noApiKeysCreated_f68337b0')}
-                  description={t('chat.copy.generateAKeyToAccessThis_c2e35480')}
-                  actionLabel={t('baseChatAst.integrations.createApiKey')}
+                  title="No API keys created"
+                  description="Generate a key to access this project programmatically."
+                  actionLabel="Create API key"
                   onAction={() => setShowApiKeyForm(true)}
                 />
               )}
@@ -19832,26 +17804,26 @@ function ProjectIntegrationsPanel({
           <section className="bolt-project-integrations-streams" data-testid="dialog-event-streaming">
             <div className="bolt-project-integrations-section-head">
               <div>
-                <strong>{t('chat.copy.eventStreaming_d053a572')}</strong>
-                <small>{t('chat.copy.streamsAreProjectScopedAndBacked_3cc6a996')}</small>
+                <strong>Event Streaming</strong>
+                <small>Streams are project-scoped and backed by the same persisted integration state.</small>
               </div>
               <button type="button" onClick={() => setShowStreamForm((value) => !value)}>
-                {t('chat.copy.addStream_0c868a56')}
+                Add Stream
               </button>
             </div>
             {showStreamForm && (
               <form onSubmit={onSubmit} className="bolt-project-integrations-form">
                 <input type="hidden" name="intent" value="create-stream" />
-                <PanelInput name="name" placeholder={t('chat.copy.auditLogs_344c7ffc')} required />
+                <PanelInput name="name" placeholder="Audit Logs" required />
                 <select name="destination" defaultValue="AWS Kinesis">
-                  <option value="AWS Kinesis">{t('chat.copy.awsKinesis_e2cb7d09')}</option>
-                  <option value="Apache Kafka">{t('chat.copy.apacheKafka_d646e904')}</option>
-                  <option value="Google Pub/Sub">{t('chat.copy.googlePubSub_5e01c618')}</option>
-                  <option value="Azure Event Hub">{t('chat.copy.azureEventHub_4d000d9a')}</option>
-                  <option value="Elasticsearch">{t('chat.copy.elasticsearch_85bb5d88')}</option>
+                  <option value="AWS Kinesis">AWS Kinesis</option>
+                  <option value="Apache Kafka">Apache Kafka</option>
+                  <option value="Google Pub/Sub">Google Pub/Sub</option>
+                  <option value="Azure Event Hub">Azure Event Hub</option>
+                  <option value="Elasticsearch">Elasticsearch</option>
                 </select>
-                <PanelInput name="events" placeholder={t('chat.copy.authApi_72386460')} defaultValue="*" />
-                <PanelButton disabled={busy}>{t('chat.copy.addStream_0c868a56')}</PanelButton>
+                <PanelInput name="events" placeholder="auth.*,api.*" defaultValue="*" />
+                <PanelButton disabled={busy}>Add Stream</PanelButton>
               </form>
             )}
             <div className="bolt-project-integrations-list compact">
@@ -19861,8 +17833,7 @@ function ProjectIntegrationsPanel({
                   <div>
                     <strong>{stream.name}</strong>
                     <small>
-                      {stream.destination} · {(stream.events ?? []).join(', ')} · {stream.throughput ?? 0}
-                      {t('chat.copy.min_145a01fb')}
+                      {stream.destination} · {(stream.events ?? []).join(', ')} · {stream.throughput ?? 0}/min
                     </small>
                   </div>
                   <form onSubmit={onSubmit}>
@@ -19870,7 +17841,7 @@ function ProjectIntegrationsPanel({
                     <input type="hidden" name="streamId" value={stream.id} />
                     <input type="hidden" name="active" value={stream.active ? 'false' : 'true'} />
                     <PanelButton disabled={busy} variant="outline">
-                      {stream.active ? t('chat.copy.pause_781961bc') : t('chat.copy.resume_b3bd0b5a')}
+                      {stream.active ? 'Pause' : 'Resume'}
                     </PanelButton>
                   </form>
                 </article>
@@ -19879,9 +17850,9 @@ function ProjectIntegrationsPanel({
                 <EmptyState
                   variant="compact"
                   icon="i-ph:broadcast"
-                  title={t('chat.copy.noEventStreamsConfigured_63fc1f4d')}
-                  description={t('chat.copy.streamProjectEventsToAnExternal_e02f102e')}
-                  actionLabel={t('baseChatAst.integrations.addStream')}
+                  title="No event streams configured"
+                  description="Stream project events to an external destination."
+                  actionLabel="Add stream"
                   onAction={() => setShowStreamForm(true)}
                 />
               )}
@@ -19894,13 +17865,9 @@ function ProjectIntegrationsPanel({
 }
 
 const ENV_VAR_SCOPES = [
-  {
-    key: 'development',
-    label: chatKey('chat.copy.development_4c17aadf'),
-    short: 'baseChatAst.env.shortDevelopment',
-  },
-  { key: 'preview', label: chatKey('chat.copy.preview_f1fbb2b4'), short: 'baseChatAst.env.shortPreview' },
-  { key: 'production', label: chatKey('chat.copy.production_df70fc79'), short: 'baseChatAst.env.shortProduction' },
+  { key: 'development', label: 'Development', short: 'Dev' },
+  { key: 'preview', label: 'Preview', short: 'Preview' },
+  { key: 'production', label: 'Production', short: 'Prod' },
 ] as const;
 
 type EnvVarScope = (typeof ENV_VAR_SCOPES)[number]['key'];
@@ -19910,17 +17877,15 @@ function normalizeEnvScope(scope: unknown): EnvVarScope {
   return scope === 'development' || scope === 'preview' || scope === 'production' ? scope : 'production';
 }
 
-function maskEnvValue(t: TFunction, value: string): string {
+function maskEnvValue(value: string): string {
   if (!value) {
-    return t('baseChatAst.env.emptyValue');
+    return 'empty value';
   }
 
   return '•'.repeat(Math.min(Math.max(value.length, 4), 12));
 }
 
 function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; busy: boolean }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const envVars: Array<{ key: string; value?: string; scope?: string; updatedAt?: string }> = data.envVars ?? [];
   const [query, setQuery] = useState('');
   const [activeScope, setActiveScope] = useState<EnvVarScope>('production');
@@ -19950,7 +17915,6 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
   }, []);
 
   const [message, setMessage] = useState('');
-  const activeScopeLabel = t(ENV_VAR_SCOPES.find((scope) => scope.key === activeScope)?.label ?? activeScope);
 
   // Per-scope view: only the variables that belong to the active scope.
   const scopedVars = envVars.filter((item) => normalizeEnvScope(item.scope) === activeScope);
@@ -19990,18 +17954,17 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
   async function copyEnv(key: string, value?: string) {
     try {
       await navigator.clipboard?.writeText(value ? `${key}=${value}` : key);
-      setMessage(t(value ? 'baseChatAst.env.copiedWithValue' : 'baseChatAst.env.copied', { key }));
-    } catch (error) {
+      setMessage(value ? `${key} copied with value.` : `${key} copied.`);
+    } catch {
       // writeText rejects when the document isn't focused / permission denied.
-      console.error('Environment variable copy failed', { key, error });
-      setMessage(t('baseChatAst.env.copyFailed', { key }));
+      setMessage(`Unable to copy ${key} to clipboard.`);
     }
   }
 
   return (
     <div className="bolt-project-managed-panel">
       <section>
-        <div className="bolt-project-env-scopes" role="tablist" aria-label={t('chat.copy.environmentScope_aa238040')}>
+        <div className="bolt-project-env-scopes" role="tablist" aria-label="Environment scope">
           {ENV_VAR_SCOPES.map((scope) => (
             <button
               key={scope.key}
@@ -20015,7 +17978,7 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
                 setEditing((current) => (current ? { ...current, scope: scope.key } : current));
               }}
             >
-              {t(scope.label)}
+              {scope.label}
             </button>
           ))}
           <button
@@ -20024,24 +17987,22 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
             aria-pressed={showDiff}
             onClick={() => setShowDiff((current) => !current)}
           >
-            {showDiff ? t('chat.copy.exitDiff_f97e0642') : t('chat.copy.diffScopes_053a2907')}
+            {showDiff ? 'Exit diff' : 'Diff scopes'}
           </button>
         </div>
 
         <div className="bolt-project-panel-toolbar">
           <label>
-            {showDiff
-              ? t('chat.copy.filterKeys_14e0ed60')
-              : t('chat.copy.searchValue0Variables_01db9728', { value0: activeScopeLabel })}
+            {showDiff ? 'Filter keys' : `Search ${activeScope} variables`}
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder={t('chat.copy.viteDatabaseApi_c73cb9ac')}
+              placeholder="VITE_, DATABASE, API"
             />
           </label>
           {!showDiff && (
             <button type="button" onClick={() => setEditing({ key: 'VITE_API_URL', value: '', scope: activeScope })}>
-              {t('chat.copy.newVariable_7adfa76b')}
+              New variable
             </button>
           )}
         </div>
@@ -20051,17 +18012,17 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
           <div className="bolt-project-env-diff-wrap">
             <div className="bolt-project-env-diff-actions">
               <button type="button" onClick={() => setRevealDiff((current) => !current)} aria-pressed={revealDiff}>
-                {revealDiff ? t('chat.copy.maskValues_bc20ce51') : t('chat.copy.revealValues_3c8deb88')}
+                {revealDiff ? 'Mask values' : 'Reveal values'}
               </button>
             </div>
             {diffRows.length ? (
               <table className="bolt-project-env-diff">
                 <thead>
                   <tr>
-                    <th scope="col">{t('chat.copy.key_c67dd20e')}</th>
+                    <th scope="col">Key</th>
                     {ENV_VAR_SCOPES.map((scope) => (
                       <th key={scope.key} scope="col">
-                        {t(scope.short)}
+                        {scope.short}
                       </th>
                     ))}
                   </tr>
@@ -20071,9 +18032,7 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
                     <tr key={row.key} className={row.diverges ? 'diverges' : undefined}>
                       <th scope="row">
                         <span>{row.key}</span>
-                        {row.diverges && (
-                          <em className="bolt-project-env-diff-flag">{t('chat.copy.differs_b43b190f')}</em>
-                        )}
+                        {row.diverges && <em className="bolt-project-env-diff-flag">differs</em>}
                       </th>
                       {ENV_VAR_SCOPES.map((scope) => {
                         const value = row.values[scope.key];
@@ -20081,11 +18040,7 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
 
                         return (
                           <td key={scope.key} className={absent ? 'absent' : undefined}>
-                            {absent
-                              ? '—'
-                              : revealDiff
-                                ? value || t('chat.copy.emptyValue_2464254a')
-                                : maskEnvValue(t, value)}
+                            {absent ? '—' : revealDiff ? value || 'empty value' : maskEnvValue(value)}
                           </td>
                         );
                       })}
@@ -20095,9 +18050,7 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
               </table>
             ) : (
               <div className="bolt-project-empty-panel">
-                {query
-                  ? t('chat.copy.noKeyMatchesThisFilter_ec9af2f3')
-                  : t('chat.copy.noEnvironmentVariablesToCompareYet_73d09bd3')}
+                {query ? 'No key matches this filter.' : 'No environment variables to compare yet.'}
               </div>
             )}
           </div>
@@ -20107,50 +18060,41 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
               filtered.map((item) => (
                 <div key={`${item.scope ?? 'production'}:${item.key}`} className="bolt-project-env-row">
                   <strong>{item.key}</strong>
-                  <span>{item.value || t('chat.copy.emptyValue_2464254a')}</span>
-                  <small>
-                    {item.updatedAt
-                      ? (formatBaseChatAstDateTime(language, item.updatedAt) ?? item.updatedAt)
-                      : t('chat.copy.storedInProjectMetadata_ac0072b9')}
-                  </small>
+                  <span>{item.value || 'empty value'}</span>
+                  <small>{item.updatedAt ?? 'Stored in project metadata'}</small>
                   <button
                     type="button"
                     onClick={() => setEditing({ key: item.key, value: item.value ?? '', scope: activeScope })}
                   >
-                    {t('chat.copy.edit_5301648d')}
+                    Edit
                   </button>
                   <button type="button" onClick={() => void copyEnv(item.key, item.value)}>
-                    {t('chat.copy.copy_af74f7c5')}
+                    Copy
                   </button>
                   <ConfirmSubmitForm
                     onSubmit={onSubmit}
-                    title={t('chat.copy.deleteValue0FromValue1_9746c6b2', {
-                      value0: item.key,
-                      value1: activeScopeLabel,
-                    })}
-                    description={t('chat.copy.theVariableIsRemovedFromThis_6e9756de')}
-                    confirmLabel={t('baseChatAst.env.deleteVariable')}
+                    title={`Delete ${item.key} from ${activeScope}?`}
+                    description="The variable is removed from this scope only. This cannot be undone."
+                    confirmLabel="Delete variable"
                   >
                     <input name="intent" value="delete" type="hidden" />
                     <input name="key" value={item.key} type="hidden" />
                     <input name="scope" value={activeScope} type="hidden" />
                     <PanelButton disabled={busy} variant="outline">
-                      {t('chat.copy.delete_f6fdbe48')}
+                      Delete
                     </PanelButton>
                   </ConfirmSubmitForm>
                 </div>
               ))
             ) : query ? (
-              <div className="bolt-project-empty-panel">
-                {t('chat.copy.noEnvironmentVariableMatchesThisSearch_71d294b1')}
-              </div>
+              <div className="bolt-project-empty-panel">No environment variable matches this search.</div>
             ) : (
               <EmptyState
                 variant="compact"
                 icon="i-ph:brackets-curly"
-                title={t('chat.copy.noValue0Variables_34b0862e', { value0: activeScopeLabel })}
-                description={t('chat.copy.addAVariableToConfigureThis_769019a5', { value0: activeScopeLabel })}
-                actionLabel={t('baseChatAst.env.newVariable')}
+                title={`No ${activeScope} variables`}
+                description={`Add a variable to configure this project's ${activeScope} runtime.`}
+                actionLabel="New variable"
                 onAction={() => setEditing({ key: 'VITE_API_URL', value: '', scope: activeScope })}
               />
             )}
@@ -20161,7 +18105,7 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
         <form onSubmit={onSubmit} className="grid gap-3 rounded-lg border border-bolt-elements-borderColor p-3">
           <input name="intent" value="upsert" type="hidden" />
           <label className="bolt-project-env-scope-field">
-            <span>{t('chat.copy.scope_4651a34e')}</span>
+            <span>Scope</span>
             <select
               name="scope"
               value={editing?.scope ?? activeScope}
@@ -20175,14 +18119,14 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
             >
               {ENV_VAR_SCOPES.map((scope) => (
                 <option key={scope.key} value={scope.key}>
-                  {t(scope.label)}
+                  {scope.label}
                 </option>
               ))}
             </select>
           </label>
           <PanelInput
             name="key"
-            placeholder={t('chat.copy.viteApiUrl_c5db039c')}
+            placeholder="VITE_API_URL"
             required
             value={editing?.key ?? ''}
             onChange={(event: any) =>
@@ -20205,7 +18149,7 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
             }
           />
           <PanelButton disabled={busy || !editing?.key?.trim()}>
-            {editing ? t('chat.copy.saveVariable_ae0baaa7') : t('chat.copy.createVariable_6fe55b12')}
+            {editing ? 'Save variable' : 'Create variable'}
           </PanelButton>
         </form>
       )}
@@ -20260,50 +18204,64 @@ function ProjectDatabasePanel({
 }
 
 function DatabaseConnectionOnboarding({ onSubmit, busy }: { onSubmit: any; busy: boolean }) {
-  const { t } = useTranslation();
-
   const providerExamples = [
     {
       provider: 'Neon / Supabase Postgres',
       key: 'DATABASE_URL',
       value: 'postgresql://user:password@host.neon.tech/db?sslmode=require',
-      note: t('baseChatAst.database.postgresNote'),
+      note: 'Use this for Drizzle, Prisma, SQL migrations and Postgres query browsing.',
     },
     {
       provider: 'PlanetScale / MySQL',
       key: 'MYSQL_URL',
       value: 'mysql://user:password@aws.connect.psdb.cloud/app?ssl={"rejectUnauthorized":true}',
-      note: t('baseChatAst.database.mysqlNote'),
+      note: 'Use a MySQL connection URL when your app runs mysql2, Prisma or server-side SQL.',
     },
     {
       provider: 'MongoDB Atlas',
       key: 'MONGODB_URI',
       value: 'mongodb+srv://user:password@cluster.mongodb.net/app?retryWrites=true&w=majority',
-      note: t('baseChatAst.database.mongodbNote'),
+      note: 'Use this for document collections and MongoDB query inspection.',
     },
     {
       provider: 'Upstash Redis',
       key: 'REDIS_URL',
       value: 'redis://default:password@host.upstash.io:6379',
-      note: t('baseChatAst.database.redisNote'),
+      note: 'Use Redis for queues, cache, sessions and rate limits.',
     },
   ];
 
   return (
-    <section className="bolt-project-database-onboarding" aria-label={t('chat.copy.databaseConnectionSetup_bb8a9aeb')}>
+    <section className="bolt-project-database-onboarding" aria-label="Database connection setup">
       <div className="bolt-project-database-onboarding-hero">
         <div>
           <span className="i-ph:database-duotone" aria-hidden />
-          <h3>{t('chat.copy.addYourFirstDatabase_b10872bd')}</h3>
-          <p>{t('chat.copy.connectARealProviderBySaving_bb256530')}</p>
+          <h3>Add your first database</h3>
+          <p>
+            Connect a real provider by saving its connection string as an encrypted project secret. E-Code detects
+            Postgres, MySQL, MongoDB and Redis URLs from secrets and uses them for schema browsing, backups and
+            read-only queries.
+          </p>
         </div>
       </div>
 
-      <div className="bolt-project-database-steps" aria-label={t('chat.copy.databaseSetupSteps_a7f1a5e2')}>
+      <div className="bolt-project-database-steps" aria-label="Database setup steps">
         {[
-          ['1', t('baseChatAst.database.stepHosted'), t('baseChatAst.database.stepHostedDetail')],
-          ['2', t('baseChatAst.database.stepCopy'), t('baseChatAst.database.stepCopyDetail')],
-          ['3', t('baseChatAst.database.stepSave'), t('baseChatAst.database.stepSaveDetail')],
+          [
+            '1',
+            'Create or open a hosted database',
+            'Use Neon, Supabase, PlanetScale, MongoDB Atlas, Upstash or any compatible provider.',
+          ],
+          [
+            '2',
+            'Copy the connection string',
+            'Keep the password in the URL. It will be stored server-side as a secret, not displayed back.',
+          ],
+          [
+            '3',
+            'Save it below',
+            'Use DATABASE_URL for the primary database, then reload this panel to inspect schema and run queries.',
+          ],
         ].map(([step, title, description]) => (
           <article key={step}>
             <strong>{step}</strong>
@@ -20318,34 +18276,29 @@ function DatabaseConnectionOnboarding({ onSubmit, busy }: { onSubmit: any; busy:
       <form onSubmit={onSubmit} className="bolt-project-database-wizard">
         <input name="intent" value="upsert-secret" type="hidden" />
         <div>
-          <h4>{t('chat.copy.connectionSecret_dfb3808b')}</h4>
-          <p>{t('chat.copy.pasteTheProviderUrlExactlyAs_fbf1c1d4')}</p>
+          <h4>Connection secret</h4>
+          <p>Paste the provider URL exactly as given by your database dashboard.</p>
         </div>
         <label>
-          <span>{t('chat.copy.secretName_a3321681')}</span>
-          <PanelInput
-            name="key"
-            placeholder={t('chat.copy.databaseUrl_01d2f16e')}
-            defaultValue="DATABASE_URL"
-            required
-          />
-          <small>{t('chat.copy.recommendedDatabaseUrlMysqlUrlMongodb_95ee0c89')}</small>
+          <span>Secret name</span>
+          <PanelInput name="key" placeholder="DATABASE_URL" defaultValue="DATABASE_URL" required />
+          <small>Recommended: DATABASE_URL, MYSQL_URL, MONGODB_URI or REDIS_URL.</small>
         </label>
         <label>
-          <span>{t('chat.copy.connectionString_11a3690d')}</span>
+          <span>Connection string</span>
           <PanelInput
             name="value"
             type="password"
-            placeholder={t('chat.copy.postgresqlUserPasswordHostDbSslmode_263921bc')}
+            placeholder="postgresql://user:password@host/db?sslmode=require"
             required
           />
-          <small>{t('chat.copy.storedAsAnEncryptedSecretThe_4760688f')}</small>
+          <small>Stored as an encrypted secret. The value is never returned to the browser after saving.</small>
         </label>
-        <PanelButton disabled={busy}>{t('chat.copy.addYourFirstDatabase_b10872bd')}</PanelButton>
+        <PanelButton disabled={busy}>Add your first database</PanelButton>
       </form>
 
       <details className="bolt-project-database-docs" open>
-        <summary>{t('chat.copy.connectionStringExamplesByProvider_368f1c1d')}</summary>
+        <summary>Connection string examples by provider</summary>
         <div>
           {providerExamples.map((example) => (
             <article key={example.provider}>
@@ -20378,8 +18331,6 @@ function ProjectSecurityPanel({
   busy: boolean;
   reload?: () => void | Promise<void>;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
   const [activeTab, setActiveTab] = useState<'active' | 'hidden' | 'settings' | 'reports' | 'compare'>('active');
 
   const [scanState, setScanState] = useState<{
@@ -20408,18 +18359,16 @@ function ProjectSecurityPanel({
   const githubSecurityUrl = githubSecurityHref(project);
 
   const severityRows = ['critical', 'high', 'moderate', 'low', 'info'].map((severity) => [
-    platformStateLabel(t, severity),
-    t('baseChatAst.security.activeCount', {
-      count: activeVulnerabilities.filter((item: any) => item.severity === severity).length,
-    }),
+    severity,
+    `${activeVulnerabilities.filter((item: any) => item.severity === severity).length} active`,
   ]);
 
-  const exportSarifReport = () => downloadSecurityReport('sarif', project, state, t);
-  const exportJsonReport = () => downloadSecurityReport('json', project, state, t);
+  const exportSarifReport = () => downloadSecurityReport('sarif', project, state);
+  const exportJsonReport = () => downloadSecurityReport('json', project, state);
 
   const scanRunning = scanState.status === 'running';
   const scanElapsedMs = scanRunning && scanState.startedAt ? Date.now() - scanState.startedAt : 0;
-  const scanStage = scanProgressStage(t, scanState.progress, scanElapsedMs);
+  const scanStage = scanProgressStage(scanState.progress, scanElapsedMs);
 
   useEffect(() => {
     if (!scanRunning || !scanState.startedAt) {
@@ -20442,13 +18391,13 @@ function ProjectSecurityPanel({
         return {
           ...current,
           progress,
-          message: scanProgressStage(t, progress, elapsed),
+          message: scanProgressStage(progress, elapsed),
         };
       });
     }, 800);
 
     return () => window.clearInterval(interval);
-  }, [scanRunning, scanState.startedAt, t]);
+  }, [scanRunning, scanState.startedAt]);
 
   useEffect(() => {
     return () => {
@@ -20463,7 +18412,7 @@ function ProjectSecurityPanel({
       setScanState({
         status: 'failed',
         progress: 0,
-        message: t('chat.copy.missingProjectIdReloadTheIde_66a40459'),
+        message: 'Missing project id. Reload the IDE and try again.',
       });
 
       return;
@@ -20479,7 +18428,7 @@ function ProjectSecurityPanel({
       setScanState({
         status: 'timeout',
         progress: 100,
-        message: t('chat.copy.securityScanTimedOutAfter90_6f170c10'),
+        message: 'Security scan timed out after 90 seconds. No result was accepted; retry or inspect runtime logs.',
       });
     }, PROJECT_SECURITY_SCAN_TIMEOUT_MS);
 
@@ -20487,7 +18436,7 @@ function ProjectSecurityPanel({
       status: 'running',
       progress: 8,
       startedAt: Date.now(),
-      message: t('chat.copy.preparingScannerProfile_eaa96b71'),
+      message: 'Preparing scanner profile',
     });
 
     try {
@@ -20502,22 +18451,14 @@ function ProjectSecurityPanel({
       const result = (await response.json().catch(() => ({}))) as { error?: string };
 
       if (!response.ok) {
-        console.warn('Security scan request failed', { status: response.status, serverError: result.error });
-        window.clearTimeout(timeout);
-        setScanState({
-          status: 'failed',
-          progress: 100,
-          message: t('baseChatAst.security.scanFailedHttp', { status: response.status }),
-        });
-
-        return;
+        throw new Error(result.error ?? 'Security scan failed');
       }
 
       window.clearTimeout(timeout);
       setScanState({
         status: 'completed',
         progress: 100,
-        message: t('chat.copy.scanCompletedResultsWereRefreshedFrom_7f5ecdf8'),
+        message: 'Scan completed. Results were refreshed from backend state.',
       });
       await reload?.();
     } catch (error) {
@@ -20530,18 +18471,18 @@ function ProjectSecurityPanel({
             : {
                 status: 'cancelled',
                 progress: 0,
-                message: t('chat.copy.scanCancelledLocallyReloadThePanel_919bd102'),
+                message:
+                  'Scan cancelled locally. Reload the panel to confirm whether the backend stored a partial run.',
               },
         );
 
         return;
       }
 
-      console.error('Security scan request failed', error);
       setScanState({
         status: 'failed',
         progress: 100,
-        message: t('baseChatAst.security.scanFailed'),
+        message: error instanceof Error ? error.message : 'Security scan failed',
       });
     } finally {
       window.clearTimeout(timeout);
@@ -20557,19 +18498,19 @@ function ProjectSecurityPanel({
     setScanState({
       status: 'cancelled',
       progress: 0,
-      message: t('chat.copy.scanCancelledLocallyNoCompletedScan_344286af'),
+      message: 'Scan cancelled locally. No completed scan was accepted in this browser session.',
     });
   };
 
   const printReport = () => {
-    const report = buildSecurityReport(project, state, t);
+    const report = buildSecurityReport(project, state);
     const printable = window.open('', '_blank', 'noopener,noreferrer');
 
     if (!printable) {
       return;
     }
 
-    printable.document.write(renderSecurityReportHtml(report, t, language));
+    printable.document.write(renderSecurityReportHtml(report));
     printable.document.close();
     printable.focus();
     printable.print();
@@ -20579,17 +18520,18 @@ function ProjectSecurityPanel({
     <div className="bolt-project-security-tool">
       <section className="bolt-project-security-summary">
         <div>
-          <h3>{t('chat.copy.securityAndPrivacyScanner_afeac30e')}</h3>
-          <p>{t('chat.copy.runsScaSecretScanningAndLightweight_97d45880')}</p>
+          <h3>Security and privacy scanner</h3>
+          <p>
+            Runs SCA, secret scanning and lightweight SAST against the active workspace. Findings, schedules and reports
+            are stored in project backend state.
+          </p>
         </div>
         <form onSubmit={runScan} className="bolt-project-security-scan-form">
           <input name="intent" value="scan" type="hidden" />
-          <PanelButton disabled={busy || scanRunning}>
-            {scanRunning ? t('chat.copy.scanning_bd5e8d69') : t('chat.copy.runFullScan_aedc848e')}
-          </PanelButton>
+          <PanelButton disabled={busy || scanRunning}>{scanRunning ? 'Scanning...' : 'Run full scan'}</PanelButton>
           {scanRunning ? (
             <button type="button" className="bolt-project-security-cancel" onClick={cancelScan}>
-              {t('chat.copy.cancelScan_b37844ba')}
+              Cancel scan
             </button>
           ) : null}
         </form>
@@ -20602,37 +18544,25 @@ function ProjectSecurityPanel({
               {scanState.status === 'running'
                 ? scanStage
                 : scanState.status === 'completed'
-                  ? t('chat.copy.scanCompleted_6d13ae13')
+                  ? 'Scan completed'
                   : scanState.status === 'timeout'
-                    ? t('chat.copy.scanTimedOut_02ef0c04')
+                    ? 'Scan timed out'
                     : scanState.status === 'cancelled'
-                      ? t('chat.copy.scanCancelled_9e663f73')
-                      : t('chat.copy.scanFailed_944d285f')}
+                      ? 'Scan cancelled'
+                      : 'Scan failed'}
             </strong>
             <span>{scanState.message}</span>
           </div>
-          <progress max={100} value={scanState.progress} aria-label={t('chat.copy.securityScanProgress_036e43e1')} />
+          <progress max={100} value={scanState.progress} aria-label="Security scan progress" />
         </section>
       ) : null}
 
-      <section className="bolt-project-security-scope" aria-label={t('chat.copy.securityScannerCoverage_c99a66ee')}>
+      <section className="bolt-project-security-scope" aria-label="Security scanner coverage">
         {[
-          [
-            codeExample('SCA'),
-            t('baseChatAst.security.dependencyAdvisories'),
-            settings.dependencyAuditEnabled !== false,
-          ],
-          [
-            t('baseChatAst.common.secrets'),
-            t('baseChatAst.security.secretSources'),
-            settings.secretScanEnabled !== false,
-          ],
-          [codeExample('SAST'), t('baseChatAst.security.staticRisks'), settings.sastEnabled !== false],
-          [
-            t('baseChatAst.security.privacy'),
-            t('baseChatAst.security.privacyRisks'),
-            settings.privacyDetectionEnabled !== false,
-          ],
+          ['SCA', 'npm audit dependency advisories', settings.dependencyAuditEnabled !== false],
+          ['Secrets', 'API keys, tokens and passwords in source', settings.secretScanEnabled !== false],
+          ['SAST', 'Unsafe DOM sinks and command execution patterns', settings.sastEnabled !== false],
+          ['Privacy', 'Client-side privacy risk signals', settings.privacyDetectionEnabled !== false],
         ].map(([label, description, enabled]) => (
           <article key={String(label)} data-enabled={enabled ? 'true' : 'false'}>
             <strong>{label}</strong>
@@ -20643,52 +18573,34 @@ function ProjectSecurityPanel({
 
       <div className="bolt-project-security-grid">
         <aside>
-          <strong>{t('chat.copy.latestScan_25d91d34')}</strong>
+          <strong>Latest scan</strong>
           <PanelRows
             rows={[
+              ['Status', latestScan?.status ?? 'No scan yet'],
+              ['Profile', latestScan?.scanner ?? settings.scannerProfile ?? 'workspace-runtime'],
+              ['Summary', latestScan?.summary ?? 'Run a scan to populate security findings'],
               [
-                t('baseChatAst.common.status'),
-                latestScan?.status ? platformStateLabel(t, latestScan.status) : t('baseChatAst.security.noScan'),
-              ],
-              [
-                t('baseChatAst.security.profile'),
-                latestScan?.scanner ?? settings.scannerProfile ?? codeExample('workspace-runtime'),
-              ],
-              [t('baseChatAst.common.summary'), latestScan?.summary ?? t('baseChatAst.security.runToPopulate')],
-              [
-                t('baseChatAst.common.schedule'),
-                schedule.enabled
-                  ? `${platformStateLabel(t, schedule.frequency)}, ${formatSecurityDate(t, language, schedule.nextRunAt)}`
-                  : t('chat.copy.manual_4e836fdc'),
+                'Schedule',
+                schedule.enabled ? `${schedule.frequency}, next ${formatSecurityDate(schedule.nextRunAt)}` : 'Manual',
               ],
             ]}
           />
-          <strong>{t('chat.copy.severity_de314fa0')}</strong>
+          <strong>Severity</strong>
           <PanelRows rows={severityRows} />
-          <strong>{t('chat.copy.githubSecurity_a8fa7886')}</strong>
+          <strong>GitHub Security</strong>
           <PanelRows
             rows={[
-              [
-                t('baseChatAst.common.status'),
-                githubSecurityUrl
-                  ? t('baseChatAst.security.repositoryDetected')
-                  : t('baseChatAst.security.noGithubRemote'),
-              ],
-              [
-                t('baseChatAst.security.sync'),
-                settings.githubSecuritySyncEnabled
-                  ? t('baseChatAst.status.enabled')
-                  : t('baseChatAst.security.manualReports'),
-              ],
+              ['Status', githubSecurityUrl ? 'Repository detected' : 'No GitHub remote detected'],
+              ['Sync', settings.githubSecuritySyncEnabled ? 'Enabled' : 'Manual reports'],
             ]}
           />
           {githubSecurityUrl ? (
             <a className="bolt-project-security-link" href={githubSecurityUrl} target="_blank" rel="noreferrer">
-              {t('chat.copy.openGithubSecurityTab_ee1f0bac')}
+              Open GitHub Security tab
             </a>
           ) : (
             <a className="bolt-project-security-link" href="?panel=git">
-              {t('chat.copy.connectAGithubRemote_5cd948b7')}
+              Connect a GitHub remote
             </a>
           )}
         </aside>
@@ -20696,11 +18608,11 @@ function ProjectSecurityPanel({
         <main>
           <div className="bolt-project-tool-tabs">
             {[
-              ['active', t('baseChatAst.common.active')],
-              ['hidden', t('baseChatAst.common.hidden')],
-              ['compare', t('baseChatAst.common.compare')],
-              ['reports', t('baseChatAst.common.reports')],
-              ['settings', t('baseChatAst.common.settings')],
+              ['active', 'Active'],
+              ['hidden', 'Hidden'],
+              ['compare', 'Compare'],
+              ['reports', 'Reports'],
+              ['settings', 'Settings'],
             ].map(([id, label]) => (
               <button
                 key={id}
@@ -20717,97 +18629,87 @@ function ProjectSecurityPanel({
             <form onSubmit={onSubmit} className="bolt-project-security-settings">
               <input name="intent" value="settings" type="hidden" />
               <label>
-                <span>{t('chat.copy.scannerProfile_60cef8cf')}</span>
+                <span>Scanner profile</span>
                 <select name="scannerProfile" defaultValue={settings.scannerProfile ?? 'workspace-runtime'}>
-                  <option value="workspace-runtime">{t('chat.copy.fullWorkspaceRuntime_45bcb64f')}</option>
-                  <option value="sca">{t('chat.copy.scaOnly_2a97c363')}</option>
-                  <option value="secrets">{t('chat.copy.secretsOnly_0b9d03ca')}</option>
-                  <option value="sast">{t('chat.copy.sastOnly_fef4382e')}</option>
+                  <option value="workspace-runtime">Full workspace runtime</option>
+                  <option value="sca">SCA only</option>
+                  <option value="secrets">Secrets only</option>
+                  <option value="sast">SAST only</option>
                 </select>
               </label>
               {[
-                [
-                  'dependencyAuditEnabled',
-                  t('baseChatAst.security.dependencyAudit'),
-                  settings.dependencyAuditEnabled !== false,
-                ],
-                ['secretScanEnabled', t('baseChatAst.security.secretScan'), settings.secretScanEnabled !== false],
-                ['sastEnabled', t('baseChatAst.security.sast'), settings.sastEnabled !== false],
-                [
-                  'privacyDetectionEnabled',
-                  t('baseChatAst.security.privacyDetection'),
-                  settings.privacyDetectionEnabled !== false,
-                ],
+                ['dependencyAuditEnabled', 'Dependency audit', settings.dependencyAuditEnabled !== false],
+                ['secretScanEnabled', 'Secret scan', settings.secretScanEnabled !== false],
+                ['sastEnabled', 'Static application security scan', settings.sastEnabled !== false],
+                ['privacyDetectionEnabled', 'Privacy detection', settings.privacyDetectionEnabled !== false],
               ].map(([name, label, enabled]) => (
                 <label key={String(name)}>
                   <span>{label}</span>
                   <select name={String(name)} defaultValue={enabled ? 'true' : 'false'}>
-                    <option value="true">{t('chat.copy.enabled_df174a3f')}</option>
-                    <option value="false">{t('chat.copy.disabled_f4f4473d')}</option>
+                    <option value="true">Enabled</option>
+                    <option value="false">Disabled</option>
                   </select>
                 </label>
               ))}
               <label>
-                <span>{t('chat.copy.automaticSchedule_9e0dd16d')}</span>
+                <span>Automatic schedule</span>
                 <select name="scheduleEnabled" defaultValue={schedule.enabled ? 'true' : 'false'}>
-                  <option value="true">{t('chat.copy.enabled_df174a3f')}</option>
-                  <option value="false">{t('chat.copy.manualOnly_aaf64b3f')}</option>
+                  <option value="true">Enabled</option>
+                  <option value="false">Manual only</option>
                 </select>
               </label>
               <label>
-                <span>{t('chat.copy.scheduleCadence_aab51f97')}</span>
+                <span>Schedule cadence</span>
                 <select name="scheduleFrequency" defaultValue={schedule.frequency ?? 'weekly'}>
-                  <option value="daily">{t('chat.copy.dailyAt0300Utc_ca914139')}</option>
-                  <option value="weekly">{t('chat.copy.weeklyAt0300Utc_ce446487')}</option>
+                  <option value="daily">Daily at 03:00 UTC</option>
+                  <option value="weekly">Weekly at 03:00 UTC</option>
                 </select>
               </label>
               <label>
-                <span>{t('chat.copy.githubSecurityReporting_381ce4fe')}</span>
+                <span>GitHub Security reporting</span>
                 <select
                   name="githubSecuritySyncEnabled"
                   defaultValue={settings.githubSecuritySyncEnabled ? 'true' : 'false'}
                 >
-                  <option value="true">{t('chat.copy.enabledWhenGithubRemoteExists_de9d427d')}</option>
-                  <option value="false">{t('chat.copy.manualExportOnly_ca92d00c')}</option>
+                  <option value="true">Enabled when GitHub remote exists</option>
+                  <option value="false">Manual export only</option>
                 </select>
               </label>
-              <PanelButton disabled={busy}>{t('chat.copy.saveScannerSettings_82310df7')}</PanelButton>
+              <PanelButton disabled={busy}>Save scanner settings</PanelButton>
             </form>
           ) : activeTab === 'reports' ? (
             <section className="bolt-project-security-reports">
               <article>
-                <strong>{t('chat.copy.exportAuditPackage_913ca7d5')}</strong>
-                <p>{t('chat.copy.generateAReportFromTheCurrent_99a3cc7e')}</p>
+                <strong>Export audit package</strong>
+                <p>
+                  Generate a report from the current backend scan state. SARIF can be uploaded to GitHub Security Code
+                  Scanning, and the printable report can be saved as PDF by the browser.
+                </p>
                 <div>
                   <button type="button" onClick={exportSarifReport}>
-                    {t('chat.copy.exportSarif_e4ff4ea2')}
+                    Export SARIF
                   </button>
                   <button type="button" onClick={exportJsonReport}>
-                    {t('chat.copy.exportJson_bc399052')}
+                    Export JSON
                   </button>
                   <button type="button" onClick={printReport}>
-                    {t('chat.copy.printSavePdf_6b15347b')}
+                    Print / Save PDF
                   </button>
                 </div>
               </article>
               <PanelRows
                 rows={[
-                  [t('baseChatAst.security.reportFindings'), formatBaseChatAstNumber(language, vulnerabilities.length)],
-                  [
-                    t('chat.copy.latestScan_25d91d34'),
-                    latestScan?.completedAt
-                      ? formatSecurityDate(t, language, latestScan.completedAt)
-                      : t('baseChatAst.security.notScheduled'),
-                  ],
-                  [t('baseChatAst.security.sarifTarget'), t('baseChatAst.security.githubScanningCompatible')],
+                  ['Findings in report', String(vulnerabilities.length)],
+                  ['Latest scan', latestScan?.completedAt ? formatSecurityDate(latestScan.completedAt) : 'No scan yet'],
+                  ['SARIF target', 'GitHub Code Scanning compatible'],
                 ]}
               />
             </section>
           ) : activeTab === 'compare' ? (
             <section className="bolt-project-security-compare">
               <div>
-                <h4>{t('chat.copy.scanComparison_3b588c46')}</h4>
-                <p>{t('chat.copy.comparesTheLatestCompletedScanAgainst_b4268ea5')}</p>
+                <h4>Scan comparison</h4>
+                <p>Compares the latest completed scan against the previous scan stored for this project.</p>
               </div>
               <div className="bolt-project-security-comparison-grid">
                 {['critical', 'high', 'moderate', 'low', 'info'].map((severity) => {
@@ -20817,12 +18719,11 @@ function ProjectSecurityPanel({
 
                   return (
                     <article key={severity}>
-                      <span>{platformStateLabel(t, severity)}</span>
-                      <strong>{formatBaseChatAstNumber(language, current)}</strong>
+                      <span>{severity}</span>
+                      <strong>{current}</strong>
                       <small data-delta={delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}>
-                        {t('baseChatAst.phrases.deltaVsPrevious', {
-                          delta: `${delta > 0 ? '+' : ''}${formatBaseChatAstNumber(language, delta)}`,
-                        })}
+                        {delta > 0 ? '+' : ''}
+                        {delta} vs previous
                       </small>
                     </article>
                   );
@@ -20830,17 +18731,10 @@ function ProjectSecurityPanel({
               </div>
               <PanelRows
                 rows={[
+                  ['Latest', latestScan?.completedAt ? formatSecurityDate(latestScan.completedAt) : 'No scan yet'],
                   [
-                    t('baseChatAst.common.latest'),
-                    latestScan?.completedAt
-                      ? formatSecurityDate(t, language, latestScan.completedAt)
-                      : t('baseChatAst.security.notScheduled'),
-                  ],
-                  [
-                    t('baseChatAst.common.previous'),
-                    previousScan?.completedAt
-                      ? formatSecurityDate(t, language, previousScan.completedAt)
-                      : t('baseChatAst.security.notScheduled'),
+                    'Previous',
+                    previousScan?.completedAt ? formatSecurityDate(previousScan.completedAt) : 'No previous scan',
                   ],
                 ]}
               />
@@ -20851,9 +18745,7 @@ function ProjectSecurityPanel({
                 visibleVulnerabilities.map((vulnerability: any) => (
                   <article key={vulnerability.id} className="bolt-project-vulnerability-card">
                     <div>
-                      <span data-severity={vulnerability.severity}>
-                        {platformStateLabel(t, vulnerability.severity)}
-                      </span>
+                      <span data-severity={vulnerability.severity}>{vulnerability.severity}</span>
                       <strong>{vulnerability.title}</strong>
                       <p>{vulnerability.details || vulnerability.recommendation || vulnerability.source}</p>
                     </div>
@@ -20875,7 +18767,7 @@ function ProjectSecurityPanel({
                             )
                           }
                         >
-                          {t('chat.copy.fixWithAgent_387d0de5')}
+                          Fix with Agent
                         </PanelButton>
                       ) : null}
                       <form onSubmit={onSubmit}>
@@ -20886,7 +18778,7 @@ function ProjectSecurityPanel({
                         />
                         <input name="vulnerabilityId" value={vulnerability.id} type="hidden" />
                         <PanelButton disabled={busy} variant="outline">
-                          {activeTab === 'hidden' ? t('chat.copy.restore_3cbe6d6b') : t('chat.copy.ignore_98f55db5')}
+                          {activeTab === 'hidden' ? 'Restore' : 'Ignore'}
                         </PanelButton>
                       </form>
                     </div>
@@ -20895,11 +18787,7 @@ function ProjectSecurityPanel({
               ) : (
                 <PanelRows
                   rows={[]}
-                  empty={
-                    activeTab === 'hidden'
-                      ? t('baseChatAst.security.noHiddenVulnerabilities')
-                      : t('baseChatAst.security.noActiveVulnerabilities')
-                  }
+                  empty={activeTab === 'hidden' ? 'No hidden vulnerabilities.' : 'No active vulnerabilities.'}
                 />
               )}
             </div>
@@ -20917,41 +18805,38 @@ function securityCountsFromVulnerabilities(vulnerabilities: any[]) {
   }, {});
 }
 
-function scanProgressStage(t: TFunction, progress: number, elapsedMs: number) {
+function scanProgressStage(progress: number, elapsedMs: number) {
   if (progress < 18) {
-    return t('baseChatAst.security.stage.preparing');
+    return 'Preparing scanner profile';
   }
 
   if (progress < 42) {
-    return t('baseChatAst.security.stage.dependencies');
+    return 'Running dependency audit';
   }
 
   if (progress < 66) {
-    return t('baseChatAst.security.stage.secrets');
+    return 'Scanning secrets';
   }
 
   if (progress < 88) {
-    return t('baseChatAst.security.stage.staticAnalysis');
+    return 'Running static analysis';
   }
 
-  return t(elapsedMs > 60_000 ? 'baseChatAst.security.stage.finalizingLong' : 'baseChatAst.security.stage.finalizing');
+  return elapsedMs > 60_000 ? 'Finalizing long-running scan' : 'Finalizing report';
 }
 
-function formatSecurityDate(t: TFunction, language: string, value?: string | null) {
+function formatSecurityDate(value?: string | null) {
   if (!value) {
-    return t('baseChatAst.security.notScheduled');
+    return 'Not scheduled';
   }
 
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return t('baseChatAst.security.notScheduled');
+    return 'Not scheduled';
   }
 
-  return new Intl.DateTimeFormat(language.startsWith('fr') ? 'fr-FR' : 'en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
+  return date.toLocaleString();
 }
 
 function githubSecurityHref(project: any) {
@@ -20973,14 +18858,14 @@ function githubSecurityHref(project: any) {
   return `https://github.com/${match.groups.owner}/${match.groups.repo}/security/code-scanning`;
 }
 
-function buildSecurityReport(project: any, state: any, t: TFunction) {
+function buildSecurityReport(project: any, state: any) {
   const vulnerabilities = Array.isArray(state?.vulnerabilities) ? state.vulnerabilities : [];
   const scans = Array.isArray(state?.scans) ? state.scans : [];
 
   return {
     project: {
       id: project?.id ?? 'unknown',
-      name: project?.name ?? t('baseChatAst.security.projectFallback'),
+      name: project?.name ?? 'Workspace project',
     },
     generatedAt: new Date().toISOString(),
     latestScan: scans[0] ?? null,
@@ -20990,7 +18875,7 @@ function buildSecurityReport(project: any, state: any, t: TFunction) {
   };
 }
 
-function securityReportToSarif(report: any, t: TFunction) {
+function securityReportToSarif(report: any) {
   const vulnerabilities = Array.isArray(report.vulnerabilities) ? report.vulnerabilities : [];
 
   return {
@@ -21000,7 +18885,7 @@ function securityReportToSarif(report: any, t: TFunction) {
       {
         tool: {
           driver: {
-            name: t('baseChatAst.security.scannerName'),
+            name: 'E-Code Security Scanner',
             informationUri: 'https://github.com/openaxcloud/vibecore',
             rules: vulnerabilities.map((vulnerability: any) => ({
               id: vulnerability.id,
@@ -21008,7 +18893,7 @@ function securityReportToSarif(report: any, t: TFunction) {
               shortDescription: { text: vulnerability.title },
               fullDescription: { text: vulnerability.details || vulnerability.recommendation || vulnerability.source },
               help: {
-                text: vulnerability.recommendation || t('baseChatAst.security.recommendationFallback'),
+                text: vulnerability.recommendation || 'Review this finding and apply the recommended remediation.',
               },
               defaultConfiguration: { level: sarifLevel(vulnerability.severity) },
               properties: {
@@ -21059,9 +18944,9 @@ function sarifLevel(severity: string) {
   return 'note';
 }
 
-function downloadSecurityReport(format: 'json' | 'sarif', project: any, state: any, t: TFunction) {
-  const report = buildSecurityReport(project, state, t);
-  const payload = format === 'sarif' ? securityReportToSarif(report, t) : report;
+function downloadSecurityReport(format: 'json' | 'sarif', project: any, state: any) {
+  const report = buildSecurityReport(project, state);
+  const payload = format === 'sarif' ? securityReportToSarif(report) : report;
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const url = window.URL.createObjectURL(blob);
   const anchor = document.createElement('a');
@@ -21078,7 +18963,7 @@ function downloadSecurityReport(format: 'json' | 'sarif', project: any, state: a
   window.URL.revokeObjectURL(url);
 }
 
-function renderSecurityReportHtml(report: any, t: TFunction, language: string) {
+function renderSecurityReportHtml(report: any) {
   const escape = (value: unknown) =>
     String(value ?? '')
       .replace(/&/g, '&amp;')
@@ -21100,9 +18985,9 @@ function renderSecurityReportHtml(report: any, t: TFunction, language: string) {
     .join('');
 
   return `<!doctype html>
-    <html lang="${language.startsWith('fr') ? 'fr' : 'en'}">
+    <html>
       <head>
-        <title>${escape(t('baseChatAst.security.reportDocumentTitle', { project: report.project.name }))}</title>
+        <title>Security report - ${escape(report.project.name)}</title>
         <style>
           body { font-family: ui-sans-serif, system-ui, sans-serif; color: #0f172a; margin: 32px; }
           h1 { margin: 0 0 8px; }
@@ -21113,20 +18998,11 @@ function renderSecurityReportHtml(report: any, t: TFunction, language: string) {
         </style>
       </head>
       <body>
-        <h1>${escape(t('baseChatAst.security.reportTitle'))}</h1>
-        <p>${escape(
-          t('baseChatAst.security.reportGenerated', {
-            project: report.project.name,
-            date: formatSecurityDate(t, language, report.generatedAt),
-          }),
-        )}</p>
+        <h1>Security report</h1>
+        <p>${escape(report.project.name)} - generated ${escape(formatSecurityDate(report.generatedAt))}</p>
         <table>
-          <thead><tr><th>${escape(t('baseChatAst.security.severity'))}</th><th>${escape(
-            t('baseChatAst.security.finding'),
-          )}</th><th>${escape(t('baseChatAst.security.source'))}</th><th>${escape(
-            t('baseChatAst.security.recommendation'),
-          )}</th></tr></thead>
-          <tbody>${rows || `<tr><td colspan="4">${escape(t('baseChatAst.security.noFindings'))}</td></tr>`}</tbody>
+          <thead><tr><th>Severity</th><th>Finding</th><th>Source</th><th>Recommendation</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="4">No findings recorded.</td></tr>'}</tbody>
         </table>
       </body>
     </html>`;
@@ -21143,8 +19019,6 @@ function ProjectDebuggerPanel({
   busy: boolean;
   reload?: () => void | Promise<void>;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const state = data.debuggerState ?? {};
   const launchConfigs = state.launchConfigs ?? [];
   const breakpoints = state.breakpoints ?? [];
@@ -21158,22 +19032,17 @@ function ProjectDebuggerPanel({
     <div className="grid gap-4">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         {[
-          [t('baseChatAst.debugger.launchConfigs'), launchConfigs.length],
-          [
-            t('baseChatAst.debugger.breakpoints'),
-            breakpoints.filter((breakpoint: any) => breakpoint.enabled !== false).length,
-          ],
-          [t('baseChatAst.debugger.watchExpressions'), watches.filter((watch: any) => watch.enabled !== false).length],
-          [t('baseChatAst.debugger.runtimeProcesses'), Array.isArray(processes) ? processes.length : 0],
+          ['Launch configs', launchConfigs.length],
+          ['Breakpoints', breakpoints.filter((breakpoint: any) => breakpoint.enabled !== false).length],
+          ['Watch expressions', watches.filter((watch: any) => watch.enabled !== false).length],
+          ['Runtime processes', Array.isArray(processes) ? processes.length : 0],
         ].map(([label, value]) => (
           <div
             key={label}
             className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
           >
             <div className="text-[11px] uppercase tracking-wide text-bolt-elements-textSecondary">{label}</div>
-            <div className="mt-1 text-sm font-semibold text-bolt-elements-textPrimary">
-              {formatBaseChatAstNumber(language, Number(value))}
-            </div>
+            <div className="mt-1 text-sm font-semibold text-bolt-elements-textPrimary">{value}</div>
           </div>
         ))}
       </div>
@@ -21183,11 +19052,10 @@ function ProjectDebuggerPanel({
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                  {t('chat.copy.debugSessions_7f873835')}
-                </h3>
+                <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Debug sessions</h3>
                 <p className="text-xs text-bolt-elements-textSecondary">
-                  {t('chat.copy.launchesRunInTheRealWorkspace_307c6320')}
+                  Launches run in the real workspace runtime. Paused frames, variables and stepping appear when the
+                  configured adapter reports a paused state.
                 </p>
               </div>
               <button
@@ -21196,7 +19064,7 @@ function ProjectDebuggerPanel({
                 onClick={() => void reload?.()}
                 disabled={busy}
               >
-                {t('chat.copy.refreshRuntime_f5c4addc')}
+                Refresh runtime
               </button>
             </div>
             <div className="grid gap-2">
@@ -21216,26 +19084,19 @@ function ProjectDebuggerPanel({
                         </div>
                       </div>
                       <span className="rounded bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
-                        {platformStateLabel(t, session.status)}
+                        {session.status}
                       </span>
                     </div>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      {(
-                        [
-                          ['continue', t('baseChatAst.debugger.continue')],
-                          ['step-over', t('baseChatAst.debugger.stepOver')],
-                          ['step-into', t('baseChatAst.debugger.stepInto')],
-                          ['step-out', t('baseChatAst.debugger.stepOut')],
-                        ] as const
-                      ).map(([action, label]) => (
+                      {['continue', 'step-over', 'step-into', 'step-out'].map((action) => (
                         <button
                           key={action}
                           type="button"
                           disabled={session.status !== 'paused'}
                           className="h-8 rounded border border-bolt-elements-borderColor px-2 text-xs text-bolt-elements-textSecondary disabled:opacity-50"
-                          title={t('chat.copy.steppingIsEnabledWhenADebug_d6ee4bd3')}
+                          title="Stepping is enabled when a debug adapter reports a paused frame."
                         >
-                          {label}
+                          {action.replace('-', ' ')}
                         </button>
                       ))}
                       {session.status === 'running' && (
@@ -21243,7 +19104,7 @@ function ProjectDebuggerPanel({
                           <input name="intent" value="stop-session" type="hidden" />
                           <input name="sessionId" value={session.id} type="hidden" />
                           <PanelButton disabled={busy} variant="outline">
-                            {t('chat.copy.stop_9e253470')}
+                            Stop
                           </PanelButton>
                         </form>
                       )}
@@ -21251,18 +19112,14 @@ function ProjectDebuggerPanel({
                   </div>
                 ))
               ) : (
-                <div className="text-sm text-bolt-elements-textSecondary">
-                  {t('chat.copy.noDebugSessionHasBeenLaunched_124153a2')}
-                </div>
+                <div className="text-sm text-bolt-elements-textSecondary">No debug session has been launched yet.</div>
               )}
             </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
             <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                {t('chat.copy.breakpoints_21a8752f')}
-              </h3>
+              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Breakpoints</h3>
               <div className="mt-3 grid gap-2">
                 {breakpoints.length ? (
                   breakpoints.map((breakpoint: any) => (
@@ -21277,15 +19134,9 @@ function ProjectDebuggerPanel({
                           </div>
                           {breakpoint.condition || breakpoint.hitCondition || breakpoint.logMessage ? (
                             <div className="mt-1 text-xs text-bolt-elements-textSecondary">
-                              {breakpoint.condition
-                                ? t('chat.copy.ifValue0_3ddebae8', { value0: breakpoint.condition })
-                                : null}
-                              {breakpoint.hitCondition
-                                ? t('chat.copy.hitValue0_ecfd5f98', { value0: breakpoint.hitCondition })
-                                : null}
-                              {breakpoint.logMessage
-                                ? t('chat.copy.logValue0_7807582a', { value0: breakpoint.logMessage })
-                                : null}
+                              {breakpoint.condition ? `if ${breakpoint.condition}` : null}
+                              {breakpoint.hitCondition ? ` hit ${breakpoint.hitCondition}` : null}
+                              {breakpoint.logMessage ? ` log ${breakpoint.logMessage}` : null}
                             </div>
                           ) : null}
                         </div>
@@ -21293,32 +19144,29 @@ function ProjectDebuggerPanel({
                           <input name="intent" value="delete-breakpoint" type="hidden" />
                           <input name="breakpointId" value={breakpoint.id} type="hidden" />
                           <PanelButton disabled={busy} variant="outline">
-                            {t('chat.copy.remove_e963907d')}
+                            Remove
                           </PanelButton>
                         </form>
                       </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-sm text-bolt-elements-textSecondary">
-                    {t('chat.copy.noBreakpointsConfigured_cac0d3f6')}
-                  </div>
+                  <div className="text-sm text-bolt-elements-textSecondary">No breakpoints configured.</div>
                 )}
               </div>
             </section>
 
             <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                {t('chat.copy.callStackAndVariables_6820d7cf')}
-              </h3>
+              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Call stack and variables</h3>
               {activeSession?.status === 'paused' ? (
                 <div className="mt-3 grid gap-2">
-                  <PanelRows rows={activeSession.callStack ?? []} empty={t('baseChatAst.debugger.noFrames')} />
-                  <PanelRows rows={activeSession.variables ?? []} empty={t('baseChatAst.debugger.noVariables')} />
+                  <PanelRows rows={activeSession.callStack ?? []} empty="No stack frames reported by adapter." />
+                  <PanelRows rows={activeSession.variables ?? []} empty="No variables reported by adapter." />
                 </div>
               ) : (
                 <div className="mt-3 rounded-md border border-dashed border-bolt-elements-borderColor p-4 text-sm text-bolt-elements-textSecondary">
-                  {t('chat.copy.noPausedFrameStartALaunch_7af5fa04')}
+                  No paused frame. Start a launch configuration with inspector/debugpy and pause on a breakpoint to
+                  populate stack frames, scopes and variables.
                 </div>
               )}
             </section>
@@ -21332,7 +19180,7 @@ function ProjectDebuggerPanel({
           >
             <input name="intent" value="start-session" type="hidden" />
             <label className="grid gap-1 text-xs font-medium text-bolt-elements-textSecondary">
-              {t('chat.copy.launchConfiguration_a3b98e4e')}
+              Launch configuration
               <select
                 name="configId"
                 className="h-9 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
@@ -21344,7 +19192,7 @@ function ProjectDebuggerPanel({
                 ))}
               </select>
             </label>
-            <PanelButton disabled={busy || !launchConfigs.length}>{t('chat.copy.startDebugging_94a77e4e')}</PanelButton>
+            <PanelButton disabled={busy || !launchConfigs.length}>Start debugging</PanelButton>
           </form>
 
           <form
@@ -21352,19 +19200,17 @@ function ProjectDebuggerPanel({
             className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
           >
             <input name="intent" value="save-config" type="hidden" />
-            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-              {t('chat.copy.launchJsonConfig_018615eb')}
-            </h3>
-            <PanelInput name="name" placeholder={t('chat.copy.nodeInspectorApp_25e2551a')} required />
-            <PanelInput name="command" placeholder={t('chat.copy.npmRunDev_4eedebe9')} />
-            <PanelInput name="program" placeholder={t('chat.copy.srcServerTs_bcc09dcb')} />
-            <PanelInput name="args" placeholder={t('chat.copy.port3000_ec45ac33')} />
-            <PanelInput name="env" placeholder={t('chat.copy.debugApp_61e65435')} />
+            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">launch.json config</h3>
+            <PanelInput name="name" placeholder="Node inspector: app" required />
+            <PanelInput name="command" placeholder="npm run dev" />
+            <PanelInput name="program" placeholder="src/server.ts" />
+            <PanelInput name="args" placeholder="--port 3000" />
+            <PanelInput name="env" placeholder="DEBUG=app:*" />
             <label className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
               <input name="stopOnEntry" value="true" type="checkbox" />
-              {t('chat.copy.stopOnEntry_36fd986b')}
+              Stop on entry
             </label>
-            <PanelButton disabled={busy}>{t('chat.copy.saveConfig_64e1de9d')}</PanelButton>
+            <PanelButton disabled={busy}>Save config</PanelButton>
           </form>
 
           <form
@@ -21372,15 +19218,13 @@ function ProjectDebuggerPanel({
             className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
           >
             <input name="intent" value="add-breakpoint" type="hidden" />
-            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-              {t('chat.copy.conditionalBreakpoint_af2996c8')}
-            </h3>
-            <PanelInput name="filePath" placeholder={t('chat.copy.srcAppTsx_835da56f')} required />
+            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Conditional breakpoint</h3>
+            <PanelInput name="filePath" placeholder="src/App.tsx" required />
             <PanelInput name="line" type="number" min="1" placeholder="42" required />
-            <PanelInput name="condition" placeholder={t('chat.copy.userIdTargetid_cecbcb16')} />
+            <PanelInput name="condition" placeholder="user.id === targetId" />
             <PanelInput name="hitCondition" placeholder=">= 5" />
-            <PanelInput name="logMessage" placeholder={t('chat.copy.userUserId_f7f4b839')} />
-            <PanelButton disabled={busy}>{t('chat.copy.addBreakpoint_f0d58392')}</PanelButton>
+            <PanelInput name="logMessage" placeholder="user={user.id}" />
+            <PanelButton disabled={busy}>Add breakpoint</PanelButton>
           </form>
 
           <form
@@ -21388,18 +19232,14 @@ function ProjectDebuggerPanel({
             className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
           >
             <input name="intent" value="add-watch" type="hidden" />
-            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-              {t('chat.copy.watchExpressions_5a230a1a')}
-            </h3>
-            <PanelInput name="expression" placeholder={codeExample('request.user')} required />
-            <PanelButton disabled={busy}>{t('chat.copy.addWatch_11f0adc5')}</PanelButton>
+            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Watch expressions</h3>
+            <PanelInput name="expression" placeholder="request.user" required />
+            <PanelButton disabled={busy}>Add watch</PanelButton>
           </form>
 
           {watches.length ? (
             <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                {t('chat.copy.watchList_daa6ded7')}
-              </h3>
+              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Watch list</h3>
               <div className="mt-3 grid gap-2">
                 {watches.map((watch: any) => (
                   <div key={watch.id} className="flex items-center justify-between gap-2 text-xs">
@@ -21408,7 +19248,7 @@ function ProjectDebuggerPanel({
                       <input name="intent" value="delete-watch" type="hidden" />
                       <input name="watchId" value={watch.id} type="hidden" />
                       <PanelButton disabled={busy} variant="outline">
-                        {t('chat.copy.remove_e963907d')}
+                        Remove
                       </PanelButton>
                     </form>
                   </div>
@@ -21419,9 +19259,7 @@ function ProjectDebuggerPanel({
 
           {logs.length ? (
             <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                {t('chat.copy.runtimeOutput_fb71b522')}
-              </h3>
+              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Runtime output</h3>
               <div className="mt-3 max-h-44 overflow-auto font-mono text-xs text-bolt-elements-textSecondary">
                 {logs.slice(-12).map((log: any, index: number) => (
                   <div key={`${log.timestamp}-${index}`}>{log.message}</div>
@@ -21436,8 +19274,6 @@ function ProjectDebuggerPanel({
 }
 
 function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => void | Promise<void>; busy: boolean }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const [cleared, setCleared] = useState(false);
   const [split, setSplit] = useState(false);
   const [activeStream, setActiveStream] = useState<'console' | 'workflow' | 'system'>('console');
@@ -21445,22 +19281,15 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
   const [query, setQuery] = useState('');
   const [regexEnabled, setRegexEnabled] = useState(false);
   const [liveTail, setLiveTail] = useState(true);
-
-  const streamLabels = {
-    console: t('baseChatAst.logs.stream.console'),
-    workflow: t('baseChatAst.logs.stream.workflow'),
-    system: t('baseChatAst.logs.stream.system'),
-  } as const;
-
   const runtimePorts = runtimePortsFromPayload(data.runtimePorts);
   const workspace = runtimeWorkspaceFromPanelData(data);
 
-  const workspaceStatus = runtimeStatusText(t, {
+  const workspaceStatus = runtimeStatusText({
     workspaceStatus: workspace,
     ports: runtimePorts,
     workspaceLoading: Boolean(workspace && !workspace.status),
     workspaceError: workspace?.error,
-  });
+  }).replace(/^Runtime:\s*/, '');
 
   const runtimeLogs = Array.isArray(data.runtimeLogs?.logs) ? data.runtimeLogs.logs : [];
 
@@ -21474,7 +19303,7 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
     })),
   );
 
-  const systemEvents = buildSystemLogEvents(data, t, language);
+  const systemEvents = buildSystemLogEvents(data);
   const logs = cleared ? [] : [...runtimeLogs, ...deploymentLogs, ...systemEvents];
   const activeStreamLogs = logs.filter((entry: any) => entry.source === activeStream);
   const filtersActive = level !== 'all' || query.trim().length > 0;
@@ -21501,12 +19330,12 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
       : queryFilteredLogs.filter((entry: any) => normalizeLogEntryLevel(entry) === level);
 
   const activeStreamEmptyMessage = cleared
-    ? t('baseChatAst.logs.empty.cleared')
+    ? 'Visible logs were cleared for this session. Reload to fetch the latest runtime output.'
     : activeStreamLogs.length === 0
-      ? t('baseChatAst.logs.empty.stream', { stream: streamLabels[activeStream] })
+      ? `No ${activeStream} logs yet. Start the workspace or run a command to stream output here.`
       : filtersActive
-        ? t('baseChatAst.logs.empty.filtered', { stream: streamLabels[activeStream] })
-        : t('baseChatAst.logs.empty.visible', { stream: streamLabels[activeStream] });
+        ? `No ${activeStream} log results for this filter.`
+        : `No ${activeStream} logs are visible right now.`;
 
   const secondaryLogs = split
     ? filterLogEntries(
@@ -21550,37 +19379,30 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
     <div className={classNames('bolt-project-console-tool', split && 'bolt-project-console-tool-split')}>
       <div className="bolt-project-console-header">
         {[
-          ['console', streamLabels.console],
-          ['workflow', streamLabels.workflow],
-          ['system', streamLabels.system],
+          ['console', 'Console'],
+          ['workflow', 'Workflow logs'],
+          ['system', 'System logs'],
         ].map(([id, label]) => (
           <button
             key={id}
             type="button"
             aria-pressed={activeStream === id}
-            aria-label={t('chat.copy.showValue0_60e2ce8e', { value0: label })}
+            aria-label={`Show ${label}`}
             onClick={() => setActiveStream(id as any)}
           >
             {label}
           </button>
         ))}
-        <span
-          className="bolt-project-console-status"
-          title={t('chat.copy.workspaceValue0_2f7c1a1b', { value0: workspaceStatus })}
-        >
+        <span className="bolt-project-console-status" title={`Workspace ${workspaceStatus}`}>
           {workspaceStatus}
         </span>
-        <div
-          className="bolt-project-console-level-chips"
-          role="group"
-          aria-label={t('chat.copy.filterLogsByLevel_f194bf68')}
-        >
+        <div className="bolt-project-console-level-chips" role="group" aria-label="Filter logs by level">
           {(
             [
-              ['all', t('baseChatAst.logs.level.all'), queryFilteredLogs.length],
-              ['info', t('baseChatAst.logs.level.info'), levelCounts.info],
-              ['warn', t('baseChatAst.logs.level.warn'), levelCounts.warn],
-              ['error', t('baseChatAst.logs.level.error'), levelCounts.error],
+              ['all', 'All', queryFilteredLogs.length],
+              ['info', 'Info', levelCounts.info],
+              ['warn', 'Warn', levelCounts.warn],
+              ['error', 'Error', levelCounts.error],
             ] as const
           ).map(([id, label, count]) => (
             <button
@@ -21588,10 +19410,7 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
               type="button"
               data-level={id}
               aria-pressed={level === id}
-              aria-label={t('baseChatAst.logs.showLevel', {
-                count,
-                level: label.toLocaleLowerCase(language),
-              })}
+              aria-label={`Show ${label.toLowerCase()} logs. ${count} line${count === 1 ? '' : 's'}.`}
               onClick={() => setLevel(id)}
             >
               {label}
@@ -21600,58 +19419,49 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
           ))}
         </div>
         <input
-          aria-label={t('chat.copy.searchLogs_48225af1')}
+          aria-label="Search logs"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder={regexEnabled ? t('chat.copy.regexSearch_012ab8b4') : t('chat.copy.searchLogs_48225af1')}
+          placeholder={regexEnabled ? 'Regex search' : 'Search logs'}
         />
         <button
           type="button"
           aria-pressed={regexEnabled}
-          aria-label={t('chat.copy.toggleRegexSearch_4ed228f4')}
+          aria-label="Toggle regex search"
           onClick={() => setRegexEnabled((value) => !value)}
         >
-          {t('chat.copy.regex_6e681935')}
+          Regex
         </button>
-        <button type="button" aria-label={t('chat.copy.clearVisibleLogs_eb78a0d1')} onClick={() => setCleared(true)}>
-          {t('chat.copy.clearLogs_532ffc7a')}
+        <button type="button" aria-label="Clear visible logs" onClick={() => setCleared(true)}>
+          Clear logs
         </button>
-        <button
-          type="button"
-          aria-label={t('chat.copy.toggleSplitLogView_4cbcd801')}
-          onClick={() => setSplit((value) => !value)}
-        >
-          {split ? t('chat.copy.closeSplit_1024a76a') : t('chat.copy.splitView_329af640')}
+        <button type="button" aria-label="Toggle split log view" onClick={() => setSplit((value) => !value)}>
+          {split ? 'Close split' : 'Split view'}
         </button>
-        <button
-          type="button"
-          aria-label={t('chat.copy.exportCurrentlyFilteredLogsAsA_487e7db6')}
-          onClick={downloadLogs}
-        >
-          {t('chat.copy.exportTxt_469c1c08')}
+        <button type="button" aria-label="Export currently filtered logs as a .txt file" onClick={downloadLogs}>
+          Export .txt
         </button>
         <button
           type="button"
           aria-pressed={liveTail}
-          aria-label={t('chat.copy.toggleLiveTail_e5a60fa5')}
+          aria-label="Toggle live tail"
           onClick={() => setLiveTail((value) => !value)}
         >
-          {liveTail ? t('chat.copy.liveTailOn_b3b68f8a') : t('chat.copy.liveTailOff_160816b4')}
+          {liveTail ? 'Live tail on' : 'Live tail off'}
         </button>
-        <button
-          type="button"
-          aria-label={t('chat.copy.reloadLogsFromBackend_6896c671')}
-          onClick={() => void reload?.()}
-          disabled={busy}
-        >
-          {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.reload_cce71553')}
+        <button type="button" aria-label="Reload logs from backend" onClick={() => void reload?.()} disabled={busy}>
+          {busy ? 'Refreshing' : 'Reload'}
         </button>
       </div>
       <LogStreamView logs={filteredLogs} empty={activeStreamEmptyMessage} />
       {split && (
         <LogStreamView
           logs={secondaryLogs}
-          empty={filtersActive ? t('baseChatAst.logs.empty.secondaryFiltered') : t('baseChatAst.logs.empty.secondary')}
+          empty={
+            filtersActive
+              ? 'No secondary stream log results for this filter.'
+              : 'No secondary stream logs yet. Start the workspace or run a command to stream output here.'
+          }
         />
       )}
     </div>
@@ -21665,8 +19475,6 @@ function ProjectLogsPanel({ data, reload, busy }: { data: any; reload?: () => vo
 const LOG_FOLLOW_BOTTOM_THRESHOLD_PX = 32;
 
 function LogStreamView({ logs, empty }: { logs: any[]; empty: string }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const [follow, setFollow] = useState(true);
 
@@ -21716,8 +19524,8 @@ function LogStreamView({ logs, empty }: { logs: any[]; empty: string }) {
               className="bolt-project-log-line"
               data-level={entry.level}
             >
-              <span>{formatLogTime(language, entry.timestamp)}</span>
-              <strong>{platformStateLabel(t, normalizeLogEntryLevel(entry))}</strong>
+              <span>{formatLogTime(entry.timestamp)}</span>
+              <strong>{entry.level ?? 'info'}</strong>
               {entry.context ? <em>{entry.context}</em> : null}
               <code>{entry.message}</code>
             </div>
@@ -21730,18 +19538,18 @@ function LogStreamView({ logs, empty }: { logs: any[]; empty: string }) {
         <button
           type="button"
           className="bolt-project-console-follow"
-          aria-label={t('chat.copy.resumeFollowModeAndJumpTo_ed8991ee')}
+          aria-label="Resume follow mode and jump to the newest log line"
           onClick={resumeFollow}
         >
           <span className="i-ph:arrow-line-down" aria-hidden />
-          {t('chat.copy.follow_66587a7a')}
+          Follow
         </button>
       ) : null}
     </div>
   );
 }
 
-function buildSystemLogEvents(data: any, t: TFunction, language: string) {
+function buildSystemLogEvents(data: any) {
   const workspace = data.workspace ?? data.runtimeStatus;
   const processes = Array.isArray(data.runtimeProcesses) ? data.runtimeProcesses : [];
   const ports = Array.isArray(data.runtimePorts) ? data.runtimePorts : [];
@@ -21751,41 +19559,24 @@ function buildSystemLogEvents(data: any, t: TFunction, language: string) {
     (event: any) => event.action === 'project.ide_state.save',
   ).length;
 
-  const number = new Intl.NumberFormat(language.startsWith('fr') ? 'fr-FR' : 'en-US');
-  const processCount = number.format(processes.length);
-  const portCount = number.format(ports.length);
-
-  const runtimeSummaryKey =
-    processes.length === 1
-      ? ports.length === 1
-        ? 'baseChatAst.logs.processOnePortOne'
-        : 'baseChatAst.logs.processOnePortsMany'
-      : ports.length === 1
-        ? 'baseChatAst.logs.processesManyPortOne'
-        : 'baseChatAst.logs.processesManyPortsMany';
-
   const base = [
     {
       level: workspace?.status === 'failed' ? 'error' : 'info',
       source: 'system',
       message: workspace
-        ? t('baseChatAst.logs.workspaceState', {
-            workspace: workspace.id ?? data.workspaceId ?? t('chat.copy.unknown_50d8b4a9'),
-            status: platformStateLabel(t, workspace.status),
-            runtime: workspace.runtimeMode ?? t('baseChatAst.common.runtime'),
-          })
-        : t('baseChatAst.logs.workspaceSnapshot', {
-            workspace: data.workspaceId ?? t('chat.copy.unknown_50d8b4a9'),
-          }),
+        ? `Workspace ${workspace.id ?? data.workspaceId} is ${workspace.status ?? 'unknown'} (${workspace.runtimeMode ?? 'runtime'})`
+        : `Workspace ${data.workspaceId ?? 'unknown'} has no dashboard record; using runtime snapshot`,
       timestamp: new Date().toISOString(),
-      context: t('baseChatAst.logs.context.workspace'),
+      context: 'workspace',
     },
     {
       level: 'info',
       source: 'system',
-      message: t(runtimeSummaryKey, { processes: processCount, ports: portCount }),
+      message: `${processes.length} running process${processes.length === 1 ? '' : 'es'}, ${ports.length} detected port${
+        ports.length === 1 ? '' : 's'
+      }`,
       timestamp: new Date().toISOString(),
-      context: t('baseChatAst.logs.context.runtime'),
+      context: 'runtime',
     },
   ];
 
@@ -21793,9 +19584,9 @@ function buildSystemLogEvents(data: any, t: TFunction, language: string) {
     base.push({
       level: 'warn',
       source: 'system',
-      message: t('baseChatAst.logs.auditCollapsed', { count: ideStateSaveCount }),
+      message: `${ideStateSaveCount} ide_state.save event${ideStateSaveCount === 1 ? '' : 's'} collapsed to keep logs readable`,
       timestamp: new Date().toISOString(),
-      context: t('baseChatAst.logs.context.audit'),
+      context: 'audit',
     });
   }
 
@@ -21804,9 +19595,9 @@ function buildSystemLogEvents(data: any, t: TFunction, language: string) {
     ...activity.slice(0, 80).map((event: any) => ({
       level: classifyLogLevel(event.action ?? ''),
       source: 'system',
-      message: event.action ? formatProjectActivityAction(t, event.action) : t('baseChatAst.logs.projectEvent'),
+      message: event.action ?? 'project event',
       timestamp: event.createdAt,
-      context: event.actorUserId ?? event.resourceType ?? t('baseChatAst.logs.context.activity'),
+      context: event.actorUserId ?? event.resourceType ?? 'activity',
     })),
   ];
 }
@@ -21873,18 +19664,14 @@ function classifyLogLevel(line: string) {
   return 'info';
 }
 
-function formatLogTime(language: string, value?: string) {
+function formatLogTime(value?: string) {
   const date = value ? new Date(value) : new Date();
 
   if (Number.isNaN(date.getTime())) {
     return '--:--:--';
   }
 
-  return formatBaseChatAstTime(language, date, {
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-  });
+  return date.toLocaleTimeString();
 }
 
 function ProjectSecretsPanel({
@@ -21900,8 +19687,6 @@ function ProjectSecretsPanel({
   busy: boolean;
   reload?: () => void | Promise<void>;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const [revealed, setRevealed] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [editingKey, setEditingKey] = useState('');
@@ -21949,7 +19734,7 @@ function ProjectSecretsPanel({
     const { entries } = importPreview;
 
     if (!entries.length) {
-      setMessage(t('baseChatAst.secrets.noEntries'));
+      setMessage('No KEY=value lines found to import.');
       return;
     }
 
@@ -21977,8 +19762,7 @@ function ProjectSecretsPanel({
             failures.push({ key, error: String(result?.error ?? `HTTP ${response.status}`) });
           }
         } catch (error) {
-          console.error('Secret import request failed', { key, error });
-          failures.push({ key, error: t('baseChatAst.secrets.networkError') });
+          failures.push({ key, error: error instanceof Error ? error.message : 'Network error' });
         }
 
         setImportProgress({ done: index + 1, total: entries.length });
@@ -21990,14 +19774,10 @@ function ProjectSecretsPanel({
         // Keep the section open so the user can see and retry what failed.
         setImportFailures(failures);
         setMessage(
-          t('baseChatAst.secrets.importPartial', {
-            count: entries.length,
-            imported: ok,
-            failed: failures.length,
-          }),
+          `Imported ${ok}/${entries.length} secret${entries.length === 1 ? '' : 's'} — ${failures.length} failed.`,
         );
       } else {
-        setMessage(t('baseChatAst.secrets.importComplete', { count: entries.length, imported: ok }));
+        setMessage(`Imported ${ok}/${entries.length} secret${entries.length === 1 ? '' : 's'} from .env.`);
         setImportText('');
         setImportOpen(false);
       }
@@ -22013,16 +19793,15 @@ function ProjectSecretsPanel({
     const value = revealed[key] ?? (await fetchSecretValue(key));
 
     if (typeof value !== 'string') {
-      setMessage(t('baseChatAst.secrets.revealFailed', { key }));
+      setMessage(`Unable to reveal ${key}.`);
       return;
     }
 
     try {
       await navigator.clipboard?.writeText(value);
-      setMessage(t('baseChatAst.secrets.valueCopied', { key }));
-    } catch (error) {
-      console.error('Secret value copy failed', { key, error });
-      setMessage(t('baseChatAst.secrets.copyFailed', { key }));
+      setMessage(`${key} value copied.`);
+    } catch {
+      setMessage(`Unable to copy ${key} to clipboard.`);
     }
   }
 
@@ -22067,9 +19846,9 @@ function ProjectSecretsPanel({
 
     if (typeof value === 'string') {
       setRevealed((current) => ({ ...current, [key]: value }));
-      setMessage(t('baseChatAst.secrets.revealed', { key }));
+      setMessage(`${key} revealed for this session.`);
     } else {
-      setMessage(t('baseChatAst.secrets.revealFailed', { key }));
+      setMessage(`Unable to reveal ${key}.`);
     }
   }
 
@@ -22078,14 +19857,9 @@ function ProjectSecretsPanel({
 
     try {
       await navigator.clipboard?.writeText(value);
-      setMessage(
-        t('baseChatAst.secrets.copied', {
-          label: t(revealed[key] ? 'baseChatAst.secrets.secretValue' : 'baseChatAst.secrets.secretKey'),
-        }),
-      );
-    } catch (error) {
-      console.error('Secret copy failed', { key, error });
-      setMessage(t('baseChatAst.secrets.copyFailed', { key }));
+      setMessage(`${revealed[key] ? 'Secret value' : 'Secret key'} copied.`);
+    } catch {
+      setMessage(`Unable to copy ${key} to clipboard.`);
     }
   }
 
@@ -22103,20 +19877,18 @@ function ProjectSecretsPanel({
         <PanelInput
           key={`secret-key-${editingKey}`}
           name="key"
-          placeholder={t('chat.copy.stripeSecretKey_b147aa52')}
+          placeholder="STRIPE_SECRET_KEY"
           required
           defaultValue={editingKey}
         />
         <PanelInput
           key={`secret-value-${editingKey}`}
           name="value"
-          placeholder={t('chat.copy.secretValue_50fbacc0')}
+          placeholder="Secret value"
           type="password"
           required
         />
-        <PanelButton disabled={busy}>
-          {editingKey ? t('chat.copy.updateSecret_77d1a1a5') : t('chat.copy.newSecret_57764d66')}
-        </PanelButton>
+        <PanelButton disabled={busy}>{editingKey ? 'Update secret' : '+ New secret'}</PanelButton>
         <PanelButton
           type="button"
           variant="outline"
@@ -22125,23 +19897,22 @@ function ProjectSecretsPanel({
             setImportFailures([]);
           }}
         >
-          {t('chat.copy.importEnv_f0940267')}
+          Import .env
         </PanelButton>
       </form>
 
       {importOpen ? (
         <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
           <label className="grid gap-1 text-xs text-bolt-elements-textSecondary">
-            {t('chat.copy.pasteAEnvFileOne_7111ba2a')}
-            <span className="font-mono">{t('chat.copy.keyValue_a4409af0')}</span>
-            {t('chat.copy.perLineCommentsAndBlankLines_9af5356e')}
+            Paste a .env file — one <span className="font-mono">KEY=value</span> per line (comments and blank lines are
+            ignored)
             <textarea
               value={importText}
               onChange={(event) => {
                 setImportText(event.target.value);
                 setImportFailures([]);
               }}
-              placeholder={t('chat.copy.databaseUrlPostgresStripeSecretKey_1e39ac87')}
+              placeholder={'DATABASE_URL=postgres://…\nSTRIPE_SECRET_KEY=sk_live_…'}
               spellCheck={false}
               style={{ fontFamily: 'var(--vc-font-code)' }}
               className="min-h-28 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2 text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
@@ -22151,8 +19922,10 @@ function ProjectSecretsPanel({
           {importPreview.entries.length ? (
             <div className="grid gap-1">
               <span className="text-xs text-bolt-elements-textSecondary">
-                {t('baseChatAst.counts.secretsToImport', { count: importPreview.entries.length })}
-                {overwriteCount ? ` ${t('baseChatAst.secrets.overwrite', { count: overwriteCount })}` : ''}
+                {importPreview.entries.length} secret{importPreview.entries.length === 1 ? '' : 's'} to import
+                {overwriteCount
+                  ? ` — ${overwriteCount} overwrite${overwriteCount === 1 ? 's' : ''} existing value${overwriteCount === 1 ? '' : 's'}`
+                  : ''}
               </span>
               <div className="grid gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2">
                 {importPreview.entries.map((entry) => (
@@ -22163,7 +19936,7 @@ function ProjectSecretsPanel({
                     >
                       {entry.key}
                     </span>
-                    <span className="text-bolt-elements-textTertiary" aria-label={t('chat.copy.valueHidden_4dff2356')}>
+                    <span className="text-bolt-elements-textTertiary" aria-label="Value hidden">
                       •••
                     </span>
                     {existingSecretKeys.has(entry.key) ? (
@@ -22175,7 +19948,7 @@ function ProjectSecretsPanel({
                           color: 'var(--vc-ide-accent-warning)',
                         }}
                       >
-                        {t('chat.copy.overwritesExisting_b450bd78')}
+                        overwrites existing
                       </span>
                     ) : null}
                   </div>
@@ -22193,12 +19966,11 @@ function ProjectSecretsPanel({
               }}
             >
               <span className="font-medium" style={{ color: 'var(--vc-ide-accent-warning)' }}>
-                {t('baseChatAst.counts.linesSkipped', { count: importPreview.skipped.length })}
+                {importPreview.skipped.length} line{importPreview.skipped.length === 1 ? '' : 's'} will be skipped
               </span>
               {importPreview.skipped.map((skippedLine) => (
                 <span key={skippedLine.line} className="text-bolt-elements-textSecondary">
-                  {t('chat.copy.line_ea967600')}
-                  {skippedLine.line} ({describeSkipReason(skippedLine.reason, language)}):{' '}
+                  Line {skippedLine.line} ({describeSkipReason(skippedLine.reason)}):{' '}
                   <span style={{ fontFamily: 'var(--vc-font-code)' }}>{skippedLine.text}</span>
                 </span>
               ))}
@@ -22222,16 +19994,13 @@ function ProjectSecretsPanel({
               disabled={importing || !importPreview.entries.length}
             >
               {importing && importProgress
-                ? t('chat.copy.importingValue0Value1_df968922', {
-                    value0: importProgress.done,
-                    value1: importProgress.total,
-                  })
+                ? `Importing ${importProgress.done}/${importProgress.total}…`
                 : importPreview.entries.length
-                  ? t('baseChatAst.secrets.importAction', { count: importPreview.entries.length })
-                  : t('chat.copy.importSecrets_9deaeb2d')}
+                  ? `Import ${importPreview.entries.length} secret${importPreview.entries.length === 1 ? '' : 's'}`
+                  : 'Import secrets'}
             </PanelButton>
             <PanelButton type="button" variant="outline" onClick={() => setImportOpen(false)} disabled={importing}>
-              {t('chat.copy.cancel_77dfd213')}
+              Cancel
             </PanelButton>
           </div>
         </div>
@@ -22244,45 +20013,33 @@ function ProjectSecretsPanel({
             <div key={secret.key} className="bolt-project-secret-row">
               <strong>{secret.key}</strong>
               <span>{revealed[secret.key] ?? '••••••'}</span>
-              <button
-                type="button"
-                aria-label={t('chat.copy.revealValue0_e5d8efb3', { value0: secret.key })}
-                onClick={() => revealSecret(secret.key)}
-              >
-                {revealed[secret.key] ? t('chat.copy.hide_34d8b60f') : t('chat.copy.reveal_90c0c2eb')}
+              <button type="button" aria-label={`Reveal ${secret.key}`} onClick={() => revealSecret(secret.key)}>
+                {revealed[secret.key] ? 'Hide' : 'Reveal'}
+              </button>
+              <button type="button" aria-label={`Copy ${secret.key} name`} onClick={() => void copySecret(secret.key)}>
+                Copy
               </button>
               <button
                 type="button"
-                aria-label={t('chat.copy.copyValue0Name_64ac36a4', { value0: secret.key })}
-                onClick={() => void copySecret(secret.key)}
-              >
-                {t('chat.copy.copy_af74f7c5')}
-              </button>
-              <button
-                type="button"
-                aria-label={t('chat.copy.copyValue0Value_8ab75412', { value0: secret.key })}
+                aria-label={`Copy ${secret.key} value`}
                 onClick={() => void copySecretValue(secret.key)}
               >
-                {t('chat.copy.copyValue_4c924dcb')}
+                Copy value
               </button>
-              <button
-                type="button"
-                aria-label={t('chat.copy.editValue0_fad75899', { value0: secret.key })}
-                onClick={() => setEditingKey(secret.key)}
-              >
-                {t('chat.copy.edit_5301648d')}
+              <button type="button" aria-label={`Edit ${secret.key}`} onClick={() => setEditingKey(secret.key)}>
+                Edit
               </button>
               <form onSubmit={onSubmit}>
                 <input name="intent" value="delete" type="hidden" />
                 <input name="key" value={secret.key} type="hidden" />
                 <PanelButton disabled={busy} variant="outline">
-                  {t('chat.copy.delete_f6fdbe48')}
+                  Delete
                 </PanelButton>
               </form>
             </div>
           ))
         ) : (
-          <div className="bolt-project-empty-panel">{t('chat.copy.noProjectSecrets_f3f1ca38')}</div>
+          <div className="bolt-project-empty-panel">No project secrets.</div>
         )}
       </div>
     </div>
@@ -22315,8 +20072,6 @@ function ProjectDeploymentsPanel({
   onSubmit: any;
   busy: boolean;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
   const deployments = data.deployments ?? [];
   const latestDeployment = deployments[0];
   const workspaceId = data.selectedWorkspaceId ?? data.workspaceId ?? data.workspace?.id ?? '';
@@ -22337,10 +20092,10 @@ function ProjectDeploymentsPanel({
       <div className="bolt-project-tool-tabs">
         {(
           [
-            ['overview', t('baseChatAst.common.overview')],
-            ['logs', t('baseChatAst.common.logs')],
-            ['domains', t('baseChatAst.common.domains')],
-            ['manage', t('baseChatAst.common.manage')],
+            ['overview', 'Overview'],
+            ['logs', 'Logs'],
+            ['domains', 'Domains'],
+            ['manage', 'Manage'],
           ] as const
         ).map(([id, label]) => (
           <button key={id} type="button" aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}>
@@ -22353,19 +20108,15 @@ function ProjectDeploymentsPanel({
         <section className="bolt-project-deploy-history">
           <div className="bolt-project-deploy-summary">
             <div>
-              <span>{t('chat.copy.latestStatus_d9f96f98')}</span>
-              <strong>
-                {latestDeployment?.status
-                  ? platformStateLabel(t, latestDeployment.status)
-                  : t('chat.copy.noDeployment_26885551')}
-              </strong>
+              <span>Latest status</span>
+              <strong>{latestDeployment?.status ?? 'No deployment'}</strong>
             </div>
             <div>
-              <span>{t('chat.copy.environment_d443a118')}</span>
-              <strong>{platformStateLabel(t, latestDeployment?.environment ?? 'preview')}</strong>
+              <span>Environment</span>
+              <strong>{latestDeployment?.environment ?? 'preview'}</strong>
             </div>
             <div>
-              <span>{t('chat.copy.framework_fb001b2c')}</span>
+              <span>Framework</span>
               <strong>{latestDeployment?.framework ?? inferredFramework}</strong>
             </div>
           </div>
@@ -22379,24 +20130,20 @@ function ProjectDeploymentsPanel({
            */}
           <div className="bolt-project-deploy-summary">
             <div>
-              <span>{t('chat.copy.type_3deb7456')}</span>
+              <span>Type</span>
               <strong>{latestDeployment?.provider ? formatDeployProvider(latestDeployment.provider) : '—'}</strong>
             </div>
             <div>
-              <span>{t('chat.copy.resources_87df60de')}</span>
-              <strong title={t('chat.copy.vcpuMemoryNoAutoscaleComputeBackend_a18a66c2')}>—</strong>
+              <span>Resources</span>
+              <strong title="vCPU / memory — no Autoscale compute backend">—</strong>
             </div>
             <div>
-              <span>{t('chat.copy.usage_0bb18642')}</span>
-              <strong title={t('chat.copy.computeUsageThisBillingPeriodNo_c6482992')}>—</strong>
+              <span>Usage</span>
+              <strong title="Compute usage this billing period — no metering backend">—</strong>
             </div>
             <div>
-              <span>{t('chat.copy.database_61074f1c')}</span>
-              <strong>
-                {connections.length
-                  ? t('chat.copy.connectedValue0_4e4f1431', { value0: connections.length })
-                  : t('chat.copy.notConnected_8b02f3de')}
-              </strong>
+              <span>Database</span>
+              <strong>{connections.length ? `Connected · ${connections.length}` : 'Not connected'}</strong>
             </div>
           </div>
 
@@ -22406,32 +20153,22 @@ function ProjectDeploymentsPanel({
                 <header>
                   <div>
                     <strong>
-                      {formatDeployProvider(deployment.provider)} ·{' '}
-                      {platformStateLabel(t, deployment.environment ?? 'preview')}
+                      {deployment.provider} · {deployment.environment ?? 'preview'}
                     </strong>
-                    <span>
-                      {deployment.url ??
-                        deployment.customDomain ??
-                        (deployment.createdAt ? formatBaseChatAstDateTime(language, deployment.createdAt) : null) ??
-                        t('chat.copy.urlPending_6c60f919')}
-                    </span>
+                    <span>{deployment.url ?? deployment.customDomain ?? deployment.createdAt ?? 'URL pending'}</span>
                   </div>
-                  <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
+                  <em data-status={deployment.status}>{deployment.status}</em>
                 </header>
                 {deployment.url ? (
                   <div className="bolt-project-deploy-actions">
                     <a href={deployment.url} target="_blank" rel="noreferrer">
-                      {t('chat.copy.open_cf9b7706')}
+                      Open
                     </a>
                     <button
                       type="button"
-                      onClick={() =>
-                        void navigator.clipboard
-                          ?.writeText(deployment.url)
-                          .catch(() => toast.error(t('chat.copy.clipboardUnavailable_bec46a29')))
-                      }
+                      onClick={() => void navigator.clipboard?.writeText(deployment.url).catch(() => {})}
                     >
-                      {t('chat.copy.copyLink_2f84eea5')}
+                      Copy link
                     </button>
                   </div>
                 ) : null}
@@ -22441,18 +20178,16 @@ function ProjectDeploymentsPanel({
             <EmptyState
               variant="compact"
               icon="i-ph:rocket-launch"
-              title={t('chat.copy.noDeploymentsYet_b00d97cd')}
-              description={t('chat.copy.shipThisProjectToALive_40d39230')}
-              actionLabel={t('baseChatAst.deploy.goManage')}
+              title="No deployments yet"
+              description="Ship this project to a live URL from the Manage tab."
+              actionLabel="Go to Manage"
               onAction={() => setTab('manage')}
             />
           )}
 
           {/* Real commit history (hash + author + date) from the git graph. */}
           <div className="grid gap-1">
-            <span className="text-[11px] uppercase tracking-wide text-bolt-elements-textSecondary">
-              {t('chat.copy.commitHistory_6c512e8d')}
-            </span>
+            <span className="text-[11px] uppercase tracking-wide text-bolt-elements-textSecondary">Commit history</span>
             {gitCommits.length ? (
               gitCommits.slice(0, 8).map((commit: any) => (
                 <div
@@ -22467,14 +20202,12 @@ function ProjectDeploymentsPanel({
                   </div>
                   <span className="shrink-0 text-bolt-elements-textTertiary">
                     {commit.author}
-                    {commit.date ? ` · ${formatBaseChatAstDate(language, commit.date) ?? ''}` : ''}
+                    {commit.date ? ` · ${new Date(commit.date).toLocaleDateString()}` : ''}
                   </span>
                 </div>
               ))
             ) : (
-              <span className="text-xs text-bolt-elements-textTertiary">
-                {t('chat.copy.noCommitsInThisWorkspaceYet_0a787c26')}
-              </span>
+              <span className="text-xs text-bolt-elements-textTertiary">No commits in this workspace yet.</span>
             )}
           </div>
         </section>
@@ -22488,25 +20221,20 @@ function ProjectDeploymentsPanel({
                 <header>
                   <div>
                     <strong>
-                      {formatDeployProvider(deployment.provider)} ·{' '}
-                      {platformStateLabel(t, deployment.environment ?? 'preview')}
+                      {deployment.provider} · {deployment.environment ?? 'preview'}
                     </strong>
-                    <span>
-                      {deployment.url ??
-                        (deployment.createdAt ? formatBaseChatAstDateTime(language, deployment.createdAt) : '')}
-                    </span>
+                    <span>{deployment.url ?? deployment.createdAt ?? ''}</span>
                   </div>
-                  <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
+                  <em data-status={deployment.status}>{deployment.status}</em>
                 </header>
-                <pre aria-label={t('chat.copy.deploymentLogsForValue0_cffeb837', { value0: deployment.id })}>
-                  {(deployment.logs ?? [])
-                    .map((log: any) => `[${platformStateLabel(t, log.level ?? 'info')}] ${log.message}`)
-                    .join('\n') || t('chat.copy.noDeploymentLogsYet_8f8bec37')}
+                <pre aria-label={`Deployment logs for ${deployment.id}`}>
+                  {(deployment.logs ?? []).map((log: any) => `[${log.level ?? 'info'}] ${log.message}`).join('\n') ||
+                    'No deployment logs yet.'}
                 </pre>
               </article>
             ))
           ) : (
-            <div className="bolt-project-empty-panel">{t('chat.copy.noDeploymentLogsYet_8f8bec37')}</div>
+            <div className="bolt-project-empty-panel">No deployment logs yet.</div>
           )}
         </section>
       ) : null}
@@ -22528,22 +20256,16 @@ function ProjectDeploymentsPanel({
                   <header>
                     <div>
                       <strong>
-                        {formatDeployProvider(deployment.provider)} ·{' '}
-                        {platformStateLabel(t, deployment.environment ?? 'preview')}
+                        {deployment.provider} · {deployment.environment ?? 'preview'}
                       </strong>
-                      <span>
-                        {deployment.url ??
-                          deployment.customDomain ??
-                          (deployment.createdAt ? formatBaseChatAstDateTime(language, deployment.createdAt) : null) ??
-                          t('chat.copy.urlPending_6c60f919')}
-                      </span>
+                      <span>{deployment.url ?? deployment.customDomain ?? deployment.createdAt ?? 'URL pending'}</span>
                     </div>
-                    <em data-status={deployment.status}>{platformStateLabel(t, deployment.status)}</em>
+                    <em data-status={deployment.status}>{deployment.status}</em>
                   </header>
                   <div className="bolt-project-deploy-actions">
                     {deployment.url ? (
                       <a href={deployment.url} target="_blank" rel="noreferrer">
-                        {t('chat.copy.open_cf9b7706')}
+                        Open
                       </a>
                     ) : null}
                     <ProjectDeploymentAction
@@ -22552,7 +20274,7 @@ function ProjectDeploymentsPanel({
                       onSubmit={onSubmit}
                       busy={busy}
                     >
-                      {t('chat.copy.redeploy_620446dc')}
+                      Redeploy
                     </ProjectDeploymentAction>
                     <ProjectDeploymentAction
                       intent="rollback"
@@ -22560,7 +20282,7 @@ function ProjectDeploymentsPanel({
                       onSubmit={onSubmit}
                       busy={busy}
                     >
-                      {t('chat.copy.rollback_f28daee2')}
+                      Rollback
                     </ProjectDeploymentAction>
                     <ProjectDeploymentAction
                       intent="cancel"
@@ -22568,7 +20290,7 @@ function ProjectDeploymentsPanel({
                       onSubmit={onSubmit}
                       busy={busy}
                     >
-                      {t('chat.copy.cancel_77dfd213')}
+                      Cancel
                     </ProjectDeploymentAction>
                   </div>
                 </article>
@@ -22578,10 +20300,13 @@ function ProjectDeploymentsPanel({
 
           <form onSubmit={onSubmit} className="bolt-project-deploy-wizard">
             {workspaceId ? <input type="hidden" name="workspaceId" value={workspaceId} /> : null}
-            <h3>{t('chat.copy.deploymentWizard_3306b958')}</h3>
-            <p>{t('chat.copy.usesTheExistingECodeBuild_2d40a6c6')}</p>
+            <h3>Deployment wizard</h3>
+            <p>
+              Uses the existing E-Code build defaults and records the SaaS deployment with quotas, audit logs and
+              redacted output.
+            </p>
             <label>
-              {t('chat.copy.provider_7ceee3f3')}
+              Provider
               <select name="provider" defaultValue="static">
                 {BOLT_DEPLOY_PROVIDERS.map((provider) => (
                   <option key={provider.id} value={provider.id}>
@@ -22591,87 +20316,75 @@ function ProjectDeploymentsPanel({
               </select>
             </label>
             <label>
-              {t('chat.copy.environment_d443a118')}
+              Environment
               <select name="environment" defaultValue="preview">
-                <option value="preview">{t('chat.copy.preview_f1fbb2b4')}</option>
-                <option value="staging">{t('chat.copy.staging_c9fb656c')}</option>
-                <option value="production">{t('chat.copy.production_df70fc79')}</option>
+                <option value="preview">Preview</option>
+                <option value="staging">Staging</option>
+                <option value="production">Production</option>
               </select>
             </label>
-            <label title={t('chat.copy.commandExecutedBeforeDeploymentToGenerate_87b85f3b')}>
-              <span>{t('chat.copy.buildCommand_2740bf0b')}</span>
-              <PanelInput
-                name="buildCommand"
-                defaultValue={DEFAULT_DEPLOY_BUILD_COMMAND}
-                aria-label={t('chat.copy.buildCommand_2740bf0b')}
-              />
-              <small>{t('chat.copy.exampleNpmRunBuildPnpmBuild_cf3d34a0')}</small>
+            <label title="Command executed before deployment to generate production assets.">
+              <span>Build command</span>
+              <PanelInput name="buildCommand" defaultValue={DEFAULT_DEPLOY_BUILD_COMMAND} aria-label="Build command" />
+              <small>Example: npm run build, pnpm build, or yarn build.</small>
             </label>
-            <label title={t('chat.copy.directoryContainingTheBuiltStaticAssets_26607c07')}>
-              <span>{t('chat.copy.outputDirectory_ba9028f4')}</span>
+            <label title="Directory containing the built static assets or server bundle to deploy.">
+              <span>Output directory</span>
               <PanelInput
                 name="outputDirectory"
                 defaultValue={DEFAULT_DEPLOY_OUTPUT_DIRECTORY}
-                aria-label={t('chat.copy.outputDirectory_ba9028f4')}
+                aria-label="Output directory"
               />
-              <small>{t('chat.copy.forViteThisIsUsuallyDist_03b25ded')}</small>
+              <small>For Vite this is usually dist.</small>
             </label>
-            <label title={t('chat.copy.detectedFrameworkUsedToChooseProvider_4dd054b6')}>
-              <span>{t('chat.copy.frameworkDetected_7a55cf59')}</span>
-              <PanelInput
-                name="framework"
-                placeholder={t('chat.copy.autoValue0_eef47a46', { value0: inferredFramework })}
-                aria-label={t('chat.copy.frameworkDetected_7a55cf59')}
-              />
-              <small>{t('chat.copy.leaveBlankToLetECode_d7db4b95')}</small>
+            <label title="Detected framework used to choose provider defaults. Leave empty to keep auto-detection.">
+              <span>Framework detected</span>
+              <PanelInput name="framework" placeholder={`Auto: ${inferredFramework}`} aria-label="Framework detected" />
+              <small>Leave blank to let E-Code infer the framework from package scripts and config files.</small>
             </label>
-            <label title={t('chat.copy.gitBranchOrWorkspaceBranchUsed_90c55da3')}>
-              <span>{t('chat.copy.branch_1627510b')}</span>
+            <label title="Git branch or workspace branch used as the deployment source.">
+              <span>Branch</span>
               <PanelInput
                 name="branch"
-                placeholder={project.gitDefaultBranch ?? t('chat.copy.main_b28b7af6')}
-                aria-label={t('chat.copy.deploymentBranch_1e947167')}
+                placeholder={project.gitDefaultBranch ?? 'main'}
+                aria-label="Deployment branch"
               />
-              <small>{t('chat.copy.defaultsToTheProjectBranchWhen_3964715b')}</small>
+              <small>Defaults to the project branch when no branch is provided.</small>
             </label>
-            <label title={t('chat.copy.optionalGitRemoteUrlUsedBy_d9896847')}>
-              <span>{t('chat.copy.repositoryUrl_ca38850c')}</span>
+            <label title="Optional Git remote URL used by providers that deploy from a repository.">
+              <span>Repository URL</span>
               <PanelInput
                 name="repositoryUrl"
                 defaultValue={project.gitRepositoryUrl ?? ''}
-                aria-label={t('chat.copy.repositoryUrl_ca38850c')}
+                aria-label="Repository URL"
               />
             </label>
-            <label title={t('chat.copy.optionalDomainToAttachToThe_839fb219')}>
-              <span>{t('chat.copy.customDomain_0354c889')}</span>
-              <PanelInput
-                name="customDomain"
-                aria-label={t('chat.copy.customDomain_0354c889')}
-                placeholder={codeExample('app.example.com')}
-              />
+            <label title="Optional domain to attach to the deployment after DNS verification.">
+              <span>Custom domain</span>
+              <PanelInput name="customDomain" aria-label="Custom domain" placeholder="app.example.com" />
             </label>
-            <label title={t('chat.copy.plainEnvironmentVariablesAddedForThis_0d76b791')}>
-              <span>{t('chat.copy.environmentVariables_1173b2e1')}</span>
+            <label title="Plain environment variables added for this deployment. Do not paste secrets here.">
+              <span>Environment variables</span>
               <textarea
                 name="envVars"
-                placeholder={t('chat.copy.keyValueAnotherKeyValue_36d39107')}
-                aria-label={t('chat.copy.environmentVariables_1173b2e1')}
+                placeholder={'KEY=value\nANOTHER_KEY=value'}
+                aria-label="Environment variables"
               />
-              <small>{t('chat.copy.useKeyValuePairsOnePer_0a98c277')}</small>
+              <small>Use KEY=value pairs, one per line. Store sensitive values as secrets.</small>
             </label>
-            <label title={t('chat.copy.commaSeparatedNamesOfExistingProject_93f64262')}>
-              <span>{t('chat.copy.secretsToInject_5712dba7')}</span>
+            <label title="Comma-separated names of existing project secrets to inject at deploy time.">
+              <span>Secrets to inject</span>
               <PanelInput
                 name="injectSecrets"
-                placeholder={t('chat.copy.databaseUrlStripeSecretKey_42eb88dc')}
-                aria-label={t('chat.copy.secretsToInject_5712dba7')}
+                placeholder="DATABASE_URL,STRIPE_SECRET_KEY"
+                aria-label="Secrets to inject"
               />
             </label>
             <label className="bolt-project-checkbox-row">
               <input name="previewDeployment" type="checkbox" defaultChecked />
-              {t('chat.copy.createPreviewUrlForNonProduction_9d087457')}
+              Create preview URL for non-production deploys
             </label>
-            <PanelButton disabled={busy}>{t('chat.copy.deployProject_9e37b103')}</PanelButton>
+            <PanelButton disabled={busy}>Deploy project</PanelButton>
           </form>
         </>
       ) : null}
@@ -22704,22 +20417,17 @@ function ProjectDeploymentAction({
 }
 
 function PanelRows({ rows, events, empty }: { rows: any[]; events?: any[]; empty?: string }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
-
   const normalized = rows.length
     ? rows
     : (events ?? []).map((event) => [
-        formatProjectActivityAction(t, event.action),
-        event.createdAt
-          ? (formatBaseChatAstDateTime(language, event.createdAt) ?? t('baseChatAst.runtime.recordedByApi'))
-          : t('baseChatAst.runtime.recordedByApi'),
+        event.action,
+        event.createdAt ? new Date(event.createdAt).toLocaleString() : 'Recorded by API',
       ]);
 
   if (!normalized.length) {
     return (
       <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-sm text-bolt-elements-textSecondary">
-        {empty ?? t('chat.copy.noRecords_2cd2e011')}
+        {empty ?? 'No records.'}
       </div>
     );
   }
@@ -22775,51 +20483,45 @@ function MobileAgentStartState({
   suggestions: ProjectAgentSuggestion[];
   onSuggestion: (prompt: string) => void;
 }) {
-  const { t } = useTranslation();
-
   const contextLabel = selectedFileLabel
-    ? t('baseChatAst.mobile.focusedOn', { file: selectedFileLabel })
+    ? `Focused on ${selectedFileLabel}`
     : fileCount > 0
-      ? t('baseChatAst.mobile.filesIndexed', { count: fileCount })
-      : t('baseChatAst.mobile.contextReady');
+      ? `${fileCount} project files indexed`
+      : 'Workspace context ready';
 
   return (
-    <section className="bolt-mobile-agent-start-state" aria-label={t('chat.copy.agentWorkspaceContext_c9e2d0ab')}>
+    <section className="bolt-mobile-agent-start-state" aria-label="Agent workspace context">
       <div className="bolt-mobile-agent-start-card">
         <header>
           <span className="bolt-mobile-agent-start-icon">
             <MobileReplitAgentIcon />
           </span>
           <span>
-            <strong>{isRunning ? t('chat.copy.working_3b4dfc97') : t('chat.copy.agentReady_07195d6a')}</strong>
+            <strong>{isRunning ? 'Working' : 'Agent ready'}</strong>
             <small>{contextLabel}</small>
           </span>
           <span className="bolt-mobile-agent-start-status" data-running={isRunning ? 'true' : 'false'}>
-            {isRunning ? t('chat.copy.live_65c821a5') : t('chat.copy.idle_cc1ebdd0')}
+            {isRunning ? 'Live' : 'Idle'}
           </span>
         </header>
-        <div className="bolt-mobile-agent-start-steps" aria-label={t('chat.copy.workspaceReadiness_c8a908ef')}>
+        <div className="bolt-mobile-agent-start-steps" aria-label="Workspace readiness">
           <div>
             <span className="i-ph:check-circle" aria-hidden />
-            <span>{t('chat.copy.contextLoaded_fe9e1240')}</span>
+            <span>Context loaded</span>
           </div>
           <div>
             <span className="i-ph:code" aria-hidden />
-            <span>
-              {fileCount > 0
-                ? t('chat.copy.value0Files_05f7ab26', { value0: fileCount })
-                : t('chat.copy.filesReady_cf37cc0b')}
-            </span>
+            <span>{fileCount > 0 ? `${fileCount} files` : 'Files ready'}</span>
           </div>
           <div>
             <span className="i-ph:monitor" aria-hidden />
-            <span>{t('chat.copy.previewAvailable_4a051188')}</span>
+            <span>Preview available</span>
           </div>
         </div>
       </div>
 
       {suggestions.length > 0 ? (
-        <div className="bolt-mobile-agent-start-actions" aria-label={t('chat.copy.agentQuickActions_cfcfd957')}>
+        <div className="bolt-mobile-agent-start-actions" aria-label="Agent quick actions">
           {suggestions.map((suggestion) => (
             <button
               key={suggestion.id}
@@ -22848,60 +20550,40 @@ function MobileReplitAgentIcon({ className }: { className?: string }) {
   );
 }
 
-function panelTitle(panel: string, t?: TFunction) {
-  const titleKeys: Record<string, keyof ReturnType<typeof getBaseChatAstCopy>> = {
-    studio: 'baseChatAst.common.agentStudio',
-    editor: 'baseChatAst.common.editor',
-    preview: 'baseChatAst.common.webview',
-    webview: 'baseChatAst.common.webview',
-    console: 'baseChatAst.common.console',
-    network: 'baseChatAst.common.network',
-    database: 'baseChatAst.common.database',
-    'object-storage': 'baseChatAst.common.objectStorage',
-    packages: 'baseChatAst.common.packages',
-    skills: 'baseChatAst.common.skills',
-    monitoring: 'baseChatAst.common.monitoring',
-    extensions: 'baseChatAst.common.extensions',
-    integrations: 'baseChatAst.common.integrations',
-    workflows: 'baseChatAst.common.workflows',
-    debugger: 'baseChatAst.common.debugger',
-    files: 'baseChatAst.common.library',
-    search: 'baseChatAst.common.search',
-    locks: 'baseChatAst.common.locks',
-    overview: 'baseChatAst.common.overview',
-    deployments: 'baseChatAst.common.deployments',
-    security: 'baseChatAst.common.security',
-    env: 'baseChatAst.common.environmentVariables',
-    secrets: 'baseChatAst.common.secrets',
-    git: 'baseChatAst.common.git',
-    activity: 'baseChatAst.common.activity',
-    terminal: 'baseChatAst.common.shell',
-    logs: 'baseChatAst.common.logs',
-    ports: 'baseChatAst.common.ports',
-    collaborators: 'baseChatAst.common.collaborators',
-    domains: 'baseChatAst.common.domains',
-    snapshots: 'baseChatAst.common.snapshots',
-    settings: 'baseChatAst.common.settings',
+function panelTitle(panel: string) {
+  const titles: Record<string, string> = {
+    editor: 'Editor',
+    preview: 'Webview',
+    webview: 'Webview',
+    console: 'Console',
+    network: 'Network',
+    database: 'Database',
+    'object-storage': 'Object Storage',
+    packages: 'Packages',
+    monitoring: 'Monitoring',
+    extensions: 'Extensions',
+    integrations: 'Integrations',
+    workflows: 'Workflows',
+    debugger: 'Debugger',
+    files: 'Library',
+    search: 'Search',
+    locks: 'Locks',
+    overview: 'Overview',
+    deployments: 'Deployments',
+    security: 'Security',
+    env: 'Environment variables',
+    secrets: 'Secrets',
+    git: 'Git',
+    activity: 'Activity',
+    terminal: SHELL_TERMINAL_LABEL,
+    logs: 'Logs',
+    collaborators: 'Collaborators',
+    domains: 'Domains',
+    snapshots: 'Snapshots',
+    settings: 'Settings',
   };
 
-  const key = titleKeys[panel];
-
-  if (key) {
-    return t ? t(key) : getBaseChatAstCopy('en')[key];
-  }
-
-  /*
-   * Repli anti-dérive (BUG-IDE-002, audit cluster D). Sans lui, un panneau
-   * ajouté sans clé de traduction affiche son id brut : l'onglet lisait
-   * « skills », le titre « studio » et l'état vide « No studio yet ». Le
-   * catalogue de base porte déjà un nom produit pour chaque panneau, donc on
-   * s'y rabat plutôt que d'entretenir une seconde liste qui redérivera au
-   * prochain panneau ajouté.
-   *
-   * `ECODE_MOBILE_TAB_META_BASE` (module) et non `ECODE_MOBILE_TAB_META` : ce
-   * dernier est mémoïsé DANS le composant et n'est pas visible ici.
-   */
-  return ECODE_MOBILE_TAB_META_BASE[panel]?.name ?? panel;
+  return titles[panel] ?? panel;
 }
 
 function panelIcon(panel: string) {
@@ -22950,7 +20632,6 @@ function panelIcon(panel: string) {
 const SCROLL_TO_BOTTOM_THRESHOLD = 240;
 
 function ScrollToBottom() {
-  const { t } = useTranslation();
   const { isAtBottom, scrollToBottom, state } = useStickToBottomContext();
   const shouldShowScrollControl = !isAtBottom && state.scrollDifference > SCROLL_TO_BOTTOM_THRESHOLD;
 
@@ -22963,11 +20644,11 @@ function ScrollToBottom() {
       <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-bolt-elements-background-depth-1 to-transparent h-20 z-10" />
       <button
         type="button"
-        aria-label={t('chat.copy.scrollToTheLatestMessage_705d9356')}
+        aria-label="Scroll to the latest message"
         className="sticky z-50 bottom-0 left-0 right-0 text-4xl rounded-lg px-1.5 py-0.5 flex items-center justify-center mx-auto gap-2 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm shadow-sm"
         onClick={() => scrollToBottom()}
       >
-        {t('chat.copy.goToLastMessage_2d23b856')}
+        Go to last message
         <span className="i-ph:arrow-down animate-bounce" />
       </button>
     </>

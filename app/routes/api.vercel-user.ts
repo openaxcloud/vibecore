@@ -1,5 +1,4 @@
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
-import { webApiErrorResponse, webApiLocaleHeaders } from '~/lib/i18n/catalogs/web-api-routes';
 import { json } from '~/lib/json-response';
 import { withSecurity } from '~/lib/security';
 
@@ -22,7 +21,7 @@ async function vercelUserLoader({ request }: { request: Request }) {
     }
 
     if (!vercelToken) {
-      return webApiErrorResponse(request, 'VERCEL_TOKEN_MISSING', 401);
+      return json({ error: 'Vercel token not found' }, { status: 401 });
     }
 
     // Make server-side request to Vercel API
@@ -36,11 +35,10 @@ async function vercelUserLoader({ request }: { request: Request }) {
 
     if (!response.ok) {
       if (response.status === 401) {
-        return webApiErrorResponse(request, 'VERCEL_TOKEN_INVALID', 401);
+        return json({ error: 'Invalid Vercel token' }, { status: 401 });
       }
 
-      console.error('Vercel user request failed:', { status: response.status });
-      throw new Error();
+      throw new Error(`Vercel API error: ${response.status}`);
     }
 
     const userData = (await response.json()) as {
@@ -53,19 +51,22 @@ async function vercelUserLoader({ request }: { request: Request }) {
       };
     };
 
-    return json(
-      {
-        id: userData.user.id,
-        name: userData.user.name,
-        email: userData.user.email,
-        avatar: userData.user.avatar,
-        username: userData.user.username,
-      },
-      { headers: webApiLocaleHeaders(request) },
-    );
+    return json({
+      id: userData.user.id,
+      name: userData.user.name,
+      email: userData.user.email,
+      avatar: userData.user.avatar,
+      username: userData.user.username,
+    });
   } catch (error) {
     console.error('Error fetching Vercel user:', error);
-    return webApiErrorResponse(request, 'VERCEL_USER_FAILED', 503);
+    return json(
+      {
+        error: 'Failed to fetch Vercel user information',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    );
   }
 }
 
@@ -96,7 +97,7 @@ async function vercelUserAction({ request }: { request: Request }) {
     }
 
     if (!vercelToken) {
-      return webApiErrorResponse(request, 'VERCEL_TOKEN_MISSING', 401);
+      return json({ error: 'Vercel token not found' }, { status: 401 });
     }
 
     if (action === 'get_projects') {
@@ -110,8 +111,7 @@ async function vercelUserAction({ request }: { request: Request }) {
       });
 
       if (!response.ok) {
-        console.error('Vercel projects request failed:', { status: response.status });
-        throw new Error();
+        throw new Error(`Vercel API error: ${response.status}`);
       }
 
       const data = (await response.json()) as {
@@ -138,10 +138,16 @@ async function vercelUserAction({ request }: { request: Request }) {
       });
     }
 
-    return webApiErrorResponse(request, 'VERCEL_ACTION_INVALID', 400);
+    return json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('Error in Vercel user action:', error);
-    return webApiErrorResponse(request, 'VERCEL_REQUEST_FAILED', 503);
+    return json(
+      {
+        error: 'Failed to process Vercel request',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    );
   }
 }
 

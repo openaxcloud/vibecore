@@ -1,19 +1,4 @@
 import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
-import {
-  formatProjectOverviewPanelCopy,
-  formatProjectOverviewPanelCount,
-  formatProjectOverviewPanelDate,
-  formatProjectOverviewPanelNumber,
-  getProjectOverviewPanelCopy,
-  projectOverviewActivityLabel,
-  projectOverviewCategoryLabel,
-  projectOverviewMemberStatusLabel,
-  projectOverviewRoleLabel,
-  projectOverviewSourceLabel,
-  projectOverviewWorkspaceStatusLabel,
-  type ProjectOverviewPanelCopy,
-} from '~/lib/i18n/catalogs/project-overview-panel';
 import type {
   ProjectOverviewActivity,
   ProjectOverviewCommit,
@@ -43,6 +28,38 @@ type ProjectOverviewPanelProps = {
   };
 };
 
+function formatDate(value?: string) {
+  if (!value) {
+    return 'Unknown';
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(undefined, {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date);
+}
+
+function titleCase(value?: string) {
+  if (!value) {
+    return 'Unknown';
+  }
+
+  return value
+    .split(/[-_.\s]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+}
+
 function fallbackOverview(data: ProjectOverviewPanelProps['data'], project: ProjectOverviewPanelProps['project']) {
   const commits = data.commits ?? [];
   const collaborators = data.collaborators ?? [];
@@ -64,8 +81,8 @@ function fallbackOverview(data: ProjectOverviewPanelProps['data'], project: Proj
     scripts: [] as ProjectOverviewScript[],
     commits,
     members: collaborators.map((collaborator) => ({
-      id: collaborator.id ?? collaborator.userId ?? '',
-      userId: collaborator.userId ?? collaborator.id ?? '',
+      id: collaborator.id ?? collaborator.userId ?? 'member',
+      userId: collaborator.userId ?? collaborator.id ?? 'member',
       roleKey: collaborator.roleKey,
       status: 'member',
     })) as ProjectOverviewMember[],
@@ -73,28 +90,14 @@ function fallbackOverview(data: ProjectOverviewPanelProps['data'], project: Proj
   } satisfies ProjectOverviewInsights;
 }
 
-function OverviewMetric({
-  label,
-  value,
-  detail,
-  ariaLabel,
-}: {
-  label: string;
-  value: string | number;
-  detail: string;
-  ariaLabel: string;
-}) {
+function OverviewMetric({ label, value, detail }: { label: string; value: string | number; detail: string }) {
   return (
-    <div
-      className="min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-3"
-      role="group"
-      aria-label={ariaLabel}
-    >
-      <div className="break-words text-[11px] font-semibold uppercase tracking-[0.08em] text-bolt-elements-textTertiary">
+    <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-3">
+      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-bolt-elements-textTertiary">
         {label}
       </div>
-      <div className="mt-2 break-all text-lg font-semibold text-bolt-elements-textPrimary">{value}</div>
-      <div className="mt-1 break-all text-xs leading-5 text-bolt-elements-textSecondary">{detail}</div>
+      <div className="mt-2 truncate text-lg font-semibold text-bolt-elements-textPrimary">{value}</div>
+      <div className="mt-1 truncate text-xs text-bolt-elements-textSecondary">{detail}</div>
     </div>
   );
 }
@@ -102,13 +105,11 @@ function OverviewMetric({
 function OverviewSection({ title, action, children }: { title: string; action?: string; children: ReactNode }) {
   return (
     <section className="min-w-0">
-      <div className="mb-2 flex min-w-0 flex-col gap-1 min-[420px]:flex-row min-[420px]:items-start min-[420px]:justify-between min-[420px]:gap-3">
-        <h3 className="m-0 min-w-0 break-words text-xs font-semibold uppercase tracking-[0.08em] text-bolt-elements-textTertiary">
+      <div className="mb-2 flex min-w-0 items-center justify-between gap-3">
+        <h3 className="m-0 truncate text-xs font-semibold uppercase tracking-[0.08em] text-bolt-elements-textTertiary">
           {title}
         </h3>
-        {action ? (
-          <span className="break-words text-[11px] text-bolt-elements-textTertiary min-[420px]:shrink-0">{action}</span>
-        ) : null}
+        {action ? <span className="shrink-0 text-[11px] text-bolt-elements-textTertiary">{action}</span> : null}
       </div>
       {children}
     </section>
@@ -117,26 +118,19 @@ function OverviewSection({ title, action, children }: { title: string; action?: 
 
 function EmptyOverviewBlock({ children }: { children: ReactNode }) {
   return (
-    <div
-      className="break-words rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-4 text-sm leading-6 text-bolt-elements-textSecondary"
-      role="status"
-    >
+    <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-4 text-sm text-bolt-elements-textSecondary">
       {children}
     </div>
   );
 }
 
-function StackList({
-  stack,
-  copy,
-  language,
-}: {
-  stack: ProjectOverviewStackItem[];
-  copy: ProjectOverviewPanelCopy;
-  language?: string;
-}) {
+function StackList({ stack }: { stack: ProjectOverviewStackItem[] }) {
   if (!stack.length) {
-    return <EmptyOverviewBlock>{copy['projectOverview.empty.stack']}</EmptyOverviewBlock>;
+    return (
+      <EmptyOverviewBlock>
+        No stack detected yet. Add a package.json or framework files to populate this.
+      </EmptyOverviewBlock>
+    );
   }
 
   return (
@@ -144,19 +138,12 @@ function StackList({
       {stack.map((item) => (
         <div
           key={`${item.name}-${item.source}`}
-          className="max-w-full min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2"
-          title={formatProjectOverviewPanelCopy(copy['projectOverview.stack.detectedFrom'], {
-            name: item.name,
-            source: item.source,
-          })}
-          aria-label={formatProjectOverviewPanelCopy(copy['projectOverview.stack.detectedFrom'], {
-            name: item.name,
-            source: item.source,
-          })}
+          className="min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2"
+          title={`${item.name} detected from ${item.source}`}
         >
-          <div className="break-all text-sm font-semibold text-bolt-elements-textPrimary">{item.name}</div>
-          <div className="mt-0.5 max-w-full break-all text-[11px] text-bolt-elements-textTertiary">
-            {projectOverviewCategoryLabel(item.category, language)} · {item.source}
+          <div className="text-sm font-semibold text-bolt-elements-textPrimary">{item.name}</div>
+          <div className="mt-0.5 max-w-[180px] truncate text-[11px] text-bolt-elements-textTertiary">
+            {titleCase(item.category)} · {item.source}
           </div>
         </div>
       ))}
@@ -164,9 +151,9 @@ function StackList({
   );
 }
 
-function ScriptList({ scripts, copy }: { scripts: ProjectOverviewScript[]; copy: ProjectOverviewPanelCopy }) {
+function ScriptList({ scripts }: { scripts: ProjectOverviewScript[] }) {
   if (!scripts.length) {
-    return <EmptyOverviewBlock>{copy['projectOverview.empty.scripts']}</EmptyOverviewBlock>;
+    return <EmptyOverviewBlock>No npm scripts found in project manifests.</EmptyOverviewBlock>;
   }
 
   return (
@@ -174,39 +161,24 @@ function ScriptList({ scripts, copy }: { scripts: ProjectOverviewScript[]; copy:
       {scripts.slice(0, 6).map((script) => (
         <div
           key={`${script.manifestPath}:${script.name}`}
-          className="min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2"
-          role="group"
-          aria-label={formatProjectOverviewPanelCopy(copy['projectOverview.script.aria'], {
-            name: script.name,
-            command: script.runCommand,
-          })}
+          className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2"
         >
-          <div className="flex min-w-0 flex-col items-stretch gap-2 min-[420px]:flex-row min-[420px]:items-start min-[420px]:justify-between min-[420px]:gap-3">
-            <strong className="min-w-0 break-all text-sm text-bolt-elements-textPrimary">{script.name}</strong>
-            <code className="max-w-full overflow-x-auto whitespace-nowrap rounded bg-bolt-elements-background-depth-3 px-1.5 py-1 text-[11px] text-bolt-elements-textSecondary">
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            <strong className="truncate text-sm text-bolt-elements-textPrimary">{script.name}</strong>
+            <code className="shrink-0 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-[11px] text-bolt-elements-textSecondary">
               {script.runCommand}
             </code>
           </div>
-          <code className="mt-1 block max-w-full overflow-x-auto whitespace-nowrap text-xs text-bolt-elements-textSecondary">
-            {script.command}
-          </code>
+          <div className="mt-1 truncate text-xs text-bolt-elements-textSecondary">{script.command}</div>
         </div>
       ))}
     </div>
   );
 }
 
-function CommitList({
-  commits,
-  copy,
-  language,
-}: {
-  commits: ProjectOverviewCommit[];
-  copy: ProjectOverviewPanelCopy;
-  language?: string;
-}) {
+function CommitList({ commits }: { commits: ProjectOverviewCommit[] }) {
   if (!commits.length) {
-    return <EmptyOverviewBlock>{copy['projectOverview.empty.commits']}</EmptyOverviewBlock>;
+    return <EmptyOverviewBlock>No commits reported yet.</EmptyOverviewBlock>;
   }
 
   return (
@@ -214,15 +186,13 @@ function CommitList({
       {commits.map((commit, index) => (
         <div
           key={`${commit.sha ?? commit.message}-${commit.date ?? ''}-${index}`}
-          className="min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2"
+          className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2"
         >
-          <div className="break-words text-sm font-medium text-bolt-elements-textPrimary">{commit.message}</div>
-          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-bolt-elements-textTertiary">
+          <div className="truncate text-sm font-medium text-bolt-elements-textPrimary">{commit.message}</div>
+          <div className="mt-1 flex min-w-0 items-center gap-2 text-[11px] text-bolt-elements-textTertiary">
             {commit.shortSha ? <code className="shrink-0">{commit.shortSha}</code> : null}
-            {commit.author ? <span className="min-w-0 break-words">{commit.author}</span> : null}
-            {commit.date ? (
-              <span className="break-words">{formatProjectOverviewPanelDate(commit.date, language)}</span>
-            ) : null}
+            {commit.author ? <span className="truncate">{commit.author}</span> : null}
+            {commit.date ? <span className="shrink-0">{formatDate(commit.date)}</span> : null}
           </div>
         </div>
       ))}
@@ -230,17 +200,9 @@ function CommitList({
   );
 }
 
-function MemberList({
-  members,
-  copy,
-  language,
-}: {
-  members: ProjectOverviewMember[];
-  copy: ProjectOverviewPanelCopy;
-  language?: string;
-}) {
+function MemberList({ members }: { members: ProjectOverviewMember[] }) {
   if (!members.length) {
-    return <EmptyOverviewBlock>{copy['projectOverview.empty.members']}</EmptyOverviewBlock>;
+    return <EmptyOverviewBlock>No collaborators or active sessions yet.</EmptyOverviewBlock>;
   }
 
   return (
@@ -248,19 +210,17 @@ function MemberList({
       {members.slice(0, 6).map((member, index) => (
         <div
           key={`${member.userId}:${member.id}:${index}`}
-          className="min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2"
+          className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2"
         >
-          <div className="flex min-w-0 flex-col items-start gap-2 min-[420px]:flex-row min-[420px]:justify-between min-[420px]:gap-3">
-            <strong className="min-w-0 break-all text-sm text-bolt-elements-textPrimary">
-              {member.userId || copy['projectOverview.member.unknown']}
-            </strong>
-            <span className="max-w-full break-words rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textSecondary min-[420px]:shrink-0">
-              {projectOverviewMemberStatusLabel(member.status, language)}
+          <div className="flex min-w-0 items-center justify-between gap-3">
+            <strong className="truncate text-sm text-bolt-elements-textPrimary">{member.userId}</strong>
+            <span className="shrink-0 rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-[11px] text-bolt-elements-textSecondary">
+              {member.status}
             </span>
           </div>
-          <div className="mt-1 break-all text-xs text-bolt-elements-textSecondary">
-            {projectOverviewRoleLabel(member.roleKey, language)}
-            {member.filePath ? <> · {member.filePath}</> : null}
+          <div className="mt-1 truncate text-xs text-bolt-elements-textSecondary">
+            {titleCase(member.roleKey)}
+            {member.filePath ? ` · ${member.filePath}` : ''}
           </div>
         </div>
       ))}
@@ -268,17 +228,9 @@ function MemberList({
   );
 }
 
-function ActivityList({
-  activity,
-  copy,
-  language,
-}: {
-  activity: ProjectOverviewActivity[];
-  copy: ProjectOverviewPanelCopy;
-  language?: string;
-}) {
+function ActivityList({ activity }: { activity: ProjectOverviewActivity[] }) {
   if (!activity.length) {
-    return <EmptyOverviewBlock>{copy['projectOverview.empty.activity']}</EmptyOverviewBlock>;
+    return <EmptyOverviewBlock>No project activity yet.</EmptyOverviewBlock>;
   }
 
   return (
@@ -288,12 +240,8 @@ function ActivityList({
           key={`${event.action}-${event.createdAt ?? index}`}
           className="border-b border-bolt-elements-borderColor px-3 py-2 last:border-b-0"
         >
-          <div className="break-all text-sm font-medium text-bolt-elements-textPrimary">
-            {projectOverviewActivityLabel(event.action, language)}
-          </div>
-          <div className="mt-1 break-words text-xs text-bolt-elements-textSecondary">
-            {formatProjectOverviewPanelDate(event.createdAt, language)}
-          </div>
+          <div className="truncate text-sm font-medium text-bolt-elements-textPrimary">{titleCase(event.action)}</div>
+          <div className="mt-1 text-xs text-bolt-elements-textSecondary">{formatDate(event.createdAt)}</div>
         </div>
       ))}
     </div>
@@ -301,9 +249,6 @@ function ActivityList({
 }
 
 export function ProjectOverviewPanel({ data, project }: ProjectOverviewPanelProps) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getProjectOverviewPanelCopy(language);
   const resolved = data.overview?.summary ? data.overview : fallbackOverview(data, project);
 
   /*
@@ -321,127 +266,59 @@ export function ProjectOverviewPanel({ data, project }: ProjectOverviewPanelProp
     activity: resolved.activity ?? [],
   };
 
-  const fileCount = Number.isFinite(overview.summary.fileCount) ? Math.max(0, overview.summary.fileCount) : 0;
-  const scriptCount = Number.isFinite(overview.summary.scriptCount) ? Math.max(0, overview.summary.scriptCount) : 0;
-
-  const activeMemberCount = Number.isFinite(overview.summary.activeMemberCount)
-    ? Math.max(0, overview.summary.activeMemberCount)
-    : 0;
-
-  const projectName = project.name ?? project.id ?? copy['projectOverview.project.fallback'];
-  const sourceLabel = projectOverviewSourceLabel(overview.summary.sourceType, language);
-  const workspaceLabel = projectOverviewWorkspaceStatusLabel(overview.summary.workspaceStatus, language);
-  const runtimeModeLabel = projectOverviewWorkspaceStatusLabel(overview.summary.runtimeMode ?? 'unavailable', language);
-  const createdAtLabel = formatProjectOverviewPanelDate(overview.summary.projectCreatedAt, language);
-  const updatedAtLabel = formatProjectOverviewPanelDate(overview.summary.projectUpdatedAt, language);
-
-  const metricAriaLabel = (label: string, value: string, detail: string) =>
-    formatProjectOverviewPanelCopy(copy['projectOverview.metric.aria'], { label, value, detail });
+  const projectName = project.name ?? project.id ?? 'Project';
 
   return (
-    <div
-      className="grid min-w-0 gap-5"
-      data-testid="project-overview-panel"
-      role="region"
-      aria-label={formatProjectOverviewPanelCopy(copy['projectOverview.panel.aria'], { project: projectName })}
-    >
-      <section className="min-w-0 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-4">
+    <div className="grid gap-5" data-testid="project-overview-panel">
+      <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-4">
         <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <div className="break-words text-[11px] font-semibold uppercase tracking-[0.08em] text-bolt-elements-textTertiary">
-              {copy['projectOverview.kicker']}
+            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-bolt-elements-textTertiary">
+              Project overview
             </div>
-            <h3 className="m-0 mt-1 break-all text-base font-semibold text-bolt-elements-textPrimary">{projectName}</h3>
+            <h3 className="m-0 mt-1 truncate text-base font-semibold text-bolt-elements-textPrimary">{projectName}</h3>
           </div>
-          <div
-            className="max-w-full break-all rounded-full border border-bolt-elements-borderColor px-2.5 py-1 text-xs text-bolt-elements-textSecondary sm:shrink-0"
-            title={formatProjectOverviewPanelCopy(copy['projectOverview.source.label'], { source: sourceLabel })}
-            aria-label={formatProjectOverviewPanelCopy(copy['projectOverview.source.label'], { source: sourceLabel })}
-          >
-            {sourceLabel}
+          <div className="shrink-0 rounded-full border border-bolt-elements-borderColor px-2.5 py-1 text-xs text-bolt-elements-textSecondary">
+            {titleCase(overview.summary.sourceType)}
           </div>
         </div>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <OverviewMetric label="Files" value={overview.summary.fileCount} detail="Tracked project files" />
+          <OverviewMetric label="Branch" value={overview.summary.branch} detail="Current Git branch" />
           <OverviewMetric
-            label={copy['projectOverview.metric.files']}
-            value={formatProjectOverviewPanelNumber(fileCount, language)}
-            detail={copy['projectOverview.metric.filesDetail']}
-            ariaLabel={metricAriaLabel(
-              copy['projectOverview.metric.files'],
-              formatProjectOverviewPanelNumber(fileCount, language),
-              copy['projectOverview.metric.filesDetail'],
-            )}
+            label="Workspace"
+            value={titleCase(overview.summary.workspaceStatus)}
+            detail={overview.summary.runtimeMode}
           />
           <OverviewMetric
-            label={copy['projectOverview.metric.branch']}
-            value={overview.summary.branch || 'main'}
-            detail={copy['projectOverview.metric.branchDetail']}
-            ariaLabel={metricAriaLabel(
-              copy['projectOverview.metric.branch'],
-              overview.summary.branch || 'main',
-              copy['projectOverview.metric.branchDetail'],
-            )}
-          />
-          <OverviewMetric
-            label={copy['projectOverview.metric.workspace']}
-            value={workspaceLabel}
-            detail={runtimeModeLabel}
-            ariaLabel={metricAriaLabel(copy['projectOverview.metric.workspace'], workspaceLabel, runtimeModeLabel)}
-          />
-          <OverviewMetric
-            label={copy['projectOverview.metric.created']}
-            value={createdAtLabel}
-            detail={formatProjectOverviewPanelCopy(copy['projectOverview.metric.updated'], {
-              date: updatedAtLabel,
-            })}
-            ariaLabel={metricAriaLabel(
-              copy['projectOverview.metric.created'],
-              createdAtLabel,
-              formatProjectOverviewPanelCopy(copy['projectOverview.metric.updated'], { date: updatedAtLabel }),
-            )}
+            label="Created"
+            value={formatDate(overview.summary.projectCreatedAt)}
+            detail={`Updated ${formatDate(overview.summary.projectUpdatedAt)}`}
           />
         </div>
       </section>
 
-      <OverviewSection
-        title={copy['projectOverview.section.stack']}
-        action={formatProjectOverviewPanelCount(language, overview.stack.length, {
-          one: copy['projectOverview.count.signals.one'],
-          other: copy['projectOverview.count.signals.other'],
-        })}
-      >
-        <StackList stack={overview.stack} copy={copy} language={language} />
+      <OverviewSection title="Detected Stack" action={`${overview.stack.length} signals`}>
+        <StackList stack={overview.stack} />
       </OverviewSection>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <OverviewSection
-          title={copy['projectOverview.section.scripts']}
-          action={formatProjectOverviewPanelCount(language, scriptCount, {
-            one: copy['projectOverview.count.scripts.one'],
-            other: copy['projectOverview.count.scripts.other'],
-          })}
-        >
-          <ScriptList scripts={overview.scripts} copy={copy} />
+        <OverviewSection title="Available npm Scripts" action={`${overview.summary.scriptCount} scripts`}>
+          <ScriptList scripts={overview.scripts} />
         </OverviewSection>
 
-        <OverviewSection
-          title={copy['projectOverview.section.members']}
-          action={formatProjectOverviewPanelCount(language, activeMemberCount, {
-            one: copy['projectOverview.count.activeMembers.one'],
-            other: copy['projectOverview.count.activeMembers.other'],
-          })}
-        >
-          <MemberList members={overview.members} copy={copy} language={language} />
+        <OverviewSection title="Active Members" action={`${overview.summary.activeMemberCount} active`}>
+          <MemberList members={overview.members} />
         </OverviewSection>
       </div>
 
       <div className="grid gap-5 xl:grid-cols-2">
-        <OverviewSection title={copy['projectOverview.section.commits']}>
-          <CommitList commits={overview.commits} copy={copy} language={language} />
+        <OverviewSection title="Latest Commits">
+          <CommitList commits={overview.commits} />
         </OverviewSection>
 
-        <OverviewSection title={copy['projectOverview.section.activity']}>
-          <ActivityList activity={overview.activity} copy={copy} language={language} />
+        <OverviewSection title="Latest Activity">
+          <ActivityList activity={overview.activity} />
         </OverviewSection>
       </div>
     </div>

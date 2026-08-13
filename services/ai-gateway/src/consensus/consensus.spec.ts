@@ -159,11 +159,6 @@ describe('conflict detection', () => {
     expect(conflicts[0]!.type).toBe('role-failure');
     expect(conflicts[0]!.involvedRoles).toEqual(['devops']);
   });
-
-  it('localizes platform-owned conflict framing while preserving technical role ids', () => {
-    const conflicts = detectRoleFailures(splitOpinions, 'fr');
-    expect(conflicts[0]?.description).toBe('Rôles de sous-agents en échec (1) : devops.');
-  });
 });
 
 describe('QuorumConsensus', () => {
@@ -191,20 +186,8 @@ describe('QuorumConsensus', () => {
      * participation + low overlap must NOT be labelled REJECTED.
      */
     const divergentButComplete: AgentRunResult[] = [
-      {
-        roleId: 'architect',
-        status: 'complete',
-        summary: 'a',
-        risks: ['only architect risk'],
-        verification: ['check A'],
-      },
-      {
-        roleId: 'frontend',
-        status: 'complete',
-        summary: 'b',
-        risks: ['only frontend risk'],
-        verification: ['check B'],
-      },
+      { roleId: 'architect', status: 'complete', summary: 'a', risks: ['only architect risk'], verification: ['check A'] },
+      { roleId: 'frontend', status: 'complete', summary: 'b', risks: ['only frontend risk'], verification: ['check B'] },
       { roleId: 'backend', status: 'complete', summary: 'c', risks: ['only backend risk'], verification: ['check C'] },
     ];
 
@@ -247,18 +230,6 @@ describe('ByzantineConsensus', () => {
     ];
     const out = engine.run({ results: allFailed, algorithm: 'BYZANTINE_PBFT' });
     expect(out.outcome).toBe('REJECTED');
-  });
-
-  it('localizes the empty consolidated summary', () => {
-    const out = engine.run({
-      results: [
-        { roleId: 'architect', status: 'failed', summary: '' },
-        { roleId: 'qa', status: 'failed', summary: '' },
-      ],
-      algorithm: 'BYZANTINE_PBFT',
-      locale: 'fr',
-    });
-    expect(out.consolidated.summary).toBe('Aucun sous-agent n’a produit de synthèse exploitable.');
   });
 });
 

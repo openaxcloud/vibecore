@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { isRedirectResponse, loadProjectIdeData, shouldRethrowResolveError } from './project-ide-loader.server';
+import { isRedirectResponse, shouldRethrowResolveError } from './project-ide-loader.server';
 
 describe('isRedirectResponse', () => {
   it('returns true for a 302 login redirect Response', () => {
@@ -65,28 +65,5 @@ describe('shouldRethrowResolveError', () => {
     expect(shouldRethrowResolveError(undefined)).toBe(false);
     expect(shouldRethrowResolveError(null)).toBe(false);
     expect(shouldRethrowResolveError({ status: 403 })).toBe(false);
-  });
-});
-
-describe('loadProjectIdeData locale contract', () => {
-  it('localizes a missing project identifier and emits locale headers', async () => {
-    let thrown: unknown;
-
-    try {
-      await loadProjectIdeData(
-        new Request('https://e-code.ai/projects/missing/ide', { headers: { 'Accept-Language': 'fr-FR' } }),
-        '',
-      );
-    } catch (error) {
-      thrown = error;
-    }
-
-    expect(thrown).toBeInstanceOf(Response);
-
-    const response = thrown as Response;
-
-    expect(response.status).toBe(404);
-    expect(response.headers.get('Content-Language')).toBe('fr');
-    await expect(response.text()).resolves.toBe('Le projet est introuvable.');
   });
 });

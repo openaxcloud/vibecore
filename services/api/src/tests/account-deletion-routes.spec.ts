@@ -105,10 +105,7 @@ describe('self-serve account deletion routes', () => {
     const { app } = await setup();
     const cancel = await app.inject({ method: 'POST', url: '/account/deletion/cancel', headers: auth('user-token') });
     expect(cancel.statusCode).toBe(409);
-    expect(cancel.json()).toMatchObject({
-      code: 'ACCOUNT_DELETION_CANNOT_CANCEL',
-      error: 'The account deletion request can no longer be canceled.',
-    });
+    expect(cancel.json().error).toBe('cannot_cancel');
   });
 
   it('hides the request endpoint when ACCOUNT_SELF_DELETION_ENABLED=false', async () => {

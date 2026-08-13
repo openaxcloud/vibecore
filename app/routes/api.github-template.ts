@@ -1,7 +1,6 @@
 import JSZip from 'jszip';
 import { data as json } from 'react-router';
 import { base64ToBytes, decodeTemplateBytes } from '~/lib/github-template-decode';
-import { webApiErrorResponse, webApiLocaleHeaders } from '~/lib/i18n/catalogs/web-api-routes';
 import { STARTER_TEMPLATES } from '~/utils/constants';
 
 /*
@@ -41,8 +40,7 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
   });
 
   if (!repoResponse.ok) {
-    console.error('GitHub template repository request failed:', { repo, status: repoResponse.status });
-    throw new Error();
+    throw new Error(`Repository not found: ${repo}`);
   }
 
   const repoData = (await repoResponse.json()) as any;
@@ -59,8 +57,7 @@ async function fetchRepoContentsCloudflare(repo: string, githubToken?: string) {
   });
 
   if (!treeResponse.ok) {
-    console.error('GitHub template tree request failed:', { repo, status: treeResponse.status });
-    throw new Error();
+    throw new Error(`Failed to fetch repository tree: ${treeResponse.status}`);
   }
 
   const treeData = (await treeResponse.json()) as any;
@@ -167,8 +164,7 @@ async function fetchRepoContentsZip(repo: string, githubToken?: string) {
   });
 
   if (!releaseResponse.ok) {
-    console.error('GitHub template release request failed:', { repo, status: releaseResponse.status });
-    throw new Error();
+    throw new Error(`GitHub API error: ${releaseResponse.status} - ${releaseResponse.statusText}`);
   }
 
   const releaseData = (await releaseResponse.json()) as any;
@@ -183,8 +179,7 @@ async function fetchRepoContentsZip(repo: string, githubToken?: string) {
   });
 
   if (!zipResponse.ok) {
-    console.error('GitHub template archive request failed:', { repo, status: zipResponse.status });
-    throw new Error();
+    throw new Error(`Failed to fetch release zipball: ${zipResponse.status}`);
   }
 
   // Get the zip content as ArrayBuffer
@@ -247,11 +242,11 @@ export async function loader({ request, context }: { request: Request; context: 
   const repo = url.searchParams.get('repo');
 
   if (!repo) {
-    return webApiErrorResponse(request, 'GITHUB_TEMPLATE_REPOSITORY_REQUIRED', 400);
+    return json({ error: 'Repository name is required' }, { status: 400 });
   }
 
   if (!ALLOWED_TEMPLATE_REPOS.has(repo)) {
-    return webApiErrorResponse(request, 'GITHUB_TEMPLATE_NOT_ALLOWED', 403);
+    return json({ error: 'Repository is not an allowed starter template' }, { status: 403 });
   }
 
   try {
@@ -270,12 +265,18 @@ export async function loader({ request, context }: { request: Request; context: 
     // Filter out .git files for both methods
     const filteredFiles = fileList.filter((file: any) => !file.path.startsWith('.git'));
 
-    return json(filteredFiles, { headers: webApiLocaleHeaders(request) });
+    return json(filteredFiles);
   } catch (error) {
     console.error('Error processing GitHub template:', error);
     console.error('Repository:', repo);
     console.error('Error details:', error instanceof Error ? error.message : String(error));
 
-    return webApiErrorResponse(request, 'GITHUB_TEMPLATE_FETCH_FAILED', 503);
+    return json(
+      {
+        error: 'Failed to fetch template files',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    );
   }
 }

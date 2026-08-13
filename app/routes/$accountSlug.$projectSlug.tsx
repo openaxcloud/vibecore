@@ -2,7 +2,6 @@ import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { redirect } from 'react-router';
 import ProjectIdeRoute, { shouldRevalidate } from './projects.$projectId.ide';
 import { apiRequest } from '~/lib/enterprise-api.server';
-import { buildRemainingRouteMeta, getRemainingRouteShellsCopy } from '~/lib/i18n/catalogs/remaining-route-shells';
 import { loadProjectIdeData } from '~/lib/project-ide-loader.server';
 import { canonicalAccountSlugFromParam, projectIdePath, slugifyProjectUrlSegment } from '~/utils/project-url';
 
@@ -13,27 +12,17 @@ type ResolveProjectResponse = {
 
 export { shouldRevalidate };
 
-export const meta: MetaFunction<typeof loader> = ({ data, matches, params }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-  const language = rootData?.language;
-  const copy = getRemainingRouteShellsCopy(language);
-  const title = data ? `${data.project.name} - E-Code IDE` : copy['remainingRoutes.projectIde.fallbackTitle'];
-  const path = `/${encodeURIComponent(params.accountSlug ?? '')}/${encodeURIComponent(params.projectSlug ?? '')}`;
-
-  return buildRemainingRouteMeta({
-    title,
-    description: copy['remainingRoutes.projectIde.description'],
-    path,
-    language,
-  });
-};
+export const meta: MetaFunction<typeof loader> = ({ data }) => [
+  { title: data ? `${data.project.name} - E-Code IDE` : 'Project - E-Code IDE' },
+  { name: 'description', content: 'Authenticated E-Code project IDE with a readable account/project URL.' },
+];
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const accountSlug = canonicalAccountSlugFromParam(params.accountSlug);
   const projectSlug = slugifyProjectUrlSegment(params.projectSlug ?? '');
 
   if (!accountSlug || !projectSlug) {
-    throw new Response(null, { status: 404 });
+    throw new Response('Project not found', { status: 404 });
   }
 
   let resolved: ResolveProjectResponse;

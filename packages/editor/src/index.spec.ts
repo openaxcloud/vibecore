@@ -15,47 +15,7 @@ import {
   isEnvFilePath,
   isWorkspaceSemanticFile,
   languageForPath,
-  workspaceModelUrisToDispose,
 } from './index.js';
-
-describe('workspace model disposal (BUG-IDE-001 — editor pane renders blank)', () => {
-  const uri = (path: string) => `file:///${path}`;
-
-  /*
-   * Live repro this encodes (projet cmshih2ws000c0nbvi7i1jeh0) : only the tab
-   * restored at mount rendered. Opening any other file — from the tree or from
-   * an already-open tab — gave a completely empty pane, and it stayed empty
-   * until a reload.
-   */
-  it('never disposes the model currently attached to the editor', () => {
-    // Viewing A: the index owns every OTHER file.
-    const owned = new Set([uri('a.ts'), uri('b.ts'), uri('c.ts')]);
-
-    // Opening B attaches B, then rebuilds the index WITHOUT B (the open file).
-    const nextOwned = new Set([uri('a.ts'), uri('c.ts')]);
-
-    expect(workspaceModelUrisToDispose(owned, nextOwned, uri('b.ts'))).toEqual([]);
-  });
-
-  it('still disposes models that genuinely left the workspace', () => {
-    const owned = new Set([uri('a.ts'), uri('gone.ts')]);
-    const nextOwned = new Set([uri('a.ts')]);
-
-    expect(workspaceModelUrisToDispose(owned, nextOwned, uri('b.ts'))).toEqual([uri('gone.ts')]);
-  });
-
-  it('disposes a dropped file even when nothing is attached', () => {
-    const owned = new Set([uri('gone.ts')]);
-
-    expect(workspaceModelUrisToDispose(owned, new Set(), undefined)).toEqual([uri('gone.ts')]);
-  });
-
-  it('keeps the attached model while dropping the rest of a cleared workspace', () => {
-    const owned = new Set([uri('a.ts'), uri('b.ts'), uri('c.ts')]);
-
-    expect(workspaceModelUrisToDispose(owned, new Set(), uri('b.ts'))).toEqual([uri('a.ts'), uri('c.ts')]);
-  });
-});
 
 describe('responsive editor layout', () => {
   it('maps desktop, tablet, and mobile breakpoints', () => {

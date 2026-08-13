@@ -1,13 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import McpServerList from '~/components/@settings/tabs/mcp/McpServerList';
 import { Dialog, DialogRoot, DialogClose, DialogTitle, DialogButton } from '~/components/ui/Dialog';
 import { IconButton } from '~/components/ui/IconButton';
-import {
-  getChatBoxChildrenCopy,
-  getMcpToolsSafeError,
-  type McpToolsErrorKind,
-} from '~/lib/i18n/catalogs/chat-box-children';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { classNames } from '~/utils/classNames';
 
@@ -17,38 +11,33 @@ interface McpToolsProps {
   triggerVariant?: 'icon' | 'menu';
 }
 
-export function McpTools({ triggerClassName, triggerLabel, triggerVariant = 'icon' }: McpToolsProps) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getChatBoxChildrenCopy(language);
+export function McpTools({ triggerClassName, triggerLabel = 'MCP tools', triggerVariant = 'icon' }: McpToolsProps) {
   const isInitialized = useMCPStore((state) => state.isInitialized);
   const serverTools = useMCPStore((state) => state.serverTools);
   const initialize = useMCPStore((state) => state.initialize);
   const checkServersAvailabilities = useMCPStore((state) => state.checkServersAvailabilities);
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [errorKind, setErrorKind] = useState<McpToolsErrorKind | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [isCheckingServers, setIsCheckingServers] = useState(false);
   const [expandedServer, setExpandedServer] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isInitialized) {
       initialize().catch((e) => {
-        console.error('MCP initialization failed', e);
-        setErrorKind('initialize');
+        setError(`Failed to initialize MCP: ${e instanceof Error ? e.message : String(e)}`);
       });
     }
-  }, [initialize, isInitialized]);
+  }, [isInitialized]);
 
   const checkServerAvailability = async () => {
     setIsCheckingServers(true);
-    setErrorKind(null);
+    setError(null);
 
     try {
       await checkServersAvailabilities();
     } catch (e) {
-      console.error('MCP server availability check failed', e);
-      setErrorKind('availability');
+      setError(`Failed to check server availability: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
       setIsCheckingServers(false);
     }
@@ -64,8 +53,6 @@ export function McpTools({ triggerClassName, triggerLabel, triggerVariant = 'ico
 
   const serverEntries = useMemo(() => Object.entries(serverTools), [serverTools]);
   const isMenuTrigger = triggerVariant === 'menu';
-  const resolvedTriggerLabel = triggerLabel ?? copy['chatBoxChildren.mcp.triggerLabel'];
-  const errorMessage = errorKind ? getMcpToolsSafeError(language, errorKind) : null;
 
   const allServerNames = useMemo(() => serverEntries.map(([name]) => name), [serverEntries]);
 
@@ -119,15 +106,9 @@ export function McpTools({ triggerClassName, triggerLabel, triggerVariant = 'ico
       <div className="flex">
         <IconButton
           onClick={() => setIsDialogOpen(true)}
-          title={
-            errorKind
-              ? copy['chatBoxChildren.mcp.triggerFailed']
-              : isInitialized
-                ? copy['chatBoxChildren.mcp.triggerAvailable']
-                : copy['chatBoxChildren.mcp.triggerInitializing']
-          }
-          tooltip={copy['chatBoxChildren.mcp.triggerLabel']}
-          disabled={!isInitialized && !errorKind}
+          title={error ? 'MCP failed to initialize — click for details' : 'MCP Tools Available'}
+          tooltip="MCP tools"
+          disabled={!isInitialized && !error}
           className={classNames(
             isMenuTrigger ? 'bolt-chatbox-tools-menu-item' : 'transition-all',
             'disabled:opacity-50 disabled:cursor-not-allowed',
@@ -140,40 +121,35 @@ export function McpTools({ triggerClassName, triggerLabel, triggerVariant = 'ico
             ) : (
               <div className="i-bolt:mcp text-xl"></div>
             )}
-            {isMenuTrigger ? (
-              <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
-                {resolvedTriggerLabel}
-              </span>
-            ) : null}
+            {isMenuTrigger ? <span>{triggerLabel}</span> : null}
           </>
         </IconButton>
       </div>
 
       <DialogRoot open={isDialogOpen} onOpenChange={handleDialogOpen}>
         {isDialogOpen && (
-          <Dialog className="max-h-[calc(100dvh-24px)] w-[860px] max-w-[calc(100vw-24px)] overflow-hidden">
-            <div className="flex max-h-[calc(100dvh-24px)] min-h-0 w-full flex-col overflow-hidden">
-              <header className="flex flex-col items-stretch justify-between gap-3 border-b border-bolt-elements-borderColor px-4 py-4 pr-12 sm:flex-row sm:items-start sm:gap-4 sm:px-5">
+          <Dialog className="w-[860px] max-w-[calc(100vw-24px)] max-h-[calc(100vh-24px)] overflow-hidden">
+            <div className="w-full max-h-[calc(100vh-24px)] min-h-0 flex flex-col overflow-hidden">
+              <header className="flex items-start justify-between gap-4 border-b border-bolt-elements-borderColor px-5 py-4 pr-12">
                 <div className="min-w-0">
                   <DialogTitle>
                     <div className="i-bolt:mcp text-xl"></div>
-                    {copy['chatBoxChildren.mcp.dialogTitle']}
+                    MCP tools
                   </DialogTitle>
-                  <p className="mt-1 break-words text-sm text-bolt-elements-textSecondary">
-                    {copy['chatBoxChildren.mcp.dialogDescription']}
+                  <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+                    View and refresh the MCP tools available to the agent.
                   </p>
                 </div>
 
                 <button
-                  type="button"
                   onClick={checkServerAvailability}
                   disabled={isCheckingServers || serverEntries.length === 0}
                   className={classNames(
-                    'min-h-11 w-full shrink-0 rounded-lg px-3 py-2 text-sm sm:w-auto',
+                    'shrink-0 px-3 py-1.5 rounded-lg text-sm',
                     'bg-bolt-elements-background-depth-3 hover:bg-bolt-elements-background-depth-4',
                     'text-bolt-elements-textPrimary',
                     'transition-all duration-200',
-                    'flex items-center justify-center gap-2 whitespace-normal break-words text-center leading-snug',
+                    'flex items-center gap-2',
                     'disabled:opacity-50 disabled:cursor-not-allowed',
                   )}
                 >
@@ -182,7 +158,7 @@ export function McpTools({ triggerClassName, triggerLabel, triggerVariant = 'ico
                   ) : (
                     <div className="i-ph:arrow-counter-clockwise w-3 h-3" />
                   )}
-                  {isCheckingServers ? copy['chatBoxChildren.mcp.checking'] : copy['chatBoxChildren.mcp.check']}
+                  Check availability
                 </button>
               </header>
 
@@ -190,7 +166,7 @@ export function McpTools({ triggerClassName, triggerLabel, triggerVariant = 'ico
                 {serverEntries.length > 0 ? (
                   <div className="mb-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
                     <p className="mb-2 text-xs font-medium text-bolt-elements-textPrimary">
-                      {copy['chatBoxChildren.mcp.activeNextMessage']}
+                      Active for the next message
                     </p>
                     <div className="flex flex-wrap gap-2">
                       {allServerNames.map((name) => {
@@ -217,8 +193,8 @@ export function McpTools({ triggerClassName, triggerLabel, triggerVariant = 'ico
                         );
                       })}
                     </div>
-                    <p className="mt-2 break-words text-[11px] text-bolt-elements-textSecondary">
-                      {copy['chatBoxChildren.mcp.perRequestHint']}
+                    <p className="mt-2 text-[11px] text-bolt-elements-textSecondary">
+                      Unchecked servers are skipped for the next message only — your saved configuration is unchanged.
                     </p>
                   </div>
                 ) : null}
@@ -232,21 +208,17 @@ export function McpTools({ triggerClassName, triggerLabel, triggerVariant = 'ico
                   />
                 ) : (
                   <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 py-8 text-center text-bolt-elements-textSecondary">
-                    <p className="break-words px-3">{copy['chatBoxChildren.mcp.none']}</p>
-                    <p className="mt-1 break-words px-3 text-xs">{copy['chatBoxChildren.mcp.configureHint']}</p>
+                    <p>No MCP servers configured</p>
+                    <p className="text-xs mt-1">Configure servers in Settings → MCP Servers</p>
                   </div>
                 )}
 
-                {errorMessage ? (
-                  <p role="alert" className="mt-4 break-words text-sm text-bolt-elements-icon-error">
-                    {errorMessage}
-                  </p>
-                ) : null}
+                {error && <p className="mt-4 text-sm text-bolt-elements-icon-error">{error}</p>}
               </div>
 
-              <footer className="flex justify-stretch gap-2 border-t border-bolt-elements-borderColor px-4 py-3 [&_button]:min-h-11 [&_button]:w-full sm:justify-end sm:px-5 sm:[&_button]:w-auto">
+              <footer className="flex justify-end gap-2 border-t border-bolt-elements-borderColor px-5 py-3">
                 <DialogClose asChild>
-                  <DialogButton type="secondary">{copy['chatBoxChildren.mcp.close']}</DialogButton>
+                  <DialogButton type="secondary">Close</DialogButton>
                 </DialogClose>
               </footer>
             </div>

@@ -1,7 +1,5 @@
 import { KeyRound, Monitor, Wifi } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import type { MetaFunction } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { AppShell, StatGrid } from '~/components/dashboard/SaaSLayout';
 import { EmptyState } from '~/components/ui/EmptyState';
@@ -10,9 +8,7 @@ import {
   openDesktopLocalFolder,
   saveDesktopSettings,
   showDesktopTestNotification,
-  type DesktopSettingsStatusKey,
 } from '~/lib/desktop-settings-actions';
-import { getDesktopSettingsCopy, resolveDesktopSettingsLanguage } from '~/lib/i18n/catalogs/desktop-settings';
 
 interface DesktopSettingsState {
   proxy: { mode?: string; server?: string };
@@ -22,17 +18,7 @@ interface DesktopSettingsState {
 
 type DesktopSettingsPhase = 'checking' | 'ready' | 'unavailable' | 'error';
 
-export const meta: MetaFunction = ({ matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-
-  return [{ title: getDesktopSettingsCopy(rootData?.language)['desktopSettings.metaTitle'] }];
-};
-
 export default function DesktopSettingsRoute() {
-  const { i18n } = useTranslation();
-  const language = resolveDesktopSettingsLanguage(i18n.resolvedLanguage ?? i18n.language);
-  const copy = getDesktopSettingsCopy(language);
-
   const [settings, setSettings] = useState<DesktopSettingsState>({
     proxy: { mode: 'system' },
     trayEnabled: false,
@@ -40,7 +26,7 @@ export default function DesktopSettingsRoute() {
   });
 
   const [authState, setAuthState] = useState<{ encryptionAvailable?: boolean; hasToken?: boolean }>({});
-  const [status, setStatus] = useState<DesktopSettingsStatusKey>('desktopSettings.status.checking');
+  const [status, setStatus] = useState('Checking the desktop app…');
   const [phase, setPhase] = useState<DesktopSettingsPhase>('checking');
 
   const loadDesktopSettings = useCallback(async () => {
@@ -48,22 +34,22 @@ export default function DesktopSettingsRoute() {
 
     if (!desktop) {
       setPhase('unavailable');
-      setStatus('desktopSettings.status.openAppSettings');
+      setStatus('Open this page in the E-Code desktop app to change native settings.');
 
       return;
     }
 
     setPhase('checking');
-    setStatus('desktopSettings.status.loading');
+    setStatus('Loading desktop settings…');
 
     try {
       const [desktopSettings, auth] = await Promise.all([desktop.settings.get(), desktop.auth.get()]);
       setSettings(desktopSettings as DesktopSettingsState);
       setAuthState({ encryptionAvailable: auth.encryptionAvailable, hasToken: Boolean(auth.token) });
-      setStatus('desktopSettings.status.loaded');
+      setStatus('Desktop settings loaded.');
       setPhase('ready');
     } catch {
-      setStatus('desktopSettings.status.loadFailed');
+      setStatus('Desktop settings could not load. Try again.');
       setPhase('error');
     }
   }, []);
@@ -101,7 +87,7 @@ export default function DesktopSettingsRoute() {
   }
 
   function showTestNotification() {
-    void showDesktopTestNotification(window.vibecoreDesktop, language).then(setStatus);
+    void showDesktopTestNotification(window.vibecoreDesktop).then(setStatus);
   }
 
   function openLocalFolder() {
@@ -110,18 +96,18 @@ export default function DesktopSettingsRoute() {
 
   if (phase === 'checking') {
     return (
-      <AppShell title={copy['desktopSettings.title']} description={copy['desktopSettings.description']}>
-        <AsyncPanelSkeleton label={copy['desktopSettings.loading.label']} rows={5} />
+      <AppShell title="Desktop settings" description="Configure native app, network and device preferences.">
+        <AsyncPanelSkeleton label="Loading desktop settings" rows={5} />
       </AppShell>
     );
   }
 
   if (phase === 'error') {
     return (
-      <AppShell title={copy['desktopSettings.title']} description={copy['desktopSettings.description']}>
+      <AppShell title="Desktop settings" description="Configure native app, network and device preferences.">
         <AsyncPanelError
-          title={copy['desktopSettings.error.title']}
-          description={copy['desktopSettings.error.description']}
+          title="Desktop settings could not load"
+          description="The native settings are hidden because the desktop app did not respond. No setting was changed."
           onRetry={() => void loadDesktopSettings()}
         />
       </AppShell>
@@ -130,12 +116,12 @@ export default function DesktopSettingsRoute() {
 
   if (phase === 'unavailable') {
     return (
-      <AppShell title={copy['desktopSettings.title']} description={copy['desktopSettings.description']}>
+      <AppShell title="Desktop settings" description="Configure native app, network and device preferences.">
         <EmptyState
           icon={Monitor}
-          title={copy['desktopSettings.unavailable.title']}
-          description={copy['desktopSettings.unavailable.description']}
-          actionLabel={copy['desktopSettings.unavailable.action']}
+          title="Available in the E-Code desktop app"
+          description="Proxy, tray, notifications and device management are native controls. Open this page inside the E-Code desktop app to configure them."
+          actionLabel="Get the desktop app"
           to="/desktop"
         />
       </AppShell>
@@ -143,59 +129,51 @@ export default function DesktopSettingsRoute() {
   }
 
   return (
-    <AppShell title={copy['desktopSettings.title']} description={copy['desktopSettings.description']}>
+    <AppShell title="Desktop settings" description="Configure native app, network and device preferences.">
       <StatGrid
         stats={[
           {
-            label: copy['desktopSettings.stats.connection.label'],
-            value: copy['desktopSettings.stats.connection.value'],
-            detail: copy['desktopSettings.stats.connection.detail'],
+            label: 'Desktop connection',
+            value: 'Connected',
+            detail: 'Native features available',
             icon: Monitor,
           },
           {
-            label: copy['desktopSettings.stats.storage.label'],
-            value: authState.encryptionAvailable
-              ? copy['desktopSettings.stats.storage.protected']
-              : copy['desktopSettings.stats.storage.limited'],
-            detail: authState.encryptionAvailable
-              ? copy['desktopSettings.stats.storage.encrypted']
-              : copy['desktopSettings.stats.storage.unavailable'],
+            label: 'Token storage',
+            value: authState.encryptionAvailable ? 'Protected' : 'Limited',
+            detail: authState.encryptionAvailable ? 'Encrypted session storage' : 'System protection unavailable',
             icon: KeyRound,
           },
           {
-            label: copy['desktopSettings.stats.session.label'],
-            value: authState.hasToken
-              ? copy['desktopSettings.stats.session.signedIn']
-              : copy['desktopSettings.stats.session.notStored'],
-            detail: copy['desktopSettings.stats.session.detail'],
+            label: 'Session',
+            value: authState.hasToken ? 'Signed in' : 'Not stored',
+            detail: 'SaaS login state',
             icon: Wifi,
           },
         ]}
       />
 
       <section className="mt-6 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-        <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
-          {copy['desktopSettings.proxy.title']}
-        </h2>
+        <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Proxy</h2>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
           <label className="grid gap-1 text-sm text-bolt-elements-textSecondary">
-            {copy['desktopSettings.proxy.mode']}
+            Mode
             <select
               className="h-[44px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 disabled:cursor-not-allowed disabled:opacity-60"
               value={settings.proxy?.mode ?? 'system'}
               disabled={!bridgeReady}
               onChange={(event) => save({ ...settings, proxy: { ...settings.proxy, mode: event.target.value } })}
             >
-              <option value="system">{copy['desktopSettings.proxy.system']}</option>
-              <option value="direct">{copy['desktopSettings.proxy.direct']}</option>
-              <option value="manual">{copy['desktopSettings.proxy.manual']}</option>
+              <option value="system">System</option>
+              <option value="direct">Direct</option>
+              <option value="manual">Manual</option>
             </select>
           </label>
           <label className="grid gap-1 text-sm text-bolt-elements-textSecondary">
-            {copy['desktopSettings.proxy.server']}
+            Manual server
             <input
               className="h-[44px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 disabled:cursor-not-allowed disabled:opacity-60"
-              placeholder={copy['desktopSettings.proxy.serverPlaceholder']}
+              placeholder="http://proxy.example.com:8080"
               value={settings.proxy?.server ?? ''}
               disabled={!bridgeReady}
               onChange={(event) =>
@@ -207,59 +185,51 @@ export default function DesktopSettingsRoute() {
       </section>
 
       <section className="mt-6 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-        <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
-          {copy['desktopSettings.native.title']}
-        </h2>
+        <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Native features</h2>
         <div className="mt-3 flex flex-wrap gap-3">
           <button
-            className="h-auto min-h-[44px] whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-[44px] rounded-md border border-bolt-elements-borderColor px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
             disabled={!bridgeReady}
             onClick={() => save({ ...settings, trayEnabled: !settings.trayEnabled })}
           >
-            {settings.trayEnabled
-              ? copy['desktopSettings.native.disableTray']
-              : copy['desktopSettings.native.enableTray']}
+            {settings.trayEnabled ? 'Disable tray' : 'Enable tray'}
           </button>
           <button
-            className="h-auto min-h-[44px] whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-[44px] rounded-md border border-bolt-elements-borderColor px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
             disabled={!bridgeReady}
             onClick={showTestNotification}
           >
-            {copy['desktopSettings.native.testNotification']}
+            Test notification
           </button>
           <button
-            className="h-auto min-h-[44px] whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-60"
+            className="min-h-[44px] rounded-md border border-bolt-elements-borderColor px-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"
             disabled={!bridgeReady}
             onClick={openLocalFolder}
           >
-            {copy['desktopSettings.native.openFolder']}
+            Open local folder
           </button>
         </div>
       </section>
 
       <section className="mt-6 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-        <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
-          {copy['desktopSettings.device.title']}
-        </h2>
+        <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Device management</h2>
         <p className="mt-2 text-sm text-bolt-elements-textSecondary">
           {settings.devicePolicy.managed
-            ? copy['desktopSettings.device.managedDescription']
-            : copy['desktopSettings.device.personalDescription']}
+            ? 'Your organization manages selected desktop settings on this device.'
+            : 'This device uses your personal E-Code desktop settings.'}
         </p>
         <dl className="mt-3 text-sm">
-          <div className="flex min-h-[44px] flex-wrap items-center justify-between gap-3 border-t border-bolt-elements-borderColor">
-            <dt className="text-bolt-elements-textTertiary">{copy['desktopSettings.device.management']}</dt>
-            <dd className="break-words text-right font-medium text-bolt-elements-textPrimary">
-              {settings.devicePolicy.managed
-                ? copy['desktopSettings.device.organizationManaged']
-                : copy['desktopSettings.device.personal']}
+          <div className="flex min-h-[44px] items-center justify-between gap-3 border-t border-bolt-elements-borderColor">
+            <dt className="text-bolt-elements-textTertiary">Management</dt>
+            <dd className="font-medium text-bolt-elements-textPrimary">
+              {settings.devicePolicy.managed ? 'Organization managed' : 'Personal'}
             </dd>
           </div>
         </dl>
       </section>
 
       <p className="mt-4 text-sm text-bolt-elements-textSecondary" role="status">
-        {copy[status]}
+        {status}
       </p>
     </AppShell>
   );

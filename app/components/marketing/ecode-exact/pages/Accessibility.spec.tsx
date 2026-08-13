@@ -25,21 +25,7 @@ vi.mock('~/components/marketing/ecode-exact/EcodeExactUi', () => ({
   CardDescription: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   CardHeader: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   CardTitle: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  Link: ({
-    children,
-    href,
-    to,
-    ...props
-  }: {
-    children?: React.ReactNode;
-    href?: string;
-    to?: string;
-  } & React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-    <a href={href ?? to} {...props}>
-      {children}
-    </a>
-  ),
-  useMarketingNavigate: () => () => undefined,
+  useMarketingNavigate: () => () => {},
 }));
 
 import Accessibility from './Accessibility';

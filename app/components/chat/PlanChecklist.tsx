@@ -8,22 +8,15 @@
  */
 
 import { memo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 
 import { summarizePlanProgress, type PlanChecklist, type PlanItemStatus } from '~/lib/chat/plan-checklist';
-import {
-  formatChatResidualsCopy,
-  formatChatResidualsNumber,
-  formatChatResidualsPlural,
-  getChatResidualsCopy,
-  type ChatResidualsKey,
-} from '~/lib/i18n/catalogs/chat-residuals';
+import { t, type TranslationKey } from '~/lib/i18n/dictionary';
 
-const STATUS_LABEL_KEY: Record<PlanItemStatus, ChatResidualsKey> = {
-  pending: 'chatResiduals.plan.status.pending',
-  in_progress: 'chatResiduals.plan.status.inProgress',
-  completed: 'chatResiduals.plan.status.completed',
-  failed: 'chatResiduals.plan.status.failed',
+const STATUS_LABEL_KEY: Record<PlanItemStatus, TranslationKey> = {
+  pending: 'plan.statusPending',
+  in_progress: 'plan.statusInProgress',
+  completed: 'plan.statusCompleted',
+  failed: 'plan.statusFailed',
 };
 
 const STATUS_ICON: Record<PlanItemStatus, string> = {
@@ -38,9 +31,6 @@ export interface PlanChecklistProps {
 }
 
 export const PlanChecklistView = memo(({ plan }: PlanChecklistProps) => {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getChatResidualsCopy(language);
   const progress = summarizePlanProgress(plan);
   const percent = Math.round(progress.completionRatio * 100);
 
@@ -54,29 +44,21 @@ export const PlanChecklistView = memo(({ plan }: PlanChecklistProps) => {
   const allDone = progress.total > 0 && progress.completed === progress.total && progress.failed === 0;
 
   return (
-    <section className="bolt-plan-checklist min-w-0" aria-label={copy['chatResiduals.plan.aria']}>
+    <section className="bolt-plan-checklist" aria-label="Plan checklist">
       <button
         type="button"
         onClick={() => setExpanded((value) => !value)}
         aria-expanded={expanded}
-        className="flex min-h-11 w-full min-w-0 items-center gap-2 rounded-md bg-bolt-elements-background-depth-2 px-2.5 py-1.5 text-left text-xs outline-none hover:bg-bolt-elements-artifacts-backgroundHover focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
+        className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-xs rounded-md bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-artifacts-backgroundHover"
       >
         <span
           className={`${allDone ? 'i-ph:check-circle-fill text-emerald-500' : 'i-ph:list-checks text-bolt-elements-item-contentAccent'} text-base shrink-0`}
           aria-hidden
         />
-        <span className="min-w-0 flex-1 break-words font-medium text-bolt-elements-textPrimary">
-          {plan.title || copy['chatResiduals.plan.fallbackTitle']}
-        </span>
-        <span className="shrink-0 whitespace-nowrap text-bolt-elements-textSecondary">
-          · {formatChatResidualsNumber(progress.completed, language)}/
-          {formatChatResidualsNumber(progress.total, language)}
-          {progress.failed > 0
-            ? ` · ${formatChatResidualsPlural(language, progress.failed, {
-                one: copy['chatResiduals.plan.failed_one'],
-                other: copy['chatResiduals.plan.failed_other'],
-              })}`
-            : ''}
+        <span className="font-medium text-bolt-elements-textPrimary truncate">{plan.title || 'Plan'}</span>
+        <span className="text-bolt-elements-textSecondary shrink-0">
+          · {progress.completed}/{progress.total}
+          {progress.failed > 0 ? ` · ${progress.failed} failed` : ''}
         </span>
         <span
           className={`[margin-inline-start:auto] shrink-0 ${expanded ? 'i-ph:caret-down' : 'i-ph:caret-right'} text-bolt-elements-textSecondary`}
@@ -87,22 +69,15 @@ export const PlanChecklistView = memo(({ plan }: PlanChecklistProps) => {
         <>
           <header className="bolt-plan-checklist-header">
             {plan.title ? <h3 className="bolt-plan-checklist-title">{plan.title}</h3> : null}
-            <div
-              className="bolt-plan-checklist-progress"
-              role="group"
-              aria-label={copy['chatResiduals.plan.progressAria']}
-            >
+            <div className="bolt-plan-checklist-progress" role="group" aria-label="Plan progress">
               <span className="bolt-plan-checklist-progress-label">
-                {formatChatResidualsCopy(copy['chatResiduals.plan.progress'], {
-                  completed: formatChatResidualsNumber(progress.completed, language),
-                  total: formatChatResidualsNumber(progress.total, language),
-                })}
                 {progress.failed > 0
-                  ? ` · ${formatChatResidualsPlural(language, progress.failed, {
-                      one: copy['chatResiduals.plan.failed_one'],
-                      other: copy['chatResiduals.plan.failed_other'],
-                    })}`
-                  : ''}
+                  ? t('plan.progressLabelWithFailed', {
+                      completed: progress.completed,
+                      total: progress.total,
+                      failed: progress.failed,
+                    })
+                  : t('plan.progressLabel', { completed: progress.completed, total: progress.total })}
               </span>
               <div
                 className="bolt-plan-checklist-progress-bar"
@@ -121,14 +96,11 @@ export const PlanChecklistView = memo(({ plan }: PlanChecklistProps) => {
                 key={item.id}
                 className="bolt-plan-checklist-item"
                 data-status={item.status}
-                aria-label={formatChatResidualsCopy(copy['chatResiduals.plan.itemAria'], {
-                  description: item.description,
-                  status: copy[STATUS_LABEL_KEY[item.status]],
-                })}
+                aria-label={`${item.description}, ${t(STATUS_LABEL_KEY[item.status])}`}
               >
                 <span className={`${STATUS_ICON[item.status]} bolt-plan-checklist-icon`} aria-hidden />
                 <span className="bolt-plan-checklist-description">{item.description}</span>
-                <span className="bolt-plan-checklist-status">{copy[STATUS_LABEL_KEY[item.status]]}</span>
+                <span className="bolt-plan-checklist-status">{t(STATUS_LABEL_KEY[item.status])}</span>
                 {item.result ? <span className="bolt-plan-checklist-result">{item.result}</span> : null}
               </li>
             ))}

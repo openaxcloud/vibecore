@@ -8,8 +8,6 @@
  * — the import simply fails there and we fall back to a placeholder row.
  */
 
-import { formatDiskInfoCopy, getDiskInfoCopy } from '~/lib/i18n/catalogs/disk-info';
-
 export interface DiskInfo {
   filesystem: string;
   size: number;
@@ -23,7 +21,7 @@ export interface DiskInfo {
 
 type ExecSync = (command: string, options: { encoding: BufferEncoding }) => string | Buffer;
 
-const unavailableRow = (language?: string | null): DiskInfo => ({
+const unavailableRow = (): DiskInfo => ({
   filesystem: 'N/A',
   size: 0,
   used: 0,
@@ -31,18 +29,18 @@ const unavailableRow = (language?: string | null): DiskInfo => ({
   percentage: 0,
   mountpoint: 'N/A',
   timestamp: new Date().toISOString(),
-  error: getDiskInfoCopy(language).unavailable,
+  error: 'Disk information is not available in this environment',
 });
 
-const errorRow = (mountpoint: string, language?: string | null): DiskInfo => ({
-  filesystem: getDiskInfoCopy(language).unknownFilesystem,
+const errorRow = (mountpoint: string, error: unknown): DiskInfo => ({
+  filesystem: 'Unknown',
   size: 0,
   used: 0,
   available: 0,
   percentage: 0,
   mountpoint,
   timestamp: new Date().toISOString(),
-  error: getDiskInfoCopy(language).genericError,
+  error: error instanceof Error ? error.message : 'Unknown error',
 });
 
 /**
@@ -156,11 +154,11 @@ async function loadExecSync(): Promise<ExecSync | null> {
   }
 }
 
-export const getDiskInfo = async (language?: string | null): Promise<DiskInfo[]> => {
+export const getDiskInfo = async (): Promise<DiskInfo[]> => {
   const execSync = await loadExecSync();
 
   if (!execSync) {
-    return [unavailableRow(language)];
+    return [unavailableRow()];
   }
 
   try {
@@ -174,7 +172,7 @@ export const getDiskInfo = async (language?: string | null): Promise<DiskInfo[]>
         return disks;
       } catch (error) {
         console.error(`Failed to get ${platform} disk info:`, error);
-        return [errorRow('/', language)];
+        return [errorRow('/', error)];
       }
     } else if (platform === 'win32') {
       try {
@@ -188,22 +186,19 @@ export const getDiskInfo = async (language?: string | null): Promise<DiskInfo[]>
         return parsePowerShellOutput(output);
       } catch (error) {
         console.error('Failed to get Windows disk info:', error);
-        return [errorRow('C:\\', language)];
+        return [errorRow('C:\\', error)];
       }
     } else {
       console.warn(`Unsupported platform: ${platform}`);
-
-      const copy = getDiskInfoCopy(language);
-
       return [
         {
-          ...errorRow('/', language),
-          error: formatDiskInfoCopy(copy.unsupportedPlatform, { platform }),
+          ...errorRow('/', new Error(`Unsupported platform: ${platform}`)),
+          error: `Unsupported platform: ${platform}`,
         },
       ];
     }
   } catch (error) {
     console.error('Failed to get disk info:', error);
-    return [errorRow('/', language)];
+    return [errorRow('/', error)];
   }
 };

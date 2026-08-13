@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Button } from '~/components/ui/Button';
-import { getSourceControlConnectionsCopy } from '~/lib/i18n/catalogs/source-control-connections';
 import { initializeGitHubConnection } from '~/lib/stores/github';
 import { logStore } from '~/lib/stores/logs';
 
@@ -62,8 +60,6 @@ export interface GitHubOauthConnectButtonProps {
 }
 
 export function GitHubOauthConnectButton({ projectId, className }: GitHubOauthConnectButtonProps) {
-  const { i18n } = useTranslation();
-  const copy = getSourceControlConnectionsCopy(i18n.resolvedLanguage ?? i18n.language);
   const [isLaunching, setIsLaunching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const popupRef = useRef<Window | null>(null);
@@ -111,9 +107,11 @@ export function GitHubOauthConnectButton({ projectId, className }: GitHubOauthCo
          */
         void initializeGitHubConnection();
       } else {
-        setError(copy['sourceControl.github.oauth.connectionFailed']);
+        const message = event.data.errorMessage ?? 'GitHub connection failed.';
+        setError(message);
         logStore.logError('GitHub OAuth connection failed', {
           code: event.data.errorCode,
+          message,
         });
       }
     }
@@ -123,7 +121,7 @@ export function GitHubOauthConnectButton({ projectId, className }: GitHubOauthCo
     return () => {
       window.removeEventListener('message', handleMessage);
     };
-  }, [closePopupTracking, copy]);
+  }, [closePopupTracking]);
 
   const handleClick = useCallback(async () => {
     setError(null);
@@ -137,9 +135,8 @@ export function GitHubOauthConnectButton({ projectId, className }: GitHubOauthCo
       });
 
       if (!response.ok) {
-        const payload = (await response.json().catch(() => ({}))) as { code?: string };
-        setError(copy['sourceControl.github.oauth.startFailed']);
-        logStore.logError('GitHub OAuth flow failed to start', { code: payload.code, status: response.status });
+        const payload = (await response.json().catch(() => ({}))) as { code?: string; error?: string };
+        setError(payload.error ?? `Failed to start OAuth flow (HTTP ${response.status})`);
         setIsLaunching(false);
 
         return;
@@ -154,7 +151,7 @@ export function GitHubOauthConnectButton({ projectId, className }: GitHubOauthCo
       );
 
       if (!popup) {
-        setError(copy['sourceControl.github.oauth.popupBlocked']);
+        setError('Popup was blocked. Allow popups for this site and try again.');
         setIsLaunching(false);
 
         return;
@@ -174,31 +171,28 @@ export function GitHubOauthConnectButton({ projectId, className }: GitHubOauthCo
         }
       }, 500);
     } catch (caught) {
-      console.error('GitHub OAuth flow failed to start', caught);
-      setError(copy['sourceControl.github.oauth.startFailed']);
+      setError(caught instanceof Error ? caught.message : 'Unknown failure starting OAuth flow.');
       setIsLaunching(false);
     }
-  }, [closePopupTracking, copy, projectId]);
+  }, [closePopupTracking, projectId]);
 
   return (
     <div className={className}>
-      <Button onClick={handleClick} disabled={isLaunching} className="min-h-11 whitespace-normal">
+      <Button onClick={handleClick} disabled={isLaunching}>
         {isLaunching ? (
-          <span className="flex items-center gap-2" role="status" aria-live="polite">
-            <span className="i-ph:spinner-gap-bold animate-spin w-4 h-4 shrink-0" aria-hidden="true" />
-            {copy['sourceControl.github.oauth.waiting']}
+          <span className="flex items-center gap-2">
+            <span className="i-ph:spinner-gap-bold animate-spin w-4 h-4" />
+            Waiting for GitHub authorization...
           </span>
         ) : (
           <span className="flex items-center gap-2">
-            <span className="i-ph:github-logo w-4 h-4 shrink-0" aria-hidden="true" />
-            {copy['sourceControl.github.oauth.connect']}
+            <span className="i-ph:github-logo w-4 h-4" />
+            Connect with GitHub (OAuth)
           </span>
         )}
       </Button>
       {error ? (
-        <p className="mt-2 text-xs text-bolt-elements-icon-error dark:text-bolt-elements-icon-error" role="alert">
-          {error}
-        </p>
+        <p className="mt-2 text-xs text-bolt-elements-icon-error dark:text-bolt-elements-icon-error">{error}</p>
       ) : null}
     </div>
   );

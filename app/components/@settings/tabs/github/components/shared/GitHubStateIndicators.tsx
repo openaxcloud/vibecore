@@ -1,10 +1,5 @@
 import { Loader2, AlertCircle, CheckCircle, Info, Github } from 'lucide-react';
 import React from 'react';
-import { useTranslation } from 'react-i18next';
-import {
-  formatSettingsConnectorsResidualDateTime,
-  getSettingsConnectorsResidualCopy,
-} from '~/lib/i18n/catalogs/settings-connectors-residual';
 import { classNames } from '~/utils/classNames';
 
 interface LoadingStateProps {
@@ -13,10 +8,7 @@ interface LoadingStateProps {
   className?: string;
 }
 
-export function LoadingState({ message, size = 'md', className = '' }: LoadingStateProps) {
-  const { i18n } = useTranslation();
-  const copy = getSettingsConnectorsResidualCopy(i18n.resolvedLanguage ?? i18n.language);
-
+export function LoadingState({ message = 'Loading...', size = 'md', className = '' }: LoadingStateProps) {
   const sizeClasses = {
     sm: 'w-4 h-4',
     md: 'w-6 h-6',
@@ -31,17 +23,13 @@ export function LoadingState({ message, size = 'md', className = '' }: LoadingSt
 
   return (
     <div
-      role="status"
-      aria-live="polite"
       className={classNames(
-        'flex min-w-0 flex-col items-center justify-center py-8 text-bolt-elements-textSecondary',
+        'flex flex-col items-center justify-center py-8 text-bolt-elements-textSecondary',
         className,
       )}
     >
-      <Loader2 className={classNames('mb-2 animate-spin', sizeClasses[size])} aria-hidden="true" />
-      <p className={classNames('break-words text-center text-bolt-elements-textSecondary', textSizeClasses[size])}>
-        {message ?? copy['settingsResidual.state.loading']}
-      </p>
+      <Loader2 className={classNames('animate-spin mb-2', sizeClasses[size])} />
+      <p className={classNames('text-bolt-elements-textSecondary', textSizeClasses[size])}>{message}</p>
     </div>
   );
 }
@@ -55,10 +43,14 @@ interface ErrorStateProps {
   className?: string;
 }
 
-export function ErrorState({ title, message, onRetry, retryLabel, size = 'md', className = '' }: ErrorStateProps) {
-  const { i18n } = useTranslation();
-  const copy = getSettingsConnectorsResidualCopy(i18n.resolvedLanguage ?? i18n.language);
-
+export function ErrorState({
+  title = 'Error',
+  message,
+  onRetry,
+  retryLabel = 'Try Again',
+  size = 'md',
+  className = '',
+}: ErrorStateProps) {
   const sizeClasses = {
     sm: 'w-4 h-4',
     md: 'w-6 h-6',
@@ -72,24 +64,16 @@ export function ErrorState({ title, message, onRetry, retryLabel, size = 'md', c
   };
 
   return (
-    <div
-      className={classNames('flex min-w-0 flex-col items-center justify-center py-8 text-center', className)}
-      role="alert"
-    >
-      <AlertCircle className={classNames('mb-2 text-red-500', sizeClasses[size])} aria-hidden="true" />
-      <h3 className={classNames('mb-1 break-words font-medium text-bolt-elements-textPrimary', textSizeClasses[size])}>
-        {title ?? copy['settingsResidual.state.error.title']}
-      </h3>
-      <p className={classNames('mb-4 break-words text-bolt-elements-textSecondary', textSizeClasses[size])}>
-        {message}
-      </p>
+    <div className={classNames('flex flex-col items-center justify-center py-8 text-center', className)}>
+      <AlertCircle className={classNames('text-red-500 mb-2', sizeClasses[size])} />
+      <h3 className={classNames('font-medium text-bolt-elements-textPrimary mb-1', textSizeClasses[size])}>{title}</h3>
+      <p className={classNames('text-bolt-elements-textSecondary mb-4', textSizeClasses[size])}>{message}</p>
       {onRetry && (
         <button
-          type="button"
           onClick={onRetry}
-          className="min-h-11 rounded-lg bg-bolt-elements-item-contentAccent px-4 py-2 text-white transition-colors hover:bg-bolt-elements-item-contentAccent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-item-contentAccent focus-visible:ring-offset-2"
+          className="px-4 py-2 bg-bolt-elements-item-contentAccent text-white rounded-lg hover:bg-bolt-elements-item-contentAccent/90 transition-colors"
         >
-          {retryLabel ?? copy['settingsResidual.state.error.retry']}
+          {retryLabel}
         </button>
       )}
     </div>
@@ -106,16 +90,13 @@ interface SuccessStateProps {
 }
 
 export function SuccessState({
-  title,
+  title = 'Success',
   message,
   onAction,
-  actionLabel,
+  actionLabel = 'Continue',
   size = 'md',
   className = '',
 }: SuccessStateProps) {
-  const { i18n } = useTranslation();
-  const copy = getSettingsConnectorsResidualCopy(i18n.resolvedLanguage ?? i18n.language);
-
   const sizeClasses = {
     sm: 'w-4 h-4',
     md: 'w-6 h-6',
@@ -129,25 +110,16 @@ export function SuccessState({
   };
 
   return (
-    <div
-      className={classNames('flex min-w-0 flex-col items-center justify-center py-8 text-center', className)}
-      role="status"
-      aria-live="polite"
-    >
-      <CheckCircle className={classNames('mb-2 text-green-500', sizeClasses[size])} aria-hidden="true" />
-      <h3 className={classNames('mb-1 break-words font-medium text-bolt-elements-textPrimary', textSizeClasses[size])}>
-        {title ?? copy['settingsResidual.state.success.title']}
-      </h3>
-      <p className={classNames('mb-4 break-words text-bolt-elements-textSecondary', textSizeClasses[size])}>
-        {message}
-      </p>
+    <div className={classNames('flex flex-col items-center justify-center py-8 text-center', className)}>
+      <CheckCircle className={classNames('text-green-500 mb-2', sizeClasses[size])} />
+      <h3 className={classNames('font-medium text-bolt-elements-textPrimary mb-1', textSizeClasses[size])}>{title}</h3>
+      <p className={classNames('text-bolt-elements-textSecondary mb-4', textSizeClasses[size])}>{message}</p>
       {onAction && (
         <button
-          type="button"
           onClick={onAction}
-          className="min-h-11 rounded-lg bg-bolt-elements-item-contentAccent px-4 py-2 text-white transition-colors hover:bg-bolt-elements-item-contentAccent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-item-contentAccent focus-visible:ring-offset-2"
+          className="px-4 py-2 bg-bolt-elements-item-contentAccent text-white rounded-lg hover:bg-bolt-elements-item-contentAccent/90 transition-colors"
         >
-          {actionLabel ?? copy['settingsResidual.state.success.continue']}
+          {actionLabel}
         </button>
       )}
     </div>
@@ -160,26 +132,21 @@ interface GitHubConnectionRequiredProps {
 }
 
 export function GitHubConnectionRequired({ onConnect, className = '' }: GitHubConnectionRequiredProps) {
-  const { i18n } = useTranslation();
-  const copy = getSettingsConnectorsResidualCopy(i18n.resolvedLanguage ?? i18n.language);
-
   return (
-    <div className={classNames('flex min-w-0 flex-col items-center justify-center py-12 text-center', className)}>
-      <Github className="mb-4 h-12 w-12 text-bolt-elements-textTertiary" aria-hidden="true" />
-      <h3 className="mb-2 break-words text-lg font-medium text-bolt-elements-textPrimary">
-        {copy['settingsResidual.state.githubRequired.title']}
-      </h3>
-      <p className="mb-6 max-w-md break-words text-sm text-bolt-elements-textSecondary">
-        {copy['settingsResidual.state.githubRequired.description']}
+    <div className={classNames('flex flex-col items-center justify-center py-12 text-center', className)}>
+      <Github className="w-12 h-12 text-bolt-elements-textTertiary mb-4" />
+      <h3 className="text-lg font-medium text-bolt-elements-textPrimary mb-2">GitHub Connection Required</h3>
+      <p className="text-sm text-bolt-elements-textSecondary mb-6 max-w-md">
+        Please connect your GitHub account to access this feature. You'll be able to browse repositories, push code, and
+        manage your GitHub integration.
       </p>
       {onConnect && (
         <button
-          type="button"
           onClick={onConnect}
-          className="flex min-h-11 items-center gap-2 rounded-lg bg-bolt-elements-item-contentAccent px-6 py-3 text-white transition-colors hover:bg-bolt-elements-item-contentAccent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-item-contentAccent focus-visible:ring-offset-2"
+          className="px-6 py-3 bg-bolt-elements-item-contentAccent text-white rounded-lg hover:bg-bolt-elements-item-contentAccent/90 transition-colors flex items-center gap-2"
         >
-          <Github className="h-4 w-4 shrink-0" aria-hidden="true" />
-          {copy['settingsResidual.state.githubRequired.action']}
+          <Github className="w-4 h-4" />
+          Connect GitHub
         </button>
       )}
     </div>
@@ -201,13 +168,10 @@ export function InformationState({
   message,
   icon = Info,
   onAction,
-  actionLabel,
+  actionLabel = 'Got it',
   size = 'md',
   className = '',
 }: InformationStateProps) {
-  const { i18n } = useTranslation();
-  const copy = getSettingsConnectorsResidualCopy(i18n.resolvedLanguage ?? i18n.language);
-
   const sizeClasses = {
     sm: 'w-4 h-4',
     md: 'w-6 h-6',
@@ -221,21 +185,16 @@ export function InformationState({
   };
 
   return (
-    <div className={classNames('flex min-w-0 flex-col items-center justify-center py-8 text-center', className)}>
-      {React.createElement(icon, { className: classNames('mb-2 text-blue-500', sizeClasses[size]) })}
-      <h3 className={classNames('mb-1 break-words font-medium text-bolt-elements-textPrimary', textSizeClasses[size])}>
-        {title}
-      </h3>
-      <p className={classNames('mb-4 break-words text-bolt-elements-textSecondary', textSizeClasses[size])}>
-        {message}
-      </p>
+    <div className={classNames('flex flex-col items-center justify-center py-8 text-center', className)}>
+      {React.createElement(icon, { className: classNames('text-blue-500 mb-2', sizeClasses[size]) })}
+      <h3 className={classNames('font-medium text-bolt-elements-textPrimary mb-1', textSizeClasses[size])}>{title}</h3>
+      <p className={classNames('text-bolt-elements-textSecondary mb-4', textSizeClasses[size])}>{message}</p>
       {onAction && (
         <button
-          type="button"
           onClick={onAction}
-          className="min-h-11 rounded-lg bg-bolt-elements-item-contentAccent px-4 py-2 text-white transition-colors hover:bg-bolt-elements-item-contentAccent/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-item-contentAccent focus-visible:ring-offset-2"
+          className="px-4 py-2 bg-bolt-elements-item-contentAccent text-white rounded-lg hover:bg-bolt-elements-item-contentAccent/90 transition-colors"
         >
-          {actionLabel ?? copy['settingsResidual.state.information.dismiss']}
+          {actionLabel}
         </button>
       )}
     </div>
@@ -250,10 +209,6 @@ interface ConnectionTestIndicatorProps {
 }
 
 export function ConnectionTestIndicator({ status, message, timestamp, className = '' }: ConnectionTestIndicatorProps) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getSettingsConnectorsResidualCopy(language);
-
   if (!status) {
     return null;
   }
@@ -297,25 +252,14 @@ export function ConnectionTestIndicator({ status, message, timestamp, className 
     }
   };
 
-  const statusMessage = message ?? copy[`settingsResidual.state.connection.${status}`];
-  const formattedTimestamp = timestamp ? formatSettingsConnectorsResidualDateTime(timestamp, language) : null;
-
   return (
-    <div
-      className={classNames(`min-w-0 rounded-lg border p-4 ${getStatusColor()}`, className)}
-      role={status === 'error' ? 'alert' : 'status'}
-      aria-live={status === 'error' ? 'assertive' : 'polite'}
-    >
-      <div className="flex min-w-0 items-center gap-2">
+    <div className={classNames(`p-4 rounded-lg border ${getStatusColor()}`, className)}>
+      <div className="flex items-center gap-2">
         {getStatusIcon()}
-        <span className={classNames('min-w-0 break-words text-sm font-medium', getStatusTextColor())}>
-          {statusMessage}
-        </span>
+        <span className={classNames('text-sm font-medium', getStatusTextColor())}>{message || status}</span>
       </div>
       {timestamp && (
-        <p className="mt-1 break-words text-xs text-bolt-elements-textTertiary">
-          {formattedTimestamp ?? copy['settingsResidual.debug.timestampUnavailable']}
-        </p>
+        <p className="text-xs text-bolt-elements-textTertiary mt-1">{new Date(timestamp).toLocaleString()}</p>
       )}
     </div>
   );

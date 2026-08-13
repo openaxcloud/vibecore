@@ -1,9 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { GitBranch, Check, Shield, Star, RefreshCw, X } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
-import { getRepositorySelectorCopy, getRepositorySelectorError } from '~/lib/i18n/catalogs/repository-selector';
 import { classNames } from '~/utils/classNames';
 
 interface BranchInfo {
@@ -41,9 +39,6 @@ export function BranchSelector({
   isOpen,
   className,
 }: BranchSelectorProps) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
-  const copy = getRepositorySelectorCopy(language);
   const [branches, setBranches] = useState<BranchInfo[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +74,7 @@ export function BranchSelector({
       } else {
         // GitLab
         if (!projectId) {
-          throw new Error(copy['repositorySelector.branch.projectRequired']);
+          throw new Error('Project ID is required for GitLab repositories');
         }
 
         response = await fetch('/api/gitlab-branches', {
@@ -94,10 +89,8 @@ export function BranchSelector({
       }
 
       if (!response.ok) {
-        const errorData: any = await response
-          .json()
-          .catch(() => ({ error: copy['repositorySelector.branch.loadFailed'] }));
-        throw new Error(errorData.error || copy['repositorySelector.branch.loadFailed']);
+        const errorData: any = await response.json().catch(() => ({ error: 'Failed to fetch branches' }));
+        throw new Error(errorData.error || `HTTP ${response.status}`);
       }
 
       const data: any = await response.json();
@@ -123,7 +116,7 @@ export function BranchSelector({
       }
 
       console.error('Failed to fetch branches:', err);
-      setError(err instanceof Error ? err.message : '');
+      setError(err instanceof Error ? err.message : 'Failed to fetch branches');
       setBranches([]);
     } finally {
       if (seq === fetchSeqRef.current) {
@@ -194,7 +187,6 @@ export function BranchSelector({
             transition={{ duration: 0.2 }}
             role="dialog"
             aria-modal="true"
-            aria-label={copy['repositorySelector.branch.title']}
             onClick={(e) => e.stopPropagation()}
             className={classNames(
               'bg-bolt-elements-background-depth-2 rounded-xl shadow-xl border border-bolt-elements-borderColor max-w-md w-full max-h-[80vh] flex flex-col',
@@ -208,9 +200,7 @@ export function BranchSelector({
                   <GitBranch className="w-6 h-6 text-blue-600" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">
-                    {copy['repositorySelector.branch.title']}
-                  </h3>
+                  <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">Select Branch</h3>
                   <p className="text-sm text-bolt-elements-textSecondary">
                     {repoOwner}/{repoName}
                   </p>
@@ -218,8 +208,8 @@ export function BranchSelector({
               </div>
               <button
                 type="button"
-                aria-label={copy['repositorySelector.branch.close']}
-                title={copy['repositorySelector.branch.close']}
+                aria-label="Close"
+                title="Close"
                 onClick={onClose}
                 className="p-2 rounded-lg hover:bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-all"
               >
@@ -232,25 +222,17 @@ export function BranchSelector({
               {isLoading ? (
                 <div className="flex flex-col items-center justify-center p-8 space-y-4">
                   <div className="animate-spin w-8 h-8 border-2 border-bolt-elements-borderColorActive border-t-transparent rounded-full" />
-                  <p className="text-sm text-bolt-elements-textSecondary">
-                    {copy['repositorySelector.branch.loading']}
-                  </p>
+                  <p className="text-sm text-bolt-elements-textSecondary">Loading branches...</p>
                 </div>
               ) : error ? (
                 <div className="flex flex-col items-center justify-center p-8 space-y-4">
                   <div className="text-red-500 mb-2">
                     <GitBranch className="w-8 h-8 mx-auto" />
                   </div>
-                  <p className="text-sm text-red-600 text-center">
-                    {getRepositorySelectorError(
-                      language,
-                      error ? new Error(error) : undefined,
-                      copy['repositorySelector.branch.loadFailed'],
-                    )}
-                  </p>
+                  <p className="text-sm text-red-600 text-center">{error}</p>
                   <Button onClick={fetchBranches} variant="outline" size="sm">
                     <RefreshCw className="w-4 h-4 mr-2" />
-                    {copy['repositorySelector.retry']}
+                    Retry
                   </Button>
                 </div>
               ) : (
@@ -260,7 +242,7 @@ export function BranchSelector({
                     <div className="p-4 border-b border-bolt-elements-borderColor">
                       <input
                         type="text"
-                        placeholder={copy['repositorySelector.branch.search']}
+                        placeholder="Search branches..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="w-full px-3 py-2 rounded-lg bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-1 focus:ring-bolt-elements-borderColorActive"
@@ -290,18 +272,8 @@ export function BranchSelector({
                                   {branch.name}
                                 </span>
                                 <div className="flex items-center gap-1 flex-shrink-0">
-                                  {branch.isDefault && (
-                                    <Star
-                                      className="w-3 h-3 text-yellow-500"
-                                      aria-label={copy['repositorySelector.branch.default']}
-                                    />
-                                  )}
-                                  {branch.protected && (
-                                    <Shield
-                                      className="w-3 h-3 text-red-500"
-                                      aria-label={copy['repositorySelector.branch.protected']}
-                                    />
-                                  )}
+                                  {branch.isDefault && <Star className="w-3 h-3 text-yellow-500" />}
+                                  {branch.protected && <Shield className="w-3 h-3 text-red-500" />}
                                 </div>
                               </div>
                               {selectedBranch === branch.name && <Check className="w-4 h-4 text-blue-600" />}
@@ -315,9 +287,7 @@ export function BranchSelector({
                     ) : (
                       <div className="flex items-center justify-center p-8">
                         <p className="text-sm text-bolt-elements-textSecondary">
-                          {searchQuery
-                            ? copy['repositorySelector.branch.noMatch']
-                            : copy['repositorySelector.branch.empty']}
+                          {searchQuery ? 'No branches found matching your search.' : 'No branches available.'}
                         </p>
                       </div>
                     )}
@@ -332,13 +302,13 @@ export function BranchSelector({
                 <div className="text-sm text-bolt-elements-textSecondary">
                   {selectedBranch && (
                     <>
-                      {copy['repositorySelector.branch.selected']} <span className="font-medium">{selectedBranch}</span>
+                      Selected: <span className="font-medium">{selectedBranch}</span>
                     </>
                   )}
                 </div>
                 <div className="flex items-center gap-3">
                   <Button onClick={onClose} variant="outline" size="sm">
-                    {copy['repositorySelector.branch.cancel']}
+                    Cancel
                   </Button>
                   <Button
                     onClick={handleConfirmSelection}
@@ -346,7 +316,7 @@ export function BranchSelector({
                     size="sm"
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                   >
-                    {copy['repositorySelector.branch.clone']}
+                    Clone Branch
                   </Button>
                 </div>
               </div>

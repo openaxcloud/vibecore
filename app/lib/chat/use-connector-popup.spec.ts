@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { localizeConnectorPopupState, shouldHandleConnectorMessage } from './use-connector-popup';
+import { shouldHandleConnectorMessage } from './use-connector-popup';
 
 const resolvedGithub = {
   type: 'e-code.connector.connection.resolved',
@@ -52,29 +52,5 @@ describe('shouldHandleConnectorMessage', () => {
      */
     expect(shouldHandleConnectorMessage(resolvedGithub, 'github')).toBe(true);
     expect(shouldHandleConnectorMessage(resolvedGithub, 'gitlab')).toBe(false);
-  });
-});
-
-describe('localizeConnectorPopupState', () => {
-  it('maps an arbitrary provider failure to safe French copy', () => {
-    const state = localizeConnectorPopupState(
-      {
-        phase: 'failed',
-        result: {
-          ok: false,
-          provider: 'GitLab',
-          errorCode: 'RAW_PROVIDER_ERROR',
-          errorMessage: 'client_secret=private',
-        },
-      },
-      'fr',
-    );
-
-    expect(state.phase).toBe('failed');
-
-    if (state.phase === 'failed') {
-      expect(state.result.errorMessage).toBe('Impossible de terminer la connexion à GitLab. Réessayez.');
-      expect(state.result.errorMessage).not.toContain('client_secret');
-    }
   });
 });

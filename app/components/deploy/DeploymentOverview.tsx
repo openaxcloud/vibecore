@@ -1,6 +1,5 @@
 import { Check, Copy, Globe, QrCode } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { QRCode } from 'react-qrcode-logo';
 import { getDeploymentType } from './deployment-types';
 import { classNames } from '~/utils/classNames';
@@ -49,16 +48,14 @@ export function DeploymentOverview({
   /** Open database management. */
   onManageDatabase?: () => void;
 }) {
-  const { t, i18n } = useTranslation();
-
   if (!deployment) {
     return (
       <div className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 py-10 text-center">
         <Globe className="mx-auto h-7 w-7 text-bolt-elements-textTertiary" aria-hidden />
-        <p className="mt-3 text-sm font-medium text-bolt-elements-textPrimary">
-          {t('idePanels.deployment.emptyTitle')}
+        <p className="mt-3 text-sm font-medium text-bolt-elements-textPrimary">Not published yet</p>
+        <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+          Publish below to get a live URL, status and logs.
         </p>
-        <p className="mt-1 text-xs text-bolt-elements-textSecondary">{t('idePanels.deployment.emptyBody')}</p>
       </div>
     );
   }
@@ -66,50 +63,46 @@ export function DeploymentOverview({
   const ready = deployment.status === 'READY';
   const type = getDeploymentType(deploymentTypeId);
 
-  const resourceDetail = deploymentTypeResource(deploymentTypeId, t);
-  const status = deploymentStatus(deployment.status, t);
-  const environment = deploymentEnvironment(deployment.environment, t);
-  const finishedAt = formatDeploymentTime(deployment.finishedAt, i18n.resolvedLanguage ?? i18n.language);
+  const resourceDetail =
+    deploymentTypeId === 'static' ? 'Static hosting · served on the E-Code CDN edge' : type?.bestFor;
 
   return (
     <dl className="grid gap-px overflow-hidden rounded-md border border-bolt-elements-borderColor bg-bolt-elements-borderColor">
-      <Row label={t('idePanels.deployment.status')}>
+      <Row label="Status">
         <span className="inline-flex items-center gap-2">
           <span className={classNames('h-2 w-2 rounded-full', ready ? 'bg-green-500' : 'bg-yellow-500')} aria-hidden />
-          <span className="font-medium text-bolt-elements-textPrimary">{status}</span>
-          {finishedAt ? <span className="text-bolt-elements-textTertiary">· {finishedAt}</span> : null}
+          <span className="font-medium text-bolt-elements-textPrimary">{deployment.status}</span>
+          {deployment.finishedAt ? (
+            <span className="text-bolt-elements-textTertiary">· {deployment.finishedAt}</span>
+          ) : null}
         </span>
       </Row>
-      <Row label={t('idePanels.deployment.visibility')}>
+      <Row label="Visibility">
         <span className="inline-flex items-center gap-1.5">
           <Globe className="h-3.5 w-3.5 text-bolt-elements-textTertiary" aria-hidden />
-          {t('idePanels.deployment.public')}
+          Public
         </span>
       </Row>
-      <Row label={t('idePanels.deployment.domain')}>
+      <Row label="Domain">
         <div className="flex flex-col gap-2">
           {deployment.url ? (
             <DomainValue url={deployment.url} />
           ) : (
-            <span className="text-bolt-elements-textTertiary">{t('idePanels.deployment.pending')}</span>
+            <span className="text-bolt-elements-textTertiary">Pending</span>
           )}
           {deployment.customDomain ? <DomainValue url={`https://${deployment.customDomain}`} /> : null}
           <button type="button" onClick={onBuyDomain} className="inline-flex w-fit items-center gap-1.5 text-[13px]">
-            <span className="text-[var(--vc-ide-accent-action)] hover:underline">
-              {t('idePanels.deployment.buyDomain')}
-            </span>
+            <span className="text-[var(--vc-ide-accent-action)] hover:underline">Buy a new domain</span>
             <span className="rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-bolt-elements-textTertiary">
-              {t('idePanels.deployment.beta')}
+              Beta
             </span>
           </button>
         </div>
       </Row>
-      <Row label={t('idePanels.deployment.type')}>
+      <Row label="Type">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span>
-            <span className="font-medium text-bolt-elements-textPrimary">
-              {deploymentTypeName(type?.id ?? deploymentTypeId, t)}
-            </span>
+            <span className="font-medium text-bolt-elements-textPrimary">{type?.name ?? 'Static'}</span>
             {resourceDetail ? <span className="text-bolt-elements-textTertiary"> · {resourceDetail}</span> : null}
           </span>
           <button
@@ -117,17 +110,17 @@ export function DeploymentOverview({
             onClick={onManage}
             className="text-[13px] text-[var(--vc-ide-accent-action)] hover:underline"
           >
-            {t('idePanels.deployment.manage')}
+            Manage
           </button>
           <a
             href={usageHref}
             className="text-[13px] text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary hover:underline"
           >
-            {t('idePanels.deployment.seeUsage')}
+            See all usage
           </a>
         </div>
       </Row>
-      <Row label={t('idePanels.deployment.database')}>
+      <Row label="Database">
         <div className="flex flex-col gap-1">
           <span className="inline-flex items-center gap-2">
             <span
@@ -138,27 +131,25 @@ export function DeploymentOverview({
               aria-hidden
             />
             <span className="text-bolt-elements-textPrimary">
-              {databaseConnected
-                ? t('idePanels.deployment.databaseConnected')
-                : t('idePanels.deployment.databaseDisconnected')}
+              {databaseConnected ? 'Production database connected' : 'No production database'}
             </span>
             <button
               type="button"
               onClick={onManageDatabase}
               className="text-[13px] text-[var(--vc-ide-accent-action)] hover:underline"
             >
-              {t('idePanels.deployment.manage')}
+              Manage
             </button>
           </span>
           <span className="text-[12px] text-bolt-elements-textTertiary">
             {databaseConnected
-              ? t('idePanels.deployment.databaseConnectedBody')
-              : t('idePanels.deployment.databaseDisconnectedBody')}
+              ? 'Your production database is ready — your app can save and manage live user data securely.'
+              : 'Attach a managed Postgres database to give your deployment persistent storage.'}
           </span>
         </div>
       </Row>
-      <Row label={t('idePanels.deployment.environment')}>
-        <span className="capitalize">{environment}</span>
+      <Row label="Environment">
+        <span className="capitalize">{deployment.environment ?? 'preview'}</span>
       </Row>
     </dl>
   );
@@ -166,7 +157,7 @@ export function DeploymentOverview({
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="grid grid-cols-1 gap-1 bg-bolt-elements-background-depth-2 px-4 py-2.5 text-[14px] sm:grid-cols-[120px_minmax(0,1fr)] sm:gap-3">
+    <div className="grid grid-cols-[120px_minmax(0,1fr)] gap-3 bg-bolt-elements-background-depth-2 px-4 py-2.5 text-[14px]">
       <dt className="text-bolt-elements-textSecondary">{label}</dt>
       <dd className="min-w-0 text-bolt-elements-textPrimary">{children}</dd>
     </div>
@@ -174,7 +165,6 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 }
 
 function DomainValue({ url }: { url: string }) {
-  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [showQr, setShowQr] = useState(false);
 
@@ -204,8 +194,8 @@ function DomainValue({ url }: { url: string }) {
         <button
           type="button"
           onClick={copy}
-          title={copied ? t('idePanels.deployment.urlCopied') : t('idePanels.deployment.copyUrl')}
-          aria-label={copied ? t('idePanels.deployment.urlCopied') : t('idePanels.deployment.copyUrl')}
+          title="Copy URL"
+          aria-label="Copy URL"
           className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
         >
           {copied ? <Check className="h-3.5 w-3.5" aria-hidden /> : <Copy className="h-3.5 w-3.5" aria-hidden />}
@@ -214,8 +204,8 @@ function DomainValue({ url }: { url: string }) {
           type="button"
           onClick={() => setShowQr((value) => !value)}
           aria-pressed={showQr}
-          title={showQr ? t('idePanels.deployment.hideQr') : t('idePanels.deployment.showQr')}
-          aria-label={showQr ? t('idePanels.deployment.hideQr') : t('idePanels.deployment.showQr')}
+          title="Show QR code"
+          aria-label="Show QR code"
           className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
         >
           <QrCode className="h-3.5 w-3.5" aria-hidden />
@@ -228,73 +218,4 @@ function DomainValue({ url }: { url: string }) {
       ) : null}
     </div>
   );
-}
-
-type Translate = (key: string, options?: Record<string, unknown>) => string;
-
-function deploymentStatus(status: string, t: Translate): string {
-  const keyByStatus: Record<string, string> = {
-    READY: 'idePanels.deployment.statusReady',
-    BUILDING: 'idePanels.deployment.statusBuilding',
-    QUEUED: 'idePanels.deployment.statusQueued',
-    PENDING: 'idePanels.deployment.statusPending',
-    ERROR: 'idePanels.deployment.statusError',
-    FAILED: 'idePanels.deployment.statusError',
-    CANCELED: 'idePanels.deployment.statusCanceled',
-    CANCELLED: 'idePanels.deployment.statusCanceled',
-  };
-
-  return t(keyByStatus[status.toUpperCase()] ?? 'idePanels.common.unavailable');
-}
-
-function deploymentEnvironment(environment: string | undefined, t: Translate): string {
-  const keyByEnvironment: Record<string, string> = {
-    preview: 'idePanels.deployment.environmentPreview',
-    production: 'idePanels.deployment.environmentProduction',
-    development: 'idePanels.deployment.environmentDevelopment',
-    staging: 'idePanels.deployment.environmentStaging',
-  };
-
-  return t(keyByEnvironment[environment?.toLowerCase() ?? 'preview'] ?? 'idePanels.common.unavailable');
-}
-
-function deploymentTypeName(typeId: string, t: Translate): string {
-  const keyByType: Record<string, string> = {
-    static: 'idePanels.deployment.typeStatic',
-    autoscale: 'idePanels.deployment.typeAutoscale',
-    'reserved-vm': 'idePanels.deployment.typeReservedVm',
-    scheduled: 'idePanels.deployment.typeScheduled',
-  };
-
-  return t(keyByType[typeId] ?? 'idePanels.common.unavailable');
-}
-
-function deploymentTypeResource(typeId: string, t: Translate): string | undefined {
-  const keyByType: Record<string, string> = {
-    static: 'idePanels.deployment.staticResources',
-    autoscale: 'idePanels.deployment.autoscaleResources',
-    'reserved-vm': 'idePanels.deployment.reservedVmResources',
-    scheduled: 'idePanels.deployment.scheduledResources',
-  };
-
-  const key = keyByType[typeId];
-
-  return key ? t(key) : undefined;
-}
-
-function formatDeploymentTime(value: string | undefined, language: string): string | undefined {
-  if (!value) {
-    return undefined;
-  }
-
-  const date = new Date(value);
-
-  if (!Number.isFinite(date.getTime())) {
-    return undefined;
-  }
-
-  return new Intl.DateTimeFormat(language.startsWith('fr') ? 'fr-FR' : 'en-GB', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  }).format(date);
 }

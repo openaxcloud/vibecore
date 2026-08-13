@@ -1,16 +1,13 @@
 import { useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from '~/components/ui/use-toast';
-import { getClientRuntimeResidualCopy } from '~/lib/i18n/catalogs/client-runtime-residual';
 import type { ProviderInfo } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('usePromptEnhancement');
 
+const ENHANCE_ERROR_MESSAGE = 'Could not enhance the prompt. Please try again.';
+
 export function usePromptEnhancer() {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getClientRuntimeResidualCopy(language);
   const [enhancingPrompt, setEnhancingPrompt] = useState(false);
   const [promptEnhanced, setPromptEnhanced] = useState(false);
 
@@ -68,7 +65,7 @@ export function usePromptEnhancer() {
       logger.error(error);
       setEnhancingPrompt(false);
       setPromptEnhanced(false);
-      toast.error(copy['clientRuntime.promptEnhancer.failed']);
+      toast.error(ENHANCE_ERROR_MESSAGE);
 
       return;
     }
@@ -81,7 +78,7 @@ export function usePromptEnhancer() {
       logger.error(`Prompt enhancer failed: ${response.status} ${response.statusText}`);
       setEnhancingPrompt(false);
       setPromptEnhanced(false);
-      toast.error(copy['clientRuntime.promptEnhancer.failed']);
+      toast.error(ENHANCE_ERROR_MESSAGE);
 
       return;
     }
@@ -125,11 +122,11 @@ export function usePromptEnhancer() {
           logger.error(_error);
           setEnhancingPrompt(false);
           setPromptEnhanced(false);
-          toast.error(copy['clientRuntime.promptEnhancer.failed']);
+          toast.error(ENHANCE_ERROR_MESSAGE);
         } else {
           setEnhancingPrompt(false);
           setPromptEnhanced(true);
-          toast.success(copy['clientRuntime.promptEnhancer.success']);
+          toast.success('Prompt enhanced');
 
           flushTimerRef.current = setTimeout(() => {
             flushTimerRef.current = undefined;

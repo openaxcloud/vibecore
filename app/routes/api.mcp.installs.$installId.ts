@@ -1,11 +1,10 @@
 import { apiRequest, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
-import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 export async function action({ request, params }: EnterpriseActionArgs) {
   const installId = params.installId;
 
   if (!installId) {
-    return remainingApiErrorResponse(request, 'MCP_INSTALL_ID_REQUIRED', 400, { extra: { ok: false } });
+    return json({ ok: false, error: 'Missing install id' }, { status: 400 });
   }
 
   const method = request.method.toUpperCase();
@@ -28,5 +27,5 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     return json(payload);
   }
 
-  return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405, { extra: { ok: false } });
+  return json({ ok: false, error: 'Method not allowed' }, { status: 405 });
 }

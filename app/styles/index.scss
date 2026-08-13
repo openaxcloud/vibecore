@@ -5,7 +5,6 @@
 @use 'components/resize-handle.scss';
 @use 'components/code.scss';
 @use 'components/editor.scss';
-@use 'components/file-history.scss';
 @use 'components/toast.scss';
 @use 'ios-input-zoom';
 
@@ -2990,7 +2989,6 @@ body
 .bolt-file-action-diff-bulk-actions {
   display: inline-flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 6px;
   margin-left: auto;
 }
@@ -3002,10 +3000,7 @@ body
   background: var(--vc-ide-bg-overlay);
   border: 1px solid var(--vc-ide-border-subtle);
   border-radius: 6px;
-  min-height: 44px;
-  padding: 6px 10px;
-  text-align: center;
-  white-space: normal;
+  padding: 3px 8px;
   cursor: pointer;
 }
 
@@ -3088,7 +3083,6 @@ body
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 44px;
   gap: 12px;
   padding: 6px 12px;
   background: var(--vc-ide-bg-subtle);
@@ -3106,7 +3100,6 @@ body
 
 .bolt-file-action-diff-hunk-checkbox {
   display: inline-flex;
-  min-height: 44px;
   min-width: 0;
   align-items: center;
   gap: 8px;
@@ -3125,7 +3118,6 @@ body
 
 .bolt-file-action-diff-hunk-show {
   display: inline-flex;
-  min-height: 44px;
   flex-shrink: 0;
   align-items: center;
   gap: 4px;
@@ -3225,49 +3217,12 @@ body
 .bolt-file-action-diff-footer {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
   gap: 12px;
   padding: 8px 12px;
   border-top: 1px solid var(--vc-ide-border-subtle);
   background: var(--vc-ide-bg-subtle);
   color: var(--vc-ide-text-secondary);
   font-size: 11px;
-}
-
-@media (max-width: 639px) {
-  .bolt-file-action-diff-header {
-    align-items: stretch;
-  }
-
-  .bolt-file-action-diff-title {
-    flex-basis: 100%;
-  }
-
-  .bolt-file-action-diff-status {
-    white-space: normal;
-  }
-
-  .bolt-file-action-diff-file-actions,
-  .bolt-file-action-diff-bulk-actions {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .bolt-file-action-diff-file-action,
-  .bolt-file-action-diff-bulk-action {
-    flex: 1 1 9rem;
-  }
-
-  .bolt-file-action-diff-hunk-header {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  .bolt-file-action-diff-hunk-range {
-    overflow-wrap: anywhere;
-    white-space: normal;
-  }
 }
 
 .bolt-file-action-diff-footer-status {
@@ -6048,68 +6003,6 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-project-topbar-actions {
   flex: 0 0 auto;
   gap: 6px;
-}
-
-.bolt-project-language-switch {
-  height: 30px;
-  min-height: 30px;
-  border-color: var(--vc-ide-border-visible);
-  background: var(--vc-ide-bg-card);
-  padding: 2px;
-  box-shadow: none;
-}
-
-.bolt-project-language-switch > button {
-  width: 31px;
-  min-width: 31px;
-  min-height: 24px;
-  padding-inline: 5px;
-  font-size: 10px;
-  line-height: 1;
-}
-
-.bolt-project-mobile-language-switch-slot {
-  display: none;
-}
-
-.bolt-project-mobile-language-switch {
-  height: 50px;
-  min-height: 50px;
-  border-color: var(--vc-ide-border-visible);
-  background: var(--vc-ide-bg-card);
-  padding: 3px;
-  box-shadow: none;
-}
-
-.bolt-project-mobile-language-switch > button {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: 999px;
-  margin: 0;
-  padding: 0;
-  font-size: 10px !important;
-  line-height: 1;
-}
-
-.bolt-project-mobile-language-switch > button:first-child {
-  margin-left: 0;
-}
-
-.bolt-project-mobile-language-switch > button[aria-pressed='true'] {
-  background: var(--vc-action-primary) !important;
-  color: #ffffff !important;
-}
-
-.bolt-project-mobile-language-switch > button[aria-pressed='false'] {
-  background: transparent !important;
-  color: var(--vc-ide-text-secondary) !important;
-}
-
-.bolt-project-mobile-language-switch > button[aria-pressed='false']:where(:hover, :focus-visible) {
-  background: var(--vc-ide-bg-hover) !important;
-  color: var(--vc-ide-text-primary) !important;
 }
 
 .bolt-project-action-group {
@@ -14659,7 +14552,6 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-main-panes {
-  position: relative; // RPL-IDE-001.3 — anchor for absolutely-positioned floating panes
   display: flex;
   min-width: 0;
   min-height: 0;
@@ -14667,138 +14559,20 @@ body :where(.lucide, svg[data-lucide]) {
   transition: height var(--vc-animation-split-panel);
 }
 
-// RPL-IDE-001.2 — resizable split container (react-resizable-panels PanelGroup).
 .bolt-project-pane-split {
+  display: grid;
   min-width: 0;
   min-height: 0;
   flex: 1;
-  width: 100%;
   height: 100%;
 }
 
-// RPL-IDE-001.2 — draggable divider (PanelResizeHandle). Generous hit-area over
-// a thin visible line; orientation follows the split direction.
+.bolt-project-pane-split[data-direction='horizontal'] {
+  grid-template-columns: minmax(260px, 1fr) 1px minmax(260px, 1fr);
+}
+
 .bolt-project-pane-split-divider {
-  position: relative;
-  flex: 0 0 auto;
   background: var(--vc-ide-border-subtle);
-  transition: background 150ms ease-out;
-}
-
-.bolt-project-pane-split[data-direction='horizontal'] > .bolt-project-pane-split-divider {
-  width: 1px;
-  cursor: col-resize;
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0 -3px;
-  }
-}
-
-.bolt-project-pane-split[data-direction='vertical'] > .bolt-project-pane-split-divider {
-  height: 1px;
-  cursor: row-resize;
-
-  &::after {
-    content: '';
-    position: absolute;
-    inset: -3px 0;
-  }
-}
-
-.bolt-project-pane-split-divider:hover,
-.bolt-project-pane-split-divider[data-resize-handle-active] {
-  background: color-mix(in srgb, var(--vc-ide-accent-action), transparent 40%);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action), transparent 76%);
-}
-
-// RPL-IDE-001.3 — floating pane frame.
-.bolt-project-floating-pane {
-  display: flex;
-  flex-direction: column;
-  min-width: 280px;
-  min-height: 180px;
-  overflow: hidden;
-  border-radius: 10px;
-  border: 1px solid var(--vc-ide-border-subtle);
-  background: var(--vc-ide-bg-app);
-  box-shadow:
-    0 12px 32px color-mix(in srgb, #000, transparent 76%),
-    0 2px 8px color-mix(in srgb, #000, transparent 82%);
-}
-
-.bolt-project-floating-pane[data-active='true'] {
-  border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 40%);
-  box-shadow:
-    0 16px 40px color-mix(in srgb, #000, transparent 70%),
-    0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action), transparent 60%);
-}
-
-.bolt-project-floating-pane-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 6px 10px;
-  cursor: grab;
-  user-select: none;
-  border-bottom: 1px solid var(--vc-ide-border-subtle);
-  background: var(--vc-ide-bg-subtle, var(--vc-ide-bg-app));
-  font-size: 12px;
-  color: var(--vc-ide-text-secondary);
-}
-
-.bolt-project-floating-pane-header:active {
-  cursor: grabbing;
-}
-
-.bolt-project-floating-pane-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-
-.bolt-project-floating-pane-dock {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: 6px;
-  border: 1px solid var(--vc-ide-border-subtle);
-  background: transparent;
-  color: var(--vc-ide-text-secondary);
-  cursor: pointer;
-
-  &:hover {
-    color: var(--vc-ide-accent-action);
-    border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 60%);
-  }
-}
-
-.bolt-project-floating-pane-body {
-  position: relative;
-  flex: 1;
-  min-height: 0;
-  display: flex;
-}
-
-.bolt-project-floating-pane-resize {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  width: 16px;
-  height: 16px;
-  cursor: nwse-resize;
-  background: linear-gradient(
-    135deg,
-    transparent 0 50%,
-    color-mix(in srgb, var(--vc-ide-border-strong, var(--vc-ide-border-subtle)), transparent 20%) 50% 100%
-  );
 }
 
 .bolt-project-bottom-terminal-shell {
@@ -19063,7 +18837,6 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 .bolt-agent-applied-toast-head strong {
   font-size: 13px;
   font-weight: 750;
-  overflow-wrap: anywhere;
 }
 
 .bolt-agent-applied-toast-head span,
@@ -19073,14 +18846,10 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 .bolt-agent-applied-toast summary {
-  display: inline-flex;
-  align-items: center;
-  min-height: 44px;
-  max-width: 100%;
+  width: max-content;
   cursor: pointer;
   color: var(--vc-ide-accent-action);
   font-weight: 700;
-  overflow-wrap: anywhere;
 }
 
 .bolt-agent-applied-toast ul {
@@ -19106,8 +18875,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 .bolt-agent-applied-toast-actions button {
-  min-height: 44px;
-  min-width: 44px;
+  min-height: 28px;
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 6px;
   background: var(--vc-ide-bg-panel);
@@ -19115,18 +18883,6 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   font-size: 11px;
   font-weight: 700;
   padding: 0 9px;
-  white-space: normal;
-}
-
-@media (max-width: 420px) {
-  .bolt-agent-applied-toast-actions {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .bolt-agent-applied-toast-actions button {
-    width: 100%;
-  }
 }
 
 .bolt-agent-applied-toast-actions button:hover,
@@ -19199,24 +18955,6 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     display: none !important;
   }
 
-  .bolt-project-mobile-language-switch-slot {
-    position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 56px);
-    right: max(12px, env(safe-area-inset-right, 0px));
-    z-index: 11001;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
-    filter: drop-shadow(0 8px 20px rgb(0 0 0 / 0.2));
-    isolation: isolate;
-  }
-
-  body:has(.bolt-responsive-ide-mobile[data-mobile-agent-context='true']) .bolt-project-mobile-language-switch-slot {
-    /* 48px header + 52px agent context + 8px breathing room. */
-    top: calc(env(safe-area-inset-top, 0px) + 108px);
-  }
-
   .bolt-mobile-ecode-header {
     position: fixed;
     top: 0;
@@ -19266,8 +19004,6 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     --mobile-nav-height: 72px;
     /* The mobile chrome header is a fixed 48px bar (not the 36px desktop topbar). */
     --vc-ide-topbar-height: 48px;
-    /* 8px before the 50px language switch; panels begin at its lower edge. */
-    --vc-mobile-language-switch-reserved-height: 58px;
     /*
      * Height of the agent context bar ("Working on this workspace" / "Ready for
      * the next change") that sits *below* the 48px header bar when the agent is
@@ -19276,8 +19012,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      */
     --vc-mobile-agent-context-height: 0px;
     --vc-mobile-shell-top: calc(
-      var(--vc-ide-topbar-height, 48px) + var(--vc-mobile-agent-context-height, 0px) +
-        var(--vc-mobile-language-switch-reserved-height, 58px) + env(safe-area-inset-top, 0px)
+      var(--vc-ide-topbar-height, 48px) + var(--vc-mobile-agent-context-height, 0px) + env(safe-area-inset-top, 0px)
     );
     --vc-mobile-shell-bottom: calc(var(--mobile-nav-height) + env(safe-area-inset-bottom, 0px));
     --vc-mobile-panel-gutter: clamp(16px, 4vw, 30px);
@@ -19571,14 +19306,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * hidden behind the fixed header. The context-bar height is 0 unless the bar
      * is actually shown (see [data-mobile-agent-context='true']).
      */
-    padding: calc(
-        var(--vc-mobile-panel-gutter-tight) + var(--vc-mobile-agent-context-height, 0px) +
-          var(--vc-mobile-language-switch-reserved-height, 58px)
-      )
-      0 0 !important;
-    scroll-padding-top: calc(
-      var(--vc-mobile-agent-context-height, 0px) + var(--vc-mobile-language-switch-reserved-height, 58px)
-    );
+    padding: calc(var(--vc-mobile-panel-gutter-tight) + var(--vc-mobile-agent-context-height, 0px)) 0 0 !important;
+    scroll-padding-top: var(--vc-mobile-agent-context-height, 0px);
     scroll-padding-bottom: var(--vc-agent-composer-reserved-space);
   }
 
@@ -26039,7 +25768,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     width: min(100%, calc(100vw - 20px));
     max-width: var(--chat-max-width);
     gap: 10px;
-    margin: calc(55px + var(--vc-mobile-language-switch-reserved-height, 58px)) auto 0;
+    margin: 55px auto 0;
   }
 
   .bolt-mobile-agent-start-card {

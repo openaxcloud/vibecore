@@ -102,12 +102,7 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
       method: 'POST',
       url: `/orgs/${org.id}/imports`,
       headers: auth('imp-token'),
-      payload: {
-        idempotencyKey: 'idem-r-1',
-        provider: 'github',
-        sourceRef: 'https://github.com/acme/app.git',
-        files: stagedFiles(),
-      },
+      payload: { idempotencyKey: 'idem-r-1', provider: 'github', sourceRef: 'https://github.com/acme/app.git', files: stagedFiles() },
     });
 
     expect(res.statusCode).toBe(202); // quarantined, awaiting consent
@@ -184,17 +179,6 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
     expect(projectStorage.writeCalls).toEqual([]); // no target write, ever
     expect(projectStorage.files.size).toBe(0);
 
-    const frenchView = await app.inject({
-      method: 'GET',
-      url: `/orgs/${org.id}/imports/${importJobId}`,
-      headers: { ...auth('imp-token'), 'accept-language': 'fr-FR, en;q=0.5' },
-    });
-    expect(frenchView.statusCode).toBe(200);
-    expect(frenchView.headers['content-language']).toBe('fr');
-    expect(frenchView.json().import.error).toBe(
-      'La zone de préparation de l’importation a expiré avant sa validation.',
-    );
-
     // And a late commit on the expired job is refused — EXPIRED is terminal.
     const lateCommit = await app.inject({
       method: 'POST',
@@ -238,15 +222,11 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
     const blocked = await app.inject({
       method: 'POST',
       url: `/orgs/${org.id}/imports/${importJobId}/commit`,
-      headers: { ...auth('imp-token'), 'accept-language': 'fr-FR' },
+      headers: auth('imp-token'),
       payload: { consent: {} }, // no decision
     });
     expect(blocked.statusCode).toBe(409);
-    expect(blocked.headers['content-language']).toBe('fr');
     expect(blocked.json().code).toBe('IMPORT_UNRESOLVED_FINDINGS');
-    expect(blocked.json().error).toBe(
-      'Importation bloquée : traitez chaque secret détecté (conserver ou masquer) avant de valider.',
-    );
     expect(projectStorage.writeCalls).toEqual([]); // still no target touch
   });
 

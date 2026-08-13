@@ -27,14 +27,7 @@ export function budgetTone(usedPct: number | null | undefined, thresholds = { wa
   return 'ok';
 }
 
-/* Format an integer cent amount as a USD string using the active UI language. */
-export function centsToUsd(cents: number, language: string | null | undefined = 'en'): string {
-  const locale = language?.toLowerCase().startsWith('fr') ? 'fr-FR' : 'en-US';
-
-  return new Intl.NumberFormat(locale, {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(cents / 100);
+/* Format an integer cent amount as a USD string (e.g. 12345 → "$123.45"). */
+export function centsToUsd(cents: number): string {
+  return `$${(cents / 100).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

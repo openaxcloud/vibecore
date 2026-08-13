@@ -22,32 +22,7 @@ import {
   type ImageContextStorage,
   type SnapshotAgent,
 } from './server-deploy-transfer.js';
-import { appPublicEnglish } from './app-public-copy.js';
 import { assertValidObjectKey } from './object-storage.js';
-
-/*
- * RR-08 point 1 — the publish path must PRESERVE the typed error code.
- * `ecodeLockError = (error as Error).message` erased `.code` before anything
- * persisted it: the deployment artifact only carried prose while the contract
- * claimed ECODE_LOCK_GENERATION_REVOKED. This helper is the single shaping
- * point: the code survives into the persisted deployment error/log line
- * (stable machine-parseable prefix) and is unit-tested to be REQUIRED.
- */
-export interface EcodeLockFailure {
-  /** Typed code (ECODE_LOCK_GENERATION_REVOKED, ECODE_LOCK_UNPINNED, …). */
-  code: string;
-  message: string;
-
-  /** The exact line persisted into the deployment logs/status. */
-  logLine: string;
-}
-
-export function describeEcodeLockFailure(error: unknown): EcodeLockFailure {
-  const code = (error as { code?: string })?.code ?? 'ECODE_LOCK_INVALID';
-  const message = error instanceof Error ? error.message : String(error);
-
-  return { code, message, logLine: `${code}: ${message}` };
-}
 
 /** Wire payload for the manager's POST /app-builds/run. */
 export interface AppBuildRunPayload {
@@ -121,7 +96,7 @@ export async function buildImageContextFromRevision(opts: {
     return {
       ok: false,
       error: 'STORAGE_UNAVAILABLE',
-      message: appPublicEnglish('SERVER_REVISION_STORAGE_REQUIRED'),
+      message: 'Revision-based deploys need object storage.',
     };
   }
 
@@ -152,7 +127,7 @@ export async function buildImageContextFromRevision(opts: {
     return {
       ok: false,
       error: 'STORAGE_UNAVAILABLE',
-      message: appPublicEnglish('SERVER_REVISION_SIGN_FAILED'),
+      message: `Could not sign the build transfer URLs (${(error as Error).message ?? 'unknown error'}).`,
     };
   }
 
@@ -183,7 +158,7 @@ export async function buildImageContextFromRevision(opts: {
     return {
       ok: false,
       error: 'SNAPSHOT_FAILED',
-      message: appPublicEnglish('SERVER_REVISION_BUILD_FAILED'),
+      message: `The isolated build could not be run (${(error as Error).message ?? 'unknown error'}).`,
     };
   }
 
@@ -198,7 +173,7 @@ export async function buildImageContextFromRevision(opts: {
     return {
       ok: false,
       error: 'SNAPSHOT_FAILED',
-      message: appPublicEnglish('SERVER_REVISION_BUILD_TIMEOUT'),
+      message: `The isolated build timed out after ${timeoutSeconds}s.`,
     };
   }
 
@@ -206,7 +181,7 @@ export async function buildImageContextFromRevision(opts: {
     return {
       ok: false,
       error: 'SNAPSHOT_FAILED',
-      message: appPublicEnglish('SERVER_REVISION_BUILD_FAILED'),
+      message: `The isolated build failed (exit ${build.exitCode}). Check the build log.`,
     };
   }
 

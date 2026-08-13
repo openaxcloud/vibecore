@@ -19,11 +19,9 @@
  */
 
 import { useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 
-import { PublicShell } from '~/components/dashboard/SaaSLayout';
-import { getShareRouteCopy, resolveShareRouteLanguage, type ShareRouteKey } from '~/lib/i18n/catalogs/share-route';
+import { LinkButton, PublicShell } from '~/components/dashboard/SaaSLayout';
 
 export type ShareLinkErrorKind =
   | 'not-found' // unknown token, expired, or revoked (API collapses these)
@@ -31,41 +29,31 @@ export type ShareLinkErrorKind =
   | 'project-missing' // link resolved but the underlying project is gone
   | 'unavailable'; // upstream/network failure or missing snapshot
 
-const COPY_KEYS: Record<ShareLinkErrorKind, { headingKey: ShareRouteKey; bodyKey: ShareRouteKey }> = {
+const COPY: Record<ShareLinkErrorKind, { badge: string; heading: string; body: string }> = {
   'not-found': {
-    headingKey: 'shareRoute.error.notFound.heading',
-    bodyKey: 'shareRoute.error.notFound.body',
+    badge: 'Share link',
+    heading: 'This share link is no longer available',
+    body: 'The link may have expired, been revoked by its owner, or never existed. Ask the person who shared it with you for a fresh link.',
   },
   invalid: {
-    headingKey: 'shareRoute.error.invalid.heading',
-    bodyKey: 'shareRoute.error.invalid.body',
+    badge: 'Share link',
+    heading: 'This share link is invalid',
+    body: 'The link looks malformed or incomplete — it may have been truncated when it was copied. Ask the sender to share it again.',
   },
   'project-missing': {
-    headingKey: 'shareRoute.error.projectMissing.heading',
-    bodyKey: 'shareRoute.error.projectMissing.body',
+    badge: 'Share link',
+    heading: 'This project is no longer available',
+    body: 'The share link is valid, but the project behind it has been deleted, so there is nothing left to open.',
   },
   unavailable: {
-    headingKey: 'shareRoute.error.unavailable.heading',
-    bodyKey: 'shareRoute.error.unavailable.body',
+    badge: 'Share link',
+    heading: 'We could not load this share link',
+    body: 'Something went wrong while loading the shared content. Try again in a moment, or ask the sender for a new link.',
   },
 };
 
-export interface ShareLinkErrorViewProps {
-  kind: ShareLinkErrorKind;
-  onRetry?: () => void;
-  isRetrying?: boolean;
-}
-
-const primaryActionClassName =
-  'inline-flex min-h-[44px] w-full min-w-[44px] items-center justify-center rounded-md bg-bolt-elements-button-primary-background px-4 py-2 text-sm font-medium text-bolt-elements-button-primary-text transition-colors hover:bg-bolt-elements-button-primary-backgroundHover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] focus-visible:ring-offset-2 motion-reduce:transition-none sm:w-auto';
-const secondaryActionClassName =
-  'inline-flex min-h-[44px] w-full min-w-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 py-2 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] focus-visible:ring-offset-2 motion-reduce:transition-none sm:w-auto';
-
-export function ShareLinkErrorView({ kind, onRetry, isRetrying = false }: ShareLinkErrorViewProps) {
-  const { i18n } = useTranslation();
-  const language = resolveShareRouteLanguage(i18n.resolvedLanguage ?? i18n.language);
-  const copy = getShareRouteCopy(language);
-  const copyKeys = COPY_KEYS[kind];
+export function ShareLinkErrorView({ kind }: { kind: ShareLinkErrorKind }) {
+  const copy = COPY[kind];
 
   /*
    * When this view renders from a route ErrorBoundary, route `meta` never ran
@@ -73,58 +61,31 @@ export function ShareLinkErrorView({ kind, onRetry, isRetrying = false }: ShareL
    * document title client-side.
    */
   useEffect(() => {
-    document.title = copy['shareRoute.seo.unavailableTitle'];
-  }, [copy]);
+    document.title = 'Share link unavailable · E-Code';
+  }, []);
 
   return (
     <PublicShell>
       <section
-        className="mx-auto flex min-h-[60vh] w-full min-w-0 max-w-2xl flex-col items-center justify-center gap-5 overflow-hidden px-4 py-16 text-center sm:gap-6 sm:px-6 sm:py-24"
+        className="mx-auto flex min-h-[60vh] w-full max-w-2xl flex-col items-center justify-center gap-6 px-6 py-24 text-center"
         role="alert"
         aria-labelledby="share-error-heading"
-        aria-describedby="share-error-description"
-        aria-busy={isRetrying || undefined}
       >
         <span className="text-sm font-semibold uppercase tracking-[0.2em] text-bolt-elements-textTertiary">
-          {copy['shareRoute.error.badge']}
+          {copy.badge}
         </span>
-        <h1
-          id="share-error-heading"
-          className="max-w-full break-words text-3xl font-semibold text-bolt-elements-textPrimary sm:text-4xl"
-        >
-          {copy[copyKeys.headingKey]}
+        <h1 id="share-error-heading" className="text-3xl font-semibold text-bolt-elements-textPrimary">
+          {copy.heading}
         </h1>
-        <p
-          id="share-error-description"
-          className="max-w-md break-words text-sm leading-6 text-bolt-elements-textSecondary"
-        >
-          {copy[copyKeys.bodyKey]}
-        </p>
-        <div className="flex w-full max-w-md flex-col items-stretch justify-center gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-          {onRetry ? (
-            <button
-              type="button"
-              className={primaryActionClassName}
-              disabled={isRetrying}
-              aria-busy={isRetrying || undefined}
-              onClick={onRetry}
-            >
-              {copy[isRetrying ? 'shareRoute.error.actions.retrying' : 'shareRoute.error.actions.retry']}
-            </button>
-          ) : (
-            <Link to="/" className={primaryActionClassName}>
-              {copy['shareRoute.error.actions.home']}
-            </Link>
-          )}
-          <Link to="/dashboard" className={secondaryActionClassName}>
-            {copy['shareRoute.error.actions.dashboard']}
-          </Link>
+        <p className="max-w-md text-sm leading-6 text-bolt-elements-textSecondary">{copy.body}</p>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <LinkButton to="/">Back to homepage</LinkButton>
+          <LinkButton to="/dashboard" variant="outline">
+            Go to dashboard
+          </LinkButton>
         </div>
-        <Link
-          to="/help-center"
-          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center break-words px-3 text-xs text-bolt-elements-textTertiary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] focus-visible:ring-offset-2"
-        >
-          {copy['shareRoute.error.actions.help']}
+        <Link to="/help-center" className="text-xs text-bolt-elements-textTertiary underline-offset-4 hover:underline">
+          Visit the help center
         </Link>
       </section>
     </PublicShell>

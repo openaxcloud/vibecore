@@ -6,9 +6,6 @@ export * from './credits.js';
 export * from './compute-pricing.js';
 export * from './rate-card.js';
 export * from './agent-routing.js';
-export * from './starter-entitlements.js';
-export * from './starter-rate-card.js';
-export * from './agent-routing-i18n.js';
 
 /*
  * Pinned Stripe API version. Sent on every request so the request/webhook
@@ -56,16 +53,6 @@ export interface BillingPlan {
   features: string[];
 }
 
-/**
- * Sentinelle « aucun plafond d'OFFRE sur cette dimension ».
- *
- * `assertQuota` bloque dès que la limite vaut 0, et `ensureQuota` lit
- * `limits[key] ?? 0` : une dimension absente bloquerait donc tout. Quand Replit
- * ne publie AUCUN plafond pour une dimension, on ne peut ni inventer un chiffre
- * ni laisser 0 — on déclare explicitement l'absence de plafond commercial.
- */
-const NO_PUBLISHED_CAP = 1_000_000;
-
 export const billingPlans: BillingPlan[] = [
   {
     key: 'free',
@@ -74,13 +61,7 @@ export const billingPlans: BillingPlan[] = [
     stripeProductEnv: 'STRIPE_FREE_PRODUCT_ID',
     stripePriceEnv: 'STRIPE_FREE_PRICE_ID',
     limits: {
-      /*
-       * Replit ne publie AUCUN plafond de nombre de projets pour Starter (seule
-       * existe la borne dure « 20 apps simultanées », tous plans confondus, qui
-       * est une limite technique et non un quota d'offre). Le « 3 » qui figurait
-       * ici était une valeur sans source : supprimé plutôt que conservé.
-       */
-      'projects.count': NO_PUBLISHED_CAP,
+      'projects.count': 3,
       'workspaces.active': 1,
       'workspaces.runtimeMinutes': 300,
       /*
@@ -93,27 +74,14 @@ export const billingPlans: BillingPlan[] = [
        */
       'workspace.cpuMillicores': 1500,
       'workspace.ramMb': 1024,
-      /*
-       * LIMITE TECHNIQUE (dimensionnement du volume), pas un quota commercial :
-       * valeur sourcée par la rate card Starter (2 Go, livescan 2026-07-20).
-       * Elle n'a rien à faire sur une carte de prix.
-       */
-      'storage.gb': 2,
+      'storage.gb': 1,
       'snapshots.count': 5,
       'snapshots.sizeMb': 512,
       'ai.messages': 50,
       'ai.inputTokens': 100_000,
       'ai.outputTokens': 50_000,
       'ai.toolCalls': 100,
-      /*
-       * La notion « deployments = 0 » est SUPPRIMÉE : elle rendait l'offre
-       * annoncée (« publier un projet ») littéralement inatteignable, et Replit
-       * ne publie aucun plafond de déploiements par période. La publication est
-       * gouvernée par `maxActivePublishedProjects` (contrat Starter), c'est-à-dire
-       * par le nombre de projets publiés ACTIFS — republier le même projet reste
-       * libre.
-       */
-      'deployments.count': NO_PUBLISHED_CAP,
+      'deployments.count': 0,
       'previews.public': 1,
       'team.members': 1,
       'terminals.concurrent': 1,
@@ -283,21 +251,7 @@ export const creditPlanCatalog: CreditBillingPlan[] = [
     badgeRemovable: false,
     publishRegions: 'single',
     topModels: false,
-    /*
-     * Carte publique Starter : 5 AVANTAGES, aucun quota chiffré — c'est la
-     * structure de l'offre gratuite de référence. Rédaction E-Code : on
-     * reproduit le COMPORTEMENT, pas la marque ni le texte d'un tiers.
-     * Les règles détaillées vivent dans le contrat Starter + la rate card ;
-     * les limites TECHNIQUES (CPU/RAM/stockage/bande passante) n'ont pas leur
-     * place ici.
-     */
-    features: [
-      'Free Agent credits, refreshed every day',
-      'Full-stack database included',
-      'Build slide decks, videos and animations',
-      'One published project at a time',
-      'Private or password-protected deployments',
-    ],
+    features: ['Daily free Agent credits', 'Built-in database', 'Publish 1 project', 'Private / password deploys'],
     limits: planByKey('free').limits,
     stripeProductEnv: 'STRIPE_STARTER_PRODUCT_ID',
     stripePriceMonthlyEnv: 'STRIPE_STARTER_PRICE_MONTHLY_ID',
@@ -537,10 +491,7 @@ export function verifyStripeSignature(input: {
     return index === -1 ? [part, ''] : [part.slice(0, index), part.slice(index + 1)];
   });
   const timestamp = Number(parts.find(([key]) => key === 't')?.[1]);
-  const signatures = parts
-    .filter(([key]) => key === 'v1')
-    .map(([, value]) => value)
-    .filter(Boolean);
+  const signatures = parts.filter(([key]) => key === 'v1').map(([, value]) => value).filter(Boolean);
 
   if (!timestamp || signatures.length === 0) {
     throw Object.assign(new Error('Invalid Stripe signature header'), {
@@ -679,13 +630,7 @@ export class StripeBillingClient {
     });
   }
 
-  async createRecurringPrice(input: {
-    productId: string;
-    planKey: PlanKey;
-    unitAmountCents: number;
-    currency?: string;
-    interval?: 'month' | 'year';
-  }) {
+  async createRecurringPrice(input: { productId: string; planKey: PlanKey; unitAmountCents: number; currency?: string; interval?: 'month' | 'year' }) {
     return this.postForm('/v1/prices', {
       product: input.productId,
       currency: input.currency ?? 'eur',
@@ -782,16 +727,12 @@ export class StripeBillingClient {
   }
 
   async findProductByPlanKey(planKey: PlanKey) {
-    const response = await this.getJson(
-      `/v1/products/search?query=${encodeURIComponent(`metadata['planKey']:'${planKey}' AND active:'true'`)}`,
-    );
+    const response = await this.getJson(`/v1/products/search?query=${encodeURIComponent(`metadata['planKey']:'${planKey}' AND active:'true'`)}`);
     return (response as { data?: Array<{ id: string; name: string }> }).data?.[0];
   }
 
   async findActivePriceForProduct(productId: string, planKey: PlanKey) {
-    const response = await this.getJson(
-      `/v1/prices/search?query=${encodeURIComponent(`product:'${productId}' AND metadata['planKey']:'${planKey}' AND active:'true'`)}`,
-    );
+    const response = await this.getJson(`/v1/prices/search?query=${encodeURIComponent(`product:'${productId}' AND metadata['planKey']:'${planKey}' AND active:'true'`)}`);
     return (response as { data?: Array<{ id: string; unit_amount: number; currency: string }> }).data?.[0];
   }
 

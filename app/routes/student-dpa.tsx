@@ -1,31 +1,12 @@
-import { data as json, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
+import type { MetaFunction } from 'react-router';
 
 import StudentDPA from '~/components/marketing/ecode-exact/pages/StudentDPA';
-import { buildPublicRouteMeta, getPublicRouteSeoCopy } from '~/lib/i18n/catalogs/public-route-seo';
-import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 // In-repo SSR (main Remix app) rather than the prebuilt external marketing bundle.
-export function loader({ request }: LoaderFunctionArgs) {
-  const locale = resolveRequestLocale(request);
-
-  return json({ language: locale.language }, { headers: localeResponseHeaders(request, locale) });
-}
-
-export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-  const language = data?.language ?? rootData?.language;
-  const copy = getPublicRouteSeoCopy(language);
-
-  return buildPublicRouteMeta({
-    language,
-    pathname: '/student-dpa',
-    seo: {
-      title: copy['publicRouteSeo.studentDpa.title'],
-      description: copy['publicRouteSeo.studentDpa.description'],
-      imageAlt: copy['publicRouteSeo.studentDpa.imageAlt'],
-    },
-  });
-};
+export const meta: MetaFunction = () => [
+  { title: 'Student DPA — E-Code' },
+  { name: 'description', content: 'E-Code Student Data Processing Agreement.' },
+];
 
 export default function StudentDpaRoute() {
   return <StudentDPA />;

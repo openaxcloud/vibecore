@@ -24,20 +24,6 @@ describe('isTransientRuntimeError', () => {
     expect(isTransientRuntimeError(new Error('connect ECONNREFUSED 10.0.0.1:443'))).toBe(true);
   });
 
-  it('retries a provisioning 404 (workspace/project not resolvable yet) so dependency sync self-heals', () => {
-    const workspaceRace = new RuntimeError('Remote runtime request failed: 404', {
-      code: 'WORKSPACE_NOT_FOUND',
-      status: 404,
-    });
-    expect(isTransientRuntimeError(workspaceRace)).toBe(true);
-
-    const projectRace = new RuntimeError('Remote runtime request failed: 404', {
-      code: 'PROJECT_NOT_FOUND',
-      status: 404,
-    });
-    expect(isTransientRuntimeError(projectRace)).toBe(true);
-  });
-
   it('does not retry genuine 4xx client/auth errors', () => {
     const notFound = new RuntimeError('Remote runtime request failed: 404', {
       code: 'REMOTE_RUNTIME_REQUEST_FAILED',

@@ -3,8 +3,6 @@ import {
   CnpgProvisioner,
   DB_NAMESPACE,
   NoopProvisioner,
-  PgTenantSqlExecutor,
-  type TenantSqlClient,
   buildClusterManifest,
   buildDatabaseCrManifest,
   buildPoolerManifest,
@@ -146,48 +144,6 @@ class FakeTenantSqlExecutor implements TenantSqlExecutor {
     this.calls.push(input);
   }
 }
-
-describe('PgTenantSqlExecutor SQL sequence', () => {
-  function fakeClient(existing: { role?: boolean; db?: boolean }) {
-    const statements: string[] = [];
-    const client: TenantSqlClient = {
-      async connect() {},
-      async end() {},
-      async query(text: string) {
-        statements.push(text);
-        if (/FROM pg_roles/.test(text)) return { rowCount: existing.role ? 1 : 0 };
-        if (/FROM pg_database/.test(text)) return { rowCount: existing.db ? 1 : 0 };
-        return { rowCount: 0 };
-      },
-    };
-    return { client, statements };
-  }
-
-  it('grants the tenant role to the admin BEFORE creating the owned database (PG16 SET ROLE rule)', async () => {
-    const { client, statements } = fakeClient({ role: false, db: false });
-    const exec = new PgTenantSqlExecutor(() => client);
-
-    await exec.provisionTenant({ adminUri: 'postgresql://app:x@h:5432/app', role: 't_p1', db: 'proj_p1', password: 'pw' });
-
-    const grantIdx = statements.findIndex((s) => /GRANT "t_p1" TO CURRENT_USER/.test(s));
-    const createDbIdx = statements.findIndex((s) => /CREATE DATABASE "proj_p1" OWNER "t_p1"/.test(s));
-    expect(grantIdx).toBeGreaterThanOrEqual(0);
-    expect(createDbIdx).toBeGreaterThanOrEqual(0);
-    expect(grantIdx).toBeLessThan(createDbIdx);
-  });
-
-  it('does not create the database (nor re-grant) when it already exists — idempotent', async () => {
-    const { client, statements } = fakeClient({ role: true, db: true });
-    const exec = new PgTenantSqlExecutor(() => client);
-
-    await exec.provisionTenant({ adminUri: 'postgresql://app:x@h:5432/app', role: 't_p1', db: 'proj_p1', password: 'pw' });
-
-    expect(statements.some((s) => /CREATE DATABASE/.test(s))).toBe(false);
-    expect(statements.some((s) => /GRANT "t_p1" TO CURRENT_USER/.test(s))).toBe(false);
-    // isolation grants are always reconciled
-    expect(statements.some((s) => /REVOKE CONNECT ON DATABASE "proj_p1" FROM PUBLIC/.test(s))).toBe(true);
-  });
-});
 
 describe('shared-tier tenant provisioning (admin-SQL slice)', () => {
   const ORIGINAL_SECRET = process.env.DB_SHARED_TENANT_SECRET;

@@ -34,21 +34,17 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
-import { createPortal } from 'react-dom';
-import { useTranslation } from 'react-i18next';
 import { type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 import { useLoaderData } from 'react-router';
 import { Link } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { buildIdeNotifications, restartWorkspace, type IdeNotificationKind } from './projects.$projectId.ide.helpers';
 import { BaseChat } from '~/components/chat/BaseChat';
-import { LanguageSwitch } from '~/components/i18n/LanguageSwitch';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { InputDialog } from '~/components/ui/InputDialog';
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { configuredToast } from '~/components/ui/use-toast';
-import { formatProjectIdeCopy, formatProjectIdeCount, getProjectIdeCopy } from '~/lib/i18n/catalogs/project-ide';
 import { friendlyLabel, pickFriendlyLabel } from '~/lib/labels/friendly-id';
 import { loadProjectIdeData, type ProjectLoaderData } from '~/lib/project-ide-loader.server';
 import { CurrentWorkspaceProvider } from '~/lib/runtime/CurrentWorkspaceContext';
@@ -59,24 +55,17 @@ import { projectIdePath, withProjectSearch } from '~/utils/project-url';
 
 const ProjectIdeChat = lazy(() => import('~/components/chat/Chat.client').then((module) => ({ default: module.Chat })));
 
-export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-  const copy = getProjectIdeCopy(rootData?.language);
-
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
   // Prefer the human project name over the raw id for the browser tab title.
   const projectName = data?.project?.name?.trim() || data?.projectId;
 
   return [
-    {
-      title: projectName
-        ? formatProjectIdeCopy(copy['projectIde.meta.title'], { project: projectName })
-        : copy['projectIde.meta.fallbackTitle'],
-    },
-    { name: 'description', content: copy['projectIde.meta.description'] },
+    { title: projectName ? `${projectName} — E-Code IDE` : 'E-Code IDE' },
+    { name: 'description', content: 'E-Code IDE connected to a persistent project workspace.' },
   ];
 };
 
-const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit', 'peWindow']);
+const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit']);
 
 function routeKeyWithoutClientIdeParams(url: URL) {
   const searchParams = new URLSearchParams(url.search);
@@ -88,25 +77,6 @@ function routeKeyWithoutClientIdeParams(url: URL) {
   const search = searchParams.toString();
 
   return `${url.pathname}${search ? `?${search}` : ''}`;
-}
-
-export function MobileIdeLanguageSwitchPortal() {
-  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    setPortalHost(document.body);
-  }, []);
-
-  if (!portalHost) {
-    return null;
-  }
-
-  return createPortal(
-    <div className="bolt-project-mobile-language-switch-slot" data-testid="mobile-ide-language-switch-slot">
-      <LanguageSwitch className="bolt-project-mobile-language-switch" />
-    </div>,
-    portalHost,
-  );
 }
 
 export const shouldRevalidate = ({
@@ -139,9 +109,6 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) =>
   loadProjectIdeData(request, params.projectId ?? '');
 
 export default function ProjectIdeRoute() {
-  const { i18n } = useTranslation();
-  const copy = getProjectIdeCopy(i18n.resolvedLanguage ?? i18n.language);
-
   const {
     projectId,
     project,
@@ -188,15 +155,10 @@ export default function ProjectIdeRoute() {
             projectApiError={projectApiError}
             projectUrl={projectUrl}
           />
-          <MobileIdeLanguageSwitchPortal />
           <main className="h-dvh pt-9">
             <ClientOnly fallback={optimisticShell}>
               {() => (
-                <ZoneErrorBoundary
-                  zone="editor"
-                  title={copy['projectIde.boundaryTitle']}
-                  boundaryId={`project:${projectId}:ide`}
-                >
+                <ZoneErrorBoundary zone="editor" title="E-Code IDE" boundaryId={`project:${projectId}:ide`}>
                   <Suspense fallback={optimisticShell}>
                     <ProjectIdeChat
                       forceWorkbench
@@ -237,13 +199,6 @@ function IdeProjectTopBar({
   projectApiError?: string;
   projectUrl: string;
 }) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getProjectIdeCopy(language);
-
-  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
-    formatProjectIdeCopy(template, values);
-
   const loading = useStore(workbenchStore.workspaceLoading);
   const error = useStore(workbenchStore.workspaceError);
   const previews = useStore(workbenchStore.previews);
@@ -272,17 +227,25 @@ function IdeProjectTopBar({
           ? 'running'
           : 'stopped';
 
+  const statusLabel =
+    state === 'building'
+      ? 'Building...'
+      : state === 'crashed'
+        ? 'Crashed'
+        : state === 'running'
+          ? 'Running'
+          : 'Stopped';
   const notificationItems = useMemo(
     () =>
       buildIdeNotifications({
         projectUrl,
         backendEvents: notifications,
         runtimeState: state,
+        runtimeStatusLabel: statusLabel,
         runtimeError: projectApiError ?? error,
         previewPorts: previews.map((preview) => preview.port),
-        language,
       }),
-    [error, language, notifications, previews, projectApiError, projectUrl, state],
+    [error, notifications, previews, projectApiError, projectUrl, state, statusLabel],
   );
   const actionableNotificationCount = notificationItems.filter(
     (item) => item.kind === 'warning' || item.kind === 'error',
@@ -292,23 +255,15 @@ function IdeProjectTopBar({
 
   const workspaceLabel = pickFriendlyLabel(
     [organization?.name, organization?.slug, workspace?.name, workspace?.id, project.organizationId],
-    copy['projectIde.workspace.fallback'],
+    'Workspace',
   );
 
-  const projectLabel = friendlyLabel(displayProjectName, copy['projectIde.project.fallback']);
+  const projectLabel = friendlyLabel(displayProjectName, 'Untitled project');
 
   const projectTooltip =
     projectLabel.isFallback && projectLabel.full !== projectLabel.display
       ? `${projectLabel.display} (${projectLabel.full})`
       : projectLabel.display;
-  const workspaceIdentifier =
-    workspaceLabel.isFallback && workspaceLabel.full !== workspaceLabel.display
-      ? text(copy['projectIde.identifier'], { identifier: workspaceLabel.full })
-      : '';
-  const projectIdentifier =
-    projectLabel.isFallback && projectLabel.full !== projectLabel.display
-      ? text(copy['projectIde.identifier'], { identifier: projectLabel.full })
-      : '';
 
   const branchLabel = pickFriendlyLabel([git.branch, project.gitDefaultBranch], 'main');
 
@@ -404,15 +359,14 @@ function IdeProjectTopBar({
 
       if (!response.ok) {
         const result = (await response.json().catch(() => ({}))) as { error?: string };
-        console.error('Project rename failed', result.error);
-        throw new Error(copy['projectIde.project.renameFailed']);
+        throw new Error(result.error || 'Project rename failed.');
       }
 
       setDisplayProjectName(nextName);
       setRenameValue(nextName);
       setRenamingProject(false);
     } catch (error) {
-      setRenameError(error instanceof Error ? error.message : copy['projectIde.project.renameFailed']);
+      setRenameError(error instanceof Error ? error.message : 'Project rename failed.');
     } finally {
       setRenameSaving(false);
     }
@@ -426,28 +380,30 @@ function IdeProjectTopBar({
     window.dispatchEvent(new CustomEvent('vibecore:toggle-project-files-panel', { detail }));
   };
 
-  const filesPanelToggleLabel = filesPanelOpen ? copy['projectIde.files.close'] : copy['projectIde.files.open'];
+  const filesPanelToggleLabel = filesPanelOpen ? 'Close files panel' : 'Open files panel';
 
   return (
     <header className="bolt-project-topbar fixed left-0 top-0 z-50 flex w-screen items-center justify-between border-b text-[12px]">
       <div className="bolt-project-topbar-left">
-        <Link to="/dashboard" className="bolt-project-topbar-icon-button" aria-label={copy['projectIde.dashboard']}>
+        <Link to="/dashboard" className="bolt-project-topbar-icon-button" aria-label="E-Code dashboard">
           <Home className="h-4 w-4" aria-hidden />
         </Link>
-        <nav className="bolt-project-breadcrumb" aria-label={copy['projectIde.breadcrumb']}>
+        <nav className="bolt-project-breadcrumb" aria-label="Project breadcrumb">
           <Link
             to="/projects"
             className="bolt-project-breadcrumb-segment bolt-project-breadcrumb-workspace"
-            aria-label={text(copy['projectIde.workspace.aria'], {
-              workspace: workspaceLabel.display,
-              identifier: workspaceIdentifier,
-            })}
-            title={text(copy['projectIde.workspace.title'], {
-              workspace: workspaceLabel.display,
-              identifier: workspaceIdentifier,
-            })}
+            aria-label={`Workspace ${workspaceLabel.display}${
+              workspaceLabel.isFallback && workspaceLabel.full !== workspaceLabel.display
+                ? ` (id ${workspaceLabel.full})`
+                : ''
+            }`}
+            title={
+              workspaceLabel.isFallback && workspaceLabel.full !== workspaceLabel.display
+                ? `Workspace: ${workspaceLabel.display} (${workspaceLabel.full})`
+                : `Workspace: ${workspaceLabel.display}`
+            }
           >
-            <span className="bolt-project-breadcrumb-kicker">{copy['projectIde.workspace.kicker']}</span>
+            <span className="bolt-project-breadcrumb-kicker">Workspace</span>
             <span className="bolt-project-breadcrumb-value truncate">{workspaceLabel.display}</span>
           </Link>
           <ProjectBreadcrumbSeparator />
@@ -459,14 +415,14 @@ function IdeProjectTopBar({
                 onChange={(event) => setRenameValue(event.target.value)}
                 onKeyDown={handleRenameKeyDown}
                 className="bolt-project-rename-input"
-                aria-label={copy['projectIde.project.name']}
+                aria-label="Project name"
                 aria-invalid={renameError ? true : undefined}
                 aria-describedby={renameError ? 'project-rename-error' : undefined}
-                title={renameError || copy['projectIde.project.renameHelp']}
+                title={renameError || 'Edit project name. Press Enter to save or Escape to cancel.'}
                 disabled={renameSaving}
               />
               <button type="submit" className="bolt-project-rename-save" disabled={renameSaving || !renameValue.trim()}>
-                {renameSaving ? copy['projectIde.project.saving'] : copy['projectIde.project.save']}
+                {renameSaving ? 'Saving' : 'Save'}
               </button>
               {renameError ? (
                 <p id="project-rename-error" role="alert" className="bolt-project-rename-error">
@@ -486,16 +442,17 @@ function IdeProjectTopBar({
                   title={projectTooltip}
                   data-vc-tooltip={projectTooltip}
                   data-vc-tooltip-locked="true"
-                  aria-label={text(copy['projectIde.project.menu'], {
-                    project: projectLabel.display,
-                    identifier: projectIdentifier,
-                  })}
+                  aria-label={`Project menu for ${projectLabel.display}${
+                    projectLabel.isFallback && projectLabel.full !== projectLabel.display
+                      ? ` (id ${projectLabel.full})`
+                      : ''
+                  }`}
                   onDoubleClick={(event) => {
                     event.preventDefault();
                     startInlineRename();
                   }}
                 >
-                  <span className="bolt-project-breadcrumb-kicker">{copy['projectIde.project.kicker']}</span>
+                  <span className="bolt-project-breadcrumb-kicker">Project</span>
                   <span className="bolt-project-breadcrumb-value truncate" title={projectTooltip}>
                     {projectLabel.display}
                   </span>
@@ -513,7 +470,7 @@ function IdeProjectTopBar({
                         );
                       }}
                     >
-                      {copy['projectIde.menu.settings']}
+                      Settings
                     </ProjectMenuItem>
                     <ProjectMenuAction
                       action={`/api/projects/${projectId}/project-action`}
@@ -521,7 +478,7 @@ function IdeProjectTopBar({
                       projectName={displayProjectName}
                       icon={<Copy className="h-3.5 w-3.5" />}
                     >
-                      {copy['projectIde.menu.fork']}
+                      Fork
                     </ProjectMenuAction>
                     <ProjectMenuAction
                       action={`/api/projects/${projectId}/project-action`}
@@ -529,7 +486,7 @@ function IdeProjectTopBar({
                       projectName={displayProjectName}
                       icon={<PenLine className="h-3.5 w-3.5" />}
                     >
-                      {copy['projectIde.menu.rename']}
+                      Rename
                     </ProjectMenuAction>
                     <ProjectMenuAction
                       action={`/api/projects/${projectId}/project-action`}
@@ -537,7 +494,7 @@ function IdeProjectTopBar({
                       projectName={displayProjectName}
                       icon={<Trash2 className="h-3.5 w-3.5 text-[#F85149]" />}
                     >
-                      {copy['projectIde.menu.delete']}
+                      Delete
                     </ProjectMenuAction>
                     <ProjectMenuAction
                       action={`/api/projects/${projectId}/project-action`}
@@ -545,14 +502,14 @@ function IdeProjectTopBar({
                       projectName={displayProjectName}
                       icon={<Copy className="h-3.5 w-3.5" />}
                     >
-                      {copy['projectIde.menu.duplicate']}
+                      Duplicate
                     </ProjectMenuAction>
                     <ProjectMenuItem
                       to={`/api/projects/${projectId}/project-action?intent=export`}
                       icon={<Download className="h-3.5 w-3.5" />}
                       download
                     >
-                      {copy['projectIde.menu.export']}
+                      Export
                     </ProjectMenuItem>
                   </div>
                 )}
@@ -560,8 +517,8 @@ function IdeProjectTopBar({
               <button
                 type="button"
                 className="bolt-project-inline-rename-button"
-                aria-label={text(copy['projectIde.project.renameAria'], { project: displayProjectName })}
-                title={text(copy['projectIde.project.renameAria'], { project: displayProjectName })}
+                aria-label={`Rename ${displayProjectName}`}
+                title={`Rename ${displayProjectName}`}
                 onClick={startInlineRename}
               >
                 <PenLine className="h-3 w-3" aria-hidden />
@@ -572,27 +529,24 @@ function IdeProjectTopBar({
           <Link
             to={withProjectSearch(projectUrl, { panel: 'git' })}
             className="bolt-project-breadcrumb-segment bolt-project-breadcrumb-branch"
-            aria-label={text(copy['projectIde.branch.aria'], { branch: branchLabel.display })}
-            title={text(copy['projectIde.branch.title'], { branch: branchLabel.display })}
+            aria-label={`Branch ${branchLabel.display}. Open Git panel.`}
+            title={`Branch: ${branchLabel.display}. Open Git panel.`}
             onClick={() => {
               window.dispatchEvent(new CustomEvent('vibecore:open-project-ide-panel', { detail: { panel: 'git' } }));
             }}
           >
             <GitBranch className="h-3.5 w-3.5" aria-hidden />
-            <span className="bolt-project-breadcrumb-kicker">{copy['projectIde.branch.kicker']}</span>
+            <span className="bolt-project-breadcrumb-kicker">Branch</span>
             <span className="bolt-project-breadcrumb-value truncate">{branchLabel.display}</span>
           </Link>
         </nav>
       </div>
       <div className="bolt-project-topbar-actions">
-        <div className="bolt-project-action-group bolt-project-action-group--language" data-priority="high">
-          <LanguageSwitch className="bolt-project-language-switch" />
-        </div>
         <div
           ref={overflowMenuRef}
           className="bolt-project-action-group bolt-project-action-group--overflow"
           data-priority="overflow"
-          aria-label={copy['projectIde.actions.more']}
+          aria-label="More actions"
         >
           <button
             type="button"
@@ -609,10 +563,10 @@ function IdeProjectTopBar({
           <button
             type="button"
             className="bolt-project-topbar-icon-button"
-            aria-label={copy['projectIde.actions.moreTopbar']}
+            aria-label="More topbar actions"
             aria-haspopup="menu"
             aria-expanded={overflowMenuOpen}
-            title={copy['projectIde.actions.more']}
+            title="More actions"
             onClick={() => setOverflowMenuOpen((value) => !value)}
           >
             <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
@@ -627,29 +581,23 @@ function IdeProjectTopBar({
           {overflowMenuOpen && (
             <div
               role="dialog"
-              aria-label={copy['projectIde.actions.dialog']}
+              aria-label="More IDE actions"
               className="bolt-project-overflow-popover absolute right-0 top-full z-50 mt-1 w-[min(360px,calc(100vw-1rem))] max-w-[calc(100vw-1rem)] rounded-xl border p-2"
             >
               <div className="bolt-project-overflow-section">
                 <div className="bolt-project-notification-header">
                   <div>
-                    <strong>{copy['projectIde.notifications.title']}</strong>
-                    <span>{copy['projectIde.notifications.description']}</span>
+                    <strong>IDE notifications</strong>
+                    <span>Project activity and workspace signals</span>
                   </div>
                   <span className="bolt-project-notification-count">
-                    {formatProjectIdeCount(
-                      copy,
-                      'projectIde.notifications.event_one',
-                      'projectIde.notifications.event_other',
-                      notificationItems.length,
-                    )}
+                    {notificationItems.length} {notificationItems.length === 1 ? 'event' : 'events'}
                   </span>
                 </div>
                 {notificationItems.length ? (
                   <div className="bolt-project-notification-list">
                     {notificationItems.slice(0, 5).map((notification) => {
                       const Icon = notificationIcon(notification.kind);
-                      const sourceKey = `projectIde.notifications.source.${notification.source}` as const;
 
                       return (
                         <div key={notification.id} className="bolt-project-notification-row">
@@ -666,7 +614,7 @@ function IdeProjectTopBar({
                               <span className="bolt-project-notification-title">{notification.title}</span>
                               <span className="bolt-project-notification-detail">{notification.detail}</span>
                               <span className="bolt-project-notification-meta">
-                                <span>{copy[sourceKey]}</span>
+                                <span>{notification.source}</span>
                                 <span aria-hidden>•</span>
                                 <span>{notification.timeLabel}</span>
                               </span>
@@ -693,15 +641,15 @@ function IdeProjectTopBar({
                 ) : (
                   <div className="bolt-project-notification-empty">
                     <CheckCircle2 className="h-4 w-4" aria-hidden />
-                    <span>{copy['projectIde.notifications.empty']}</span>
-                    <small>{copy['projectIde.notifications.emptyDetail']}</small>
+                    <span>No IDE events recorded yet.</span>
+                    <small>Runtime, preview and backend project activity will appear here automatically.</small>
                   </div>
                 )}
               </div>
               <div className="bolt-project-overflow-section bolt-project-overflow-section--grid">
                 <Link to="/support" className="bolt-project-overflow-item" onClick={() => setOverflowMenuOpen(false)}>
                   <CircleHelp className="h-3.5 w-3.5" aria-hidden />
-                  <span>{copy['projectIde.help']}</span>
+                  <span>Help &amp; support</span>
                 </Link>
                 <Link
                   to={withProjectSearch(projectUrl, { panel: 'collaborators' })}
@@ -710,12 +658,7 @@ function IdeProjectTopBar({
                 >
                   <Share2 className="h-3.5 w-3.5" aria-hidden />
                   <span>
-                    {formatProjectIdeCount(
-                      copy,
-                      'projectIde.collaborators.one',
-                      'projectIde.collaborators.other',
-                      visibleCollaborators.length,
-                    )}
+                    {visibleCollaborators.length} collaborator{visibleCollaborators.length === 1 ? '' : 's'}
                   </span>
                 </Link>
                 <Link
@@ -724,13 +667,13 @@ function IdeProjectTopBar({
                   onClick={() => setOverflowMenuOpen(false)}
                 >
                   <User className="h-3.5 w-3.5" aria-hidden />
-                  <span>{copy['projectIde.account']}</span>
+                  <span>Account</span>
                 </Link>
               </div>
               <form method="post" action="/logout">
                 <button type="submit" className="bolt-project-overflow-item bolt-project-overflow-item--danger">
                   <User className="h-3.5 w-3.5" aria-hidden />
-                  <span>{copy['projectIde.signOut']}</span>
+                  <span>Sign out</span>
                 </button>
               </form>
             </div>
@@ -743,29 +686,29 @@ function IdeProjectTopBar({
           <Link
             to={withProjectSearch(projectUrl, { panel: 'collaborators' })}
             className="bolt-project-topbar-outline-button"
-            aria-label={copy['projectIde.invite.aria']}
-            title={copy['projectIde.invite.title']}
+            aria-label="Invite collaborators"
+            title="Invite collaborators or create a share link"
           >
             <UserPlus className="h-3.5 w-3.5" aria-hidden />
-            <span>{copy['projectIde.invite.label']}</span>
+            <span>Invite</span>
           </Link>
         </div>
         <div
           className="bolt-project-action-group bolt-project-action-group--primary"
           data-priority="high"
-          aria-label={copy['projectIde.runPublish']}
+          aria-label="Run and publish"
         >
           {state === 'crashed' ? (
             <button
               type="button"
               data-testid="button-restart-workspace"
               className="bolt-project-run-button is-crashed"
-              title={copy['projectIde.restart.title']}
-              data-vc-tooltip={copy['projectIde.restart.tooltip']}
+              title="Restart workspace: re-provision the crashed runtime"
+              data-vc-tooltip="Restart workspace"
               onClick={() => restartWorkspace()}
             >
               <Play className="h-3 w-3 fill-current" aria-hidden />
-              <span>{copy['projectIde.restart.label']}</span>
+              <span>Restart workspace</span>
             </button>
           ) : (
             <button
@@ -787,12 +730,12 @@ function IdeProjectTopBar({
               {previewRunning ? (
                 <>
                   <Square className="h-3 w-3 fill-current" aria-hidden />
-                  <span>{copy['projectIde.stop']}</span>
+                  <span>Stop</span>
                 </>
               ) : (
                 <>
                   <Play className="h-3 w-3 fill-current" aria-hidden />
-                  <span>{copy['projectIde.run']}</span>
+                  <span>Run</span>
                 </>
               )}
             </button>
@@ -813,11 +756,13 @@ function IdeProjectTopBar({
             to={`/projects/${projectId}/deployments`}
             className="bolt-project-publish-button"
             title={
-              (project.deploymentCount ?? 0) > 0 ? copy['projectIde.republish.title'] : copy['projectIde.publish.title']
+              (project.deploymentCount ?? 0) > 0
+                ? 'Republish: ship a new deployment of this project'
+                : 'Publish: create the first live deployment'
             }
           >
             <Rocket className="h-3 w-3" aria-hidden />
-            {(project.deploymentCount ?? 0) > 0 ? copy['projectIde.republish'] : copy['projectIde.publish']}
+            {(project.deploymentCount ?? 0) > 0 ? 'Republish' : 'Publish'}
           </Link>
         </div>
       </div>
@@ -892,12 +837,6 @@ function ProjectMenuAction({
   icon?: ReactNode;
   children: ReactNode;
 }) {
-  const { i18n } = useTranslation();
-  const copy = getProjectIdeCopy(i18n.resolvedLanguage ?? i18n.language);
-
-  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
-    formatProjectIdeCopy(template, values);
-
   const [busy, setBusy] = useState(false);
 
   // G5: delete confirm / rename prompt now use token-styled dialogs.
@@ -933,18 +872,7 @@ function ProjectMenuAction({
          * Don't silently swallow quota/permission/server errors — the action
          * would otherwise appear to do nothing. Surface the reason.
          */
-        console.error('Project action failed', intent, result.error);
-
-        const localizedAction =
-          intent === 'delete'
-            ? copy['projectIde.action.delete']
-            : intent === 'rename'
-              ? copy['projectIde.action.rename']
-              : intent === 'duplicate'
-                ? copy['projectIde.action.duplicate']
-                : copy['projectIde.action.fork'];
-
-        configuredToast.error(text(copy['projectIde.action.failed'], { action: localizedAction }));
+        configuredToast.error(result.error ?? `Could not ${intent} this project. Please try again.`);
       } else if (intent === 'delete') {
         window.location.href = '/projects';
       } else if (intent === 'duplicate' || intent === 'fork') {
@@ -982,7 +910,7 @@ function ProjectMenuAction({
         }}
       >
         {icon}
-        <span>{busy ? copy['projectIde.action.working'] : children}</span>
+        <span>{busy ? 'Working...' : children}</span>
       </button>
       {intent === 'delete' ? (
         <ConfirmationDialog
@@ -992,9 +920,9 @@ function ProjectMenuAction({
             setConfirmDeleteOpen(false);
             void runAction();
           }}
-          title={text(copy['projectIde.delete.title'], { project: projectName })}
-          description={copy['projectIde.delete.description']}
-          confirmLabel={copy['projectIde.delete.confirm']}
+          title={`Delete ${projectName}?`}
+          description="The project and its workspace data are deleted. This cannot be undone."
+          confirmLabel="Delete project"
           variant="destructive"
         />
       ) : null}
@@ -1006,11 +934,11 @@ function ProjectMenuAction({
             setRenameOpen(false);
             void runAction(value.trim());
           }}
-          title={copy['projectIde.rename.title']}
-          label={copy['projectIde.rename.label']}
+          title="Rename project"
+          label="New project name"
           initialValue={projectName}
-          confirmLabel={copy['projectIde.rename.confirm']}
-          validate={(value) => (value.trim() ? undefined : copy['projectIde.rename.required'])}
+          confirmLabel="Rename"
+          validate={(value) => (value.trim() ? undefined : 'Enter a project name')}
         />
       ) : null}
     </>

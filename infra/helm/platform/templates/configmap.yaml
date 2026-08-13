@@ -147,15 +147,10 @@ data:
   # per-port flag from VIBECORE_PORTS_STATE; turning this on just lets the
   # /internal/preview/port-access endpoint return real data. The preview-proxy
   # ENFORCEMENT (PREVIEW_ENFORCE_PRIVATE_PORTS) stays OFF — a dark-launch that
-  # needs the vc_preview session cookie rollout first.
-  #
-  # API_BASE_URL is defined ONCE, above, from platformEnv.apiBaseUrl. A second
-  # literal used to be re-declared HERE with port :80 — the api Service listens
-  # on 3001, so the duplicate silently won (last key wins in YAML) and every
-  # proxy→api call failed. It went unnoticed because the only consumer (the
-  # private-port lookup) fails OPEN on error; the static-deploy proxy added
-  # 2026-08-01 surfaced it as STATIC_DEPLOY_UPSTREAM_FAILED.
+  # needs the vc_preview session cookie rollout first. API_BASE_URL is the
+  # in-cluster api URL the proxy calls for the lookup.
   PREVIEW_PRIVATE_PORTS_ENABLED: "true"
+  API_BASE_URL: "http://vibecore-vibecore-platform-api.vibecore.svc:80"
   {{- if .Values.platformEnv.runtime.aiGatewayUrl }}
   # In-cluster URL the api pod uses to reach the ai-gateway service. Without
   # this the api falls back to http://127.0.0.1:3030 (app.ts aiGatewayUrl

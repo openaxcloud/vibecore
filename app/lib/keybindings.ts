@@ -1,10 +1,3 @@
-import {
-  formatKeybindingsCopy,
-  getKeybindingsCopy,
-  type KeybindingsCopy,
-  type KeybindingsKey,
-} from '~/lib/i18n/catalogs/keybindings';
-
 export type KeybindingContext = {
   activePanel?: string;
   commandPaletteOpen?: boolean;
@@ -13,14 +6,12 @@ export type KeybindingContext = {
   useMobileIde?: boolean;
 };
 
-export type KeybindingCategory = 'File' | 'Navigation' | 'Workbench' | 'Editor' | 'Agent' | 'Terminal' | 'Help';
-
 export type Keybinding = {
   combo: string;
   action: string;
   label: string;
   description: string;
-  category: KeybindingCategory;
+  category: 'File' | 'Navigation' | 'Workbench' | 'Editor' | 'Agent' | 'Terminal' | 'Help';
   when?: (ctx: KeybindingContext) => boolean;
   preventDefault?: boolean;
 };
@@ -32,96 +23,46 @@ export type KeybindingConflict = {
 
 export type KeybindingOverrideMap = Record<string, string>;
 
-const CATEGORY = {
-  file: 'File',
-  navigation: 'Navigation',
-  workbench: 'Workbench',
-  editor: 'Editor',
-  agent: 'Agent',
-  terminal: 'Terminal',
-  help: 'Help',
-} as const satisfies Record<string, KeybindingCategory>;
-
-export const PROJECT_KEYBINDING_CATEGORIES: readonly KeybindingCategory[] = [
-  CATEGORY.file,
-  CATEGORY.navigation,
-  CATEGORY.workbench,
-  CATEGORY.editor,
-  CATEGORY.agent,
-  CATEGORY.terminal,
-  CATEGORY.help,
-];
-
-type BindingCopyId =
-  | 'saveCurrent'
-  | 'saveAll'
-  | 'quickOpen'
-  | 'commandPalette'
-  | 'commandPaletteTerminalAware'
-  | 'openTools'
-  | 'closeTab'
-  | 'reopenTab'
-  | 'toggleSidebar'
-  | 'toggleTerminal'
-  | 'focusTerminal'
-  | 'runWorkspace'
-  | 'focusAgent'
-  | 'openSettings'
-  | 'toggleComment'
-  | 'shortcutsOutsideEditor'
-  | 'renameSymbol'
-  | 'goToDefinition'
-  | 'findReferences'
-  | 'quickFix'
-  | 'shortcuts'
-  | 'closeOverlay';
-
-const englishCopy = getKeybindingsCopy('en');
-
-function bindingCopy(copy: KeybindingsCopy, id: BindingCopyId, field: 'label' | 'description'): string {
-  return copy[`keybindings.binding.${id}.${field}` as KeybindingsKey];
-}
-
 export const defaultProjectKeybindings: Keybinding[] = [
   {
     combo: 'cmd+s',
     action: 'file.save',
-    label: bindingCopy(englishCopy, 'saveCurrent', 'label'),
-    description: bindingCopy(englishCopy, 'saveCurrent', 'description'),
-    category: CATEGORY.file,
+    label: 'Save current file',
+    description: 'Save the active editor file.',
+    category: 'File',
     when: (ctx) => ctx.activePanel === 'editor',
     preventDefault: true,
   },
   {
     combo: 'cmd+shift+s',
     action: 'file.saveAll',
-    label: bindingCopy(englishCopy, 'saveAll', 'label'),
-    description: bindingCopy(englishCopy, 'saveAll', 'description'),
-    category: CATEGORY.file,
+    label: 'Save all files',
+    description: 'Save every file with unsaved changes.',
+    category: 'File',
     preventDefault: true,
   },
   {
     combo: 'cmd+p',
     action: 'file.quickOpen',
-    label: bindingCopy(englishCopy, 'quickOpen', 'label'),
-    description: bindingCopy(englishCopy, 'quickOpen', 'description'),
-    category: CATEGORY.navigation,
+    label: 'Quick open file',
+    description: 'Search indexed project files.',
+    category: 'Navigation',
     preventDefault: true,
   },
   {
     combo: 'cmd+shift+p',
     action: 'command.palette',
-    label: bindingCopy(englishCopy, 'commandPalette', 'label'),
-    description: bindingCopy(englishCopy, 'commandPalette', 'description'),
-    category: CATEGORY.navigation,
+    label: 'Command palette',
+    description: 'Search every project command.',
+    category: 'Navigation',
     preventDefault: true,
   },
   {
     combo: 'cmd+k',
     action: 'command.palette',
-    label: bindingCopy(englishCopy, 'commandPaletteTerminalAware', 'label'),
-    description: bindingCopy(englishCopy, 'commandPaletteTerminalAware', 'description'),
-    category: CATEGORY.navigation,
+    label: 'Command palette',
+    description: 'Search every project command. Inside the terminal, ⌘K clears the shell instead.',
+    category: 'Navigation',
 
     /*
      * VS Code semantics: while the terminal owns focus, ⌘K belongs to the shell
@@ -135,207 +76,147 @@ export const defaultProjectKeybindings: Keybinding[] = [
   {
     combo: 'cmd+t',
     action: 'workbench.tools',
-    label: bindingCopy(englishCopy, 'openTools', 'label'),
-    description: bindingCopy(englishCopy, 'openTools', 'description'),
-    category: CATEGORY.navigation,
+    label: 'Open tools',
+    description: 'Search project tools and service panels.',
+    category: 'Navigation',
     preventDefault: true,
   },
   {
     combo: 'cmd+w',
     action: 'tab.close',
-    label: bindingCopy(englishCopy, 'closeTab', 'label'),
-    description: bindingCopy(englishCopy, 'closeTab', 'description'),
-    category: CATEGORY.workbench,
+    label: 'Close tab',
+    description: 'Close the active workspace tab.',
+    category: 'Workbench',
     preventDefault: true,
   },
   {
     combo: 'cmd+shift+t',
     action: 'tab.reopenClosed',
-    label: bindingCopy(englishCopy, 'reopenTab', 'label'),
-    description: bindingCopy(englishCopy, 'reopenTab', 'description'),
-    category: CATEGORY.workbench,
+    label: 'Reopen closed tab',
+    description: 'Restore the last closed workspace tab.',
+    category: 'Workbench',
     preventDefault: true,
   },
   {
     combo: 'cmd+b',
     action: 'sidebar.toggle',
-    label: bindingCopy(englishCopy, 'toggleSidebar', 'label'),
-    description: bindingCopy(englishCopy, 'toggleSidebar', 'description'),
-    category: CATEGORY.workbench,
+    label: 'Toggle sidebar',
+    description: 'Show or hide the files and service sidebar.',
+    category: 'Workbench',
     preventDefault: true,
   },
   {
     combo: 'cmd+j',
     action: 'terminal.toggle',
-    label: bindingCopy(englishCopy, 'toggleTerminal', 'label'),
-    description: bindingCopy(englishCopy, 'toggleTerminal', 'description'),
-    category: CATEGORY.terminal,
+    label: 'Toggle terminal',
+    description: 'Show or hide the bottom terminal.',
+    category: 'Terminal',
     preventDefault: true,
   },
   {
     combo: 'cmd+`',
     action: 'terminal.focus',
-    label: bindingCopy(englishCopy, 'focusTerminal', 'label'),
-    description: bindingCopy(englishCopy, 'focusTerminal', 'description'),
-    category: CATEGORY.terminal,
+    label: 'Focus terminal',
+    description: 'Open and focus the workspace terminal.',
+    category: 'Terminal',
     preventDefault: true,
   },
   {
     combo: 'cmd+enter',
     action: 'workspace.run',
-    label: bindingCopy(englishCopy, 'runWorkspace', 'label'),
-    description: bindingCopy(englishCopy, 'runWorkspace', 'description'),
-    category: CATEGORY.workbench,
+    label: 'Run workspace',
+    description: 'Open the preview and start the runtime.',
+    category: 'Workbench',
     preventDefault: true,
   },
   {
     combo: 'cmd+l',
     action: 'agent.focus',
-    label: bindingCopy(englishCopy, 'focusAgent', 'label'),
-    description: bindingCopy(englishCopy, 'focusAgent', 'description'),
-    category: CATEGORY.agent,
+    label: 'Focus agent',
+    description: 'Open the agent panel and focus the composer.',
+    category: 'Agent',
     preventDefault: true,
   },
   {
     combo: 'cmd+,',
     action: 'settings.open',
-    label: bindingCopy(englishCopy, 'openSettings', 'label'),
-    description: bindingCopy(englishCopy, 'openSettings', 'description'),
-    category: CATEGORY.workbench,
+    label: 'Open settings',
+    description: 'Open project settings.',
+    category: 'Workbench',
     preventDefault: true,
   },
   {
     combo: 'cmd+/',
     action: 'editor.toggleComment',
-    label: bindingCopy(englishCopy, 'toggleComment', 'label'),
-    description: bindingCopy(englishCopy, 'toggleComment', 'description'),
-    category: CATEGORY.editor,
+    label: 'Toggle line comment',
+    description: 'Toggle comments in the active editor.',
+    category: 'Editor',
     when: (ctx) => ctx.activePanel === 'editor',
     preventDefault: true,
   },
   {
     combo: 'cmd+/',
     action: 'help.keyboard',
-    label: bindingCopy(englishCopy, 'shortcutsOutsideEditor', 'label'),
-    description: bindingCopy(englishCopy, 'shortcutsOutsideEditor', 'description'),
-    category: CATEGORY.help,
+    label: 'Keyboard shortcuts',
+    description: 'Open the keyboard shortcuts reference outside the editor.',
+    category: 'Help',
     when: (ctx) => ctx.activePanel !== 'editor',
     preventDefault: true,
   },
   {
     combo: 'f2',
     action: 'editor.rename',
-    label: bindingCopy(englishCopy, 'renameSymbol', 'label'),
-    description: bindingCopy(englishCopy, 'renameSymbol', 'description'),
-    category: CATEGORY.editor,
+    label: 'Rename symbol',
+    description: 'Rename the symbol at the cursor.',
+    category: 'Editor',
     when: (ctx) => ctx.activePanel === 'editor',
     preventDefault: true,
   },
   {
     combo: 'f12',
     action: 'editor.goToDefinition',
-    label: bindingCopy(englishCopy, 'goToDefinition', 'label'),
-    description: bindingCopy(englishCopy, 'goToDefinition', 'description'),
-    category: CATEGORY.editor,
+    label: 'Go to definition',
+    description: 'Jump to the definition under the cursor.',
+    category: 'Editor',
     when: (ctx) => ctx.activePanel === 'editor',
     preventDefault: true,
   },
   {
     combo: 'shift+f12',
     action: 'editor.findReferences',
-    label: bindingCopy(englishCopy, 'findReferences', 'label'),
-    description: bindingCopy(englishCopy, 'findReferences', 'description'),
-    category: CATEGORY.editor,
+    label: 'Find references',
+    description: 'Show references for the symbol under the cursor.',
+    category: 'Editor',
     when: (ctx) => ctx.activePanel === 'editor',
     preventDefault: true,
   },
   {
     combo: 'cmd+.',
     action: 'editor.quickFix',
-    label: bindingCopy(englishCopy, 'quickFix', 'label'),
-    description: bindingCopy(englishCopy, 'quickFix', 'description'),
-    category: CATEGORY.editor,
+    label: 'Quick fix',
+    description: 'Open code actions for the current editor position.',
+    category: 'Editor',
     when: (ctx) => ctx.activePanel === 'editor',
     preventDefault: true,
   },
   {
     combo: 'shift+/',
     action: 'help.keyboard',
-    label: bindingCopy(englishCopy, 'shortcuts', 'label'),
-    description: bindingCopy(englishCopy, 'shortcuts', 'description'),
-    category: CATEGORY.help,
+    label: 'Keyboard shortcuts',
+    description: 'Open the keyboard shortcuts reference.',
+    category: 'Help',
     when: (ctx) => !ctx.isEditableTarget,
     preventDefault: true,
   },
   {
     combo: 'escape',
     action: 'overlay.close',
-    label: bindingCopy(englishCopy, 'closeOverlay', 'label'),
-    description: bindingCopy(englishCopy, 'closeOverlay', 'description'),
-    category: CATEGORY.help,
+    label: 'Close overlay',
+    description: 'Close command palette or keyboard shortcuts.',
+    category: 'Help',
     preventDefault: true,
   },
 ];
-
-const BINDING_COPY_IDS: Readonly<Record<string, BindingCopyId>> = {
-  'cmd+s:file.save': 'saveCurrent',
-  'cmd+shift+s:file.saveAll': 'saveAll',
-  'cmd+p:file.quickOpen': 'quickOpen',
-  'cmd+shift+p:command.palette': 'commandPalette',
-  'cmd+k:command.palette': 'commandPaletteTerminalAware',
-  'cmd+t:workbench.tools': 'openTools',
-  'cmd+w:tab.close': 'closeTab',
-  'cmd+shift+t:tab.reopenClosed': 'reopenTab',
-  'cmd+b:sidebar.toggle': 'toggleSidebar',
-  'cmd+j:terminal.toggle': 'toggleTerminal',
-  'cmd+`:terminal.focus': 'focusTerminal',
-  'cmd+enter:workspace.run': 'runWorkspace',
-  'cmd+l:agent.focus': 'focusAgent',
-  'cmd+,:settings.open': 'openSettings',
-  'cmd+/:editor.toggleComment': 'toggleComment',
-  'cmd+/:help.keyboard': 'shortcutsOutsideEditor',
-  'f2:editor.rename': 'renameSymbol',
-  'f12:editor.goToDefinition': 'goToDefinition',
-  'shift+f12:editor.findReferences': 'findReferences',
-  'cmd+.:editor.quickFix': 'quickFix',
-  'shift+/:help.keyboard': 'shortcuts',
-  'escape:overlay.close': 'closeOverlay',
-};
-
-export function localizeProjectKeybindings(bindings: Keybinding[], language?: string | null): Keybinding[] {
-  const copy = getKeybindingsCopy(language);
-
-  return bindings.map((binding) => {
-    const id = BINDING_COPY_IDS[`${normalizeCombo(binding.combo)}:${binding.action}`];
-
-    return id
-      ? {
-          ...binding,
-          label: bindingCopy(copy, id, 'label'),
-          description: bindingCopy(copy, id, 'description'),
-        }
-      : binding;
-  });
-}
-
-export function getKeybindingCategoryLabel(language: string | null | undefined, category: KeybindingCategory): string {
-  const copy = getKeybindingsCopy(language);
-
-  return copy[`keybindings.category.${category}` as KeybindingsKey];
-}
-
-export function createProjectFocusTabKeybinding(index: number, language?: string | null): Keybinding {
-  const copy = getKeybindingsCopy(language);
-
-  return {
-    combo: `cmd+${index}`,
-    action: `tab.focus.${index}`,
-    label: formatKeybindingsCopy(copy['keybindings.binding.focusTab.label'], { index }),
-    description: formatKeybindingsCopy(copy['keybindings.binding.focusTab.description'], { index }),
-    category: CATEGORY.workbench,
-    preventDefault: true,
-  };
-}
 
 export function normalizeCombo(combo: string): string {
   return combo

@@ -3,23 +3,9 @@ import { debugReportFilename, debugReportSummaryHeader } from './debug-report-br
 import { logger } from './logger';
 import { isMobile } from './mobile';
 import { isMac, isWindows, isLinux } from './os';
-import {
-  type ClientRuntimeResidualKey,
-  formatClientRuntimeResidualCopy,
-  formatClientRuntimeResidualDateTime,
-  formatClientRuntimeResidualNumber,
-  getClientRuntimeResidualCopy,
-} from '~/lib/i18n/catalogs/client-runtime-residual';
-import { getI18nInstance } from '~/lib/i18n/runtime';
 
 // Lazy import to avoid circular dependencies
 let logStore: any = null;
-
-const getDebugCopy = () => {
-  const i18n = getI18nInstance();
-
-  return getClientRuntimeResidualCopy(i18n.resolvedLanguage ?? i18n.language);
-};
 
 const getLogStore = () => {
   if (!logStore && typeof window !== 'undefined') {
@@ -543,7 +529,7 @@ class DebugLogger {
               method: config?.method || 'GET',
               url: typeof resource === 'string' ? resource : (resource as Request).url,
               duration,
-              error: error instanceof Error ? error.message : getDebugCopy()['clientRuntime.debug.networkError'],
+              error: error instanceof Error ? error.message : 'Network error',
             });
           }
 
@@ -582,7 +568,7 @@ class DebugLogger {
     this.captureError({
       timestamp: new Date().toISOString(),
       type: 'javascript',
-      message: event.reason?.message || getDebugCopy()['clientRuntime.debug.unhandledRejection'],
+      message: event.reason?.message || 'Unhandled promise rejection',
       stack: event.reason?.stack,
       userAgent: navigator.userAgent,
     });
@@ -928,9 +914,6 @@ class DebugLogger {
   }
 
   private async _getGitInfo(): Promise<AppInfo['gitInfo']> {
-    const i18n = getI18nInstance();
-    const copy = getClientRuntimeResidualCopy(i18n.resolvedLanguage ?? i18n.language);
-
     try {
       // Try to fetch git info from existing API endpoint
       const response = await fetch('/api/system/git-info');
@@ -949,7 +932,7 @@ class DebugLogger {
           remoteUrl: gitInfoTyped.local?.remoteUrl,
           lastCommit: gitInfoTyped.local
             ? {
-                message: copy['clientRuntime.debug.latestCommit'],
+                message: 'Latest commit',
                 date: gitInfoTyped.local.commitTime,
                 author: gitInfoTyped.local.author,
               }
@@ -1159,9 +1142,10 @@ export const debugLogger = new DebugLogger({
 export async function downloadDebugLog(filename?: string): Promise<void> {
   try {
     const debugData = await debugLogger.generateDebugLog();
-    const i18n = getI18nInstance();
-    const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
-    const fullContent = createDebugReportContent(debugData, language);
+
+    // Create a formatted summary
+    const summary = createDebugSummary(debugData);
+    const fullContent = `${summary}\n\n=== DETAILED DEBUG DATA ===\n\n${JSON.stringify(debugData, null, 2)}`;
 
     const blob = new Blob([fullContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -1182,115 +1166,69 @@ export async function downloadDebugLog(filename?: string): Promise<void> {
 }
 
 // Create a human-readable summary of the debug data
-export function createDebugSummary(data: DebugLogData, language?: string | null): string {
-  const copy = getClientRuntimeResidualCopy(language);
-
-  const format = (
-    key: ClientRuntimeResidualKey,
-    values: Readonly<Record<string, string | number | bigint>> = {},
-  ): string => formatClientRuntimeResidualCopy(copy[key], values);
-
-  const section = (key: ClientRuntimeResidualKey): string => `=== ${copy[key].toUpperCase()} ===`;
-
-  const booleanLabel = (value: boolean): string =>
-    value ? copy['clientRuntime.debugReport.yes'] : copy['clientRuntime.debugReport.no'];
-
-  const number = (value: number, options?: Intl.NumberFormatOptions): string =>
-    formatClientRuntimeResidualNumber(value, language, options);
-
-  const duration = (value: number): string =>
-    format('clientRuntime.debugReport.milliseconds', { value: number(value) });
-
-  const browser = data.systemInfo.userAgent.split(' ').slice(0, 2).join(' ');
-
+function createDebugSummary(data: DebugLogData): string {
   const summary = [
-    debugReportSummaryHeader(language),
-    format('clientRuntime.debugReport.generated', {
-      date: formatClientRuntimeResidualDateTime(data.timestamp, language),
-    }),
-    format('clientRuntime.debugReport.sessionId', { value: data.sessionId }),
+    debugReportSummaryHeader(),
+    `Generated: ${new Date(data.timestamp).toLocaleString()}`,
+    `Session ID: ${data.sessionId}`,
     '',
-    section('clientRuntime.debugReport.systemInformation'),
-    format('clientRuntime.debugReport.platform', { value: data.systemInfo.platform }),
-    format('clientRuntime.debugReport.browser', { value: browser }),
-    format('clientRuntime.debugReport.screen', { value: data.systemInfo.screenResolution }),
-    format('clientRuntime.debugReport.mobile', { value: booleanLabel(data.systemInfo.isMobile) }),
-    format('clientRuntime.debugReport.timezone', { value: data.systemInfo.timezone }),
+    '=== SYSTEM INFORMATION ===',
+    `Platform: ${data.systemInfo.platform}`,
+    `Browser: ${data.systemInfo.userAgent.split(' ').slice(0, 2).join(' ')}`,
+    `Screen: ${data.systemInfo.screenResolution}`,
+    `Mobile: ${data.systemInfo.isMobile ? 'Yes' : 'No'}`,
+    `Timezone: ${data.systemInfo.timezone}`,
     '',
-    section('clientRuntime.debugReport.applicationInformation'),
-    format('clientRuntime.debugReport.version', { value: data.appInfo.version }),
-    format('clientRuntime.debugReport.currentModel', { value: data.appInfo.currentModel }),
-    format('clientRuntime.debugReport.currentProvider', { value: data.appInfo.currentProvider }),
-    format('clientRuntime.debugReport.projectType', { value: data.appInfo.projectType }),
-    format('clientRuntime.debugReport.workbenchView', { value: data.appInfo.workbenchView }),
-    format('clientRuntime.debugReport.activePreview', { value: booleanLabel(data.appInfo.hasActivePreview) }),
-    format('clientRuntime.debugReport.unsavedFiles', { value: number(data.appInfo.unsavedFiles) }),
+    '=== APPLICATION INFORMATION ===',
+    `Version: ${data.appInfo.version}`,
+    `Current Model: ${data.appInfo.currentModel}`,
+    `Current Provider: ${data.appInfo.currentProvider}`,
+    `Project Type: ${data.appInfo.projectType}`,
+    `Workbench View: ${data.appInfo.workbenchView}`,
+    `Active Preview: ${data.appInfo.hasActivePreview ? 'Yes' : 'No'}`,
+    `Unsaved Files: ${data.appInfo.unsavedFiles}`,
     '',
-    section('clientRuntime.debugReport.gitInformation'),
+    '=== GIT INFORMATION ===',
     data.appInfo.gitInfo
       ? [
-          format('clientRuntime.debugReport.branch', { value: data.appInfo.gitInfo.branch }),
-          format('clientRuntime.debugReport.commit', { value: data.appInfo.gitInfo.commit.substring(0, 8) }),
-          format('clientRuntime.debugReport.workingDirectory', {
-            value: data.appInfo.gitInfo.isDirty
-              ? copy['clientRuntime.debugReport.dirty']
-              : copy['clientRuntime.debugReport.clean'],
-          }),
-          data.appInfo.gitInfo.remoteUrl
-            ? format('clientRuntime.debugReport.remote', { value: data.appInfo.gitInfo.remoteUrl })
-            : '',
+          `Branch: ${data.appInfo.gitInfo.branch}`,
+          `Commit: ${data.appInfo.gitInfo.commit.substring(0, 8)}`,
+          `Working Directory: ${data.appInfo.gitInfo.isDirty ? 'Dirty' : 'Clean'}`,
+          data.appInfo.gitInfo.remoteUrl ? `Remote: ${data.appInfo.gitInfo.remoteUrl}` : '',
           data.appInfo.gitInfo.lastCommit
-            ? format('clientRuntime.debugReport.lastCommit', {
-                value: `${data.appInfo.gitInfo.lastCommit.message.substring(0, 50)}...`,
-              })
+            ? `Last Commit: ${data.appInfo.gitInfo.lastCommit.message.substring(0, 50)}...`
             : '',
         ]
           .filter(Boolean)
           .join('\n')
-      : copy['clientRuntime.debugReport.gitUnavailable'],
+      : 'Git information not available',
     '',
-    section('clientRuntime.debugReport.sessionStatistics'),
-    format('clientRuntime.debugReport.totalLogs', { value: number(data.logs.length) }),
-    format('clientRuntime.debugReport.errors', { value: number(data.errors.length) }),
-    format('clientRuntime.debugReport.networkRequests', { value: number(data.networkRequests.length) }),
-    format('clientRuntime.debugReport.userActions', { value: number(data.userActions.length) }),
-    format('clientRuntime.debugReport.terminalLogs', { value: number(data.terminalLogs.length) }),
+    '=== SESSION STATISTICS ===',
+    `Total Logs: ${data.logs.length}`,
+    `Errors: ${data.errors.length}`,
+    `Network Requests: ${data.networkRequests.length}`,
+    `User Actions: ${data.userActions.length}`,
+    `Terminal Logs: ${data.terminalLogs.length}`,
     '',
-    section('clientRuntime.debugReport.recentAlerts'),
+    '=== RECENT ALERTS ===',
     ...data.state.alerts.slice(0, 5).map((alert) => `${alert.type.toUpperCase()}: ${alert.title}`),
     '',
-    section('clientRuntime.debugReport.performance'),
-    format('clientRuntime.debugReport.pageLoadTime', { value: duration(data.performance.loadTime) }),
-    format('clientRuntime.debugReport.domContentLoaded', { value: duration(data.performance.domContentLoaded) }),
+    '=== PERFORMANCE ===',
+    `Page Load Time: ${data.performance.loadTime}ms`,
+    `DOM Content Loaded: ${data.performance.domContentLoaded}ms`,
     data.performance.memoryUsage
-      ? format('clientRuntime.debugReport.memoryUsage', {
-          value: format('clientRuntime.debugReport.megabytes', {
-            value: number(data.performance.memoryUsage.used / 1024 / 1024, {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            }),
-          }),
-        })
-      : format('clientRuntime.debugReport.memoryUsage', {
-          value: copy['clientRuntime.debugReport.notAvailable'],
-        }),
+      ? `Memory Usage: ${(data.performance.memoryUsage.used / 1024 / 1024).toFixed(2)} MB`
+      : 'Memory Usage: N/A',
     '',
-    section('clientRuntime.debugReport.workbenchState'),
-    format('clientRuntime.debugReport.currentView', { value: data.state.currentView }),
-    format('clientRuntime.debugReport.showWorkbench', { value: booleanLabel(data.state.showWorkbench) }),
-    format('clientRuntime.debugReport.showTerminal', { value: booleanLabel(data.state.showTerminal) }),
-    format('clientRuntime.debugReport.artifacts', { value: number(data.state.artifactsCount) }),
-    format('clientRuntime.debugReport.files', { value: number(data.state.filesCount) }),
+    '=== WORKBENCH STATE ===',
+    `Current View: ${data.state.currentView}`,
+    `Show Workbench: ${data.state.showWorkbench}`,
+    `Show Terminal: ${data.state.showTerminal}`,
+    `Artifacts: ${data.state.artifactsCount}`,
+    `Files: ${data.state.filesCount}`,
   ];
 
   return summary.join('\n');
-}
-
-export function createDebugReportContent(data: DebugLogData, language?: string | null): string {
-  const copy = getClientRuntimeResidualCopy(language);
-  const detailsHeader = `=== ${copy['clientRuntime.debugReport.detailsHeader'].toUpperCase()} ===`;
-
-  return `${createDebugSummary(data, language)}\n\n${detailsHeader}\n\n${JSON.stringify(data, null, 2)}`;
 }
 
 // Utility functions for capturing additional data

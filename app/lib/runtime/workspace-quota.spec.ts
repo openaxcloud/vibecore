@@ -62,10 +62,6 @@ describe('workspaceQuotaPrompt', () => {
       warning: 'Workspace quota exceeded',
       upgrade: 'Upgrade your plan to start more workspaces.',
     });
-    expect(workspaceQuotaPrompt(error, 'fr')).toEqual({
-      warning: 'Quota d’espaces de travail dépassé',
-      upgrade: 'Passez à une offre supérieure pour démarrer davantage d’espaces de travail.',
-    });
   });
 
   it('names the active-workspace limit when the details body carries the quotaKey', () => {
@@ -78,10 +74,6 @@ describe('workspaceQuotaPrompt', () => {
       warning: 'You have reached your active workspace limit.',
       upgrade: 'Upgrade your plan to start more active workspaces.',
     });
-    expect(workspaceQuotaPrompt(error, 'fr')).toEqual({
-      warning: 'Vous avez atteint votre limite d’espaces de travail actifs.',
-      upgrade: 'Passez à une offre supérieure pour démarrer davantage d’espaces de travail actifs.',
-    });
   });
 
   it('names the concurrent-terminal limit when the details body carries that quotaKey', () => {
@@ -93,10 +85,6 @@ describe('workspaceQuotaPrompt', () => {
     expect(workspaceQuotaPrompt(error)).toEqual({
       warning: 'You have reached your concurrent terminal limit.',
       upgrade: 'Upgrade your plan to start more concurrent terminals.',
-    });
-    expect(workspaceQuotaPrompt(error, 'fr')).toEqual({
-      warning: 'Vous avez atteint votre limite de terminaux simultanés.',
-      upgrade: 'Passez à une offre supérieure pour démarrer davantage de terminaux simultanés.',
     });
   });
 

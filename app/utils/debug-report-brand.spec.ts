@@ -9,13 +9,9 @@ describe('debug report brand', () => {
   });
 
   it('builds an E-Code-branded summary header and never leaks the upstream codename', () => {
-    const header = debugReportSummaryHeader('en');
+    const header = debugReportSummaryHeader();
     expect(header).toBe('=== E-CODE DEBUG LOG SUMMARY ===');
     expect(header.toLowerCase()).not.toContain('bolt');
-  });
-
-  it('localizes the summary header without translating the E-Code brand', () => {
-    expect(debugReportSummaryHeader('fr')).toBe('=== SYNTHÈSE DU JOURNAL DE DIAGNOSTIC E-CODE ===');
   });
 
   it('exposes the product brand as a single constant', () => {

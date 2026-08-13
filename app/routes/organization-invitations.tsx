@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useSubmit } from 'react-router';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
@@ -16,20 +15,11 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import {
-  formatOrganizationAccessCopy,
-  formatOrganizationAccessDateTime,
-  getOrganizationAccessCopy,
-} from '~/lib/i18n/catalogs/organization-access';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
-import { BUILTIN_ROLE_ORDER, getBuiltinRoleLabels } from '~/lib/rbac-catalog';
+import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
+import { BUILTIN_ROLE_LABELS, BUILTIN_ROLE_ORDER } from '~/lib/rbac-catalog';
 import { userFacingLabel } from '~/lib/user-facing-labels';
 
-export const meta: MetaFunction = ({ matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-
-  return [{ title: getOrganizationAccessCopy(rootData?.language)['organizationAccess.invitations.metaTitle'] }];
-};
+export const meta: MetaFunction = () => [{ title: 'Organization invitations - E-Code' }];
 
 type Invitation = {
   id: string;
@@ -43,14 +33,11 @@ type Invitation = {
 type RoleOption = { value: string; label: string };
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const language = resolveRequestLocale(request).language;
-  const copy = getOrganizationAccessCopy(language);
-  const builtinRoleLabels = getBuiltinRoleLabels(language);
   const orgIdParam = new URL(request.url).searchParams.get('orgId');
   const organization = orgIdParam ? { id: orgIdParam } : await firstOrganizationOrNull(request);
 
   if (!organization) {
-    throw json({ error: copy['organizationAccess.common.organizationMissing'] }, { status: 400 });
+    throw json({ error: 'No organization found' }, { status: 400 });
   }
 
   try {
@@ -61,7 +48,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     ]);
 
     const roles: RoleOption[] = [
-      ...BUILTIN_ROLE_ORDER.map((key) => ({ value: key, label: builtinRoleLabels[key] ?? key })),
+      ...BUILTIN_ROLE_ORDER.map((key) => ({ value: key, label: BUILTIN_ROLE_LABELS[key] ?? key })),
       ...rolesResult.roles.map((role) => ({ value: role.key, label: role.name })),
     ];
 
@@ -86,9 +73,6 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
-  const language = resolveRequestLocale(request).language;
-  const copy = getOrganizationAccessCopy(language);
-
   const body = formObject(await request.formData()) as {
     intent?: string;
     orgId?: string;
@@ -98,33 +82,33 @@ export async function action({ request }: EnterpriseActionArgs) {
   };
 
   if (!body.orgId) {
-    return json({ error: copy['organizationAccess.common.organizationUnavailable'] }, { status: 400 });
+    return json({ error: 'Your organization is unavailable. Reload the page and try again.' }, { status: 400 });
   }
 
   try {
     if (body.intent === 'resend') {
       if (!body.inviteId) {
-        return json({ error: copy['organizationAccess.invitations.required'] }, { status: 400 });
+        return json({ error: 'Invitation is required.' }, { status: 400 });
       }
 
       await apiRequest(request, `/orgs/${body.orgId}/invitations/${body.inviteId}/resend`, { method: 'POST' });
 
-      return json({ status: copy['organizationAccess.invitations.resent'] });
+      return json({ status: 'Invitation resent.' });
     }
 
     if (body.intent === 'expire') {
       if (!body.inviteId) {
-        return json({ error: copy['organizationAccess.invitations.required'] }, { status: 400 });
+        return json({ error: 'Invitation is required.' }, { status: 400 });
       }
 
       await apiRequest(request, `/orgs/${body.orgId}/invitations/${body.inviteId}/expire`, { method: 'POST' });
 
-      return json({ status: copy['organizationAccess.invitations.expiredStatus'] });
+      return json({ status: 'Invitation expired.' });
     }
 
     // Default intent: create a new invitation.
     if (!body.email) {
-      return json({ error: copy['organizationAccess.invitations.emailRequired'] }, { status: 400 });
+      return json({ error: 'An email address is required.' }, { status: 400 });
     }
 
     await apiRequest(request, `/orgs/${body.orgId}/invitations`, {
@@ -132,17 +116,15 @@ export async function action({ request }: EnterpriseActionArgs) {
       body: JSON.stringify({ email: body.email, roleKey: body.roleKey ?? 'member' }),
     });
 
-    return json({
-      status: formatOrganizationAccessCopy(copy['organizationAccess.invitations.sent'], { email: body.email }),
-    });
+    return json({ status: `Invitation sent to ${body.email}.` });
   } catch (error) {
     if (isForbiddenApiResponse(error)) {
       return json(
         {
-          error:
-            language === 'fr'
-              ? copy['organizationAccess.invitations.actionForbidden']
-              : await apiErrorMessage(error, copy['organizationAccess.invitations.actionForbidden']),
+          error: await apiErrorMessage(
+            error,
+            'You need the "Manage members" permission, and can only invite roles you are allowed to assign.',
+          ),
         },
         { status: 403 },
       );
@@ -150,12 +132,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     if (error instanceof Response) {
       return json(
-        {
-          error:
-            language === 'fr'
-              ? copy['organizationAccess.invitations.actionFailed']
-              : await apiErrorMessage(error, copy['organizationAccess.invitations.actionFailed']),
-        },
+        { error: await apiErrorMessage(error, 'Could not complete the invitation action.') },
         {
           status: error.status,
         },
@@ -166,33 +143,29 @@ export async function action({ request }: EnterpriseActionArgs) {
   }
 }
 
+function formatDate(value: string) {
+  const parsed = new Date(value);
+
+  return formatUserAreaDateTime(parsed) ?? value;
+}
+
 export default function OrganizationInvitationsPage() {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getOrganizationAccessCopy(language);
-
-  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
-    formatOrganizationAccessCopy(template, values);
-
   const { forbidden, orgId, invitations, roles } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
   const submit = useSubmit();
   const [invitePendingExpire, setInvitePendingExpire] = useState<{ id: string; email: string } | null>(null);
 
   const roleLabel = (roleKey: string) =>
-    roles.find((role) => role.value === roleKey)?.label ??
-    (language === 'fr'
-      ? copy['organizationAccess.role.member']
-      : userFacingLabel(roleKey, copy['organizationAccess.role.member']));
+    roles.find((role) => role.value === roleKey)?.label ?? userFacingLabel(roleKey, 'Member');
 
   if (forbidden) {
     return (
       <AppShell
-        title={copy['organizationAccess.invitations.title']}
-        description={copy['organizationAccess.invitations.description']}
+        title="Organization invitations"
+        description="Invite people to your organization and manage pending invites."
       >
         <p className="rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-sm text-[var(--status-warning-text)]">
-          {copy['organizationAccess.invitations.forbidden']}
+          Invitation management is available only to organization owners or member managers.
         </p>
       </AppShell>
     );
@@ -202,8 +175,8 @@ export default function OrganizationInvitationsPage() {
 
   return (
     <AppShell
-      title={copy['organizationAccess.invitations.title']}
-      description={copy['organizationAccess.invitations.description']}
+      title="Organization invitations"
+      description="Invite people to your organization and manage pending invites."
     >
       <div className="grid gap-6">
         {actionData?.status ? (
@@ -225,42 +198,25 @@ export default function OrganizationInvitationsPage() {
 
         {/* Invite form. */}
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
-          <h2 className="mb-4 font-semibold text-bolt-elements-textPrimary">
-            {copy['organizationAccess.invitations.inviteTitle']}
-          </h2>
+          <h2 className="mb-4 font-semibold text-bolt-elements-textPrimary">Invite a member</h2>
           <Form method="post" className="grid gap-4 lg:grid-cols-[1fr_220px_auto] lg:items-end">
             <input type="hidden" name="orgId" value={orgId} />
-            <TextField
-              label={copy['organizationAccess.invitations.email']}
-              name="email"
-              type="email"
-              placeholder={copy['organizationAccess.invitations.emailPlaceholder']}
-              required
-            />
-            <SelectField
-              label={copy['organizationAccess.invitations.role']}
-              name="roleKey"
-              defaultValue="member"
-              options={roles}
-            />
-            <PrimaryButton type="submit">{copy['organizationAccess.invitations.send']}</PrimaryButton>
+            <TextField label="Email" name="email" type="email" placeholder="person@company.com" required />
+            <SelectField label="Role" name="roleKey" defaultValue="member" options={roles} />
+            <PrimaryButton type="submit">Send invitation</PrimaryButton>
           </Form>
         </section>
 
         {/* Pending invitations. */}
         <section className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-sm shadow-sm">
           <div className="border-b border-bolt-elements-borderColor px-4 py-3 sm:px-6">
-            <h2 className="font-semibold text-bolt-elements-textPrimary">
-              {copy['organizationAccess.invitations.pendingTitle']}
-            </h2>
+            <h2 className="font-semibold text-bolt-elements-textPrimary">Pending invitations</h2>
             <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-              {copy['organizationAccess.invitations.pendingDescription']}
+              Resend rotates the invitation link; expire revokes it immediately.
             </p>
           </div>
           {invitations.length === 0 ? (
-            <div className="px-4 py-4 text-bolt-elements-textSecondary sm:px-6">
-              {copy['organizationAccess.invitations.empty']}
-            </div>
+            <div className="px-4 py-4 text-bolt-elements-textSecondary sm:px-6">No pending invitations.</div>
           ) : (
             [...invitations]
 
@@ -283,17 +239,13 @@ export default function OrganizationInvitationsPage() {
                         <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5">
                           {roleLabel(invite.roleKey)}
                         </span>
-                        <span>
-                          {text(copy['organizationAccess.invitations.expires'], {
-                            date: formatOrganizationAccessDateTime(invite.expiresAt, language),
-                          })}
-                        </span>
+                        <span>Expires {formatDate(invite.expiresAt)}</span>
                         {accepted ? (
-                          <Badge variant="success">{copy['organizationAccess.invitations.accepted']}</Badge>
+                          <Badge variant="success">Accepted</Badge>
                         ) : expired ? (
-                          <Badge variant="warning">{copy['organizationAccess.invitations.expired']}</Badge>
+                          <Badge variant="warning">Expired</Badge>
                         ) : (
-                          <Badge variant="secondary">{copy['organizationAccess.invitations.pending']}</Badge>
+                          <Badge variant="secondary">Pending</Badge>
                         )}
                       </div>
                     </div>
@@ -305,11 +257,9 @@ export default function OrganizationInvitationsPage() {
                         <button
                           type="submit"
                           className="rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-1"
-                          aria-label={text(copy['organizationAccess.invitations.resendAria'], {
-                            email: invite.email,
-                          })}
+                          aria-label={`Resend invitation to ${invite.email}`}
                         >
-                          {copy['organizationAccess.invitations.resend']}
+                          Resend
                         </button>
                       </Form>
                       <Form
@@ -326,11 +276,9 @@ export default function OrganizationInvitationsPage() {
                         <button
                           type="submit"
                           className="rounded-md border border-[var(--status-error-border)] px-3 py-1.5 text-xs text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)]"
-                          aria-label={text(copy['organizationAccess.invitations.expireAria'], {
-                            email: invite.email,
-                          })}
+                          aria-label={`Expire invitation to ${invite.email}`}
                         >
-                          {copy['organizationAccess.invitations.expire']}
+                          Expire
                         </button>
                       </Form>
                     </div>
@@ -351,11 +299,9 @@ export default function OrganizationInvitationsPage() {
             submit({ intent: 'expire', orgId: orgId ?? '', inviteId: pending.id }, { method: 'post' });
           }
         }}
-        title={text(copy['organizationAccess.invitations.expireTitle'], {
-          email: invitePendingExpire?.email ?? '',
-        })}
-        description={copy['organizationAccess.invitations.expireDescription']}
-        confirmLabel={copy['organizationAccess.invitations.expireConfirm']}
+        title={`Expire the invitation for ${invitePendingExpire?.email ?? ''}?`}
+        description="The invite link stops working immediately."
+        confirmLabel="Expire invitation"
         variant="destructive"
       />
     </AppShell>

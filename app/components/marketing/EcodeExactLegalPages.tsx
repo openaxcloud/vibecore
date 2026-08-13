@@ -7,71 +7,85 @@ import Security from './ecode-exact/pages/Security';
 import StudentDPA from './ecode-exact/pages/StudentDPA';
 import Subprocessors from './ecode-exact/pages/Subprocessors';
 import Terms from './ecode-exact/pages/Terms';
-import { formatMarketingDocumentTitle } from '~/lib/i18n/catalogs/marketing';
-import {
-  getMarketingExactLegalBlogCopy,
-  type ExactLegalPageCopy,
-  type ExactLegalPageKey,
-} from '~/lib/i18n/catalogs/marketing-exact-legal-blog';
 import { socialMetaTags } from '~/utils/social-meta';
 
-export type LegalPageKey = ExactLegalPageKey;
+type LegalPageKey =
+  | 'legal'
+  | 'terms'
+  | 'privacy'
+  | 'subprocessors'
+  | 'dpa'
+  | 'student-dpa'
+  | 'security'
+  | 'report-abuse';
 
-export type LegalPageDefinition = ExactLegalPageCopy & {
+type LegalPageDefinition = {
+  label: string;
   route: string;
+  title: string;
+  description: string;
 };
 
-const LEGAL_ROUTES = {
-  legal: '/legal',
-  terms: '/terms',
-  privacy: '/privacy',
-  subprocessors: '/subprocessors',
-  dpa: '/dpa',
-  'student-dpa': '/student-dpa',
-  security: '/security',
-  'report-abuse': '/report-abuse',
-} as const satisfies Record<LegalPageKey, string>;
-
-export function getEcodeExactLegalPages(language?: string | null): Record<LegalPageKey, LegalPageDefinition> {
-  const pages = getMarketingExactLegalBlogCopy(language).exactLegalRegistry.pages;
-
-  return Object.fromEntries(
-    (Object.keys(LEGAL_ROUTES) as LegalPageKey[]).map((key) => [key, { ...pages[key], route: LEGAL_ROUTES[key] }]),
-  ) as Record<LegalPageKey, LegalPageDefinition>;
-}
-
-export const ecodeLegalPages = getEcodeExactLegalPages('en');
+export const ecodeLegalPages = {
+  legal: {
+    label: 'Legal',
+    route: '/legal',
+    title: 'Legal',
+    description:
+      'Review E-Code legal policies, agreements, data processing terms, security resources, and abuse reporting.',
+  },
+  terms: {
+    label: 'Terms',
+    route: '/terms',
+    title: 'Terms of Service',
+    description: 'The E-Code Terms of Service page copied into the exact E-Code marketing shell.',
+  },
+  privacy: {
+    label: 'Privacy',
+    route: '/privacy',
+    title: 'Privacy Policy',
+    description: 'The E-Code Privacy Policy page copied into the exact E-Code marketing shell.',
+  },
+  subprocessors: {
+    label: 'Subprocessors',
+    route: '/subprocessors',
+    title: 'Subprocessors',
+    description: 'E-Code subprocessors, vendor categories, locations, purposes, and compliance coverage.',
+  },
+  dpa: {
+    label: 'DPA',
+    route: '/dpa',
+    title: 'Data Processing Addendum',
+    description: 'E-Code data processing terms for customers that require a DPA.',
+  },
+  'student-dpa': {
+    label: 'US Student DPA',
+    route: '/student-dpa',
+    title: 'US Student Data Processing Addendum',
+    description: 'E-Code student privacy and education data processing protections.',
+  },
+  security: {
+    label: 'Security',
+    route: '/security',
+    title: 'Security',
+    description: 'E-Code security controls, compliance posture, infrastructure safeguards, and incident response.',
+  },
+  'report-abuse': {
+    label: 'Report Abuse',
+    route: '/report-abuse',
+    title: 'Report Abuse',
+    description: 'Report abuse, malicious code, privacy violations, spam, harassment, or unsafe content on E-Code.',
+  },
+} as const satisfies Record<LegalPageKey, LegalPageDefinition>;
 
 export function makeEcodeLegalMeta(key: LegalPageKey): MetaFunction {
-  return ({ data, location, matches }) => {
-    const routeLanguage = (data as { language?: string } | undefined)?.language;
+  const page = ecodeLegalPages[key];
 
-    const rootLanguage = (matches?.find((match) => match.id === 'root')?.data as { language?: string } | undefined)
-      ?.language;
-
-    const page = getEcodeExactLegalPages(routeLanguage ?? rootLanguage)[key];
-    const title = formatMarketingDocumentTitle(page.title);
-
-    /*
-     * BUG-MKT-003 : canonical dérivé de `location.pathname`, jamais d'un chemin
-     * recopié — une table écrite à la main dérive au premier renommage de route.
-     */
-    const social = socialMetaTags({ title, description: page.description, path: location?.pathname }).map((tag) => {
-      const identifier = 'property' in tag ? tag.property : 'name' in tag ? tag.name : undefined;
-
-      return identifier === 'og:image:alt' || identifier === 'twitter:image:alt'
-        ? { ...tag, content: page.imageAlt }
-        : tag;
-    });
-
-    return [
-      { title },
-      { name: 'description', content: page.description },
-      ...social,
-      { name: 'twitter:title', content: title },
-      { name: 'twitter:description', content: page.description },
-    ];
-  };
+  return () => [
+    { title: `${page.title} - E-Code` },
+    { name: 'description', content: page.description },
+    ...socialMetaTags({ title: `${page.title} - E-Code`, description: page.description }),
+  ];
 }
 
 export function EcodeLegalPage() {

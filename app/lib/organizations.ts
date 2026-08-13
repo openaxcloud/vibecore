@@ -1,5 +1,3 @@
-import { getOrganizationAccessCopy } from '~/lib/i18n/catalogs/organization-access';
-
 /**
  * Pure helpers for the Organizations dashboard page.
  *
@@ -23,20 +21,18 @@ export function organizationLabel(organization: Organization): string {
  * Build the informational rows shown for a user's organizations. When the user
  * has none, returns a single empty-state row prompting them to create one.
  */
-export function buildOrganizationRows(organizations: Organization[], language?: string | null): OrganizationRow[] {
-  const copy = getOrganizationAccessCopy(language);
-
+export function buildOrganizationRows(organizations: Organization[]): OrganizationRow[] {
   if (organizations.length === 0) {
     return [
       {
-        title: copy['organizationAccess.switcher.emptyTitle'],
-        detail: copy['organizationAccess.switcher.emptyDetail'],
+        title: 'No organizations',
+        detail: 'Create an organization to isolate projects, billing and RBAC.',
       },
     ];
   }
 
   return organizations.map((organization) => ({
     title: organizationLabel(organization),
-    detail: copy['organizationAccess.switcher.loadedDetail'],
+    detail: 'Organization loaded from your backend membership.',
   }));
 }

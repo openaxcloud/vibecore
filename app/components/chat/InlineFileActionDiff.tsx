@@ -17,16 +17,10 @@
  */
 
 import { memo, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 
 import { useFileActionDiff } from '~/lib/hooks/useFileActionDiff';
 import { useFileActionReview } from '~/lib/hooks/useFileActionReview';
-import {
-  formatInlineFileActionDiffCopy,
-  formatInlineFileActionDiffPlural,
-  getInlineFileActionDiffCopy,
-  type InlineFileActionDiffCopy,
-} from '~/lib/i18n/catalogs/inline-file-action-diff';
+import { t } from '~/lib/i18n/dictionary';
 import type { FileActionBlock } from '~/types/message-blocks';
 import { applyReviewableDiffHunks, type ReviewableDiffHunk, type ReviewableDiffLine } from '~/utils/diff';
 
@@ -53,9 +47,9 @@ export interface InlineFileActionDiffApplyDetail {
 /**
  * Phase 0 #2 UI surface — when the LLM self-repair pipeline is retrying
  * a hunk that failed AST validation, the parent can pass these counters
- * so the card shows the localized repair progress inline. `errorMessage`
- * only indicates that validation failed; the upstream parser detail remains
- * internal so technical or untrusted text is never rendered verbatim.
+ * so the card shows "Self-repair attempt 1/2…" inline. `errorMessage`
+ * surfaces the last parser error so the user knows why the agent is
+ * retrying.
  */
 export interface SelfRepairStatus {
   attempt: number;
@@ -75,11 +69,6 @@ export interface InlineFileActionDiffProps {
 }
 
 export const InlineFileActionDiff = memo(({ action, onApply, selfRepair }: InlineFileActionDiffProps) => {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getInlineFileActionDiffCopy(language);
-  const locale = language.toLowerCase().startsWith('fr') ? 'fr-FR' : 'en-US';
-  const numberFormatter = useMemo(() => new Intl.NumberFormat(locale), [locale]);
   const diff = useFileActionDiff(action);
   const hunkIds = diff.hunks.map((hunk) => hunk.id);
   const review = useFileActionReview(hunkIds);
@@ -138,37 +127,21 @@ export const InlineFileActionDiff = memo(({ action, onApply, selfRepair }: Inlin
 
   const summaryPill = (
     <span className="bolt-file-action-diff-summary" data-has-changes={diff.summary.hasChanges ? 'true' : 'false'}>
-      <span
-        className="bolt-file-action-diff-added"
-        aria-label={formatInlineFileActionDiffPlural(language, diff.summary.addedLines, {
-          one: copy['inlineFileDiff.aria.added_one'],
-          other: copy['inlineFileDiff.aria.added_other'],
-        })}
-      >
-        +{numberFormatter.format(diff.summary.addedLines)}
+      <span className="bolt-file-action-diff-added" aria-label={`${diff.summary.addedLines} added`}>
+        +{diff.summary.addedLines}
       </span>
-      <span
-        className="bolt-file-action-diff-removed"
-        aria-label={formatInlineFileActionDiffPlural(language, diff.summary.removedLines, {
-          one: copy['inlineFileDiff.aria.removed_one'],
-          other: copy['inlineFileDiff.aria.removed_other'],
-        })}
-      >
-        −{numberFormatter.format(diff.summary.removedLines)}
+      <span className="bolt-file-action-diff-removed" aria-label={`${diff.summary.removedLines} removed`}>
+        −{diff.summary.removedLines}
       </span>
     </span>
   );
 
-  const headerLabel = diff.isNewFile
-    ? copy['inlineFileDiff.status.newFile']
-    : diff.summary.hasChanges
-      ? copy['inlineFileDiff.status.changes']
-      : copy['inlineFileDiff.status.noChanges'];
+  const headerLabel = diff.isNewFile ? 'New file' : diff.summary.hasChanges ? 'Changes' : 'No changes';
 
   return (
     <section
       className="bolt-file-action-diff"
-      aria-label={formatInlineFileActionDiffCopy(copy['inlineFileDiff.aria.file'], { path: diff.filePath })}
+      aria-label={`File action diff for ${diff.filePath}`}
       data-streaming={action.streaming ? 'true' : 'false'}
       data-decided={isFullyDecided ? 'true' : 'false'}
     >
@@ -180,27 +153,23 @@ export const InlineFileActionDiff = memo(({ action, onApply, selfRepair }: Inlin
         </div>
         {summaryPill}
         {!action.streaming && diff.summary.hasChanges && onApply ? (
-          <div
-            className="bolt-file-action-diff-file-actions"
-            role="group"
-            aria-label={copy['inlineFileDiff.decision.group']}
-          >
+          <div className="bolt-file-action-diff-file-actions" role="group" aria-label="File decision">
             <button
               type="button"
               className="bolt-file-action-diff-file-action bolt-file-action-diff-file-action-accept"
               onClick={handleAcceptFile}
               disabled={acceptedCountForApply === 0}
-              aria-label={copy['inlineFileDiff.decision.accept']}
+              aria-label="Accept file"
             >
-              {copy['inlineFileDiff.decision.accept']}
+              Accept file
             </button>
             <button
               type="button"
               className="bolt-file-action-diff-file-action"
               onClick={handleRejectFile}
-              aria-label={copy['inlineFileDiff.decision.reject']}
+              aria-label="Reject file"
             >
-              {copy['inlineFileDiff.decision.reject']}
+              Reject file
             </button>
           </div>
         ) : null}
@@ -213,22 +182,15 @@ export const InlineFileActionDiff = memo(({ action, onApply, selfRepair }: Inlin
           aria-live="polite"
           data-attempt={selfRepair.attempt}
         >
-          <span>
-            <span className="i-svg-spinners:90-ring-with-bg" aria-hidden />{' '}
-            {formatInlineFileActionDiffCopy(copy['inlineFileDiff.repair.attempt'], {
-              attempt: numberFormatter.format(selfRepair.attempt),
-              maximum: numberFormatter.format(selfRepair.maxAttempts),
-            })}
-          </span>
+          <span className="i-svg-spinners:90-ring-with-bg" aria-hidden /> Self-repair attempt {selfRepair.attempt}/
+          {selfRepair.maxAttempts}…
           {selfRepair.errorMessage ? (
-            <span className="bolt-file-action-diff-self-repair-error">
-              {copy['inlineFileDiff.repair.validationFailed']}
-            </span>
+            <span className="bolt-file-action-diff-self-repair-error">{selfRepair.errorMessage}</span>
           ) : null}
         </div>
       ) : action.streaming ? (
         <div className="bolt-file-action-diff-streaming-indicator" role="status" aria-live="polite">
-          <span className="i-svg-spinners:90-ring-with-bg" aria-hidden /> {copy['inlineFileDiff.streaming']}
+          <span className="i-svg-spinners:90-ring-with-bg" aria-hidden /> {t('patchReview.streaming')}
         </div>
       ) : diff.summary.hasChanges ? (
         <ul className="bolt-file-action-diff-hunks">
@@ -236,7 +198,6 @@ export const InlineFileActionDiff = memo(({ action, onApply, selfRepair }: Inlin
             <HunkView
               key={hunk.id}
               hunk={hunk}
-              copy={copy}
               checked={review.state.decisions[hunk.id] !== 'rejected'}
               onToggle={(checked) => {
                 if (checked) {
@@ -250,21 +211,13 @@ export const InlineFileActionDiff = memo(({ action, onApply, selfRepair }: Inlin
         </ul>
       ) : (
         <div className="bolt-file-action-diff-noop" role="status">
-          {copy['inlineFileDiff.noChanges']}
+          {t('patchReview.noChanges')}
         </div>
       )}
 
       {!action.streaming && onApply && diff.summary.hasChanges ? (
         <div className="bolt-file-action-diff-footer" role="status">
-          {formatInlineFileActionDiffPlural(language, acceptedCountForApply, {
-            one: copy['inlineFileDiff.selection.selected_one'],
-            other: copy['inlineFileDiff.selection.selected_other'],
-          })}{' '}
-          ·{' '}
-          {formatInlineFileActionDiffPlural(language, rejectedCount, {
-            one: copy['inlineFileDiff.selection.excluded_one'],
-            other: copy['inlineFileDiff.selection.excluded_other'],
-          })}
+          {acceptedCountForApply} selected · {rejectedCount} excluded
         </div>
       ) : null}
     </section>
@@ -275,17 +228,16 @@ InlineFileActionDiff.displayName = 'InlineFileActionDiff';
 
 interface HunkViewProps {
   hunk: ReviewableDiffHunk;
-  copy: InlineFileActionDiffCopy;
   checked: boolean;
   onToggle: (checked: boolean) => void;
 }
 
-const HunkView = memo(({ hunk, copy, checked, onToggle }: HunkViewProps) => {
+const HunkView = memo(({ hunk, checked, onToggle }: HunkViewProps) => {
   return (
     <li
       className="bolt-file-action-diff-hunk"
       data-decision={checked ? 'accepted' : 'rejected'}
-      aria-label={formatInlineFileActionDiffCopy(copy['inlineFileDiff.hunk.aria'], { id: hunk.id })}
+      aria-label={`Hunk ${hunk.id}`}
     >
       <details className="bolt-file-action-diff-hunk-details">
         <summary className="bolt-file-action-diff-hunk-header">
@@ -296,7 +248,7 @@ const HunkView = memo(({ hunk, copy, checked, onToggle }: HunkViewProps) => {
             </span>
           </label>
           <span className="bolt-file-action-diff-hunk-show">
-            {copy['inlineFileDiff.hunk.show']}
+            Show diff
             <span className="i-ph:caret-down" aria-hidden />
           </span>
         </summary>

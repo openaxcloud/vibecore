@@ -1,10 +1,4 @@
 import { useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import {
-  formatGitMergeEditorConflicts,
-  formatGitMergeEditorCopy,
-  getGitMergeEditorCopy,
-} from '~/lib/i18n/catalogs/git-merge-editor';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -135,9 +129,6 @@ export function GitMergeEditor({
   onResolve: (resolved: string) => void;
   onCancel: () => void;
 }) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getGitMergeEditorCopy(language);
   const segments = useMemo(() => parseConflicts(content), [content]);
 
   const conflictIndexes = useMemo(
@@ -159,7 +150,6 @@ export function GitMergeEditor({
   const [rawSeeded, setRawSeeded] = useState(false);
 
   const allChosen = conflictIndexes.every((index) => choices[index]);
-  const chosenCount = conflictIndexes.filter((index) => choices[index]).length;
 
   const composed = useMemo(() => {
     if (rawMode) {
@@ -196,18 +186,18 @@ export function GitMergeEditor({
       className="rounded-md border border-amber-500/40 bg-bolt-elements-background-depth-1 p-3"
       data-testid="git-merge-editor"
     >
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm font-semibold text-bolt-elements-textPrimary">
           <span className="i-ph:git-merge text-base text-amber-500" aria-hidden />
           <code className="truncate text-xs text-bolt-elements-textSecondary">{filePath}</code>
-          <span className="shrink-0 text-xs text-bolt-elements-textSecondary">
-            {formatGitMergeEditorConflicts(conflictIndexes.length, language)}
+          <span className="text-xs text-bolt-elements-textSecondary">
+            {conflictIndexes.length} conflict{conflictIndexes.length === 1 ? '' : 's'}
           </span>
         </div>
         <div className="flex items-center gap-2">
           <button
             type="button"
-            className="min-h-11 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
+            className="rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3"
             onClick={() => {
               /*
                * Seed the raw textarea exactly ONCE, on the first entry into raw mode:
@@ -224,12 +214,12 @@ export function GitMergeEditor({
               setRawMode((value) => !value);
             }}
           >
-            {rawMode ? copy['gitMergeEditor.hunkView'] : copy['gitMergeEditor.editRaw']}
+            {rawMode ? 'Hunk view' : 'Edit raw'}
           </button>
           <button
             type="button"
-            aria-label={copy['gitMergeEditor.close']}
-            className="i-ph:x inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-base text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
+            aria-label="Close merge editor"
+            className="i-ph:x text-base text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
             onClick={onCancel}
           />
         </div>
@@ -237,7 +227,6 @@ export function GitMergeEditor({
 
       {rawMode ? (
         <textarea
-          aria-label={copy['gitMergeEditor.raw.aria']}
           value={raw}
           onChange={(event) => setRaw(event.target.value)}
           spellCheck={false}
@@ -258,22 +247,18 @@ export function GitMergeEditor({
                       key={side}
                       type="button"
                       className={classNames(
-                        'min-h-11 rounded px-3 py-2 text-[11px] font-medium whitespace-normal',
+                        'rounded px-2 py-0.5 text-[11px] font-medium',
                         choices[index] === side
                           ? 'bg-bolt-elements-item-contentAccent text-white'
                           : 'border border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
                       )}
                       onClick={() => setChoices((current) => ({ ...current, [index]: side }))}
                     >
-                      {side === 'ours'
-                        ? copy['gitMergeEditor.accept.current']
-                        : side === 'theirs'
-                          ? copy['gitMergeEditor.accept.incoming']
-                          : copy['gitMergeEditor.accept.both']}
+                      {side === 'ours' ? 'Accept current' : side === 'theirs' ? 'Accept incoming' : 'Accept both'}
                     </button>
                   ))}
                 </div>
-                <div className="grid grid-cols-1 divide-y divide-bolt-elements-borderColor sm:grid-cols-2 sm:divide-x sm:divide-y-0">
+                <div className="grid grid-cols-2 divide-x divide-bolt-elements-borderColor">
                   <pre
                     className={classNames(
                       'whitespace-pre-wrap px-3 py-1',
@@ -297,27 +282,24 @@ export function GitMergeEditor({
         </div>
       )}
 
-      <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <span className="min-w-0 text-xs leading-relaxed text-bolt-elements-textSecondary">
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <span className="text-xs text-bolt-elements-textSecondary">
           {rawMode
             ? stillHasMarkers
-              ? copy['gitMergeEditor.status.removeMarkers']
-              : copy['gitMergeEditor.status.ready']
+              ? 'Remove all conflict markers before resolving.'
+              : 'Ready to mark resolved.'
             : allChosen
-              ? copy['gitMergeEditor.status.allChosen']
-              : formatGitMergeEditorCopy(copy['gitMergeEditor.status.choose'], {
-                  chosen: chosenCount,
-                  total: conflictIndexes.length,
-                })}
+              ? 'All conflicts chosen.'
+              : `Choose a side for each conflict (${conflictIndexes.filter((index) => choices[index]).length}/${conflictIndexes.length}).`}
         </span>
         <button
           type="button"
           data-testid="git-mark-resolved"
           disabled={busy || stillHasMarkers || (!rawMode && !allChosen)}
-          className="min-h-11 shrink-0 rounded-md bg-green-500 px-4 py-2 text-sm font-semibold text-white hover:bg-green-600 disabled:opacity-60"
+          className="rounded-md bg-green-500 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-600 disabled:opacity-60"
           onClick={() => onResolve(composed)}
         >
-          {copy['gitMergeEditor.markResolved']}
+          Mark resolved
         </button>
       </div>
     </div>

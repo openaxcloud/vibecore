@@ -5,12 +5,6 @@
  * See docs/REPLIT_PARITY_SPEC.md §16.5.
  */
 
-import {
-  localizedInactivityWarningEmailContent,
-  type TransactionalEmailContent,
-  type TransactionalLocale,
-} from './transactional-i18n.js';
-
 export const INACTIVITY_DAYS = 365;
 export const INACTIVITY_WARNING_DAYS = [335, 358] as const;
 export const STARTER_PUBLISH_EXPIRY_DAYS = 30;
@@ -73,17 +67,20 @@ export function isStarterPublishExpired(publishedAtMs: number, nowMs: number): b
  * E-code-tone inactivity-warning email content (pure). Sent at the 335/358-day
  * thresholds before a free account is deleted at INACTIVITY_DAYS.
  */
-export function inactivityWarningEmailContent(
-  daysInactive: number,
-  options: { locale?: TransactionalLocale; nowMs?: number; timeZone?: string | null } = {},
-): TransactionalEmailContent {
-  return localizedInactivityWarningEmailContent({
-    daysInactive,
-    deletionAfterDays: INACTIVITY_DAYS,
-    nowMs: options.nowMs ?? Date.now(),
-    locale: options.locale,
-    timeZone: options.timeZone,
-  });
+export function inactivityWarningEmailContent(daysInactive: number): { subject: string; text: string; html: string } {
+  const daysLeft = Math.max(0, INACTIVITY_DAYS - daysInactive);
+  const subject = `Your E-Code account will be deleted in ${daysLeft} days`;
+  const text = [
+    `Your free E-Code account has been inactive for ${daysInactive} days.`,
+    `Inactive free accounts are permanently deleted after ${INACTIVITY_DAYS} days.`,
+    `You have ${daysLeft} days left — sign in to keep your account and projects.`,
+  ].join('\n\n');
+  const html =
+    `<p>Your free E-Code account has been inactive for <strong>${daysInactive} days</strong>.</p>` +
+    `<p>Inactive free accounts are permanently deleted after ${INACTIVITY_DAYS} days. ` +
+    `You have <strong>${daysLeft} days</strong> left.</p>` +
+    `<p>Sign in to keep your account and projects.</p>`;
+  return { subject, text, html };
 }
 
 /**

@@ -1,5 +1,4 @@
 import { gitlabProjectDescription, gitlabInitialCommitMessage, gitlabUpdateCommitMessage } from './gitlabBrand';
-import { clientStoresServicesText, type ClientStoresServicesKey } from '~/lib/i18n/catalogs/client-stores-services';
 import type {
   GitLabUserResponse,
   GitLabProjectInfo,
@@ -10,30 +9,6 @@ import type {
 } from '~/types/GitLab';
 
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-class GitLabApiRequestError extends Error {
-  readonly status: number;
-  readonly upstreamMessage?: string;
-
-  constructor(message: string, status: number, upstreamMessage?: string) {
-    super(message);
-    this.name = 'GitLabApiRequestError';
-    this.status = status;
-    this.upstreamMessage = upstreamMessage;
-  }
-}
-
-function gitLabRequestError(
-  key: ClientStoresServicesKey,
-  response: Response,
-  upstreamMessage?: string,
-): GitLabApiRequestError {
-  return new GitLabApiRequestError(
-    clientStoresServicesText(key, { status: response.status }),
-    response.status,
-    upstreamMessage,
-  );
-}
 
 interface CacheEntry<T> {
   data: T;
@@ -150,18 +125,32 @@ export class GitLabApiService {
     const response = await this._request('/user');
 
     if (!response.ok) {
-      const key: ClientStoresServicesKey =
-        response.status === 401
-          ? 'clientServices.gitlab.unauthorized'
-          : response.status === 403
-            ? 'clientServices.gitlab.forbidden'
-            : response.status === 404
-              ? 'clientServices.gitlab.endpointNotFound'
-              : response.status === 429
-                ? 'clientServices.gitlab.rateLimited'
-                : 'clientServices.gitlab.userRequestFailed';
+      let errorMessage = `Failed to fetch user: ${response.status}`;
 
-      throw gitLabRequestError(key, response);
+      // Provide more specific error messages based on status code
+      if (response.status === 401) {
+        errorMessage =
+          '401 Unauthorized: Invalid or expired GitLab access token. Please check your token and ensure it has the required scopes (api, read_repository).';
+      } else if (response.status === 403) {
+        errorMessage = '403 Forbidden: GitLab access token does not have sufficient permissions.';
+      } else if (response.status === 404) {
+        errorMessage = '404 Not Found: GitLab API endpoint not found. Please check your GitLab URL configuration.';
+      } else if (response.status === 429) {
+        errorMessage = '429 Too Many Requests: GitLab API rate limit exceeded. Please try again later.';
+      }
+
+      // Try to get more details from response body
+      try {
+        const errorData = (await response.json()) as any;
+
+        if (errorData.message) {
+          errorMessage += ` Details: ${errorData.message}`;
+        }
+      } catch {
+        // If we can't parse the error response, continue with the default message
+      }
+
+      throw new Error(errorMessage);
     }
 
     const user: GitLabUserResponse = await response.json();
@@ -201,7 +190,16 @@ export class GitLabApiService {
       );
 
       if (!response.ok) {
-        throw gitLabRequestError('clientServices.gitlab.projectsRequestFailed', response);
+        let errorMessage = `Failed to fetch projects: ${response.status} ${response.statusText}`;
+
+        try {
+          const errorData = await response.json();
+          console.error('GitLab projects API error:', errorData);
+          errorMessage = `Failed to fetch projects: ${JSON.stringify(errorData)}`;
+        } catch (parseError) {
+          console.error('Could not parse GitLab error response:', parseError);
+        }
+        throw new Error(errorMessage);
       }
 
       const projects: any[] = await response.json();
@@ -243,7 +241,7 @@ export class GitLabApiService {
     const response = await this._request(`/events?per_page=${perPage}`);
 
     if (!response.ok) {
-      throw gitLabRequestError('clientServices.gitlab.eventsRequestFailed', response);
+      throw new Error(`Failed to fetch events: ${response.statusText}`);
     }
 
     const events: any[] = await response.json();
@@ -298,7 +296,27 @@ export class GitLabApiService {
     });
 
     if (!response.ok) {
-      throw gitLabRequestError('clientServices.gitlab.projectCreateFailed', response);
+      let errorMessage = `Failed to create project: ${response.status} ${response.statusText}`;
+
+      try {
+        const errorData = (await response.json()) as any;
+
+        if (errorData.message) {
+          if (typeof errorData.message === 'object') {
+            // Handle validation errors
+            const messages = Object.entries(errorData.message as Record<string, any>)
+              .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`)
+              .join('; ');
+            errorMessage = `Failed to create project: ${messages}`;
+          } else {
+            errorMessage = `Failed to create project: ${errorData.message}`;
+          }
+        }
+      } catch (parseError) {
+        console.error('Could not parse error response:', parseError);
+      }
+
+      throw new Error(errorMessage);
     }
 
     return await response.json();
@@ -337,7 +355,7 @@ export class GitLabApiService {
     });
 
     if (!response.ok) {
-      throw gitLabRequestError('clientServices.gitlab.branchCreateFailed', response);
+      throw new Error(`Failed to create branch: ${response.statusText}`);
     }
 
     return await response.json();
@@ -350,21 +368,21 @@ export class GitLabApiService {
     });
 
     if (!response.ok) {
-      let upstreamMessage: string | undefined;
+      let errorMessage = `Failed to commit files: ${response.status} ${response.statusText}`;
 
       try {
         const errorData = (await response.json()) as { message?: string; error?: string };
 
         if (errorData.message) {
-          upstreamMessage = errorData.message;
+          errorMessage = errorData.message;
         } else if (errorData.error) {
-          upstreamMessage = errorData.error;
+          errorMessage = errorData.error;
         }
       } catch {
-        // An unreadable upstream payload must not be exposed to the interface.
+        // If JSON parsing fails, keep the default error message
       }
 
-      throw gitLabRequestError('clientServices.gitlab.commitFailed', response, upstreamMessage);
+      throw new Error(errorMessage);
     }
 
     return await response.json();
@@ -397,7 +415,7 @@ export class GitLabApiService {
 
       const errorText = await response.text();
       console.error(`Failed to fetch project ${projectPath}:`, response.status, errorText);
-      throw gitLabRequestError('clientServices.gitlab.projectRequestFailed', response);
+      throw new Error(`Failed to fetch project: ${response.status} ${response.statusText}`);
     } catch (error) {
       if (error instanceof Error && (error.message.includes('404') || error.message.includes('Not Found'))) {
         return null;
@@ -414,7 +432,7 @@ export class GitLabApiService {
     });
 
     if (!response.ok) {
-      throw gitLabRequestError('clientServices.gitlab.visibilityUpdateFailed', response);
+      throw new Error(`Failed to update project visibility: ${response.status} ${response.statusText}`);
     }
   }
 
@@ -480,7 +498,7 @@ export class GitLabApiService {
       await this.commitFiles(projectId, commitRequest);
     } catch (error) {
       // If we get file conflicts, retry with update actions
-      if (error instanceof GitLabApiRequestError && error.upstreamMessage?.includes('already exists')) {
+      if (error instanceof Error && error.message.includes('already exists')) {
         const updateActions = Object.entries(files).map(([filePath, content]) => ({
           action: 'update' as const,
           file_path: filePath,

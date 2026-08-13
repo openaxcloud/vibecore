@@ -1,21 +1,10 @@
 import { atom } from 'nanostores';
 import { toast } from 'react-toastify';
 import { logStore } from './logs';
-import {
-  formatClientRuntimeResidualCopy,
-  getClientRuntimeResidualCopy,
-} from '~/lib/i18n/catalogs/client-runtime-residual';
-import { getI18nInstance } from '~/lib/i18n/runtime';
 import type { VercelConnection } from '~/types/vercel';
 
 // Auto-connect using environment variable
 const envToken = import.meta.env?.VITE_VERCEL_ACCESS_TOKEN;
-
-function getVercelConnectionCopy() {
-  const i18n = getI18nInstance();
-
-  return getClientRuntimeResidualCopy(i18n.resolvedLanguage ?? i18n.language);
-}
 
 // Initialize with stored connection or defaults
 const storedConnection = typeof window !== 'undefined' ? localStorage.getItem('vercel_connection') : null;
@@ -31,11 +20,7 @@ if (storedConnection) {
      * would throw. Treat a valid-but-wrong shape the same as invalid JSON.
      */
     if (!parsed || typeof parsed !== 'object') {
-      throw new Error(
-        formatClientRuntimeResidualCopy(getVercelConnectionCopy()['clientRuntime.connection.savedDataInvalid'], {
-          provider: 'Vercel',
-        }),
-      );
+      throw new Error('Invalid stored Vercel connection shape');
     }
 
     // If we have a stored connection but no user and no token, clear it and use env token
@@ -87,17 +72,11 @@ export const updateVercelConnection = (updates: Partial<VercelConnection>) => {
 
 // Auto-connect using environment token
 export async function autoConnectVercel() {
-  const copy = getVercelConnectionCopy();
   console.log('autoConnectVercel called, envToken exists:', !!envToken);
 
   if (!envToken) {
     console.error('No Vercel token found in environment');
-    return {
-      success: false,
-      error: formatClientRuntimeResidualCopy(copy['clientRuntime.connection.environmentTokenMissing'], {
-        provider: 'Vercel',
-      }),
-    };
+    return { success: false, error: 'No Vercel token found in environment' };
   }
 
   try {
@@ -117,7 +96,7 @@ export async function autoConnectVercel() {
     console.log('Vercel API response status:', response.status);
 
     if (!response.ok) {
-      throw Object.assign(new Error(), { code: 'VERCEL_USER_HTTP_ERROR', status: response.status });
+      throw new Error(`Vercel API error: ${response.status}`);
     }
 
     const userData = (await response.json()) as any;
@@ -130,13 +109,9 @@ export async function autoConnectVercel() {
       token: envToken,
     });
 
-    const connectedMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.autoConnectedAs'], {
-      provider: 'Vercel',
-      account: userData.user?.username || userData.username,
-    });
-    logStore.logInfo(connectedMessage, {
+    logStore.logInfo('Auto-connected to Vercel', {
       type: 'system',
-      message: connectedMessage,
+      message: `Auto-connected to Vercel as ${userData.user?.username || userData.username}`,
     });
 
     // Fetch stats
@@ -148,18 +123,14 @@ export async function autoConnectVercel() {
     return { success: true };
   } catch (error) {
     console.error('Failed to auto-connect to Vercel:', error);
-
-    const failureMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.autoConnectionFailed'], {
-      provider: 'Vercel',
-    });
-    logStore.logError(failureMessage, {
+    logStore.logError(`Vercel auto-connection failed: ${error instanceof Error ? error.message : 'Unknown error'}`, {
       type: 'system',
-      message: failureMessage,
+      message: 'Vercel auto-connection failed',
     });
 
     return {
       success: false,
-      error: failureMessage,
+      error: error instanceof Error ? error.message : 'Unknown error',
     };
   } finally {
     console.log('Setting isConnecting to false');
@@ -180,8 +151,6 @@ export function initializeVercelConnection() {
 export const fetchVercelStatsViaAPI = fetchVercelStats;
 
 export async function fetchVercelStats(token: string) {
-  const copy = getVercelConnectionCopy();
-
   try {
     isFetchingStats.set(true);
 
@@ -193,7 +162,7 @@ export async function fetchVercelStats(token: string) {
     });
 
     if (!projectsResponse.ok) {
-      throw Object.assign(new Error(), { code: 'VERCEL_PROJECTS_HTTP_ERROR', status: projectsResponse.status });
+      throw new Error(`Failed to fetch projects: ${projectsResponse.status}`);
     }
 
     const projectsData = (await projectsResponse.json()) as any;
@@ -249,12 +218,8 @@ export async function fetchVercelStats(token: string) {
     });
   } catch (error) {
     console.error('Vercel API Error:', error);
-
-    const failureMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsFetchFailed'], {
-      provider: 'Vercel',
-    });
-    logStore.logError(failureMessage, { error });
-    toast.error(failureMessage);
+    logStore.logError('Failed to fetch Vercel stats', { error });
+    toast.error('Failed to fetch Vercel statistics');
   } finally {
     isFetchingStats.set(false);
   }

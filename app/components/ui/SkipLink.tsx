@@ -5,20 +5,14 @@
  * floating pill. The target container must carry id="main-content" and
  * tabIndex={-1} so focus lands on it after activation.
  */
-export function SkipLink({
-  label = 'Skip to content',
-  targetId = 'main-content',
-}: {
-  label?: string;
-  targetId?: string;
-}) {
+export function SkipLink({ targetId = 'main-content' }: { targetId?: string }) {
   return (
     <a
       href={`#${targetId}`}
-      className="fixed left-4 top-4 z-[10000] inline-flex min-h-11 min-w-11 -translate-y-24 items-center rounded-lg border bg-bolt-elements-background-depth-2 px-4 py-2 text-sm font-medium text-bolt-elements-textPrimary shadow-md focus:translate-y-0"
+      className="fixed left-4 top-4 z-[10000] -translate-y-24 rounded-lg border bg-bolt-elements-background-depth-2 px-4 py-2 text-sm font-medium text-bolt-elements-textPrimary shadow-md focus:translate-y-0"
       style={{ borderColor: 'var(--ecode-focus-ring)' }}
     >
-      {label}
+      Skip to content
     </a>
   );
 }

@@ -1,6 +1,5 @@
 import { type LoaderFunctionArgs } from 'react-router';
 import { resolveConnectorToken, type DeployConnectorProvider } from '~/lib/connectors/connector-token.server';
-import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 import { json } from '~/lib/json-response';
 import { withSecurity } from '~/lib/security';
 
@@ -22,7 +21,7 @@ async function connectorTokenLoader({ request, params }: LoaderFunctionArgs) {
   const provider = params.provider as DeployConnectorProvider;
 
   if (!ALLOWED.has(provider)) {
-    return remainingApiErrorResponse(request, 'CONNECTOR_PROVIDER_UNSUPPORTED', 400, { extra: { token: null } });
+    return json({ token: null, error: 'Unsupported connector provider' }, { status: 400 });
   }
 
   const token = await resolveConnectorToken(request, provider);

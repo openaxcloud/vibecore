@@ -18,10 +18,7 @@ function formRequest(timezone: string): Request {
   return new Request('https://app.test/account-settings', { method: 'POST', body: form });
 }
 
-type ActionResult = {
-  data: { feedbackCode?: 'saved'; errorCode?: 'invalidTimezone' | 'valueRequired' | 'saveFailed' };
-  init?: { status?: number; headers?: Headers };
-};
+type ActionResult = { data: { status?: string; error?: string }; init?: { status?: number } };
 
 describe('account settings time zone action', () => {
   afterEach(() => {
@@ -34,7 +31,7 @@ describe('account settings time zone action', () => {
 
     expect(apiRequest).not.toHaveBeenCalled();
     expect(result.init?.status).toBe(400);
-    expect(result.data.errorCode).toBe('invalidTimezone');
+    expect(result.data.error).toBe('Choose a valid IANA time zone.');
   });
 
   it('trims and saves a valid IANA time zone', async () => {
@@ -48,21 +45,6 @@ describe('account settings time zone action', () => {
     expect(JSON.parse(String((apiRequest.mock.calls[0][2] as RequestInit).body))).toEqual({
       timezone: 'Europe/Paris',
     });
-    expect(result.data.feedbackCode).toBe('saved');
-  });
-
-  it('returns a stable error code without forwarding upstream account details', async () => {
-    apiRequest.mockRejectedValueOnce(
-      new Response(JSON.stringify({ error: 'Private identity provider leaked a diagnostic.' }), {
-        status: 422,
-        headers: { 'content-type': 'application/json' },
-      }),
-    );
-
-    const { action } = await import('./account-settings._index');
-    const result = (await action({ request: formRequest('Europe/Paris') } as any)) as ActionResult;
-
-    expect(result.data.errorCode).toBe('saveFailed');
-    expect(JSON.stringify(result.data)).not.toContain('Private identity provider');
+    expect(result.data.status).toBe('Account settings saved.');
   });
 });

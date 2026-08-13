@@ -1,13 +1,7 @@
-import { useTranslation } from 'react-i18next';
 import { useLocation, useRouteError } from 'react-router';
 import { AsyncPanelError } from './AsyncPanelState';
 import { AppShell, LinkButton } from './SaaSLayout';
-import {
-  defaultUserAreaTranslate,
-  resolveUserAreaSurface,
-  type UserAreaSurface,
-  type UserAreaTranslate,
-} from '~/lib/user-area-surface';
+import { resolveUserAreaSurface, type UserAreaSurface } from '~/lib/user-area-surface';
 
 export { resolveUserAreaSurface } from '~/lib/user-area-surface';
 
@@ -31,17 +25,13 @@ function errorStatus(error: unknown): number | null {
   return null;
 }
 
-export function describeUserAreaRouteError(
-  error: unknown,
-  surface: UserAreaSurface,
-  translate: UserAreaTranslate = defaultUserAreaTranslate,
-): UserAreaErrorDescriptor {
+export function describeUserAreaRouteError(error: unknown, surface: UserAreaSurface): UserAreaErrorDescriptor {
   const status = errorStatus(error);
 
   if (status === 401) {
     return {
-      title: translate('userArea.routeError.signInRequired'),
-      description: translate('userArea.routeError.signInRequiredBody'),
+      title: 'Sign in required',
+      description: 'Your session ended before this page could load. Sign in again to continue.',
       retryable: false,
       tone: 'warning',
       signInRequired: true,
@@ -50,8 +40,8 @@ export function describeUserAreaRouteError(
 
   if (status === 403) {
     return {
-      title: translate('userArea.routeError.accessRestricted'),
-      description: translate('userArea.routeError.accessRestrictedBody'),
+      title: 'Access restricted',
+      description: 'Your current role does not include access to this page. No data was changed.',
       retryable: false,
       tone: 'warning',
       signInRequired: false,
@@ -60,8 +50,8 @@ export function describeUserAreaRouteError(
 
   if (status === 404) {
     return {
-      title: translate('userArea.routeError.notFound', { surface: surface.title }),
-      description: translate('userArea.routeError.notFoundBody'),
+      title: `${surface.title} was not found`,
+      description: 'The requested resource may have been removed or you may no longer have access to it.',
       retryable: false,
       tone: 'warning',
       signInRequired: false,
@@ -70,8 +60,8 @@ export function describeUserAreaRouteError(
 
   if (status === 429) {
     return {
-      title: translate('userArea.routeError.rateLimited', { surface: surface.title }),
-      description: translate('userArea.routeError.rateLimitedBody'),
+      title: `${surface.title} is temporarily limited`,
+      description: 'Too many requests were made in a short period. Wait a moment, then try again.',
       retryable: true,
       tone: 'warning',
       signInRequired: false,
@@ -79,8 +69,9 @@ export function describeUserAreaRouteError(
   }
 
   return {
-    title: translate('userArea.routeError.loadFailed', { surface: surface.title }),
-    description: translate('userArea.routeError.loadFailedBody'),
+    title: `${surface.title} could not load`,
+    description:
+      'The latest request failed, so this page is hidden to avoid showing incomplete data. No data was changed.',
     retryable: true,
     tone: 'error',
     signInRequired: false,
@@ -88,12 +79,10 @@ export function describeUserAreaRouteError(
 }
 
 export function UserAreaRouteErrorBoundary() {
-  const { t } = useTranslation();
   const error = useRouteError();
   const location = useLocation();
-  const translate: UserAreaTranslate = (key, values) => t(key, values);
-  const surface = resolveUserAreaSurface(location.pathname, translate);
-  const descriptor = describeUserAreaRouteError(error, surface, translate);
+  const surface = resolveUserAreaSurface(location.pathname);
+  const descriptor = describeUserAreaRouteError(error, surface);
   const signInTarget = `/login?returnTo=${encodeURIComponent(`${location.pathname}${location.search}`)}`;
 
   return (
@@ -102,7 +91,7 @@ export function UserAreaRouteErrorBoundary() {
       description={surface.description}
       actions={
         <LinkButton to={descriptor.signInRequired ? signInTarget : surface.backTo} variant="outline">
-          {descriptor.signInRequired ? t('userArea.routeError.signIn') : surface.backLabel}
+          {descriptor.signInRequired ? 'Sign in' : surface.backLabel}
         </LinkButton>
       }
     >
@@ -110,6 +99,7 @@ export function UserAreaRouteErrorBoundary() {
         title={descriptor.title}
         description={descriptor.description}
         tone={descriptor.tone}
+        retryLabel="Try again"
         onRetry={
           descriptor.retryable
             ? () => {

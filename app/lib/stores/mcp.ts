@@ -1,9 +1,4 @@
 import { create } from 'zustand';
-import {
-  getClientRuntimeResidualCopy,
-  type ClientRuntimeResidualKey,
-} from '~/lib/i18n/catalogs/client-runtime-residual';
-import { getI18nInstance } from '~/lib/i18n/runtime';
 import type { MCPConfig, MCPServerTools } from '~/lib/services/mcpService';
 
 const MCP_SETTINGS_KEY = 'mcp_settings';
@@ -36,14 +31,6 @@ type Actions = {
 };
 
 let initializePromise: Promise<void> | null = null;
-
-const mcpI18n = getI18nInstance();
-
-let currentMcpErrorKey: ClientRuntimeResidualKey | null = null;
-
-function getMcpCopy() {
-  return getClientRuntimeResidualCopy(mcpI18n.resolvedLanguage ?? mcpI18n.language);
-}
 
 export const useMCPStore = create<Store & Actions>((set, get) => ({
   isInitialized: false,
@@ -80,16 +67,12 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
 
         try {
           const serverTools = await updateServerConfig(settings.mcpConfig);
-          currentMcpErrorKey = null;
-          set(() => ({ settings, serverTools, error: null }));
+          set(() => ({ settings, serverTools }));
         } catch (error) {
           console.error('Error applying saved mcp config:', error);
-
-          const errorKey = 'clientRuntime.mcp.applySavedFailed';
-          currentMcpErrorKey = errorKey;
           set(() => ({
             settings,
-            error: getMcpCopy()[errorKey],
+            error: `Error applying saved mcp config: ${error instanceof Error ? error.message : String(error)}`,
           }));
         }
 
@@ -107,12 +90,11 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
   },
   updateSettings: async (newSettings: MCPSettings) => {
     if (get().isUpdatingConfig) {
-      throw new Error(getMcpCopy()['clientRuntime.mcp.updateInProgress']);
+      throw new Error('An MCP configuration update is already in progress; please retry.');
     }
 
     try {
-      currentMcpErrorKey = null;
-      set(() => ({ isUpdatingConfig: true, error: null }));
+      set(() => ({ isUpdatingConfig: true }));
 
       const serverTools = await updateServerConfig(newSettings.mcpConfig);
 
@@ -129,50 +111,27 @@ export const useMCPStore = create<Store & Actions>((set, get) => ({
         console.warn('Failed to persist MCP configuration to server:', error);
       });
 
-      set(() => ({ settings: newSettings, serverTools, error: null }));
+      set(() => ({ settings: newSettings, serverTools }));
     } catch (error) {
-      console.error('Failed to update MCP configuration:', error);
-      currentMcpErrorKey = 'clientRuntime.mcp.updateFailed';
-
-      const message = getMcpCopy()[currentMcpErrorKey];
-      set(() => ({ error: message }));
-      throw new Error(message);
+      throw error;
     } finally {
       set(() => ({ isUpdatingConfig: false }));
     }
   },
   checkServersAvailabilities: async () => {
-    try {
-      const response = await fetch('/api/mcp-check', {
-        method: 'GET',
-      });
+    const response = await fetch('/api/mcp-check', {
+      method: 'GET',
+    });
 
-      if (!response.ok) {
-        throw Object.assign(new Error(), { code: 'MCP_AVAILABILITY_HTTP_ERROR', status: response.status });
-      }
-
-      const serverTools = (await response.json()) as MCPServerTools;
-
-      currentMcpErrorKey = null;
-      set(() => ({ serverTools, error: null }));
-    } catch (error) {
-      console.error('Failed to check MCP server availability:', error);
-      currentMcpErrorKey = 'clientRuntime.mcp.availabilityFailed';
-
-      const message = getMcpCopy()[currentMcpErrorKey];
-      set(() => ({ error: message }));
-      throw new Error(message);
+    if (!response.ok) {
+      throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
     }
+
+    const serverTools = (await response.json()) as MCPServerTools;
+
+    set(() => ({ serverTools }));
   },
 }));
-
-mcpI18n.on('languageChanged', () => {
-  if (!currentMcpErrorKey) {
-    return;
-  }
-
-  useMCPStore.setState({ error: getMcpCopy()[currentMcpErrorKey] });
-});
 
 function loadSettingsFromLocalStorage(): MCPSettings {
   const savedConfig = localStorage.getItem(MCP_SETTINGS_KEY);
@@ -216,7 +175,7 @@ async function persistSettingsToDb(settings: MCPSettings): Promise<void> {
   });
 
   if (!response.ok) {
-    throw Object.assign(new Error(), { code: 'MCP_PERSIST_HTTP_ERROR', status: response.status });
+    throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
   }
 }
 
@@ -228,7 +187,7 @@ async function updateServerConfig(config: MCPConfig) {
   });
 
   if (!response.ok) {
-    throw Object.assign(new Error(), { code: 'MCP_UPDATE_HTTP_ERROR', status: response.status });
+    throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
   }
 
   const data = (await response.json()) as MCPServerTools;

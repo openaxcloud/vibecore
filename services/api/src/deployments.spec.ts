@@ -39,36 +39,3 @@ describe('createDeploymentLogs', () => {
     expect(messages.join('\n')).toContain('Deployment ready:');
   });
 });
-
-describe('createDeploymentLogs timestamps', () => {
-  /*
-   * The summary block is persisted at the END of the pipeline but describes the
-   * QUEUE. Stamping it with "now" sorted it above every real build line, so the
-   * Logs panel opened with the outcome and buried the build below it (proven
-   * live 2026-08-06).
-   */
-  it('stamps the queue summary with the deployment start time, not the persist time', () => {
-    const startedAt = '2026-08-06T14:42:41.000Z';
-
-    const entries = createDeploymentLogs(
-      input,
-      {
-        provider: 'static',
-        environment: 'production',
-        framework: 'vite',
-        url: 'https://s-x.preview.example',
-        startedAt,
-        createdAt: startedAt,
-      } as unknown as Parameters<typeof createDeploymentLogs>[1],
-      project,
-    );
-
-    expect(entries.length).toBeGreaterThan(0);
-    expect(entries.every((entry) => entry.timestamp === startedAt)).toBe(true);
-
-    // A build line emitted mid-pipeline must sort AFTER the queue summary.
-    const buildLine = { timestamp: '2026-08-06T14:42:43.807Z' };
-    const sorted = [...entries, buildLine].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-    expect(sorted[sorted.length - 1]).toBe(buildLine);
-  });
-});

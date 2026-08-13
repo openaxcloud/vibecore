@@ -5,10 +5,8 @@ import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import { closeSettingsOverlay } from '~/lib/settings-navigation';
 import { TAB_ALIASES, settingsTabTitle } from '~/lib/settings-tab-title';
 
-export const meta: MetaFunction = ({ params, matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-
-  return [{ title: settingsTabTitle(params.tab, rootData?.language) }];
+export const meta: MetaFunction = ({ params }) => {
+  return [{ title: settingsTabTitle(params.tab) }];
 };
 
 export default function SettingsTabRoute() {

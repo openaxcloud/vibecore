@@ -666,9 +666,6 @@ model Workspace {
   ports            WorkspacePort[]
   snapshots        FileSnapshot[]
   ideState         WorkspaceIdeState?
-  readinessBeacons PreviewReadinessBeacon[]
-  lifecycleEvents  WorkspaceLifecycleEvent[]
-  postMortems      WorkspacePostMortem[]
 
   @@index([projectId])
 }
@@ -820,45 +817,6 @@ model DeploymentEnvironment {
   id          String       @id @default(cuid())
   name        String       @unique
   deployments Deployment[]
-}
-
-// P0-V3-08 deployment rollback manifest: one IMMUTABLE row appended per successful
-// publish. It captures everything a DETERMINISTIC rollback needs so a published
-// deployment can be restored to its previous version for real — independent of any
-// live runtime/snapshot state. `deploymentId` is a plain pointer with NO FK on
-// purpose: the manifest OUTLIVES the deployment row (a deployment can be pruned but
-// its release must remain rollback-addressable). `version` is monotonic per
-// (projectId, environment) so N-1 is unambiguous. A rollback that finds no previous
-// manifest — or an artifact whose bytes no longer match `artifactDigest` — MUST fail
-// closed rather than serve a blind/stale rollback.
-model ReleaseManifest {
-  id           String @id @default(cuid())
-  projectId    String
-  deploymentId String
-  environment  String @default("preview")
-  version      Int
-  provider     String
-
-  // 'static-snapshot' (artifactDigest = sha256 of the served bundle bytes) or
-  // 'server-image' (artifactDigest = the image sha256, artifactRef = bare AR ref).
-  artifactKind   String
-  artifactRef    String
-  artifactDigest String
-
-  // Declared, never faked — NULL when the pipeline doesn't emit it:
-  //  storeGeneration  = the ecode.lock Nix generation the release pinned (server)
-  //  configDigest     = sha256 fingerprint of the effective env/config at publish
-  //  dbMigrationPoint = latest applied DB migration marker at publish (RECORDED for
-  //                     compatibility checks; image rollback never reverts the DB)
-  storeGeneration  String?
-  configDigest     String?
-  dbMigrationPoint String?
-
-  createdAt DateTime @default(now())
-
-  @@unique([projectId, environment, version])
-  @@index([projectId, environment])
-  @@index([deploymentId])
 }
 
 // Versioned Rate Card: the priced catalogue (machine sizes, compute-unit and
@@ -1477,12 +1435,9 @@ model McpCatalogEntry {
   id                  String       @id @default(cuid())
   slug                String       @unique
   name                String
-  nameFr              String?
   description         String
-  descriptionFr       String?
   domain              McpDomain
   tags                String[]
-  tagsFr              String[]     @default([])
   author              String
   homepageUrl         String?
   iconUrl             String?
@@ -1490,7 +1445,6 @@ model McpCatalogEntry {
   transport           McpTransport
   configTemplate      Json
   configSchema        Json         @default("{}")
-  configSchemaFr      Json         @default("{}")
   installCount        Int          @default(0)
   featured            Boolean      @default(false)
   verified            Boolean      @default(false)
@@ -1867,10 +1821,6 @@ model Notification {
   category  String    @default("system")
   title     String
   body      String?
-  /// Stable i18n descriptor for newly-produced notifications. Nullable keeps
-  /// every historical row and older producer compatible with title/body.
-  messageKey    String?
-  messageParams Json?
   /// Optional in-app link the notification points at (e.g. /account/connections).
   linkUrl   String?
   /// Free-form producer metadata (e.g. the source alert id / provider) so the
@@ -2506,10 +2456,6 @@ model GalleryListing {
   authorUserId     String?
   /// Outbound "View App" link to the deployed app (may be null pre-deploy).
   appUrl           String?
-  /// Card preview image (a real rendered screenshot). Root-relative static
-  /// asset (/gallery-apps/<id>/thumbnail.png) or an https URL; null renders
-  /// the text-only card.
-  thumbnailUrl     String?
   /// FAIL-CLOSED (directive 20/07) : un projet publié ordinaire est
   /// ALL_RIGHTS_RESERVED, non-remixable. remixAllowed ne passe true qu'avec
   /// une licence EXPLICITE + confirmation des droits + politique PII acceptée.
@@ -2525,15 +2471,6 @@ model GalleryListing {
   /// Version of the PII-sharing consent the AUTHOR explicitly gave at curation
   /// (data ships unmasked). Null = no consent → PII is masked on every remix.
   piiConsentVersion String?
-  /// TRACE AUDITABLE des confirmations exigées pour rendre un listing remixable
-  /// (P0-V3-05, réserve #8). Avant la migration 0081 elles étaient validées à la
-  /// curation puis JAMAIS écrites : la confirmation des droits par le curateur
-  /// était inauditable a posteriori. Horodatage + acteur (userId de l'admin qui
-  /// a curé). Null = jamais confirmé.
-  rightsConfirmedAt DateTime?
-  rightsConfirmedBy String?
-  piiPolicyAcceptedAt DateTime?
-  piiPolicyAcceptedBy String?
   viewCount        Int       @default(0)
   useCount         Int       @default(0)
   createdAt        DateTime  @default(now())
@@ -2694,59 +2631,4 @@ model LedgerReconciliationRun {
   metadata         Json?
 
   @@index([source, runAt])
-}
-
-// BLOCKER #5 — honest preview readiness. The in-preview reporter script detects a
-// blank DOM / console error the server can never see and beacons it. Persisting
-// it (vs the old fire-and-forget log) lets `/ports` readiness be honest across
-// API replicas: a fresh blank/error beacon vetoes `ready` even when the port
-// probe passed. `status`: 'ok' | 'blank' | 'error'. One row per (workspace,port),
-// upserted; readiness only honours beacons newer than a short TTL.
-model PreviewReadinessBeacon {
-  id          String    @id @default(cuid())
-  workspaceId String
-  port        Int
-  status      String
-  detail      String?
-  reportedAt  DateTime  @default(now())
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@unique([workspaceId, port])
-  @@index([workspaceId])
-}
-
-// BLOCKER #6 — timestamped workspace lifecycle machine. Append-only trail of
-// PENDING->STARTING->RUNNING->STOPPING->STOPPED/FAILED transitions so a workspace
-// that died can be reconstructed after the fact (vs Workspace.status, a single
-// overwritten value). `state` is a WorkspaceLifecycleState; transitions are
-// validated by assertWorkspaceLifecycleTransition before write.
-model WorkspaceLifecycleEvent {
-  id          String    @id @default(cuid())
-  workspaceId String
-  state       String
-  reason      String?
-  detail      Json?
-  at          DateTime  @default(now())
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@index([workspaceId, at])
-}
-
-// BLOCKER #6 — post-mortem snapshot captured when a workspace stops/fails: the
-// last-known ports, processes, Problems (beacons/diagnostics) and a tail of the
-// runtime logs, frozen at shutdown. Append-only (one per stop), so a support
-// operator can see WHY a preview was blank/dead after the pod is gone.
-model WorkspacePostMortem {
-  id          String    @id @default(cuid())
-  workspaceId String
-  reason      String
-  finalState  String
-  ports       Json?
-  processes   Json?
-  problems    Json?
-  logsTail    String?
-  capturedAt  DateTime  @default(now())
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
-
-  @@index([workspaceId, capturedAt])
 }

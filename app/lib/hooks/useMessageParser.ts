@@ -1,6 +1,5 @@
 import type { Message } from 'ai';
 import { useCallback, useState } from 'react';
-import { detectUserLanguage } from '~/lib/i18n/language';
 import { EnhancedStreamingMessageParser } from '~/lib/runtime/enhanced-message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
@@ -8,7 +7,6 @@ import { createScopedLogger } from '~/utils/logger';
 const logger = createScopedLogger('useMessageParser');
 
 const messageParser = new EnhancedStreamingMessageParser({
-  language: detectUserLanguage,
   callbacks: {
     onArtifactOpen: (data) => {
       logger.trace('onArtifactOpen', data);

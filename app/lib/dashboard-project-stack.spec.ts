@@ -23,10 +23,4 @@ describe('projectStackLabel', () => {
     expect(projectStackLabel({ gitRepositoryUrl: null, sourceType: null })).toBe('E-Code project');
     expect(projectStackLabel({})).not.toMatch(/bolt/i);
   });
-
-  it('uses French product vocabulary without exposing unknown source identifiers', () => {
-    expect(projectStackLabel({ gitRepositoryUrl: 'https://github.com/acme/app' }, 'fr')).toBe('Dépôt GitHub');
-    expect(projectStackLabel({ sourceType: 'template' }, 'fr')).toBe('Modèle');
-    expect(projectStackLabel({ sourceType: 'custom_import' }, 'fr')).toBe('Projet E-Code');
-  });
 });

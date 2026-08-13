@@ -45,25 +45,7 @@ describe('classifyDatabaseRestoreError', () => {
 
   it('treats other errors as a real failure carrying the status', () => {
     const outcome = classifyDatabaseRestoreError({ status: 403, code: 'FORBIDDEN', message: 'nope' });
-    expect(outcome).toEqual({
-      kind: 'failed',
-      status: 403,
-      message: 'Files were restored, but the database could not be restored.',
-    });
-  });
-
-  it('localizes warnings in French without exposing an upstream message', () => {
-    const outcome = classifyDatabaseRestoreError(
-      { status: 500, code: 'UPSTREAM_FAILURE', message: 'secret database host failed' },
-      'fr',
-    );
-
-    expect(outcome).toEqual({
-      kind: 'failed',
-      status: 500,
-      message: 'Les fichiers ont été restaurés, mais la base de données n’a pas pu être restaurée.',
-    });
-    expect(JSON.stringify(outcome)).not.toContain('secret database host');
+    expect(outcome).toEqual({ kind: 'failed', status: 403, message: 'nope' });
   });
 });
 

@@ -15,10 +15,8 @@ import {
   Zap,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import type { IconType } from 'react-icons';
 import { SiApple, SiLinux } from 'react-icons/si';
-
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -32,58 +30,24 @@ import {
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { desktopDownloadUrl } from '~/components/marketing/ecode-exact/pages/desktop-download';
-import {
-  getMarketingExactStatusDesktopCopy,
-  interpolateMarketingExactStatusDesktopCopy,
-  type DesktopCapabilityId,
-  type DesktopGitPointId,
-  type DesktopOperatingSystemId,
-} from '~/lib/i18n/catalogs/marketing-exact-status-desktop';
 
 const PRODUCT = '/ecode-static/assets/product';
 
-const DESKTOP_DOWNLOAD_MEDIA: Record<DesktopOperatingSystemId, { os: string; icon: IconType; file: string }> = {
-  macos: { os: 'macOS', icon: SiApple, file: 'E-Code.dmg' },
-  windows: { os: 'Windows', icon: Monitor, file: 'E-Code-Setup.exe' },
-  linux: { os: 'Linux', icon: SiLinux, file: 'E-Code.AppImage' },
-};
-
-const PRIMARY_DESKTOP_DOWNLOAD = DESKTOP_DOWNLOAD_MEDIA.macos;
-
-const DESKTOP_CAPABILITY_ICONS: Record<DesktopCapabilityId, LucideIcon> = {
-  nativeIde: PanelsTopLeft,
-  performance: Zap,
-  offline: WifiOff,
-  workspaces: Cloud,
-  integration: HardDrive,
-  multiWindow: Layers,
-};
-
-const DESKTOP_REQUIREMENT_ICONS: Record<DesktopOperatingSystemId, LucideIcon> = {
-  macos: Command,
-  windows: Monitor,
-  linux: Terminal,
-};
-
-const DESKTOP_GIT_ICONS: Record<DesktopGitPointId, LucideIcon> = {
-  staging: FolderGit2,
-  branches: GitBranch,
-  sync: RefreshCw,
-};
-
-/** Frames real product screenshots with recognizable desktop-window chrome. */
+/**
+ * macOS-style window chrome wrapper used to frame real product screenshots so the
+ * marketing page reads as "this is the actual app", not a mock. The traffic-light
+ * dots + title bar give it the recognizable desktop-app silhouette.
+ */
 function WindowFrame({
   title,
   src,
   alt,
   priority = false,
-  technicalTitle = false,
 }: {
   title: string;
   src: string;
   alt: string;
   priority?: boolean;
-  technicalTitle?: boolean;
 }) {
   return (
     <div className="rounded-xl overflow-hidden border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl">
@@ -93,12 +57,7 @@ function WindowFrame({
           <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
           <span className="h-3 w-3 rounded-full bg-[#28c840]" />
         </span>
-        <span
-          className="mx-auto min-w-0 truncate px-3 text-[12px] font-medium text-muted-foreground"
-          data-i18n-audit-ignore={technicalTitle ? true : undefined}
-        >
-          {title}
-        </span>
+        <span className="mx-auto text-[12px] font-medium text-muted-foreground truncate px-3">{title}</span>
         <span className="h-3 w-3" aria-hidden="true" />
       </div>
       <img src={src} alt={alt} loading={priority ? 'eager' : 'lazy'} decoding="async" className="block w-full h-auto" />
@@ -107,105 +66,164 @@ function WindowFrame({
 }
 
 export default function Desktop() {
-  const { i18n } = useTranslation();
-  const copy = getMarketingExactStatusDesktopCopy(i18n.resolvedLanguage ?? i18n.language).exactDesktop;
+  const downloads: { os: string; icon: IconType; hint: string; file: string }[] = [
+    { os: 'macOS', icon: SiApple, hint: 'Universal · Apple Silicon & Intel', file: 'E-Code.dmg' },
+    { os: 'Windows', icon: Monitor, hint: '64-bit · Windows 10 and later', file: 'E-Code-Setup.exe' },
+    { os: 'Linux', icon: SiLinux, hint: 'AppImage · Debian & RPM', file: 'E-Code.AppImage' },
+  ];
 
-  const downloads = copy.downloads.items.map((download) => ({
-    ...download,
-    ...DESKTOP_DOWNLOAD_MEDIA[download.id],
-  }));
-  const capabilities = copy.capabilities.items.map((capability) => ({
-    ...capability,
-    icon: DESKTOP_CAPABILITY_ICONS[capability.id],
-  }));
-  const requirements = copy.requirements.items.map((requirement) => ({
-    ...requirement,
-    ...DESKTOP_DOWNLOAD_MEDIA[requirement.id],
-    icon: DESKTOP_REQUIREMENT_ICONS[requirement.id],
-  }));
+  const capabilities: { icon: LucideIcon; title: string; description: string }[] = [
+    {
+      icon: PanelsTopLeft,
+      title: 'The full IDE, natively',
+      description:
+        'The same Agent panel, editor, file tree, terminal, and Run/Publish bar from the web — running in a dedicated desktop window.',
+    },
+    {
+      icon: Zap,
+      title: 'Native performance',
+      description:
+        'A purpose-built desktop runtime keeps the editor, terminal, and previews instant — no browser tab tax.',
+    },
+    {
+      icon: WifiOff,
+      title: 'Offline-capable PWA',
+      description:
+        'Keep coding on the plane or off the grid. Your workspace syncs back automatically once you reconnect.',
+    },
+    {
+      icon: Cloud,
+      title: 'Local + cloud workspaces',
+      description:
+        'Open a project on your own machine or attach to a managed cloud workspace — switch between them without leaving the app.',
+    },
+    {
+      icon: HardDrive,
+      title: 'Deep OS integration',
+      description: 'Native file dialogs, system notifications, the menu bar, and global shortcuts feel right at home.',
+    },
+    {
+      icon: Layers,
+      title: 'Multi-window',
+      description: 'Pop projects, terminals, and previews into their own windows and spread work across every display.',
+    },
+  ];
 
-  const gitPoints = copy.git.points.map((point) => ({ ...point, icon: DESKTOP_GIT_ICONS[point.id] }));
+  const requirements: { os: string; icon: LucideIcon; specs: string[] }[] = [
+    {
+      os: 'macOS',
+      icon: Command,
+      specs: [
+        'macOS 12 Monterey or later',
+        'Apple Silicon or Intel',
+        '4 GB RAM (8 GB recommended)',
+        '600 MB free disk space',
+      ],
+    },
+    {
+      os: 'Windows',
+      icon: Monitor,
+      specs: [
+        'Windows 10 / 11 (64-bit)',
+        'x64 or ARM64 processor',
+        '4 GB RAM (8 GB recommended)',
+        '600 MB free disk space',
+      ],
+    },
+    {
+      os: 'Linux',
+      icon: Terminal,
+      specs: [
+        'Ubuntu 20.04+ / Fedora 36+',
+        'glibc 2.31 or newer',
+        '4 GB RAM (8 GB recommended)',
+        '600 MB free disk space',
+      ],
+    },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col" data-testid="page-desktop">
       <PublicNavbar />
 
       <main className="flex-1">
+        {/* Hero */}
         <section className="py-responsive bg-gradient-to-b from-background to-muted">
           <div className="container-responsive">
             <div className="text-center max-w-3xl mx-auto flex flex-col items-center">
               <Badge
                 variant="secondary"
-                className="max-w-full text-center text-[12px] font-medium px-3 py-1 mb-6 inline-flex items-center gap-1.5 whitespace-normal"
+                className="text-[12px] font-medium px-3 py-1 mb-6 inline-flex items-center gap-1.5"
               >
-                <Monitor className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                {copy.hero.badge}
+                <Monitor className="h-3.5 w-3.5" />
+                Public beta · macOS, Windows &amp; Linux
               </Badge>
               <h1 className="mkt-h1 font-bold tracking-tight leading-tight mb-5" data-testid="heading-desktop">
-                {copy.hero.title}
+                E-Code on your desktop
               </h1>
-              <p className="mkt-lead text-muted-foreground leading-relaxed mb-8 max-w-2xl">{copy.hero.description}</p>
+              <p className="mkt-lead text-muted-foreground leading-relaxed mb-8 max-w-2xl">
+                The full E-Code AI development platform as a native app — the same Agent, editor, terminal, and previews
+                you know from the web, now faster, offline-ready, and built into your operating system.
+              </p>
               <a
-                href={desktopDownloadUrl(PRIMARY_DESKTOP_DOWNLOAD.file)}
+                href={desktopDownloadUrl(downloads[0].file)}
                 download
-                className="inline-flex w-full max-w-sm sm:w-auto items-center justify-center gap-2 px-6 py-3 rounded-md text-white font-medium min-h-[44px] hover:opacity-90 transition-opacity"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-white font-medium min-h-[44px] hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: 'var(--ecode-accent)' }}
                 data-testid="button-hero-download"
               >
-                <Download className="h-4 w-4 shrink-0" aria-hidden />
-                {interpolateMarketingExactStatusDesktopCopy(copy.hero.downloadTemplate, {
-                  os: PRIMARY_DESKTOP_DOWNLOAD.os,
-                })}
+                <Download className="h-4 w-4" />
+                Download for {downloads[0].os}
               </a>
             </div>
 
+            {/* Real desktop IDE inside a window frame */}
             <div className="mt-12 sm:mt-16 max-w-5xl mx-auto">
               <WindowFrame
-                title={copy.showcase.windowTitle}
+                title="E-Code — todo-app"
                 src={`${PRODUCT}/ide.png`}
-                alt={copy.showcase.imageAlt}
+                alt="The full E-Code desktop IDE: AI Agent panel, code editor, file tree, terminal, and Run/Publish bar"
                 priority
-                technicalTitle
               />
-              <p className="mkt-small text-muted-foreground text-center mt-4">{copy.showcase.caption}</p>
+              <p className="mkt-small text-muted-foreground text-center mt-4">
+                The real E-Code desktop IDE — Agent panel, editor, files, terminal, and the Run / Publish bar.
+              </p>
             </div>
           </div>
         </section>
 
+        {/* Download cards */}
         <section className="py-responsive">
           <div className="container-responsive">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="mkt-h2 font-bold tracking-tight mb-3">{copy.downloads.title}</h2>
-              <p className="mkt-lead text-muted-foreground leading-relaxed">{copy.downloads.description}</p>
+              <h2 className="mkt-h2 font-bold tracking-tight mb-3">Download the desktop app</h2>
+              <p className="mkt-lead text-muted-foreground leading-relaxed">
+                Code-signed and notarized builds for every major platform. Auto-updates keep you on the latest release.
+              </p>
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
-              {downloads.map((download) => {
-                const Icon = download.icon;
-
+              {downloads.map((dl) => {
+                const Icon = dl.icon;
                 return (
-                  <Card key={download.id} className="flex flex-col">
+                  <Card key={dl.os} className="flex flex-col">
                     <CardContent className="pt-8 pb-6 px-6 text-center flex flex-col items-center flex-1">
                       <span className="flex items-center justify-center h-14 w-14 rounded-xl bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor mb-5">
-                        <Icon className="h-7 w-7 text-primary" aria-hidden />
+                        <Icon className="h-7 w-7 text-primary" />
                       </span>
-                      <h3 className="mkt-h3 font-semibold mb-1.5">
-                        {interpolateMarketingExactStatusDesktopCopy(copy.downloads.cardTitleTemplate, {
-                          os: download.os,
-                        })}
-                      </h3>
-                      <p className="mkt-body text-muted-foreground leading-relaxed mb-6">{download.hint}</p>
+                      <h3 className="mkt-h3 font-semibold mb-1.5">Download for {dl.os}</h3>
+                      <p className="mkt-body text-muted-foreground leading-relaxed mb-6">{dl.hint}</p>
                       <a
-                        href={desktopDownloadUrl(download.file)}
+                        href={desktopDownloadUrl(dl.file)}
                         download
                         className="inline-flex items-center justify-center gap-2 w-full px-6 py-3 rounded-md text-white font-medium min-h-[44px] hover:opacity-90 transition-opacity mt-auto"
                         style={{ backgroundColor: 'var(--ecode-accent)' }}
-                        data-testid={`button-download-${download.os.toLowerCase()}`}
+                        data-testid={`button-download-${dl.os.toLowerCase()}`}
                       >
-                        <Download className="h-4 w-4" aria-hidden />
-                        {download.os}
+                        <Download className="h-4 w-4" />
+                        {dl.os}
                       </a>
-                      <p className="mkt-small text-muted-foreground mt-3 font-mono break-all">{download.file}</p>
+                      <p className="mkt-small text-muted-foreground mt-3 font-mono">{dl.file}</p>
                     </CardContent>
                   </Card>
                 );
@@ -214,25 +232,27 @@ export default function Desktop() {
           </div>
         </section>
 
+        {/* Capabilities */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="mkt-h2 font-bold tracking-tight mb-3">{copy.capabilities.title}</h2>
-              <p className="mkt-lead text-muted-foreground leading-relaxed">{copy.capabilities.description}</p>
+              <h2 className="mkt-h2 font-bold tracking-tight mb-3">Why go native</h2>
+              <p className="mkt-lead text-muted-foreground leading-relaxed">
+                Everything the web app does, plus the speed, reach, and OS integration only a desktop app can offer.
+              </p>
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {capabilities.map((capability) => {
-                const Icon = capability.icon;
-
+              {capabilities.map((cap) => {
+                const Icon = cap.icon;
                 return (
-                  <Card key={capability.id} className="h-full">
+                  <Card key={cap.title} className="h-full">
                     <CardContent className="pt-6 px-6 pb-6">
                       <span className="flex items-center justify-center h-11 w-11 rounded-lg bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor mb-4">
-                        <Icon className="h-5 w-5 text-primary" aria-hidden />
+                        <Icon className="h-5 w-5 text-primary" />
                       </span>
-                      <h3 className="mkt-h3 font-semibold mb-2">{capability.title}</h3>
-                      <p className="mkt-body text-muted-foreground leading-relaxed">{capability.description}</p>
+                      <h3 className="mkt-h3 font-semibold mb-2">{cap.title}</h3>
+                      <p className="mkt-body text-muted-foreground leading-relaxed">{cap.description}</p>
                     </CardContent>
                   </Card>
                 );
@@ -241,65 +261,78 @@ export default function Desktop() {
           </div>
         </section>
 
+        {/* Git showcase — real Git panel */}
         <section className="py-responsive">
           <div className="container-responsive">
             <div className="grid lg:grid-cols-2 gap-10 lg:gap-14 items-center max-w-6xl mx-auto">
               <div>
                 <Badge
                   variant="secondary"
-                  className="max-w-full whitespace-normal text-[12px] font-medium px-3 py-1 mb-5 inline-flex items-center gap-1.5"
+                  className="text-[12px] font-medium px-3 py-1 mb-5 inline-flex items-center gap-1.5"
                 >
-                  <GitBranch className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  {copy.git.badge}
+                  <GitBranch className="h-3.5 w-3.5" />
+                  Built-in version control
                 </Badge>
-                <h2 className="mkt-h2 font-bold tracking-tight leading-tight mb-4">{copy.git.title}</h2>
-                <p className="mkt-lead text-muted-foreground leading-relaxed mb-6">{copy.git.description}</p>
+                <h2 className="mkt-h2 font-bold tracking-tight leading-tight mb-4">Full Git, right in the window</h2>
+                <p className="mkt-lead text-muted-foreground leading-relaxed mb-6">
+                  Stage, commit, branch, and review your history without leaving the editor. The native app surfaces the
+                  same first-class Git panel as the web — backed by your local file system.
+                </p>
                 <ul className="space-y-3">
-                  {gitPoints.map((point) => {
-                    const Icon = point.icon;
-
+                  {[
+                    { icon: FolderGit2, text: 'Working-tree diff with one-click staging' },
+                    { icon: GitBranch, text: 'Branch switching and a live commit graph' },
+                    { icon: RefreshCw, text: 'Push, pull, and sync to your connected remotes' },
+                  ].map((row) => {
+                    const Icon = row.icon;
                     return (
-                      <li key={point.id} className="flex items-start gap-3 mkt-body">
-                        <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" aria-hidden />
-                        <span>{point.text}</span>
+                      <li key={row.text} className="flex items-start gap-3 mkt-body">
+                        <Icon className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                        <span>{row.text}</span>
                       </li>
                     );
                   })}
                 </ul>
               </div>
-              <WindowFrame title={copy.git.windowTitle} src={`${PRODUCT}/ide-git.png`} alt={copy.git.imageAlt} />
+              <WindowFrame
+                title="E-Code — Source Control"
+                src={`${PRODUCT}/ide-git.png`}
+                alt="E-Code's real Git panel: current branch, working tree changes, orange Commit button, and commit graph"
+              />
             </div>
           </div>
         </section>
 
+        {/* System requirements */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
             <div className="text-center max-w-2xl mx-auto mb-12">
-              <h2 className="mkt-h2 font-bold tracking-tight mb-3">{copy.requirements.title}</h2>
-              <p className="mkt-lead text-muted-foreground leading-relaxed">{copy.requirements.description}</p>
+              <h2 className="mkt-h2 font-bold tracking-tight mb-3">System requirements</h2>
+              <p className="mkt-lead text-muted-foreground leading-relaxed">
+                Lightweight by design — E-Code runs comfortably on the machine you already have.
+              </p>
             </div>
 
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {requirements.map((requirement) => {
-                const Icon = requirement.icon;
-
+              {requirements.map((req) => {
+                const Icon = req.icon;
                 return (
-                  <Card key={requirement.id} className="h-full">
+                  <Card key={req.os} className="h-full">
                     <CardHeader>
                       <div className="flex items-center gap-3">
                         <span className="flex items-center justify-center h-9 w-9 rounded-lg bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor">
-                          <Icon className="h-5 w-5 text-primary" aria-hidden />
+                          <Icon className="h-5 w-5 text-primary" />
                         </span>
-                        <CardTitle>{requirement.os}</CardTitle>
+                        <CardTitle>{req.os}</CardTitle>
                       </div>
-                      <CardDescription className="mt-2">{copy.requirements.minimum}</CardDescription>
+                      <CardDescription className="mt-2">Minimum supported configuration</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <ul className="space-y-2.5">
-                        {requirement.specs.map((specification) => (
-                          <li key={specification} className="flex items-start gap-2.5 mkt-body text-muted-foreground">
-                            <Cpu className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" aria-hidden />
-                            <span>{specification}</span>
+                        {req.specs.map((spec) => (
+                          <li key={spec} className="flex items-start gap-2.5 mkt-body text-muted-foreground">
+                            <Cpu className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                            <span>{spec}</span>
                           </li>
                         ))}
                       </ul>
@@ -309,26 +342,30 @@ export default function Desktop() {
               })}
             </div>
 
-            <p className="mkt-small text-muted-foreground text-center mt-10">{copy.requirements.footer}</p>
+            <p className="mkt-small text-muted-foreground text-center mt-10">
+              All builds are code-signed and notarized · automatic background updates
+            </p>
           </div>
         </section>
 
+        {/* Closing CTA */}
         <section className="py-responsive">
           <div className="container-responsive">
             <div className="max-w-3xl mx-auto text-center">
-              <h2 className="mkt-h2 font-bold tracking-tight mb-4">{copy.cta.title}</h2>
+              <h2 className="mkt-h2 font-bold tracking-tight mb-4">Bring E-Code everywhere you build</h2>
               <p className="mkt-lead text-muted-foreground leading-relaxed mb-8 max-w-2xl mx-auto">
-                {copy.cta.description}
+                The same projects, agents, and previews you know from the web — now with the speed and reach of a native
+                desktop app.
               </p>
               <a
-                href={desktopDownloadUrl(PRIMARY_DESKTOP_DOWNLOAD.file)}
+                href={desktopDownloadUrl(downloads[0].file)}
                 download
-                className="inline-flex w-full max-w-sm sm:w-auto items-center justify-center gap-2 px-6 py-3 rounded-md text-white font-medium min-h-[44px] hover:opacity-90 transition-opacity"
+                className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-white font-medium min-h-[44px] hover:opacity-90 transition-opacity"
                 style={{ backgroundColor: 'var(--ecode-accent)' }}
                 data-testid="button-desktop-cta"
               >
-                <Download className="h-4 w-4 shrink-0" aria-hidden />
-                {copy.cta.button}
+                <Download className="h-4 w-4" />
+                Get the desktop app
               </a>
             </div>
           </div>

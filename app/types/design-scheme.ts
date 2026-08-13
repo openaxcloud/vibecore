@@ -25,74 +25,69 @@ export const defaultDesignScheme: DesignScheme = {
 export const paletteRoles = [
   {
     key: 'primary',
-    labelKey: 'designPalette.role.primary.label',
-    descriptionKey: 'designPalette.role.primary.description',
+    label: 'Primary',
+    description: 'Main brand color - use for primary buttons, active links, and key interactive elements',
   },
   {
     key: 'secondary',
-    labelKey: 'designPalette.role.secondary.label',
-    descriptionKey: 'designPalette.role.secondary.description',
+    label: 'Secondary',
+    description: 'Supporting brand color - use for secondary buttons, inactive states, and complementary elements',
   },
   {
     key: 'accent',
-    labelKey: 'designPalette.role.accent.label',
-    descriptionKey: 'designPalette.role.accent.description',
+    label: 'Accent',
+    description: 'Highlight color - use for badges, notifications, focus states, and call-to-action elements',
   },
   {
     key: 'background',
-    labelKey: 'designPalette.role.background.label',
-    descriptionKey: 'designPalette.role.background.description',
+    label: 'Background',
+    description: 'Page backdrop - use for the main application/website background behind all content',
   },
   {
     key: 'surface',
-    labelKey: 'designPalette.role.surface.label',
-    descriptionKey: 'designPalette.role.surface.description',
+    label: 'Surface',
+    description: 'Elevated content areas - use for cards, modals, dropdowns, and panels that sit above the background',
   },
-  {
-    key: 'text',
-    labelKey: 'designPalette.role.text.label',
-    descriptionKey: 'designPalette.role.text.description',
-  },
+  { key: 'text', label: 'Text', description: 'Primary text - use for headings, body text, and main readable content' },
   {
     key: 'textSecondary',
-    labelKey: 'designPalette.role.textSecondary.label',
-    descriptionKey: 'designPalette.role.textSecondary.description',
+    label: 'Text Secondary',
+    description: 'Muted text - use for captions, placeholders, timestamps, and less important information',
   },
   {
     key: 'border',
-    labelKey: 'designPalette.role.border.label',
-    descriptionKey: 'designPalette.role.border.description',
+    label: 'Border',
+    description: 'Separators - use for input borders, dividers, table lines, and element outlines',
   },
   {
     key: 'success',
-    labelKey: 'designPalette.role.success.label',
-    descriptionKey: 'designPalette.role.success.description',
+    label: 'Success',
+    description: 'Positive feedback - use for success messages, completed states, and positive indicators',
   },
   {
     key: 'warning',
-    labelKey: 'designPalette.role.warning.label',
-    descriptionKey: 'designPalette.role.warning.description',
+    label: 'Warning',
+    description: 'Caution alerts - use for warning messages, pending states, and attention-needed indicators',
   },
   {
     key: 'error',
-    labelKey: 'designPalette.role.error.label',
-    descriptionKey: 'designPalette.role.error.description',
+    label: 'Error',
+    description: 'Error states - use for error messages, failed states, and destructive action indicators',
   },
-] satisfies Array<{ key: string; labelKey: DesignPaletteKey; descriptionKey: DesignPaletteKey }>;
+];
 
 export const designFeatures = [
-  { key: 'rounded', labelKey: 'designPalette.feature.rounded' },
-  { key: 'border', labelKey: 'designPalette.feature.border' },
-  { key: 'gradient', labelKey: 'designPalette.feature.gradient' },
-  { key: 'shadow', labelKey: 'designPalette.feature.shadow' },
-  { key: 'frosted-glass', labelKey: 'designPalette.feature.frostedGlass' },
-] satisfies Array<{ key: string; labelKey: DesignPaletteKey }>;
+  { key: 'rounded', label: 'Rounded Corners' },
+  { key: 'border', label: 'Subtle Border' },
+  { key: 'gradient', label: 'Gradient Accent' },
+  { key: 'shadow', label: 'Soft Shadow' },
+  { key: 'frosted-glass', label: 'Frosted Glass' },
+];
 
 export const designFonts = [
-  { key: 'sans-serif', labelKey: 'designPalette.font.sansSerif', preview: 'Aa' },
-  { key: 'serif', labelKey: 'designPalette.font.serif', preview: 'Aa' },
-  { key: 'monospace', labelKey: 'designPalette.font.monospace', preview: 'Aa' },
-  { key: 'cursive', labelKey: 'designPalette.font.cursive', preview: 'Aa' },
-  { key: 'fantasy', labelKey: 'designPalette.font.fantasy', preview: 'Aa' },
-] satisfies Array<{ key: string; labelKey: DesignPaletteKey; preview: string }>;
-import type { DesignPaletteKey } from '~/lib/i18n/catalogs/design-palette';
+  { key: 'sans-serif', label: 'Sans Serif', preview: 'Aa' },
+  { key: 'serif', label: 'Serif', preview: 'Aa' },
+  { key: 'monospace', label: 'Monospace', preview: 'Aa' },
+  { key: 'cursive', label: 'Cursive', preview: 'Aa' },
+  { key: 'fantasy', label: 'Fantasy', preview: 'Aa' },
+];

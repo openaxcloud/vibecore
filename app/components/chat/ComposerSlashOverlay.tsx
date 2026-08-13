@@ -17,13 +17,10 @@
  */
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { useTranslation } from 'react-i18next';
-import { toast } from 'react-toastify';
 
 import { SlashCommandsPalette } from './SlashCommandsPalette';
 import { shouldForwardKeyToSlashPalette } from './composer-slash-keys';
 import { parseSlashInput, type SlashCommand, type SlashCommandContext } from '~/lib/chat/slash-commands';
-import { getSlashCommandSafeExecutionError } from '~/lib/i18n/catalogs/slash-commands';
 import { recordSlashCommand } from '~/lib/persistence/projectIdeMemory';
 import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
 
@@ -70,8 +67,6 @@ export function detectSlashTrigger(input: string): ActiveTrigger | null {
 
 export const ComposerSlashOverlay = memo(
   ({ textareaRef, input, handleInputChange, context, recentSlashCommandIds, projectId }: ComposerSlashOverlayProps) => {
-    const { i18n } = useTranslation();
-    const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
     const trigger = useMemo(() => detectSlashTrigger(input), [input]);
     const currentWorkspaceId = useCurrentWorkspaceId();
 
@@ -221,7 +216,7 @@ export const ComposerSlashOverlay = memo(
     const handleSelect = useCallback(
       async (command: SlashCommand) => {
         const argument = trigger?.argument ?? '';
-        const resolvedContext: SlashCommandContext = { ...(context ?? {}), argument, language };
+        const resolvedContext: SlashCommandContext = { ...(context ?? {}), argument };
 
         if (projectId) {
           void recordSlashCommand(projectId, command.id, currentWorkspaceId);
@@ -229,8 +224,6 @@ export const ComposerSlashOverlay = memo(
 
         try {
           await command.execute(resolvedContext);
-        } catch (error) {
-          toast.error(getSlashCommandSafeExecutionError(language, error));
         } finally {
           clearInput();
 
@@ -240,7 +233,7 @@ export const ComposerSlashOverlay = memo(
           });
         }
       },
-      [clearInput, context, projectId, currentWorkspaceId, language, textareaRef, trigger],
+      [clearInput, context, projectId, currentWorkspaceId, textareaRef, trigger],
     );
 
     const handleDismiss = useCallback(() => {

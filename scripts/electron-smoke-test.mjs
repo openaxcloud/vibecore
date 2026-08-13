@@ -34,7 +34,7 @@ for (const marker of ['setAsDefaultProtocolClient', 'requestSingleInstanceLock',
   }
 }
 
-for (const marker of ['appId: com.vibecore.desktop', 'productName: E-Code', 'AppImage', 'deb', 'nsis', 'dmg']) {
+for (const marker of ['appId: com.vibecore.desktop', 'productName: VibeCore', 'AppImage', 'deb', 'nsis', 'dmg']) {
   if (!builder.includes(marker)) {
     throw new Error(`electron-builder marker missing: ${marker}`);
   }

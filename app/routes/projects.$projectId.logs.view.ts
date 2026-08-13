@@ -21,11 +21,8 @@ export type RuntimeLogEntry = {
 export type RuntimeLogsSnapshot = {
   logs?: RuntimeLogEntry[];
 
-  /* Legacy backends may return a diagnostic, but the view never renders it. */
+  /* The web loader stores any fetch failure here instead of throwing. */
   error?: string;
-
-  /* The web loader stores fetch failures as a non-sensitive state marker. */
-  unavailable?: boolean;
 };
 
 export type LogsLoaderData = {
@@ -35,7 +32,7 @@ export type LogsLoaderData = {
 
 export type LogsViewModel =
   | { kind: 'no-workspace' }
-  | { kind: 'error' }
+  | { kind: 'error'; message: string }
   | { kind: 'empty' }
   | { kind: 'logs'; entries: RuntimeLogEntry[] };
 
@@ -61,8 +58,8 @@ export function buildLogsViewModel(data: LogsLoaderData): LogsViewModel {
 
   const snapshot = data.runtimeLogs;
 
-  if (snapshot?.unavailable || snapshot?.error) {
-    return { kind: 'error' };
+  if (snapshot?.error) {
+    return { kind: 'error', message: snapshot.error };
   }
 
   const entries = (snapshot?.logs ?? []).filter((entry) => typeof entry?.message === 'string');

@@ -1,4 +1,4 @@
-import { formatLocalModelHealthFailure, type LocalModelHealthFailure } from '~/lib/i18n/catalogs/client-visible-errors';
+import { ECODE_BRAND } from './gitlabBrand';
 
 // Simple EventEmitter implementation for browser compatibility
 class SimpleEventEmitter {
@@ -52,35 +52,20 @@ export interface HealthCheckResult {
   version?: string;
 }
 
-type ProviderHealthCheckResult = Omit<HealthCheckResult, 'error'> & {
-  failure?: LocalModelHealthFailure;
-};
-
 export class LocalModelHealthMonitor extends SimpleEventEmitter {
   private _healthStatuses = new Map<string, ModelHealthStatus>();
-  private _healthFailures = new Map<string, LocalModelHealthFailure>();
   private _checkIntervals = new Map<string, NodeJS.Timeout>();
   private readonly _defaultCheckInterval = 30000; // 30 seconds
   private readonly _healthCheckTimeout = 10000; // 10 seconds
-  private _languageListenerAttached = false;
-  private readonly _handleLanguageChange = (event: Event): void => {
-    const language =
-      event instanceof CustomEvent && typeof event.detail?.language === 'string' ? event.detail.language : undefined;
-
-    this.refreshLocalizedErrors(language);
-  };
 
   constructor() {
     super();
-    this._attachLanguageChangeListener();
   }
 
   /**
    * Start monitoring a local provider
    */
   startMonitoring(provider: 'Ollama' | 'LMStudio' | 'OpenAILike', baseUrl: string, checkInterval?: number): void {
-    this._attachLanguageChangeListener();
-
     const key = this._getProviderKey(provider, baseUrl);
 
     // Stop existing monitoring if any
@@ -127,7 +112,6 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
     }
 
     this._healthStatuses.delete(key);
-    this._healthFailures.delete(key);
   }
 
   /**
@@ -152,8 +136,6 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
     provider: 'Ollama' | 'LMStudio' | 'OpenAILike',
     baseUrl: string,
   ): Promise<HealthCheckResult> {
-    this._attachLanguageChangeListener();
-
     const key = this._getProviderKey(provider, baseUrl);
     const startTime = Date.now();
 
@@ -169,13 +151,6 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
     try {
       const result = await this._checkProviderHealth(provider, baseUrl);
       const responseTime = Date.now() - startTime;
-      const localizedError = result.failure ? formatLocalModelHealthFailure(result.failure) : undefined;
-
-      if (result.failure) {
-        this._healthFailures.set(key, result.failure);
-      } else {
-        this._healthFailures.delete(key);
-      }
 
       // Update health status
       const healthStatus: ModelHealthStatus = {
@@ -184,7 +159,7 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
         status: result.isHealthy ? 'healthy' : 'unhealthy',
         lastChecked: new Date(),
         responseTime,
-        error: localizedError,
+        error: result.error,
         availableModels: result.availableModels,
         version: result.version,
       };
@@ -195,16 +170,13 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
       return {
         isHealthy: result.isHealthy,
         responseTime,
-        error: localizedError,
+        error: result.error,
         availableModels: result.availableModels,
         version: result.version,
       };
     } catch (error) {
       const responseTime = Date.now() - startTime;
-      const failure = this._failureFromRequestError(error, provider);
-      const errorMessage = formatLocalModelHealthFailure(failure);
-
-      this._healthFailures.set(key, failure);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
       const healthStatus: ModelHealthStatus = {
         provider,
@@ -232,7 +204,7 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
   private async _checkProviderHealth(
     provider: 'Ollama' | 'LMStudio' | 'OpenAILike',
     baseUrl: string,
-  ): Promise<ProviderHealthCheckResult> {
+  ): Promise<HealthCheckResult> {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), this._healthCheckTimeout);
 
@@ -245,11 +217,7 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
         case 'OpenAILike':
           return await this._checkOpenAILikeHealth(baseUrl, controller.signal);
         default:
-          return {
-            isHealthy: false,
-            responseTime: 0,
-            failure: { kind: 'unsupportedProvider', provider },
-          };
+          throw new Error(`Unsupported provider: ${provider}`);
       }
     } finally {
       clearTimeout(timeoutId);
@@ -259,7 +227,7 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
   /**
    * Check Ollama health
    */
-  private async _checkOllamaHealth(baseUrl: string, signal: AbortSignal): Promise<ProviderHealthCheckResult> {
+  private async _checkOllamaHealth(baseUrl: string, signal: AbortSignal): Promise<HealthCheckResult> {
     try {
       console.log(`[Health Check] Checking Ollama at ${baseUrl}`);
 
@@ -270,11 +238,7 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
       });
 
       if (!response.ok) {
-        return {
-          isHealthy: false,
-          responseTime: 0,
-          failure: { kind: 'http', provider: 'Ollama', status: response.status },
-        };
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = (await response.json()) as { models?: Array<{ name: string }> };
@@ -307,7 +271,7 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
       return {
         isHealthy: false,
         responseTime: 0,
-        failure: this._failureFromRequestError(error, 'Ollama'),
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
@@ -315,7 +279,7 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
   /**
    * Check LM Studio health
    */
-  private async _checkLMStudioHealth(baseUrl: string, signal: AbortSignal): Promise<ProviderHealthCheckResult> {
+  private async _checkLMStudioHealth(baseUrl: string, signal: AbortSignal): Promise<HealthCheckResult> {
     try {
       // Normalize URL to ensure /v1 prefix
       const normalizedUrl = baseUrl.includes('/v1') ? baseUrl : `${baseUrl}/v1`;
@@ -331,18 +295,12 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
       if (!response.ok) {
         // Check if this is a CORS error
         if (response.type === 'opaque' || response.status === 0) {
-          return {
-            isHealthy: false,
-            responseTime: 0,
-            failure: { kind: 'cors', provider: 'LM Studio' },
-          };
+          throw new Error(
+            'CORS_ERROR: LM Studio server is not configured to allow requests from this origin. Please configure CORS in LM Studio settings.',
+          );
         }
 
-        return {
-          isHealthy: false,
-          responseTime: 0,
-          failure: { kind: 'http', provider: 'LM Studio', status: response.status },
-        };
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = (await response.json()) as { data?: Array<{ id: string }> };
@@ -354,10 +312,25 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
         availableModels: models,
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+      // Check if this is a CORS error
+      if (
+        errorMessage.includes('CORS') ||
+        errorMessage.includes('NetworkError') ||
+        errorMessage.includes('Failed to fetch')
+      ) {
+        return {
+          isHealthy: false,
+          responseTime: 0,
+          error: `CORS_ERROR: LM Studio server is blocking cross-origin requests. Try enabling CORS in LM Studio settings or use the ${ECODE_BRAND} desktop app.`,
+        };
+      }
+
       return {
         isHealthy: false,
         responseTime: 0,
-        failure: this._failureFromRequestError(error, 'LM Studio', true),
+        error: errorMessage,
       };
     }
   }
@@ -365,7 +338,7 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
   /**
    * Check OpenAI-like provider health
    */
-  private async _checkOpenAILikeHealth(baseUrl: string, signal: AbortSignal): Promise<ProviderHealthCheckResult> {
+  private async _checkOpenAILikeHealth(baseUrl: string, signal: AbortSignal): Promise<HealthCheckResult> {
     try {
       // Normalize URL to include /v1 if needed
       const normalizedUrl = baseUrl.includes('/v1') ? baseUrl : `${baseUrl}/v1`;
@@ -379,11 +352,7 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
       });
 
       if (!response.ok) {
-        return {
-          isHealthy: false,
-          responseTime: 0,
-          failure: { kind: 'http', provider: 'OpenAI-compatible', status: response.status },
-        };
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = (await response.json()) as { data?: Array<{ id: string }> };
@@ -398,62 +367,9 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
       return {
         isHealthy: false,
         responseTime: 0,
-        failure: this._failureFromRequestError(error, 'OpenAI-compatible'),
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
-  }
-
-  /**
-   * Re-render stored failures after an in-session locale change. The failure
-   * descriptor remains language-neutral, so an English network diagnostic can
-   * never be retained in the persistent provider status when French is active.
-   */
-  refreshLocalizedErrors(language?: string | null): void {
-    for (const [key, failure] of this._healthFailures) {
-      const currentStatus = this._healthStatuses.get(key);
-
-      if (!currentStatus) {
-        continue;
-      }
-
-      const localizedStatus: ModelHealthStatus = {
-        ...currentStatus,
-        error: formatLocalModelHealthFailure(failure, language),
-      };
-
-      this._healthStatuses.set(key, localizedStatus);
-      this.emit('statusChanged', localizedStatus);
-    }
-  }
-
-  private _failureFromRequestError(
-    error: unknown,
-    provider: string,
-    treatNetworkFailureAsCors = false,
-  ): LocalModelHealthFailure {
-    if (error instanceof Error && error.name === 'AbortError') {
-      return { kind: 'timeout', provider };
-    }
-
-    const diagnostic = error instanceof Error ? `${error.name} ${error.message}`.toLowerCase() : '';
-
-    if (
-      treatNetworkFailureAsCors &&
-      (error instanceof TypeError || /(?:cors|networkerror|failed to fetch)/u.test(diagnostic))
-    ) {
-      return { kind: 'cors', provider };
-    }
-
-    return { kind: 'requestFailed', provider };
-  }
-
-  private _attachLanguageChangeListener(): void {
-    if (this._languageListenerAttached || typeof window === 'undefined') {
-      return;
-    }
-
-    window.addEventListener('vibecore:language-change', this._handleLanguageChange);
-    this._languageListenerAttached = true;
   }
 
   /**
@@ -474,13 +390,7 @@ export class LocalModelHealthMonitor extends SimpleEventEmitter {
 
     this._checkIntervals.clear();
     this._healthStatuses.clear();
-    this._healthFailures.clear();
     this.removeAllListeners();
-
-    if (this._languageListenerAttached && typeof window !== 'undefined') {
-      window.removeEventListener('vibecore:language-change', this._handleLanguageChange);
-      this._languageListenerAttached = false;
-    }
   }
 }
 

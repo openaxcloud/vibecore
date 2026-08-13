@@ -1,7 +1,6 @@
 import { useStore } from '@nanostores/react';
 import type { FileSearchOptions } from '@vibecore/runtime-contract';
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import {
   computeReplacement,
@@ -40,8 +39,6 @@ function groupResultsByFile(results: DisplayMatch[]): Record<string, DisplayMatc
 }
 
 export function Search() {
-  const { t } = useTranslation();
-
   /*
    * Use the workspace-bound adapter from context, NOT the module singleton (which
    * has no workspaceId and fails in remote-kubernetes mode → broken file search).
@@ -57,7 +54,7 @@ export function Search() {
   const [confirmReplaceAllOpen, setConfirmReplaceAllOpen] = useState(false);
   const [expandedFiles, setExpandedFiles] = useState<Record<string, boolean>>({});
   const [hasSearched, setHasSearched] = useState(false);
-  const [searchError, setSearchError] = useState(false);
+  const [searchError, setSearchError] = useState<string | undefined>(undefined);
 
   /*
    * Files the last Replace All skipped because they had unsaved editor edits.
@@ -112,7 +109,7 @@ export function Search() {
         setIsSearching(false);
         setExpandedFiles({});
         setHasSearched(false);
-        setSearchError(false);
+        setSearchError(undefined);
 
         return;
       }
@@ -132,7 +129,7 @@ export function Search() {
       setSearchResults([]);
       setExpandedFiles({});
       setHasSearched(true);
-      setSearchError(false);
+      setSearchError(undefined);
 
       const minLoaderTime = 300; // ms
       const start = Date.now();
@@ -159,8 +156,12 @@ export function Search() {
           })),
         );
       } catch (error) {
-        console.error(error);
-        setSearchError(true);
+        console.error('Failed to initiate search:', error);
+        setSearchError(
+          error instanceof Error
+            ? `Search failed: ${error.message}. The workspace runtime may still be starting — try again in a moment.`
+            : 'Search failed. The workspace runtime may still be starting — try again in a moment.',
+        );
       } finally {
         const elapsed = Date.now() - start;
 
@@ -184,7 +185,7 @@ export function Search() {
         }
       }
     },
-    [caseSensitive, isRegex, runtimeAdapter],
+    [caseSensitive, isRegex],
   );
 
   const debouncedSearch = useCallback(debounce(handleSearch, 300), [handleSearch]);
@@ -243,18 +244,18 @@ export function Search() {
     }
 
     if (!buildReplaceMatcher()) {
-      toast.error(t('workbenchSearch.errors.invalidRegex'));
+      toast.error('Invalid regular expression');
       return;
     }
 
     setConfirmReplaceAllOpen(true);
-  }, [buildReplaceMatcher, searchQuery, searchResults, t]);
+  }, [buildReplaceMatcher, searchQuery, searchResults]);
 
   const performReplaceAll = useCallback(async () => {
     const matcher = buildReplaceMatcher();
 
     if (!matcher) {
-      toast.error(t('workbenchSearch.errors.invalidRegex'));
+      toast.error('Invalid regular expression');
       return;
     }
 
@@ -321,7 +322,7 @@ export function Search() {
           try {
             content = (await runtimeAdapter.readFile(toRuntimeRelativePath(filePath, runtimeAdapter.workdir))).content;
           } catch (readError) {
-            console.error(filePath, readError);
+            console.error('Failed to read file for replace:', filePath, readError);
             unreadableSkipped += 1;
             continue;
           }
@@ -338,19 +339,23 @@ export function Search() {
       setSkippedUnsavedPaths(skippedUnsaved);
 
       const skippedNotes = [
-        lockedSkipped > 0 ? t('workbenchSearch.skipped.locked', { count: lockedSkipped }) : undefined,
-        unsavedSkipped > 0 ? t('workbenchSearch.skipped.unsaved', { count: unsavedSkipped }) : undefined,
-        unreadableSkipped > 0 ? t('workbenchSearch.skipped.unreadable', { count: unreadableSkipped }) : undefined,
+        lockedSkipped > 0 ? `${lockedSkipped} locked file${lockedSkipped === 1 ? '' : 's'} skipped` : undefined,
+        unsavedSkipped > 0
+          ? `${unsavedSkipped} file${unsavedSkipped === 1 ? '' : 's'} with unsaved edits skipped — save first`
+          : undefined,
+        unreadableSkipped > 0
+          ? `${unreadableSkipped} unreadable file${unreadableSkipped === 1 ? '' : 's'} skipped`
+          : undefined,
       ].filter(Boolean);
 
       toast.success(
-        t('workbenchSearch.replaced', { count: replacementCount }) +
+        `Replaced ${replacementCount} match${replacementCount === 1 ? '' : 'es'}` +
           (skippedNotes.length > 0 ? ` (${skippedNotes.join(', ')})` : ''),
       );
       await handleSearch(searchQuery);
     } catch (error) {
-      console.error(error);
-      toast.error(t('workbenchSearch.errors.replace'));
+      console.error('Failed to replace results:', error);
+      toast.error('Replace failed');
     } finally {
       setIsReplacing(false);
     }
@@ -362,7 +367,6 @@ export function Search() {
     runtimeAdapter,
     searchQuery,
     searchResults,
-    t,
   ]);
 
   const saveAllAndRetry = useCallback(async () => {
@@ -380,12 +384,9 @@ export function Search() {
           setConfirmReplaceAllOpen(false);
           void performReplaceAll();
         }}
-        title={t('workbenchSearch.dialog.title')}
-        description={t('workbenchSearch.dialog.description', {
-          matches: t('workbenchSearch.count.matches', { count: searchResults.length }),
-          files: t('workbenchSearch.count.files', { count: Object.keys(groupedResults).length }),
-        })}
-        confirmLabel={t('workbenchSearch.dialog.confirm')}
+        title="Replace all matches?"
+        description={`Replace ${searchResults.length} match${searchResults.length === 1 ? '' : 'es'} across ${Object.keys(groupedResults).length} file${Object.keys(groupedResults).length === 1 ? '' : 's'}?`}
+        confirmLabel="Replace all"
         variant="destructive"
       />
       {/* Search Bar */}
@@ -395,25 +396,25 @@ export function Search() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('workbenchSearch.search.placeholder')}
-            aria-label={t('workbenchSearch.search.aria')}
+            placeholder="Search files"
+            aria-label="Search files"
             className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
           />
           <button
             type="button"
-            aria-label={t('workbenchSearch.search.toggleCase')}
+            aria-label="Toggle case sensitive search"
             aria-pressed={caseSensitive}
-            title={t('workbenchSearch.search.matchCase')}
+            title="Match case"
             onClick={() => setCaseSensitive((value) => !value)}
             className={`h-7 rounded px-2 text-xs ${caseSensitive ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3'}`}
           >
-            {t('workbenchSearch.search.caseIndicator')}
+            Aa
           </button>
           <button
             type="button"
-            aria-label={t('workbenchSearch.search.toggleRegex')}
+            aria-label="Toggle regular expression search"
             aria-pressed={isRegex}
-            title={t('workbenchSearch.search.useRegex')}
+            title="Use regular expression"
             onClick={() => setIsRegex((value) => !value)}
             className={`h-7 rounded px-2 text-xs ${isRegex ? 'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-3'}`}
           >
@@ -425,17 +426,17 @@ export function Search() {
             type="text"
             value={replaceQuery}
             onChange={(e) => setReplaceQuery(e.target.value)}
-            placeholder={t('workbenchSearch.replace.placeholder')}
-            aria-label={t('workbenchSearch.replace.aria')}
+            placeholder="Replace"
+            aria-label="Replace with"
             className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
           />
           <button
             type="button"
-            className="min-h-7 whitespace-normal rounded-md bg-bolt-elements-item-backgroundAccent px-2 py-1 text-center text-xs font-medium text-bolt-elements-item-contentAccent disabled:cursor-not-allowed disabled:opacity-50"
+            className="h-7 whitespace-nowrap rounded-md bg-bolt-elements-item-backgroundAccent px-2 text-xs font-medium text-bolt-elements-item-contentAccent disabled:cursor-not-allowed disabled:opacity-50"
             disabled={isReplacing || searchResults.length === 0}
             onClick={() => void replaceAll()}
           >
-            {isReplacing ? t('workbenchSearch.replace.replacing') : t('workbenchSearch.replace.all')}
+            {isReplacing ? 'Replacing...' : 'Replace all'}
           </button>
         </div>
       </div>
@@ -452,7 +453,10 @@ export function Search() {
               color: 'var(--status-warning-text)',
             }}
           >
-            <p className="font-medium">{t('workbenchSearch.pending', { count: pendingUnsavedPaths.length })}</p>
+            <p className="font-medium">
+              Replace All skipped {pendingUnsavedPaths.length} file{pendingUnsavedPaths.length === 1 ? '' : 's'} with
+              unsaved edits:
+            </p>
             <ul className="mt-1 list-disc pl-4">
               {pendingUnsavedPaths.slice(0, 5).map((path) => (
                 <li key={path} className="truncate">
@@ -460,31 +464,29 @@ export function Search() {
                 </li>
               ))}
             </ul>
-            {pendingUnsavedPaths.length > 5 ? (
-              <p className="mt-1">{t('workbenchSearch.pending.more', { count: pendingUnsavedPaths.length - 5 })}</p>
-            ) : null}
+            {pendingUnsavedPaths.length > 5 ? <p className="mt-1">and {pendingUnsavedPaths.length - 5} more</p> : null}
             <button
               type="button"
               onClick={saveAllAndRetry}
               disabled={isReplacing}
-              className="mt-2 inline-flex min-h-9 items-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-2.5 py-1 text-left text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              className="mt-2 inline-flex h-7 items-center rounded-md bg-[var(--vc-ide-accent-action)] px-2.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {t('workbenchSearch.pending.saveRetry')}
+              Save all & retry
             </button>
           </div>
         )}
         {isSearching && (
           <div className="flex items-center justify-center h-32 text-bolt-elements-textTertiary">
-            <div className="i-ph:circle-notch animate-spin mr-2" /> {t('workbenchSearch.searching')}
+            <div className="i-ph:circle-notch animate-spin mr-2" /> Searching...
           </div>
         )}
         {!isSearching && searchError && (
           <div className="flex items-center justify-center h-32 px-4 text-center text-sm text-bolt-elements-icon-error">
-            {t('workbenchSearch.errors.search')}
+            {searchError}
           </div>
         )}
         {!isSearching && !searchError && hasSearched && searchResults.length === 0 && searchQuery.trim() !== '' && (
-          <div className="flex items-center justify-center h-32 text-gray-500">{t('workbenchSearch.noResults')}</div>
+          <div className="flex items-center justify-center h-32 text-gray-500">No results found.</div>
         )}
         {!isSearching &&
           Object.keys(groupedResults).map((file) => (
@@ -520,10 +522,7 @@ export function Search() {
                         key={idx}
                         role="button"
                         tabIndex={0}
-                        aria-label={t('workbenchSearch.resultAria', {
-                          path: match.path,
-                          line: match.lineNumber,
-                        })}
+                        aria-label={`Result in ${match.path} line ${match.lineNumber}`}
                         className="hover:bg-bolt-elements-background-depth-3 cursor-pointer transition-colors pl-6 py-1"
                         onClick={() => handleResultClick(match.path, match.lineNumber)}
                         onKeyDown={(event) => {

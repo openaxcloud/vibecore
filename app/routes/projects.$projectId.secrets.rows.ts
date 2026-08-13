@@ -1,9 +1,3 @@
-import {
-  formatProjectSecretsCopy,
-  getProjectSecretsCopy,
-  resolveProjectSecretsLanguage,
-  type ProjectSecretsCopy,
-} from '~/lib/i18n/catalogs/project-secrets';
 import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 
 /*
@@ -18,51 +12,30 @@ export type SecretRow =
   | { kind: 'empty'; title: string; detail: string };
 
 /* Build the detail line shown under a secret key. */
-export function secretDetail(
-  secret: SecretRecord,
-  language?: string | null,
-  suppliedCopy?: ProjectSecretsCopy,
-): string {
-  const resolvedLanguage = resolveProjectSecretsLanguage(language);
-  const copy = suppliedCopy ?? getProjectSecretsCopy(resolvedLanguage);
-
+export function secretDetail(secret: SecretRecord): string {
   if (secret.updatedAt) {
-    return formatProjectSecretsCopy(copy['projectSecrets.row.updated'], {
-      date:
-        formatUserAreaDateTime(secret.updatedAt, undefined, resolvedLanguage) ??
-        copy['projectSecrets.row.dateUnavailable'],
-    });
+    return `Encrypted, updated ${formatUserAreaDateTime(secret.updatedAt) ?? 'date unavailable'}`;
   }
 
-  return copy['projectSecrets.row.saved'];
+  return 'Encrypted project secret';
 }
 
 /*
  * Map raw secret records to display rows. When there are no secrets we surface a
  * single explanatory empty row; otherwise every secret becomes a deletable row.
  */
-export function secretRows(
-  secrets: SecretRecord[] | undefined | null,
-  language?: string | null,
-  suppliedCopy?: ProjectSecretsCopy,
-): SecretRow[] {
-  const resolvedLanguage = resolveProjectSecretsLanguage(language);
-  const copy = suppliedCopy ?? getProjectSecretsCopy(resolvedLanguage);
+export function secretRows(secrets: SecretRecord[] | undefined | null): SecretRow[] {
   const list = secrets ?? [];
 
   if (list.length === 0) {
     return [
       {
         kind: 'empty',
-        title: copy['projectSecrets.empty.title'],
-        detail: copy['projectSecrets.empty.description'],
+        title: 'No project secrets',
+        detail: 'Secrets are encrypted and values are never listed in clear text.',
       },
     ];
   }
 
-  return list.map((secret) => ({
-    kind: 'secret',
-    key: secret.key,
-    detail: secretDetail(secret, resolvedLanguage, copy),
-  }));
+  return list.map((secret) => ({ kind: 'secret', key: secret.key, detail: secretDetail(secret) }));
 }

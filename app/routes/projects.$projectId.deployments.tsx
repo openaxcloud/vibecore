@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type React from 'react';
-import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import {
   Form,
@@ -51,19 +50,10 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import {
-  formatProjectCopyPlural,
-  formatProjectUserAreaCurrency,
-  getProjectDeploymentsCopy,
-  interpolateProjectCopy,
-  resolveProjectUserAreaLanguage,
-  type ProjectDeploymentsCopy,
-  type ProjectUserAreaLanguage,
-} from '~/lib/i18n/catalogs/project-user-area';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { formatUserAreaTime } from '~/lib/i18n/user-area-locale';
 import { projectAction, projectPageLoader } from '~/lib/project-route.server';
 import { isReauthRedirect } from '~/lib/route-reauth';
+import { statusDisplayLabel } from '~/lib/user-facing-labels';
 import { classNames } from '~/utils/classNames';
 
 type DeploymentLog = { timestamp: string; level: 'info' | 'warn' | 'error'; message: string };
@@ -96,14 +86,8 @@ type DeploymentsData = { deployments: Deployment[] };
  * to let the browser follow the re-auth redirect instead of converting a
  * body-less redirect into a generic inline "Failed to …" banner.
  */
-export const meta: MetaFunction = ({ matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-
-  return [{ title: getProjectDeploymentsCopy(rootData?.language).metaTitle }];
-};
+export const meta: MetaFunction = () => [{ title: 'Project deployments - E-Code' }];
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
-
-const DEPLOYMENT_DOMAIN_PLACEHOLDER = 'app.example.com';
 
 export type DeployDetect = {
   mode: 'server' | 'static' | 'unknown';
@@ -132,13 +116,9 @@ export type DeployRateCard = {
 };
 
 /** ~$ per active hour for a size (compute units/s × 3600 × unit price). */
-export function machineSizeHourlyDollars(
-  card: DeployRateCard,
-  size: { computeUnitsPerSecond: number },
-  language: ProjectUserAreaLanguage = 'en',
-): string {
+export function machineSizeHourlyDollars(card: DeployRateCard, size: { computeUnitsPerSecond: number }): string {
   const cents = size.computeUnitsPerSecond * 3600 * card.compute.unitCents;
-  return formatProjectUserAreaCurrency(cents / 100, card.currency, language, cents >= 100 ? 2 : 3);
+  return `$${(cents / 100).toFixed(cents >= 100 ? 2 : 3)}`;
 }
 
 export const loader = async (args: EnterpriseLoaderArgs) => {
@@ -149,13 +129,12 @@ export const loader = async (args: EnterpriseLoaderArgs) => {
    * the detection so the page's own loader shape is untouched.
    */
   const url = new URL(args.request.url);
-  const copy = getProjectDeploymentsCopy(resolveRequestLocale(args.request).language);
 
   if (url.searchParams.get('detect') === '1') {
     const projectId = args.params.projectId;
 
     if (!projectId) {
-      throw json({ ok: false, error: copy.errors.projectNotFound }, { status: 404 });
+      throw json({ ok: false, error: 'Project not found' }, { status: 404 });
     }
 
     try {
@@ -171,7 +150,7 @@ export const loader = async (args: EnterpriseLoaderArgs) => {
         detected: {
           mode: 'unknown' as const,
           framework: 'unknown',
-          reason: copy.errors.detectionUnavailable,
+          reason: 'Detection is unavailable right now — open the workspace and retry.',
           pending: true,
         },
       });
@@ -188,7 +167,7 @@ export const loader = async (args: EnterpriseLoaderArgs) => {
     const projectId = args.params.projectId;
 
     if (!projectId) {
-      throw json({ ok: false, error: copy.errors.projectNotFound }, { status: 404 });
+      throw json({ ok: false, error: 'Project not found' }, { status: 404 });
     }
 
     try {
@@ -206,18 +185,6 @@ export const loader = async (args: EnterpriseLoaderArgs) => {
 
   return projectPageLoader<DeploymentsData>(args, (projectId) => `/projects/${projectId}/deployments`);
 };
-
-async function localizedDeploymentApiError(
-  error: unknown,
-  request: Request,
-  key: keyof ProjectDeploymentsCopy['errors'],
-): Promise<string> {
-  const language = resolveProjectUserAreaLanguage(resolveRequestLocale(request).language);
-  const fallback = getProjectDeploymentsCopy(language).errors[key];
-
-  return language === 'fr' ? fallback : apiErrorMessage(error, fallback);
-}
-
 export const action = (args: EnterpriseActionArgs) =>
   projectAction(args, {
     default: async ({ request, projectId, body }) => {
@@ -275,7 +242,7 @@ export const action = (args: EnterpriseActionArgs) =>
           throw error;
         }
 
-        return json({ error: await localizedDeploymentApiError(error, request, 'startFailed') });
+        return json({ error: await apiErrorMessage(error, 'Failed to start deployment') });
       }
 
       const redirectQuery = deploymentsRedirectQuery(request.url, workspaceId);
@@ -290,7 +257,7 @@ export const action = (args: EnterpriseActionArgs) =>
           throw error;
         }
 
-        return json({ error: await localizedDeploymentApiError(error, request, 'cancelFailed') });
+        return json({ error: await apiErrorMessage(error, 'Failed to cancel deployment') });
       }
 
       const redirectQuery = deploymentsRedirectQuery(request.url, body.workspaceId);
@@ -310,7 +277,7 @@ export const action = (args: EnterpriseActionArgs) =>
           throw error;
         }
 
-        return json({ error: await localizedDeploymentApiError(error, request, 'redeployFailed') });
+        return json({ error: await apiErrorMessage(error, 'Failed to redeploy') });
       }
 
       const redirectQuery = deploymentsRedirectQuery(request.url, body.workspaceId);
@@ -327,7 +294,7 @@ export const action = (args: EnterpriseActionArgs) =>
           throw error;
         }
 
-        return json({ error: await localizedDeploymentApiError(error, request, 'rollbackFailed') });
+        return json({ error: await apiErrorMessage(error, 'Failed to roll back') });
       }
 
       const redirectQuery = deploymentsRedirectQuery(request.url, body.workspaceId);
@@ -335,16 +302,6 @@ export const action = (args: EnterpriseActionArgs) =>
       return redirect(`/projects/${projectId}/deployments${redirectQuery}`);
     },
   });
-
-function useProjectDeploymentsLocale(): {
-  copy: ProjectDeploymentsCopy;
-  language: ProjectUserAreaLanguage;
-} {
-  const { i18n } = useTranslation();
-  const language = resolveProjectUserAreaLanguage(i18n.resolvedLanguage ?? i18n.language);
-
-  return { copy: getProjectDeploymentsCopy(language), language };
-}
 
 export default function ProjectDeploymentsPage() {
   /*
@@ -354,7 +311,6 @@ export default function ProjectDeploymentsPage() {
    * from the fetcher — so narrow to it here.
    */
   const { project, data } = useLoaderData() as { project: { id: string }; data: DeploymentsData };
-  const { copy } = useProjectDeploymentsLocale();
   const actionData = useActionData<{ error?: string }>();
   const navigation = useNavigation();
   const revalidator = useRevalidator();
@@ -424,7 +380,11 @@ export default function ProjectDeploymentsPage() {
   }, [building]);
 
   return (
-    <ProjectShell projectId={project.id} title={copy.shell.title} description={copy.shell.description}>
+    <ProjectShell
+      projectId={project.id}
+      title="Deployments"
+      description="Ship preview, staging and production releases with scoped secrets, quota checks and redacted logs."
+    >
       {actionData?.error ? (
         <div
           role="alert"
@@ -433,17 +393,7 @@ export default function ProjectDeploymentsPage() {
           {actionData.error}
         </div>
       ) : null}
-      <DeploySubNav
-        active={view}
-        onSelect={setView}
-        ariaLabel={copy.navigation.aria}
-        labels={{
-          overview: copy.navigation.overview,
-          logs: copy.navigation.logs,
-          domains: copy.navigation.domains,
-          manage: copy.navigation.manage,
-        }}
-      />
+      <DeploySubNav active={view} onSelect={setView} />
 
       {view === 'logs' ? <DeployLogsView deployment={latest} building={building} /> : null}
       {view === 'domains' ? <DeployDomainsView deployment={latest} /> : null}
@@ -460,27 +410,27 @@ export default function ProjectDeploymentsPage() {
                 <input type="hidden" name="deploymentId" value={latest?.id ?? ''} />
                 <input type="hidden" name="workspaceId" value={workspaceId} />
                 <DeployActionButton primary type="submit" disabled={busy || !latest}>
-                  <Rocket className="h-3.5 w-3.5" aria-hidden /> {copy.actions.republish}
+                  <Rocket className="h-3.5 w-3.5" aria-hidden /> Republish
                 </DeployActionButton>
               </Form>
               <DeployActionButton type="button" onClick={() => setView('manage')}>
-                <Settings className="h-3.5 w-3.5" aria-hidden /> {copy.actions.adjustSettings}
+                <Settings className="h-3.5 w-3.5" aria-hidden /> Adjust settings
               </DeployActionButton>
               {latest?.url ? (
                 <DeployActionButton
                   type="button"
                   onClick={() => void navigator.clipboard?.writeText(latest.url as string)}
-                  title={copy.actions.copyLink}
+                  title="Copy deployment link"
                 >
-                  <Copy className="h-3.5 w-3.5" aria-hidden /> {copy.actions.copyLink}
+                  <Copy className="h-3.5 w-3.5" aria-hidden /> Copy deployment link
                 </DeployActionButton>
               ) : null}
-              <DeployActionButton type="button" disabled title={copy.actions.securitySoon}>
-                <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> {copy.actions.securityScan}
+              <DeployActionButton type="button" disabled title="Security scanning is coming soon">
+                <ShieldCheck className="h-3.5 w-3.5" aria-hidden /> Run security scan
               </DeployActionButton>
             </div>
 
-            <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">{copy.production}</h2>
+            <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">Production</h2>
             <DeploymentOverview
               deployment={latest}
               deploymentTypeId={deployType}
@@ -526,7 +476,6 @@ function DeployPublishCard({
   building: boolean;
   onDetectedMode: (mode: 'server' | 'static') => void;
 }) {
-  const { copy, language } = useProjectDeploymentsLocale();
   const detectFetcher = useFetcher<{ detected: DeployDetect }>();
   const rateCardFetcher = useFetcher<{ rateCard: DeployRateCard | null }>();
   const [override, setOverride] = useState<'auto' | 'server' | 'static'>('auto');
@@ -567,35 +516,34 @@ function DeployPublishCard({
     <div className="grid gap-4">
       {/* Detected-mode banner — transparency, no opaque magic. */}
       <div className="grid gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md">
-        <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">{copy.publish.title}</h2>
+        <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Publish</h2>
         {detecting ? (
           <p className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> {copy.publish.detecting}
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Detecting how your app should deploy…
           </p>
         ) : detectedMode === 'unknown' && override === 'auto' ? (
           <div className="grid gap-2">
             <p className="flex items-start gap-2 text-xs text-[var(--status-error-text)]">
               <Ban className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
-              <span>{detected?.reason ?? copy.publish.detectionFailed}</span>
+              <span>{detected?.reason ?? 'Could not detect how this app should deploy.'}</span>
             </p>
             <button
               type="button"
               onClick={() => detectFetcher.load(detectHref)}
               className="justify-self-start text-xs font-medium text-bolt-elements-item-contentAccent hover:underline"
             >
-              {copy.publish.redetect}
+              Re-detect
             </button>
           </div>
         ) : (
           <p className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
             <CheckCircle2 className="h-3.5 w-3.5 text-[var(--status-success-text,currentColor)]" aria-hidden />
             <span>
-              {copy.publish.detected}{' '}
-              <span className="font-medium text-bolt-elements-textPrimary">{detected?.framework}</span> →{' '}
+              Detected: <span className="font-medium text-bolt-elements-textPrimary">{detected?.framework}</span> →{' '}
               <span className="font-medium text-bolt-elements-textPrimary">
-                {effectiveMode === 'server' ? copy.publish.serverMode : copy.publish.staticMode}
+                {effectiveMode === 'server' ? 'server deployment' : 'static deployment'}
               </span>
-              {override !== 'auto' ? ` ${copy.publish.overridden}` : ''}
+              {override !== 'auto' ? ' (overridden)' : ''}
             </span>
           </p>
         )}
@@ -609,16 +557,18 @@ function DeployPublishCard({
         <input type="hidden" name="provider" value={provider} />
 
         <p className="text-xs text-bolt-elements-textSecondary">
-          {effectiveMode === 'server' ? copy.publish.serverDescription : copy.publish.staticDescription}
+          {effectiveMode === 'server'
+            ? 'Runs your app as a managed HTTP service on a durable runtime. Build and start command are auto-detected; your project secrets (including the database URL) are injected automatically.'
+            : 'Builds your app and serves the output as a fast static site at a public URL.'}
         </p>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field as="select" label={copy.publish.environment} name="environment" defaultValue="preview">
-            <option value="preview">{copy.environments.preview}</option>
-            <option value="staging">{copy.environments.staging}</option>
-            <option value="production">{copy.environments.production}</option>
+          <Field as="select" label="Environment" name="environment" defaultValue="preview">
+            <option value="preview">Preview</option>
+            <option value="staging">Staging</option>
+            <option value="production">Production</option>
           </Field>
-          <Field label={copy.publish.customDomain} name="customDomain" placeholder={DEPLOYMENT_DOMAIN_PLACEHOLDER} />
+          <Field label="Custom domain" name="customDomain" placeholder="app.example.com" />
         </div>
 
         {/*
@@ -628,47 +578,38 @@ function DeployPublishCard({
          */}
         {effectiveMode === 'server' && rateCard ? (
           <div className="grid gap-1.5">
-            <Field
-              as="select"
-              label={copy.publish.machineSize}
-              name="machineSize"
-              defaultValue={rateCard.defaultMachineSize}
-            >
+            <Field as="select" label="Machine size" name="machineSize" defaultValue={rateCard.defaultMachineSize}>
               {rateCard.machineSizes.map((size) => (
                 <option key={size.key} value={size.key} disabled={!size.available}>
-                  {size.label} —{' '}
-                  {interpolateProjectCopy(copy.publish.hourlyActive, {
-                    amount: machineSizeHourlyDollars(rateCard, size, language),
-                  })}
-                  {size.available
-                    ? ''
-                    : ` ${size.reason === 'plan' ? copy.publish.upgradePlan : copy.publish.unavailable}`}
+                  {size.label} — {machineSizeHourlyDollars(rateCard, size)}/h active
+                  {size.available ? '' : size.reason === 'plan' ? ' (upgrade plan)' : ' (unavailable)'}
                 </option>
               ))}
             </Field>
             <p className="text-[11px] text-bolt-elements-textTertiary">
-              {interpolateProjectCopy(copy.publish.billing, { version: rateCard.version })}
+              Billed only while your app is running — it sleeps automatically after 15 min without traffic and wakes on
+              the next request. Rate card v{rateCard.version}.
             </p>
           </div>
         ) : null}
 
         <Field
           as="textarea"
-          label={copy.publish.environmentVariables}
+          label="Environment variables"
           name="envVars"
-          placeholder={copy.publish.environmentPlaceholder}
+          placeholder={'PUBLIC_API_URL=https://api.example.com\nFEATURE_FLAG=on'}
         />
 
         <details className="group">
           <summary className="cursor-pointer text-xs font-medium text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary">
-            {copy.publish.advanced}
+            Advanced — override the deploy mode
           </summary>
           <div className="mt-2 grid gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
             {(
               [
-                ['auto', copy.publish.modeAuto],
-                ['server', copy.publish.modeServer],
-                ['static', copy.publish.modeStatic],
+                ['auto', 'Auto (recommended) — use the detected mode'],
+                ['server', 'Server — managed HTTP service'],
+                ['static', 'Static — built output, no server'],
               ] as const
             ).map(([value, label]) => (
               <label
@@ -691,7 +632,7 @@ function DeployPublishCard({
 
         <Button type="submit" disabled={!canPublish} className="gap-2">
           <Rocket className="h-4 w-4" aria-hidden />
-          {busy || building ? copy.publish.publishing : copy.publish.submit}
+          {busy || building ? 'Publishing…' : 'Publish'}
         </Button>
       </Form>
     </div>
@@ -728,7 +669,6 @@ function DeployActionButton({
  * building / failed / deployed header.
  */
 function DeployLogsView({ deployment, building = false }: { deployment?: Deployment; building?: boolean }) {
-  const { copy } = useProjectDeploymentsLocale();
   const logs = deployment?.logs ?? [];
   const status = deployment?.status ?? '';
   const failed = status === 'FAILED';
@@ -749,19 +689,19 @@ function DeployLogsView({ deployment, building = false }: { deployment?: Deploym
     <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-md">
       <div className="flex items-center justify-between gap-2 border-b border-bolt-elements-borderColor px-4 py-3 text-[14px] font-medium text-bolt-elements-textPrimary">
         <span className="flex items-center gap-2">
-          <TerminalSquare className="h-4 w-4" aria-hidden /> {copy.logs.title}
+          <TerminalSquare className="h-4 w-4" aria-hidden /> Build &amp; deploy logs
         </span>
         {building ? (
           <span className="flex items-center gap-1.5 text-[13px] text-[var(--vc-ide-accent-action)]">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> {copy.logs.building}
+            <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Building…
           </span>
         ) : failed ? (
           <span className="flex items-center gap-1.5 text-[13px]" style={{ color: 'var(--status-error-text)' }}>
-            <Ban className="h-3.5 w-3.5" aria-hidden /> {copy.logs.failed}
+            <Ban className="h-3.5 w-3.5" aria-hidden /> Failed
           </span>
         ) : ready ? (
           <span className="flex items-center gap-1.5 text-[13px]" style={{ color: 'var(--status-ok, #3fb950)' }}>
-            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> {copy.logs.deployed}
+            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Deployed
           </span>
         ) : null}
       </div>
@@ -777,7 +717,9 @@ function DeployLogsView({ deployment, building = false }: { deployment?: Deploym
             </div>
           ))
         ) : (
-          <span className="text-bolt-elements-textTertiary">{building ? copy.logs.starting : copy.logs.empty}</span>
+          <span className="text-bolt-elements-textTertiary">
+            {building ? 'Starting the build…' : 'No logs yet — click Deploy project to build and publish.'}
+          </span>
         )}
       </pre>
     </div>
@@ -786,11 +728,9 @@ function DeployLogsView({ deployment, building = false }: { deployment?: Deploym
 
 /** Domains view — live URL + custom domain + DNS guidance. */
 function DeployDomainsView({ deployment }: { deployment?: Deployment }) {
-  const { copy } = useProjectDeploymentsLocale();
-
   return (
     <div className="mt-4 grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md">
-      <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">{copy.domains.title}</h2>
+      <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">Domains</h2>
       <div className="grid gap-2 text-[14px]">
         <div className="flex items-center gap-2">
           <Globe2 className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
@@ -804,7 +744,7 @@ function DeployDomainsView({ deployment }: { deployment?: Deployment }) {
               {deployment.url}
             </a>
           ) : (
-            <span className="text-bolt-elements-textTertiary">{copy.domains.noUrl}</span>
+            <span className="text-bolt-elements-textTertiary">No live URL yet — publish first.</span>
           )}
         </div>
         {deployment?.customDomain ? (
@@ -814,7 +754,10 @@ function DeployDomainsView({ deployment }: { deployment?: Deployment }) {
           </div>
         ) : null}
       </div>
-      <p className="text-[12px] text-bolt-elements-textTertiary">{copy.domains.guidance}</p>
+      <p className="text-[12px] text-bolt-elements-textTertiary">
+        Add a custom domain in the Overview wizard. After publishing, point your domain&apos;s DNS (CNAME) at the
+        deployment; managed TLS for custom domains is coming soon.
+      </p>
     </div>
   );
 }
@@ -829,14 +772,14 @@ function DeployHistory({
   busy: boolean;
   workspaceId: string;
 }) {
-  const { copy } = useProjectDeploymentsLocale();
-
   return (
     <div className="mt-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-md">
       <div className="flex items-center justify-between border-b border-bolt-elements-borderColor px-5 py-4">
         <div>
-          <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">{copy.history.title}</h2>
-          <p className="text-xs text-bolt-elements-textSecondary">{copy.history.description}</p>
+          <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">Deployment history</h2>
+          <p className="text-xs text-bolt-elements-textSecondary">
+            Redeploy, cancel or rollback without leaving the project.
+          </p>
         </div>
         <History className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
       </div>
@@ -849,8 +792,10 @@ function DeployHistory({
           <div className="grid place-items-center gap-3 px-5 py-14 text-center">
             <Rocket className="h-8 w-8 text-bolt-elements-textTertiary" aria-hidden />
             <div>
-              <p className="text-sm font-medium text-bolt-elements-textPrimary">{copy.history.emptyTitle}</p>
-              <p className="text-xs text-bolt-elements-textSecondary">{copy.history.emptyDescription}</p>
+              <p className="text-sm font-medium text-bolt-elements-textPrimary">No deployments yet</p>
+              <p className="text-xs text-bolt-elements-textSecondary">
+                Use the Overview wizard to create the first preview or production release.
+              </p>
             </div>
           </div>
         )}
@@ -864,9 +809,9 @@ function DeployHistory({
  * logs (a client-side interaction), so locale formatting can't cause an
  * SSR/hydration mismatch. Falls back to the raw value for malformed timestamps.
  */
-function formatLogTimestamp(timestamp: string, language: ProjectUserAreaLanguage): string {
+function formatLogTimestamp(timestamp: string): string {
   const date = new Date(timestamp);
-  return formatUserAreaTime(date, undefined, language) ?? timestamp;
+  return formatUserAreaTime(date) ?? timestamp;
 }
 
 /**
@@ -887,7 +832,6 @@ function DeploymentRow({
   busy: boolean;
   workspaceId: string;
 }) {
-  const { copy, language } = useProjectDeploymentsLocale();
   const ready = deployment.status === 'READY';
   const logs = deployment.logs ?? [];
   const [logsOpen, setLogsOpen] = useState(false);
@@ -900,7 +844,7 @@ function DeploymentRow({
           <StatusBadge status={deployment.status} />
           <span className="text-sm font-medium text-bolt-elements-textPrimary">{deployment.provider}</span>
           <span className="rounded bg-bolt-elements-background-depth-1 px-2 py-0.5 text-[11px] text-bolt-elements-textSecondary">
-            {copy.environments[deployment.environment]}
+            {deployment.environment}
           </span>
           {deployment.framework ? (
             <span className="rounded bg-bolt-elements-background-depth-1 px-2 py-0.5 text-[11px] text-bolt-elements-textSecondary">
@@ -910,9 +854,9 @@ function DeploymentRow({
           {deployment.rolledBackFromId ? (
             <span
               className="inline-flex items-center gap-1 rounded bg-bolt-elements-background-depth-1 px-2 py-0.5 text-[11px] text-bolt-elements-textSecondary"
-              title={interpolateProjectCopy(copy.row.rollbackTitle, { deploymentId: deployment.rolledBackFromId })}
+              title={`Created by rolling back to deployment ${deployment.rolledBackFromId}`}
             >
-              <History className="h-3 w-3" aria-hidden /> {copy.row.rollbackBadge}
+              <History className="h-3 w-3" aria-hidden /> rollback
             </span>
           ) : null}
         </div>
@@ -930,15 +874,15 @@ function DeploymentRow({
             </span>
           ) : null}
           {duration ? (
-            <span className="inline-flex items-center gap-1" title={copy.row.durationTitle}>
+            <span className="inline-flex items-center gap-1" title="Build duration">
               <Timer className="h-3.5 w-3.5 text-bolt-elements-textTertiary" aria-hidden />
               {duration}
             </span>
           ) : null}
-          {deployment.createdAt ? <RelativeTime value={deployment.createdAt} prefix={copy.row.deployedPrefix} /> : null}
+          {deployment.createdAt ? <RelativeTime value={deployment.createdAt} prefix="deployed" /> : null}
         </div>
         <p className="mt-2 truncate text-xs text-bolt-elements-textSecondary">
-          {deployment.url ?? copy.row.urlPending} {deployment.customDomain ? `- ${deployment.customDomain}` : ''}
+          {deployment.url ?? 'URL pending'} {deployment.customDomain ? `- ${deployment.customDomain}` : ''}
         </p>
         <div className="mt-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
           <button
@@ -952,12 +896,9 @@ function DeploymentRow({
               aria-hidden
             />
             <TerminalSquare className="h-4 w-4" aria-hidden />
-            {copy.logs.redacted}
+            Redacted deployment logs
             <span className="ml-auto text-[11px] font-normal text-bolt-elements-textTertiary">
-              {formatProjectCopyPlural(language, logs.length, {
-                one: copy.logs.line_one,
-                other: copy.logs.line_other,
-              })}
+              {logs.length} {logs.length === 1 ? 'line' : 'lines'}
             </span>
           </button>
           {logsOpen ? (
@@ -975,11 +916,11 @@ function DeploymentRow({
                           : undefined
                     }
                   >
-                    [{formatLogTimestamp(log.timestamp, language)}] [{log.level}] {log.message}
+                    [{formatLogTimestamp(log.timestamp)}] [{log.level}] {log.message}
                   </div>
                 ))
               ) : (
-                <span>{copy.logs.noLogs}</span>
+                <span>No logs yet</span>
               )}
             </div>
           ) : null}
@@ -993,7 +934,7 @@ function DeploymentRow({
             target="_blank"
             rel="noreferrer"
           >
-            {copy.actions.open}
+            Open
           </a>
         ) : null}
         <InlineAction
@@ -1003,7 +944,7 @@ function DeploymentRow({
           disabled={busy}
           icon={RotateCcw}
         >
-          {copy.actions.redeploy}
+          Redeploy
         </InlineAction>
         <InlineAction
           intent="rollback"
@@ -1012,7 +953,7 @@ function DeploymentRow({
           disabled={busy || !ready}
           icon={History}
         >
-          {copy.actions.rollback}
+          Rollback
         </InlineAction>
         <InlineAction
           intent="cancel"
@@ -1021,7 +962,7 @@ function DeploymentRow({
           disabled={busy || ready}
           icon={Ban}
         >
-          {copy.actions.cancel}
+          Cancel
         </InlineAction>
       </div>
     </article>
@@ -1035,6 +976,25 @@ function DeploymentRow({
  * server-side: it re-publishes the target deployment (triggering a provider
  * rollback for netlify/vercel) and records a `deployment.rollback` audit event.
  */
+const confirmDialogs: Record<
+  string,
+  { title: string; description: string; confirmLabel: string; variant: 'default' | 'destructive' }
+> = {
+  rollback: {
+    title: 'Roll back to this deployment?',
+    description:
+      'This changes what is currently served: the selected build is re-published as a new deployment and an audit event is recorded.',
+    confirmLabel: 'Roll back',
+    variant: 'default',
+  },
+  cancel: {
+    title: 'Cancel this deployment?',
+    description: 'The in-progress build stops and the deployment is marked as canceled.',
+    confirmLabel: 'Cancel deployment',
+    variant: 'destructive',
+  },
+};
+
 function InlineAction({
   intent,
   deploymentId,
@@ -1050,27 +1010,10 @@ function InlineAction({
   icon: LucideIcon;
   children: React.ReactNode;
 }) {
-  const { copy } = useProjectDeploymentsLocale();
   const ActionIcon = icon;
   const formRef = useRef<HTMLFormElement>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-
-  const confirm =
-    intent === 'rollback'
-      ? {
-          title: copy.confirmations.rollback.title,
-          description: copy.confirmations.rollback.description,
-          confirmLabel: copy.confirmations.rollback.confirm,
-          variant: 'default' as const,
-        }
-      : intent === 'cancel'
-        ? {
-            title: copy.confirmations.cancel.title,
-            description: copy.confirmations.cancel.description,
-            confirmLabel: copy.confirmations.cancel.confirm,
-            variant: 'destructive' as const,
-          }
-        : undefined;
+  const confirm = confirmDialogs[intent];
 
   return (
     <>
@@ -1115,29 +1058,8 @@ function InlineAction({
  * CANCELED=warning (deliberate stop, not a failure), QUEUED/BUILDING=info.
  */
 function StatusBadge({ status }: { status: string }) {
-  const { copy } = useProjectDeploymentsLocale();
-
   const tone =
     status === 'READY' ? 'success' : status === 'FAILED' ? 'error' : status === 'CANCELED' ? 'warning' : 'info';
-
-  const normalizedStatus = status.trim().toUpperCase();
-
-  const label =
-    normalizedStatus === 'READY'
-      ? copy.statuses.ready
-      : normalizedStatus === 'FAILED' || normalizedStatus === 'ERROR'
-        ? copy.statuses.failed
-        : normalizedStatus === 'CANCELED' || normalizedStatus === 'CANCELLED'
-          ? copy.statuses.canceled
-          : normalizedStatus === 'QUEUED'
-            ? copy.statuses.queued
-            : normalizedStatus === 'BUILDING'
-              ? copy.statuses.building
-              : normalizedStatus === 'PENDING'
-                ? copy.statuses.pending
-                : normalizedStatus === 'DEPLOYING' || normalizedStatus === 'IN_PROGRESS'
-                  ? copy.statuses.deploying
-                  : copy.statuses.unknown;
 
   return (
     <span
@@ -1153,7 +1075,7 @@ function StatusBadge({ status }: { status: string }) {
       ) : (
         <Rocket className="h-3 w-3" aria-hidden />
       )}
-      {label}
+      {statusDisplayLabel(status)}
     </span>
   );
 }

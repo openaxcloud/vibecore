@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { getTemplates, selectStarterTemplate } from './selectStarterTemplate';
+import { getTemplates } from './selectStarterTemplate';
 
 /**
  * Regression test for the starter-template artifact builder: file paths
@@ -63,43 +63,5 @@ describe('getTemplates artifact escaping', () => {
     const result = await getTemplates('Expo App');
     expect(result).not.toBeNull();
     expect(result!.assistantMessage).toContain('title="Create initial files"');
-  });
-
-  it('localizes the rendered template-import messages while preserving paths and commands', async () => {
-    vi.stubGlobal('navigator', { language: 'fr-FR' });
-    stubGithubTemplateFetch([{ name: 'index.ts', path: 'src/index.ts', content: 'export {};' }]);
-
-    const result = await getTemplates('Expo App');
-
-    expect(result).not.toBeNull();
-    expect(result!.assistantMessage).toContain('E-Code initialise votre projet');
-    expect(result!.assistantMessage).toContain('title="Créer les fichiers initiaux"');
-    expect(result!.assistantMessage).toContain('filePath="src/index.ts"');
-    expect(result!.userMessage).toContain('L’importation du modèle est terminée.');
-    expect(result!.userMessage).toContain('`npm install && npm run dev`');
-    expect(result!.userMessage).not.toContain('template import is done');
-  });
-
-  it('localizes the generated-title fallback without translating the selected template identifier', async () => {
-    vi.stubGlobal('navigator', { language: 'fr-FR' });
-    vi.stubGlobal(
-      'fetch',
-      vi.fn(async () =>
-        Response.json({
-          text: '<selection><templateName>react-basic-starter</templateName></selection>',
-        }),
-      ),
-    );
-
-    await expect(
-      selectStarterTemplate({
-        message: 'Construisez un tableau de bord',
-        model: 'test-model',
-        provider: { name: 'Test', staticModels: [] },
-      }),
-    ).resolves.toEqual({
-      template: 'react-basic-starter',
-      title: 'Projet sans titre',
-    });
   });
 });

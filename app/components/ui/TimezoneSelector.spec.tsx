@@ -3,11 +3,9 @@
  */
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { type ReactNode, useState } from 'react';
-import { I18nextProvider } from 'react-i18next';
+import { useState } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TimezoneSelector } from './TimezoneSelector';
-import { createI18nInstance } from '~/lib/i18n/runtime';
 import { isValidIanaTimeZone } from '~/lib/time-zones';
 
 afterEach(cleanup);
@@ -18,13 +16,9 @@ function ControlledTimezoneSelector({ initialValue = '' }: { initialValue?: stri
   return <TimezoneSelector value={value} onChange={setValue} />;
 }
 
-function renderEnglish(node: ReactNode) {
-  return render(<I18nextProvider i18n={createI18nInstance('en')}>{node}</I18nextProvider>);
-}
-
 describe('TimezoneSelector', () => {
   it('loads IANA suggestions without changing the server-stable initial value', async () => {
-    renderEnglish(<ControlledTimezoneSelector initialValue="Europe/Paris" />);
+    render(<ControlledTimezoneSelector initialValue="Europe/Paris" />);
 
     const input = screen.getByLabelText('Time zone') as HTMLInputElement;
 
@@ -34,7 +28,7 @@ describe('TimezoneSelector', () => {
   });
 
   it('surfaces an invalid free-form value before submission', () => {
-    renderEnglish(<ControlledTimezoneSelector />);
+    render(<ControlledTimezoneSelector />);
 
     const input = screen.getByLabelText('Time zone') as HTMLInputElement;
 
@@ -49,7 +43,7 @@ describe('TimezoneSelector', () => {
   it('applies the browser-detected time zone through an explicit action', async () => {
     const onChange = vi.fn();
 
-    renderEnglish(<TimezoneSelector value="" onChange={onChange} />);
+    render(<TimezoneSelector value="" onChange={onChange} />);
 
     const button = screen.getByRole('button', { name: 'Use detected time zone' }) as HTMLButtonElement;
 
@@ -58,26 +52,5 @@ describe('TimezoneSelector', () => {
 
     expect(onChange).toHaveBeenCalledOnce();
     expect(isValidIanaTimeZone(String(onChange.mock.calls[0][0]))).toBe(true);
-  });
-
-  it('localizes labels, validation, detection and browser validity in French', async () => {
-    render(
-      <I18nextProvider i18n={createI18nInstance('fr')}>
-        <ControlledTimezoneSelector />
-      </I18nextProvider>,
-    );
-
-    const input = screen.getByLabelText('Fuseau horaire') as HTMLInputElement;
-    expect(input.getAttribute('placeholder')).toBe('Rechercher un fuseau horaire');
-    expect(screen.getByText(/Détection du fuseau horaire|Détecté/u)).toBeTruthy();
-
-    fireEvent.change(input, { target: { value: 'heure de Paris' } });
-    fireEvent.blur(input);
-
-    expect(screen.getByRole('alert').textContent).toBe('Choisissez un fuseau horaire IANA valide.');
-    expect(input.validationMessage).toBe('Choisissez un fuseau horaire IANA valide.');
-    await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Utiliser le fuseau horaire détecté' })).toBeTruthy(),
-    );
   });
 });

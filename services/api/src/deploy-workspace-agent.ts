@@ -100,18 +100,16 @@ export function streamAgentCommand(
 
     try {
       socket = wsFactory(url);
-    } catch {
-      finish({ exitCode: null, timedOut: false, error: 'WORKSPACE_STREAM_OPEN_FAILED' });
+    } catch (error) {
+      finish({ exitCode: null, timedOut: false, error: (error as Error).message });
       return;
     }
 
     socket.addEventListener('open', () => {
       try {
-        socket?.send(
-          JSON.stringify({ type: 'hello', payload: { command: step.command, args: step.args, cwd: step.cwd } }),
-        );
-      } catch {
-        finish({ exitCode: null, timedOut: false, error: 'WORKSPACE_STREAM_SEND_FAILED' });
+        socket?.send(JSON.stringify({ type: 'hello', payload: { command: step.command, args: step.args, cwd: step.cwd } }));
+      } catch (error) {
+        finish({ exitCode: null, timedOut: false, error: (error as Error).message });
       }
     });
 
@@ -136,19 +134,15 @@ export function streamAgentCommand(
           finish({ exitCode: typeof message.exitCode === 'number' ? message.exitCode : null, timedOut: false });
           break;
         case 'error':
-          finish({ exitCode: null, timedOut: false, error: 'WORKSPACE_STREAM_COMMAND_FAILED' });
+          finish({ exitCode: null, timedOut: false, error: message.error?.message ?? 'workspace stream error' });
           break;
         default:
           break;
       }
     });
 
-    socket.addEventListener('error', () =>
-      finish({ exitCode: null, timedOut: false, error: 'WORKSPACE_STREAM_CONNECTION_FAILED' }),
-    );
-    socket.addEventListener('close', () =>
-      finish({ exitCode: null, timedOut: false, error: 'WORKSPACE_STREAM_CLOSED' }),
-    );
+    socket.addEventListener('error', () => finish({ exitCode: null, timedOut: false, error: 'workspace stream connection error' }));
+    socket.addEventListener('close', () => finish({ exitCode: null, timedOut: false, error: 'workspace stream closed before the command finished' }));
   });
 }
 
@@ -180,8 +174,8 @@ export function createWorkspaceBuildAgent(deps: WorkspaceBuildAgentDeps): Worksp
     },
 
     readFile: (filePath) =>
-      deps
-        .agentGet<{ content: string; encoding?: 'utf8' | 'base64' }>(`/files/read?path=${encodeURIComponent(filePath)}`)
-        .then((result) => ({ content: result.content, encoding: result.encoding === 'base64' ? 'base64' : 'utf8' })),
+      deps.agentGet<{ content: string; encoding?: 'utf8' | 'base64' }>(
+        `/files/read?path=${encodeURIComponent(filePath)}`,
+      ).then((result) => ({ content: result.content, encoding: result.encoding === 'base64' ? 'base64' : 'utf8' })),
   };
 }

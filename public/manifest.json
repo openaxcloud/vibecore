@@ -1,7 +1,6 @@
 {
   "name": "E-Code.ai",
   "short_name": "E-Code",
-  "lang": "en",
   "description": "AI-powered coding platform with governed workspaces, real runtimes, and deployment controls.",
   "start_url": "/?source=pwa",
   "scope": "/",

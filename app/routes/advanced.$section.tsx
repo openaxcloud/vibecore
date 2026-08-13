@@ -13,17 +13,16 @@ import {
  */
 export const loader = ({ params }: LoaderFunctionArgs) => {
   if (!getEcodeAdvancedSurfacePage(params.section ?? '')) {
-    throw new Response(null, { status: 404 });
+    throw new Response('Not Found', { status: 404, statusText: 'Not Found' });
   }
 
   return null;
 };
 
-export const meta: MetaFunction = ({ matches, params }) => {
+export const meta: MetaFunction = ({ params }) => {
   const page = getEcodeAdvancedSurfacePage(params.section ?? '');
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
 
-  return page ? makeEcodeSurfaceMetaTags(page, rootData?.language) : [];
+  return page ? makeEcodeSurfaceMetaTags(page) : [{ title: 'Advanced E-Code surface not found' }];
 };
 
 export default function AdvancedEcodeSurfaceRoute() {

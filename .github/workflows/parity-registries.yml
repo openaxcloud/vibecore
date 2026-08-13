@@ -11,10 +11,6 @@ on:
     paths:
       - 'docs/parity/**'
       - 'scripts/parity/**'
-      # P0-LS-03 : l'index de hash + le vérificateur du paquet livescan vivent
-      # ici — les inclure garantit que toute altération de l'index redéclenche
-      # le job de vérification (le scan lui-même est déjà sous docs/parity/**).
-      - 'docs/deploy-evidence/2026-07-22-livescan-hashes/**'
       - '.github/workflows/parity-registries.yml'
   push:
     # LS-16 (verdict -03) : le job d'attestation doit partir À CHAQUE push sur
@@ -69,13 +65,6 @@ jobs:
       # Full registry validation (cross-refs, freshness SLA, no CLOSED-without-review,
       # no surface DONE without evidence, computed-view drift).
       - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
-      # P0-LS-03 (verdict RR-20260722-CODEX-06) : la commande annoncée du point
-      # DOIT être rejouée dans un job CI officiel. Ce step recalcule le sha256 de
-      # TOUS les fichiers du paquet livescan (dont les 21 *.links.txt) et ÉCHOUE
-      # (exit 1) sur toute dérive de hash ou couverture incomplète. Aucune
-      # dépendance externe (node built-ins) → pas de PARITY_DEPS requis.
-      - name: Verify livescan hash coverage (P0-LS-03 — fails on hash drift)
-        run: node docs/deploy-evidence/2026-07-22-livescan-hashes/verify-livescan-hashes.mjs --check
       # LS-16 (verdict -03) : AUTHENTIFIER l'attestation contre l'API GitHub —
       # runId/commit/date/conclusion doivent correspondre à une VRAIE exécution.
       - name: Authenticate attestation run against GitHub API

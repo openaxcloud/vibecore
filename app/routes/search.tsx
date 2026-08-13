@@ -1,44 +1,19 @@
 import { AppWindow, ArrowRight, BookOpen, LayoutTemplate, LifeBuoy, Search as SearchIcon } from 'lucide-react';
 import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Link, useLoaderData, useSearchParams, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
+import { Link, useLoaderData, useSearchParams, type LoaderFunctionArgs } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
-import { getHelpSearchContent, normalizeHelpQuery } from '~/components/marketing/ecode-exact/pages/help-search';
-import { EmptyState } from '~/components/ui/EmptyState';
+import { makeMarketingMeta, marketingPages } from '~/components/marketing/EcodeMarketingPages';
 import {
-  formatSearchDataSettingsPlural,
-  getSearchCopy,
-  interpolateSearchDataSettingsCopy,
-  resolveSearchDataSettingsLanguage,
-  type SearchCopy,
-} from '~/lib/i18n/catalogs/search-data-settings';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+  filterHelpArticles,
+  filterHelpTopics,
+  normalizeHelpQuery,
+  HELP_POPULAR_ARTICLES,
+  HELP_TOPICS,
+} from '~/components/marketing/ecode-exact/pages/help-search';
+import { EmptyState } from '~/components/ui/EmptyState';
 import { getEcodeTemplateCategories, listEcodeTemplates } from '~/lib/marketing/ecode-template-catalog.server';
-import { DEFAULT_OG_IMAGE, MARKETING_SITE_URL } from '~/utils/social-meta';
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-  const seo = getSearchCopy(data?.language).seo;
-  const canonical = `${MARKETING_SITE_URL}/search`;
-
-  return [
-    { title: seo.title },
-    { name: 'description', content: seo.description },
-    { name: 'robots', content: 'noindex,follow' },
-    { property: 'og:title', content: seo.title },
-    { property: 'og:description', content: seo.description },
-    { property: 'og:image', content: DEFAULT_OG_IMAGE },
-    { property: 'og:image:alt', content: seo.imageAlt },
-    { name: 'twitter:card', content: 'summary_large_image' },
-    { name: 'twitter:title', content: seo.title },
-    { name: 'twitter:description', content: seo.description },
-    { name: 'twitter:image', content: DEFAULT_OG_IMAGE },
-    { name: 'twitter:image:alt', content: seo.imageAlt },
-    { tagName: 'link', rel: 'canonical', href: canonical },
-    { tagName: 'link', rel: 'alternate', hrefLang: 'en', href: `${canonical}?lang=en` },
-    { tagName: 'link', rel: 'alternate', hrefLang: 'fr', href: `${canonical}?lang=fr` },
-    { tagName: 'link', rel: 'alternate', hrefLang: 'x-default', href: canonical },
-  ];
-};
+export const meta = makeMarketingMeta(marketingPages.search);
 
 export interface AppPageIndexEntry {
   title: string;
@@ -46,61 +21,105 @@ export interface AppPageIndexEntry {
   path: string;
 }
 
-type AppPageKey = keyof SearchCopy['appPages'];
-
-const APP_PAGE_DEFINITIONS: ReadonlyArray<{ key: AppPageKey; path: string }> = [
-  { key: 'dashboard', path: '/dashboard' },
-  { key: 'projects', path: '/projects' },
-  { key: 'newProject', path: '/projects/new' },
-  { key: 'templates', path: '/templates' },
-  { key: 'deployments', path: '/deployments' },
-  { key: 'usage', path: '/usage' },
-  { key: 'billing', path: '/billing' },
-  { key: 'invoices', path: '/invoices' },
-  { key: 'teams', path: '/team' },
-  { key: 'settings', path: '/settings' },
-  { key: 'accountSettings', path: '/account-settings' },
-  { key: 'apiKeys', path: '/api-keys' },
-  { key: 'support', path: '/support' },
-  { key: 'docs', path: '/docs' },
-  { key: 'helpCenter', path: '/help-center' },
-  { key: 'community', path: '/community' },
-  { key: 'pricing', path: '/pricing' },
-  { key: 'marketplace', path: '/marketplace' },
+/*
+ * Honest static index of the app's own user-facing pages. Every path below is
+ * a real route in app/routes; titles mirror the navigation so search matches
+ * what users actually see.
+ */
+export const APP_PAGE_INDEX: AppPageIndexEntry[] = [
+  {
+    title: 'Dashboard',
+    path: '/dashboard',
+    description: 'Workspace home with your recent projects and quick actions.',
+  },
+  {
+    title: 'Projects',
+    path: '/projects',
+    description: 'All projects across your organizations, with search and filters.',
+  },
+  {
+    title: 'New project',
+    path: '/projects/new',
+    description: 'Start a new project from a prompt, a template or an import.',
+  },
+  {
+    title: 'Templates',
+    path: '/templates',
+    description: 'Starter template gallery for web apps, APIs, mobile and AI agents.',
+  },
+  {
+    title: 'Deployments',
+    path: '/deployments',
+    description: 'Published deployments, domains and release status.',
+  },
+  {
+    title: 'Usage',
+    path: '/usage',
+    description: 'Compute, storage and AI usage against your plan limits.',
+  },
+  {
+    title: 'Billing',
+    path: '/billing',
+    description: 'Plan, payment method and subscription management.',
+  },
+  {
+    title: 'Invoices',
+    path: '/invoices',
+    description: 'Invoice history and downloads.',
+  },
+  {
+    title: 'Teams',
+    path: '/team',
+    description: 'Team plans, collaboration and enterprise controls.',
+  },
+  {
+    title: 'Settings',
+    path: '/settings',
+    description: 'Account, workspace and notification settings.',
+  },
+  {
+    title: 'Account settings',
+    path: '/account-settings',
+    description: 'Profile, security and account management.',
+  },
+  {
+    title: 'API keys',
+    path: '/api-keys',
+    description: 'Create and manage API keys for programmatic access.',
+  },
+  {
+    title: 'Support',
+    path: '/support',
+    description: 'Contact the support team and find support resources.',
+  },
+  {
+    title: 'Docs',
+    path: '/docs',
+    description: 'Product documentation and guides.',
+  },
+  {
+    title: 'Help Center',
+    path: '/help-center',
+    description: 'Browse help topics and popular articles.',
+  },
+  {
+    title: 'Community',
+    path: '/community',
+    description: 'Community posts, examples and discussions.',
+  },
+  {
+    title: 'Pricing',
+    path: '/pricing',
+    description: 'Plans for individuals, teams and enterprise deployments.',
+  },
+  {
+    title: 'Marketplace',
+    path: '/marketplace',
+    description: 'Marketplace templates and community starters.',
+  },
 ];
 
-function buildAppPageIndex(copy: SearchCopy): AppPageIndexEntry[] {
-  return APP_PAGE_DEFINITIONS.map(({ key, path }) => ({ path, ...copy.appPages[key] }));
-}
-
-export const APP_PAGE_INDEX: AppPageIndexEntry[] = buildAppPageIndex(getSearchCopy('en'));
-
 const MAX_RESULTS_PER_SOURCE = 8;
-
-function normalizeSearchText(value: string): string {
-  return normalizeHelpQuery(value)
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '');
-}
-
-function includesQuery(values: readonly string[], query: string): boolean {
-  const normalizedQuery = normalizeSearchText(query);
-  return values.some((value) => normalizeSearchText(value).includes(normalizedQuery));
-}
-
-function filterLocalizedRecords<T>(
-  localized: readonly T[],
-  english: readonly T[],
-  query: string,
-  searchableText: (value: T) => readonly string[],
-): T[] {
-  return localized.filter((value, index) => {
-    const fallback = english[index];
-    const values = [...searchableText(value), ...(fallback ? searchableText(fallback) : [])];
-
-    return includesQuery(values, query);
-  });
-}
 
 /**
  * Server-side search over the real corpora available without new backends:
@@ -111,81 +130,32 @@ function filterLocalizedRecords<T>(
 export function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const query = normalizeHelpQuery(url.searchParams.get('q') ?? '');
-  const language = resolveRequestLocale(request).language;
-  const copy = getSearchCopy(language);
-  const englishCopy = getSearchCopy('en');
-  const help = getHelpSearchContent(language);
-  const englishHelp = getHelpSearchContent('en');
 
   if (query === '') {
     return {
-      language,
       query,
       pages: [] as AppPageIndexEntry[],
-      helpTopics: [] as Array<{ title: string; description: string }>,
+      helpTopics: [] as typeof HELP_TOPICS,
       helpArticles: [] as string[],
-      templates: [] as Array<{
-        slug: string;
-        name: string;
-        description: string;
-        categoryName: string;
-        lookupName: string;
-      }>,
+      templates: [] as Array<{ slug: string; name: string; description: string; categoryName: string }>,
     };
   }
 
   const categoryNames = new Map(getEcodeTemplateCategories().map((category) => [category.slug, category.name]));
-  const localizedPages = buildAppPageIndex(copy);
-  const englishPages = buildAppPageIndex(englishCopy);
-
-  const templates = listEcodeTemplates()
-    .map((template) => {
-      const localized = copy.templates.records[template.slug as keyof typeof copy.templates.records];
-      const english = englishCopy.templates.records[template.slug as keyof typeof englishCopy.templates.records];
-      const localizedCategory = copy.templates.categories[template.category as keyof typeof copy.templates.categories];
-
-      const englishCategory =
-        englishCopy.templates.categories[template.category as keyof typeof englishCopy.templates.categories] ??
-        categoryNames.get(template.category) ??
-        template.category;
-
-      return {
-        slug: template.slug,
-        name: localized?.name ?? template.name,
-        description: localized?.description ?? template.description,
-        categoryName: localizedCategory ?? categoryNames.get(template.category) ?? template.category,
-        lookupName: template.name,
-        searchable: [
-          localized?.name ?? template.name,
-          localized?.description ?? template.description,
-          localizedCategory ?? template.category,
-          english?.name ?? template.name,
-          english?.description ?? template.description,
-          englishCategory,
-          ...template.tags,
-          ...template.technologies,
-        ],
-      };
-    })
-    .filter((template) => includesQuery(template.searchable, query))
-    .slice(0, MAX_RESULTS_PER_SOURCE)
-    .map(({ searchable: _searchable, ...template }) => template);
 
   return {
-    language,
     query,
-    pages: filterLocalizedRecords(localizedPages, englishPages, query, (page) => [page.title, page.description]).slice(
-      0,
-      MAX_RESULTS_PER_SOURCE,
-    ),
-    helpTopics: filterLocalizedRecords(help.topics, englishHelp.topics, query, (topic) => [
-      topic.title,
-      topic.description,
-    ]).slice(0, MAX_RESULTS_PER_SOURCE),
-    helpArticles: filterLocalizedRecords(help.popularArticles, englishHelp.popularArticles, query, (article) => [
-      article,
-    ]).slice(0, MAX_RESULTS_PER_SOURCE),
-    templates,
+    pages: filterHelpTopics(APP_PAGE_INDEX, query).slice(0, MAX_RESULTS_PER_SOURCE),
+    helpTopics: filterHelpTopics(HELP_TOPICS, query).slice(0, MAX_RESULTS_PER_SOURCE),
+    helpArticles: filterHelpArticles(HELP_POPULAR_ARTICLES, query).slice(0, MAX_RESULTS_PER_SOURCE),
+    templates: listEcodeTemplates({ query })
+      .slice(0, MAX_RESULTS_PER_SOURCE)
+      .map((template) => ({
+        slug: template.slug,
+        name: template.name,
+        description: template.description,
+        categoryName: categoryNames.get(template.category) ?? template.category,
+      })),
   };
 }
 
@@ -214,14 +184,12 @@ function SearchResultRow({
           <Icon className="h-4 w-4" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block break-words text-[15px] font-semibold">{title}</span>
+          <span className="block text-[15px] font-semibold">{title}</span>
           {description ? (
-            <span className="mt-1 block break-words text-[13px] leading-5 text-[var(--ecode-text-secondary)]">
-              {description}
-            </span>
+            <span className="mt-1 block text-[13px] leading-5 text-[var(--ecode-text-secondary)]">{description}</span>
           ) : null}
           {metaText ? (
-            <span className="mt-1 block break-all text-[12px] text-[var(--ecode-text-secondary)]">{metaText}</span>
+            <span className="mt-1 block text-[12px] text-[var(--ecode-text-secondary)]">{metaText}</span>
           ) : null}
         </span>
         <ArrowRight
@@ -233,20 +201,10 @@ function SearchResultRow({
   );
 }
 
-function SearchResultGroup({
-  id,
-  title,
-  count,
-  children,
-}: {
-  id: 'pages' | 'help' | 'templates';
-  title: string;
-  count: number;
-  children: ReactNode;
-}) {
+function SearchResultGroup({ title, count, children }: { title: string; count: number; children: ReactNode }) {
   return (
-    <section aria-label={title} data-testid={`search-group-${id}`}>
-      <h2 className="mb-3 break-words text-[13px] font-semibold uppercase tracking-[0.16em] text-[var(--ecode-text-secondary)]">
+    <section aria-label={title} data-testid={`search-group-${title.toLowerCase().replace(/\s+/g, '-')}`}>
+      <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-[0.16em] text-[var(--ecode-text-secondary)]">
         {title}
         <span className="ml-2 font-normal normal-case tracking-normal">({count})</span>
       </h2>
@@ -259,9 +217,6 @@ function SearchResultGroup({
 
 export default function SearchRoute() {
   const results = useLoaderData<typeof loader>();
-  const { i18n } = useTranslation();
-  const language = resolveSearchDataSettingsLanguage(i18n.resolvedLanguage ?? i18n.language ?? results.language);
-  const copy = getSearchCopy(language);
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
 
@@ -306,10 +261,12 @@ export default function SearchRoute() {
           <div className="container-responsive relative py-16 sm:py-20">
             <div className="mx-auto max-w-3xl text-center">
               <span className="inline-flex items-center rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
-                {copy.ui.eyebrow}
+                Discovery
               </span>
-              <h1 className="mkt-h1 mt-8 break-words text-[var(--ecode-text)]">{copy.ui.title}</h1>
-              <p className="mkt-lead mt-6 text-[var(--ecode-text-secondary)]">{copy.ui.lead}</p>
+              <h1 className="mkt-h1 mt-8 text-[var(--ecode-text)]">Search E-Code</h1>
+              <p className="mkt-lead mt-6 text-[var(--ecode-text-secondary)]">
+                Search app pages, Help Center topics and starter templates from one place.
+              </p>
 
               <form
                 className="relative mx-auto mt-8 max-w-xl"
@@ -320,8 +277,8 @@ export default function SearchRoute() {
                 <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[var(--ecode-text-secondary)]" />
                 <input
                   type="search"
-                  placeholder={copy.ui.placeholder}
-                  aria-label={copy.ui.ariaLabel}
+                  placeholder="Search pages, help topics and templates..."
+                  aria-label="Search E-Code"
                   className="w-full min-h-[48px] rounded-md border border-[var(--ecode-border)] bg-[var(--ecode-surface)] pl-12 pr-4 text-[15px] text-[var(--ecode-text)] focus:outline-none focus:ring-2 focus:ring-offset-2"
                   style={{ ['--tw-ring-color' as string]: 'var(--ecode-accent)' }}
                   value={query}
@@ -336,17 +293,21 @@ export default function SearchRoute() {
         <section className="container-responsive py-12 sm:py-16">
           <div className="mx-auto max-w-3xl">
             {!hasQuery && (
-              <EmptyState icon={SearchIcon} title={copy.ui.emptyTitle} description={copy.ui.emptyDescription} />
+              <EmptyState
+                icon={SearchIcon}
+                title="Search E-Code"
+                description="Type above to search app pages, Help Center topics and starter templates."
+              />
             )}
 
             {hasQuery && totalResults === 0 && (
               <EmptyState
                 icon={SearchIcon}
-                title={interpolateSearchDataSettingsCopy(copy.ui.noResultsTitle, { query: results.query })}
-                description={copy.ui.noResultsDescription}
-                actionLabel={copy.ui.browseTemplates}
+                title={`No results for “${results.query}”`}
+                description="Try a different search term, or browse the template gallery and Help Center directly."
+                actionLabel="Browse templates"
                 to="/templates"
-                secondaryActionLabel={copy.ui.openHelpCenter}
+                secondaryActionLabel="Open Help Center"
                 secondaryTo="/help-center"
               />
             )}
@@ -354,19 +315,11 @@ export default function SearchRoute() {
             {hasQuery && totalResults > 0 && (
               <div className="flex flex-col gap-10">
                 <p className="text-[14px] text-[var(--ecode-text-secondary)]" data-testid="text-search-summary">
-                  {formatSearchDataSettingsPlural(
-                    language,
-                    totalResults,
-                    {
-                      one: copy.ui.summary_one,
-                      other: copy.ui.summary_other,
-                    },
-                    { query: results.query },
-                  )}
+                  {totalResults} {totalResults === 1 ? 'result' : 'results'} for &ldquo;{results.query}&rdquo;
                 </p>
 
                 {results.pages.length > 0 && (
-                  <SearchResultGroup id="pages" title={copy.ui.appPages} count={results.pages.length}>
+                  <SearchResultGroup title="App pages" count={results.pages.length}>
                     {results.pages.map((page) => (
                       <SearchResultRow
                         key={page.path}
@@ -382,8 +335,7 @@ export default function SearchRoute() {
 
                 {(results.helpTopics.length > 0 || results.helpArticles.length > 0) && (
                   <SearchResultGroup
-                    id="help"
-                    title={copy.ui.helpCenter}
+                    title="Help Center"
                     count={results.helpTopics.length + results.helpArticles.length}
                   >
                     {results.helpTopics.map((topic) => (
@@ -402,11 +354,11 @@ export default function SearchRoute() {
                 )}
 
                 {results.templates.length > 0 && (
-                  <SearchResultGroup id="templates" title={copy.ui.templates} count={results.templates.length}>
+                  <SearchResultGroup title="Templates" count={results.templates.length}>
                     {results.templates.map((template) => (
                       <SearchResultRow
                         key={template.slug}
-                        to={`/templates?q=${encodeURIComponent(template.lookupName)}`}
+                        to={`/templates?q=${encodeURIComponent(template.name)}`}
                         icon={LayoutTemplate}
                         title={template.name}
                         description={template.description}

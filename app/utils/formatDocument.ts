@@ -7,34 +7,32 @@
  * chunk until the user actually formats something.
  */
 
-import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
-
-const extensionToParser = new Map<string, string>([
-  ['js', 'babel'],
-  ['cjs', 'babel'],
-  ['mjs', 'babel'],
-  ['jsx', 'babel'],
-  ['ts', 'typescript'],
-  ['cts', 'typescript'],
-  ['mts', 'typescript'],
-  ['tsx', 'typescript'],
-  ['json', 'json'],
-  ['json5', 'json5'],
-  ['jsonc', 'json'],
-  ['css', 'css'],
-  ['scss', 'scss'],
-  ['less', 'less'],
-  ['html', 'html'],
-  ['htm', 'html'],
-  ['vue', 'vue'],
-  ['md', 'markdown'],
-  ['markdown', 'markdown'],
-  ['mdx', 'mdx'],
-  ['yaml', 'yaml'],
-  ['yml', 'yaml'],
-  ['graphql', 'graphql'],
-  ['gql', 'graphql'],
-]);
+const extensionToParser: Record<string, string> = {
+  js: 'babel',
+  cjs: 'babel',
+  mjs: 'babel',
+  jsx: 'babel',
+  ts: 'typescript',
+  cts: 'typescript',
+  mts: 'typescript',
+  tsx: 'typescript',
+  json: 'json',
+  json5: 'json5',
+  jsonc: 'json',
+  css: 'css',
+  scss: 'scss',
+  less: 'less',
+  html: 'html',
+  htm: 'html',
+  vue: 'vue',
+  md: 'markdown',
+  markdown: 'markdown',
+  mdx: 'mdx',
+  yaml: 'yaml',
+  yml: 'yaml',
+  graphql: 'graphql',
+  gql: 'graphql',
+};
 
 /** Returns the Prettier parser for a file path, or undefined if unsupported. */
 export function getParserForFilePath(filePath: string): string | undefined {
@@ -44,7 +42,7 @@ export function getParserForFilePath(filePath: string): string | undefined {
     return undefined;
   }
 
-  return extensionToParser.get(ext);
+  return extensionToParser[ext];
 }
 
 /** Lazily loads the standalone plugins required for a given parser. */
@@ -109,11 +107,7 @@ export async function formatDocument(content: string, filePath: string): Promise
   const parser = getParserForFilePath(filePath);
 
   if (!parser) {
-    throw new Error(
-      clientStoresServicesText('clientRuntime.format.noFormatter', {
-        file: filePath.split('/').pop() ?? filePath,
-      }),
-    );
+    throw new Error(`No formatter available for ${filePath.split('/').pop() ?? filePath}`);
   }
 
   const [{ format }, plugins] = await Promise.all([import('prettier/standalone'), loadPluginsForParser(parser)]);

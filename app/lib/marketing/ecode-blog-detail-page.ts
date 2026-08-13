@@ -1,11 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
 
 import type { MarketingPageDefinition } from '~/components/marketing/EcodeMarketingPages';
-import {
-  formatMarketingBlogCopy,
-  formatMarketingBlogReadTime,
-  getMarketingBlogDetailCopy,
-} from '~/lib/i18n/catalogs/marketing-blog-detail';
 
 /**
  * The serializable subset of an E-Code blog post needed to render a public blog
@@ -31,10 +26,7 @@ export interface BlogDetailInput {
  * is dropped because the title is already shown in the hero. Bullet lines
  * (`- ` / `* `) become section items, everything else becomes prose.
  */
-export function parseBlogSections(
-  content: string,
-  overviewTitle = getMarketingBlogDetailCopy('en')['marketingBlog.ui.overview'],
-): MarketingPageDefinition['sections'] {
+export function parseBlogSections(content: string): MarketingPageDefinition['sections'] {
   const lines = content.split('\n');
   const sections: { title: string; body: string; items: string[] }[] = [];
 
@@ -68,7 +60,7 @@ export function parseBlogSections(
 
     if (!current) {
       // Lead paragraph before the first heading — promote it to an intro section.
-      current = { title: overviewTitle, body: '', items: [] };
+      current = { title: 'Overview', body: '', items: [] };
       sections.push(current);
     }
 
@@ -100,40 +92,29 @@ export function parseBlogSections(
  * caller because Lucide components are not serializable across the loader
  * boundary.
  */
-export function toBlogDetailPageDefinition(
-  post: BlogDetailInput,
-  icon: LucideIcon,
-  language?: string | null,
-): MarketingPageDefinition {
-  const copy = getMarketingBlogDetailCopy(language);
-  const sections = parseBlogSections(post.content, copy['marketingBlog.ui.overview']);
+export function toBlogDetailPageDefinition(post: BlogDetailInput, icon: LucideIcon): MarketingPageDefinition {
+  const sections = parseBlogSections(post.content);
 
   const highlights = post.tags.length > 0 ? post.tags.slice(0, 6) : [post.category];
 
   return {
     slug: 'blog-detail',
     title: post.title,
-    eyebrow: post.category || copy['marketingBlog.ui.blog'],
+    eyebrow: post.category || 'Blog',
     description: post.excerpt,
     kind: 'resource',
     icon,
-    primaryAction: [copy['marketingBlog.ui.readDocs'], '/docs'],
-    secondaryAction: [copy['marketingBlog.ui.backToBlog'], '/blog'],
+    primaryAction: ['Read the docs', '/docs'],
+    secondaryAction: ['Back to blog', '/blog'],
     highlights,
     sections:
       sections.length > 0
         ? sections
         : [
             {
-              title: copy['marketingBlog.ui.overview'],
+              title: 'Overview',
               body: post.excerpt,
-              items: [
-                formatMarketingBlogCopy(copy['marketingBlog.ui.by'], {
-                  author: post.author,
-                  role: post.authorRole,
-                }),
-                formatMarketingBlogReadTime(post.readTime, language),
-              ],
+              items: [`By ${post.author}, ${post.authorRole}`, `${post.readTime} min read`],
             },
           ],
   };

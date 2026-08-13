@@ -1,5 +1,4 @@
 import { mapRecentActivity } from '~/lib/github-stats-metrics';
-import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import type {
   GitHubUserResponse,
   GitHubRepoInfo,
@@ -61,7 +60,7 @@ export class GitHubApiServiceClass {
 
   private async _makeRequestInternal<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     if (!this._config.token) {
-      throw new Error(clientStoresServicesText('clientServices.github.tokenRequired'));
+      throw new Error('GitHub token is required. Call configure() first.');
     }
 
     const response = await fetch(`${this._baseURL}${endpoint}`, {
@@ -75,12 +74,12 @@ export class GitHubApiServiceClass {
     });
 
     if (!response.ok) {
-      const errorData = (await response.json().catch(() => ({}))) as { code?: unknown };
+      const errorData: any = await response.json().catch(() => ({ message: response.statusText }));
 
       const error: GitHubApiError = {
-        message: clientStoresServicesText('clientServices.github.requestFailed', { status: response.status }),
+        message: errorData.message || response.statusText,
         status: response.status,
-        code: typeof errorData.code === 'string' ? errorData.code : undefined,
+        code: errorData.code,
       };
       throw error;
     }

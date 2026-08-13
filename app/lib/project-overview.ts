@@ -1,5 +1,3 @@
-import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
-
 export type ProjectOverviewStackItem = {
   name: string;
   category: 'runtime' | 'frontend' | 'backend' | 'data' | 'tooling' | 'testing' | 'mobile';
@@ -112,7 +110,6 @@ type OverviewPresence = {
 };
 
 export type BuildProjectOverviewInput = {
-  language?: string | null;
   project?: OverviewProject | null;
   dashboard?: {
     project?: OverviewProject;
@@ -270,17 +267,12 @@ export function extractProjectScripts(input: {
     .slice(0, 12);
 }
 
-export function normalizeProjectOverviewCommits(
-  commits?: OverviewCommitInput[],
-  language?: string | null,
-): ProjectOverviewCommit[] {
+export function normalizeProjectOverviewCommits(commits?: OverviewCommitInput[]): ProjectOverviewCommit[] {
   return (commits ?? [])
     .map((commit) => ({
       sha: commit.sha,
       shortSha: commit.shortSha ?? commit.sha?.slice(0, 8),
-      message:
-        commit.message?.trim() ||
-        clientStoresServicesText('clientServices.projectOverview.commitWithoutMessage', {}, language),
+      message: commit.message?.trim() || 'Commit without message',
       author: commit.author,
       date: commit.date,
     }))
@@ -390,7 +382,7 @@ export function buildProjectOverviewInsights(input: BuildProjectOverviewInput): 
       packageManager: input.packages?.packageManager,
     }),
     scripts,
-    commits: normalizeProjectOverviewCommits(input.gitGraph?.commits, input.language),
+    commits: normalizeProjectOverviewCommits(input.gitGraph?.commits),
     members,
     activity: compact(input.dashboard?.recentActivity ?? []).slice(0, 5),
   };

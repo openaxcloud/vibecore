@@ -22,8 +22,8 @@ vi.mock('~/lib/enterprise-api.server', async () => {
   };
 });
 
-function loaderRequest(acceptLanguage = 'en-GB'): Request {
-  return new Request('https://app.test/recent-projects', { headers: { 'Accept-Language': acceptLanguage } });
+function loaderRequest(): Request {
+  return new Request('https://app.test/recent-projects');
 }
 
 describe('recent-projects loader', () => {
@@ -90,23 +90,5 @@ describe('recent-projects loader', () => {
     };
 
     expect(data.projects[0]).toMatchObject({ status: 'Deployed', lifecycle: 'deployed', deploymentCount: 1 });
-  });
-
-  it('returns French SSR metadata and date formatting for a French request', async () => {
-    firstOrganizationOrNull.mockResolvedValueOnce({ id: 'org-1', name: 'Acme' });
-    apiRequest.mockResolvedValueOnce({
-      projects: [{ id: 'recent', name: 'Projet récent', updatedAt: '2024-06-01T00:00:00.000Z' }],
-    });
-
-    const { loader, meta } = await import('./recent-projects');
-
-    const data = (await loader({ request: loaderRequest('fr-FR, en;q=0.8') } as any)) as {
-      language: string;
-      projects: Array<{ updated: string }>;
-    };
-
-    expect(data.language).toBe('fr');
-    expect(data.projects[0]?.updated).toContain('juin');
-    expect(meta({ data } as never)).toContainEqual({ title: 'Projets récents - E-Code' });
   });
 });

@@ -12,8 +12,6 @@ describe('project card presentation', () => {
     expect(projectLifecycleDisplayLabel('draft')).toBe('Draft');
     expect(projectLifecycleDisplayLabel('deployed')).toBe('Deployed');
     expect(projectLifecycleDisplayLabel('archived')).toBe('Archived');
-    expect(projectLifecycleDisplayLabel('draft', 'fr')).toBe('Brouillon');
-    expect(projectLifecycleDisplayLabel('deployed', 'fr')).toBe('Déployé');
   });
 
   it('summarizes deployment counts without implementation copy', () => {
@@ -22,7 +20,5 @@ describe('project card presentation', () => {
     expect(projectDeploymentSummary(0)).toBe('Not deployed');
     expect(projectDeploymentSummary(1)).toBe('1 deployment');
     expect(projectDeploymentSummary(3)).toBe('3 deployments');
-    expect(projectDeploymentSummary(0, 'fr')).toBe('Non déployé');
-    expect(projectDeploymentSummary(1200, 'fr')).toBe('1 200 déploiements');
   });
 });

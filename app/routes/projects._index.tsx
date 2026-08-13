@@ -1,6 +1,5 @@
 import { Grid2X2, List, SearchX } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { useLoaderData, useRevalidator, useSearchParams } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
@@ -19,15 +18,15 @@ import { RelativeTime } from '~/components/ui/RelativeTime';
 import { SearchInput } from '~/components/ui/SearchInput';
 import { projectStackLabel } from '~/lib/dashboard-project-stack';
 import { apiRequest, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
-import { userAreaEn, userAreaFr, type UserAreaTranslationKey } from '~/lib/i18n/catalogs/user-area';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
-import { projectLifecycle, projectLifecycleDisplayLabel } from '~/lib/project-card-presentation';
+import {
+  projectDeploymentSummary,
+  projectLifecycle,
+  projectLifecycleDisplayLabel,
+} from '~/lib/project-card-presentation';
 import { projectIdePath } from '~/utils/project-url';
 
-export const meta: MetaFunction<typeof loader> = ({ data }) => [
-  { title: (data?.language === 'fr' ? userAreaFr : userAreaEn)['projects.metaTitle'] },
-];
+export const meta: MetaFunction = () => [{ title: 'Projects - E-Code' }];
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 type Organization = { id: string; slug?: string };
@@ -44,11 +43,11 @@ type ApiProject = {
 
 type LifecycleFilter = 'all' | 'deployed' | 'draft' | 'archived';
 
-const LIFECYCLE_FILTERS: Array<{ id: LifecycleFilter; labelKey: UserAreaTranslationKey }> = [
-  { id: 'all', labelKey: 'projects.filter.all' },
-  { id: 'deployed', labelKey: 'projects.filter.deployed' },
-  { id: 'draft', labelKey: 'projects.filter.draft' },
-  { id: 'archived', labelKey: 'projects.filter.archived' },
+const LIFECYCLE_FILTERS: Array<{ id: LifecycleFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'deployed', label: 'Deployed' },
+  { id: 'draft', label: 'Draft' },
+  { id: 'archived', label: 'Archived' },
 ];
 
 function isLifecycleFilter(value: string | null): value is LifecycleFilter {
@@ -56,11 +55,10 @@ function isLifecycleFilter(value: string | null): value is LifecycleFilter {
 }
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const language = resolveRequestLocale(request).language;
   const orgs = await apiRequest<{ organizations: Organization[] }>(request, '/orgs');
 
   if (orgs.organizations.length === 0) {
-    return { language, projects: [] satisfies ProjectCard[], failedOrganizationCount: 0, organizationCount: 0 };
+    return { projects: [] satisfies ProjectCard[], failedOrganizationCount: 0, organizationCount: 0 };
   }
 
   /*
@@ -90,15 +88,12 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         return {
           id: project.id,
           name: project.name,
-          status: projectLifecycleDisplayLabel(lifecycle, language),
+          status: projectLifecycleDisplayLabel(lifecycle),
           lifecycle,
           deploymentCount: project.deploymentCount,
-          updated: project.updatedAt
-            ? (formatUserAreaDateTime(project.updatedAt, undefined, language) ??
-              (language === 'fr' ? userAreaFr : userAreaEn)['userArea.project.recently'])
-            : (language === 'fr' ? userAreaFr : userAreaEn)['userArea.project.recently'],
+          updated: project.updatedAt ? (formatUserAreaDateTime(project.updatedAt) ?? 'recently') : 'recently',
           updatedAtIso: project.updatedAt,
-          stack: projectStackLabel(project, language),
+          stack: projectStackLabel(project),
           sourceType: project.sourceType,
           previewImageUrl: `/api/projects/${project.id}/thumbnail`,
           ideUrl: projectIdePath({ id: project.id, slug: project.slug, organizationSlug: organization.slug }),
@@ -116,11 +111,10 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   const projects = perOrg.flatMap((settled) => (settled.status === 'fulfilled' ? settled.value : []));
   const failedOrganizationCount = perOrg.filter((settled) => settled.status === 'rejected').length;
 
-  return { language, projects, failedOrganizationCount, organizationCount: orgs.organizations.length };
+  return { projects, failedOrganizationCount, organizationCount: orgs.organizations.length };
 }
 
 export default function ProjectsPage() {
-  const { t } = useTranslation();
   const { projects, failedOrganizationCount, organizationCount } = useLoaderData<typeof loader>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
@@ -204,21 +198,21 @@ export default function ProjectsPage() {
 
   return (
     <AppShell
-      title={t('projects.title')}
-      description={t('projects.description')}
+      title="Projects"
+      description="Browse persistent E-Code projects, switch between grid and list views, and open managed workspaces."
       actions={
         <>
-          <LinkButton to="/projects/new">{t('projects.create')}</LinkButton>
+          <LinkButton to="/projects/new">Create project</LinkButton>
           <LinkButton to="/import-github" variant="outline">
-            {t('projects.importGithub')}
+            Import GitHub
           </LinkButton>
         </>
       }
     >
       {failedOrganizationCount > 0 && !allOrganizationsFailed ? (
         <AsyncPanelError
-          title={t('projects.partialLoadTitle')}
-          description={t('projects.partialLoadBody', { count: failedOrganizationCount })}
+          title="Some projects could not load"
+          description={`${failedOrganizationCount} organization${failedOrganizationCount === 1 ? '' : 's'} could not be reached. Projects from the other organizations remain available.`}
           onRetry={revalidator.revalidate}
           retrying={retrying}
           compact
@@ -227,11 +221,11 @@ export default function ProjectsPage() {
       ) : null}
       {allOrganizationsFailed ? (
         retrying ? (
-          <AsyncPanelSkeleton label={t('projects.loading')} rows={4} />
+          <AsyncPanelSkeleton label="Loading projects" rows={4} />
         ) : (
           <AsyncPanelError
-            title={t('projects.loadFailedTitle')}
-            description={t('projects.loadFailedBody')}
+            title="Projects could not load"
+            description="We could not reach your organizations. Your projects are unchanged; try loading them again."
             onRetry={revalidator.revalidate}
           />
         )
@@ -243,14 +237,14 @@ export default function ProjectsPage() {
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onClear={() => setQuery('')}
-                placeholder={t('projects.search')}
-                aria-label={t('projects.search')}
+                placeholder="Search projects"
+                aria-label="Search projects"
                 containerClassName="min-w-0 flex-1"
               />
               <div className="flex gap-2">
                 <button
                   className="flex h-[44px] w-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor"
-                  aria-label={t('projects.gridView')}
+                  aria-label="Grid view"
                   aria-pressed={view === 'grid'}
                   onClick={() => setView('grid')}
                 >
@@ -258,7 +252,7 @@ export default function ProjectsPage() {
                 </button>
                 <button
                   className="flex h-[44px] w-[44px] items-center justify-center rounded-md border border-bolt-elements-borderColor"
-                  aria-label={t('projects.listView')}
+                  aria-label="List view"
                   aria-pressed={view === 'list'}
                   onClick={() => setView('list')}
                 >
@@ -266,26 +260,23 @@ export default function ProjectsPage() {
                 </button>
               </div>
             </div>
-            <div className="flex flex-wrap gap-2" role="group" aria-label={t('projects.filterByStatus')}>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Filter projects by status">
               {LIFECYCLE_FILTERS.map((filter) => (
                 <FilterChip
                   key={filter.id}
-                  label={t(filter.labelKey)}
+                  label={filter.label}
                   active={statusFilter === filter.id}
                   onClick={() => setStatusFilter(filter.id)}
                 />
               ))}
             </div>
           </div>
-          {/* BUG-USR-007: section landmark so the heading order is h1→h2→h3 (the
-              project cards are h3); sr-only keeps the existing visual design. */}
-          <h2 className="sr-only">{t('projects.listHeading')}</h2>
           {noMatches ? (
             <EmptyState
               icon={SearchX}
-              title={query.trim() ? t('projects.noMatchQuery', { query: query.trim() }) : t('projects.noMatchFilters')}
-              description={t('projects.tryDifferentSearch')}
-              actionLabel={t('projects.clearFilters')}
+              title={query.trim() ? `No projects match “${query.trim()}”` : 'No projects match these filters'}
+              description="Try a different search or clear the filters."
+              actionLabel="Clear filters"
               onAction={clearFilters}
             />
           ) : view === 'grid' ? (
@@ -314,8 +305,6 @@ function ProjectList({ projects }: { projects: ProjectCard[] }) {
 }
 
 function ProjectListRow({ project }: { project: ProjectCard }) {
-  const { t } = useTranslation();
-
   // E16: shares the grid card's ⋯ menu; Rename swaps the row title inline.
   const [renaming, setRenaming] = useState(false);
 
@@ -341,28 +330,21 @@ function ProjectListRow({ project }: { project: ProjectCard }) {
             <ProjectStatusPill project={project} />
           </div>
           <p className="mt-1 truncate text-sm text-bolt-elements-textSecondary">
-            {project.stack ?? project.sourceType ?? t('projects.persistentFallback')}
+            {project.stack ?? project.sourceType ?? 'Persistent E-Code project'}
           </p>
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="min-w-0 text-xs text-bolt-elements-textTertiary">
           {project.updatedAtIso ? (
-            <RelativeTime value={project.updatedAtIso} prefix={t('projects.lastActivity')} className="block" />
+            <RelativeTime value={project.updatedAtIso} prefix="Last activity" className="block" />
           ) : (
-            <span className="block">
-              {t('userArea.time.withPrefix', {
-                prefix: t('projects.lastActivity'),
-                time: project.updated ?? t('userArea.project.recently'),
-              })}
-            </span>
+            <span className="block">Last activity {project.updated ?? 'recently'}</span>
           )}
-          <span className="block">
-            {t('userArea.project.deploymentCount', { count: project.deploymentCount ?? 0 })}
-          </span>
+          <span className="block">{projectDeploymentSummary(project.deploymentCount)}</span>
         </div>
         <LinkButton to={project.ideUrl ?? `/projects/${project.id}/ide`} variant="outline">
-          {t('userArea.navigation.openIde')}
+          Open IDE
         </LinkButton>
         <ProjectCardMenu project={project} onRename={() => setRenaming(true)} />
       </div>

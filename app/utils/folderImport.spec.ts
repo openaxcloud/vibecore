@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createChatFromFolder, partitionFileReads, type FileArtifact } from './folderImport';
+import { partitionFileReads, type FileArtifact } from './folderImport';
 
 const makeFile = (relativePath: string, name = relativePath.split('/').pop() || relativePath): File => {
   const file = new File(['x'], name);
@@ -68,19 +68,5 @@ describe('partitionFileReads', () => {
 
     expect(artifacts).toEqual([]);
     expect(skippedPaths).toEqual(['a.ts', 'b.ts']);
-  });
-});
-
-describe('createChatFromFolder i18n', () => {
-  it('localizes synthesized French chat messages and preserves folder/file names', async () => {
-    const messages = await createChatFromFolder([], ['assets/logo.png'], 'Mon Projet', 'fr');
-
-    expect(messages).toHaveLength(2);
-    expect(messages[0].content).toBe('Importer le dossier « Mon Projet »');
-    expect(messages[1].content).toContain('Le contenu du dossier « Mon Projet » a été importé.');
-    expect(messages[1].content).toContain('1 fichier binaire a été ignoré :');
-    expect(messages[1].content).toContain('- assets/logo.png');
-    expect(messages[1].content).toContain('title="Fichiers importés"');
-    expect(messages[1].content).not.toContain('Imported Files');
   });
 });

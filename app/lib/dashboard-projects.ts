@@ -1,7 +1,5 @@
 import type { ProjectCard } from '~/components/dashboard/SaaSLayout';
 import { projectStackLabel } from '~/lib/dashboard-project-stack';
-import { userAreaEn, userAreaFr } from '~/lib/i18n/catalogs/user-area';
-import type { SupportedLanguage } from '~/lib/i18n/language';
 import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import { projectLifecycle, projectLifecycleDisplayLabel } from '~/lib/project-card-presentation';
 import { projectIdePath } from '~/utils/project-url';
@@ -26,10 +24,7 @@ export function toProjectCards(
   projects: ApiProject[],
   organization?: { slug?: string } | null,
   limit = 6,
-  language?: SupportedLanguage,
 ): ProjectCard[] {
-  const copy = language === 'fr' ? userAreaFr : userAreaEn;
-
   return [...projects]
     .sort((a, b) => {
       const at = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
@@ -44,14 +39,12 @@ export function toProjectCards(
       return {
         id: project.id,
         name: project.name,
-        status: projectLifecycleDisplayLabel(lifecycle, language),
+        status: projectLifecycleDisplayLabel(lifecycle),
         lifecycle,
         deploymentCount: project.deploymentCount,
-        updated: project.updatedAt
-          ? (formatUserAreaDateTime(project.updatedAt, undefined, language) ?? copy['userArea.project.recently'])
-          : copy['userArea.project.recently'],
+        updated: project.updatedAt ? (formatUserAreaDateTime(project.updatedAt) ?? 'recently') : 'recently',
         updatedAtIso: project.updatedAt,
-        stack: projectStackLabel(project, language),
+        stack: projectStackLabel(project),
         sourceType: project.sourceType,
 
         /*

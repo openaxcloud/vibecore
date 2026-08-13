@@ -21,47 +21,6 @@ import {
 import type * as MonacoTypes from 'monaco-editor';
 import { createElement, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 
-import { formatEditorCopy, getEditorCopy, type EditorCopy } from './editor-copy.js';
-
-function readEditorUiLanguage(): string {
-  if (typeof document !== 'undefined' && document.documentElement.lang) {
-    return document.documentElement.lang;
-  }
-
-  return typeof navigator !== 'undefined' ? navigator.language : 'en';
-}
-
-function useEditorUiCopy(): EditorCopy {
-  const [language, setLanguage] = useState(readEditorUiLanguage);
-
-  useEffect(() => {
-    const updateLanguage = () => setLanguage(readEditorUiLanguage());
-    const root = typeof document !== 'undefined' ? document.documentElement : undefined;
-    const observer = root && typeof MutationObserver !== 'undefined' ? new MutationObserver(updateLanguage) : undefined;
-
-    if (observer && root) {
-      observer.observe(root, { attributes: true, attributeFilter: ['lang'] });
-    }
-
-    window.addEventListener('vibecore:language-change', updateLanguage);
-
-    return () => {
-      observer?.disconnect();
-      window.removeEventListener('vibecore:language-change', updateLanguage);
-    };
-  }, []);
-
-  return getEditorCopy(language);
-}
-
-/*
- * Re-export du module feuille : les appelants existants de
- * `@vibecore/editor` continuent de marcher a l'identique. Les surfaces qui
- * n'ont besoin QUE de cette fonction (app/root.tsx) doivent importer
- * `@vibecore/editor/install-pwa-sw` pour ne pas tirer CodeMirror.
- */
-export { installEditorPwaServiceWorker } from './install-pwa-sw.js';
-
 export type EditorBreakpoint = 'desktop' | 'tablet-landscape' | 'tablet-portrait' | 'mobile';
 export type EditorKind = 'monaco' | 'codemirror';
 
@@ -444,35 +403,6 @@ function modelUriForPath(monaco: typeof import('monaco-editor/esm/vs/editor/edit
   return monaco.Uri.parse(`file:///${normalizeWorkspaceFilePath(filePath)}`);
 }
 
-/**
- * Which workspace models may be disposed after the index is rebuilt.
- *
- * The invariant that matters is the second condition: the model currently
- * attached to the editor is NEVER disposed. The rebuilt index deliberately
- * omits the open file, so a naive "dispose everything no longer owned" pass
- * destroys the model the editor is displaying — opening B while A was open
- * rebuilds the index as {A, C, …} and disposes B, which was just attached.
- * The pane then renders empty (no text, no gutter) until a full reload.
- *
- * Kept as a pure function so the rule is stated once and covered by tests
- * rather than living implicitly inside a React effect.
- */
-export function workspaceModelUrisToDispose(
-  ownedUris: Iterable<string>,
-  nextOwnedUris: ReadonlySet<string>,
-  attachedUri?: string,
-): string[] {
-  const disposable: string[] = [];
-
-  for (const uri of ownedUris) {
-    if (!nextOwnedUris.has(uri) && uri !== attachedUri) {
-      disposable.push(uri);
-    }
-  }
-
-  return disposable;
-}
-
 function getWorkspaceIndex(
   projectFiles: Record<string, string> | undefined,
   currentFilePath?: string,
@@ -696,7 +626,6 @@ export function findRenameMatches(contents: string, word: string, languageOrPath
 
 function installWorkspaceSemanticProviders(
   monaco: typeof import('monaco-editor/esm/vs/editor/editor.api'),
-  copy: EditorCopy,
   sources: {
     getCurrentValue: () => string;
     getCurrentFilePath: () => string | undefined;
@@ -799,7 +728,7 @@ function installWorkspaceSemanticProviders(
 
         suggestions.push(
           {
-            label: copy.reactComponent,
+            label: 'React component',
             kind: monaco.languages.CompletionItemKind.Snippet,
             insertText: [
               'export function ${1:ComponentName}() {',
@@ -812,16 +741,16 @@ function installWorkspaceSemanticProviders(
             ].join('\n'),
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             range,
-            detail: copy.snippetDetail,
+            detail: 'Vibecore snippet',
             sortText: '1_react_component',
           },
           {
-            label: copy.asyncFunction,
+            label: 'async function',
             kind: monaco.languages.CompletionItemKind.Snippet,
             insertText: ['async function ${1:name}(${2:input}) {', '  ${3:return input;}', '}'].join('\n'),
             insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
             range,
-            detail: copy.snippetDetail,
+            detail: 'Vibecore snippet',
             sortText: '1_async_function',
           },
         );
@@ -960,7 +889,7 @@ function installWorkspaceSemanticProviders(
                 id: `${symbol.name}:refs`,
                 command: {
                   id: 'editor.action.goToReferences',
-                  title: copy.findReferences,
+                  title: 'Find references',
                   arguments: [model.uri, { lineNumber: symbol.line, column: symbol.column }],
                 },
               },
@@ -1002,7 +931,6 @@ export function DesktopCodeEditor({
   onChange,
   onSave,
 }: EditorAdapterProps) {
-  const copy = useEditorUiCopy();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<MonacoTypes.editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof import('monaco-editor/esm/vs/editor/editor.api') | null>(null);
@@ -1195,30 +1123,30 @@ export function DesktopCodeEditor({
         });
         editor.addAction({
           id: 'vibecore.rename-symbol',
-          label: copy.renameSymbol,
+          label: 'Rename Symbol',
           keybindings: [monaco.KeyCode.F2],
           run: (activeEditor) => activeEditor.getAction('editor.action.rename')?.run(),
         });
         editor.addAction({
           id: 'vibecore.find-references',
-          label: copy.findReferences,
+          label: 'Find References',
           keybindings: [monaco.KeyMod.Shift | monaco.KeyCode.F12],
           run: (activeEditor) => activeEditor.getAction('editor.action.goToReferences')?.run(),
         });
         editor.addAction({
           id: 'vibecore.go-to-definition',
-          label: copy.goToDefinition,
+          label: 'Go to Definition',
           keybindings: [monaco.KeyCode.F12],
           run: (activeEditor) => activeEditor.getAction('editor.action.revealDefinition')?.run(),
         });
         editor.addAction({
           id: 'vibecore.refactor',
-          label: copy.refactor,
+          label: 'Refactor...',
           keybindings: [monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyR],
           run: (activeEditor) => activeEditor.getAction('editor.action.refactor')?.run(),
         });
 
-        const providerDisposables = installWorkspaceSemanticProviders(monaco, copy, {
+        const providerDisposables = installWorkspaceSemanticProviders(monaco, {
           getCurrentValue: () => valueRef.current,
           getCurrentFilePath: () => filePathRef.current,
           getProjectFiles: () => projectFilesRef.current,
@@ -1263,7 +1191,7 @@ export function DesktopCodeEditor({
 
       ownedWorkspaceModelsRef.current.clear();
     };
-  }, [copy]);
+  }, []);
 
   useEffect(() => {
     const editor = editorRef.current;
@@ -1283,15 +1211,7 @@ export function DesktopCodeEditor({
         targetModel = monaco.editor.createModel(value, languageForPath(filePath, language), uri);
       }
 
-      /*
-       * Identity, not URI. A disposed model keeps its URI, so comparing URIs
-       * reports "already attached" for a model that can no longer render — the
-       * editor then stays blank until a full reload, because nothing ever
-       * re-attaches. Monaco drops disposed models from its registry, so
-       * `targetModel` above is a fresh instance in that case and comparing
-       * identity re-attaches it.
-       */
-      if (activeModel !== targetModel) {
+      if (activeModel?.uri.toString() !== targetModel.uri.toString()) {
         editor.setModel(targetModel);
       }
     }
@@ -1368,12 +1288,10 @@ export function DesktopCodeEditor({
         nextOwnedModelUris.add(uri.toString());
       }
 
-      for (const uriString of workspaceModelUrisToDispose(
-        ownedWorkspaceModelsRef.current,
-        nextOwnedModelUris,
-        editor.getModel()?.uri.toString(),
-      )) {
-        monaco.editor.getModel(monaco.Uri.parse(uriString))?.dispose();
+      for (const uriString of ownedWorkspaceModelsRef.current) {
+        if (!nextOwnedModelUris.has(uriString)) {
+          monaco.editor.getModel(monaco.Uri.parse(uriString))?.dispose();
+        }
       }
 
       ownedWorkspaceModelsRef.current = nextOwnedModelUris;
@@ -1975,25 +1893,41 @@ export function TouchSymbolToolbar({
   symbols = ['{', '}', '(', ')', '[', ']', '<', '>', '/', '\\', '=', ':', ';', '.', ',', '"', "'", '`', '|', '&'],
   children,
 }: TouchSymbolToolbarProps) {
-  const copy = useEditorUiCopy();
-
   return createElement(
     'div',
-    { className: 'vc-touch-symbol-toolbar', role: 'toolbar', 'aria-label': copy.codingSymbols },
+    { className: 'vc-touch-symbol-toolbar', role: 'toolbar', 'aria-label': 'Coding symbols' },
     ...symbols.map((symbol) =>
       createElement(
         'button',
-        {
-          key: symbol,
-          type: 'button',
-          onClick: () => onInsert(symbol),
-          'aria-label': formatEditorCopy(copy.insertSymbol, { symbol }),
-        },
+        { key: symbol, type: 'button', onClick: () => onInsert(symbol), 'aria-label': `Insert ${symbol}` },
         symbol,
       ),
     ),
     children,
   );
+}
+
+export function installEditorPwaServiceWorker(scriptUrl = '/sw.js') {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) {
+    return;
+  }
+
+  const register = () => {
+    navigator.serviceWorker.register(scriptUrl).catch(() => undefined);
+  };
+
+  /*
+   * This is typically called from a React effect, which runs *after* the
+   * document 'load' event has already fired on a normal hard page load. In
+   * that case adding a 'load' listener would never invoke the callback and the
+   * service worker would never register. Register immediately when the
+   * document has finished loading; otherwise defer until 'load'.
+   */
+  if (typeof document === 'undefined' || document.readyState === 'complete') {
+    register();
+  } else {
+    window.addEventListener('load', register, { once: true });
+  }
 }
 
 export const editorBreakpoints = {

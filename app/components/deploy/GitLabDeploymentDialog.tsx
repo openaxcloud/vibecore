@@ -2,23 +2,16 @@ import { useStore } from '@nanostores/react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { GitLabAuthDialog } from '~/components/@settings/tabs/gitlab/components/GitLabAuthDialog';
 import { SearchInput, EmptyState, StatusIndicator, Badge, ConfirmationDialog } from '~/components/ui';
-import {
-  formatRepositoryDeploymentCopy,
-  formatRepositoryDeploymentDate,
-  formatRepositoryDeploymentNumber,
-  formatRepositoryDeploymentSize,
-  getRepositoryDeploymentCopy,
-} from '~/lib/i18n/catalogs/repository-deployment';
 import { getLocalStorage } from '~/lib/persistence/localStorage';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { GitLabApiService } from '~/lib/services/gitlabApiService';
 import { logStore } from '~/lib/stores/logs';
 import type { GitLabUserResponse, GitLabProjectInfo } from '~/types/GitLab';
 import { classNames } from '~/utils/classNames';
+import { formatSize } from '~/utils/formatSize';
 
 interface GitLabDeploymentDialogProps {
   isOpen: boolean;
@@ -28,14 +21,6 @@ interface GitLabDeploymentDialogProps {
 }
 
 export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: GitLabDeploymentDialogProps) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
-  const copy = getRepositoryDeploymentCopy(language);
-  const provider = 'GitLab';
-
-  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
-    formatRepositoryDeploymentCopy(template, { provider, ...values });
-
   const [repoName, setRepoName] = useState('');
   const [isPrivate, setIsPrivate] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -111,8 +96,8 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
   const fetchRecentRepos = async (token: string, gitlabUrl = 'https://gitlab.com') => {
     if (!token) {
-      logStore.logError(text(copy.errors.authenticationRequired));
-      toast.error(text(copy.errors.authenticationRequired));
+      logStore.logError('No GitLab token available');
+      toast.error('GitLab authentication required');
 
       return;
     }
@@ -125,8 +110,8 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
       setRecentRepos(repos);
     } catch (error) {
       console.error('Failed to fetch GitLab repositories:', error);
-      logStore.logError(copy.errors.fetchRecent, { error });
-      toast.error(copy.errors.fetchRecent);
+      logStore.logError('Failed to fetch GitLab repositories', { error });
+      toast.error('Failed to fetch recent repositories');
     } finally {
       setIsFetchingRepos(false);
     }
@@ -139,12 +124,12 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
     const connection = getLocalStorage('gitlab_connection');
 
     if (!connection?.token || !connection?.user) {
-      toast.error(text(copy.errors.connectFirst));
+      toast.error('Please connect your GitLab account in Settings > Connections first');
       return;
     }
 
     if (!repoName.trim()) {
-      toast.error(copy.errors.repositoryNameRequired);
+      toast.error('Repository name is required');
       return;
     }
 
@@ -165,7 +150,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
       // Warn user if repository name was changed
       if (sanitizedRepoName !== repoName && sanitizedRepoName !== repoName.toLowerCase()) {
-        toast.info(text(copy.progress.sanitized, { name: sanitizedRepoName }));
+        toast.info(`Repository name sanitized to "${sanitizedRepoName}" to meet GitLab requirements`);
       }
 
       // Check if project exists using the sanitized name
@@ -177,14 +162,11 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
         // Confirm overwrite
         const visibilityChange =
           existingProject.visibility !== (isPrivate ? 'private' : 'public')
-            ? `\n\n${text(copy.repositoryUpdate.visibilityChange, {
-                from: existingProject.visibility === 'private' ? copy.form.private : copy.form.public,
-                to: isPrivate ? copy.form.private : copy.form.public,
-              })}`
+            ? `\n\nThis will also change the repository from ${existingProject.visibility} to ${isPrivate ? 'private' : 'public'}.`
             : '';
 
         const confirmOverwrite = await requestOverwriteConfirmation(
-          `${text(copy.repositoryUpdate.repositoryExists, { name: sanitizedRepoName })}${visibilityChange}`,
+          `Repository "${sanitizedRepoName}" already exists. Do you want to update it? This will add or modify files in the repository.${visibilityChange}`,
         );
 
         if (!confirmOverwrite) {
@@ -194,24 +176,24 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
         // Update visibility if needed
         if (existingProject.visibility !== (isPrivate ? 'private' : 'public')) {
-          toast.info(copy.progress.updatingVisibility);
+          toast.info('Updating repository visibility...');
           await apiService.updateProjectVisibility(existingProject.id, isPrivate ? 'private' : 'public');
         }
 
         // Update project with files
-        toast.info(copy.progress.uploadingExisting);
+        toast.info('Uploading files to existing repository...');
         await apiService.updateProjectWithFiles(existingProject.id, files);
         repoUrl = existingProject.http_url_to_repo;
         setCreatedRepoUrl(repoUrl);
-        toast.success(copy.progress.updated);
+        toast.success('Repository updated successfully!');
       } else {
         // Create new project with files
-        toast.info(copy.progress.creating);
+        toast.info('Creating new repository...');
 
         const newProject = await apiService.createProjectWithFiles(sanitizedRepoName, isPrivate, files);
         repoUrl = newProject.http_url_to_repo;
         setCreatedRepoUrl(repoUrl);
-        toast.success(copy.progress.created);
+        toast.success('Repository created successfully!');
       }
 
       // Set pushed files for display
@@ -235,12 +217,9 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
         );
       }
 
-      logStore.logInfo(text(copy.progress.deploymentCompleted), {
+      logStore.logInfo('GitLab deployment completed successfully', {
         type: 'system',
-        message: text(copy.progress.deployedFiles, {
-          count: formatRepositoryDeploymentNumber(fileList.length, language),
-          name: projectPath,
-        }),
+        message: `Successfully deployed ${fileList.length} files to ${projectExists ? 'existing' : 'new'} GitLab repository: ${projectPath}`,
         repoName: sanitizedRepoName,
         projectPath,
         filesCount: fileList.length,
@@ -249,32 +228,34 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
     } catch (error) {
       console.error('Error pushing to GitLab:', error);
 
-      logStore.logError(text(copy.errors.pushFailed), {
+      logStore.logError('GitLab deployment failed', {
         error,
         repoName: sanitizedRepoName,
         projectPath: `${connection.user.username}/${sanitizedRepoName}`,
       });
 
       // Provide specific error messages based on error type
-      let errorMessage = text(copy.errors.pushFailed);
+      let errorMessage = 'Failed to push to GitLab';
 
       if (error instanceof Error) {
         const errorMsg = error.message.toLowerCase();
 
         if (errorMsg.includes('404') || errorMsg.includes('not found')) {
-          errorMessage = text(copy.errors.resourceNotFound);
+          errorMessage =
+            'Repository or GitLab instance not found. Please check your GitLab URL and repository permissions.';
         } else if (errorMsg.includes('401') || errorMsg.includes('unauthorized')) {
-          errorMessage = text(copy.errors.authenticationFailed);
+          errorMessage = 'GitLab authentication failed. Please check your access token and permissions.';
         } else if (errorMsg.includes('403') || errorMsg.includes('forbidden')) {
-          errorMessage = text(copy.errors.accessDenied);
+          errorMessage =
+            'Access denied. Your GitLab token may not have sufficient permissions to create/modify repositories.';
         } else if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
-          errorMessage = copy.errors.network;
+          errorMessage = 'Network error. Please check your internet connection and try again.';
         } else if (errorMsg.includes('timeout')) {
-          errorMessage = copy.errors.timeout;
+          errorMessage = 'Request timed out. Please try again or check your connection.';
         } else if (errorMsg.includes('rate limit')) {
-          errorMessage = text(copy.errors.apiRateLimitWait);
+          errorMessage = 'GitLab API rate limit exceeded. Please wait a moment and try again.';
         } else {
-          errorMessage = text(copy.errors.generic);
+          errorMessage = `GitLab error: ${error.message}`;
         }
       }
 
@@ -318,8 +299,11 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
               transition={{ duration: 0.2 }}
               className="w-[90vw] md:w-[600px] max-h-[85vh] overflow-y-auto"
             >
-              <Dialog.Content className="bg-bolt-elements-background-depth-1 rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl">
-                <Dialog.Title className="sr-only">{text(copy.success.title)}</Dialog.Title>
+              <Dialog.Content
+                className="bg-bolt-elements-background-depth-1 rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl"
+                aria-describedby="success-dialog-description"
+              >
+                <Dialog.Title className="sr-only">Successfully pushed to GitLab</Dialog.Title>
                 <div className="p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
@@ -328,11 +312,14 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       </div>
                       <div>
                         <h3 className="text-lg font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark">
-                          {text(copy.success.title)}
+                          Successfully pushed to GitLab
                         </h3>
-                        <Dialog.Description className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
-                          {text(copy.success.description)}
-                        </Dialog.Description>
+                        <p
+                          id="success-dialog-description"
+                          className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark"
+                        >
+                          Your code is now available on GitLab
+                        </p>
                       </div>
                     </div>
                     <Dialog.Close asChild>
@@ -341,7 +328,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                         className="p-2 rounded-lg transition-all duration-200 ease-in-out bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textPrimary-dark hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3 focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor dark:focus:ring-bolt-elements-borderColor-dark"
                       >
                         <span className="i-ph:x block w-5 h-5" aria-hidden="true" />
-                        <span className="sr-only">{copy.form.closeDialog}</span>
+                        <span className="sr-only">Close dialog</span>
                       </button>
                     </Dialog.Close>
                   </div>
@@ -349,7 +336,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                   <div className="bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 rounded-lg p-4 text-left border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
                     <p className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-2 flex items-center gap-2">
                       <span className="i-ph:gitlab-logo w-4 h-4 text-orange-500" />
-                      {copy.success.repositoryUrl}
+                      Repository URL
                     </p>
                     <div className="flex items-center gap-2">
                       <code className="flex-1 min-w-0 truncate text-sm bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-4 px-3 py-2 rounded border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark font-mono">
@@ -357,8 +344,8 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       </code>
                       <motion.button
                         onClick={() => {
-                          navigator.clipboard?.writeText(createdRepoUrl)?.catch(() => undefined);
-                          toast.success(copy.success.urlCopied);
+                          navigator.clipboard?.writeText(createdRepoUrl)?.catch(() => {});
+                          toast.success('URL copied to clipboard');
                         }}
                         className="shrink-0 p-2 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary dark:text-bolt-elements-textSecondary-dark dark:hover:text-bolt-elements-textPrimary-dark bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-4 rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark"
                         whileHover={{ scale: 1.05 }}
@@ -372,7 +359,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                   <div className="bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 rounded-lg p-4 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
                     <p className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-2 flex items-center gap-2">
                       <span className="i-ph:files w-4 h-4 text-[var(--ecode-accent)]" />
-                      {text(copy.success.pushedFiles, { count: pushedFiles.length })}
+                      Pushed Files ({pushedFiles.length})
                     </p>
                     <div className="max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
                       {pushedFiles.slice(0, 100).map((file) => (
@@ -382,13 +369,13 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                         >
                           <span className="font-mono truncate flex-1 text-xs">{file.path}</span>
                           <span className="text-xs px-2 py-0.5 rounded-full bg-bolt-elements-background-depth-3 dark:bg-bolt-elements-background-depth-4 text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark ml-2">
-                            {formatRepositoryDeploymentSize(file.size, language)}
+                            {formatSize(file.size)}
                           </span>
                         </div>
                       ))}
                       {pushedFiles.length > 100 && (
                         <div className="py-2 text-center text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
-                          {text(copy.success.moreFiles, { count: pushedFiles.length - 100 })}
+                          +{pushedFiles.length - 100} more files
                         </div>
                       )}
                     </div>
@@ -404,19 +391,19 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       whileTap={{ scale: 0.98 }}
                     >
                       <div className="i-ph:gitlab-logo w-4 h-4" />
-                      {copy.success.viewRepository}
+                      View Repository
                     </motion.a>
                     <motion.button
                       onClick={() => {
-                        navigator.clipboard?.writeText(createdRepoUrl)?.catch(() => undefined);
-                        toast.success(copy.success.urlCopied);
+                        navigator.clipboard?.writeText(createdRepoUrl)?.catch(() => {});
+                        toast.success('URL copied to clipboard');
                       }}
                       className="px-4 py-2 rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark hover:bg-bolt-elements-background-depth-3 dark:hover:bg-bolt-elements-background-depth-4 text-sm inline-flex items-center gap-2 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark"
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
                       <div className="i-ph:copy w-4 h-4" />
-                      {copy.success.copyUrl}
+                      Copy URL
                     </motion.button>
                     <motion.button
                       onClick={handleClose}
@@ -424,7 +411,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      {copy.success.close}
+                      Close
                     </motion.button>
                   </div>
                 </div>
@@ -449,8 +436,11 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
               transition={{ duration: 0.2 }}
               className="w-[90vw] md:w-[500px] max-h-[90dvh] overflow-y-auto"
             >
-              <Dialog.Content className="bg-bolt-elements-background-depth-1 rounded-lg p-6 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl">
-                <Dialog.Title className="sr-only">{text(copy.connection.title)}</Dialog.Title>
+              <Dialog.Content
+                className="bg-bolt-elements-background-depth-1 rounded-lg p-6 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl"
+                aria-describedby="connection-required-description"
+              >
+                <Dialog.Title className="sr-only">GitLab Connection Required</Dialog.Title>
                 <div className="relative text-center space-y-4">
                   <Dialog.Close asChild>
                     <button
@@ -458,7 +448,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       className="absolute right-0 top-0 p-2 rounded-lg transition-all duration-200 ease-in-out bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textPrimary-dark hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3 focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor dark:focus:ring-bolt-elements-borderColor-dark"
                     >
                       <span className="i-ph:x block w-5 h-5" aria-hidden="true" />
-                      <span className="sr-only">{copy.form.closeDialog}</span>
+                      <span className="sr-only">Close dialog</span>
                     </button>
                   </Dialog.Close>
                   <motion.div
@@ -470,11 +460,14 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                     <div className="i-ph:gitlab-logo w-8 h-8" />
                   </motion.div>
                   <h3 className="text-lg font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark">
-                    {text(copy.connection.title)}
+                    GitLab Connection Required
                   </h3>
-                  <Dialog.Description className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark max-w-md mx-auto">
-                    {text(copy.connection.description)}
-                  </Dialog.Description>
+                  <p
+                    id="connection-required-description"
+                    className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark max-w-md mx-auto"
+                  >
+                    To deploy your code to GitLab, you need to connect your GitLab account first.
+                  </p>
                   <div className="pt-2 flex justify-center gap-3">
                     <motion.button
                       className="px-4 py-2 rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark text-sm hover:bg-bolt-elements-background-depth-3 dark:hover:bg-bolt-elements-background-depth-4 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark"
@@ -482,7 +475,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       whileTap={{ scale: 0.98 }}
                       onClick={handleClose}
                     >
-                      {copy.success.close}
+                      Close
                     </motion.button>
                     <motion.button
                       onClick={() => setShowAuthDialog(true)}
@@ -491,7 +484,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       whileTap={{ scale: 0.98 }}
                     >
                       <div className="i-ph:gitlab-logo w-4 h-4" />
-                      {text(copy.connection.connectAccount)}
+                      Connect GitLab Account
                     </motion.button>
                   </div>
                 </div>
@@ -518,7 +511,10 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
             transition={{ duration: 0.2 }}
             className="w-[90vw] md:w-[500px] max-h-[90dvh] overflow-y-auto"
           >
-            <Dialog.Content className="bg-bolt-elements-background-depth-1 rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl">
+            <Dialog.Content
+              className="bg-bolt-elements-background-depth-1 rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark shadow-xl"
+              aria-describedby="push-dialog-description"
+            >
               <div className="p-6">
                 <div className="flex items-center gap-4 mb-6">
                   <motion.div
@@ -531,11 +527,14 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                   </motion.div>
                   <div>
                     <Dialog.Title className="text-lg font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark">
-                      {text(copy.form.title)}
+                      Deploy to GitLab
                     </Dialog.Title>
-                    <Dialog.Description className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
-                      {text(copy.form.description)}
-                    </Dialog.Description>
+                    <p
+                      id="push-dialog-description"
+                      className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark"
+                    >
+                      Deploy your code to a new or existing GitLab repository
+                    </p>
                   </div>
                   <Dialog.Close asChild>
                     <button
@@ -543,7 +542,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       className="ml-auto p-2 rounded-lg transition-all duration-200 ease-in-out bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary dark:text-bolt-elements-textTertiary-dark dark:hover:text-bolt-elements-textPrimary-dark hover:bg-bolt-elements-background-depth-2 dark:hover:bg-bolt-elements-background-depth-3 focus:outline-none focus:ring-2 focus:ring-bolt-elements-borderColor dark:focus:ring-bolt-elements-borderColor-dark"
                     >
                       <span className="i-ph:x block w-5 h-5" aria-hidden="true" />
-                      <span className="sr-only">{copy.form.closeDialog}</span>
+                      <span className="sr-only">Close dialog</span>
                     </button>
                   </Dialog.Close>
                 </div>
@@ -616,7 +615,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       htmlFor="repoName"
                       className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark"
                     >
-                      {copy.form.repositoryName}
+                      Repository Name
                     </label>
                     <div className="relative">
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark">
@@ -627,7 +626,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                         type="text"
                         value={repoName}
                         onChange={(e) => setRepoName(e.target.value)}
-                        placeholder={copy.form.repositoryNamePlaceholder}
+                        placeholder="my-awesome-project"
                         className="w-full pl-10 px-4 py-2 rounded-lg bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark placeholder-bolt-elements-textTertiary dark:placeholder-bolt-elements-textTertiary-dark focus:outline-none focus:ring-2 focus:ring-orange-500"
                         required
                       />
@@ -637,19 +636,16 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                   <div className="space-y-2">
                     <div className="flex items-center justify-between mb-2">
                       <label className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark">
-                        {copy.form.recentRepositories}
+                        Recent Repositories
                       </label>
                       <span className="text-xs text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark">
-                        {text(copy.form.repositoryCount, {
-                          shown: formatRepositoryDeploymentNumber(filteredRepos.length, language),
-                          total: formatRepositoryDeploymentNumber(recentRepos.length, language),
-                        })}
+                        {filteredRepos.length} of {recentRepos.length}
                       </span>
                     </div>
 
                     <div className="mb-2">
                       <SearchInput
-                        placeholder={copy.form.searchRepositories}
+                        placeholder="Search repositories..."
                         value={repoSearchQuery}
                         onChange={(e) => setRepoSearchQuery(e.target.value)}
                         onClear={() => setRepoSearchQuery('')}
@@ -660,8 +656,8 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                     {recentRepos.length === 0 && !isFetchingRepos ? (
                       <EmptyState
                         icon="i-ph:gitlab-logo"
-                        title={copy.form.noRepositories}
-                        description={text(copy.form.noRepositoriesDescription)}
+                        title="No repositories found"
+                        description="We couldn't find any repositories in your GitLab account."
                         variant="compact"
                       />
                     ) : (
@@ -669,8 +665,8 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                         {filteredRepos.length === 0 && repoSearchQuery.trim() !== '' ? (
                           <EmptyState
                             icon="i-ph:magnifying-glass"
-                            title={copy.form.noMatchingRepositories}
-                            description={copy.form.tryDifferentSearch}
+                            title="No matching repositories"
+                            description="Try a different search term"
                             variant="compact"
                           />
                         ) : (
@@ -692,7 +688,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                                 </div>
                                 {repo.visibility === 'private' && (
                                   <Badge variant="primary" size="sm" icon="i-ph:lock w-3 h-3">
-                                    {copy.form.private}
+                                    Private
                                   </Badge>
                                 )}
                               </div>
@@ -703,13 +699,13 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                               )}
                               <div className="mt-2 flex items-center gap-2 flex-wrap">
                                 <Badge variant="subtle" size="sm" icon="i-ph:star w-3 h-3">
-                                  {formatRepositoryDeploymentNumber(repo.star_count, language)}
+                                  {repo.star_count.toLocaleString()}
                                 </Badge>
                                 <Badge variant="subtle" size="sm" icon="i-ph:git-fork w-3 h-3">
-                                  {formatRepositoryDeploymentNumber(repo.forks_count, language)}
+                                  {repo.forks_count.toLocaleString()}
                                 </Badge>
                                 <Badge variant="subtle" size="sm" icon="i-ph:clock w-3 h-3">
-                                  {formatRepositoryDeploymentDate(repo.updated_at, language)}
+                                  {new Date(repo.updated_at).toLocaleDateString()}
                                 </Badge>
                               </div>
                             </motion.button>
@@ -721,7 +717,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
                   {isFetchingRepos && (
                     <div className="flex items-center justify-center py-4">
-                      <StatusIndicator status="loading" pulse={true} label={copy.form.loadingRepositories} />
+                      <StatusIndicator status="loading" pulse={true} label="Loading repositories..." />
                     </div>
                   )}
 
@@ -738,11 +734,11 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                         htmlFor="private"
                         className="text-sm text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark"
                       >
-                        {copy.form.makePrivate}
+                        Make repository private
                       </label>
                     </div>
                     <p className="text-xs text-bolt-elements-textTertiary dark:text-bolt-elements-textTertiary-dark mt-2 ml-6">
-                      {copy.form.privateDescription}
+                      Private repositories are only visible to you and people you share them with
                     </p>
                   </div>
 
@@ -754,7 +750,7 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                     >
-                      {copy.form.cancel}
+                      Cancel
                     </motion.button>
                     <motion.button
                       type="submit"
@@ -769,12 +765,12 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
                       {isLoading ? (
                         <>
                           <div className="i-ph:spinner-gap animate-spin w-4 h-4" />
-                          {copy.form.deploying}
+                          Deploying...
                         </>
                       ) : (
                         <>
                           <div className="i-ph:gitlab-logo w-4 h-4" />
-                          {text(copy.form.deploy)}
+                          Deploy to GitLab
                         </>
                       )}
                     </motion.button>
@@ -792,9 +788,9 @@ export function GitLabDeploymentDialog({ isOpen, onClose, projectName, files }: 
         isOpen={overwriteConfirmation !== null}
         onClose={() => settleOverwriteConfirmation(false)}
         onConfirm={() => settleOverwriteConfirmation(true)}
-        title={copy.repositoryUpdate.title}
+        title="Update existing repository?"
         description={<span className="whitespace-pre-line">{overwriteConfirmation?.description}</span>}
-        confirmLabel={copy.repositoryUpdate.confirm}
+        confirmLabel="Update repository"
       />
     </Dialog.Root>
   );

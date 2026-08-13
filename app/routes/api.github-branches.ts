@@ -1,5 +1,4 @@
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
-import { webApiErrorResponse, webApiLocaleHeaders } from '~/lib/i18n/catalogs/web-api-routes';
 import { json } from '~/lib/json-response';
 import { withSecurity } from '~/lib/security';
 
@@ -27,19 +26,17 @@ async function githubBranchesLoader({ request }: { request: Request; context?: a
 
     if (request.method === 'POST') {
       // Handle POST request with token in body (from BranchSelector)
-      const body = (await request.json().catch(() => undefined)) as
-        | { owner?: string; repo?: string; token?: string }
-        | undefined;
-      owner = body?.owner ?? '';
-      repo = body?.repo ?? '';
-      githubToken = body?.token ?? '';
+      const body: any = await request.json();
+      owner = body.owner;
+      repo = body.repo;
+      githubToken = body.token;
 
       if (!owner || !repo) {
-        return webApiErrorResponse(request, 'OWNER_REPOSITORY_REQUIRED', 400);
+        return json({ error: 'Owner and repo parameters are required' }, { status: 400 });
       }
 
       if (!githubToken) {
-        return webApiErrorResponse(request, 'GITHUB_TOKEN_REQUIRED', 400);
+        return json({ error: 'GitHub token is required' }, { status: 400 });
       }
     } else {
       // Handle GET request with params and cookie token (backwards compatibility)
@@ -48,7 +45,7 @@ async function githubBranchesLoader({ request }: { request: Request; context?: a
       repo = url.searchParams.get('repo') || '';
 
       if (!owner || !repo) {
-        return webApiErrorResponse(request, 'OWNER_REPOSITORY_REQUIRED', 400);
+        return json({ error: 'Owner and repo parameters are required' }, { status: 400 });
       }
 
       // Get API keys from cookies (server-side only)
@@ -65,7 +62,7 @@ async function githubBranchesLoader({ request }: { request: Request; context?: a
     }
 
     if (!githubToken) {
-      return webApiErrorResponse(request, 'GITHUB_TOKEN_MISSING', 401);
+      return json({ error: 'GitHub token not found' }, { status: 401 });
     }
 
     // First, get repository info to know the default branch
@@ -85,15 +82,14 @@ async function githubBranchesLoader({ request }: { request: Request; context?: a
 
     if (!repoResponse.ok) {
       if (repoResponse.status === 404) {
-        return webApiErrorResponse(request, 'GITHUB_REPOSITORY_NOT_FOUND', 404);
+        return json({ error: 'Repository not found' }, { status: 404 });
       }
 
       if (repoResponse.status === 401) {
-        return webApiErrorResponse(request, 'GITHUB_TOKEN_INVALID', 401);
+        return json({ error: 'Invalid GitHub token' }, { status: 401 });
       }
 
-      console.error('GitHub repository request failed:', { status: repoResponse.status });
-      throw new Error();
+      throw new Error(`GitHub API error: ${repoResponse.status}`);
     }
 
     const repoInfo: any = await repoResponse.json();
@@ -115,8 +111,7 @@ async function githubBranchesLoader({ request }: { request: Request; context?: a
     );
 
     if (!branchesResponse.ok) {
-      console.error('GitHub branches request failed:', { status: branchesResponse.status });
-      throw new Error();
+      throw new Error(`Failed to fetch branches: ${branchesResponse.status}`);
     }
 
     const branches: GitHubBranch[] = await branchesResponse.json();
@@ -142,22 +137,38 @@ async function githubBranchesLoader({ request }: { request: Request; context?: a
       return a.name.localeCompare(b.name);
     });
 
-    return json(
-      {
-        branches: transformedBranches,
-        defaultBranch,
-        total: transformedBranches.length,
-      },
-      { headers: webApiLocaleHeaders(request) },
-    );
+    return json({
+      branches: transformedBranches,
+      defaultBranch,
+      total: transformedBranches.length,
+    });
   } catch (error) {
     console.error('Failed to fetch GitHub branches:', error);
 
-    const upstreamUnavailable =
-      error instanceof TypeError ||
-      (error instanceof Error && (error.name === 'AbortError' || error.name === 'TimeoutError'));
+    if (error instanceof Error) {
+      if (error.message.includes('fetch')) {
+        return json(
+          {
+            error: 'Failed to connect to GitHub. Please check your network connection.',
+          },
+          { status: 503 },
+        );
+      }
 
-    return webApiErrorResponse(request, upstreamUnavailable ? 'GITHUB_UNAVAILABLE' : 'GITHUB_BRANCHES_FAILED', 503);
+      return json(
+        {
+          error: `Failed to fetch branches: ${error.message}`,
+        },
+        { status: 500 },
+      );
+    }
+
+    return json(
+      {
+        error: 'An unexpected error occurred while fetching branches',
+      },
+      { status: 500 },
+    );
   }
 }
 

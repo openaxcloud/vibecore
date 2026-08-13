@@ -15,13 +15,10 @@ export interface ThemeSwitcherPresentation {
  * theme. The control therefore must reflect the real active theme: Sun/Light for
  * light, Moon/Dark for dark.
  */
-export function getThemeSwitcherPresentation(
-  theme: Theme,
-  labels: Readonly<{ light: string; dark: string }>,
-): ThemeSwitcherPresentation {
+export function getThemeSwitcherPresentation(theme: Theme): ThemeSwitcherPresentation {
   if (theme === 'dark') {
-    return { icon: 'moon', label: labels.dark };
+    return { icon: 'moon', label: 'Dark' };
   }
 
-  return { icon: 'sun', label: labels.light };
+  return { icon: 'sun', label: 'Light' };
 }

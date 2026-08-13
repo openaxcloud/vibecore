@@ -1,7 +1,5 @@
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { formatUpdateTabCopy, formatUpdateTabPlural, getUpdateTabCopy } from '~/lib/i18n/catalogs/update-tab';
 
 interface UpdateDetails {
   changedFiles?: string[];
@@ -17,65 +15,10 @@ interface UpdateDetails {
 
 interface UpdateProgress {
   stage: string;
+  message: string;
   progress: number;
-  failed: boolean;
+  error?: string;
   details?: UpdateDetails;
-}
-
-function nonNegativeNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined;
-}
-
-function stringArray(value: unknown): string[] | undefined {
-  return Array.isArray(value) && value.every((item): item is string => typeof item === 'string') ? value : undefined;
-}
-
-function safeCompareUrl(value: unknown): string | undefined {
-  if (typeof value !== 'string') {
-    return undefined;
-  }
-
-  try {
-    const url = new URL(value);
-
-    return url.protocol === 'https:' || url.protocol === 'http:' ? url.toString() : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-export function normalizeUpdateProgress(value: unknown): UpdateProgress | null {
-  if (!value || typeof value !== 'object') {
-    return null;
-  }
-
-  const source = value as Record<string, unknown>;
-
-  const detailsSource =
-    source.details && typeof source.details === 'object' ? (source.details as Record<string, unknown>) : null;
-
-  const details: UpdateDetails | undefined = detailsSource
-    ? {
-        changedFiles: stringArray(detailsSource.changedFiles),
-        additions: nonNegativeNumber(detailsSource.additions),
-        deletions: nonNegativeNumber(detailsSource.deletions),
-        commitMessages: stringArray(detailsSource.commitMessages),
-        currentCommit: typeof detailsSource.currentCommit === 'string' ? detailsSource.currentCommit : undefined,
-        remoteCommit: typeof detailsSource.remoteCommit === 'string' ? detailsSource.remoteCommit : undefined,
-        updateReady: detailsSource.updateReady === true,
-        compareUrl: safeCompareUrl(detailsSource.compareUrl),
-        changelog: typeof detailsSource.changelog === 'string' ? detailsSource.changelog : undefined,
-      }
-    : undefined;
-
-  const progress = nonNegativeNumber(source.progress) ?? 0;
-
-  return {
-    stage: typeof source.stage === 'string' ? source.stage : 'unknown',
-    progress: Math.min(100, progress),
-    failed: Boolean(source.error),
-    ...(details ? { details } : {}),
-  };
 }
 
 /**
@@ -88,11 +31,6 @@ export function isUpdateAvailable(details: UpdateDetails | undefined): boolean {
 }
 
 export default function UpdateTab() {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getUpdateTabCopy(language);
-  const locale = language.toLowerCase().startsWith('fr') ? 'fr-FR' : 'en-US';
-  const numberFormatter = new Intl.NumberFormat(locale);
   const [checking, setChecking] = useState(false);
   const [result, setResult] = useState<UpdateProgress | null>(null);
 
@@ -105,36 +43,17 @@ export default function UpdateTab() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ branch: 'main', autoUpdate: false }),
-        signal: AbortSignal.timeout(30_000),
       });
 
       if (!response.ok || !response.body) {
-        throw new Error(String(response.status));
+        throw new Error(`Update check failed: ${response.statusText}`);
       }
 
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
 
       let buffer = '';
-
-      const lastProgress: { current: UpdateProgress | null } = { current: null };
-
-      const parseProgressLine = (line: string) => {
-        if (!line.trim()) {
-          return;
-        }
-
-        try {
-          const progress = normalizeUpdateProgress(JSON.parse(line));
-
-          if (progress) {
-            lastProgress.current = progress;
-            setResult(progress);
-          }
-        } catch (error) {
-          console.warn(error);
-        }
-      };
+      let lastProgress: UpdateProgress | null = null;
 
       while (true) {
         const { value, done } = await reader.read();
@@ -149,79 +68,51 @@ export default function UpdateTab() {
         buffer = lines.pop() || '';
 
         for (const line of lines) {
-          parseProgressLine(line);
+          if (!line.trim()) {
+            continue;
+          }
+
+          // Skip a malformed line instead of aborting the whole update check.
+          try {
+            lastProgress = JSON.parse(line);
+            setResult(lastProgress);
+          } catch (error) {
+            console.warn('Skipping malformed update-stream line:', error);
+          }
         }
       }
 
-      parseProgressLine(buffer);
-
-      const completionCopy = getUpdateTabCopy(i18n.resolvedLanguage ?? i18n.language);
-
-      if (lastProgress.current?.failed) {
-        toast.error(completionCopy['updateTab.status.failed']);
+      if (lastProgress?.error) {
+        toast.error(lastProgress.error);
       } else {
-        const completed: UpdateProgress = lastProgress.current ?? {
-          stage: 'complete',
-          progress: 100,
-          failed: false,
-        };
-
-        setResult(completed);
-        toast.success(
-          isUpdateAvailable(completed.details)
-            ? completionCopy['updateTab.status.available']
-            : completionCopy['updateTab.status.complete'],
-        );
+        toast.success(lastProgress?.message || 'Update check complete');
       }
-    } catch {
-      const failureCopy = getUpdateTabCopy(i18n.resolvedLanguage ?? i18n.language);
-
-      setResult({ stage: 'complete', progress: 100, failed: true });
-      toast.error(failureCopy['updateTab.status.failed']);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Update check failed';
+      setResult({ stage: 'complete', message, progress: 100, error: message });
+      toast.error(message);
     } finally {
       setChecking(false);
     }
   };
 
-  const details = result?.failed ? undefined : result?.details;
-
-  const statusMessage = result?.failed
-    ? copy['updateTab.status.failed']
-    : checking && !result
-      ? copy['updateTab.status.checking']
-      : details && isUpdateAvailable(details)
-        ? copy['updateTab.status.available']
-        : result?.progress === 100
-          ? copy['updateTab.status.complete']
-          : result
-            ? formatUpdateTabCopy(copy['updateTab.status.progress'], {
-                progress: numberFormatter.format(Math.round(result.progress)),
-              })
-            : copy['updateTab.status.idle'];
-
-  const commitMessages = details?.commitMessages ?? [];
-  const changedFiles = details?.changedFiles ?? [];
+  const details = result?.details;
 
   return (
     <div className="space-y-4">
       <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-        <div className="flex flex-col items-stretch justify-between gap-4 sm:flex-row sm:items-center">
-          <div className="min-w-0">
-            <h3 className="break-words text-sm font-medium text-bolt-elements-textPrimary">
-              {copy['updateTab.title']}
-            </h3>
-            <p className="break-words text-sm text-bolt-elements-textSecondary" role="status" aria-live="polite">
-              {statusMessage}
-            </p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-medium text-bolt-elements-textPrimary">Update Status</h3>
+            <p className="text-sm text-bolt-elements-textSecondary">{result?.message || 'Check upstream/main'}</p>
           </div>
           <button
             type="button"
             onClick={checkUpdates}
             disabled={checking}
-            aria-busy={checking}
-            className="min-h-11 whitespace-normal rounded-lg bg-[var(--vc-ide-accent-action)] px-3 py-2 text-center text-sm font-medium text-white disabled:opacity-60"
+            className="rounded-lg bg-[var(--vc-ide-accent-action)] px-3 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
-            {checking ? copy['updateTab.action.checking'] : copy['updateTab.action.check']}
+            {checking ? 'Checking...' : 'Check updates'}
           </button>
         </div>
       </div>
@@ -230,17 +121,17 @@ export default function UpdateTab() {
         <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 space-y-3">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
             <div className="rounded-lg bg-bolt-elements-background-depth-1 p-3">
-              <div className="text-bolt-elements-textSecondary">{copy['updateTab.current']}</div>
-              <div className="break-all font-medium text-bolt-elements-textPrimary">{details.currentCommit ?? '—'}</div>
+              <div className="text-bolt-elements-textSecondary">Current</div>
+              <div className="font-medium text-bolt-elements-textPrimary">{details.currentCommit}</div>
             </div>
             <div className="rounded-lg bg-bolt-elements-background-depth-1 p-3">
-              <div className="text-bolt-elements-textSecondary">{copy['updateTab.upstream']}</div>
-              <div className="break-all font-medium text-bolt-elements-textPrimary">{details.remoteCommit ?? '—'}</div>
+              <div className="text-bolt-elements-textSecondary">Upstream</div>
+              <div className="font-medium text-bolt-elements-textPrimary">{details.remoteCommit}</div>
             </div>
             <div className="rounded-lg bg-bolt-elements-background-depth-1 p-3">
-              <div className="text-bolt-elements-textSecondary">{copy['updateTab.diff']}</div>
+              <div className="text-bolt-elements-textSecondary">Diff</div>
               <div className="font-medium text-bolt-elements-textPrimary">
-                +{numberFormatter.format(details.additions ?? 0)} / −{numberFormatter.format(details.deletions ?? 0)}
+                +{details.additions || 0} / -{details.deletions || 0}
               </div>
             </div>
           </div>
@@ -254,56 +145,40 @@ export default function UpdateTab() {
                   href={details.compareUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex min-h-11 max-w-full items-center gap-1 whitespace-normal break-words text-sm font-medium text-[var(--vc-ide-accent-action)] hover:underline"
+                  className="inline-flex items-center gap-1 text-sm font-medium text-[var(--vc-ide-accent-action)] hover:underline"
                 >
-                  {copy['updateTab.compare']}
+                  Compare changes on the source repository
                   <span aria-hidden="true">↗</span>
                 </a>
               )}
 
-              <div className="space-y-1">
-                <div className="text-sm font-medium text-bolt-elements-textPrimary">
-                  {formatUpdateTabPlural(language, commitMessages.length, {
-                    one: copy['updateTab.commits_one'],
-                    other: copy['updateTab.commits_other'],
-                  })}
-                </div>
-                <div className="max-h-40 space-y-1 overflow-y-auto rounded-lg bg-bolt-elements-background-depth-1 p-3">
-                  {commitMessages.length > 0 ? (
-                    commitMessages.map((message) => (
-                      <div key={message} className="break-words text-xs text-bolt-elements-textSecondary">
+              {(details.commitMessages?.length ?? 0) > 0 && (
+                <div className="space-y-1">
+                  <div className="text-sm font-medium text-bolt-elements-textPrimary">Commits</div>
+                  <div className="max-h-40 overflow-y-auto rounded-lg bg-bolt-elements-background-depth-1 p-3 space-y-1">
+                    {details.commitMessages!.map((message) => (
+                      <div key={message} className="text-xs text-bolt-elements-textSecondary">
                         {message}
                       </div>
-                    ))
-                  ) : (
-                    <p className="text-xs text-bolt-elements-textSecondary">{copy['updateTab.noCommits']}</p>
-                  )}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="space-y-1">
-                <div className="text-sm font-medium text-bolt-elements-textPrimary">
-                  {formatUpdateTabPlural(language, changedFiles.length, {
-                    one: copy['updateTab.changedFiles_one'],
-                    other: copy['updateTab.changedFiles_other'],
-                  })}
-                </div>
+                <div className="text-sm font-medium text-bolt-elements-textPrimary">Changed files</div>
                 <div className="max-h-80 overflow-y-auto rounded-lg bg-bolt-elements-background-depth-1 p-3">
-                  {changedFiles.length > 0 ? (
-                    changedFiles.map((file) => (
-                      <code key={file} className="block break-all text-xs text-bolt-elements-textSecondary">
-                        {file}
-                      </code>
-                    ))
-                  ) : (
-                    <p className="text-xs text-bolt-elements-textSecondary">{copy['updateTab.noChangedFiles']}</p>
-                  )}
+                  {(details.changedFiles || []).map((file) => (
+                    <div key={file} className="text-xs text-bolt-elements-textSecondary">
+                      {file}
+                    </div>
+                  ))}
                 </div>
               </div>
             </>
           ) : (
             <div className="rounded-lg bg-bolt-elements-background-depth-1 p-3 text-sm text-bolt-elements-textSecondary">
-              {copy['updateTab.upToDate']}
+              You are up to date — no changes to review.
             </div>
           )}
         </div>

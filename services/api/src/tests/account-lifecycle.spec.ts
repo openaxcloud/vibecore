@@ -62,22 +62,10 @@ describe('isStarterPublishExpired', () => {
 
 describe('inactivityWarningEmailContent', () => {
   it('states the days left before deletion', () => {
-    const content = inactivityWarningEmailContent(340, { nowMs: NOW, timeZone: 'UTC' });
+    const content = inactivityWarningEmailContent(340);
     expect(content.subject).toContain(`${INACTIVITY_DAYS - 340} days`);
     expect(content.text).toContain('340 days');
     expect(content.html).toContain('<strong>');
-  });
-
-  it('renders professional French copy with localized plural and date', () => {
-    const content = inactivityWarningEmailContent(364, {
-      locale: 'fr',
-      nowMs: Date.parse('2026-08-04T12:00:00.000Z'),
-      timeZone: 'UTC',
-    });
-
-    expect(content.subject).toContain('1 jour');
-    expect(content.text).toContain('5 août 2026');
-    expect(content.text).toContain('Connectez-vous');
   });
 });
 

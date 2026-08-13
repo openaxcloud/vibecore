@@ -281,7 +281,7 @@ describe('agent executor', () => {
     expect(result.status).toBe('partial');
     expect(result.results.find((item) => item.roleId === 'frontend')).toMatchObject({
       status: 'failed',
-      summary: 'Agent execution failed.',
+      summary: 'provider unavailable',
     });
   });
 

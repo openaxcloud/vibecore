@@ -1,12 +1,9 @@
-import type { LoaderFunctionArgs } from 'react-router';
 import { describe, expect, it } from 'vitest';
 
 import { loader as aboutLoader } from './api.about';
 import { loader as authUserLoader } from './api.auth.user';
 import { loader as communityCategoriesLoader } from './api.community.categories';
-import { loader as communityChallengesLoader } from './api.community.challenges';
 import { loader as communityPostsLoader } from './api.community.posts';
-import { loader as communityPostLoader } from './api.community.posts.$postId';
 import { loader as exploreProjectsLoader } from './api.explore.projects';
 import { loader as marketplaceExtensionsLoader } from './api.marketplace.extensions';
 import { loader as marketplacePublishersLoader } from './api.marketplace.publishers';
@@ -19,14 +16,11 @@ import { loader as statusIncidentsLoader } from './api.status.incidents';
 import { loader as statusMetricsLoader } from './api.status.metrics';
 import { toResponse } from '~/lib/test/rr7-data';
 
-function loaderArgs(
-  url: string,
-  options: { headers?: HeadersInit; params?: LoaderFunctionArgs['params'] } = {},
-): LoaderFunctionArgs {
+function loaderArgs(url: string): Parameters<typeof statusServicesLoader>[0] {
   return {
     context: {},
-    params: options.params ?? {},
-    request: new Request(url, { headers: options.headers }),
+    params: {},
+    request: new Request(url),
   };
 }
 
@@ -121,152 +115,5 @@ describe('E-Code public runtime API adapters', () => {
     expect(communityPosts.posts.length).toBeGreaterThan(0);
     expect(communityPosts.pagination.total).toBeGreaterThan(0);
     expect(exploreProjects.length).toBeGreaterThan(0);
-  });
-
-  it('serves every public prose family in French with locale-aware response headers', async () => {
-    const frenchHeaders = { 'Accept-Language': 'fr-FR,fr;q=0.9,en;q=0.5' };
-
-    const statusResponse = toResponse(
-      await statusServicesLoader(loaderArgs('https://app.e-code.ai/api/status', { headers: frenchHeaders })),
-    );
-
-    const services = (await statusResponse.json()) as Array<{ id: string; name: string; description: string }>;
-
-    const about = (await toResponse(
-      await aboutLoader(loaderArgs('https://app.e-code.ai/api/about', { headers: frenchHeaders })),
-    ).json()) as {
-      values: Array<{ icon: string; title: string; description: string }>;
-      milestones: Array<{ event: string }>;
-      team: Array<{ name: string; role: string }>;
-      stats: Array<{ label: string; description: string }>;
-    };
-    const capabilities = (await toResponse(
-      await polyglotCapabilitiesLoader(
-        loaderArgs('https://app.e-code.ai/api/polyglot/capabilities', { headers: frenchHeaders }),
-      ),
-    ).json()) as { services: { typescript: { capabilities: string[] } } };
-    const extensions = (await toResponse(
-      await marketplaceExtensionsLoader(
-        loaderArgs('https://app.e-code.ai/api/marketplace/extensions', { headers: frenchHeaders }),
-      ),
-    ).json()) as Array<{ description: string; price: string }>;
-    const publishers = (await toResponse(
-      await marketplacePublishersLoader(
-        loaderArgs('https://app.e-code.ai/api/marketplace/publishers', { headers: frenchHeaders }),
-      ),
-    ).json()) as Array<{ description: string }>;
-    const categories = (await toResponse(
-      await communityCategoriesLoader(
-        loaderArgs('https://app.e-code.ai/api/community/categories', { headers: frenchHeaders }),
-      ),
-    ).json()) as Array<{ id: string; name: string }>;
-    const posts = (await toResponse(
-      await communityPostsLoader(
-        loaderArgs('https://app.e-code.ai/api/community/posts?page=1&pageSize=20', { headers: frenchHeaders }),
-      ),
-    ).json()) as { posts: Array<{ title: string; content: string }> };
-    const challenges = (await toResponse(
-      await communityChallengesLoader(
-        loaderArgs('https://app.e-code.ai/api/community/challenges', { headers: frenchHeaders }),
-      ),
-    ).json()) as Array<{ id: string; title: string; description: string }>;
-    const projects = (await toResponse(
-      await exploreProjectsLoader(loaderArgs('https://app.e-code.ai/api/explore/projects', { headers: frenchHeaders })),
-    ).json()) as Array<{ slug: string; name: string; description: string; lastUpdated: string }>;
-    const englishProjects = (await toResponse(
-      await exploreProjectsLoader(
-        loaderArgs('https://app.e-code.ai/api/explore/projects', {
-          headers: { Cookie: 'vibecore-lang=en', 'Accept-Language': 'fr-FR' },
-        }),
-      ),
-    ).json()) as Array<{ slug: string; description: string }>;
-    const missingPostResponse = toResponse(
-      await communityPostLoader(
-        loaderArgs('https://app.e-code.ai/api/community/posts/missing', {
-          headers: frenchHeaders,
-          params: { postId: 'missing' },
-        }),
-      ),
-    );
-
-    expect(statusResponse.headers.get('Content-Language')).toBe('fr');
-    expect(statusResponse.headers.get('Cache-Control')).toBe('no-store');
-    expect(statusResponse.headers.get('Vary')).toContain('Accept-Language');
-    expect(statusResponse.headers.get('Set-Cookie')).toContain('vibecore-auto-lang=fr');
-    expect(services.find((service) => service.id === 'editor')).toMatchObject({
-      name: 'Éditeur E-Code',
-      description: 'Services principaux de l’IDE et d’édition de code',
-    });
-    expect(about.values.find((value) => value.icon === 'Shield')).toMatchObject({
-      title: 'Sécurité',
-      description: 'Une protection de niveau entreprise pour le code, les données et les déploiements.',
-    });
-    expect(about.milestones[0]?.event).toContain('Création d’E-Code');
-    expect(about.team[0]).toMatchObject({ name: 'Équipe E-Code', role: 'Ingénierie produit' });
-    expect(about.stats[0]?.label).toBe('Modèles');
-    expect(capabilities.services.typescript.capabilities).toContain('Gestion des projets');
-    expect(extensions[0]).toMatchObject({
-      description: 'Formatage du code avec Prettier pour garantir un style cohérent',
-      price: 'Gratuit',
-    });
-    expect(publishers[0]?.description).toContain('Modèles officiels d’espaces de travail E-Code');
-    expect(Object.fromEntries(categories.map((category) => [category.id, category.name]))).toMatchObject({
-      showcase: 'Réalisations',
-      tutorials: 'Tutoriels',
-      challenges: 'Défis',
-      discussion: 'Discussions',
-    });
-    expect(posts.posts[0]?.title).toMatch(/^Présentation du modèle /);
-    expect(posts.posts[0]?.content).not.toMatch(/\bstarter template\b/i);
-    expect(challenges.find((challenge) => challenge.id === 'ai-agent-starter')).toMatchObject({
-      title: 'Livrez un starter d’agent IA',
-      description: 'Partez du modèle officiel d’agent IA et partagez le workflow de mise en production.',
-    });
-    expect(projects.find((project) => project.slug === 'landing-page')).toMatchObject({
-      name: 'Page de destination',
-      description:
-        'Starter marketing responsive pour les pages de conversion, avec des sections de contenu soignées et un routage prêt pour la production.',
-    });
-    expect(projects[0]?.lastUpdated).toContain('juin');
-    expect(projects.map((project) => project.slug)).toEqual(englishProjects.map((project) => project.slug));
-
-    for (const project of projects) {
-      const englishProject = englishProjects.find((candidate) => candidate.slug === project.slug);
-
-      expect(project.description, project.slug).not.toBe(englishProject?.description);
-    }
-
-    expect(missingPostResponse.status).toBe(404);
-    await expect(missingPostResponse.json()).resolves.toEqual({ ok: false, error: 'Publication introuvable' });
-  });
-
-  it('keeps manual English authoritative and falls back to English for an unsupported public locale', async () => {
-    const manualEnglishResponse = toResponse(
-      await statusServicesLoader(
-        loaderArgs('https://app.e-code.ai/api/status', {
-          headers: {
-            Cookie: 'vibecore-lang=en; vibecore-auto-lang=fr',
-            'Accept-Language': 'fr-FR',
-          },
-        }),
-      ),
-    );
-
-    const manualEnglish = (await manualEnglishResponse.json()) as Array<{ id: string; name: string }>;
-
-    const unsupportedResponse = toResponse(await aboutLoader(loaderArgs('https://app.e-code.ai/api/about?lang=es')));
-
-    const unsupported = (await unsupportedResponse.json()) as {
-      values: Array<{ icon: string; title: string; description: string }>;
-    };
-
-    expect(manualEnglishResponse.headers.get('Content-Language')).toBe('en');
-    expect(manualEnglishResponse.headers.get('Set-Cookie')).toBeNull();
-    expect(manualEnglish.find((service) => service.id === 'editor')?.name).toBe('E-Code Editor');
-    expect(unsupportedResponse.headers.get('Content-Language')).toBe('en');
-    expect(unsupported.values.find((value) => value.icon === 'Shield')).toMatchObject({
-      title: 'Security',
-      description: 'Enterprise-grade protection for code, data and deployments.',
-    });
   });
 });

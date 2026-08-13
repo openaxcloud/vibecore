@@ -151,28 +151,6 @@ describe('workspace-manager app', () => {
     await app.close();
   });
 
-  it('negotiates French errors without translating identifiers or payload data', async () => {
-    process.env.WORKSPACE_RUNTIME_NAMESPACE = 'prod-workspaces';
-    const runtime = manager();
-    const app = buildWorkspaceManagerApp(runtime.manager);
-
-    const stopped = await app.inject({
-      method: 'POST',
-      url: '/workspaces/missing-workspace/stop',
-      headers: { 'accept-language': 'en;q=0.4, fr-FR;q=0.9' },
-    });
-
-    expect(stopped.statusCode).toBe(404);
-    expect(stopped.headers['content-language']).toBe('fr');
-    expect(stopped.headers.vary).toContain('Accept-Language');
-    expect(stopped.json()).toMatchObject({
-      code: 'WORKSPACE_NOT_FOUND',
-      message: 'Espace de travail introuvable.',
-    });
-
-    await app.close();
-  });
-
   it('requires the shared secret on control-plane routes when one is configured', async () => {
     process.env.WORKSPACE_RUNTIME_NAMESPACE = 'prod-workspaces';
     // Control plane now requires the DEDICATED secret (no PREVIEW_PROXY fallback).
@@ -294,23 +272,6 @@ describe('workspace-manager app', () => {
       expect(res.statusCode).toBe(200);
       expect(runtime.k8s.objects.has('project-databases:Cluster:db-p1')).toBe(true);
       await app.close();
-    });
-
-    it('applies shared-tier Pooler and Database CNPG kinds', async () => {
-      for (const kind of ['Pooler', 'Database'] as const) {
-        const runtime = manager();
-        const app = buildWorkspaceManagerApp(runtime.manager);
-        const res = await app.inject({
-          method: 'POST',
-          url: '/databases/apply',
-          payload: {
-            manifest: { ...cnpgCluster, kind, metadata: { name: `sh-${kind}`, namespace: 'project-databases' } },
-          },
-        });
-        expect(res.statusCode).toBe(200);
-        expect(runtime.k8s.objects.has(`project-databases:${kind}:sh-${kind}`)).toBe(true);
-        await app.close();
-      }
     });
 
     it('rejects a forbidden kind', async () => {

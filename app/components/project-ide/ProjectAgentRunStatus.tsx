@@ -1,6 +1,3 @@
-import { useTranslation } from 'react-i18next';
-import { formatWorkspaceMiscCopy, getWorkspaceMiscCopy } from '~/lib/i18n/catalogs/workspace-misc';
-
 interface ProjectAgentRunStatusProps {
   stopLabel: string;
   disabled?: boolean;
@@ -8,14 +5,12 @@ interface ProjectAgentRunStatusProps {
 }
 
 export function ProjectAgentRunStatus({ stopLabel, disabled = false, onStop }: ProjectAgentRunStatusProps) {
-  const { i18n } = useTranslation();
-  const copy = getWorkspaceMiscCopy(i18n.resolvedLanguage ?? i18n.language);
   const stopDisabled = disabled || !onStop;
 
   return (
     <div
       className="bolt-project-agent-run-status"
-      aria-label={copy['workspaceMisc.agentRun.aria']}
+      aria-label="AI agent generation status"
       data-testid="project-agent-run-status"
     >
       <div className="bolt-project-agent-run-status-copy" role="status" aria-live="polite">
@@ -23,15 +18,15 @@ export function ProjectAgentRunStatus({ stopLabel, disabled = false, onStop }: P
           <span className="i-svg-spinners:90-ring-with-bg" />
         </span>
         <span>
-          <strong>{copy['workspaceMisc.agentRun.title']}</strong>
-          <small>{copy['workspaceMisc.agentRun.description']}</small>
+          <strong>Agent running</strong>
+          <small>Streaming response and workspace actions.</small>
         </span>
       </div>
       <button
         type="button"
-        className="bolt-project-agent-stop-button min-h-11 max-w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-error)]"
+        className="bolt-project-agent-stop-button"
         aria-label={stopLabel}
-        title={formatWorkspaceMiscCopy(copy['workspaceMisc.agentRun.stop.title'], { label: stopLabel })}
+        title={`${stopLabel} — press Esc`}
         disabled={stopDisabled}
         onClick={() => onStop?.()}
       >
@@ -39,7 +34,7 @@ export function ProjectAgentRunStatus({ stopLabel, disabled = false, onStop }: P
         <span>{stopLabel}</span>
       </button>
       <span className="text-[11px] text-bolt-elements-textTertiary" aria-hidden>
-        {copy['workspaceMisc.agentRun.stop.hint']}
+        Esc to stop
       </span>
     </div>
   );

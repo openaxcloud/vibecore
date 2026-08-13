@@ -29,12 +29,7 @@ vi.mock('./entry-export-reconcile', async () => {
   };
 });
 
-import {
-  ActionRunner,
-  extractSelfRepairContent,
-  isDevServerStartCommand,
-  isLongRunningInstallCommand,
-} from './action-runner';
+import { ActionRunner, extractSelfRepairContent, isLongRunningInstallCommand } from './action-runner';
 import type { ActionCallbackData } from './message-parser';
 import { workspaceEvents } from './workspace-events';
 
@@ -236,103 +231,6 @@ describe('ActionRunner abort / start finalization', () => {
 
     expect(runner.actions.get()[startData.actionId]?.status).toBe('failed');
   });
-
-  it('UNIFIED LAUNCHER: delegates a dev-server start to the tracked launcher and never opens the untracked PTY dev server', async () => {
-    vi.useFakeTimers();
-
-    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
-    const onStartDevServer = vi.fn(async () => undefined);
-
-    const runner = new ActionRunner(
-      createRuntime(),
-      () => ({ ...createShell(), executeCommand }) as any,
-      undefined,
-      undefined,
-      undefined,
-      onStartDevServer,
-    );
-
-    const startData: ActionCallbackData = {
-      artifactId: 'artifact-1',
-      messageId: 'message-1',
-      actionId: 'action-start-delegate',
-      action: { type: 'start', content: 'npm run dev' },
-    };
-
-    runner.addAction(startData);
-
-    const runPromise = runner.runAction(startData, false);
-    await vi.advanceTimersByTimeAsync(2_000);
-    await runPromise;
-    await Promise.resolve();
-
-    // The single tracked launcher was used…
-    expect(onStartDevServer).toHaveBeenCalledWith('npm run dev');
-
-    // …and NO PTY dev server was spawned → no untracked phantom racing port 5173.
-    expect(executeCommand).not.toHaveBeenCalled();
-    expect(runner.actions.get()[startData.actionId]?.status).toBe('complete');
-  });
-
-  it('runs a NON-dev start command in the PTY (not delegated) so a bespoke command is never silently dropped', async () => {
-    vi.useFakeTimers();
-
-    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
-    const onStartDevServer = vi.fn(async () => undefined);
-
-    const runner = new ActionRunner(
-      createRuntime(),
-      () => ({ ...createShell(), executeCommand }) as any,
-      undefined,
-      undefined,
-      undefined,
-      onStartDevServer,
-    );
-
-    const startData: ActionCallbackData = {
-      artifactId: 'artifact-1',
-      messageId: 'message-1',
-      actionId: 'action-start-bespoke',
-      action: { type: 'start', content: 'node worker.js' },
-    };
-
-    runner.addAction(startData);
-
-    const runPromise = runner.runAction(startData, false);
-    await vi.advanceTimersByTimeAsync(2_000);
-    await runPromise;
-    await Promise.resolve();
-
-    expect(onStartDevServer).not.toHaveBeenCalled();
-    expect(executeCommand).toHaveBeenCalled();
-  });
-});
-
-describe('isDevServerStartCommand', () => {
-  it.each([
-    'npm run dev',
-    'npm start',
-    'pnpm dev',
-    'pnpm run dev',
-    'yarn dev',
-    'bun run dev',
-    'vite',
-    'vite --host 0.0.0.0',
-    'npx vite',
-    'next dev',
-    'astro dev',
-    'remix dev',
-    'nuxt dev',
-  ])('recognizes %s as a dev-server launch', (command) => {
-    expect(isDevServerStartCommand(command)).toBe(true);
-  });
-
-  it.each(['node worker.js', 'node server.js', 'npm run build', 'echo hi', 'python app.py', 'go run .'])(
-    'does not treat %s as a dev-server launch (kept on the PTY path)',
-    (command) => {
-      expect(isDevServerStartCommand(command)).toBe(false);
-    },
-  );
 });
 
 describe('extractSelfRepairContent', () => {

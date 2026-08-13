@@ -4,7 +4,7 @@ import { CRON_PRESETS, validateCronExpression } from './cron-expression';
 describe('validateCronExpression', () => {
   it('accepts every shipped preset', () => {
     for (const preset of CRON_PRESETS) {
-      expect(validateCronExpression(preset.expression), preset.id).toEqual({ valid: true });
+      expect(validateCronExpression(preset.expression), preset.label).toEqual({ valid: true });
     }
   });
 
@@ -42,12 +42,6 @@ describe('validateCronExpression', () => {
   it('returns a descriptive error naming the offending field', () => {
     const result = validateCronExpression('* 99 * * *');
     expect(result.valid).toBe(false);
-
-    if (result.valid) {
-      throw new Error('Expected cron validation to fail');
-    }
-
-    expect(result.errorCode).toBe('out-of-range');
-    expect(result.field).toBe('hour');
+    expect(result.error).toContain('hour');
   });
 });

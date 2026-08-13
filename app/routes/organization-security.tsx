@@ -4,6 +4,7 @@ import { Form, useActionData, useLoaderData, useNavigation, useRevalidator } fro
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import {
+  apiErrorMessage,
   apiRequest,
   firstOrganizationOrNull,
   formObject,
@@ -13,13 +14,6 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import {
-  formatOrganizationSecurityCopy,
-  formatOrganizationSecurityNumber,
-  getOrganizationSecurityCopy,
-  resolveOrganizationSecurityLanguage,
-} from '~/lib/i18n/catalogs/organization-security';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { formatUserAreaDateTime } from '~/lib/i18n/user-area-locale';
 import { isReauthRedirect, shouldRethrowActionError } from '~/lib/route-reauth';
 import { classNames } from '~/utils/classNames';
@@ -106,8 +100,6 @@ function isValidIpOrCidr(value: string): boolean {
 }
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const language = resolveOrganizationSecurityLanguage(resolveRequestLocale(request).language);
-  const copy = getOrganizationSecurityCopy(language);
   const organization = await firstOrganizationOrNull(request);
 
   if (!organization) {
@@ -135,10 +127,10 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     }
 
     if (isApiResponse(error, 403)) {
-      loadError = copy['organizationSecurity.errors.permissionView'];
+      loadError = "You don't have permission to manage this organization's security settings.";
       loadErrorKind = 'permission';
     } else {
-      loadError = copy['organizationSecurity.errors.temporaryLoad'];
+      loadError = await apiErrorMessage(error, 'Security settings are temporarily unavailable.');
       loadErrorKind = 'temporary';
     }
   }
@@ -149,13 +141,10 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     settings: settings ?? { ...FALLBACK_SETTINGS, organizationId: organization.id },
     loadError,
     loadErrorKind,
-    language,
   });
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
-  const language = resolveOrganizationSecurityLanguage(resolveRequestLocale(request).language);
-  const copy = getOrganizationSecurityCopy(language);
   const form = await request.formData();
 
   const body = formObject(form) as {
@@ -168,7 +157,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   };
 
   if (!body.orgId) {
-    return json({ error: copy['organizationSecurity.errors.organizationUnavailable'] }, { status: 400 });
+    return json({ error: 'Your organization is unavailable. Reload the page and try again.' }, { status: 400 });
   }
 
   const ipAllowlist = (body.ipAllowlist ?? '')
@@ -179,14 +168,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   const invalid = ipAllowlist.filter((entry) => !isValidIpOrCidr(entry));
 
   if (invalid.length > 0) {
-    return json(
-      {
-        error: formatOrganizationSecurityCopy(copy['organizationSecurity.errors.invalidIp'], {
-          entries: invalid.join(', '),
-        }),
-      },
-      { status: 400 },
-    );
+    return json({ error: `Not a valid IP address or CIDR block: ${invalid.join(', ')}` }, { status: 400 });
   }
 
   const sessionDurationMinutes = body.sessionDurationMinutes ? Number(body.sessionDurationMinutes) : undefined;
@@ -198,12 +180,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       sessionDurationMinutes > SESSION_MAX_MINUTES)
   ) {
     return json(
-      {
-        error: formatOrganizationSecurityCopy(copy['organizationSecurity.errors.sessionRange'], {
-          minimum: formatOrganizationSecurityNumber(SESSION_MIN_MINUTES, language),
-          maximum: formatOrganizationSecurityNumber(SESSION_MAX_MINUTES, language),
-        }),
-      },
+      { error: `Session duration must be between ${SESSION_MIN_MINUTES} and ${SESSION_MAX_MINUTES} minutes.` },
       { status: 400 },
     );
   }
@@ -217,12 +194,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       dataRetentionDays > RETENTION_MAX_DAYS)
   ) {
     return json(
-      {
-        error: formatOrganizationSecurityCopy(copy['organizationSecurity.errors.retentionRange'], {
-          minimum: formatOrganizationSecurityNumber(RETENTION_MIN_DAYS, language),
-          maximum: formatOrganizationSecurityNumber(RETENTION_MAX_DAYS, language),
-        }),
-      },
+      { error: `Data retention must be between ${RETENTION_MIN_DAYS} and ${RETENTION_MAX_DAYS} days.` },
       { status: 400 },
     );
   }
@@ -239,21 +211,27 @@ export async function action({ request }: EnterpriseActionArgs) {
       }),
     });
 
-    return json({ status: copy['organizationSecurity.success.saved'] });
+    return json({ status: 'Organization security settings saved.' });
   } catch (error) {
     if (isReauthRedirect(error) || shouldRethrowActionError(error)) {
       throw error;
     }
 
     if (isApiResponse(error, 403)) {
-      return json({ error: copy['organizationSecurity.errors.permissionChange'] }, { status: 403 });
+      return json(
+        { error: "You don't have permission to change this organization's security settings." },
+        { status: 403 },
+      );
     }
 
     if (isApiResponse(error)) {
-      return json({ error: copy['organizationSecurity.errors.save'] }, { status: error.status });
+      return json(
+        { error: await apiErrorMessage(error, 'Could not save security settings.') },
+        { status: error.status },
+      );
     }
 
-    return json({ error: copy['organizationSecurity.errors.temporarySave'] });
+    return json({ error: 'Saving security settings is temporarily unavailable. Please try again in a moment.' });
   }
 }
 
@@ -266,7 +244,7 @@ function ToggleRow(props: {
   onChange?: (checked: boolean) => void;
 }) {
   return (
-    <label className="flex min-h-[44px] cursor-pointer items-start gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
+    <label className="flex cursor-pointer items-start gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
       <input
         type="checkbox"
         name={props.name}
@@ -274,11 +252,11 @@ function ToggleRow(props: {
         onChange={(event) => props.onChange?.(event.currentTarget.checked)}
         className="mt-0.5 h-4 w-4 shrink-0 rounded border-bolt-elements-borderColor accent-bolt-elements-item-contentAccent"
       />
-      <span className="min-w-0 flex-1">
-        <span className="block break-words text-sm font-medium text-bolt-elements-textPrimary">{props.label}</span>
+      <span className="min-w-0">
+        <span className="block text-sm font-medium text-bolt-elements-textPrimary">{props.label}</span>
         <span
           className={classNames(
-            'mt-1 block break-words text-xs leading-5',
+            'mt-1 block text-xs',
             props.warn ? 'text-[var(--status-warning-text)]' : 'text-bolt-elements-textSecondary',
           )}
         >
@@ -290,22 +268,7 @@ function ToggleRow(props: {
 }
 
 export default function OrganizationSecurityPage() {
-  const {
-    orgId,
-    orgName,
-    settings,
-    loadError,
-    loadErrorKind,
-    language: loaderLanguage,
-  } = useLoaderData<typeof loader>();
-
-  const language = resolveOrganizationSecurityLanguage(loaderLanguage);
-  const copy = getOrganizationSecurityCopy(language);
-
-  const pageDescription = formatOrganizationSecurityCopy(copy['organizationSecurity.description'], {
-    organization: orgName,
-  });
-
+  const { orgId, orgName, settings, loadError, loadErrorKind } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
   const navigation = useNavigation();
   const revalidator = useRevalidator();
@@ -319,28 +282,28 @@ export default function OrganizationSecurityPage() {
    */
   const [entries, setEntries] = useState<string[]>(settings.ipAllowlist);
   const [draft, setDraft] = useState('');
-  const [draftError, setDraftError] = useState<'invalid' | 'duplicate' | null>(null);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const [legalHold, setLegalHold] = useState(settings.legalHoldEnabled);
 
   if (loadError) {
     return (
-      <EnterpriseFormPage title={copy['organizationSecurity.title']} description={pageDescription}>
+      <EnterpriseFormPage
+        title="Organization security"
+        description={`Authoritative security policy for ${orgName}: IP allowlist, session lifetime, admin MFA, data retention and legal hold.`}
+      >
         {retrying ? (
-          <AsyncPanelSkeleton label={copy['organizationSecurity.load.loading']} rows={5} />
+          <AsyncPanelSkeleton label="Loading organization security settings" rows={5} />
         ) : (
           <AsyncPanelError
             title={
-              loadErrorKind === 'permission'
-                ? copy['organizationSecurity.load.permissionTitle']
-                : copy['organizationSecurity.load.errorTitle']
+              loadErrorKind === 'permission' ? 'Security settings are restricted' : 'Security settings could not load'
             }
             description={
               loadErrorKind === 'permission'
-                ? copy['organizationSecurity.load.permissionDescription']
-                : copy['organizationSecurity.load.errorDescription']
+                ? "Your role cannot manage this organization's security policy. No settings can be changed from this page."
+                : 'The editor is hidden to prevent fallback values from overwriting the current policy. No settings were changed.'
             }
             onRetry={revalidator.revalidate}
-            retryLabel={copy['organizationSecurity.load.retry']}
             tone={loadErrorKind === 'permission' ? 'warning' : 'error'}
           />
         )}
@@ -356,12 +319,12 @@ export default function OrganizationSecurityPage() {
     }
 
     if (!isValidIpOrCidr(value)) {
-      setDraftError('invalid');
+      setDraftError('Enter a valid IP address or CIDR block, e.g. 203.0.113.10 or 198.51.100.0/24.');
       return;
     }
 
     if (entries.includes(value)) {
-      setDraftError('duplicate');
+      setDraftError('That entry is already in the allowlist.');
       return;
     }
 
@@ -376,25 +339,22 @@ export default function OrganizationSecurityPage() {
 
   return (
     <EnterpriseFormPage
-      title={copy['organizationSecurity.title']}
-      description={pageDescription}
+      title="Organization security"
+      description={`Authoritative security policy for ${orgName}: IP allowlist, session lifetime, admin MFA, data retention and legal hold.`}
       status={actionData?.status}
       error={actionData?.error}
     >
-      <Form method="post" className="space-y-8" aria-busy={busy}>
+      <Form method="post" className="space-y-8">
         <input type="hidden" name="orgId" value={orgId} />
 
         <section>
-          <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
-            {copy['organizationSecurity.allowlist.title']}
-          </h2>
-          <p className="mt-1 break-words text-sm leading-6 text-bolt-elements-textSecondary">
-            {copy['organizationSecurity.allowlist.description']}
+          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">IP allowlist</h2>
+          <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+            Only these IP addresses or CIDR ranges may access the organization. Leave empty to allow all.
           </p>
 
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <input
-              id="organization-security-ip-entry"
               value={draft}
               onChange={(event) => {
                 setDraft(event.target.value);
@@ -406,33 +366,21 @@ export default function OrganizationSecurityPage() {
                   addEntry();
                 }
               }}
-              placeholder={copy['organizationSecurity.allowlist.placeholder']}
-              className="min-h-[44px] w-full min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm outline-none focus:border-bolt-elements-focus"
-              aria-label={copy['organizationSecurity.allowlist.inputAria']}
-              aria-invalid={Boolean(draftError)}
-              aria-describedby={draftError ? 'organization-security-ip-entry-error' : undefined}
+              placeholder="203.0.113.10 or 198.51.100.0/24"
+              className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm outline-none focus:border-bolt-elements-focus"
+              aria-label="IP address or CIDR block"
             />
             <button
               type="button"
               onClick={addEntry}
-              className="inline-flex min-h-[44px] w-full shrink-0 items-center justify-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-2 text-center text-sm font-medium leading-snug text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 sm:w-auto"
+              className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
             >
               <Plus className="h-4 w-4" aria-hidden />
-              {copy['organizationSecurity.allowlist.add']}
+              Add
             </button>
           </div>
 
-          {draftError ? (
-            <p
-              id="organization-security-ip-entry-error"
-              role="alert"
-              className="mt-2 break-words text-xs text-[var(--status-error-text)]"
-            >
-              {draftError === 'invalid'
-                ? copy['organizationSecurity.allowlist.invalidDraft']
-                : copy['organizationSecurity.allowlist.duplicate']}
-            </p>
-          ) : null}
+          {draftError ? <p className="mt-2 text-xs text-[var(--status-error-text)]">{draftError}</p> : null}
 
           {entries.length > 0 ? (
             <ul className="mt-3 overflow-hidden rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
@@ -440,7 +388,7 @@ export default function OrganizationSecurityPage() {
                 <li
                   key={entry}
                   className={classNames(
-                    'flex flex-col items-stretch justify-between gap-2 px-3 py-2 sm:flex-row sm:items-center sm:gap-3',
+                    'flex items-center justify-between gap-3 px-3 py-2',
                     index > 0 && 'border-t border-bolt-elements-borderColor',
                   )}
                 >
@@ -448,20 +396,18 @@ export default function OrganizationSecurityPage() {
                   <button
                     type="button"
                     onClick={() => removeEntry(entry)}
-                    className="inline-flex min-h-[44px] w-full shrink-0 items-center justify-center gap-1 whitespace-normal rounded-md px-2 py-2 text-center text-xs font-medium leading-snug text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)] sm:w-auto"
-                    aria-label={formatOrganizationSecurityCopy(copy['organizationSecurity.allowlist.removeAria'], {
-                      entry,
-                    })}
+                    className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-medium text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)]"
+                    aria-label={`Remove ${entry}`}
                   >
                     <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                    {copy['organizationSecurity.allowlist.remove']}
+                    Remove
                   </button>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="mt-3 break-words text-xs text-bolt-elements-textTertiary">
-              {copy['organizationSecurity.allowlist.empty']}
+            <p className="mt-3 text-xs text-bolt-elements-textTertiary">
+              No restrictions — every IP address is allowed.
             </p>
           )}
 
@@ -471,19 +417,13 @@ export default function OrganizationSecurityPage() {
 
         <section className="grid gap-4 border-t border-bolt-elements-borderColor pt-8 sm:grid-cols-2">
           <TextField
-            label={formatOrganizationSecurityCopy(copy['organizationSecurity.session.label'], {
-              minimum: formatOrganizationSecurityNumber(SESSION_MIN_MINUTES, language),
-              maximum: formatOrganizationSecurityNumber(SESSION_MAX_MINUTES, language),
-            })}
+            label={`Session duration (minutes, ${SESSION_MIN_MINUTES}–${SESSION_MAX_MINUTES})`}
             name="sessionDurationMinutes"
             type="number"
             defaultValue={String(settings.sessionDurationMinutes)}
           />
           <TextField
-            label={formatOrganizationSecurityCopy(copy['organizationSecurity.retention.label'], {
-              minimum: formatOrganizationSecurityNumber(RETENTION_MIN_DAYS, language),
-              maximum: formatOrganizationSecurityNumber(RETENTION_MAX_DAYS, language),
-            })}
+            label={`Data retention (days, ${RETENTION_MIN_DAYS}–${RETENTION_MAX_DAYS})`}
             name="dataRetentionDays"
             type="number"
             defaultValue={String(settings.dataRetentionDays)}
@@ -493,47 +433,40 @@ export default function OrganizationSecurityPage() {
         <section className="space-y-3 border-t border-bolt-elements-borderColor pt-8">
           <ToggleRow
             name="requireMfaForAdmins"
-            label={copy['organizationSecurity.mfa.label']}
-            description={copy['organizationSecurity.mfa.description']}
+            label="Require MFA for admins"
+            description="Organization admins must enrol an authenticator before accessing admin surfaces."
             defaultChecked={settings.requireMfaForAdmins}
           />
           <ToggleRow
             name="legalHoldEnabled"
-            label={copy['organizationSecurity.legalHold.label']}
+            label="Legal hold"
             description={
               legalHold
-                ? copy['organizationSecurity.legalHold.enabledDescription']
-                : copy['organizationSecurity.legalHold.disabledDescription']
+                ? 'Legal hold is ON — data deletion is blocked org-wide until it is turned off, even after retention expires.'
+                : 'When enabled, blocks all data deletion org-wide (overrides the retention window). Enable only for litigation/compliance holds.'
             }
             defaultChecked={settings.legalHoldEnabled}
             warn={legalHold}
             onChange={setLegalHold}
           />
           {legalHold ? (
-            <p
-              role="status"
-              className="flex items-start gap-2 rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-xs leading-5 text-[var(--status-warning-text)]"
-            >
+            <p className="flex items-start gap-2 rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-xs text-[var(--status-warning-text)]">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-              <span className="min-w-0 break-words">{copy['organizationSecurity.legalHold.warning']}</span>
+              While legal hold is active, no data — including expired records — can be deleted for this organization.
             </p>
           ) : null}
         </section>
 
-        <div className="flex flex-col items-stretch gap-3 border-t border-bolt-elements-borderColor pt-6 sm:flex-row sm:items-center [&_button]:w-full sm:[&_button]:w-auto">
+        <div className="flex items-center gap-3 border-t border-bolt-elements-borderColor pt-6">
           <PrimaryButton disabled={busy}>
-            <span className="inline-flex min-w-0 items-center justify-center gap-1.5 whitespace-normal text-center leading-snug">
+            <span className="inline-flex items-center gap-1.5">
               <ShieldCheck className="h-4 w-4" aria-hidden />
-              {busy ? copy['organizationSecurity.actions.saving'] : copy['organizationSecurity.actions.save']}
+              Save security settings
             </span>
           </PrimaryButton>
           {settings.updatedAt ? (
-            <span className="min-w-0 break-words text-xs text-bolt-elements-textTertiary">
-              {formatOrganizationSecurityCopy(copy['organizationSecurity.updatedAt'], {
-                date:
-                  formatUserAreaDateTime(settings.updatedAt, undefined, language) ??
-                  copy['organizationSecurity.dateUnavailable'],
-              })}
+            <span className="text-xs text-bolt-elements-textTertiary">
+              Last updated {formatUserAreaDateTime(settings.updatedAt) ?? 'date unavailable'}
             </span>
           ) : null}
         </div>

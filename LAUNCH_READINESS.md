@@ -1,51 +1,5 @@
 # LAUNCH_READINESS — audit mise en prod
 
-Verdicts de mise en production, panneau par panneau, établis **en réel sur `app.e-code.ai`**
-(compte jetable + projet neuf, supprimés après). Un panneau ne passe ✅ que si la fonction a
-été **exercée** et le résultat **observé**, pas seulement affiché.
-
-Légende : ✅ marche en réel · ⚠️ marche partiellement / à décider · ❌ cassé.
-
----
-
-## CLUSTER D — Problems, Debugger, History/Snapshots, Skills, Workflows, Agent Studio, Paramètres projet
-
-**Date** : 2026-08-06 · **Environnement** : `app.e-code.ai` (prod) · **Compte** : jetable
-`qa-clusterd-****@qa.e-code.ai`, org + projet « QA Cluster D » créés puis supprimés ·
-**Runtime** : `remote-kubernetes`, workspace `ws-9ea846f331d5b334` · **Formats** : web 1280 /
-tablette 768 / mobile 390, clair + sombre.
-
-### Matrice
-
-| Panneau | Verdict | Ce qui a été exercé | Preuve |
-|---|---|---|---|
-| **Problems** | ⚠️ | Erreur réelle introduite puis corrigée | L'erreur **apparaît** (8 s) ; elle **ne disparaît jamais** après correction → BUG-IDE-003 ; pas de lien vers la source → BUG-IDE-004 ; **aucune erreur TS/lint** n'y arrive → GAP-IDE-A |
-| **Debugger** | ⚠️ | Config de lancement, breakpoint conditionnel, watch, démarrage de session | Config/breakpoint/watch **persistent** ; le lancement **s'exécute vraiment** dans le runtime ; **impossible de s'arrêter sur un breakpoint ou d'inspecter** → GAP-IDE-B ; statut de session figé → BUG-IDE-005 |
-| **History / Snapshots** | ✅ | Checkpoint → modification → restauration | Contenu de `src/App.tsx` **revenu**, `src/main.tsx` **supprimé puis restauré**, fichier parasite **retiré** ; checkpoint de sécurité auto « Before restore of … » |
-| **History / Activity** | ❌ → corrigé | Ouverture du panneau | **Crash à chaque ouverture, en prod, depuis le 2026-07-05** → BUG-IDE-001 (P0) |
-| **Skills** | ✅ | Activation d'une skill puis exécution agent | Le toggle **persiste** (API) **et atteint l'agent** : interrogé, l'agent a listé exactement les 5 skills activées, dont celle qu'on venait d'activer |
-| **Agent Studio** | ⚠️ | Ouverture après activité agent réelle (édition de fichier appliquée) | Superviseur **lecture seule** ; ses 3 sources restent vides même après une édition agent réussie → GAP-IDE-C ; titre/état vide mal libellés → BUG-IDE-002 |
-| **Workflows** | ✅ | Création d'un workflow puis exécution | `SUCCEEDED`, `exit 0`, 727 ms, **sortie réelle capturée** (`WORKFLOW_RAN_OK`, `sum 4`) ; le workflow intégré remonte aussi un vrai `failed` avec la stderr Vite |
-| **Paramètres projet** (7 onglets) | ✅ | Project · Security · AI · Usage · Account · Memory · Preferences | Les 7 affichent des données réelles ; écriture **persistée** (description → API → survit au rechargement) |
-
-### Responsive & thème — 60 mesures
-
-| Série | Combinaisons | Débordement horizontal | Crash |
-| Sombre (défaut) | 7 panneaux × web/tablette/mobile = 42 | **0 partout** | `Activity` sur les 6 formats |
-| Clair (Preferences → Theme → Light) | 6 panneaux × web/tablette/mobile = 18 | **0 partout** | aucun |
-
-`document.scrollWidth === clientWidth` sur les 60 mesures : la page ne scrolle **jamais**
-horizontalement. Les éléments larges (barre d'onglets, en-tête sticky) scrollent dans leur
-propre conteneur, ce qui est le comportement voulu. En clair : `data-theme="light"`,
-`bg rgb(246, 248, 251)`, contraste et contrôles corrects sur les 3 formats.
-
-`Activity` a crashé sur **les 6** combinaisons sombres — le crash est universel, pas un cas de
-bord. BUG-IDE-002 (titre en minuscules) est également visible dans les deux thèmes.
-
-Note thème : l'IDE **ignore `prefers-color-scheme`** ; le thème est une préférence **par projet**
-(Paramètres → Preferences → Theme), par défaut sombre, et elle fonctionne. Choix produit, pas
-un bug — mais un visiteur en thème clair système garde une IDE sombre jusqu'à ce qu'il trouve
-le réglage.
 Verdicts **réels** par panneau, établis en exerçant chaque panneau sur la prod
 (`app.e-code.ai` / `api.e-code.ai`), pas en lisant le rendu.
 
@@ -53,195 +7,6 @@ Verdicts **réels** par panneau, établis en exerçant chaque panneau sur la pro
 Un point n'est « fait » QUE quand ✅ Testé live est coché.
 
 ---
-
-## Cluster C — Database · Déploiements · Logs · Monitoring
-
-**Date** : 2026-08-06 · **Compte QA** : `qa-clusterc-1786026525@e-code-qa.test` (supprimé en fin d'audit)
-**Projets QA** : `cmshm3gni00400nai23ilaq9f` (static) · `cmshmmfum00d00nbvcbxcbbqu` (server) — supprimés en fin d'audit
-
-### Matrice de verdicts
-
-| Panneau | Verdict | Ce qui marche en réel | Ce qui bloque |
-| --- | --- | --- | --- |
-| **Database** | ⚠️ | Provisioning, DDL, CRUD, schéma, secret injecté — tout prouvé | La base est **injoignable depuis le runtime de l'app** (BUG-IDE-001, P0) |
-| **Déploiements** | ⚠️ | Static + Server publiés, URL live, logs de build, rollback, scale-to-zero | App en erreur → **504 nginx brut** (BUG-DEPLOY-003, P0) ; statut menteur (BUG-DEPLOY-004) |
-| **Logs** | ⚠️ | Logs de **build** réels et complets | Logs **runtime** toujours vides (BUG-IDE-002, P1) |
-| **Monitoring** | ⚠️ | Événements projet réels (9 événements horodatés), fichiers suivis | Compteur déploiements toujours à 0 (BUG-IDE-004, P1) ; aucune métrique app (CPU/RAM/req) |
-
-Responsive : **18/18 combinaisons propres** (Database · Logs · Déploiements × web 1440 / tablette 768 / mobile 390 × clair + sombre) — zéro débordement horizontal (`scrollWidth == innerWidth`), zéro bandeau d'erreur, sous-nav Deploy (Overview · Logs · Domains · Manage) présente aux 3 formats.
-
----
-
-### Panneau Database — ⚠️
-
-**Exercé** : provisioning, `CREATE TABLE`, `INSERT`, `SELECT`, `DELETE`, inspection de schéma, usage depuis le runtime.
-
-| Étape | Preuve |
-| --- | --- |
-| Provisioning | `POST /projects/…/database/provision` → **HTTP 202**, cluster CNPG `shared-pg-0`, base `proj_cmshm3gni00400nai23ilaq9f` |
-| Secret injecté | `GET /projects/…/secrets` → `DATABASE_URL` créé automatiquement (`shared-pg-0-pooler.project-databases.svc:5432`) |
-| `CREATE TABLE` | **HTTP 200** — `qa_items (id serial pk, label text not null, created_at timestamptz)` |
-| `INSERT` ×3 | **HTTP 200**, `rowCount: 3` |
-| `SELECT` | **HTTP 200** — `[{id:1,label:"alpha"},{id:2,label:"beta"},{id:3,label:"gamma"}]` |
-| `DELETE` | **HTTP 200**, `rowCount: 1` → relecture `[{id:1,"alpha"},{id:3,"gamma"}]` |
-| Schéma | **HTTP 200** — 1 table, 3 colonnes typées (`integer` / `text` / `timestamp with time zone`) |
-| Runtime → DB | ❌ `DATABASE_URL` présent dans le pod, DNS résolu (`10.30.6.28`), **TCP `TIMEOUT`** |
-
-> **BUG-IDE-001 — P0 — la base intégrée est injoignable depuis le runtime de l'app.**
-> 📤 · 💻 · ⬜ *(correctif codé, non déployé)*
-> La NetworkPolicy `workspace-controlled-egress` (ns `workspaces`) n'autorise en sortie que
-> le DNS (53) et le TCP 443 vers Internet, avec `10.0.0.0/8` **explicitement exclu**. Le pooler
-> Postgres est en `10.30.6.28:5432` → le connect part dans le vide. Asymétrie prouvée : la
-> policy `server-deploy-egress`, elle, autorise bien `5432 → project-databases`.
-> **Conséquence utilisateur** : le panneau Database fonctionne (il interroge Postgres depuis le
-> pod API), mais le code de l'utilisateur **ne peut pas ouvrir de socket** vers sa propre base
-> pendant le développement — alors que le même code marchera une fois déployé.
-> Preuve : `HOST=shared-pg-0-pooler.project-databases.svc PORT=5432 / DNS=10.30.6.28 / TCP=TIMEOUT`.
-> **Correctif** : règle d'egress `5432 → project-databases` ajoutée à `workspace-controlled-egress`
-> (`infra/helm/workspaces-runtime/templates/networkpolicy.yaml` + manifeste brut équivalent).
-
-> **BUG-IDE-003 — P2 — la page « Database » de la console n'est pas de la gestion de base.**
-> 📤 · ⬜ · ⬜
-> `/projects/:id/database` n'expose que le *Point-in-time restore*, et affiche pour un plan
-> gratuit « Point-in-time restore is not available — Upgrade ». Aucun accès schéma / requête /
-> table depuis la console : ces capacités n'existent que dans le volet Database de l'IDE.
-> Un utilisateur qui cherche « ma base » depuis la console tombe sur un paywall.
-
----
-
-### Panneau Déploiements — ⚠️
-
-#### Statique — ✅
-| Détection | `GET …/deployments/detect` → `{mode:"static", reason:"Static site (index.html, no server)."}` |
-| Publication | `POST …/deployments` → **HTTP 202** → **READY** |
-| URL live | `https://s-cmshmkrit000z0nbyv9qr7lbz.preview.e-code.ai/` → **HTTP 200**, `text/html`, 182 o, contenu servi (`QA-CLUSTER-C-STATIC-OK`) |
-| Logs de build | 19 lignes réelles : sandbox isolée `.vibecore-deploy-<id>`, `npm install`, `npm run build`, artefact, snapshot |
-| Rollback v2 → v1 | **HTTP 201**, `rolledBackFromId` renseigné, l'URL sert de nouveau `QA-CLUSTER-C-STATIC-OK` |
-
-#### Server (autoscale) — ⚠️
-| Détection | `{mode:"server", framework:"node", reason:"Generic Node app (start script / entry file)."}` |
-| Build image | Cloud Build `168fdabf-…` **SUCCESS** en 26,6 s → image 163 Mo, digest `sha256:661a97db…` |
-| URL live | `https://d-cmshmnauu000e0naryj4v46d6.preview.e-code.ai/` → **HTTP 200** + `/healthz` **200** |
-| Objets k8s | `deployment.apps/app-cmshmnauu…` **1/1**, `service/app-cmshmnauu…` ClusterIP |
-| Scale-to-zero | replicas → 0, puis 1ʳᵉ requête → **HTTP 200 en 17,6 s** (réveil réel, aucune erreur) |
-| Rollback par digest | **HTTP 201** → l'URL sert de nouveau `QA-CLUSTER-C-SERVER-V1` (redéploiement par digest, pas une copie d'URL) |
-| Déploiement cassé | ✅ zéro-downtime : l'ancien ReplicaSet continue de servir (200) tant que le nouveau n'est pas prêt |
-| **App en erreur** | ❌ **`504 Gateway Time-out` nginx brut après 180 s** |
-
-> **BUG-DEPLOY-003 — P0 — une app serveur qui ne démarre pas rend un 504 nginx brut.**
-> 📤 · 💻 · ⬜ *(correctif codé + testé unitairement, non déployé)*
-> Suite directe de BUG-DEPLOY-002 (clos le 15/07) : la page propre existe bien, mais elle
-> **n'atteint jamais le navigateur**. Le proxy attendait le réveil jusqu'à 90 s (`AbortSignal.timeout(90_000)`)
-> plus 30 s de fetch amont, alors que l'ingress `*.preview.e-code.ai` n'avait **aucune**
-> annotation `proxy-read-timeout` (défaut nginx). nginx coupe et sert son propre 504 ; les
-> logs du proxy montrent des requêtes entrantes espacées de 60 s sur des pods différents
-> (retry `proxy_next_upstream`) et **aucune** requête terminée.
-> Preuve : pod en `CrashLoopBackOff` → `curl` = `HTTP 504 time=180,34 s`, corps = `<h1>504 Gateway Time-out</h1> nginx`.
-> **Correctif** : budget d'attente borné (`SERVER_DEPLOY_WAKE_WAIT_MS`, défaut 12 s) partagé
-> avec le retry post-réveil via une échéance absolue ; un `AbortError` ne court-circuite plus
-> vers un 504 JSON mais emprunte le même chemin « page d'attente » ; `proxy-read-timeout: 75`
-> posé explicitement sur l'ingress preview pour que nginx survive toujours au proxy.
-> Le réveil n'est pas perdu : le manager scale à 1 **avant** de sonder la readiness, donc le
-> boot continue pendant que la page (auto-refresh 2 s) rattrape l'app.
-> 2 tests de non-régression ajoutés (`services/preview-proxy/src/app.spec.ts`) — **54/54 verts**.
-
-> **BUG-DEPLOY-004 — P1 — le statut reste READY alors que l'app est morte.**
-> 📤 · ⬜ · ⬜ *(non corrigé — voir ci-dessous)*
-> Avec le pod en `CrashLoopBackOff` et l'URL injoignable, l'API répond encore
-> `status: "READY"`, `serverDeploy.ready: true`, `readyReplicas: 1`. Le panneau annonce donc
-> une app en ligne qui ne répond pas.
-> **Non corrigé volontairement** : distinguer « endormie » (0 réplique, sain) de « plantée »
-> (0 réplique, crash loop) demande d'exposer l'état des pods côté manager. Corriger à la
-> serpe ferait passer en FAILED toute app en scale-to-zero — régression pire que le bug.
-> À traiter comme un lot dédié.
-
-> **BUG-DEPLOY-005 — P2 — les logs de déploiement ne sont pas dans l'ordre chronologique.**
-> 📤 · 💻 · ⬜
-> Le bloc de synthèse (« Queued… / Framework detected… / Deployment ready: … ») est horodaté
-> au moment de la **persistance**, en fin de pipeline, alors qu'il décrit la mise en file.
-> Résultat live : `Deployment ready:` à 14:42:44 listé **au-dessus** de `[install] up to date`
-> à 14:42:43 — le panneau Logs s'ouvre sur le résultat et enterre le build en dessous.
-> **Correctif** : bloc horodaté au `startedAt` du déploiement. Test ajouté (`deployments.spec.ts`).
-
-> **BUG-DEPLOY-006 — P2 — framework et commande de build inventés pour un déploiement server.**
-> 📤 · 💻 (partiel) · ⬜
-> La ligne est créée avec les valeurs par défaut du chemin statique (`buildCommand: npm run build`,
-> `outputDirectory: dist`) → l'heuristique `dist → vite` étiquette « vite » une app Node nue.
-> Live : le panneau affichait `Framework detected: vite` pendant que le pipeline loggait, deux
-> lignes plus bas, `detected node — build "(none)", start "node server.js"`.
-> **Correctif** : le framework réellement détecté est persisté sur la ligne et utilisé dans les
-> logs. `buildCommand` / `outputDirectory` restent affichés pour un server deploy alors qu'ils
-> n'ont pas de sens — reste à traiter (cosmétique).
-
-**Observation (pas un bug)** : chaque déploiement statique a une URL immuable `s-<id>` ; il
-n'existe pas d'alias de production stable qui suivrait le dernier déploiement. Un rollback
-change donc la ligne active, mais une URL v2 déjà partagée continue de servir v2. Conforme à
-un modèle d'artefacts immuables, à confirmer comme choix produit.
-
----
-
-### Panneau Logs — ⚠️
-
-| Flux | Verdict | Preuve |
-| --- | --- | --- |
-| Build / déploiement | ✅ | 19 lignes réelles (statique), 16 (server) : install, build, image, apply, readiness |
-| Runtime de l'app | ❌ | `GET …/logs/snapshot` → `{"logs":[]}` ; page `/projects/:id/logs` → « No runtime output captured yet. » alors que le workspace est **Running** avec un serveur en écoute |
-
-> **BUG-IDE-002 — P1 — le flux de logs runtime est structurellement vide.**
-> 📤 · ⬜ · ⬜ *(non corrigé — voir ci-dessous)*
-> Le snapshot et le WebSocket lisent tous deux `manager /workspaces/:id/logs`, c'est-à-dire les
-> logs du **conteneur** `workspace-agent`. Or l'agent bufferise la sortie des processus qu'il
-> lance pour la streamer au client (terminal / commandes) et ne la réémet jamais sur sa propre
-> sortie standard. `kubectl logs` sur le pod du workspace confirme : **vide**.
-> Conséquence : le panneau titré « Live output from your running project » ne montre jamais la
-> sortie de l'app. Aucune surface n'expose non plus les logs runtime d'un déploiement server
-> (pas d'endpoint pod-logs côté manager).
-> **Non corrigé volontairement** : le correctif propre est un tee de la sortie des processus
-> managés vers un buffer exposé par l'agent (ou des pod-logs pour les déploiements) — un lot
-> à part entière, pas une retouche.
-
----
-
-### Panneau Monitoring — ⚠️
-
-| Élément | Verdict | Preuve |
-| Événements projet | ✅ | 9 événements réels horodatés (`deployment.create` ×2, `database.schema.inspect`, `database.query.readonly` ×5…) |
-| Fichiers suivis | ✅ | 7 fichiers |
-| Fenêtres 15 m / 1 h / 24 h + sparkline | ✅ | Rendus, filtrage des événements de routine actif |
-| Compteur + frise des déploiements | ❌ | Toujours 0 / « No deployment recorded » |
-| Métriques applicatives (CPU, RAM, requêtes, latence) | ❌ | Aucune |
-
-> **BUG-IDE-004 — P1 — le Monitoring affiche 0 déploiement en permanence.**
-> 📤 · 💻 · ⬜
-> `ProjectMonitoringPanel` lit `data.deployments`, mais sa source (`GET /projects/:id/dashboard`)
-> ne renvoie pas cette clé (`['project','workspace','files','git','recentActivity']`). Le
-> composant retombe donc sur `[]` : métrique « Deployments » à 0 et frise vide, sur un projet
-> qui avait **3 déploiements READY**.
-> **Correctif** : `deployments` ajouté au payload dashboard (lecture seule, sans réconcile).
-
-> **Écart de promesse (P2)** : l'entrée de panneau est libellée « App metrics » et décrite
-> « Inspect runtime health, activity and metrics », alors que le panneau ne montre que de
-> l'activité projet — aucune métrique applicative. Soit renommer, soit brancher de vraies
-> métriques.
-
----
-
-### Correctifs livrés (branche `fix/cluster-c-launch-readiness`, PR — **non mergée, non déployée**)
-
-| Bug | Fichier | Test |
-| BUG-IDE-001 | `infra/helm/workspaces-runtime/templates/networkpolicy.yaml`, `infra/kubernetes/workspaces-runtime/networkpolicies.yaml` | vérif live après déploiement (TCP 5432 depuis le pod workspace) |
-| BUG-DEPLOY-003 | `services/preview-proxy/src/app.ts`, `infra/helm/platform/templates/ingress.yaml` | `app.spec.ts` — 2 tests ajoutés, 54/54 verts |
-| BUG-DEPLOY-005 | `services/api/src/deployments.ts` | `deployments.spec.ts` — 1 test ajouté, 3/3 verts |
-| BUG-DEPLOY-006 | `services/api/src/app.ts` | couvert par le typecheck + `api.spec.ts` 123/123 |
-| BUG-IDE-004 | `services/api/src/app.ts` | `api.spec.ts` 123/123 verts |
-
-Restent ouverts, volontairement non corrigés ici (lots dédiés) : **BUG-DEPLOY-004** (statut
-menteur), **BUG-IDE-002** (logs runtime), **BUG-IDE-003** (page Database de la console).
-
-### Hygiène
-
-Compte QA, organisation, projets, base intégrée, workspaces et déploiements de test supprimés
-en fin d'audit. Aucune donnée réelle touchée.
 
 ## CLUSTER B — Terminal, Packages, Git, Secrets, Object Storage, Ports
 
@@ -283,183 +48,6 @@ secrets réels, port réel), à l'écran ET par appels HTTP.
 
 ## Bugs
 
-### BUG-IDE-001 — P0 — le panneau Activity crashe à chaque ouverture · **corrigé** (PR #120)
-`ReferenceError: FilterChip is not defined`, rattrapé par la panel boundary → « The Activity
-panel crashed ». En prod, pour tout le monde, depuis `dfeedd8b` (2026-07-05) : ce commit a
-ajouté la rangée de chips de filtre sans ajouter l'import.
-
-**Pourquoi la CI ne l'a pas vu** : `app/components/chat/BaseChat.tsx` porte `// @ts-nocheck`.
-Ni `tsc` ni la CI ne peuvent voir un identifiant non défini dans ce fichier — qui contient
-pourtant **la totalité des panneaux de l'IDE**. Retirer ce `@ts-nocheck` est hors périmètre de
-cet audit mais reste le vrai correctif de fond.
-
-### BUG-IDE-002 — P2 — des panneaux affichent leur identifiant brut · **corrigé** (PR #120)
-`panelTitle()` n'avait pas d'entrée pour `skills`, `studio` ni `ports`, donc le repli `?? panel`
-laissait fuiter l'id dans l'onglet, le titre et l'état vide : littéralement « studio » et
-« No studio yet ». Visible sur desktop uniquement — le mobile lit déjà `ECODE_MOBILE_TAB_META`,
-qui nomme correctement chaque panneau. Le correctif fait pointer `panelTitle()` sur cette même
-table plutôt que d'entretenir une seconde liste qui redivergera.
-
-### BUG-IDE-003 — P1 — Problems ne se vide jamais après correction · **corrigé** (PR #120)
-`workspaceLogs` est un tampon circulaire en append-only et rien ne retirait une erreur de
-transformation Vite **résolue**. Un fichier réparé conservait donc un compteur d'erreurs rouge
-pour le reste de la session.
-
-Preuve : `src/App.tsx` cassé depuis le shell du workspace → l'erreur apparaît en 8 s ; fichier
-réparé → **la même erreur, au même horodatage (3:08:59 PM), toujours affichée 100 s plus tard**.
-Seul un rechargement de page la fait partir.
-
-Correctif : `buildRuntimeDiagnostics` retire les erreurs de build d'un module dès qu'un
-`hmr update` / `page reload` ultérieur de ce module prouve qu'il se transforme à nouveau.
-Balayage ordonné → recasser le fichier le re-signale ; une exception runtime n'est jamais
-retirée (seules les erreurs de build nomment un module qui *peut* guérir).
-
-### BUG-IDE-004 — P2 — pas de lien « aller à la ligne » sur les erreurs Vite · **corrigé** (PR #120)
-Le motif de localisation ne reconnaissait que `fichier:ligne`, alors que Vite/babel écrivent
-`fichier: <raison> (ligne:colonne)` — la classe d'erreur la plus fréquente ici. Chaque ligne
-Problems concernée s'affichait sans lien alors que le message donnait fichier **et** position.
-
-### BUG-IDE-005 — P2 — les sessions de debug restent « running » indéfiniment · **corrigé** (PR #120)
-`start-session` écrit le statut une fois ; seul un arrêt explicite le réécrivait. Un lancement
-qui se termine une seconde plus tard (normal pour un script, habituel pour un plantage)
-continuait d'afficher « running » avec un bouton Stop actif. Le loader du Debugger récupère
-déjà la liste des processus vivants du workspace : on réconcilie contre elle **en lecture**.
-Sûr par défaut : une liste de processus illisible ne déclasse rien.
-
----
-
-## Décisions à prendre (non corrigé — choix produit)
-
-### GAP-IDE-A — Problems n'a **aucune** source TypeScript ni lint
-Seules les lignes de log runtime/build sont remontées. Une vraie erreur de types
-(`const broken: number = "definitely not a number"`, syntaxe valide) donne **0 problème** :
-esbuild efface les types sans les vérifier et aucun `tsc`/ESLint ne tourne côté workspace.
-
-Un utilisateur qui lit « Problems : 0 » sur du code qui ne compile pas est mal informé.
-**À arbitrer** : brancher un `tsc --watch` / ESLint dans le workspace, ou renommer le panneau
-pour ce qu'il fait réellement (diagnostics d'exécution).
-
-### GAP-IDE-B — le Debugger ne peut pas s'arrêter sur un breakpoint
-Ce qui marche vraiment : configurations de lancement, breakpoints (avec condition, hit count,
-logpoint), expressions de watch — tout persiste — et « Start debugging » **exécute réellement**
-la commande dans le workspace.
-
-Ce qui ne peut pas marcher : aucun adaptateur DAP n'est branché. `callStack` et `variables` ne
-sont assignés qu'à `[]` dans tout le code, et rien ne met jamais une session à `paused` ; les
-boutons `continue / step over / step into / step out` sont donc **définitivement désactivés**,
-et les expressions de watch ne sont jamais évaluées. L'UI est honnête sur la condition
-(« Stepping is enabled when a debug adapter reports a paused frame ») mais cette condition est
-inatteignable.
-
-**À arbitrer** : brancher un adaptateur (node inspector / debugpy), ou retirer les affordances
-de stepping et assumer « lanceur de processus + carnet de breakpoints ».
-
-### GAP-IDE-C — Agent Studio est vide sur un projet sain
-Le panneau agrège 3 flux : propositions de patch, événements d'auto-réparation, votes de
-consensus. Après une édition agent **réussie et appliquée**, les trois restent vides — ils ne
-se remplissent que sur les chemins d'échec / de revue. Un utilisateur normal ne verra donc que
-l'état vide. Le panneau ne permet pas non plus de **créer** un agent : c'est un superviseur en
-lecture seule (le comportement agent se règle dans Paramètres → AI et dans le composeur).
-
-**À arbitrer** : soit alimenter le panneau avec l'activité agent nominale (runs, patchs
-appliqués, branches de conversation), soit le renommer / le fusionner.
-
----
-
-## Observations non bloquantes
-
-- **Restauration de snapshot sans confirmation** : « Restore » s'exécute immédiatement, sans
-  dialogue, alors que l'action réécrit tout l'arbre du workspace. Atténué par le checkpoint de
-  sécurité « Before restore of … » créé automatiquement — donc récupérable. P3.
-- **Workflow « Run development server » en échec** quand le serveur tourne déjà : `Port 5173 is
-  already in use`. Comportement correct du workflow (il remonte la vraie stderr), mais le
-  bouton Run principal échoue systématiquement sur un projet dont la preview est déjà démarrée.
-  Déjà connu côté runtime.
-- **`GET /api/projects/:id/thumbnail` en 404** dans la console de l'IDE — déjà consigné
-  (BUG-USR-002).
-
----
-
-## Annexe — traces d'exercice (cluster D)
-
-**Problems**
-```
-# 1. code valide
-Open Problems. 0 errors, 4 warnings.
-
-# 2. erreur de TYPES seule (syntaxe valide) — printf > src/App.tsx depuis le shell
-const broken: number = "definitely not a number";
-Open Problems. 0 errors, 4 warnings.      <-- GAP-IDE-A : jamais remontée
-
-# 3. erreur de syntaxe
-Open Problems. 1 errors and 4 warnings.
-Error runtime
-3:08:59 PM [vite] Pre-transform error: /workspace/src/App.tsx: Unterminated JSX contents. (1:60)
-jump links: []                            <-- BUG-IDE-004 : aucun lien
-
-# 4. fichier réparé, même session (pas de rechargement)
-fixed t=10s .. t=100s -> Open Problems. 1 errors and 4 warnings.
-Error runtime
-3:08:59 PM [vite] Pre-transform error: ... (1:60)   <-- BUG-IDE-003 : identique, même horodatage
-```
-
-**Snapshots**
-```
-$ printf 'MUTATED_AGAIN\n' > src/App.tsx; rm -f src/main.tsx; ls src
-App.tsx  App.tsx.bak  styles.css
-MUTATED_AGAIN
-
-# clic Restore sur le checkpoint
-$ ls src; head -3 src/App.tsx; test -f src/main.tsx && echo MAIN_RESTORED
-App.tsx  App.tsx.bak  main.tsx  styles.css
-export default function App() {
-  return (
-    <main className="app-shell">
-MAIN_RESTORED
-```
-
-**Skills** — agent interrogé après activation de « Documentation » :
-```
-Code Review (quality), Test Generation (quality), Debugger (quality),
-Refactor (productivity), Documentation (productivity)
-```
-soit exactement les 5 skills que l'API renvoie `enabled: true`, dans le même ordre.
-
-**Workflows** — workflow créé puis lancé depuis le panneau :
-```
-SUCCEEDED   echo WORKFLOW_RAN_OK; node -e "console.log('sum', 2+2)"   exit 0   727ms
-WORKFLOW_RAN_OK
-sum 4
-```
-
-**Debugger** — après « Start debugging » :
-```
-QA node inspector
-node --inspect-brk=0.0.0.0:9229 -e "..."
-running
-[{t:'continue',   disabled:true, title:'Stepping is enabled when a debug adapter reports a paused frame.'},
- {t:'step over',  disabled:true, ...}, ...]
-Call stack and variables: No paused frame.
-```
-Le processus lancé se termine en quelques millisecondes ; le statut restait `running`
-(BUG-IDE-005). Aucun code du dépôt n'assigne jamais `callStack` / `variables` autrement que
-`[]`, ni ne met un statut à `paused` (GAP-IDE-B).
-
-**Agent Studio** — après une édition agent réussie et appliquée (`Edit src/App.tsx (targeted
-patch) Done 2.5s`) :
-```
-GET /projects/:id/agent-patch-proposals   200 {"proposals":[]}
-GET /projects/:id/agent-repair-events     200 {"events":[]}
-GET /projects/:id/agent-consensus         200 {"records":[]}
-Panneau : « No studio yet »
-```
-
-**Paramètres** — persistance vérifiée de bout en bout :
-```
-description écrite dans l'UI : qa-cluster-d-1786031744145
-GET /projects/:id  ->          qa-cluster-d-1786031744145
-après rechargement, champ =    qa-cluster-d-1786031744145
-```
 ### BUG-IDE-001 — P1 — Packages : l'install vise le mauvais workspace → 502 silencieux
 **État** : 💻 Codé (PR, non mergée) · ✅ reproduit live
 
@@ -538,15 +126,15 @@ agent joint en direct dans le pod avec un token valide → /files/write 200 (age
 + le contenu d'origine survit au create rejeté.
 
 ### BUG-IDE-004 — P1 — Éditeur : conflit de sauvegarde avalé silencieusement
-**État** : ⛔ **NON corrigé** (nécessite une vraie affordance UI de conflit)
+**État** : 💻 Codé (PR, non mergée) · ✅ **prouvé live sur pod prod réel**
 
 Quand le fichier a changé côté serveur depuis son ouverture, la sauvegarde est
-refusée — protection légitime — **mais l'échec ne sort que dans la console**.
-L'onglet reste marqué sale (`●`) sans message, sans bandeau, sans proposition de
-recharger/écraser/fusionner. L'édition n'est persistée **nulle part** (ni
-project storage, ni ide-state, ni runtime) et se perd à la fermeture.
+refusée — protection légitime — **mais l'échec ne sortait que dans la console**.
+L'onglet restait marqué sale (`●`) sans message, sans bandeau, sans proposition
+de recharger/écraser/fusionner. L'édition n'était persistée **nulle part** (ni
+project storage, ni ide-state, ni runtime) et se perdait à la fermeture.
 
-**Preuve** :
+**Preuve du défaut (constat initial)** :
 ```
 console : Autosave failed for /home/project/README.md
           Error: Remote file changed since it was loaded: /home/project/README.md
@@ -558,21 +146,68 @@ runtime  → README.md == '# qa-clusterb\n'                (édition absente)
 Déclencheur réaliste : le reseed/reconcile qui réaligne le runtime sur le
 project storage réécrit des fichiers que l'utilisateur peut avoir ouverts.
 
-**Recommandation** : bandeau de conflit non silencieux (Recharger / Écraser /
-Voir le diff) + conserver le buffer local tant que le conflit n'est pas résolu.
+**Correctif** — trois couches :
+
+1. **Erreur typée** `RemoteFileConflictError` portant `remoteContent`,
+   `localContent` et `baselineContent`. Le message reste byte-identique (des
+   appelants et specs le matchent), mais l'UI dispose enfin des trois versions.
+   Le throw se produit **avant** `writeFile` : le tampon n'est jamais touché.
+2. **Store de conflit** + `saveFileWithConflictPrompt()` qui renvoie
+   `'saved' | 'conflict'` au lieu de rejeter, et deux résolutions :
+   `resolveFileConflictWithLocal` (écrase) / `resolveFileConflictWithRemote`
+   (adopte le disque sans réécrire). Un conflit dont les deux versions sont
+   byte-identiques est résolu **sans** ouvrir de dialogue (diff vide inutile).
+3. **Dialogue** non fermable au backdrop, avec **View diff · Reload from disk ·
+   Keep my version · Keep editing** — « Keep editing » sort explicitement en
+   laissant le fichier sale et l'édition en mémoire.
+
+Tous les points de sauvegarde y passent : éditeur projet, onglet sale,
+**autosave**, Workbench et le revert du DiffView.
+
+**Preuve du correctif — LIVE contre un vrai pod prod** (`ws-2e1436ecf1bd10b8`,
+`api.e-code.ai`, aucun mock sous le store) :
+```
+✓ raises a typed conflict carrying every version, and writes nothing   1471ms
+✓ "Keep my version" writes the unsaved buffer to the real pod          1996ms
+✓ "Reload from disk" adopts the pod version without writing back        816ms
+→ RemoteFileConflictError { remoteContent:'the version on disk\n',
+                            localContent:'discarded edit\n',
+                            baselineContent:'baseline line\n' }
+→ après conflit, le pod contient toujours 'written by the agent\n' (rien écrasé)
+→ « Keep my version » → le pod contient 'my precious edit\n' (édition retrouvée)
+```
+Plus 7 tests sur le **vrai composant** (rendu + clics réels) : les 3 issues sont
+présentes, le diff affiche les deux versions, chaque bouton pilote la bonne
+action, et « Keep editing » ne déclenche **aucune** résolution.
+
+⚠️ La preuve navigateur bout-en-bout n'a pas pu être faite : la machine était
+au-dessus de `kern.maxfiles` (38 221 / 30 720 fd ouverts) à cause d'un serveur
+de dev d'une autre session, et un second Vite refusait de démarrer (`ENFILE`).
+La preuve ci-dessus attaque donc le vrai backend prod via le store réel, et le
+dialogue réel est testé au niveau composant.
 
 ### BUG-IDE-005 — P3 — Packages : l'action renvoie `{ok:true}` même quand le run échoue
-**État** : ⛔ **NON corrigé** (masquage ; atténué par BUG-IDE-001)
+**État** : 💻 Codé (PR, non mergée) · ✅ défaut reproduit live sur prod
 
-Le bloc `packages` de l'action retombe sur le `return json({ ok: true })`
-commun quel que soit `run.exitCode`. L'échec n'est visible que dans la liste
-« Install & runtime checks » de la sidebar du panneau (rendue `failed · exit 1`
-avec la sortie), c'est-à-dire **sous la ligne de flottaison** — d'où
-l'impression de succès observée en B2. Le correctif BUG-IDE-001 supprime la
-cause d'échec, mais le masquage subsiste pour toute autre défaillance d'install.
+Le bloc `packages` de l'action retombait sur le `return json({ ok: true })`
+commun quel que soit `run.exitCode`. L'échec n'était visible que dans la liste
+« Install & runtime checks » de la sidebar, c'est-à-dire **sous la ligne de
+flottaison** — d'où l'impression de succès observée en B2.
 
-**Recommandation** : propager le statut du run dans la réponse de l'action et
-afficher une erreur inline sous le bouton « Install package ».
+**Preuve du défaut (prod, code actuel)** — install d'un paquet inexistant :
+```
+POST /api/projects/…/ide-panel/packages → HTTP 200 {"ok":true}
+run enregistré → script  : npm install @vibecore/definitely-not-a-real-package-9f3a
+                 exitCode: 1
+                 status  : failed
+                 output  : npm error 404 … tarball, folder, http url, or git url.
+```
+
+**Correctif** — helper exporté `describePackagesRunOutcome()` : succès → 200 ;
+échec → **422** (requête valide, commande exécutée, commande échouée) avec un
+`error` porteur du script, du code de sortie et de la fin de la sortie npm — que
+le submit générique du panneau affiche déjà **inline**. 5 tests, dont un ancré
+sur la sortie npm **réellement capturée en prod** ci-dessus.
 
 ### Observations (pas des bugs)
 
@@ -585,9 +220,67 @@ afficher une erreur inline sous le bouton « Install package ».
   restart `QA_CLUSTERB_SECRET=[]`, après restart `[s3cr3t-value-42]`. Le
   panneau Secrets ne le signale pas (le panneau SSH, lui, le documente).
 - **Reveal d'un secret** exige `&confirm=1` — garde volontaire, pas un défaut.
-- **Frontière runtime ↔ project storage** : l'arbre de fichiers et git montrent
-  le project storage ; ce qui est créé dans le pod par le terminal/npm n'y
-  apparaît pas systématiquement. Écart de parité Replit à trancher produit.
+- **Frontière runtime ↔ project storage** : voir l'analyse dédiée ci-dessous.
+
+---
+
+## Écart Git ↔ FS du pod — analyse et recommandation
+
+**Question posée** : corrigeable proprement, ou décision produit ?
+**Réponse : décision produit.** Ce n'est pas un bug local, c'est une
+architecture à deux dépôts qu'aucun correctif ponctuel ne réconcilie.
+
+### Ce qui existe réellement aujourd'hui — deux dépôts disjoints
+
+| | Dépôt A — panneau Git | Dépôt B — push/pull SSH |
+|---|---|---|
+| Emplacement | `storageRoot()/<projectId>/.git` (pod **API**, partage Filestore/NFS) | `/workspace/.git` (**PVC du pod** workspace) |
+| Créé par | `GitCliProvider.ensureRepository` (`services/api/src/project-storage.ts`) | `git init -q` dans `GIT_SSH_PRELUDE` (`…ide-panel.$panel.ts`) |
+| Alimente | status, commits, branches, diff, stashes, graph, cherry-pick, conflits | `fetch` / `push` / `pull` vers GitHub & co. |
+| Contenu commité | `listProjectFilesIncludingIdeState(...)` = project storage | l'arbre réel du pod (`git add -A`) |
+
+Les deux ne partagent **aucune** histoire, aucun objet, aucun index.
+
+**Preuve live** (projet QA `cmshp9sy400uh0n8r9xxfru8s`, même instant) :
+```
+pod /workspace : NO_GIT
+                 fatal: not a git repository …
+                 fichiers réels : conflict.txt, package.json
+panneau Git    : branch main · commits ['chore: initial scaffold'] · changedFiles []
+```
+Le panneau affiche donc une branche et un commit d'un dépôt **que le pod ne
+possède même pas**, pendant que les fichiers réellement présents dans le pod
+n'apparaissent nulle part dans `git status`.
+
+Conséquences concrètes : ce que produit le terminal ou `npm` (lockfiles, fichiers
+générés, sortie de build) n'entre jamais dans l'historique du panneau ; et le
+dépôt que l'on **pousse** n'est pas celui dont on lit l'historique.
+
+### Options
+
+| | Approche | Coût | Risque |
+|---|---|---|---|
+| **A** | Synchroniser pod → project storage avant chaque opération git | lecture d'arbre + contenus à chaque `status` (exclusions `node_modules`, `.vite`, `dist` obligatoires) ; latence de plusieurs secondes sur une opération aujourd'hui instantanée | course pod↔storage pendant un run d'agent ; `status` devient coûteux alors qu'il est poll |
+| **B** | Déplacer git **dans le pod** (le dépôt de vérité = le PVC) | réécriture de tout `GitCliProvider` en commandes agent ; l'historique migre sur le PVC ; déploiements/exports/snapshots lisent encore le project storage et devraient suivre | migration de données (historiques existants), git indisponible pod éteint, PVC à sauvegarder |
+| **C** | Assumer la frontière et la rendre explicite dans l'UI | faible | ne referme pas l'écart de parité Replit |
+
+### Recommandation
+
+**B est la bonne cible** — c'est le modèle Replit, et c'est la seule option qui
+supprime la classe de bugs au lieu de la déplacer : un seul dépôt, sur le
+système de fichiers que l'utilisateur voit, celui-là même qu'on pousse.
+Le chemin SSH prouve déjà que git tourne correctement dans le pod.
+
+Mais c'est un **chantier**, pas un correctif : ~15 routes git, la migration des
+historiques existants, et l'alignement de Publish / export / snapshots qui lisent
+encore le project storage. À planifier comme un lot dédié, avec une décision
+explicite sur le dépôt de vérité.
+
+**En attendant, faire C** (petit, honnête, immédiat) : nommer le périmètre dans
+le panneau Git (« fichiers du projet », pas « espace de travail »), et signaler
+que ce qui est créé dans le terminal n'y figure pas tant qu'il n'est pas
+synchronisé. **Ne pas faire A** : cela paie le coût d'une synchronisation à
+chaque `status` tout en laissant deux dépôts en vie.
 
 ---
 
@@ -595,11 +288,12 @@ afficher une erreur inline sous le bouton « Install package ».
 
 | Bug | P | 📤 Dispatché | 💻 Codé | ✅ Testé live |
 |-----|---|--------------|---------|---------------|
-| BUG-IDE-001 Packages mauvais workspace | P1 | ✅ | ✅ (PR, non mergée) | ✅ reproduit + tests verts |
-| BUG-IDE-003 Ports jamais listés | P1 | ✅ | ✅ (PR, non mergée) | ✅ reproduit + tests verts |
-| BUG-IDE-002 EEXIST → 409 | P2 | ✅ | ✅ (PR, non mergée) | ✅ reproduit + tests verts |
-| BUG-IDE-004 Conflit de save avalé | P1 | ✅ | ⛔ | ✅ reproduit |
-| BUG-IDE-005 `ok:true` sur run échoué | P3 | ✅ | ⛔ | ✅ reproduit |
+| BUG-IDE-001 Packages mauvais workspace | P1 | ✅ | ✅ (PR #119, non mergée) | ✅ reproduit + tests verts |
+| BUG-IDE-003 Ports jamais listés | P1 | ✅ | ✅ (PR #119, non mergée) | ✅ reproduit + tests verts |
+| BUG-IDE-002 EEXIST → 409 | P2 | ✅ | ✅ (PR #119, non mergée) | ✅ reproduit + tests verts |
+| BUG-IDE-004 Conflit de save avalé | P1 | ✅ | ✅ (PR, non mergée) | ✅ **prouvé live sur pod prod** (3/3) + 7 tests composant |
+| BUG-IDE-005 `ok:true` sur run échoué | P3 | ✅ | ✅ (PR, non mergée) | ✅ défaut reproduit live prod + 5 tests |
+| Écart Git ↔ FS du pod | — | ✅ | — | ✅ deux dépôts disjoints prouvés live → **décision produit** |
 
 ⚠️ **Aucun déploiement prod effectué.** Les correctifs touchent `services/api` et
 `services/workspace-agent` (tiers runtime) : la mise en prod doit être validée

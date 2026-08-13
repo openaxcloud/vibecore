@@ -1,6 +1,4 @@
 import { apiRequest, isForbiddenApiResponse, json, redirect } from '~/lib/enterprise-api.server';
-import type { SupportedLanguage } from '~/lib/i18n/language';
-import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 /*
  * F17: Team access log. A "team" is an organization in this platform, so the
@@ -29,7 +27,6 @@ export interface TeamAccessLogRow {
 }
 
 export interface TeamAccessLogData {
-  language?: SupportedLanguage;
   teamId: string;
   basePath: string;
   entries: TeamAccessLogRow[];
@@ -48,7 +45,6 @@ const EXPORT_FORMATS = new Set(['csv', 'json']);
  * friendly page (redirect for signed-out via apiRequest, forbidden flag for 403).
  */
 export async function loadTeamAccessLog(request: Request, teamId: string, basePath: string) {
-  const localeResolution = resolveRequestLocale(request);
   const url = new URL(request.url);
   const exportFormat = url.searchParams.get('export');
 
@@ -71,18 +67,16 @@ export async function loadTeamAccessLog(request: Request, teamId: string, basePa
 
       const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-');
 
-      const headers = localeResponseHeaders(request, localeResolution);
-
-      headers.set('content-type', format === 'csv' ? 'text/csv; charset=utf-8' : 'application/json; charset=utf-8');
-      headers.set('content-disposition', `attachment; filename="team-access-log-${teamId}-${stamp}.${format}"`);
-      headers.set('cache-control', 'no-store');
-
-      return new Response(body, { headers });
+      return new Response(body, {
+        headers: {
+          'content-type': format === 'csv' ? 'text/csv; charset=utf-8' : 'application/json; charset=utf-8',
+          'content-disposition': `attachment; filename="team-access-log-${teamId}-${stamp}.${format}"`,
+          'cache-control': 'no-store',
+        },
+      });
     } catch (error) {
       if (isForbiddenApiResponse(error)) {
-        return redirect(`${basePath}?forbidden=1`, {
-          headers: localeResponseHeaders(request, localeResolution),
-        });
+        return redirect(`${basePath}?forbidden=1`);
       }
 
       throw error;
@@ -100,31 +94,17 @@ export async function loadTeamAccessLog(request: Request, teamId: string, basePa
     entries = result.accessLog ?? [];
   } catch (error) {
     if (isForbiddenApiResponse(error)) {
-      return json(
-        {
-          language: localeResolution.language,
-          teamId,
-          basePath,
-          entries: [],
-          listError: false,
-          forbidden: true,
-        } satisfies TeamAccessLogData,
-        { headers: localeResponseHeaders(request, localeResolution) },
-      );
+      return json({ teamId, basePath, entries: [], listError: false, forbidden: true } satisfies TeamAccessLogData);
     }
 
     listError = true;
   }
 
-  return json(
-    {
-      language: localeResolution.language,
-      teamId,
-      basePath,
-      entries,
-      listError,
-      forbidden: url.searchParams.get('forbidden') === '1',
-    } satisfies TeamAccessLogData,
-    { headers: localeResponseHeaders(request, localeResolution) },
-  );
+  return json({
+    teamId,
+    basePath,
+    entries,
+    listError,
+    forbidden: url.searchParams.get('forbidden') === '1',
+  } satisfies TeamAccessLogData);
 }

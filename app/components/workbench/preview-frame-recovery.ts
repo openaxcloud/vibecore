@@ -80,27 +80,10 @@ export function decidePreviewLoadOutcome(state: PreviewLoadRetryState): PreviewL
 }
 
 /*
- * Upper bound on how many times the preview boot loop will relaunch the dev
- * server before it gives up and hands off to the manual recovery UI. At ~one
- * relaunch attempt per ~5s (the boot interval) this is ~5 minutes of bounded
- * auto-retry — long enough to ride out a slow cold install + dev-server start
- * under gVisor/CPU contention, without hammering forever.
- */
-export const MAX_PREVIEW_BOOT_ATTEMPTS = 60;
-
-/*
- * Whether the preview auto-start / port-watch / reinstall loop should run.
- *
- * It bails immediately on a genuine WORKSPACE error (agent unreachable / pod
- * crashed) so a dead runtime surfaces the recovery UI instead of being hammered.
- *
- * It deliberately does NOT bail merely because `previewRunFailed` is set: when the
- * workspace is HEALTHY (workspaceReady) but no port is serving yet, a "failed"
- * preview means the DEV SERVER is absent/crashed — a 502 preview_upstream_unreachable
- * — which is exactly the condition this loop exists to fix by relaunching it. So it
- * keeps relaunching (bounded by MAX_PREVIEW_BOOT_ATTEMPTS) instead of stranding the
- * user on a dead preview after a single transient 502. Once the attempt budget is
- * spent the loop stops and the manual recovery UI takes over.
+ * Whether the preview auto-start / port-watch / reinstall loop should run at
+ * all. It must short-circuit the moment a workspace boot error is known so a
+ * crashed/unreachable runtime surfaces the recovery UI immediately instead of
+ * the loop hammering a dead agent for the full 5-minute failure timeout.
  */
 export function shouldRunPreviewBootLoop(input: {
   autoStart: boolean;
@@ -109,25 +92,17 @@ export function shouldRunPreviewBootLoop(input: {
   previewsLength: number;
   previewRunFailed: boolean;
   hasWorkspaceError: boolean;
-  bootAttempts?: number;
 }): boolean {
-  // A genuine workspace/agent error → bail (don't hammer a dead agent).
   if (input.hasWorkspaceError) {
     return false;
   }
 
-  // Bounded: once we've spent the relaunch budget, fall back to the manual UI.
-  if ((input.bootAttempts ?? 0) >= MAX_PREVIEW_BOOT_ATTEMPTS) {
-    return false;
-  }
-
   return (
-    input.autoStart && input.workspaceReady && !input.hasStaticPreview && input.previewsLength === 0
-
-    /*
-     * NOTE: previewRunFailed is intentionally NOT a bail here — a dev-server-absent
-     * 502 on a healthy workspace must keep relaunching, bounded by bootAttempts.
-     */
+    input.autoStart &&
+    input.workspaceReady &&
+    !input.hasStaticPreview &&
+    input.previewsLength === 0 &&
+    !input.previewRunFailed
   );
 }
 

@@ -2,7 +2,6 @@ import type { Message } from 'ai';
 import ignore from 'ignore';
 import { X, Github, GitBranch } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 
 // Import the new repository selector components
@@ -11,12 +10,6 @@ import { GitLabRepositorySelector } from '~/components/@settings/tabs/gitlab/com
 import { Button } from '~/components/ui/Button';
 import { LoadingOverlay } from '~/components/ui/LoadingOverlay';
 import { useGit } from '~/lib/hooks/useGit';
-import {
-  formatRepositorySelectorCopy,
-  formatRepositorySelectorNumber,
-  getRepositorySelectorCopy,
-  getRepositorySelectorError,
-} from '~/lib/i18n/catalogs/repository-selector';
 import type { IChatMetadata } from '~/lib/persistence/db';
 import { classNames } from '~/utils/classNames';
 import { generateId, isBinaryContent } from '~/utils/fileUtils';
@@ -59,13 +52,6 @@ interface GitCloneButtonProps {
 }
 
 export default function GitCloneButton({ importChat, className }: GitCloneButtonProps) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
-  const copy = getRepositorySelectorCopy(language);
-
-  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
-    formatRepositorySelectorCopy(template, values);
-
   const { ready, gitClone } = useGit();
   const [loading, setLoading] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -123,18 +109,13 @@ export default function GitCloneButton({ importChat, className }: GitCloneButton
             const fileSize = new TextEncoder().encode(textContent).length;
 
             if (fileSize > MAX_FILE_SIZE) {
-              skippedFiles.push(
-                text(copy['repositorySelector.clone.tooLarge'], {
-                  path: filePath,
-                  size: formatRepositorySelectorNumber(Math.round(fileSize / 1024), language),
-                }),
-              );
+              skippedFiles.push(`${filePath} (too large: ${Math.round(fileSize / 1024)}KB)`);
               continue;
             }
 
             // Check total size
             if (totalSize + fileSize > MAX_TOTAL_SIZE) {
-              skippedFiles.push(text(copy['repositorySelector.clone.totalLimit'], { path: filePath }));
+              skippedFiles.push(`${filePath} (would exceed total size limit)`);
               continue;
             }
 
@@ -143,32 +124,25 @@ export default function GitCloneButton({ importChat, className }: GitCloneButton
               path: filePath,
               content: textContent,
             });
-          } catch (error) {
-            skippedFiles.push(
-              text(copy['repositorySelector.clone.fileError'], {
-                path: filePath,
-                reason: getRepositorySelectorError(language, error, copy['repositorySelector.clone.fileReadFailed']),
-              }),
-            );
+          } catch (e: any) {
+            skippedFiles.push(`${filePath} (error: ${e.message})`);
           }
         }
 
-        const commands = await detectProjectCommands(fileContents, language);
-        const commandsMessage = createCommandsMessage(commands, language);
-
-        const skippedSection =
-          skippedFiles.length > 0
-            ? `\n${text(copy['repositorySelector.clone.skippedHeading'], {
-                count: formatRepositorySelectorNumber(skippedFiles.length, language),
-              })}\n${skippedFiles.map((file) => `- ${file}`).join('\n')}`
-            : '';
+        const commands = await detectProjectCommands(fileContents);
+        const commandsMessage = createCommandsMessage(commands);
 
         const filesMessage: Message = {
           role: 'assistant',
-          content: `${text(copy['repositorySelector.clone.chatCloning'], { url: repoUrl, workdir })}
-${skippedSection}
+          content: `Cloning the repo ${repoUrl} into ${workdir}
+${
+  skippedFiles.length > 0
+    ? `\nSkipped files (${skippedFiles.length}):
+${skippedFiles.map((f) => `- ${f}`).join('\n')}`
+    : ''
+}
 
-<boltArtifact id="imported-files" title="${escapeBoltActionAttribute(copy['repositorySelector.clone.artifactTitle'])}" type="bundled">
+<boltArtifact id="imported-files" title="Git Cloned Files" type="bundled">
 ${fileContents
   .map(
     (file) =>
@@ -188,14 +162,11 @@ ${escapeBoltTags(file.content)}
           messages.push(commandsMessage);
         }
 
-        await importChat(
-          text(copy['repositorySelector.clone.projectTitle'], { name: repoUrl.split('/').slice(-1)[0] }),
-          messages,
-        );
+        await importChat(`Git Project:${repoUrl.split('/').slice(-1)[0]}`, messages);
       }
     } catch (error) {
       console.error('Error during import:', error);
-      toast.error(copy['repositorySelector.clone.failed']);
+      toast.error('Failed to import repository');
     } finally {
       setLoading(false);
     }
@@ -208,7 +179,7 @@ ${escapeBoltTags(file.content)}
           setSelectedProvider(null);
           setIsDialogOpen(true);
         }}
-        title={copy['repositorySelector.clone.trigger']}
+        title="Clone a repo"
         variant="default"
         size="lg"
         className={classNames(
@@ -222,7 +193,7 @@ ${escapeBoltTags(file.content)}
         )}
         disabled={!ready || loading}
       >
-        {copy['repositorySelector.clone.trigger']}
+        Clone a repo
         <div className="flex items-center gap-1 ml-2">
           <Github className="w-4 h-4" />
           <GitBranch className="w-4 h-4" />
@@ -232,21 +203,13 @@ ${escapeBoltTags(file.content)}
       {/* Provider Selection Dialog */}
       {isDialogOpen && !selectedProvider && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div
-            className="bg-bolt-elements-background-depth-2 rounded-xl shadow-xl border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor max-w-md w-full"
-            role="dialog"
-            aria-modal="true"
-            aria-label={copy['repositorySelector.clone.chooseProvider']}
-          >
+          <div className="bg-bolt-elements-background-depth-2 rounded-xl shadow-xl border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor max-w-md w-full">
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-                  {copy['repositorySelector.clone.chooseProvider']}
+                  Choose Repository Provider
                 </h3>
                 <button
-                  type="button"
-                  aria-label={copy['repositorySelector.clone.close']}
-                  title={copy['repositorySelector.clone.close']}
                   onClick={() => setIsDialogOpen(false)}
                   className="p-2 rounded-lg bg-transparent hover:bg-bolt-elements-background-depth-1 dark:hover:bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary dark:hover:text-bolt-elements-textPrimary transition-all duration-200 hover:scale-105 active:scale-95"
                 >
@@ -265,10 +228,10 @@ ${escapeBoltTags(file.content)}
                     </div>
                     <div>
                       <div className="font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-                        {copy['repositorySelector.clone.provider.github']}
+                        GitHub
                       </div>
                       <div className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                        {copy['repositorySelector.clone.githubDescription']}
+                        Clone from GitHub repositories
                       </div>
                     </div>
                   </div>
@@ -284,10 +247,10 @@ ${escapeBoltTags(file.content)}
                     </div>
                     <div>
                       <div className="font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-                        {copy['repositorySelector.clone.provider.gitlab']}
+                        GitLab
                       </div>
                       <div className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                        {copy['repositorySelector.clone.gitlabDescription']}
+                        Clone from GitLab repositories
                       </div>
                     </div>
                   </div>
@@ -301,14 +264,7 @@ ${escapeBoltTags(file.content)}
       {/* GitHub Repository Selection */}
       {isDialogOpen && selectedProvider === 'github' && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div
-            className="bg-bolt-elements-background-depth-2 rounded-xl shadow-xl border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor w-full max-w-4xl max-h-[90vh] overflow-hidden"
-            role="dialog"
-            aria-modal="true"
-            aria-label={text(copy['repositorySelector.clone.importTitle'], {
-              provider: copy['repositorySelector.clone.provider.github'],
-            })}
-          >
+          <div className="bg-bolt-elements-background-depth-2 rounded-xl shadow-xl border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor w-full max-w-4xl max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-bolt-elements-borderColor dark:border-bolt-elements-borderColor flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-blue-500/10 dark:bg-blue-500/20 flex items-center justify-center">
@@ -316,21 +272,14 @@ ${escapeBoltTags(file.content)}
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-                    {text(copy['repositorySelector.clone.importTitle'], {
-                      provider: copy['repositorySelector.clone.provider.github'],
-                    })}
+                    Import GitHub Repository
                   </h3>
                   <p className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                    {text(copy['repositorySelector.clone.importDescription'], {
-                      provider: copy['repositorySelector.clone.provider.github'],
-                    })}
+                    Clone a repository from GitHub to your workspace
                   </p>
                 </div>
               </div>
               <button
-                type="button"
-                aria-label={copy['repositorySelector.clone.close']}
-                title={copy['repositorySelector.clone.close']}
                 onClick={() => {
                   setIsDialogOpen(false);
                   setSelectedProvider(null);
@@ -351,14 +300,7 @@ ${escapeBoltTags(file.content)}
       {/* GitLab Repository Selection */}
       {isDialogOpen && selectedProvider === 'gitlab' && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div
-            className="bg-bolt-elements-background-depth-2 rounded-xl shadow-xl border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor w-full max-w-4xl max-h-[90vh] overflow-hidden"
-            role="dialog"
-            aria-modal="true"
-            aria-label={text(copy['repositorySelector.clone.importTitle'], {
-              provider: copy['repositorySelector.clone.provider.gitlab'],
-            })}
-          >
+          <div className="bg-bolt-elements-background-depth-2 rounded-xl shadow-xl border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor w-full max-w-4xl max-h-[90vh] overflow-hidden">
             <div className="p-6 border-b border-bolt-elements-borderColor dark:border-bolt-elements-borderColor flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-lg bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center">
@@ -366,21 +308,14 @@ ${escapeBoltTags(file.content)}
                 </div>
                 <div>
                   <h3 className="text-lg font-semibold text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-                    {text(copy['repositorySelector.clone.importTitle'], {
-                      provider: copy['repositorySelector.clone.provider.gitlab'],
-                    })}
+                    Import GitLab Repository
                   </h3>
                   <p className="text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                    {text(copy['repositorySelector.clone.importDescription'], {
-                      provider: copy['repositorySelector.clone.provider.gitlab'],
-                    })}
+                    Clone a repository from GitLab to your workspace
                   </p>
                 </div>
               </div>
               <button
-                type="button"
-                aria-label={copy['repositorySelector.clone.close']}
-                title={copy['repositorySelector.clone.close']}
                 onClick={() => {
                   setIsDialogOpen(false);
                   setSelectedProvider(null);
@@ -398,7 +333,7 @@ ${escapeBoltTags(file.content)}
         </div>
       )}
 
-      {loading && <LoadingOverlay message={copy['repositorySelector.clone.loading']} />}
+      {loading && <LoadingOverlay message="Please wait while we clone the repository..." />}
     </>
   );
 }

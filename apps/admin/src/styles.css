@@ -23,10 +23,10 @@
   --bolt-elements-bg-depth-2: var(--vc-ide-bg-panel);
   --bolt-elements-bg-depth-3: var(--vc-ide-bg-card);
   --bolt-elements-textPrimary: var(--vc-ide-text-primary);
-  --vc-font-interface:
-    'Inter Variable', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --vc-font-code:
-    'JetBrains Mono Variable', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --vc-font-interface: "Inter Variable", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --vc-font-code: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
   --vc-type-interface-size: 13px;
   --vc-type-interface-compact-size: 12px;
   --vc-type-code-size: 13px;
@@ -75,7 +75,8 @@
   --vc-accessibility-reduced-motion-duration: 50ms;
   --vc-accessibility-contrast-text: #f5f9fc;
   --vc-accessibility-contrast-muted: #c2c8cc;
-  font-family: var(--vc-font-interface);
+  font-family:
+    var(--vc-font-interface);
   font-size: var(--vc-type-interface-size);
   line-height: var(--vc-type-line-height);
   letter-spacing: 0;
@@ -132,8 +133,8 @@ samp {
   font-size: var(--vc-type-code-size);
   font-variant-ligatures: contextual common-ligatures;
   font-feature-settings:
-    'liga' 1,
-    'calt' 1;
+    "liga" 1,
+    "calt" 1;
 }
 
 h1,
@@ -156,7 +157,7 @@ h6 {
   font-size: var(--vc-type-heading-compact-size);
 }
 
-:where(.uppercase, [class*='uppercase'], label, legend, th) {
+:where(.uppercase, [class*="uppercase"], label, legend, th) {
   font-family: var(--vc-font-interface);
   font-size: var(--vc-type-label-size);
   font-weight: 500;
@@ -164,7 +165,7 @@ h6 {
   line-height: var(--vc-type-line-height);
 }
 
-body :where(div, span, p, a, li, td, summary, button, input, select, textarea):not([class*='i-']) {
+body :where(div, span, p, a, li, td, summary, button, input, select, textarea):not([class*="i-"]) {
   font-family: var(--vc-font-interface);
   font-size: var(--vc-type-interface-size);
   line-height: var(--vc-type-line-height);
@@ -183,7 +184,7 @@ body :where(h3, h4, h5, h6) {
   font-size: var(--vc-type-heading-compact-size) !important;
 }
 
-body :where(.uppercase, [class*='uppercase'], label, legend, th) {
+body :where(.uppercase, [class*="uppercase"], label, legend, th) {
   font-family: var(--vc-font-interface) !important;
   font-size: var(--vc-type-label-size) !important;
   font-weight: 500 !important;
@@ -191,7 +192,7 @@ body :where(.uppercase, [class*='uppercase'], label, legend, th) {
   line-height: var(--vc-type-line-height) !important;
 }
 
-body :where(button, [role='button'], .btn, .button, summary) {
+body :where(button, [role="button"], .btn, .button, summary) {
   position: relative;
   border-radius: var(--vc-ui-radius-button);
   background-color: var(--vc-button-bg);
@@ -205,29 +206,19 @@ body :where(button, [role='button'], .btn, .button, summary) {
     transform var(--vc-ui-transition-hover);
 }
 
-body :where(button[data-variant='default'], button[data-variant='secondary'], .vc-button-solid) {
+body :where(button[data-variant="default"], button[data-variant="secondary"], .vc-button-solid) {
   background-color: var(--vc-button-solid-bg);
 }
 
-body :where(button, [role='button'], .btn, .button, summary):where(:enabled:hover, :not([aria-disabled='true']):hover) {
+body :where(button, [role="button"], .btn, .button, summary):where(:enabled:hover, :not([aria-disabled="true"]):hover) {
   background-color: var(--vc-button-hover-bg);
 }
 
-body
-  :where(button, [role='button'], .btn, .button, summary):where(
-    :enabled:active,
-    [aria-pressed='true'],
-    [data-state='active']
-  ) {
+body :where(button, [role="button"], .btn, .button, summary):where(:enabled:active, [aria-pressed="true"], [data-state="active"]) {
   background-color: var(--vc-button-active-bg);
 }
 
-body
-  :where(button, [role='button'], .btn, .button, summary):where(
-    :disabled,
-    [aria-disabled='true'],
-    [data-disabled='true']
-  ) {
+body :where(button, [role="button"], .btn, .button, summary):where(:disabled, [aria-disabled="true"], [data-disabled="true"]) {
   cursor: not-allowed;
   opacity: var(--vc-button-disabled-opacity);
 }
@@ -237,34 +228,17 @@ button:disabled {
   opacity: var(--vc-button-disabled-opacity);
 }
 
-body
-  :where(
-    button[aria-busy='true'],
-    button[data-loading='true'],
-    [role='button'][aria-busy='true'],
-    [role='button'][data-loading='true']
-  ) {
+body :where(button[aria-busy="true"], button[data-loading="true"], [role="button"][aria-busy="true"], [role="button"][data-loading="true"]) {
   cursor: progress;
 }
 
 body
-  :where(
-    button[aria-busy='true'],
-    button[data-loading='true'],
-    [role='button'][aria-busy='true'],
-    [role='button'][data-loading='true']
-  )
-  > :where(svg, .lucide, [class*='i-']):first-child {
+  :where(button[aria-busy="true"], button[data-loading="true"], [role="button"][aria-busy="true"], [role="button"][data-loading="true"])
+  > :where(svg, .lucide, [class*="i-"]):first-child {
   opacity: 0;
 }
 
-body
-  :where(
-    button[aria-busy='true'],
-    button[data-loading='true'],
-    [role='button'][aria-busy='true'],
-    [role='button'][data-loading='true']
-  )::before {
+body :where(button[aria-busy="true"], button[data-loading="true"], [role="button"][aria-busy="true"], [role="button"][data-loading="true"])::before {
   position: absolute;
   width: var(--vc-button-loading-spinner-size);
   height: var(--vc-button-loading-spinner-size);
@@ -272,7 +246,7 @@ body
   border-right-color: transparent;
   border-radius: 9999px;
   animation: vc-button-spinner 0.8s linear infinite;
-  content: '';
+  content: "";
   inset: 50% auto auto 50%;
   margin: calc(var(--vc-button-loading-spinner-size) / -2) 0 0 calc(var(--vc-button-loading-spinner-size) / -2);
 }
@@ -383,7 +357,7 @@ body :where(.card, .panel, .table-wrap, [data-card]) {
   box-shadow: var(--vc-ui-shadow-md);
 }
 
-body :where([role='dialog'], .dialog, .modal) {
+body :where([role="dialog"], .dialog, .modal) {
   border-radius: var(--vc-ui-radius-modal);
   border-color: var(--border-strong);
   background: var(--panel);
@@ -416,11 +390,11 @@ body :where(.modal-backdrop, .backdrop, .overlay, [data-overlay]) {
   animation: vc-modal-backdrop-in var(--vc-animation-modal) ease-out both;
 }
 
-body :where(.vc-animated-tab, .tab, [role='tab']) {
+body :where(.vc-animated-tab, .tab, [role="tab"]) {
   animation: vc-tab-slide-in var(--vc-animation-tab-open) ease-out both;
 }
 
-body :where(.vc-animated-tab[data-closing='true'], .tab[data-closing='true'], [role='tab'][data-closing='true']) {
+body :where(.vc-animated-tab[data-closing="true"], .tab[data-closing="true"], [role="tab"][data-closing="true"]) {
   animation: vc-tab-fade-out var(--vc-animation-tab-close) ease-out both;
 }
 
@@ -457,17 +431,12 @@ body :where(.vc-typing-indicator, .typing-indicator) > span:nth-child(3) {
   animation-delay: 0.32s;
 }
 
-body :where(.vc-run-button[data-run-state='running'], button[data-run-state='running'], button[aria-label='Stop app']) {
+body :where(.vc-run-button[data-run-state="running"], button[data-run-state="running"], button[aria-label="Stop app"]) {
   background: var(--vc-run-stop-bg);
   color: #ffffff;
 }
 
-body
-  :where(
-    .vc-run-button[data-run-state='running'],
-    button[data-run-state='running'],
-    button[aria-label='Stop app']
-  )::before {
+body :where(.vc-run-button[data-run-state="running"], button[data-run-state="running"], button[aria-label="Stop app"])::before {
   position: static;
   display: inline-block;
   width: var(--vc-button-loading-spinner-size);
@@ -476,7 +445,7 @@ body
   border-right-color: transparent;
   border-radius: 9999px;
   animation: vc-button-spinner 0.8s linear infinite;
-  content: '';
+  content: "";
   margin-right: 6px;
 }
 
@@ -489,10 +458,10 @@ body
     textarea,
     select,
     [tabindex],
-    [role='button'],
-    [role='tab'],
-    [role='menuitem'],
-    [contenteditable='true']
+    [role="button"],
+    [role="tab"],
+    [role="menuitem"],
+    [contenteditable="true"]
   ):focus-visible {
   outline: var(--vc-accessibility-focus-width) solid var(--vc-ui-focus-ring);
   outline-offset: 2px;
@@ -512,7 +481,7 @@ body
   margin: -1px;
 }
 
-body :where([role='tooltip'], .tooltip, .vc-tooltip, [data-radix-tooltip-content]) {
+body :where([role="tooltip"], .tooltip, .vc-tooltip, [data-radix-tooltip-content]) {
   border: 1px solid var(--vc-ui-tooltip-border);
   background: var(--vc-ui-tooltip-bg);
   color: #f5f9fc;
@@ -603,44 +572,6 @@ select:focus-visible {
   background: var(--panel-raised);
 }
 
-.language-switch {
-  display: inline-flex;
-  gap: 2px;
-  padding: 2px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--panel);
-}
-
-.language-switch button {
-  min-width: 44px;
-  min-height: 44px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 6px;
-  color: var(--muted);
-  background: transparent;
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.language-switch button:hover,
-.language-switch button:focus-visible {
-  color: var(--text);
-  background: var(--panel-soft);
-}
-
-.language-switch button:focus-visible {
-  outline: 2px solid var(--vc-ui-focus-ring);
-  outline-offset: 2px;
-}
-
-.language-switch button.active {
-  color: var(--text);
-  background: color-mix(in srgb, var(--accent) 20%, transparent);
-}
-
 .brand h1,
 .panel h2,
 .page-title h1 {
@@ -685,7 +616,7 @@ select:focus-visible {
   border-color: var(--border-strong);
 }
 
-.nav button[aria-current='page'],
+.nav button[aria-current="page"],
 .action {
   background: var(--accent);
   border-color: var(--accent-strong);
@@ -814,7 +745,7 @@ select:focus-visible {
 }
 
 .status::before {
-  content: '';
+  content: "";
   width: 7px;
   height: 7px;
   border-radius: 999px;

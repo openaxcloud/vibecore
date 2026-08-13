@@ -4,20 +4,13 @@
 
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { atom } from 'nanostores';
-import type { ReactNode } from 'react';
-import { I18nextProvider } from 'react-i18next';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { FileTree } from './FileTree';
 import { resolveEmptyExplorerState } from './file-tree-empty-state';
-import { createI18nInstance } from '~/lib/i18n/runtime';
 import type { FileMap } from '~/lib/stores/files';
 
 const { loadRuntimeFiles } = vi.hoisted(() => ({ loadRuntimeFiles: vi.fn(() => Promise.resolve()) }));
-
-function renderInEnglish(node: ReactNode) {
-  return render(<I18nextProvider i18n={createI18nInstance('en')}>{node}</I18nextProvider>);
-}
 
 vi.mock('~/lib/runtime/RuntimeAdapterProvider', () => ({
   useRuntimeAdapter: () => ({
@@ -65,7 +58,7 @@ describe('<FileTree /> hidden/system files', () => {
   });
 
   it('hides node_modules and generated folders by default', () => {
-    renderInEnglish(<FileTree files={files} rootFolder="/home/project" hideRoot />);
+    render(<FileTree files={files} rootFolder="/home/project" hideRoot />);
 
     expect(screen.getByText('package.json')).toBeTruthy();
     expect(screen.getByText('src')).toBeTruthy();
@@ -74,7 +67,7 @@ describe('<FileTree /> hidden/system files', () => {
   });
 
   it('can reveal hidden/system folders on demand', () => {
-    renderInEnglish(<FileTree files={files} rootFolder="/home/project" hideRoot showHiddenFiles />);
+    render(<FileTree files={files} rootFolder="/home/project" hideRoot showHiddenFiles />);
 
     expect(screen.getByText('node_modules')).toBeTruthy();
     expect(screen.getByText('.vite')).toBeTruthy();
@@ -161,7 +154,7 @@ describe('<FileTree /> empty state', () => {
   });
 
   it('renders an error + Reconnect button for a crashed workspace instead of "loading"', () => {
-    renderInEnglish(
+    render(
       <FileTree
         files={{}}
         rootFolder="/home/project"
@@ -180,37 +173,11 @@ describe('<FileTree /> empty state', () => {
   });
 
   it('shows a loading state while the workspace provisions', () => {
-    renderInEnglish(
+    render(
       <FileTree files={{}} rootFolder="/home/project" hideRoot workspaceStatus="starting" workspaceLoading={true} />,
     );
 
     expect(screen.getByText('Loading workspace files…')).toBeTruthy();
     expect(screen.queryByText('Reconnect')).toBeNull();
-  });
-});
-
-describe('<FileTree /> French copy', () => {
-  afterEach(() => {
-    cleanup();
-  });
-
-  it('renders localized loading and recovery copy without leaking a raw English runtime error', () => {
-    render(
-      <I18nextProvider i18n={createI18nInstance('fr')}>
-        <FileTree
-          files={{}}
-          rootFolder="/home/project"
-          hideRoot
-          workspaceStatus="error"
-          workspaceLoading={false}
-          workspaceError="Crashed runtime"
-        />
-      </I18nextProvider>,
-    );
-
-    expect(screen.getByText('Espace de travail indisponible')).toBeTruthy();
-    expect(screen.getByText('Reconnecter')).toBeTruthy();
-    expect(screen.queryByText('Crashed runtime')).toBeNull();
-    expect(screen.queryByText('Workspace unavailable')).toBeNull();
   });
 });

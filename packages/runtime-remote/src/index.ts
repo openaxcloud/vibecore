@@ -205,28 +205,6 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     return true;
   }
 
-  /*
-   * A runtime op (file write during reseed, status/ports poll) can fire the instant
-   * before `POST /workspaces` has created the workspace record. authorizeRuntimeWorkspace
-   * then can't resolve the `ws-…` id and answers 404 PROJECT_NOT_FOUND / WORKSPACE_NOT_FOUND
-   * (or 425 Too Early) — surfaced to the caller as a hard "Remote runtime request failed:
-   * 404" because 404 is not in the transient set. That is a provisioning RACE, not a real
-   * missing resource, so let idempotent ops retry it briefly; by the next attempt the record
-   * exists. A genuinely deleted project keeps returning it and fails after the bounded
-   * retries, exactly as before (just a ~1s later, storm-free).
-   */
-  #isRetryableProvisioningError(error: unknown): boolean {
-    if (!(error instanceof RuntimeError)) {
-      return false;
-    }
-
-    if (error.status === 425) {
-      return true;
-    }
-
-    return error.status === 404 && (error.code === 'WORKSPACE_NOT_FOUND' || error.code === 'PROJECT_NOT_FOUND');
-  }
-
   async #waitForWorkspaceRunning(workspaceId: string): Promise<WorkspaceSession> {
     const deadline = Date.now() + this.#startReadinessTimeoutMs;
 
@@ -514,7 +492,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      */
     const terminalPath = `/workspaces/${this.#requireWorkspaceId()}/terminal?sessionId=${encodeURIComponent(
       terminalId,
-    )}&cols=${cols}&rows=${rows}${request.managed ? '&managed=1' : ''}`;
+    )}&cols=${cols}&rows=${rows}`;
 
     let stopped = false;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
@@ -989,16 +967,11 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       } catch (error) {
         lastError = error;
 
-        if (
-          init.signal?.aborted ||
-          attempt >= maxAttempts ||
-          !(this.#isTransientStartError(error) || this.#isRetryableProvisioningError(error))
-        ) {
+        if (init.signal?.aborted || attempt >= maxAttempts || !this.#isTransientStartError(error)) {
           throw error;
         }
 
-        // Exponential-ish backoff (~250/500/750ms) to ride a brief restart window
-        // (or the window before POST /workspaces has created the workspace record).
+        // Exponential-ish backoff (~250/500/750ms) to ride a brief restart window.
         await new Promise<void>((resolve) => setTimeout(resolve, 250 * attempt));
       }
     }

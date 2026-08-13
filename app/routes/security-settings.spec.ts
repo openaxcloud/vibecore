@@ -15,10 +15,8 @@ vi.mock('~/lib/enterprise-api.server', () => ({
 
 import { loader } from './security-settings';
 
-function makeRequest(language = 'en') {
-  return new Request('https://app.e-code.ai/security-settings', {
-    headers: { Cookie: `vibecore-lang=${language}` },
-  });
+function makeRequest() {
+  return new Request('https://app.e-code.ai/security-settings');
 }
 
 describe('security-settings loader', () => {
@@ -27,7 +25,7 @@ describe('security-settings loader', () => {
 
     const result = await loader({ request: makeRequest() } as never);
 
-    expect(result).toEqual({ mfaEnabled: true, mfaUnavailable: false, language: 'en' });
+    expect(result).toEqual({ mfaEnabled: true, mfaUnavailable: false });
   });
 
   it('reports MFA as disabled when /auth/me reports no MFA', async () => {
@@ -35,7 +33,7 @@ describe('security-settings loader', () => {
 
     const result = await loader({ request: makeRequest() } as never);
 
-    expect(result).toEqual({ mfaEnabled: false, mfaUnavailable: false, language: 'en' });
+    expect(result).toEqual({ mfaEnabled: false, mfaUnavailable: false });
   });
 
   it('re-throws a login redirect when the session has expired instead of stranding the user', async () => {
@@ -53,12 +51,10 @@ describe('security-settings loader', () => {
   });
 
   it('marks MFA status unavailable for non-redirect failures instead of claiming it is off', async () => {
-    const rawError = 'network down on private authentication host';
-    apiRequest.mockRejectedValueOnce(new Error(rawError));
+    apiRequest.mockRejectedValueOnce(new Error('network down'));
 
-    const result = await loader({ request: makeRequest('fr') } as never);
+    const result = await loader({ request: makeRequest() } as never);
 
-    expect(result).toEqual({ mfaEnabled: false, mfaUnavailable: true, language: 'fr' });
-    expect(JSON.stringify(result)).not.toContain(rawError);
+    expect(result).toEqual({ mfaEnabled: false, mfaUnavailable: true });
   });
 });

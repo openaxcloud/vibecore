@@ -1,5 +1,4 @@
 import ignore from 'ignore';
-import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 
 // Common patterns to ignore, similar to .gitignore
 export const IGNORE_PATTERNS = [
@@ -150,15 +149,9 @@ const escapeBoltTags = (input: string): string => {
   return escapeTagPair(/(<boltAction[^>]*>)([\s\S]*?)(<\/boltAction>)/g, artifactEscaped);
 };
 
-export const filesToArtifacts = (
-  files: { [path: string]: { content: string } },
-  id: string,
-  language?: string | null,
-): string => {
-  const title = clientStoresServicesText('clientRuntime.artifact.userUpdatedFiles', {}, language);
-
+export const filesToArtifacts = (files: { [path: string]: { content: string } }, id: string): string => {
   return `
-<boltArtifact id="${id}" title="${title}">
+<boltArtifact id="${id}" title="User Updated Files">
 ${Object.keys(files)
   .map(
     (filePath) => `

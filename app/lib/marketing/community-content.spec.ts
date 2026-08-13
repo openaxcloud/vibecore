@@ -17,18 +17,6 @@ describe('findCommunityPost', () => {
     expect(findCommunityPost('')).toBeUndefined();
   });
 
-  it('localizes editorial copy in French while preserving authors, handles and tags', () => {
-    const post = findCommunityPost('agent-memory-routing-production', 'fr');
-
-    expect(post?.title).toBe(
-      'Comment les équipes acheminent-elles la mémoire des agents en toute sécurité en production ?',
-    );
-    expect(post?.categoryName).toBe('Aide');
-    expect(post?.authorName).toBe('Maya Chen');
-    expect(post?.authorHandle).toBe('maya-ops');
-    expect(post?.tags).toContain('ai-agent');
-  });
-
   it('resolves every post card target id linked from the community gallery', () => {
     for (const post of communityPosts) {
       expect(findCommunityPost(post.id)).toBe(post);
@@ -59,20 +47,5 @@ describe('buildCommunityPostPage', () => {
 
     // No fabricated "Continue building" boilerplate from the old placeholder.
     expect(page.sections.some((section) => section.title === 'Continue building')).toBe(false);
-  });
-
-  it('formats French actions, counts, dates and author context', () => {
-    const post = findCommunityPost('deployments-rollback-playbook', 'fr');
-    const page = buildCommunityPostPage(post!, 'fr');
-
-    expect(page.primaryAction).toEqual(['Retour à la communauté', '/community']);
-    expect(page.secondaryAction).toEqual(['Parcourir les modèles', '/templates']);
-    expect(page.highlights).toContain('144 mentions J’aime');
-    expect(page.highlights).toContain('29 commentaires');
-    expect(page.highlights).toContain('5 120 vues');
-    expect(page.sections[0].title).toBe('Fil de discussion');
-    expect(page.sections[1].title).toBe('Publié par Nadia Laurent');
-    expect(page.sections[1].body).toContain('10 juin 2026');
-    expect(page.sections[1].items).toContain('Partage sécurisé');
   });
 });

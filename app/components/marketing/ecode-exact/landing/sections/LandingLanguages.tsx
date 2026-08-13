@@ -1,4 +1,3 @@
-import { useTranslation } from 'react-i18next';
 import {
   SiPython,
   SiJavascript,
@@ -15,7 +14,6 @@ import {
   SiDocker,
   SiKubernetes,
 } from 'react-icons/si';
-import { getMarketingLandingRemainingCopy } from '~/lib/i18n/catalogs/marketing-landing-remaining';
 
 const languages = [
   { name: 'Python', icon: SiPython, color: '#3776AB' },
@@ -45,18 +43,15 @@ const languages = [
 ];
 
 export default function LandingLanguages() {
-  const { i18n } = useTranslation();
-  const copy = getMarketingLandingRemainingCopy(i18n.resolvedLanguage ?? i18n.language);
-
   return (
     <section className="py-20 bg-[var(--ecode-background)]" data-testid="section-languages">
       <div className="container-responsive max-w-7xl">
         <div className="text-center mb-12 animate-fade-in">
-          <h2 className="mb-4 break-words text-4xl font-bold text-[var(--ecode-text)] sm:text-5xl">
-            {copy['marketingLanding.languages.title']}
+          <h2 className="text-4xl sm:text-5xl font-bold mb-4 text-[var(--ecode-text)]">
+            Every Language, Every Framework
           </h2>
-          <p className="mx-auto max-w-3xl break-words text-xl leading-relaxed text-[var(--ecode-text-muted)]">
-            {copy['marketingLanding.languages.description']}
+          <p className="text-xl text-[var(--ecode-text-muted)] max-w-3xl mx-auto">
+            Build with your favorite tools - we support 29+ languages and all major frameworks
           </p>
         </div>
 
@@ -70,7 +65,7 @@ export default function LandingLanguages() {
                 style={{ animationDelay: `${index * 50}ms` }}
               >
                 <div className="w-16 h-16 rounded-xl bg-[var(--ecode-surface)] border border-[var(--ecode-border)] flex items-center justify-center transition-all duration-300 group-hover:border-ecode-accent/50 group-hover:scale-110">
-                  <Icon className="h-8 w-8" style={{ color: lang.color }} aria-hidden />
+                  <Icon className="h-8 w-8" style={{ color: lang.color }} />
                 </div>
                 <span className="text-[13px] text-[var(--ecode-text-muted)]">{lang.name}</span>
               </div>

@@ -1,5 +1,4 @@
 import { apiRequest, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
-import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 /*
  * Browser-accessible proxy for the assistant-message 👍/👎 buttons
@@ -10,7 +9,7 @@ import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-rou
  */
 export async function action({ request }: EnterpriseActionArgs) {
   if (request.method !== 'POST') {
-    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405);
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
 
   const payload = (await request.json().catch(() => null)) as {
@@ -26,7 +25,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   const chatId = typeof payload?.chatId === 'string' && payload.chatId.trim() ? payload.chatId.trim() : undefined;
 
   if (!messageId || vote === undefined) {
-    return remainingApiErrorResponse(request, 'FEEDBACK_INVALID', 400);
+    return Response.json({ error: 'messageId and a vote of "up", "down", or null are required.' }, { status: 400 });
   }
 
   try {
@@ -37,8 +36,13 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return Response.json(result);
   } catch (error) {
-    const status = error instanceof Response && error.status !== 500 ? error.status : 502;
+    if (error instanceof Response) {
+      return error;
+    }
 
-    return remainingApiErrorResponse(request, 'FEEDBACK_FAILED', status);
+    return Response.json(
+      { error: error instanceof Error ? error.message : 'Unable to record message feedback.' },
+      { status: 502 },
+    );
   }
 }

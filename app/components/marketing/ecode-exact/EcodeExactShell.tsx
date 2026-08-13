@@ -16,28 +16,13 @@ import {
   Sun,
   Twitter,
   X,
-  type LucideIcon,
+  Youtube,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { Badge, Button, cn, Link, useMarketingNavigate, useWouterLocation } from './EcodeExactUi';
 import { publicChromeUserChoseDark, resolvePublicChromeTheme } from './ecode-public-theme';
-import {
-  MARKETING_SHELL_COPY,
-  MARKETING_SHELL_FOOTER_SECTIONS,
-  MARKETING_SHELL_LINKS,
-  MARKETING_SHELL_NAV_SECTIONS,
-  MARKETING_SHELL_SOCIAL_LINKS,
-  interpolateMarketingShellCopy,
-  type MarketingShellCopy,
-  type MarketingShellFooterSectionId,
-  type MarketingShellNavItemId,
-  type MarketingShellNavSectionId,
-  type MarketingShellSocialId,
-} from './marketing-shell.copy';
 import { getThemeSwitcherPresentation } from './theme-switcher-presentation';
-import { LanguageSwitch } from '~/components/i18n/LanguageSwitch';
 import {
   persistAnnouncementDismissed,
   readAnnouncementDismissed,
@@ -45,59 +30,227 @@ import {
 import { CloseButton } from '~/components/ui/CloseButton';
 import { ScrollArea } from '~/components/ui/ScrollArea';
 import { SkipLink } from '~/components/ui/SkipLink';
-import { normalizeSupportedLanguage, type SupportedLanguage } from '~/lib/i18n/language';
 import { applyThemeToDocument, kTheme, resolveInitialTheme, themeStore, toggleTheme } from '~/lib/stores/theme';
 import type { Theme } from '~/lib/stores/theme';
 import { readThemeCookie } from '~/lib/stores/theme-cookie';
 
 type MenuItem = {
-  id: MarketingShellNavItemId;
   title: string;
   href: string;
   description: string;
 };
 
-type FooterLink = {
-  id: (typeof MARKETING_SHELL_FOOTER_SECTIONS)[MarketingShellFooterSectionId][number];
-  label: string;
-  href: string;
-};
+const productItems: MenuItem[] = [
+  { title: 'AI Agent', href: '/ai-agent', description: 'Build production-ready apps with natural language prompts.' },
+  { title: 'Browser IDE', href: '/features', description: 'Enterprise-grade development workspace built for teams.' },
+  {
+    title: 'Multiplayer',
+    href: '/features#multiplayer',
+    description: 'Live collaboration, pair programming, and shared presence.',
+  },
+  { title: 'Mobile App', href: '/mobile', description: 'Ship from anywhere with a fully-featured mobile IDE.' },
+  { title: 'Desktop App', href: '/desktop', description: 'Optimized offline workflow with secure device sync.' },
+  { title: 'AI Platform', href: '/ai', description: 'Governance, observability, and orchestration for AI workloads.' },
+  {
+    title: 'Collaboration',
+    href: '/collaboration',
+    description: 'Real-time multiplayer editing, comments, presence and shared workspaces.',
+  },
+  {
+    title: 'MCP Integrations',
+    href: '/mcp',
+    description: 'Connect agents to approved tools and context sources through controlled MCP integrations.',
+  },
+  {
+    title: 'Polyglot Backends',
+    href: '/polyglot',
+    description: 'Generate and run backend services across common languages with live previews and logs.',
+  },
+  {
+    title: 'Deployments',
+    href: '/marketing/deployments',
+    description: 'Global edge infrastructure with Fortune 500 reliability.',
+  },
+  {
+    title: 'Bounties',
+    href: '/marketing/bounties',
+    description: 'Activate an on-demand developer network to accelerate delivery.',
+  },
+  {
+    title: 'Teams',
+    href: '/marketing/teams',
+    description: 'Enterprise controls, compliance, and insights for large orgs.',
+  },
+];
 
-const MOBILE_MENU_SECTION_PRESENTATION = {
-  product: { icon: Sparkles, iconClassName: 'text-ecode-accent', bordered: false },
-  solutions: { icon: ArrowUpRight, iconClassName: 'text-[var(--ecode-accent)]', bordered: true },
-  resources: { icon: Search, iconClassName: 'text-[var(--ecode-accent)]', bordered: true },
-  company: { icon: ChevronRight, iconClassName: 'text-[var(--ecode-accent)]', bordered: true },
-} as const satisfies Record<
-  MarketingShellNavSectionId,
-  Readonly<{ icon: LucideIcon; iconClassName: string; bordered: boolean }>
->;
+const solutionsItems: MenuItem[] = [
+  {
+    title: 'App Builder',
+    href: '/solutions/app-builder',
+    description: 'Rapidly prototype and deploy full-stack applications.',
+  },
+  {
+    title: 'Website Builder',
+    href: '/solutions/website-builder',
+    description: 'Create polished marketing sites with zero setup.',
+  },
+  {
+    title: 'Game Builder',
+    href: '/solutions/game-builder',
+    description: 'Design and launch interactive experiences powered by AI.',
+  },
+  {
+    title: 'Dashboard Builder',
+    href: '/solutions/dashboard-builder',
+    description: 'Data-rich dashboards with real-time collaboration.',
+  },
+  {
+    title: 'Chatbot / AI Agent Builder',
+    href: '/solutions/chatbot-builder',
+    description: 'Deploy conversational assistants across your organization.',
+  },
+  {
+    title: 'Internal AI Builder',
+    href: '/solutions/internal-ai-builder',
+    description: 'Bring private AI agents to every team safely and securely.',
+  },
+  {
+    title: 'Enterprise',
+    href: '/solutions/enterprise',
+    description: 'Fortune 500-grade platform with SSO, audit logs, and 99.99% SLA.',
+  },
+  {
+    title: 'Startups',
+    href: '/solutions/startups',
+    description: 'Ship your MVP 10x faster. Startup-friendly pricing.',
+  },
+  {
+    title: 'Freelancers',
+    href: '/solutions/freelancers',
+    description: 'Deliver client projects faster. Portfolio hosting included.',
+  },
+];
 
-const SOCIAL_ICONS = {
-  twitter: Twitter,
-  github: Github,
-  linkedin: Linkedin,
-  instagram: Instagram,
-} as const satisfies Record<MarketingShellSocialId, LucideIcon>;
+const resourcesItems: MenuItem[] = [
+  { title: 'Documentation', href: '/docs', description: 'Get started quickly with step-by-step guides.' },
+  { title: 'AI Documentation', href: '/ai-documentation', description: 'Complete AI capabilities guide' },
+  { title: 'Tutorials', href: '/tutorials', description: 'Step-by-step learning from beginner to advanced.' },
+  { title: 'Blog', href: '/blog', description: 'Stories on shipping software at global scale.' },
+  { title: 'Changelog', href: '/changelog', description: 'Latest features and product updates.' },
+  { title: 'Community', href: '/community', description: 'Connect with builders and share best practices.' },
+  { title: 'Templates', href: '/templates', description: 'Launch with curated, industry-specific templates.' },
+  {
+    title: 'Marketplace',
+    href: '/marketplace',
+    description: 'Discover starters, implementation patterns and reusable project foundations.',
+  },
+  { title: 'Case Studies', href: '/case-studies', description: 'Real-world success stories from our customers.' },
+  { title: 'Help Center', href: '/help-center', description: 'FAQs, troubleshooting, and support.' },
+  { title: 'Status', href: '/status', description: 'Transparency around platform availability.' },
+];
 
-function createMenuItems(copy: MarketingShellCopy, section: MarketingShellNavSectionId): MenuItem[] {
-  return MARKETING_SHELL_NAV_SECTIONS[section].map((id) => ({
-    id,
-    href: MARKETING_SHELL_LINKS[id].href,
-    ...copy.navigation.items[id],
-  }));
-}
+const companyItems: MenuItem[] = [
+  { title: 'About', href: '/about', description: 'Learn about our mission and leadership team.' },
+  { title: 'Careers', href: '/careers', description: 'Join a distributed team building the future of software.' },
+  { title: 'Press', href: '/press', description: 'Press releases, media kit, and recent coverage.' },
+  { title: 'Partners', href: '/partners', description: 'Strategic alliances and solution partners.' },
+  { title: 'Contact', href: '/contact', description: 'Get in touch with our team.' },
+  { title: 'Accessibility', href: '/accessibility', description: 'Our commitment to inclusive design.' },
+];
 
-function createFooterLinks(copy: MarketingShellCopy, section: MarketingShellFooterSectionId): FooterLink[] {
-  return MARKETING_SHELL_FOOTER_SECTIONS[section].map((id) => ({
-    id,
-    href: MARKETING_SHELL_LINKS[id].href,
-    label: copy.footer.linkLabels[id],
-  }));
-}
+const footerLinks = {
+  product: [
+    { label: 'AI Agent', href: '/ai-agent' },
+    { label: 'IDE', href: '/features' },
+    { label: 'Multiplayer', href: '/features#multiplayer' },
+    { label: 'Mobile App', href: '/mobile' },
+    { label: 'Desktop App', href: '/desktop' },
+    { label: 'Collaboration', href: '/collaboration' },
+    { label: 'MCP Integrations', href: '/mcp' },
+    { label: 'Polyglot Backends', href: '/polyglot' },
+    { label: 'Teams', href: '/marketing/teams' },
+    { label: 'Deployments', href: '/marketing/deployments' },
+    { label: 'Pricing', href: '/pricing' },
+    { label: 'Bounties', href: '/marketing/bounties' },
+    { label: 'AI Platform', href: '/ai' },
+  ],
+  resources: [
+    { label: 'Docs', href: '/docs' },
+    { label: 'Blog', href: '/blog' },
+    { label: 'Community', href: '/community' },
+    { label: 'Templates', href: '/templates' },
+    { label: 'Marketplace', href: '/marketplace' },
+    { label: 'Languages', href: '/templates/languages' },
+    { label: 'Status', href: '/status' },
+    { label: 'Forum', href: '/forum' },
+  ],
+  company: [
+    { label: 'About', href: '/about' },
+    { label: 'Careers', href: '/careers' },
+    { label: 'Press', href: '/press' },
+    { label: 'Partners', href: '/partners' },
+    { label: 'Contact Sales', href: '/contact-sales' },
+  ],
+  legal: [
+    { label: 'Terms', href: '/terms' },
+    { label: 'Privacy', href: '/privacy' },
+    { label: 'Subprocessors', href: '/subprocessors' },
+    { label: 'DPA', href: '/dpa' },
+    { label: 'US Student DPA', href: '/student-dpa' },
+    { label: 'Security', href: '/security' },
+    { label: 'Trust & Safety', href: '/trust-and-safety' },
+    { label: 'Acceptable Use', href: '/acceptable-use' },
+    { label: 'Report Abuse', href: '/report-abuse' },
+    { label: 'Strike System', href: '/strike-system' },
+    { label: 'Usage & Limits', href: '/usage-limits' },
+    { label: 'Support Policy', href: '/support-policy' },
+    { label: 'Licensing', href: '/licensing' },
+    { label: 'Account Inactivity', href: '/account-inactivity' },
+    { label: 'Deleting Your Data', href: '/deleting-your-data' },
+  ],
+  compare: [
+    { label: 'E-Code vs GitHub Codespaces', href: '/compare/github-codespaces' },
+    { label: 'E-Code vs Glitch', href: '/compare/glitch' },
+    { label: 'E-Code vs Heroku', href: '/compare/heroku' },
+    { label: 'E-Code vs CodeSandbox', href: '/compare/codesandbox' },
+    { label: 'E-Code vs AWS Cloud9', href: '/compare/aws-cloud9' },
+  ],
+} as const;
+
+const socialLinks = [
+  { icon: Twitter, href: 'https://twitter.com/ecode', label: 'Twitter', name: 'X (Twitter)' },
+  { icon: Github, href: 'https://github.com/ecode', label: 'GitHub', name: 'GitHub' },
+  { icon: Youtube, href: 'https://youtube.com/ecode', label: 'YouTube', name: 'YouTube' },
+  { icon: Linkedin, href: 'https://linkedin.com/company/ecode', label: 'LinkedIn', name: 'LinkedIn' },
+  { icon: Instagram, href: 'https://instagram.com/ecode', label: 'Instagram', name: 'Instagram' },
+];
+
+const mobileMenuSections = [
+  { title: 'Product', items: productItems, icon: Sparkles, iconClassName: 'text-ecode-accent', bordered: false },
+  {
+    title: 'Solutions',
+    items: solutionsItems,
+    icon: ArrowUpRight,
+    iconClassName: 'text-[var(--ecode-accent)]',
+    bordered: true,
+  },
+  {
+    title: 'Resources',
+    items: resourcesItems,
+    icon: Search,
+    iconClassName: 'text-[var(--ecode-accent)]',
+    bordered: true,
+  },
+  {
+    title: 'Company',
+    items: companyItems,
+    icon: ChevronRight,
+    iconClassName: 'text-[var(--ecode-accent)]',
+    bordered: true,
+  },
+] as const;
 
 const ECODE_PUBLIC_ROOT_FONT_SIZE = '16px';
-const ECODE_BRAND_NAME = 'E-Code';
 
 let publicThemeWasManuallyChanged = false;
 
@@ -176,34 +329,17 @@ function useHomepagePublicChrome() {
   }, []);
 }
 
-export function EcodeExactPublicShell({
-  children,
-  language,
-}: {
-  children: React.ReactNode;
-  language?: SupportedLanguage;
-}) {
+export function EcodeExactPublicShell({ children }: { children: React.ReactNode }) {
   useHomepagePublicChrome();
 
-  const { i18n } = useTranslation();
-  const activeLanguage = language ?? normalizeSupportedLanguage(i18n.resolvedLanguage ?? i18n.language) ?? 'en';
-
-  const copy = MARKETING_SHELL_COPY[activeLanguage];
-  const direction = activeLanguage === 'ar' ? 'rtl' : 'ltr';
-
   return (
-    <div
-      className="min-h-screen flex flex-col bg-background text-foreground"
-      data-ecode-static-shell
-      lang={activeLanguage}
-      dir={direction}
-    >
-      <SkipLink label={copy.a11y.skipToContent} />
-      <EcodeExactPublicNavbar copy={copy} language={activeLanguage} />
+    <div className="min-h-screen flex flex-col bg-background text-foreground" data-ecode-static-shell>
+      <SkipLink />
+      <EcodeExactPublicNavbar />
       <div id="main-content" tabIndex={-1} className="flex flex-1 flex-col outline-none">
         {children}
       </div>
-      <EcodeExactPublicFooter copy={copy} />
+      <EcodeExactPublicFooter />
     </div>
   );
 }
@@ -218,18 +354,18 @@ export function EcodeLogo({
   showText?: boolean;
 }) {
   const sizeMap = {
-    xs: { iconClassName: 'h-6 w-6', textClassName: 'text-base' },
-    sm: { iconClassName: 'h-7 w-7', textClassName: 'text-[15px]' },
-    md: { iconClassName: 'h-9 w-9', textClassName: 'text-xl' },
-    lg: { iconClassName: 'h-11 w-11', textClassName: 'text-2xl' },
+    xs: { icon: 'h-6 w-6', text: 'text-base' },
+    sm: { icon: 'h-7 w-7', text: 'text-[15px]' },
+    md: { icon: 'h-9 w-9', text: 'text-xl' },
+    lg: { icon: 'h-11 w-11', text: 'text-2xl' },
   } as const;
 
   const resolvedSize = sizeMap[size] ?? sizeMap.md;
 
   return (
-    <div dir="ltr" className={cn('flex flex-row items-center gap-2 flex-nowrap whitespace-nowrap', className)}>
+    <div className={cn('flex flex-row items-center gap-2 flex-nowrap whitespace-nowrap', className)}>
       <svg
-        className={cn(resolvedSize.iconClassName, 'shrink-0')}
+        className={cn(resolvedSize.icon, 'shrink-0')}
         viewBox="0 0 40 40"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -245,40 +381,19 @@ export function EcodeLogo({
         <path d="M26 16 L30 20 L26 24" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         <defs>
           <linearGradient id="ecode-logo-gradient" x1="0" y1="0" x2="40" y2="40">
-            <stop offset="0%" stopColor="var(--ecode-accent)" />
-            <stop offset="100%" stopColor="var(--ecode-secondary-accent)" />
+            <stop offset="0%" stopColor="#F26207" />
+            <stop offset="100%" stopColor="#F99D25" />
           </linearGradient>
         </defs>
       </svg>
-      {showText ? <span className={cn('font-bold', resolvedSize.textClassName)}>{ECODE_BRAND_NAME}</span> : null}
+      {showText ? <span className={cn('font-bold', resolvedSize.text)}>E-Code</span> : null}
     </div>
   );
 }
 
-export function EcodeExactPublicNavbar({
-  copy: copyOverride,
-  language: languageOverride,
-}: {
-  copy?: MarketingShellCopy;
-  language?: SupportedLanguage;
-} = {}) {
-  const { i18n } = useTranslation();
-  const language = languageOverride ?? normalizeSupportedLanguage(i18n.resolvedLanguage ?? i18n.language) ?? 'en';
-  const copy = copyOverride ?? MARKETING_SHELL_COPY[language];
+export function EcodeExactPublicNavbar() {
   const navigate = useMarketingNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const productItems = createMenuItems(copy, 'product');
-  const solutionsItems = createMenuItems(copy, 'solutions');
-  const resourcesItems = createMenuItems(copy, 'resources');
-  const companyItems = createMenuItems(copy, 'company');
-  const direction = language === 'ar' ? 'rtl' : 'ltr';
-
-  const mobileMenuSections = (Object.keys(MARKETING_SHELL_NAV_SECTIONS) as MarketingShellNavSectionId[]).map((id) => ({
-    id,
-    title: copy.navigation.sectionLabels[id],
-    items: createMenuItems(copy, id),
-    ...MOBILE_MENU_SECTION_PRESENTATION[id],
-  }));
 
   /*
    * Announcement dismissal: the server and first client render always include
@@ -334,30 +449,32 @@ export function EcodeExactPublicNavbar({
           data-ecode-announcement
           className="hidden md:block border-b border-[var(--ecode-border)] dark:border-border bg-background dark:bg-background"
         >
-          <div className="container-responsive flex min-h-11 items-center justify-between text-[11px] text-[var(--ecode-text)] dark:text-slate-100">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
+          <div className="container-responsive flex h-10 items-center justify-between text-[11px] text-[var(--ecode-text)] dark:text-slate-100">
+            <div className="flex items-center gap-3">
               <Badge
                 variant="secondary"
-                className="border-border bg-surface-solid text-[var(--status-info-text)] dark:border-border dark:bg-surface-solid uppercase tracking-[0.2em]"
+                className="bg-surface-solid text-[var(--ecode-accent-text)] dark:bg-surface-solid dark:text-white border-border dark:border-border uppercase tracking-[0.2em]"
               >
-                {copy.announcement.badge}
+                NEW
               </Badge>
-              <p className="min-w-0 font-medium leading-relaxed">{copy.announcement.message}</p>
+              <p className="font-medium">
+                Introducing E-Code Enterprise Cloud with dedicated AI governance and auditability.
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <button
-                className="inline-flex min-h-11 shrink-0 items-center gap-1 whitespace-nowrap text-[var(--ecode-accent-text)] hover:text-[var(--ecode-text)] dark:hover:text-white transition-colors"
-                onClick={() => navigate(MARKETING_SHELL_LINKS.contactSales.href)}
-                aria-label={copy.announcement.ctaAriaLabel}
+                className="inline-flex items-center gap-1 text-[var(--ecode-accent-text)] hover:text-[var(--ecode-accent-hover)] dark:hover:text-white transition-colors"
+                onClick={() => navigate('/contact-sales')}
+                aria-label="Talk to a sales expert"
               >
-                {copy.announcement.ctaLabel}
-                <ChevronRight className={cn('h-3 w-3', language === 'ar' && 'rotate-180')} aria-hidden="true" />
+                Talk to an expert
+                <ChevronRight className="h-3 w-3" aria-hidden="true" />
               </button>
               <CloseButton
                 size="sm"
-                ariaLabel={copy.announcement.dismissAriaLabel}
+                ariaLabel="Dismiss announcement"
                 onClick={dismissAnnouncement}
-                className="flex !h-11 !w-11 !min-h-11 !min-w-11 shrink-0 items-center justify-center"
+                className="flex h-7 w-7 items-center justify-center"
               />
             </div>
           </div>
@@ -365,81 +482,54 @@ export function EcodeExactPublicNavbar({
       ) : null}
 
       <nav
-        aria-label={copy.a11y.mainNavigation}
+        aria-label="Main navigation"
         className="relative border-b border-[var(--ecode-border)] bg-background dark:border-border dark:bg-background backdrop-blur-xl overflow-visible"
       >
         <div className="absolute inset-0 marketing-grid opacity-0 dark:opacity-100 pointer-events-none" aria-hidden />
         <div className="container-responsive-nav relative overflow-visible">
           <div className="flex h-16 items-center justify-between overflow-visible">
             <div className="flex items-center gap-6 overflow-visible">
-              <Link
-                href={MARKETING_SHELL_LINKS.home.href}
-                className="inline-flex min-h-11 items-center"
-                aria-label={copy.a11y.home}
-              >
+              <Link href="/">
                 <div className="cursor-pointer">
                   <EcodeLogo size="sm" />
                 </div>
               </Link>
 
-              <div className="hidden xl:block text-[var(--ecode-text)] dark:text-slate-200 overflow-visible">
+              <div className="hidden lg:block text-[var(--ecode-text)] dark:text-slate-200 overflow-visible">
                 <div className="flex list-none items-center justify-center gap-1">
-                  <MegaMenu
-                    title={copy.navigation.sectionLabels.product}
-                    items={productItems}
-                    icon="sparkles"
-                    direction={direction}
-                  />
-                  <MegaMenu
-                    title={copy.navigation.sectionLabels.solutions}
-                    items={solutionsItems}
-                    icon="arrow"
-                    direction={direction}
-                  />
-                  <MegaMenu
-                    title={copy.navigation.sectionLabels.resources}
-                    items={resourcesItems}
-                    icon="search"
-                    direction={direction}
-                  />
-                  <MegaMenu
-                    title={copy.navigation.sectionLabels.company}
-                    items={companyItems}
-                    icon="chevron"
-                    direction={direction}
-                    compact
-                  />
-                  <NavPill href={MARKETING_SHELL_LINKS.pricing.href}>{copy.navigation.pricing}</NavPill>
-                  <NavPill href={MARKETING_SHELL_LINKS.teamWorkspace.href}>{copy.navigation.teams}</NavPill>
+                  <MegaMenu title="Product" items={productItems} icon="sparkles" />
+                  <MegaMenu title="Solutions" items={solutionsItems} icon="arrow" />
+                  <MegaMenu title="Resources" items={resourcesItems} icon="search" />
+                  <MegaMenu title="Company" items={companyItems} icon="chevron" compact />
+                  <NavPill href="/pricing">Pricing</NavPill>
+                  <NavPill href="/team">Teams</NavPill>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2 sm:gap-4">
-              <ThemeSwitcher copy={copy} />
-              <LanguageSwitch />
+              <ThemeSwitcher />
               <Button
                 variant="ghost"
-                className="text-[var(--ecode-text)] dark:text-slate-200 hover:text-[var(--ecode-accent-text)] dark:hover:text-white !min-h-11 px-3 sm:px-4"
-                onClick={() => navigate(MARKETING_SHELL_LINKS.login.href)}
+                className="text-[var(--ecode-text)] dark:text-slate-200 hover:text-[var(--ecode-accent-text)] dark:hover:text-white min-h-[44px] px-3 sm:px-4"
+                onClick={() => navigate('/login')}
                 data-testid="link-login"
-                aria-label={copy.navigation.logIn}
               >
-                <LogIn className={cn('h-4 w-4', language === 'ar' ? 'ml-1 sm:ml-2' : 'mr-1 sm:mr-2')} aria-hidden />
-                <span className="hidden xs:inline">{copy.navigation.logIn}</span>
+                <LogIn className="mr-1 sm:mr-2 h-4 w-4" />
+                <span className="hidden xs:inline">Log in</span>
               </Button>
               <Button
-                onClick={() => navigate(MARKETING_SHELL_LINKS.register.href)}
-                className="hidden sm:inline-flex shrink-0 bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)] !min-h-11 px-3 sm:px-4 text-[13px] whitespace-nowrap"
+                onClick={() => navigate('/register')}
+                className="hidden sm:inline-flex shrink-0 bg-ecode-accent hover:bg-ecode-accent-hover text-white min-h-[44px] px-3 sm:px-4 text-[13px] whitespace-nowrap"
                 data-testid="link-get-started"
               >
-                {copy.navigation.getStarted}
+                Get started
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={copy.a11y.openMobileMenu}
-                className="!h-11 !w-11 !min-h-11 !min-w-11 xl:hidden text-[var(--ecode-text)] dark:text-slate-100"
+                aria-label="Open mobile menu"
+                className="lg:hidden text-[var(--ecode-text)] dark:text-slate-100"
                 onClick={() => setMobileMenuOpen(true)}
               >
                 <Menu className="h-5 w-5" />
@@ -451,20 +541,12 @@ export function EcodeExactPublicNavbar({
 
       <Dialog.Root open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 xl:hidden" />
-          <Dialog.Content
-            dir={direction}
-            className={cn(
-              'fixed z-50 flex h-dvh max-h-dvh flex-col overflow-hidden shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500 inset-y-0 sm:max-w-sm w-full sm:w-[380px] p-0 border-border bg-background xl:hidden',
-              language === 'ar'
-                ? 'left-0 border-r data-[state=closed]:slide-out-to-left data-[state=open]:slide-in-from-left'
-                : 'right-0 border-l data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right',
-            )}
-          >
+          <Dialog.Overlay className="fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 lg:hidden" />
+          <Dialog.Content className="fixed z-50 flex h-dvh max-h-dvh flex-col overflow-hidden shadow-lg transition ease-in-out data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:duration-300 data-[state=open]:duration-500 inset-y-0 right-0 data-[state=closed]:slide-out-to-right data-[state=open]:slide-in-from-right sm:max-w-sm w-full sm:w-[380px] p-0 border-l border-border bg-background lg:hidden">
             <div className="sr-only flex flex-col space-y-2 text-center sm:text-left">
-              <Dialog.Title className="text-lg font-semibold text-foreground">{copy.a11y.mobileMenuTitle}</Dialog.Title>
+              <Dialog.Title className="text-lg font-semibold text-foreground">Mobile Navigation Menu</Dialog.Title>
               <Dialog.Description className="text-sm text-muted-foreground">
-                {copy.a11y.mobileMenuDescription}
+                Navigate through E-Code platform sections
               </Dialog.Description>
             </div>
 
@@ -474,8 +556,8 @@ export function EcodeExactPublicNavbar({
                 <Button
                   variant="ghost"
                   size="icon"
-                  aria-label={copy.a11y.closeMobileMenu}
-                  className="!h-11 !w-11 !min-h-11 !min-w-11 hover:bg-muted"
+                  aria-label="Close mobile menu"
+                  className="hover:bg-muted"
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <X className="h-4 w-4 text-muted-foreground" />
@@ -485,23 +567,23 @@ export function EcodeExactPublicNavbar({
 
             <div className="shrink-0 p-4 border-b border-border">
               <Button
-                className="w-full bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)]"
+                className="w-full bg-ecode-accent hover:bg-ecode-accent-hover text-white"
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  navigate(MARKETING_SHELL_LINKS.register.href);
+                  navigate('/register');
                 }}
               >
-                {copy.navigation.getStarted}
+                Get Started
               </Button>
               <Button
                 variant="outline"
                 className="mt-2 w-full border-border text-foreground hover:bg-muted"
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  navigate(MARKETING_SHELL_LINKS.login.href);
+                  navigate('/login');
                 }}
               >
-                {copy.navigation.signIn}
+                Sign In
               </Button>
             </div>
 
@@ -512,7 +594,7 @@ export function EcodeExactPublicNavbar({
 
                   return (
                     <div
-                      key={section.id}
+                      key={section.title}
                       className={cn(section.bordered ? 'border-t border-border pt-3 pb-3' : 'pb-3')}
                     >
                       <h3 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-3 flex items-center gap-2">
@@ -522,11 +604,8 @@ export function EcodeExactPublicNavbar({
                       <div className="space-y-0.5">
                         {section.items.map((item) => (
                           <button
-                            key={`${section.id}-${item.id}`}
-                            className={cn(
-                              'min-h-11 w-full px-3 py-2.5 rounded-lg hover:bg-muted transition-colors flex items-center justify-between group',
-                              language === 'ar' ? 'text-right' : 'text-left',
-                            )}
+                            key={`${section.title}-${item.href}`}
+                            className="w-full text-left px-3 py-2.5 rounded-lg hover:bg-muted transition-colors flex items-center justify-between group"
                             onClick={() => {
                               setMobileMenuOpen(false);
                               navigate(item.href);
@@ -538,13 +617,7 @@ export function EcodeExactPublicNavbar({
                                 {item.description}
                               </div>
                             </div>
-                            <ChevronRight
-                              className={cn(
-                                'h-3.5 w-3.5 text-muted-foreground/50 flex-shrink-0',
-                                language === 'ar' ? 'mr-2 rotate-180' : 'ml-2',
-                              )}
-                              aria-hidden
-                            />
+                            <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/50 flex-shrink-0 ml-2" />
                           </button>
                         ))}
                       </div>
@@ -553,6 +626,11 @@ export function EcodeExactPublicNavbar({
                 })}
               </div>
             </ScrollArea>
+
+            <Dialog.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </Dialog.Close>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>
@@ -564,18 +642,16 @@ function MegaMenu({
   title,
   items,
   icon,
-  direction,
   compact = false,
 }: {
   title: string;
   items: MenuItem[];
   icon: 'sparkles' | 'arrow' | 'search' | 'chevron';
-  direction: 'ltr' | 'rtl';
   compact?: boolean;
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const Icon = icon === 'sparkles' ? Sparkles : icon === 'search' ? Search : ChevronRight;
-  const iconClass = 'text-[var(--ecode-accent-text)]';
+  const iconClass = icon === 'arrow' || icon === 'chevron' ? 'text-[#F99D25]' : 'text-[#F99D25]';
 
   /*
    * Hover intent: don't slam the panel shut the instant the cursor leaves. Close
@@ -618,7 +694,7 @@ function MegaMenu({
       }}
     >
       <button
-        className="group inline-flex min-h-11 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none"
+        className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none"
         aria-haspopup="menu"
         aria-expanded={isOpen}
         onKeyDown={(event) => {
@@ -629,22 +705,10 @@ function MegaMenu({
         }}
       >
         {title}
-        <ChevronRight
-          className={cn(
-            'h-3 w-3 transition-transform ecode-nav-menu-chevron',
-            direction === 'rtl' ? 'mr-1 rotate-180' : 'ml-1',
-          )}
-          aria-hidden
-        />
+        <ChevronRight className="ml-1 h-3 w-3 transition-transform ecode-nav-menu-chevron" aria-hidden />
       </button>
       {isOpen ? (
-        <div
-          className={cn(
-            'ecode-nav-menu-panel absolute top-full block pt-2',
-            direction === 'rtl' ? 'right-0' : 'left-0',
-          )}
-          role="menu"
-        >
+        <div className="ecode-nav-menu-panel absolute left-0 top-full block pt-2" role="menu">
           <ul
             className={cn(
               'grid gap-3 rounded-xl border border-border bg-background p-4 shadow-xl',
@@ -652,14 +716,14 @@ function MegaMenu({
             )}
           >
             {items.map((item) => (
-              <li key={item.id}>
+              <li key={item.title}>
                 <Link
                   href={item.href}
                   className="block rounded-xl border border-border bg-surface-solid p-4 transition-all duration-200 hover:-translate-y-1 hover:bg-surface-hover-solid hover:shadow-lg hover:shadow-[var(--ecode-accent)]"
                   role="menuitem"
                 >
                   <div className="text-[13px] font-semibold text-[var(--ecode-text)] dark:text-white flex items-center gap-2">
-                    <Icon className={cn('h-4 w-4', iconClass)} aria-hidden />
+                    <Icon className={cn('h-4 w-4', iconClass)} />
                     {item.title}
                   </div>
                   <p className="mt-2 text-[13px] text-[var(--ecode-text-secondary)] dark:text-slate-300 leading-relaxed">
@@ -686,7 +750,7 @@ function NavPill({ href, children }: { href: string; children: React.ReactNode }
       href={href}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'group inline-flex min-h-11 w-max items-center justify-center rounded-full border px-5 text-[13px] font-medium transition-colors',
+        'group inline-flex h-10 w-max items-center justify-center rounded-full border px-5 text-[13px] font-medium transition-colors',
         active
           ? 'border-[var(--ecode-accent)] text-[var(--ecode-accent-text)]'
           : 'border-[var(--ecode-border)] dark:border-border text-[var(--ecode-text)] dark:text-slate-200 hover:border-[var(--ecode-accent)] dark:hover:border-surface-hover-solid hover:text-[var(--ecode-accent-text)] dark:hover:text-white',
@@ -697,18 +761,10 @@ function NavPill({ href, children }: { href: string; children: React.ReactNode }
   );
 }
 
-function ThemeSwitcher({ copy }: { copy: MarketingShellCopy }) {
-  const resolvedTheme = useStore(themeStore);
-  const [theme, setHydratedTheme] = useState<Theme>('light');
-  const { icon } = getThemeSwitcherPresentation(theme, copy.theme);
+function ThemeSwitcher() {
+  const theme = useStore(themeStore);
+  const { icon, label } = getThemeSwitcherPresentation(theme);
   const Icon = icon === 'moon' ? Moon : Sun;
-  const label = theme === 'dark' ? copy.theme.dark : copy.theme.light;
-  const actionLabel = theme === 'dark' ? copy.theme.switchToLight : copy.theme.switchToDark;
-  const accessibleName = `${label}. ${actionLabel}`;
-
-  useEffect(() => {
-    setHydratedTheme(resolvedTheme);
-  }, [resolvedTheme]);
 
   const handleThemeToggle = () => {
     publicThemeWasManuallyChanged = true;
@@ -719,124 +775,99 @@ function ThemeSwitcher({ copy }: { copy: MarketingShellCopy }) {
     <Button
       variant="ghost"
       size="sm"
-      className="!min-h-11 !min-w-11 gap-2"
+      className="h-8 gap-2"
       data-testid="button-theme-toggle"
       onClick={handleThemeToggle}
-      aria-label={accessibleName}
-      title={actionLabel}
     >
-      <Icon className="h-4 w-4" aria-hidden />
+      <Icon className="h-4 w-4" />
       <span className="hidden sm:inline text-[11px]">{label}</span>
     </Button>
   );
 }
 
-export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: MarketingShellCopy } = {}) {
-  const { i18n } = useTranslation();
-  const activeLanguage = normalizeSupportedLanguage(i18n.resolvedLanguage ?? i18n.language) ?? 'en';
-  const copy = copyOverride ?? MARKETING_SHELL_COPY[activeLanguage];
+export function EcodeExactPublicFooter() {
   const navigate = useMarketingNavigate();
-  const productLinks = createFooterLinks(copy, 'product');
-  const resourceLinks = createFooterLinks(copy, 'resources');
-  const companyLinks = createFooterLinks(copy, 'company');
-  const legalLinks = createFooterLinks(copy, 'legal');
-  const comparisonLinks = createFooterLinks(copy, 'compare');
-  const assuranceIcons = [ShieldCheck, Globe2, Sparkles] as const;
-
-  const socialLinks = (Object.keys(MARKETING_SHELL_SOCIAL_LINKS) as MarketingShellSocialId[]).map((id) => ({
-    id,
-    icon: SOCIAL_ICONS[id],
-    ...MARKETING_SHELL_SOCIAL_LINKS[id],
-  }));
 
   return (
     <footer
-      aria-label={copy.a11y.siteFooter}
+      aria-label="Site footer"
       className="relative border-t border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text)] dark:border-border dark:bg-background dark:text-slate-200"
     >
+      <div className="absolute inset-0 marketing-gradient opacity-0 dark:opacity-100" aria-hidden />
       <div className="absolute inset-0 marketing-grid opacity-0 dark:opacity-60" aria-hidden />
       <div className="relative container-responsive py-16">
         <div className="grid gap-12 lg:grid-cols-[1.2fr_2fr]">
           <div className="space-y-6">
-            <Badge className="border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] text-[var(--status-info-text)] dark:border-border dark:bg-surface-solid">
-              <Sparkles className="mr-2 h-3 w-3" aria-hidden />
-              {copy.footer.eyebrow}
+            <Badge className="bg-surface-solid text-[var(--ecode-accent-text)] border-border dark:bg-surface-solid dark:text-white dark:border-border">
+              <Sparkles className="mr-2 h-3 w-3" />
+              Built for Fortune 500
             </Badge>
             <h3 className="text-3xl sm:text-4xl font-semibold text-[var(--ecode-text)] dark:text-white tracking-tight">
-              {copy.footer.title}
+              The future of enterprise software development
             </h3>
             <p className="text-[13px] sm:text-base text-[var(--ecode-text-secondary)] dark:text-slate-300 leading-relaxed max-w-lg">
-              {copy.footer.description}
+              E-Code combines secure cloud workspaces, intelligent automation, and enterprise controls so your teams can
+              ship faster across every device.
             </p>
             <div className="flex flex-wrap gap-3">
               <Button
-                className="bg-gradient-to-r from-[var(--ecode-accent)] via-[var(--ecode-accent)] to-[var(--ecode-accent)] text-[var(--ecode-accent-contrast)] shadow-lg shadow-[var(--ecode-accent)] !min-h-11"
-                onClick={() => navigate(MARKETING_SHELL_LINKS.contactSales.href)}
+                className="bg-gradient-to-r from-[var(--ecode-accent)] via-[var(--ecode-accent)] to-[var(--ecode-accent)] text-white shadow-lg shadow-[var(--ecode-accent)] min-h-[44px]"
+                onClick={() => navigate('/contact-sales')}
                 data-testid="button-footer-contact-sales"
               >
-                {copy.footer.contactSales}
+                Talk to sales
                 <ArrowUpRight className="ml-2 h-4 w-4" />
               </Button>
               <Button
                 variant="outline"
-                className="border-[var(--ecode-border)] text-[var(--ecode-text)] hover:text-[var(--ecode-accent-text)] dark:border-border dark:text-slate-100 dark:hover:text-white !min-h-11"
-                onClick={() => navigate(MARKETING_SHELL_LINKS.register.href)}
+                className="border-[var(--ecode-border)] text-[var(--ecode-text)] hover:text-[var(--ecode-accent-text)] dark:border-border dark:text-slate-100 dark:hover:text-white min-h-[44px]"
+                onClick={() => navigate('/register')}
                 data-testid="button-footer-start-building"
               >
-                {copy.footer.startBuilding}
+                Start building
               </Button>
             </div>
             <div className="grid grid-cols-2 gap-4 pt-4 text-[13px] text-[var(--ecode-text-secondary)] dark:text-slate-300">
               <div className="rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] dark:border-border dark:bg-surface-solid p-4">
                 <p className="text-[11px] uppercase tracking-widest text-[var(--ecode-text-muted)] dark:text-slate-400">
-                  {copy.footer.facts.sourceCode.label}
+                  Global uptime
                 </p>
-                <p className="mt-2 text-base font-semibold text-[var(--ecode-text)] dark:text-white">
-                  {copy.footer.facts.sourceCode.value}
-                </p>
+                <p className="mt-2 text-2xl font-semibold text-[var(--ecode-text)] dark:text-white">99.99%</p>
               </div>
               <div className="rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] dark:border-border dark:bg-surface-solid p-4">
                 <p className="text-[11px] uppercase tracking-widest text-[var(--ecode-text-muted)] dark:text-slate-400">
-                  {copy.footer.facts.projectWorkflow.label}
+                  Enterprise teams
                 </p>
-                <p className="mt-2 text-base font-semibold text-[var(--ecode-text)] dark:text-white">
-                  {copy.footer.facts.projectWorkflow.value}
-                </p>
+                <p className="mt-2 text-2xl font-semibold text-[var(--ecode-text)] dark:text-white">4,500+</p>
               </div>
             </div>
           </div>
 
-          {/*
-           * gap-x reste a 10 (40px) : l'alignement horizontal des colonnes ne
-           * bouge pas. Seul l'ecart VERTICAL est resserre (40px -> 24px) ; il ne
-           * joue qu'une fois les colonnes empilees (mobile 1 col, tablette 2 col),
-           * ou il separait deux titres de colonnes.
-           */}
-          <nav aria-label={copy.a11y.footerNavigation} className="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
-            <FooterColumn title={copy.footer.columnLabels.product} links={productLinks} />
+          <nav aria-label="Footer navigation" className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
+            <FooterColumn title="Product" links={footerLinks.product} />
             <div>
-              <FooterColumn title={copy.footer.columnLabels.resources} links={resourceLinks} />
-              <NewsletterMiniForm copy={copy} />
+              <FooterColumn title="Resources" links={footerLinks.resources} />
+              <NewsletterMiniForm />
             </div>
-            <FooterColumn title={copy.footer.columnLabels.company} links={companyLinks} />
-            <FooterColumn title={copy.footer.columnLabels.legal} links={legalLinks} />
+            <FooterColumn title="Company" links={footerLinks.company} />
+            <FooterColumn title="Legal" links={footerLinks.legal} />
             <div className="sm:col-span-2 lg:col-span-4">
               <div className="mt-6 rounded-2xl border border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] dark:border-border dark:bg-surface-solid p-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                   <div>
                     <p className="text-[13px] font-semibold text-[var(--ecode-text)] dark:text-white">
-                      {copy.footer.compareTitle}
+                      Compare platforms
                     </p>
                     <p className="text-[11px] text-[var(--ecode-text-secondary)] dark:text-slate-300">
-                      {copy.footer.compareDescription}
+                      See how E-Code stacks up against other development clouds.
                     </p>
                   </div>
-                  <div className="flex flex-wrap gap-3" role="list" aria-label={copy.a11y.platformComparisons}>
-                    {comparisonLinks.map((link) => (
+                  <div className="flex flex-wrap gap-3" role="list" aria-label="Platform comparisons">
+                    {footerLinks.compare.map((link) => (
                       <Link
-                        key={link.id}
+                        key={link.href}
                         href={link.href}
-                        className="inline-flex min-h-11 items-center rounded-full border border-[var(--ecode-border)] dark:border-border px-3 py-1.5 text-[11px] text-[var(--ecode-text-secondary)] dark:text-slate-200 transition hover:border-[var(--ecode-accent)] dark:hover:border-surface-hover-solid hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
+                        className="rounded-full border border-[var(--ecode-border)] dark:border-border px-3 py-1.5 text-[11px] text-[var(--ecode-text-secondary)] dark:text-slate-200 transition hover:border-[var(--ecode-accent)] dark:hover:border-surface-hover-solid hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
                       >
                         {link.label}
                       </Link>
@@ -849,31 +880,28 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
         </div>
 
         <div className="mt-16 grid gap-8 border-t border-[var(--ecode-border)] dark:border-border pt-10 sm:grid-cols-2 lg:grid-cols-4">
-          {copy.footer.assurances.map((assurance, index) => {
-            const AssuranceIcon = assuranceIcons[index];
-
-            return (
-              <div
-                className="flex items-center gap-3 text-[13px] text-[var(--ecode-text-secondary)] dark:text-slate-300"
-                key={assurance}
-              >
-                <AssuranceIcon className="h-5 w-5 text-[var(--status-info-text)]" aria-hidden />
-                {assurance}
-              </div>
-            );
-          })}
-          <div className="flex flex-nowrap items-center gap-2">
+          <div className="flex items-center gap-3 text-[13px] text-[var(--ecode-text-secondary)] dark:text-slate-300">
+            <ShieldCheck className="h-5 w-5 text-emerald-500 dark:text-emerald-300" />
+            SOC2 Type II, ISO 27001, GDPR &amp; HIPAA ready.
+          </div>
+          <div className="flex items-center gap-3 text-[13px] text-[var(--ecode-text-secondary)] dark:text-slate-300">
+            <Globe2 className="h-5 w-5 text-[var(--ecode-accent)] dark:text-[#F99D25]" />
+            18 global regions with enterprise data residency.
+          </div>
+          <div className="flex items-center gap-3 text-[13px] text-[var(--ecode-text-secondary)] dark:text-slate-300">
+            <Sparkles className="h-5 w-5 text-[var(--ecode-accent)] dark:text-[#F99D25]" />
+            AI governance, policy controls, and audit logging.
+          </div>
+          <div className="flex flex-wrap items-center gap-4">
             {socialLinks.map((social) => (
               <a
-                key={social.id}
+                key={social.label}
                 href={social.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label={interpolateMarketingShellCopy(copy.a11y.socialLinkTemplate, {
-                  network: social.name,
-                })}
+                aria-label={`E-Code on ${social.name}`}
                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[var(--ecode-border)] dark:border-border bg-[var(--ecode-surface-secondary)] dark:bg-surface-solid text-[var(--ecode-text-secondary)] dark:text-slate-200 transition hover:border-[var(--ecode-accent)] dark:hover:border-surface-hover-solid hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
-                data-testid={`link-social-${social.id}`}
+                data-testid={`link-social-${social.label.toLowerCase()}`}
               >
                 <social.icon className="h-5 w-5" aria-hidden="true" />
               </a>
@@ -882,32 +910,23 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
         </div>
 
         <div className="mt-12 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 text-[11px] text-[var(--ecode-text-muted)] dark:text-slate-400">
-          <div className="flex min-w-0 flex-col items-start gap-2 sm:flex-row sm:items-center sm:gap-3">
-            <Link
-              href={MARKETING_SHELL_LINKS.home.href}
-              className="inline-flex min-h-11 min-w-11 shrink-0 items-center"
-              aria-label={copy.a11y.home}
-            >
+          <div className="flex items-center gap-3">
+            <Link href="/">
               <div className="cursor-pointer">
                 <EcodeLogo size="xs" />
               </div>
             </Link>
-            <span className="min-w-0 leading-relaxed">
-              {interpolateMarketingShellCopy(copy.footer.copyrightTemplate, { year: new Date().getFullYear() })}
-            </span>
+            <span>© {new Date().getFullYear()} E-Code.AI (Snatch Group Limited). All rights reserved.</span>
           </div>
           <div className="flex items-center gap-4">
             <Link
-              href={MARKETING_SHELL_LINKS.newsletterUnsubscribe.href}
-              className="inline-flex min-h-11 items-center hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
+              href="/newsletter/unsubscribe"
+              className="hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
             >
-              {copy.footer.emailPreferences}
+              Email preferences
             </Link>
-            <Link
-              href={MARKETING_SHELL_LINKS.newsletterConfirmed.href}
-              className="inline-flex min-h-11 items-center hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
-            >
-              {copy.footer.newsletter}
+            <Link href="/newsletter-confirmed" className="hover:text-[var(--ecode-accent-text)] dark:hover:text-white">
+              Newsletter
             </Link>
           </div>
         </div>
@@ -916,18 +935,18 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
   );
 }
 
-function FooterColumn({ title, links }: { title: string; links: readonly FooterLink[] }) {
+function FooterColumn({ title, links }: { title: string; links: readonly { label: string; href: string }[] }) {
   return (
     <div>
       <h4 className="text-[13px] font-semibold uppercase tracking-[0.3em] text-[var(--ecode-text-muted)] dark:text-slate-400">
         {title}
       </h4>
-      <ul role="list" className="mt-3 space-y-2 text-[13px]">
+      <ul role="list" className="mt-4 space-y-2 text-[13px]">
         {links.map((link) => (
-          <li key={link.id}>
+          <li key={link.href}>
             <Link
               href={link.href}
-              className="inline-flex min-h-11 min-w-11 items-center text-[var(--ecode-text-secondary)] dark:text-slate-300 transition hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
+              className="text-[var(--ecode-text-secondary)] dark:text-slate-300 transition hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
             >
               {link.label}
             </Link>
@@ -943,26 +962,19 @@ function FooterColumn({ title, links }: { title: string; links: readonly FooterL
  * action, which proxies to the public API subscribe endpoint. Includes a
  * honeypot field bots fill and humans never see.
  */
-function NewsletterMiniForm({ copy }: { copy: MarketingShellCopy }) {
+function NewsletterMiniForm() {
   const fetcher = useFetcher<{ ok?: boolean; error?: string }>();
   const submitting = fetcher.state !== 'idle';
   const succeeded = fetcher.data?.ok === true;
-  const failed = fetcher.data?.ok === false;
-  const errorId = 'footer-newsletter-error';
 
   return (
     <div className="mt-8">
       <h4 className="text-[13px] font-semibold uppercase tracking-[0.3em] text-[var(--ecode-text-muted)] dark:text-slate-400">
-        {copy.newsletter.title}
+        Newsletter
       </h4>
       {succeeded ? (
-        <p
-          className="mt-4 text-[13px]"
-          style={{ color: 'var(--status-success-text)' }}
-          role="status"
-          aria-live="polite"
-        >
-          {copy.newsletter.success}
+        <p className="mt-4 text-[13px]" style={{ color: 'var(--status-success-text)' }}>
+          You&apos;re subscribed — watch your inbox.
         </p>
       ) : (
         <fetcher.Form method="post" action="/newsletter" className="mt-4">
@@ -972,12 +984,10 @@ function NewsletterMiniForm({ copy }: { copy: MarketingShellCopy }) {
               name="email"
               required
               autoComplete="email"
-              placeholder={copy.newsletter.emailPlaceholder}
-              aria-label={copy.a11y.emailAddress}
-              aria-invalid={failed || undefined}
-              aria-describedby={failed ? errorId : undefined}
+              placeholder="you@company.com"
+              aria-label="Email address"
               disabled={submitting}
-              className="min-h-11 w-full rounded-md border border-[var(--ecode-border)] dark:border-border bg-[var(--ecode-surface-secondary)] dark:bg-surface-solid px-3 py-2 text-[16px] text-[var(--ecode-text)] dark:text-slate-100 placeholder:text-[var(--ecode-text-muted)] outline-none focus-visible:border-[var(--ecode-accent)] focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2"
+              className="w-full rounded-md border border-[var(--ecode-border)] dark:border-border bg-[var(--ecode-surface-secondary)] dark:bg-surface-solid px-3 py-2 text-[16px] text-[var(--ecode-text)] dark:text-slate-100 placeholder:text-[var(--ecode-text-muted)] outline-none"
             />
             <input
               type="text"
@@ -990,14 +1000,14 @@ function NewsletterMiniForm({ copy }: { copy: MarketingShellCopy }) {
             <Button
               type="submit"
               disabled={submitting}
-              className="w-full !min-h-11 bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)]"
+              className="w-full min-h-[40px] bg-ecode-accent hover:bg-ecode-accent-hover text-white"
             >
-              {submitting ? copy.newsletter.subscribing : copy.newsletter.subscribe}
+              {submitting ? 'Subscribing…' : 'Subscribe'}
             </Button>
           </div>
-          {failed ? (
-            <p id={errorId} className="mt-2 text-[12px]" style={{ color: 'var(--status-error-text)' }} role="alert">
-              {copy.newsletter.errorFallback}
+          {fetcher.data && fetcher.data.ok === false ? (
+            <p className="mt-2 text-[12px]" style={{ color: 'var(--status-error-text)' }}>
+              {fetcher.data.error ?? 'Subscription failed. Please try again.'}
             </p>
           ) : null}
         </fetcher.Form>

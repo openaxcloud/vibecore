@@ -53,6 +53,7 @@ export const netlifyConnector: ConnectorProvider = {
     if (!response.ok) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_USER_INFO_FAILED',
+        message: `Netlify user info returned HTTP ${response.status}`,
         httpStatus: response.status,
       });
     }
@@ -64,6 +65,7 @@ export const netlifyConnector: ConnectorProvider = {
     } catch {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
+        message: 'Netlify user info returned a non-JSON body',
       });
     }
 
@@ -72,6 +74,7 @@ export const netlifyConnector: ConnectorProvider = {
     if (!userInfo) {
       throw new ConnectorProviderError({
         code: 'PROVIDER_RESPONSE_MALFORMED',
+        message: 'Netlify user info response is missing id',
       });
     }
 

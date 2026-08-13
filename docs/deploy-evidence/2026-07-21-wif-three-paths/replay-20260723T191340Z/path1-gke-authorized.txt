@@ -1,3 +1,0 @@
-IDENTITY=wif-authorized@ecode-wif-proof-834022.iam.gserviceaccount.com
-READ_HTTP=200
-SECRET_CONTENT=wif-proof-secret-content-1784834136

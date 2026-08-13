@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { filterEnabledMcpServers, MCPService, type MCPConfig } from './mcpService';
+import { filterEnabledMcpServers, type MCPConfig } from './mcpService';
 
 const config: MCPConfig = {
   mcpServers: {
@@ -29,25 +29,6 @@ describe('filterEnabledMcpServers', () => {
 
   it('does not mutate the input config', () => {
     filterEnabledMcpServers(config, ['github']);
-
     expect(Object.keys(config.mcpServers)).toEqual(['github', 'linear', 'memory']);
-  });
-
-  it('exposes a stable code instead of a raw policy diagnostic', async () => {
-    const service = new MCPService();
-
-    const result = await service.updateConfig({
-      mcpServers: {
-        privateServer: { type: 'sse', url: 'https://127.0.0.1/tools' },
-      },
-    });
-
-    expect(result.privateServer).toMatchObject({
-      status: 'unavailable',
-      error: 'MCP_CONFIGURATION_REJECTED',
-    });
-    expect(result.privateServer?.error).not.toContain('127.0.0.1');
-
-    await service.close();
   });
 });

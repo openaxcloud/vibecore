@@ -11,28 +11,14 @@ import * as React from 'react';
 import { Link as RemixLink, useLocation, useNavigate } from 'react-router';
 import { twMerge } from 'tailwind-merge';
 
-import { getMarketingBrandCopy } from '~/lib/i18n/catalogs/marketing-brand';
-
-function activeBrandLanguage(): string {
-  if (typeof document !== 'undefined') {
-    return document.documentElement.lang;
-  }
-
-  return 'en';
-}
-
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 export const BRAND = {
   name: 'E-Code',
-  get tagline() {
-    return getMarketingBrandCopy(activeBrandLanguage())['marketingBrand.tagline'];
-  },
-  get description() {
-    return getMarketingBrandCopy(activeBrandLanguage())['marketingBrand.description'];
-  },
+  tagline: 'Build software fast with AI',
+  description: 'Code with AI. Deploy instantly. Share with the world. Build and ship software 10x faster.',
   colors: {
     primary: '#F26207',
     primaryLight: '#FF6B35',

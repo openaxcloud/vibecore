@@ -2,7 +2,7 @@
  * @vitest-environment node
  */
 import { describe, expect, it } from 'vitest';
-import { decodeRuntimeFileContent, parseProjectFileWriteBody, ProjectFileIoError } from '~/lib/project-file-io';
+import { decodeRuntimeFileContent, parseProjectFileWriteBody } from '~/lib/project-file-io';
 
 describe('decodeRuntimeFileContent', () => {
   it('decodes utf8 text content into bytes', () => {
@@ -63,7 +63,7 @@ describe('parseProjectFileWriteBody', () => {
     expect(payload).toEqual({ content: 'data', encoding: 'utf8' });
   });
 
-  const expectRejects = async (promise: Promise<unknown>, code: string) => {
+  const expectRejects400 = async (promise: Promise<unknown>) => {
     const thrown = await promise.then(
       () => {
         throw new Error('expected the call to reject');
@@ -71,25 +71,21 @@ describe('parseProjectFileWriteBody', () => {
       (error) => error,
     );
 
-    expect(thrown).toBeInstanceOf(ProjectFileIoError);
-    expect(thrown).toMatchObject({ code, status: 400 });
+    expect(thrown).toBeInstanceOf(Response);
+    expect((thrown as Response).status).toBe(400);
   };
 
   it('rejects an invalid JSON body with a 400', async () => {
-    await expectRejects(parseProjectFileWriteBody('{not json', 'application/json'), 'INVALID_JSON_BODY');
+    await expectRejects400(parseProjectFileWriteBody('{not json', 'application/json'));
   });
 
   it('rejects a JSON envelope with non-string content', async () => {
-    await expectRejects(
-      parseProjectFileWriteBody(JSON.stringify({ content: 123 }), 'application/json'),
-      'PROJECT_FILE_CONTENT_REQUIRED',
-    );
+    await expectRejects400(parseProjectFileWriteBody(JSON.stringify({ content: 123 }), 'application/json'));
   });
 
   it('rejects an unsupported encoding value', async () => {
-    await expectRejects(
+    await expectRejects400(
       parseProjectFileWriteBody(JSON.stringify({ content: 'x', encoding: 'hex' }), 'application/json'),
-      'PROJECT_FILE_ENCODING_UNSUPPORTED',
     );
   });
 });

@@ -1,6 +1,5 @@
 import { atom } from 'nanostores';
 import { logStore } from './logs';
-import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import type { GitHubConnection } from '~/types/GitHub';
 
 // Initialize with stored connection or defaults
@@ -51,7 +50,7 @@ export async function initializeGitHubConnection() {
         return;
       }
 
-      throw new Error(clientStoresServicesText('clientStores.github.connectionFailed', { status: response.status }));
+      throw new Error(`Failed to connect to GitHub: ${response.statusText}`);
     }
 
     const userData = await response.json();
@@ -74,12 +73,10 @@ export async function initializeGitHubConnection() {
     // Fetch initial stats
     await fetchGitHubStatsViaAPI();
 
-    logStore.logSystem(clientStoresServicesText('clientStores.github.connectionInitialized'));
+    logStore.logSystem('GitHub connection initialized successfully');
   } catch (error) {
     console.error('Error initializing GitHub connection:', error);
-    logStore.logError(clientStoresServicesText('clientStores.github.connectionInitializationFailed'), {
-      code: 'GITHUB_CONNECTION_INITIALIZATION_FAILED',
-    });
+    logStore.logError('Failed to initialize GitHub connection', { error });
   } finally {
     isConnecting.set(false);
   }
@@ -93,7 +90,7 @@ export async function fetchGitHubStatsViaAPI() {
     const response = await fetch('/api/github-stats');
 
     if (!response.ok) {
-      throw new Error(clientStoresServicesText('clientStores.github.statsRequestFailed', { status: response.status }));
+      throw new Error(`Failed to fetch GitHub statistics: ${response.status}`);
     }
 
     const stats = (await response.json()) as NonNullable<GitHubConnection['stats']>;
@@ -104,12 +101,10 @@ export async function fetchGitHubStatsViaAPI() {
       stats,
     });
 
-    logStore.logSystem(clientStoresServicesText('clientStores.github.statsFetched'));
+    logStore.logSystem('GitHub stats fetched successfully');
   } catch (error) {
     console.error('GitHub API Error:', error);
-    logStore.logError(clientStoresServicesText('clientStores.github.statsFetchFailed'), {
-      code: 'GITHUB_STATS_FETCH_FAILED',
-    });
+    logStore.logError('Failed to fetch GitHub stats', { error });
   } finally {
     isFetchingStats.set(false);
   }

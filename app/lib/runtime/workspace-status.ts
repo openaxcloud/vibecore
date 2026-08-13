@@ -16,26 +16,15 @@ export type WorkspaceStatusLike = {
 } | null;
 
 /**
- * Ground-truth "the app is actually being served" signal: a forwarded port that
- * the runtime probed and reported READY.
- *
- * This previously also accepted `Boolean(port.url) || Boolean(port.baseUrl)`,
- * which made the predicate VACUOUSLY TRUE and is the proven root cause of the
- * "Workspace RUNNING + port open + 0 Problems + blank webview" state
- * (SOLUTIONS_REAL_PROOF_BLOCKERS.md §5):
- *
- *   - the API stamps a URL on EVERY port it reports — `previewUrlForWorkspacePort`
- *     is pure string templating that never touches the network, and even a
- *     `close` event carries one;
- *   - the previews store refuses to create an entry without a URL.
- *
- * So "an entry exists" implied "it is serving", and a port that died stayed
- * "live" forever. Readiness now comes solely from the HTTP probe
- * (`isPortReadyFromProbe`), which requires a 2xx/3xx AND a non-empty body, and
- * which re-emits on the ready -> not-ready edge so this can go back to false.
+ * Ground-truth "the app is actually being served" signal: a forwarded port that the
+ * runtime reported ready, or that exposes a reachable URL. This is stronger than the
+ * workspace `status` field, which lags at PENDING/STARTING during cold-start
+ * reconciliation — a port only enters the previews store once the runtime forwards
+ * it, so a ready/URL-bearing entry means the pod is genuinely serving, not merely
+ * that some port object exists in state.
  */
 export function hasLivePreviewPort(ports?: readonly WorkspacePortLike[] | null): boolean {
-  return (ports ?? []).some((port) => port.ready === true);
+  return (ports ?? []).some((port) => port.ready === true || Boolean(port.url) || Boolean(port.baseUrl));
 }
 
 export function isWorkspaceReallyRunning(

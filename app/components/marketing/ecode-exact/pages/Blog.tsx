@@ -1,5 +1,6 @@
 import {
   ArrowRight,
+  Bot,
   Calendar,
   ChevronRight,
   CreditCard,
@@ -12,7 +13,6 @@ import {
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { filterPostsByCategory } from './blog-filter';
 import {
   EcodeExactPublicFooter as PublicFooter,
@@ -26,21 +26,12 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Link,
   useMarketingNavigate,
   usePublicAuth,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
-import {
-  formatExactBlogDate,
-  getMarketingExactLegalBlogCopy,
-  type ExactBlogCategoryId,
-  type ExactBlogPostId,
-} from '~/lib/i18n/catalogs/marketing-exact-legal-blog';
 
 interface BlogPost {
-  id: ExactBlogPostId;
-  category: ExactBlogCategoryId;
-  categoryLabel: string;
+  category: string;
   icon: LucideIcon;
   title: string;
   excerpt: string;
@@ -48,141 +39,175 @@ interface BlogPost {
 }
 
 const PRODUCT = '/ecode-static/assets/product';
-const FEATURED_DATE = '2026-06-16';
-
-const BLOG_POST_META: Record<
-  ExactBlogPostId,
-  { categoryId: Exclude<ExactBlogCategoryId, 'All'>; icon: LucideIcon; date: string }
-> = {
-  'parallel-agents': { categoryId: 'AI Agent', icon: Workflow, date: '2026-06-10' },
-  'zero-config-deployments': { categoryId: 'Deployments', icon: Rocket, date: '2026-06-04' },
-  'effort-pricing': { categoryId: 'Pricing', icon: CreditCard, date: '2026-05-28' },
-  'multiplayer-editing': { categoryId: 'Collaboration', icon: Users, date: '2026-05-20' },
-  'agent-streaming': { categoryId: 'Engineering', icon: Radio, date: '2026-05-12' },
-  'self-repair': { categoryId: 'Product', icon: Wrench, date: '2026-05-05' },
-};
 
 export default function Blog() {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getMarketingExactLegalBlogCopy(language).exactBlog;
   const navigate = useMarketingNavigate();
   const { user } = usePublicAuth();
-  const [selectedCategory, setSelectedCategory] = useState<ExactBlogCategoryId>('All');
 
-  const posts: BlogPost[] = copy.articles.posts.map((post) => {
-    const metadata = BLOG_POST_META[post.id];
+  const categories = ['All', 'Product', 'AI Agent', 'Deployments', 'Pricing', 'Collaboration', 'Engineering'];
 
-    return {
-      ...post,
-      category: metadata.categoryId,
-      categoryLabel: post.category,
-      icon: metadata.icon,
-      date: metadata.date,
-    };
-  });
+  const featured = {
+    category: 'Product',
+    title: 'Introducing the E-Code Agent: from prompt to production in one flow',
+    excerpt:
+      'Our autonomous coding agent plans, writes, runs and previews your app end to end. Describe what you want in plain language and watch a full-stack project come to life in the IDE — then ship it to a live URL with a single click.',
+    date: 'June 16, 2026',
+    icon: Bot,
+    image: `${PRODUCT}/ide.png`,
+  };
 
+  const posts: BlogPost[] = [
+    {
+      category: 'AI Agent',
+      icon: Workflow,
+      title: 'How parallel sub-agents reach consensus on your code',
+      excerpt:
+        'A look under the hood at how E-Code fans a task out to multiple sub-agents, compares their proposals, and merges them into a single high-confidence change.',
+      date: 'June 10, 2026',
+    },
+    {
+      category: 'Deployments',
+      icon: Rocket,
+      title: 'Zero-config deployments: static and full-stack, instantly',
+      excerpt:
+        'Push from chat to a live URL with no YAML. We walk through how E-Code snapshots your build and serves it on managed infrastructure.',
+      date: 'June 4, 2026',
+    },
+    {
+      category: 'Pricing',
+      icon: CreditCard,
+      title: 'Effort-based pricing: pay for outcomes, not idle seats',
+      excerpt:
+        'Why we moved away from flat per-seat plans toward billing that tracks the real compute and agent effort your projects actually use.',
+      date: 'May 28, 2026',
+    },
+    {
+      category: 'Collaboration',
+      icon: Users,
+      title: 'Real-time multiplayer editing comes to the E-Code IDE',
+      excerpt:
+        'Presence, shared cursors and live agent activity let your whole team build in the same workspace without stepping on each other.',
+      date: 'May 20, 2026',
+    },
+    {
+      category: 'Engineering',
+      icon: Radio,
+      title: 'Streaming the agent: how we render thinking in real time',
+      excerpt:
+        'The SSE pipeline that powers per-lane streaming output, the backpressure tricks we use, and how we keep the editor responsive under load.',
+      date: 'May 12, 2026',
+    },
+    {
+      category: 'Product',
+      icon: Wrench,
+      title: 'Self-repair: when the agent fixes its own mistakes',
+      excerpt:
+        'E-Code now detects failed builds and broken previews, then retries with a corrected plan — turning dead ends into shipped features.',
+      date: 'May 5, 2026',
+    },
+  ];
+
+  const [selectedCategory, setSelectedCategory] = useState('All');
   const visiblePosts = filterPostsByCategory(posts, selectedCategory);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground" data-testid="page-blog">
+    <div className="min-h-screen flex flex-col" data-testid="page-blog">
       <PublicNavbar />
 
-      <main className="min-w-0 flex-1">
-        <section className="bg-gradient-to-b from-background to-muted py-responsive">
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="py-responsive bg-gradient-to-b from-background to-muted">
           <div className="container-responsive">
-            <div className="mx-auto max-w-3xl text-center">
-              <span className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-bolt-elements-background-depth-3 ring-1 ring-bolt-elements-borderColor">
-                <Newspaper className="h-6 w-6 text-ecode-accent" aria-hidden="true" />
+            <div className="text-center max-w-3xl mx-auto">
+              <span className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-bolt-elements-background-depth-3 ring-1 ring-bolt-elements-borderColor mb-5">
+                <Newspaper className="h-6 w-6 text-[#F26207]" />
               </span>
-              <h1 className="mb-4 break-words mkt-h1" data-testid="heading-blog">
-                {copy.hero.title}
+              <h1 className="mkt-h1 mb-4" data-testid="heading-blog">
+                The E-Code Blog
               </h1>
-              <p className="mb-8 break-words mkt-lead text-muted-foreground">{copy.hero.description}</p>
-              <Badge
-                variant="secondary"
-                className="max-w-full whitespace-normal px-4 py-2 text-center text-[15px] leading-snug"
-              >
-                {copy.hero.badge}
+              <p className="mkt-lead text-muted-foreground mb-8">
+                Product updates, engineering deep-dives and the future of AI-native software development.
+              </p>
+              <Badge variant="secondary" className="text-[15px] px-4 py-2">
+                Building in the open
               </Badge>
             </div>
           </div>
         </section>
 
-        <nav className="border-b border-border py-6" aria-label={copy.categoryNavigationLabel}>
+        {/* Category Filters */}
+        <section className="py-6 border-b border-border">
           <div className="container-responsive">
-            <div className="vc-no-scrollbar flex flex-nowrap justify-start gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:justify-center sm:overflow-visible sm:pb-0">
-              {copy.categories.map((category) => {
-                const isActive = category.id === selectedCategory;
-
+            <div className="flex flex-wrap justify-center gap-2">
+              {categories.map((category) => {
+                const isActive = category === selectedCategory;
                 return (
                   <button
-                    key={category.id}
+                    key={category}
                     type="button"
-                    onClick={() => setSelectedCategory(category.id)}
+                    onClick={() => setSelectedCategory(category)}
                     aria-pressed={isActive}
-                    className={`inline-flex min-h-[44px] shrink-0 cursor-pointer items-center rounded-full px-4 py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ecode-accent focus-visible:ring-offset-2 ${
-                      isActive
-                        ? 'bg-ecode-accent text-white hover:bg-ecode-accent-hover'
-                        : 'bg-muted text-muted-foreground hover:bg-muted/70 hover:text-foreground'
+                    className={`px-4 py-2 rounded-full text-[13px] font-medium min-h-[44px] inline-flex items-center cursor-pointer ${
+                      isActive ? 'text-white' : 'bg-muted text-muted-foreground hover:bg-muted/70'
                     }`}
-                    data-testid={`filter-${category.id.toLowerCase().replace(/\s+/g, '-')}`}
+                    style={isActive ? { backgroundColor: '#F26207' } : undefined}
+                    data-testid={`filter-${category.toLowerCase().replace(/\s+/g, '-')}`}
                   >
-                    {category.label}
+                    {category}
                   </button>
                 );
               })}
             </div>
           </div>
-        </nav>
+        </section>
 
+        {/* Featured Post */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="mb-8 break-words mkt-h2">{copy.featured.heading}</h2>
+            <h2 className="mkt-h2 mb-8">Featured</h2>
 
-            <Card className="min-w-0 overflow-hidden" data-testid="link-featured-post">
-              <div className="grid min-w-0 gap-0 md:grid-cols-2">
-                <figure className="relative min-w-0 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 md:border-b-0 md:border-r">
-                  <div className="flex min-w-0 items-center gap-2 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-4 py-2.5">
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#F26207]/70" aria-hidden="true" />
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-[#F99D25]/70" aria-hidden="true" />
-                    <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-muted-foreground/30" aria-hidden="true" />
-                    <span className="ml-2 min-w-0 truncate font-medium mkt-small text-muted-foreground">
-                      {copy.featured.windowLabel}
-                    </span>
+            <Card className="overflow-hidden" data-testid="link-featured-post">
+              <div className="grid md:grid-cols-2 gap-0">
+                {/* Real product capture, framed */}
+                <figure className="relative bg-bolt-elements-background-depth-2 border-b md:border-b-0 md:border-r border-bolt-elements-borderColor">
+                  <div className="flex items-center gap-2 px-4 py-2.5 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+                    <span className="h-2.5 w-2.5 rounded-full bg-[#F26207]/70" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-[#F99D25]/70" />
+                    <span className="h-2.5 w-2.5 rounded-full bg-muted-foreground/30" />
+                    <span className="ml-2 mkt-small text-muted-foreground font-medium truncate">E-Code Workspace</span>
                   </div>
                   <img
-                    src={`${PRODUCT}/ide.png`}
-                    alt={copy.featured.imageAlt}
+                    src={featured.image}
+                    alt="The E-Code IDE showing the AI Agent panel, code editor, file tree and live preview together in one workspace"
                     width={1440}
                     height={900}
                     loading="lazy"
-                    className="block h-auto w-full object-cover md:h-full"
+                    className="block w-full h-full object-cover"
                     data-testid="img-featured-post"
                   />
                 </figure>
-                <div className="flex min-w-0 flex-col justify-center p-5 sm:p-8">
-                  <Badge variant="secondary" className="mb-3 max-w-full whitespace-normal self-start leading-snug">
-                    {copy.featured.category}
+                <div className="p-8 flex flex-col justify-center">
+                  <Badge variant="secondary" className="w-fit mb-3">
+                    {featured.category}
                   </Badge>
-                  <h3 className="mb-3 break-words mkt-h3 leading-snug">{copy.featured.title}</h3>
-                  <p className="mb-6 break-words mkt-body text-muted-foreground">{copy.featured.excerpt}</p>
-                  <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div className="min-w-0 mkt-small text-muted-foreground">
-                      <span className="break-words font-medium text-foreground">{copy.articles.author}</span>
-                      <span className="mt-1 flex items-center gap-1">
-                        <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                        <time dateTime={FEATURED_DATE}>{formatExactBlogDate(FEATURED_DATE, language)}</time>
+                  <h3 className="mkt-h3 mb-3">{featured.title}</h3>
+                  <p className="mkt-body text-muted-foreground mb-6">{featured.excerpt}</p>
+                  <div className="flex items-center justify-between">
+                    <div className="mkt-small text-muted-foreground">
+                      <span className="font-medium text-foreground">E-Code Team</span>
+                      <span className="flex items-center gap-1 mt-1">
+                        <Calendar className="h-3.5 w-3.5" />
+                        {featured.date}
                       </span>
                     </div>
-                    <Link
+                    <a
                       href="/blog"
-                      className="inline-flex min-h-[44px] w-full items-center justify-center gap-1 whitespace-normal rounded-md text-center text-[14px] font-medium leading-snug text-ecode-accent hover:text-ecode-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ecode-accent sm:w-auto"
+                      className="flex items-center gap-1 text-[14px] font-medium text-[#F26207]"
                       data-testid="link-featured-read-more"
                     >
-                      <span className="min-w-0 break-words">{copy.articles.readMore}</span>
-                      <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-                    </Link>
+                      Read more
+                      <ArrowRight className="h-4 w-4" />
+                    </a>
                   </div>
                 </div>
               </div>
@@ -190,45 +215,43 @@ export default function Blog() {
           </div>
         </section>
 
-        <section className="bg-muted py-responsive">
+        {/* Latest Posts */}
+        <section className="py-responsive bg-muted">
           <div className="container-responsive">
-            <h2 className="mb-12 break-words mkt-h2">{copy.articles.heading}</h2>
+            <h2 className="mkt-h2 mb-12">Latest Posts</h2>
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {visiblePosts.map((post) => {
                 const Icon = post.icon;
-
                 return (
-                  <Card key={post.id} className="flex h-full min-w-0 flex-col transition-shadow hover:shadow-lg">
-                    <CardHeader className="min-w-0">
-                      <div className="mb-2 flex min-w-0 items-start justify-between gap-3">
-                        <Badge variant="secondary" className="max-w-full whitespace-normal leading-snug">
-                          {post.categoryLabel}
-                        </Badge>
-                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-bolt-elements-background-depth-3 ring-1 ring-bolt-elements-borderColor">
-                          <Icon className="h-4 w-4 text-ecode-accent" aria-hidden="true" />
+                  <Card key={post.title} className="flex flex-col hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <div className="flex items-center justify-between mb-2">
+                        <Badge variant="secondary">{post.category}</Badge>
+                        <span className="inline-flex items-center justify-center h-9 w-9 rounded-lg bg-bolt-elements-background-depth-3 ring-1 ring-bolt-elements-borderColor">
+                          <Icon className="h-4 w-4 text-[#F26207]" />
                         </span>
                       </div>
-                      <CardTitle className="break-words mkt-h3 leading-snug">{post.title}</CardTitle>
-                      <CardDescription className="break-words leading-relaxed">{post.excerpt}</CardDescription>
+                      <CardTitle className="mkt-h3 leading-snug">{post.title}</CardTitle>
+                      <CardDescription>{post.excerpt}</CardDescription>
                     </CardHeader>
-                    <CardContent className="mt-auto min-w-0">
-                      <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                        <div className="min-w-0 mkt-small text-muted-foreground">
-                          <span className="break-words font-medium text-foreground">{copy.articles.author}</span>
-                          <span className="mt-1 flex items-center gap-1">
-                            <Calendar className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                            <time dateTime={post.date}>{formatExactBlogDate(post.date, language)}</time>
+                    <CardContent className="mt-auto">
+                      <div className="flex items-center justify-between">
+                        <div className="mkt-small text-muted-foreground">
+                          <span className="font-medium text-foreground">E-Code Team</span>
+                          <span className="flex items-center gap-1 mt-1">
+                            <Calendar className="h-3.5 w-3.5" />
+                            {post.date}
                           </span>
                         </div>
-                        <Link
+                        <a
                           href="/blog"
-                          className="inline-flex min-h-[44px] w-full items-center justify-center gap-1 whitespace-normal rounded-md text-center text-[14px] font-medium leading-snug text-ecode-accent hover:text-ecode-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ecode-accent sm:w-auto"
+                          className="flex items-center gap-1 text-[14px] font-medium text-[#F26207] min-h-[44px]"
                           data-testid="link-read-more"
                         >
-                          <span className="min-w-0 break-words">{copy.articles.readMore}</span>
-                          <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-                        </Link>
+                          Read more
+                          <ArrowRight className="h-4 w-4" />
+                        </a>
                       </div>
                     </CardContent>
                   </Card>
@@ -236,42 +259,43 @@ export default function Blog() {
               })}
             </div>
 
-            {visiblePosts.length === 0 ? (
-              <p className="break-words text-center mkt-body text-muted-foreground" data-testid="text-no-posts">
-                {copy.articles.empty}
+            {visiblePosts.length === 0 && (
+              <p className="mkt-body text-muted-foreground text-center" data-testid="text-no-posts">
+                No posts in this category yet.
               </p>
-            ) : null}
+            )}
           </div>
         </section>
 
+        {/* End-of-page CTA banner */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <div className="relative overflow-hidden rounded-2xl bg-bolt-elements-background-depth-2 px-6 py-12 text-center ring-1 ring-bolt-elements-borderColor sm:px-12 sm:py-16">
-              <div className="pointer-events-none absolute -inset-1 bg-gradient-to-r from-[#F26207]/10 to-[#F99D25]/10 blur-2xl" />
-              <div className="relative mx-auto max-w-2xl">
-                <span className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-ecode-accent">
-                  <Rocket className="h-6 w-6 text-white" aria-hidden="true" />
+            <div className="relative overflow-hidden rounded-2xl bg-bolt-elements-background-depth-2 ring-1 ring-bolt-elements-borderColor px-6 sm:px-12 py-12 sm:py-16 text-center">
+              <div className="absolute -inset-1 bg-gradient-to-r from-[#F26207]/10 to-[#F99D25]/10 blur-2xl pointer-events-none" />
+              <div className="relative max-w-2xl mx-auto">
+                <span className="inline-flex items-center justify-center h-12 w-12 rounded-xl bg-[#F26207] mb-5">
+                  <Rocket className="h-6 w-6 text-white" />
                 </span>
-                <h2 className="mb-4 break-words mkt-h2">{copy.cta.title}</h2>
-                <p className="mb-8 break-words mkt-body text-muted-foreground">{copy.cta.description}</p>
-                <div className="flex flex-col justify-center gap-4 sm:flex-row">
+                <h2 className="mkt-h2 mb-4">Stop reading, start building</h2>
+                <p className="mkt-body text-muted-foreground mb-8">
+                  Describe your idea in plain language and let the E-Code Agent build, run and ship it for you.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button
                     size="lg"
-                    className="w-full whitespace-normal sm:w-auto"
                     onClick={() => navigate(user ? '/dashboard' : '/signup')}
                     data-testid="button-blog-get-started"
                   >
-                    <span className="min-w-0 break-words">{user ? copy.cta.dashboard : copy.cta.getStarted}</span>
-                    <ChevronRight className="ml-2 h-4 w-4 shrink-0" aria-hidden="true" />
+                    {user ? 'Open dashboard' : 'Get started free'}
+                    <ChevronRight className="ml-2 h-4 w-4" />
                   </Button>
                   <Button
                     size="lg"
                     variant="outline"
-                    className="w-full whitespace-normal sm:w-auto"
                     onClick={() => navigate('/features')}
                     data-testid="button-blog-explore-features"
                   >
-                    {copy.cta.exploreFeatures}
+                    Explore features
                   </Button>
                 </div>
               </div>

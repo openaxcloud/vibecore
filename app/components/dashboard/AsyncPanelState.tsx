@@ -1,5 +1,4 @@
 import { AlertCircle, AlertTriangle, RefreshCw } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { classNames } from '~/utils/classNames';
 
 type AsyncPanelStateProps = {
@@ -62,12 +61,11 @@ export function AsyncPanelError({
   description,
   onRetry,
   retrying = false,
-  retryLabel,
+  retryLabel = 'Try again',
   tone = 'error',
   compact = false,
   className,
 }: AsyncPanelErrorProps) {
-  const { t } = useTranslation();
   const Icon = tone === 'warning' ? AlertTriangle : AlertCircle;
 
   return (
@@ -112,7 +110,7 @@ export function AsyncPanelError({
             className={classNames('h-4 w-4', retrying && 'animate-spin motion-reduce:animate-none')}
             aria-hidden
           />
-          {retrying ? t('userArea.async.retrying') : (retryLabel ?? t('userArea.async.retry'))}
+          {retrying ? 'Retrying…' : retryLabel}
         </button>
       ) : null}
     </section>

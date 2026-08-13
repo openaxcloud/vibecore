@@ -84,7 +84,7 @@ describe('PrismaApiStore.verifyDomain', () => {
     await expect(store.verifyDomain({ organizationId: 'org', domain: DOMAIN })).rejects.toMatchObject({
       statusCode: 422,
       code: 'DOMAIN_VERIFICATION_FAILED',
-      message: expect.stringContaining('No TXT record was found'),
+      message: expect.stringContaining('No TXT record found'),
     });
   });
 });

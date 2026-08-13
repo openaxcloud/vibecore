@@ -1,11 +1,11 @@
 import { ArrowLeft, ExternalLink, Flag, GitFork, Eye, Loader2, Scale, ShieldCheck } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useLoaderData, useNavigation } from 'react-router';
 import { useActionData } from 'react-router';
 import { PublicShell } from '~/components/dashboard/SaaSLayout';
 import {
+  apiErrorMessage,
   apiRequest,
   isApiResponse,
   json,
@@ -14,16 +14,8 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import {
-  formatPublicGalleryCopy,
-  formatPublicGalleryNumber,
-  getPublicGalleryCopy,
-  selectPublicGalleryPlural,
-} from '~/lib/i18n/catalogs/public-gallery';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { shouldRethrowActionError } from '~/lib/route-reauth';
 import { projectIdePath } from '~/utils/project-url';
-import { MARKETING_SITE_URL } from '~/utils/social-meta';
 
 /*
  * Gallery detail (TPL-02). CONFIRMED replit.com/gallery/work/… surface: title,
@@ -43,7 +35,6 @@ type GalleryDetail = {
   featured: boolean;
   author: string;
   appUrl: string | null;
-  thumbnailUrl: string | null;
 
   /* License + fork rights (P0-V3-05): what a remixer accepts, versioned. */
   remixAllowed: boolean;
@@ -58,73 +49,36 @@ type GalleryDetail = {
 
 type Organization = { id: string; slug?: string };
 
-const REPORT_SUBJECT_PREFIX = 'Report gallery app:';
+const fullNumber = new Intl.NumberFormat('en-US');
 
 export const meta: MetaFunction<typeof loader> = ({ data }) => {
-  const copy = getPublicGalleryCopy(data?.language);
-
-  const title = data?.listing?.title
-    ? formatPublicGalleryCopy(copy['publicGallery.detail.meta.title'], { title: data.listing.title })
-    : copy['publicGallery.detail.meta.fallbackTitle'];
-
-  const description = data?.listing?.description ?? copy['publicGallery.detail.meta.fallbackDescription'];
-
-  const canonical = data?.listing?.slug
-    ? `${MARKETING_SITE_URL}/gallery/${encodeURIComponent(data.listing.slug)}`
-    : `${MARKETING_SITE_URL}/gallery`;
-
+  const title = data?.listing?.title ? `${data.listing.title} - Gallery - E-Code` : 'Gallery - E-Code';
   return [
     { title },
-    { name: 'description', content: description },
-    { property: 'og:title', content: title },
-    { property: 'og:description', content: description },
-    { property: 'og:type', content: 'website' },
-    { property: 'og:url', content: canonical },
-    { property: 'og:locale', content: data?.language === 'fr' ? 'fr_FR' : 'en_US' },
-    { property: 'og:locale:alternate', content: data?.language === 'fr' ? 'en_US' : 'fr_FR' },
-    { name: 'twitter:title', content: title },
-    { name: 'twitter:description', content: description },
-    { tagName: 'link', rel: 'canonical', href: canonical },
-    { tagName: 'link', rel: 'alternate', hrefLang: 'en', href: `${canonical}?lang=en` },
-    { tagName: 'link', rel: 'alternate', hrefLang: 'fr', href: `${canonical}?lang=fr` },
-    { tagName: 'link', rel: 'alternate', hrefLang: 'x-default', href: canonical },
+    { name: 'description', content: data?.listing?.description ?? 'An app published to the E-Code Gallery.' },
   ];
 };
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
-  const language = resolveRequestLocale(request).language;
-  const copy = getPublicGalleryCopy(language);
-  const slug = params.slug;
-
-  if (!slug) {
-    throw json({ error: copy['publicGallery.detail.error.notFound'] }, { status: 404 });
-  }
+  const slug = params.slug!;
 
   try {
     const { listing } = await apiRequest<{ listing: GalleryDetail }>(request, `/gallery/${encodeURIComponent(slug)}`, {
       redirectOn401: false,
     });
 
-    return json({ listing, language });
+    return json({ listing });
   } catch (error) {
     if (isApiResponse(error) && error.status === 404) {
-      throw json({ error: copy['publicGallery.detail.error.notFound'] }, { status: 404 });
+      throw new Response('Not found', { status: 404 });
     }
 
-    console.error('Gallery detail loader failed:', error);
-    throw json({ error: copy['publicGallery.detail.error.unavailable'] }, { status: 503 });
+    throw error;
   }
 }
 
 export async function action({ request, params }: EnterpriseActionArgs) {
-  const language = resolveRequestLocale(request).language;
-  const copy = getPublicGalleryCopy(language);
-  const slug = params.slug;
-
-  if (!slug) {
-    return json({ error: copy['publicGallery.detail.error.notFound'] }, { status: 404 });
-  }
-
+  const slug = params.slug!;
   const returnTo = `/gallery/${slug}`;
 
   /*
@@ -141,12 +95,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
     organization = organizations[0] ?? null;
   } catch (error) {
     if (!isApiResponse(error)) {
-      console.error('Gallery organization lookup failed:', error);
-      return json({ error: copy['publicGallery.detail.error.unavailable'] }, { status: 503 });
-    }
-
-    if (error.status !== 401 && error.status !== 403) {
-      return json({ error: copy['publicGallery.detail.error.unavailable'] }, { status: error.status });
+      throw error;
     }
 
     // 401/403 → treat as signed-out below.
@@ -183,20 +132,19 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       throw error;
     }
 
-    console.error('Gallery remix failed:', error);
+    if (isApiResponse(error)) {
+      return json(
+        { error: await apiErrorMessage(error, 'Could not remix this app. Please try again.') },
+        { status: error.status },
+      );
+    }
 
-    return json(
-      { error: copy['publicGallery.detail.error.remixFailed'] },
-      { status: isApiResponse(error) ? error.status : 503 },
-    );
+    throw error;
   }
 }
 
 export default function GalleryDetailRoute() {
-  const { i18n } = useTranslation();
-  const { listing, language: loadedLanguage } = useLoaderData<typeof loader>();
-  const language = i18n.resolvedLanguage ?? i18n.language ?? loadedLanguage;
-  const copy = getPublicGalleryCopy(language);
+  const { listing } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { error?: string } | undefined;
   const navigation = useNavigation();
   const remixing = navigation.state !== 'idle' && navigation.formMethod === 'POST';
@@ -205,45 +153,30 @@ export default function GalleryDetailRoute() {
   return (
     <PublicShell>
       <main
-        className="min-w-0 bg-[var(--ecode-background)] text-[var(--ecode-text)]"
+        className="bg-[var(--ecode-background)] text-[var(--ecode-text)]"
         data-public-resource-page="gallery-detail"
       >
         <div className="container-responsive py-10 sm:py-14">
           <Link
             to="/gallery"
-            className="inline-flex min-h-[44px] items-center gap-2 text-[13px] font-semibold text-[var(--ecode-text-secondary)] hover:text-[var(--ecode-accent)]"
+            className="inline-flex items-center gap-2 text-[13px] font-semibold text-[var(--ecode-text-secondary)] hover:text-[var(--ecode-accent)]"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden />
-            {copy['publicGallery.detail.back']}
+            Back to gallery
           </Link>
 
           <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
             {/* Main column */}
-            <div className="min-w-0">
+            <div>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--ecode-border)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--ecode-text-secondary)]">
                 {listing.category}
               </span>
-              <h1 className="mt-4 break-words text-[28px] font-bold leading-tight text-[var(--ecode-text)] [overflow-wrap:anywhere] sm:text-[34px]">
+              <h1 className="mt-4 text-[28px] font-bold leading-tight text-[var(--ecode-text)] sm:text-[34px]">
                 {listing.title}
               </h1>
-              <p className="mt-2 break-words text-[14px] text-[var(--ecode-text-muted)]">
-                {formatPublicGalleryCopy(copy['publicGallery.detail.author'], { author: listing.author })}
-              </p>
+              <p className="mt-2 text-[14px] text-[var(--ecode-text-muted)]">by {listing.author}</p>
 
-              {listing.thumbnailUrl ? (
-                <img
-                  src={listing.thumbnailUrl}
-                  alt={formatPublicGalleryCopy(copy['publicGallery.detail.previewAlt'], {
-                    title: listing.title,
-                  })}
-                  width={1200}
-                  height={675}
-                  className="mt-6 aspect-[16/9] w-full rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-background)] object-cover"
-                  data-testid="gallery-detail-thumb"
-                />
-              ) : null}
-
-              <p className="mt-6 max-w-2xl break-words text-[15px] leading-7 text-[var(--ecode-text-secondary)] [overflow-wrap:anywhere]">
+              <p className="mt-6 max-w-2xl text-[15px] leading-7 text-[var(--ecode-text-secondary)]">
                 {listing.description}
               </p>
 
@@ -262,27 +195,24 @@ export default function GalleryDetailRoute() {
             </div>
 
             {/* Action rail */}
-            <aside className="min-w-0 rounded-2xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-4 sm:p-6">
+            <aside className="rounded-2xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6">
               <dl className="grid grid-cols-2 gap-4">
                 <div>
                   <dt className="flex items-center gap-1.5 text-[12px] text-[var(--ecode-text-muted)]">
                     <Eye className="h-4 w-4" aria-hidden />
-                    {copy['publicGallery.detail.views']}
+                    Views
                   </dt>
                   <dd className="mt-1 text-[20px] font-bold text-[var(--ecode-text)]">
-                    {formatPublicGalleryNumber(language, listing.views)}
+                    {fullNumber.format(listing.views)}
                   </dd>
                 </div>
                 <div>
                   <dt className="flex items-center gap-1.5 text-[12px] text-[var(--ecode-text-muted)]">
                     <GitFork className="h-4 w-4" aria-hidden />
-                    {copy['publicGallery.detail.usedLabel']}
+                    Used
                   </dt>
                   <dd className="mt-1 text-[20px] font-bold text-[var(--ecode-text)]">
-                    {formatPublicGalleryCopy(
-                      copy[`publicGallery.detail.used_${selectPublicGalleryPlural(language, listing.uses)}`],
-                      { count: formatPublicGalleryNumber(language, listing.uses) },
-                    )}
+                    {fullNumber.format(listing.uses)} {listing.uses === 1 ? 'time' : 'times'}
                   </dd>
                 </div>
               </dl>
@@ -294,15 +224,15 @@ export default function GalleryDetailRoute() {
               >
                 <p className="flex items-center gap-1.5 text-[12px] font-semibold text-[var(--ecode-text-secondary)]">
                   <Scale className="h-4 w-4" aria-hidden />
-                  {copy['publicGallery.detail.license']}
+                  License
                 </p>
                 <p className="mt-1 text-[13px] text-[var(--ecode-text)]" data-testid="gallery-license-id">
-                  {listing.license ? listing.license.id : copy['publicGallery.detail.licenseMissing']}
+                  {listing.license ? listing.license.id : 'No license specified by the author'}
                 </p>
                 {listing.licenseText ? (
                   <details className="mt-2">
                     <summary className="cursor-pointer text-[12px] text-[var(--ecode-text-muted)] hover:text-[var(--ecode-text-secondary)]">
-                      {copy['publicGallery.detail.licenseRead']}
+                      Read the license text
                     </summary>
                     <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-[var(--ecode-surface)] p-3 text-[11px] leading-4 text-[var(--ecode-text-secondary)]">
                       {listing.licenseText}
@@ -315,16 +245,16 @@ export default function GalleryDetailRoute() {
                 >
                   <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
                   {listing.piiHandling.mode === 'MASKED'
-                    ? copy['publicGallery.detail.piiMasked']
-                    : formatPublicGalleryCopy(copy['publicGallery.detail.piiConsent'], {
-                        version: listing.piiHandling.consentVersion,
-                      })}
+                    ? 'Personal data (emails, phone numbers, payment identifiers) found in the source files is masked in your copy.'
+                    : 'The author explicitly consented to share the app data as-is (consent ' +
+                      listing.piiHandling.consentVersion +
+                      ').'}
                 </p>
               </div>
 
               {listing.remixAllowed ? (
                 <Form method="post" className="mt-4">
-                  <label className="flex min-h-[44px] cursor-pointer items-start gap-2 py-1 text-[12px] leading-5 text-[var(--ecode-text-secondary)]">
+                  <label className="flex cursor-pointer items-start gap-2 text-[12px] leading-5 text-[var(--ecode-text-secondary)]">
                     <input
                       type="checkbox"
                       name="acceptLicense"
@@ -333,16 +263,16 @@ export default function GalleryDetailRoute() {
                       className="mt-0.5 h-4 w-4 accent-[var(--ecode-accent)]"
                       data-testid="gallery-consent"
                     />
-                    <span className="min-w-0 break-words">
-                      {formatPublicGalleryCopy(copy['publicGallery.detail.acceptLicense'], {
-                        version: listing.remixConsentVersion,
-                      })}
+                    <span>
+                      I accept the license terms above and the data-handling policy (consent{' '}
+                      {listing.remixConsentVersion}
+                      ).
                     </span>
                   </label>
                   <button
                     type="submit"
                     disabled={remixing || !licenseAccepted}
-                    className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-2 whitespace-normal rounded-lg bg-[var(--ecode-accent)] px-5 py-3 text-center text-[15px] font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[var(--ecode-accent)] px-5 py-3 text-[15px] font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
                     data-testid="gallery-remix"
                   >
                     {remixing ? (
@@ -350,7 +280,7 @@ export default function GalleryDetailRoute() {
                     ) : (
                       <GitFork className="h-4 w-4" aria-hidden />
                     )}
-                    {remixing ? copy['publicGallery.detail.remixing'] : copy['publicGallery.detail.remix']}
+                    {remixing ? 'Remixing…' : 'Remix this app'}
                   </button>
                 </Form>
               ) : (
@@ -358,15 +288,12 @@ export default function GalleryDetailRoute() {
                   className="mt-4 rounded-md border border-[var(--ecode-border)] bg-[var(--ecode-background)] px-3 py-2 text-[13px] text-[var(--ecode-text-muted)]"
                   data-testid="gallery-remix-disabled"
                 >
-                  {copy['publicGallery.detail.remixDisabled']}
+                  The author has not allowed this app to be remixed.
                 </p>
               )}
 
               {actionData?.error ? (
-                <p
-                  className="mt-3 break-words rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-[13px] text-[var(--status-error-text)]"
-                  role="alert"
-                >
+                <p className="mt-3 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-[13px] text-[var(--status-error-text)]">
                   {actionData.error}
                 </p>
               ) : null}
@@ -376,25 +303,26 @@ export default function GalleryDetailRoute() {
                   href={listing.appUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-2 whitespace-normal rounded-lg border border-[var(--ecode-border)] px-5 py-3 text-center text-[15px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)]"
+                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--ecode-border)] px-5 py-3 text-[15px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)]"
                   data-testid="gallery-view-app"
                 >
                   <ExternalLink className="h-4 w-4" aria-hidden />
-                  {copy['publicGallery.detail.viewApp']}
+                  View app
                 </a>
               ) : null}
 
               <p className="mt-4 text-[12px] leading-5 text-[var(--ecode-text-muted)]">
-                {copy['publicGallery.detail.copyDisclosure']}
+                Remixing creates a private copy in your workspace. Secrets from the original are never copied, and
+                personal data is masked unless the author consented to share it.
               </p>
 
               <a
-                href={`mailto:trust-safety@e-code.ai?subject=${encodeURIComponent(`${REPORT_SUBJECT_PREFIX} ${listing.slug}`)}`}
-                className="mt-4 inline-flex min-h-[44px] items-center gap-1.5 text-[12px] text-[var(--ecode-text-muted)] hover:text-[var(--ecode-text-secondary)]"
+                href={`mailto:trust-safety@e-code.ai?subject=${encodeURIComponent(`Report gallery app: ${listing.slug}`)}`}
+                className="mt-4 inline-flex items-center gap-1.5 text-[12px] text-[var(--ecode-text-muted)] hover:text-[var(--ecode-text-secondary)]"
                 data-testid="gallery-report"
               >
                 <Flag className="h-3.5 w-3.5" aria-hidden />
-                {copy['publicGallery.detail.report']}
+                Report this app
               </a>
             </aside>
           </div>

@@ -4,44 +4,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#080B12" />
-    <title>E-Code</title>
+    <title>E-Code Mobile</title>
   </head>
   <body>
     <main id="app" class="mobile-shell" data-offline="false">
       <section class="mobile-topbar">
         <div>
           <p class="eyebrow">E-Code</p>
-          <h1 id="mobile-title"></h1>
+          <h1 id="mobile-title">Projects</h1>
         </div>
         <div class="native-actions">
-          <button id="language-toggle" class="language-toggle" type="button"></button>
-          <button id="share-project" type="button"></button>
-          <button id="open-browser" type="button"></button>
+          <button id="share-project" type="button" aria-label="Share project link">Share</button>
+          <button id="open-browser" type="button" aria-label="Open in browser">Open</button>
         </div>
       </section>
-      <section id="offline-banner" class="offline-banner" hidden></section>
-      <section id="upload-error" class="upload-error" role="alert" hidden></section>
+      <section id="offline-banner" class="offline-banner" hidden>Offline. Edits stay in the web workspace cache until the connection returns.</section>
       <section id="config-missing" class="config-missing" hidden>
-        <h2 id="config-missing-title"></h2>
-        <p id="config-missing-description"></p>
+        <h2>Mobile origin required</h2>
+        <p>Set VITE_WEB_APP_ORIGIN to the deployed E-Code web app before building the native app.</p>
       </section>
-      <iframe
-        id="web-app-frame"
-        title="E-Code"
-        allow="clipboard-read; clipboard-write; fullscreen; publickey-credentials-get; publickey-credentials-create"
-      ></iframe>
-      <nav class="mobile-tabs" data-mobile-nav>
-        <button data-route="/login" type="button"></button>
-        <button data-route="/onboarding" type="button"></button>
-        <button data-route="/dashboard" type="button"></button>
-        <button data-route="/projects" type="button"></button>
-        <button data-route="/notifications" type="button"></button>
-        <button data-route="/settings" type="button"></button>
+      <iframe id="web-app-frame" title="E-Code web app" allow="clipboard-read; clipboard-write; fullscreen; publickey-credentials-get; publickey-credentials-create"></iframe>
+      <nav class="mobile-tabs" data-mobile-nav aria-label="Mobile workspace sections">
+        <button data-route="/login" type="button">Login</button>
+        <button data-route="/onboarding" type="button">Onboarding</button>
+        <button data-route="/dashboard" type="button">Dashboard</button>
+        <button data-route="/projects" type="button">Projects</button>
+        <button data-route="/notifications" type="button">Alerts</button>
+        <button data-route="/settings" type="button">Settings</button>
       </nav>
       <footer class="mobile-status">
-        <span id="app-version" data-native-version></span>
+        <span id="app-version" data-native-version>Version loading</span>
         <label>
-          <span id="upload-label"></span>
+          Upload
           <input id="file-upload" data-project-upload type="file" />
         </label>
       </footer>

@@ -1,11 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { appPublicEnglish } from './app-public-copy.js';
-import {
-  buildImageContextFromRevision,
-  describeEcodeLockFailure,
-  type AppBuildRunPayload,
-} from './server-deploy-revision.js';
-import { assertLockAgainstRegistry, assertLockPublishable, parseNixGenerationRegistry } from '@vibecore/k8s-client';
+import { buildImageContextFromRevision, type AppBuildRunPayload } from './server-deploy-revision.js';
 import { serverDeployContextObjectKey, serverDeployRevisionObjectKey } from './server-deploy-transfer.js';
 import type { SnapshotAgent } from './server-deploy-transfer.js';
 
@@ -48,12 +42,7 @@ const baseOpts = (over: Partial<Parameters<typeof buildImageContextFromRevision>
   installCommand: 'npm install --include=dev',
   buildCommand: 'npm run build' as string | null,
   timeoutSeconds: 300,
-  runAppBuild: vi.fn(async () => ({
-    exitCode: 0,
-    output: '[build] uploaded artifact\n',
-    timedOut: false,
-    phase: 'Succeeded',
-  })),
+  runAppBuild: vi.fn(async () => ({ exitCode: 0, output: '[build] uploaded artifact\n', timedOut: false, phase: 'Succeeded' })),
   ...over,
 });
 
@@ -93,8 +82,7 @@ describe('buildImageContextFromRevision', () => {
     const result = await buildImageContextFromRevision(opts);
 
     expect(result.ok).toBe(false);
-    expect(result.message).toBe(appPublicEnglish('SERVER_REVISION_BUILD_FAILED'));
-    expect(result.message).not.toContain('npm ERR! boom');
+    expect(result.message).toContain('exit 1');
     expect(lines.join('\n')).toContain('npm ERR! boom');
   });
 
@@ -106,7 +94,7 @@ describe('buildImageContextFromRevision', () => {
     );
 
     expect(result.ok).toBe(false);
-    expect(result.message).toBe(appPublicEnglish('SERVER_REVISION_BUILD_TIMEOUT'));
+    expect(result.message).toContain('timed out');
   });
 
   it('propagates a failed revision snapshot as-is', async () => {
@@ -121,121 +109,5 @@ describe('buildImageContextFromRevision', () => {
     expect(result.ok).toBe(false);
     expect(result.error).toBe('SNAPSHOT_FAILED');
     expect(opts.runAppBuild).not.toHaveBeenCalled();
-  });
-});
-
-/*
- * RR-08 point 1 — the persisted publish failure MUST carry the typed code.
- * This exercises the exact production chain: the same assertLockAgainstRegistry
- * the publish path calls, caught by the same describeEcodeLockFailure that
- * shapes the persisted deployment error/log line.
- */
-describe('describeEcodeLockFailure (typed code survives into the artifact)', () => {
-  const registryWithRevokedGen2 = () =>
-    parseNixGenerationRegistry(
-      JSON.stringify({
-        schemaVersion: 1,
-        generations: [
-          {
-            id: 'gen-2',
-            status: 'REVOKED',
-            catalogSha256: `sha256:${'a'.repeat(64)}`,
-            nixVersion: '2.34.8',
-            nixpkgs: { channel: 'nixos-26.05', rev: '8eeec934ae0dbeca3d7868c059568a65c08b2fc3' },
-            zones: { 'europe-west9-a': 'nix-store-v2-pvc' },
-            bundles: [{ name: 'python312', storePath: '/nix/store/aaa-env-python', sha256: 'c'.repeat(64) }],
-            publishedAt: '2026-07-15T15:43:48Z',
-            revokedAt: '2026-07-23T19:30:00Z',
-            revokedReason: 'RR-08 automated negative',
-          },
-          {
-            id: 'gen-3',
-            status: 'ACTIVE',
-            catalogSha256: `sha256:${'b'.repeat(64)}`,
-            nixVersion: '2.34.8',
-            nixpkgs: { channel: 'nixos-26.05', rev: '8eeec934ae0dbeca3d7868c059568a65c08b2fc3' },
-            zones: { 'europe-west9-a': 'nix-store-v3-pvc' },
-            bundles: [{ name: 'python312', storePath: '/nix/store/bbb-env-python', sha256: 'd'.repeat(64) }],
-            publishedAt: '2026-07-23T00:00:00Z',
-          },
-        ],
-      }),
-    );
-
-  it('REQUIRES ECODE_LOCK_GENERATION_REVOKED in the persisted line for a revoked-generation lock', () => {
-    const registry = registryWithRevokedGen2();
-    const lock = {
-      lockVersion: 1 as const,
-      storeGeneration: 'gen-2',
-      nixpkgsRev: '8eeec934ae0dbeca3d7868c059568a65c08b2fc3',
-      bundles: [{ name: 'python312', storePath: '/nix/store/aaa-env-python', sha256: 'c'.repeat(64) }],
-    };
-
-    let failure: ReturnType<typeof describeEcodeLockFailure> | null = null;
-
-    try {
-      assertLockAgainstRegistry(lock, registry);
-    } catch (error) {
-      failure = describeEcodeLockFailure(error);
-    }
-
-    // The publish path persists failure.logLine — the literal code is REQUIRED.
-    expect(failure).not.toBeNull();
-    expect(failure!.code).toBe('ECODE_LOCK_GENERATION_REVOKED');
-    expect(failure!.logLine).toContain('ECODE_LOCK_GENERATION_REVOKED');
-    expect(failure!.logLine).toContain('REVOKED');
-    expect(failure!.message).toContain('gen-2');
-  });
-
-  it('preserves the code for every lock failure class (unpinned, tampered, unknown bundle)', () => {
-    const registry = registryWithRevokedGen2();
-    const gen3Lock = {
-      lockVersion: 1 as const,
-      storeGeneration: 'gen-3',
-      nixpkgsRev: '8eeec934ae0dbeca3d7868c059568a65c08b2fc3',
-      bundles: [{ name: 'python312', storePath: '/nix/store/bbb-env-python', sha256: 'd'.repeat(64) }],
-    };
-
-    const cases: Array<[() => void, string]> = [
-      [() => assertLockPublishable({ ...gen3Lock, storeGeneration: 'active' }), 'ECODE_LOCK_UNPINNED'],
-      [
-        () =>
-          assertLockAgainstRegistry(
-            { ...gen3Lock, bundles: [{ ...gen3Lock.bundles[0], sha256: '0'.repeat(64) }] },
-            registry,
-          ),
-        'ECODE_LOCK_BUNDLE_TAMPERED',
-      ],
-      [
-        () =>
-          assertLockAgainstRegistry(
-            {
-              ...gen3Lock,
-              bundles: [...gen3Lock.bundles, { name: 'ghc', storePath: '/nix/store/x', sha256: 'e'.repeat(64) }],
-            },
-            registry,
-          ),
-        'ECODE_LOCK_BUNDLE_UNKNOWN',
-      ],
-    ];
-
-    for (const [run, expectedCode] of cases) {
-      let failure: ReturnType<typeof describeEcodeLockFailure> | null = null;
-
-      try {
-        run();
-      } catch (error) {
-        failure = describeEcodeLockFailure(error);
-      }
-
-      expect(failure?.code, expectedCode).toBe(expectedCode);
-      expect(failure?.logLine).toContain(expectedCode);
-    }
-  });
-
-  it('degrades an untyped error to ECODE_LOCK_INVALID (never a missing code)', () => {
-    const failure = describeEcodeLockFailure(new Error('boom'));
-    expect(failure.code).toBe('ECODE_LOCK_INVALID');
-    expect(failure.logLine).toBe('ECODE_LOCK_INVALID: boom');
   });
 });

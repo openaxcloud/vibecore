@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  createSecurityHeaders,
-  sanitizeErrorMessage,
-  selectRateLimitRule,
-  withSecurity,
-  type RateLimitConfig,
-} from './security';
+import { createSecurityHeaders, selectRateLimitRule, type RateLimitConfig } from './security';
 
 describe('createSecurityHeaders', () => {
   it('does not allow inline or eval scripts in CSP', () => {
@@ -65,40 +59,5 @@ describe('selectRateLimitRule', () => {
 
     // Even with the catch-all declared first, the longer prefix must win.
     expect(selectRateLimitRule('/api/github-x', rules)).toEqual({ windowMs: 1000, maxRequests: 30 });
-  });
-});
-
-describe('localized security responses', () => {
-  it('sanitizes sensitive production errors in the requested language', () => {
-    expect(sanitizeErrorMessage(new Error('API key leaked'), false, 'fr')).toBe('L’authentification a échoué.');
-    expect(sanitizeErrorMessage(new Error('upstream rate limit: 429'), false, 'fr')).toBe(
-      'Limite de requêtes dépassée. Veuillez réessayer plus tard.',
-    );
-    expect(sanitizeErrorMessage(new Error('database exploded'), false, 'fr')).toBe(
-      'Une erreur inattendue est survenue.',
-    );
-  });
-
-  it('uses the manual language cookie before Accept-Language and marks the response variant', async () => {
-    const secured = withSecurity(async () => new Response('ok'), {
-      allowedMethods: ['POST'],
-      rateLimit: false,
-    });
-    const response = await secured({
-      request: new Request('https://example.test/api/example', {
-        method: 'GET',
-        headers: {
-          cookie: 'vibecore-lang=fr',
-          'accept-language': 'en-US,en;q=0.9',
-        },
-      }),
-      params: {},
-      context: {},
-    });
-
-    expect(response.status).toBe(405);
-    expect(await response.text()).toBe('Méthode non autorisée.');
-    expect(response.headers.get('Content-Language')).toBe('fr');
-    expect(response.headers.get('Vary')).toContain('Accept-Language');
   });
 });

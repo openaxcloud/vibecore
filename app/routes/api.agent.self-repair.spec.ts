@@ -48,10 +48,7 @@ describe('POST /api/agent/self-repair', () => {
     const response = await action(actionArgs(makeRequest({ method: 'GET' })));
 
     expect(response.status).toBe(405);
-    expect(await response.json()).toMatchObject({
-      error: 'This request method is not supported.',
-      code: 'METHOD_NOT_ALLOWED',
-    });
+    expect(await response.json()).toMatchObject({ error: expect.stringContaining('Method not allowed') });
   });
 
   it('returns 400 when the body is not valid JSON', async () => {
@@ -59,10 +56,7 @@ describe('POST /api/agent/self-repair', () => {
     const response = await action(actionArgs(makeRequest({ body: 'not-json' })));
 
     expect(response.status).toBe(400);
-    expect(await response.json()).toMatchObject({
-      error: 'The request body must contain valid JSON.',
-      code: 'INVALID_JSON_BODY',
-    });
+    expect(await response.json()).toMatchObject({ error: 'Invalid JSON body' });
   });
 
   it('returns 400 when prompt is missing or empty', async () => {
@@ -177,43 +171,13 @@ describe('POST /api/agent/self-repair', () => {
   });
 
   it('returns 502 when the LLM call rejects', async () => {
-    streamTextMock.mockRejectedValueOnce(new Error('SECRET_PROVIDER_DETAIL: quota exhausted'));
+    streamTextMock.mockRejectedValueOnce(new Error('provider quota exhausted'));
 
     const action = await loadAction();
     const response = await action(actionArgs(makeRequest({ body: JSON.stringify({ prompt: 'fix this hunk' }) })));
 
     expect(response.status).toBe(502);
-
-    const body = await response.json();
-
-    expect(body).toMatchObject({
-      error: 'Self-repair could not be completed. Please try again.',
-      code: 'SELF_REPAIR_FAILED',
-    });
-    expect(JSON.stringify(body)).not.toContain('SECRET_PROVIDER_DETAIL');
-  });
-
-  it('localizes errors from the manual language cookie before Accept-Language', async () => {
-    const action = await loadAction();
-    const request = makeRequest({ method: 'GET' });
-
-    const localizedRequest = new Request(request, {
-      headers: {
-        ...Object.fromEntries(request.headers.entries()),
-        cookie: 'vibecore-lang=fr',
-        'accept-language': 'en-US,en;q=0.9',
-      },
-    });
-
-    const response = await action(actionArgs(localizedRequest));
-
-    expect(response.status).toBe(405);
-    expect(response.headers.get('Content-Language')).toBe('fr');
-    expect(response.headers.get('Vary')).toContain('Cookie');
-    expect(await response.json()).toMatchObject({
-      error: 'Cette méthode de requête n’est pas prise en charge.',
-      code: 'METHOD_NOT_ALLOWED',
-    });
+    expect(await response.json()).toMatchObject({ error: 'provider quota exhausted' });
   });
 
   it('returns 400 when the apiKeys cookie is malformed JSON', async () => {

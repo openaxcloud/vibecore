@@ -1,12 +1,8 @@
 import { Sparkles, ArrowRight } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { Button, useWouterLocation } from '~/components/marketing/ecode-exact/EcodeExactUi';
-import { getMarketingLandingRemainingCopy } from '~/lib/i18n/catalogs/marketing-landing-remaining';
 
 export default function LandingCta() {
   const [, navigate] = useWouterLocation();
-  const { i18n } = useTranslation();
-  const copy = getMarketingLandingRemainingCopy(i18n.resolvedLanguage ?? i18n.language);
 
   return (
     <section
@@ -14,14 +10,11 @@ export default function LandingCta() {
       data-testid="section-cta"
     >
       <div className="container-responsive max-w-4xl text-center">
-        <h2 className="mb-6 break-words text-4xl font-bold text-white animate-fade-in sm:text-5xl">
-          {copy['marketingLanding.cta.title']}
+        <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6 animate-fade-in">
+          Ready to Build Something Amazing?
         </h2>
-        <p
-          className="mb-8 break-words text-xl leading-relaxed text-white/90 animate-fade-in"
-          style={{ animationDelay: '100ms' }}
-        >
-          {copy['marketingLanding.cta.description']}
+        <p className="text-xl text-white/90 mb-8 animate-fade-in" style={{ animationDelay: '100ms' }}>
+          Join 2M+ developers shipping production apps faster than ever
         </p>
         <div
           className="flex flex-col sm:flex-row gap-4 justify-center animate-fade-in"
@@ -29,22 +22,22 @@ export default function LandingCta() {
         >
           <Button
             size="lg"
-            className="!h-auto min-h-[44px] max-w-full gap-2 !whitespace-normal break-words bg-white px-8 py-3 text-center text-[15px] font-semibold leading-tight text-ecode-accent hover:bg-white/90"
+            className="bg-white text-ecode-accent hover:bg-white/90 gap-2 px-8 py-6 text-[15px] font-semibold"
             onClick={() => navigate('/register')}
             data-testid="button-cta-register"
           >
-            <Sparkles className="h-5 w-5 shrink-0" aria-hidden />
-            {copy['marketingLanding.cta.start']}
+            <Sparkles className="h-5 w-5" />
+            Start Building Free
           </Button>
           <Button
             size="lg"
             variant="outline"
-            className="!h-auto min-h-[44px] max-w-full gap-2 !whitespace-normal break-words border-2 border-gray-900 bg-white/20 px-8 py-3 text-center text-[15px] font-semibold leading-tight text-gray-900 hover:bg-white/40"
+            className="border-2 border-gray-900 text-gray-900 bg-white/20 hover:bg-white/40 gap-2 px-8 py-6 text-[15px] font-semibold"
             onClick={() => navigate('/pricing')}
             data-testid="button-cta-pricing"
           >
-            {copy['marketingLanding.cta.plans']}
-            <ArrowRight className="h-5 w-5 shrink-0" aria-hidden />
+            View Enterprise Plans
+            <ArrowRight className="h-5 w-5" />
           </Button>
         </div>
       </div>

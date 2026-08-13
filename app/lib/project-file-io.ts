@@ -19,26 +19,11 @@ export interface ProjectFileWritePayload {
   encoding: 'utf8' | 'base64';
 }
 
-export type ProjectFileIoErrorCode =
-  | 'INVALID_JSON_BODY'
-  | 'PROJECT_FILE_CONTENT_REQUIRED'
-  | 'PROJECT_FILE_ENCODING_UNSUPPORTED'
-  | 'PROJECT_FILE_READ_FAILED'
-  | 'PROJECT_FILE_WRITE_BODY_INVALID';
-
-/**
- * Internal, language-neutral failure passed to the route boundary. The route
- * owns localization and the public JSON contract; this helper never embeds or
- * serializes user-facing prose.
- */
-export class ProjectFileIoError extends Error {
-  constructor(
-    readonly code: ProjectFileIoErrorCode,
-    readonly status: number,
-  ) {
-    super(code);
-    this.name = 'ProjectFileIoError';
-  }
+function jsonResponse(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'content-type': 'application/json' },
+  });
 }
 
 /*
@@ -62,7 +47,14 @@ export function decodeRuntimeFileContent(file: RuntimeFileReadResponse): Uint8Ar
        * read path returns instead of letting it escape the loader as an opaque
        * 500.
        */
-      throw new ProjectFileIoError('PROJECT_FILE_READ_FAILED', 502);
+      throw jsonResponse(
+        {
+          ok: false,
+          error: 'Project file read failed',
+          code: 'PROJECT_FILE_READ_UNAVAILABLE',
+        },
+        502,
+      );
     }
 
     const bytes = new Uint8Array(binary.length);
@@ -98,21 +90,21 @@ export async function parseProjectFileWriteBody(
     try {
       parsed = JSON.parse(rawBody);
     } catch {
-      throw new ProjectFileIoError('INVALID_JSON_BODY', 400);
+      throw jsonResponse({ ok: false, error: 'Invalid JSON body' }, 400);
     }
 
     if (!parsed || typeof parsed !== 'object') {
-      throw new ProjectFileIoError('PROJECT_FILE_WRITE_BODY_INVALID', 400);
+      throw jsonResponse({ ok: false, error: 'Invalid file write body' }, 400);
     }
 
     const { content, encoding } = parsed as { content?: unknown; encoding?: unknown };
 
     if (typeof content !== 'string') {
-      throw new ProjectFileIoError('PROJECT_FILE_CONTENT_REQUIRED', 400);
+      throw jsonResponse({ ok: false, error: 'File content is required' }, 400);
     }
 
     if (encoding !== undefined && encoding !== 'utf8' && encoding !== 'base64') {
-      throw new ProjectFileIoError('PROJECT_FILE_ENCODING_UNSUPPORTED', 400);
+      throw jsonResponse({ ok: false, error: 'Unsupported content encoding' }, 400);
     }
 
     return { content, encoding: encoding === 'base64' ? 'base64' : 'utf8' };

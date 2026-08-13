@@ -40,18 +40,4 @@ describe('git status display helpers', () => {
     expect(describeGitFileStatus('AM').key).toBe('added');
     expect(describeGitFileStatus(' M').key).toBe('modified');
   });
-
-  it('localizes labels and descriptions without changing Git porcelain codes', () => {
-    expect(describeGitFileStatus('??', 'fr-FR')).toMatchObject({
-      key: 'untracked',
-      rawCode: '??',
-      displayCode: 'U',
-      label: 'Non suivi',
-      description: 'Nouveau fichier pas encore ajouté à Git.',
-    });
-    expect(getGitStatusLegendItems('fr').map((item) => `${item.displayCode}:${item.label}`)).toEqual(
-      expect.arrayContaining(['U:Non suivi', 'M:Modifié', 'A:Ajouté']),
-    );
-    expect(describeGitFileStatus('M', 'de-DE').label).toBe('Modified');
-  });
 });

@@ -1,10 +1,9 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { Building2, Plus } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useLoaderData, useNavigation, useRouteError, useSearchParams } from 'react-router';
-import { ActivityList, AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
+import { Form, useActionData, useLoaderData, useNavigation, useSearchParams } from 'react-router';
+import { ActivityList, AppShell } from '~/components/dashboard/SaaSLayout';
 import { Dialog, DialogTitle } from '~/components/ui/Dialog';
 import {
   apiRequest,
@@ -13,94 +12,24 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { getOrganizationAccessCopy } from '~/lib/i18n/catalogs/organization-access';
-import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { buildOrganizationRows, type Organization } from '~/lib/organizations';
-import { isReauthRedirect } from '~/lib/route-reauth';
+import { shouldRethrowActionError } from '~/lib/route-reauth';
 
-const ORGANIZATION_SWITCHER_CANONICAL_URL = 'https://e-code.ai/organization-switcher';
-
-export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-  const language = data?.language ?? rootData?.language;
-  const copy = getOrganizationAccessCopy(language);
-  const title = copy['organizationAccess.switcher.metaTitle'];
-  const description = copy['organizationAccess.switcher.metaDescription'];
-
-  return [
-    { title },
-    { name: 'description', content: description },
-    { property: 'og:title', content: title },
-    { property: 'og:description', content: description },
-    { property: 'og:type', content: 'website' },
-    { property: 'og:url', content: ORGANIZATION_SWITCHER_CANONICAL_URL },
-    { property: 'og:locale', content: language === 'fr' ? 'fr_FR' : 'en_US' },
-    { property: 'og:locale:alternate', content: language === 'fr' ? 'en_US' : 'fr_FR' },
-    { name: 'twitter:title', content: title },
-    { name: 'twitter:description', content: description },
-    { tagName: 'link', rel: 'canonical', href: ORGANIZATION_SWITCHER_CANONICAL_URL },
-    {
-      tagName: 'link',
-      rel: 'alternate',
-      hrefLang: 'en',
-      href: `${ORGANIZATION_SWITCHER_CANONICAL_URL}?lang=en`,
-    },
-    {
-      tagName: 'link',
-      rel: 'alternate',
-      hrefLang: 'fr',
-      href: `${ORGANIZATION_SWITCHER_CANONICAL_URL}?lang=fr`,
-    },
-    { tagName: 'link', rel: 'alternate', hrefLang: 'x-default', href: ORGANIZATION_SWITCHER_CANONICAL_URL },
-  ];
-};
+export const meta: MetaFunction = () => [{ title: 'Organizations - E-Code' }];
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const localeResolution = resolveRequestLocale(request);
-
-  try {
-    const result = await apiRequest<{ organizations?: unknown }>(request, '/orgs');
-
-    if (!Array.isArray(result.organizations)) {
-      throw new TypeError('organizations');
-    }
-
-    const organizations = result.organizations.filter(
-      (organization): organization is Organization =>
-        Boolean(organization) &&
-        typeof organization === 'object' &&
-        typeof (organization as { id?: unknown }).id === 'string',
-    );
-
-    return json(
-      { organizations, language: localeResolution.language },
-      { headers: localeResponseHeaders(request, localeResolution) },
-    );
-  } catch (error) {
-    if (isReauthRedirect(error) || (error instanceof Response && error.status === 401)) {
-      throw error;
-    }
-
-    throw json(
-      { errorCode: 'loadFailed' as const },
-      { status: 503, headers: localeResponseHeaders(request, localeResolution) },
-    );
-  }
+  const result = await apiRequest<{ organizations: Organization[] }>(request, '/orgs');
+  return { organizations: result.organizations };
 }
 
-type ActionErrorCode = 'nameRequired' | 'requestFailed';
-type ActionResult = { ok: false; errorCode: ActionErrorCode };
+type ActionResult = { ok: false; error: string };
 
 export async function action({ request }: EnterpriseActionArgs) {
-  const localeResolution = resolveRequestLocale(request);
   const form = await request.formData();
   const name = String(form.get('name') ?? '').trim();
 
-  const actionError = (errorCode: ActionErrorCode, status: number) =>
-    json<ActionResult>({ ok: false, errorCode }, { status, headers: localeResponseHeaders(request, localeResolution) });
-
   if (!name) {
-    return actionError('nameRequired', 400);
+    return json<ActionResult>({ ok: false, error: 'Give the organization a name.' }, { status: 400 });
   }
 
   try {
@@ -116,25 +45,29 @@ export async function action({ request }: EnterpriseActionArgs) {
      */
     return redirect(`/organization-members?orgId=${encodeURIComponent(created.organization.id)}`);
   } catch (error) {
-    if (isReauthRedirect(error) || (error instanceof Response && error.status === 401)) {
+    /*
+     * Re-throw session-expiry/MFA redirects and 5xx Responses so the framework
+     * handles them (see api-keys.tsx for the full rationale).
+     */
+    if (shouldRethrowActionError(error)) {
       throw error;
     }
 
+    // apiRequest throws a json() Response on 4xx API errors (e.g. the 409 for a taken slug); surface its message inline.
     if (error instanceof Response) {
-      return actionError('requestFailed', error.status);
+      const payload = (await error.json().catch(() => null)) as { error?: string } | null;
+
+      return json<ActionResult>({ ok: false, error: payload?.error ?? 'Request failed.' }, { status: error.status });
     }
 
-    return actionError('requestFailed', 500);
+    return json<ActionResult>({ ok: false, error: 'Request failed.' }, { status: 500 });
   }
 }
 
 const BLUE_CTA =
-  'inline-flex min-h-11 items-center justify-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-4 py-2 text-center text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex h-9 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
 
 export default function OrganizationSwitcherPage() {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getOrganizationAccessCopy(language);
   const { organizations } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as ActionResult | undefined;
   const navigation = useNavigation();
@@ -144,21 +77,20 @@ export default function OrganizationSwitcherPage() {
   const [searchParams] = useSearchParams();
   const [createOpen, setCreateOpen] = useState(() => searchParams.get('create') === '1');
 
-  const error =
-    actionData && !actionData.ok ? copy[`organizationAccess.switcher.${actionData.errorCode}` as const] : null;
+  const error = actionData && !actionData.ok ? actionData.error : null;
 
   return (
     <AppShell
-      title={copy['organizationAccess.switcher.title']}
-      description={copy['organizationAccess.switcher.description']}
+      title="Organizations"
+      description="The organizations you belong to, each with isolated projects, billing and RBAC settings."
       actions={
         <button type="button" onClick={() => setCreateOpen(true)} className={BLUE_CTA}>
-          {copy['organizationAccess.switcher.new']}
+          New organization
         </button>
       }
     >
       <ActivityList
-        items={buildOrganizationRows(organizations, language).map((row) => ({
+        items={buildOrganizationRows(organizations).map((row) => ({
           ...row,
           icon: organizations.length ? Building2 : Plus,
         }))}
@@ -169,18 +101,16 @@ export default function OrganizationSwitcherPage() {
           <Dialog onClose={() => setCreateOpen(false)} onBackdrop={() => setCreateOpen(false)}>
             <div className="p-6">
               <DialogTitle asChild>
-                <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
-                  {copy['organizationAccess.switcher.createTitle']}
-                </h2>
+                <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Create an organization</h2>
               </DialogTitle>
-              <p className="mt-1 break-words text-sm text-bolt-elements-textSecondary">
-                {copy['organizationAccess.switcher.createDescription']}
+              <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+                A new organization with isolated projects, members, billing and RBAC. You become its owner.
               </p>
 
               <Form method="post" className="mt-4 space-y-5">
                 <div>
                   <label htmlFor="org-name" className="block text-sm font-medium text-bolt-elements-textPrimary">
-                    {copy['organizationAccess.switcher.name']}
+                    Name
                   </label>
                   {/* text-base (16px) on mobile prevents iOS Safari's focus auto-zoom, which
                       shifts the viewport-fixed modal off-screen to the right; sm:text-sm keeps
@@ -191,8 +121,8 @@ export default function OrganizationSwitcherPage() {
                     type="text"
                     required
                     maxLength={120}
-                    placeholder={copy['organizationAccess.switcher.namePlaceholder']}
-                    className="mt-1 min-h-11 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-base text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none sm:text-sm"
+                    placeholder="Acme Inc"
+                    className="mt-1 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-base text-bolt-elements-textPrimary focus:border-bolt-elements-focus focus:outline-none sm:text-sm"
                   />
                 </div>
 
@@ -206,16 +136,16 @@ export default function OrganizationSwitcherPage() {
                   </p>
                 ) : null}
 
-                <div className="flex flex-col-reverse justify-end gap-2 sm:flex-row">
+                <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setCreateOpen(false)}
-                    className="inline-flex min-h-11 items-center justify-center whitespace-normal rounded-md border border-bolt-elements-borderColor px-4 py-2 text-center text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
+                    className="inline-flex h-9 items-center justify-center rounded-md border border-bolt-elements-borderColor px-4 text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3"
                   >
-                    {copy['organizationAccess.switcher.cancel']}
+                    Cancel
                   </button>
                   <button type="submit" disabled={busy} aria-busy={busy} className={BLUE_CTA}>
-                    {busy ? copy['organizationAccess.switcher.creating'] : copy['organizationAccess.switcher.create']}
+                    {busy ? 'Creating…' : 'Create organization'}
                   </button>
                 </div>
               </Form>
@@ -223,32 +153,6 @@ export default function OrganizationSwitcherPage() {
           </Dialog>
         ) : null}
       </RadixDialog.Root>
-    </AppShell>
-  );
-}
-
-export function ErrorBoundary() {
-  const { i18n } = useTranslation();
-  const copy = getOrganizationAccessCopy(i18n.resolvedLanguage ?? i18n.language);
-
-  useRouteError();
-
-  return (
-    <AppShell
-      title={copy['organizationAccess.switcher.title']}
-      description={copy['organizationAccess.switcher.description']}
-    >
-      <div
-        role="alert"
-        className="rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4 text-[var(--status-error-text)]"
-      >
-        <p className="break-words text-sm">{copy['organizationAccess.switcher.loadFailed']}</p>
-        <div className="mt-4">
-          <LinkButton to="/dashboard" variant="outline">
-            {copy['organizationAccess.switcher.backDashboard']}
-          </LinkButton>
-        </div>
-      </div>
     </AppShell>
   );
 }

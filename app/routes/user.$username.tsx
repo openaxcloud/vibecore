@@ -1,5 +1,4 @@
 import type { MetaFunction } from 'react-router';
-import { buildRemainingRouteMeta, getRemainingRouteShellsCopy } from '~/lib/i18n/catalogs/remaining-route-shells';
 
 /*
  * bolt.diy-heritage compatibility route for /user/:username public builder
@@ -17,21 +16,10 @@ import { buildRemainingRouteMeta, getRemainingRouteShellsCopy } from '~/lib/i18n
  * ecode-route-coverage.spec.ts remains backed by a route module.
  */
 export const loader = () => {
-  throw new Response(null, { status: 404 });
+  throw new Response('Not Found', { status: 404, statusText: 'Not Found' });
 };
 
-export const meta: MetaFunction = ({ matches, params }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-  const copy = getRemainingRouteShellsCopy(rootData?.language);
-
-  return buildRemainingRouteMeta({
-    title: copy['remainingRoutes.profileNotFound.title'],
-    description: copy['remainingRoutes.profileNotFound.description'],
-    path: `/user/${encodeURIComponent(params.username ?? '')}`,
-    language: rootData?.language,
-    noindex: true,
-  });
-};
+export const meta: MetaFunction = () => [{ title: 'Profile not found - E-Code' }];
 
 export default function UserSurfaceRoute() {
   // Unreachable: the loader always throws; the root ErrorBoundary renders.

@@ -63,28 +63,7 @@ describe('/api/logs/ingest', () => {
     );
 
     expect(response.status).toBe(400);
-
-    const payload = await response.json();
-
-    expect(payload).toMatchObject({ error: 'The log payload format is invalid.', code: 'LOG_FORMAT_INVALID' });
-    expect(payload).not.toHaveProperty('details');
+    await expect(response.json()).resolves.toMatchObject({ error: 'Invalid log format' });
     expect(__testing.recentFrontendLogs).toHaveLength(0);
-  });
-
-  it('localizes validation failures without exposing Zod details', async () => {
-    const request = buildRequest(
-      { logs: [{ level: 'fatal', message: '' }] },
-      { headers: { 'content-type': 'application/json', 'accept-language': 'fr-FR,fr;q=0.9' } },
-    );
-
-    const response = toResponse(await action({ request, context: {}, params: {} }));
-    const payload = await response.json();
-
-    expect(response.status).toBe(400);
-    expect(response.headers.get('Content-Language')).toBe('fr');
-    expect(payload).toEqual({
-      error: 'Le format de la charge utile des journaux est invalide.',
-      code: 'LOG_FORMAT_INVALID',
-    });
   });
 });

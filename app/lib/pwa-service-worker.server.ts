@@ -1,17 +1,27 @@
-export const PWA_SERVICE_WORKER_CACHE_NAME = 'vibecore-shell-v3';
+export const PWA_SERVICE_WORKER_CACHE_NAME = 'vibecore-shell-v2';
 
-export const pwaServiceWorkerScript = String.raw`
+export const pwaServiceWorkerScript =
+  String.raw`
 const CACHE_NAME = '${PWA_SERVICE_WORKER_CACHE_NAME}';
-const OFFLINE_URL = '/offline.html';
-const SHELL_ASSETS = [
-  '/manifest.webmanifest',
-  '/manifest.fr.webmanifest',
-  '/favicon.svg',
-  '/apple-touch-icon.png',
-  OFFLINE_URL,
-  '/offline-messages.js',
-  '/offline-i18n.js',
-];
+const SHELL_ASSETS = ['/manifest.webmanifest', '/favicon.svg', '/apple-touch-icon.png'];
+const OFFLINE_HTML = ` +
+  '`' +
+  `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>E-Code offline</title>
+  </head>
+  <body>
+    <main style="font-family: system-ui, sans-serif; padding: 2rem; line-height: 1.5">
+      <h1>Connection interrupted</h1>
+      <p>E-Code could not reach the network. Reload when the connection is available.</p>
+    </main>
+  </body>
+</html>` +
+  '`' +
+  `;
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
@@ -46,11 +56,14 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(
-      fetch(request, { cache: 'no-store' }).catch(async () => {
-        const offline = await caches.match(OFFLINE_URL);
-
-        return offline || Response.error();
-      }),
+      fetch(request, { cache: 'no-store' }).catch(
+        () =>
+          new Response(OFFLINE_HTML, {
+            status: 503,
+            statusText: 'Service Unavailable',
+            headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' },
+          }),
+      ),
     );
     return;
   }

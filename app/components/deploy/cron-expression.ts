@@ -8,10 +8,8 @@
  * pure client-side validation so the Scheduled tier UI can give immediate
  * feedback; it does NOT schedule anything (no runtime exists yet).
  */
-export type CronFieldName = 'minute' | 'hour' | 'day-of-month' | 'month' | 'day-of-week';
-
 export interface CronField {
-  name: CronFieldName;
+  name: string;
   min: number;
   max: number;
 }
@@ -24,65 +22,34 @@ export const CRON_FIELDS: readonly CronField[] = [
   { name: 'day-of-week', min: 0, max: 6 },
 ];
 
-export type CronValidationErrorCode =
-  | 'required'
-  | 'field-count'
-  | 'not-number'
-  | 'out-of-range'
-  | 'positive-step'
-  | 'malformed-step'
-  | 'malformed-range'
-  | 'range-order'
-  | 'empty-list-value';
+export interface CronValidationResult {
+  valid: boolean;
+  error?: string;
+}
 
-export type CronValidationResult =
-  | { valid: true }
-  | {
-      valid: false;
-      errorCode: CronValidationErrorCode;
-      field?: CronFieldName;
-      token?: string;
-      value?: number;
-      min?: number;
-      max?: number;
-      expected?: number;
-      actual?: number;
-      start?: string;
-      end?: string;
-    };
-
-type CronValidationError = Extract<CronValidationResult, { valid: false }>;
-
-function validateNumber(token: string, field: CronField): CronValidationError | null {
+function validateNumber(token: string, field: CronField): string | null {
   if (!/^\d+$/.test(token)) {
-    return { valid: false, errorCode: 'not-number', field: field.name, token };
+    return `${field.name}: "${token}" is not a number`;
   }
 
   const value = Number(token);
 
   if (value < field.min || value > field.max) {
-    return {
-      valid: false,
-      errorCode: 'out-of-range',
-      field: field.name,
-      value,
-      min: field.min,
-      max: field.max,
-    };
+    return `${field.name}: ${value} is out of range (${field.min}-${field.max})`;
   }
 
   return null;
 }
 
-function validateStep(step: string, field: CronField): CronValidationError | null {
+function validateStep(step: string, field: CronField): string | null {
   if (!/^\d+$/.test(step) || Number(step) < 1) {
-    return { valid: false, errorCode: 'positive-step', field: field.name, token: step };
+    return `${field.name}: step "${step}" must be a positive integer`;
   }
 
   return null;
 }
 
-function validatePart(part: string, field: CronField): CronValidationError | null {
+function validatePart(part: string, field: CronField): string | null {
   // `*` matches the whole range.
   if (part === '*') {
     return null;
@@ -93,7 +60,7 @@ function validatePart(part: string, field: CronField): CronValidationError | nul
     const [range, step, ...rest] = part.split('/');
 
     if (rest.length > 0 || step === undefined || step === '') {
-      return { valid: false, errorCode: 'malformed-step', field: field.name, token: part };
+      return `${field.name}: malformed step expression "${part}"`;
     }
 
     const stepError = validateStep(step, field);
@@ -108,12 +75,12 @@ function validatePart(part: string, field: CronField): CronValidationError | nul
   return validateRangeOrNumber(part, field);
 }
 
-function validateRangeOrNumber(token: string, field: CronField): CronValidationError | null {
+function validateRangeOrNumber(token: string, field: CronField): string | null {
   if (token.includes('-')) {
     const [start, end, ...rest] = token.split('-');
 
     if (rest.length > 0 || start === undefined || end === undefined) {
-      return { valid: false, errorCode: 'malformed-range', field: field.name, token };
+      return `${field.name}: malformed range "${token}"`;
     }
 
     const startError = validateNumber(start, field);
@@ -129,7 +96,7 @@ function validateRangeOrNumber(token: string, field: CronField): CronValidationE
     }
 
     if (Number(start) > Number(end)) {
-      return { valid: false, errorCode: 'range-order', field: field.name, start, end };
+      return `${field.name}: range start ${start} is greater than end ${end}`;
     }
 
     return null;
@@ -142,7 +109,7 @@ export function validateCronExpression(expression: string): CronValidationResult
   const trimmed = expression.trim();
 
   if (!trimmed) {
-    return { valid: false, errorCode: 'required' };
+    return { valid: false, error: 'Cron expression is required' };
   }
 
   const fields = trimmed.split(/\s+/);
@@ -150,9 +117,7 @@ export function validateCronExpression(expression: string): CronValidationResult
   if (fields.length !== CRON_FIELDS.length) {
     return {
       valid: false,
-      errorCode: 'field-count',
-      expected: CRON_FIELDS.length,
-      actual: fields.length,
+      error: `Expected ${CRON_FIELDS.length} fields (minute hour day month weekday), got ${fields.length}`,
     };
   }
 
@@ -161,13 +126,13 @@ export function validateCronExpression(expression: string): CronValidationResult
 
     for (const part of fields[i].split(',')) {
       if (part === '') {
-        return { valid: false, errorCode: 'empty-list-value', field: field.name };
+        return { valid: false, error: `${field.name}: empty value in list` };
       }
 
-      const validationError = validatePart(part, field);
+      const error = validatePart(part, field);
 
-      if (validationError) {
-        return validationError;
+      if (error) {
+        return { valid: false, error };
       }
     }
   }
@@ -176,11 +141,9 @@ export function validateCronExpression(expression: string): CronValidationResult
 }
 
 /** A few presets to seed the Scheduled tier UI. */
-export const CRON_PRESETS = [
-  { id: 'every-15-minutes', expression: '*/15 * * * *' },
-  { id: 'hourly', expression: '0 * * * *' },
-  { id: 'daily-02', expression: '0 2 * * *' },
-  { id: 'weekly-monday-09', expression: '0 9 * * 1' },
-] as const;
-
-export type CronPresetId = (typeof CRON_PRESETS)[number]['id'];
+export const CRON_PRESETS: readonly { label: string; expression: string }[] = [
+  { label: 'Every 15 minutes', expression: '*/15 * * * *' },
+  { label: 'Hourly', expression: '0 * * * *' },
+  { label: 'Daily at 02:00', expression: '0 2 * * *' },
+  { label: 'Weekly (Mon 09:00)', expression: '0 9 * * 1' },
+];

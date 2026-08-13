@@ -13,39 +13,19 @@ describe('status public route', () => {
   it('keeps status metadata public and specific', () => {
     const metadata = meta({} as Parameters<typeof meta>[0]);
 
-    /*
-     * Sans données de loader, la langue retombe sur l'anglais : ce cas fige la
-     * sortie EN. `og:description` reprend la description du catalogue (et non
-     * une variante figée à part) — c'est ce que consomme `socialMetaTags`.
-     */
     expect(metadata).toEqual([
       { title: 'System Status — E-Code' },
-      { name: 'description', content: 'Check the live status, uptime and recent incidents for E-Code services.' },
+      { name: 'description', content: 'E-Code system status and uptime.' },
       { property: 'og:title', content: 'System Status — E-Code' },
-      {
-        property: 'og:description',
-        content: 'Check the live status, uptime and recent incidents for E-Code services.',
-      },
-      { property: 'og:type', content: 'website' },
-      { property: 'og:site_name', content: 'E-Code' },
+      { property: 'og:description', content: 'E-Code system status and uptime.' },
       { property: 'og:image', content: 'https://e-code.ai/social_preview_index.jpg' },
       { property: 'og:image:type', content: 'image/jpeg' },
       { property: 'og:image:width', content: '1200' },
       { property: 'og:image:height', content: '630' },
-      { property: 'og:image:alt', content: 'E-Code system status and service availability' },
+      { property: 'og:image:alt', content: 'E-Code — build, ship and scale production applications with AI' },
       { name: 'twitter:card', content: 'summary_large_image' },
-      { name: 'twitter:title', content: 'System Status — E-Code' },
-      {
-        name: 'twitter:description',
-        content: 'Check the live status, uptime and recent incidents for E-Code services.',
-      },
       { name: 'twitter:image', content: 'https://e-code.ai/social_preview_index.jpg' },
-      { name: 'twitter:image:alt', content: 'E-Code system status and service availability' },
-      { name: 'twitter:title', content: 'System Status — E-Code' },
-      {
-        name: 'twitter:description',
-        content: 'Check the live status, uptime and recent incidents for E-Code services.',
-      },
+      { name: 'twitter:image:alt', content: 'E-Code — build, ship and scale production applications with AI' },
     ]);
   });
 });

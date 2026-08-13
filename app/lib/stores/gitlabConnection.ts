@@ -1,10 +1,5 @@
 import Cookies from 'js-cookie';
 import { atom, computed } from 'nanostores';
-import {
-  formatClientRuntimeResidualCopy,
-  getClientRuntimeResidualCopy,
-} from '~/lib/i18n/catalogs/client-runtime-residual';
-import { getI18nInstance } from '~/lib/i18n/runtime';
 import { GitLabApiService } from '~/lib/services/gitlabApiService';
 import { logStore } from '~/lib/stores/logs';
 import type { GitLabConnection, GitLabStats } from '~/types/GitLab';
@@ -12,12 +7,6 @@ import { calculateStatsSummary } from '~/utils/gitlabStats';
 
 // Auto-connect using environment variable
 const envToken = import.meta.env?.VITE_GITLAB_ACCESS_TOKEN;
-
-function getGitLabConnectionCopy() {
-  const i18n = getI18nInstance();
-
-  return getClientRuntimeResidualCopy(i18n.resolvedLanguage ?? i18n.language);
-}
 
 const gitlabConnectionAtom = atom<GitLabConnection>({
   user: null,
@@ -73,8 +62,6 @@ export const gitlabUrl = computed(gitlabUrlAtom, (url) => url);
 
 class GitLabConnectionStore {
   async connect(token: string, gitlabUrl = 'https://gitlab.com') {
-    const copy = getGitLabConnectionCopy();
-
     try {
       const apiService = new GitLabApiService(token, gitlabUrl);
 
@@ -112,42 +99,32 @@ class GitLabConnectionStore {
         }),
       );
 
-      const connectedMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.connectedAs'], {
-        provider: 'GitLab',
-        account: user.username,
-      });
-      logStore.logInfo(connectedMessage, {
+      logStore.logInfo('Connected to GitLab', {
         type: 'system',
-        message: connectedMessage,
+        message: `Connected to GitLab as ${user.username}`,
       });
 
       return { success: true };
     } catch (error) {
       console.error('Failed to connect to GitLab:', error);
 
-      const failureMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.authenticationFailed'], {
-        provider: 'GitLab',
-      });
-      logStore.logError(failureMessage, {
+      logStore.logError(`GitLab authentication failed: ${error instanceof Error ? error.message : 'Unknown error'}`, {
         type: 'system',
-        message: failureMessage,
+        message: 'GitLab authentication failed',
       });
 
       return {
         success: false,
-        error: failureMessage,
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
 
   async fetchStats(_forceRefresh = false) {
-    const copy = getGitLabConnectionCopy();
     const connection = gitlabConnectionAtom.get();
 
     if (!connection.user || !connection.token) {
-      throw new Error(
-        formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsUnavailable'], { provider: 'GitLab' }),
-      );
+      throw new Error('Not connected to GitLab');
     }
 
     try {
@@ -186,16 +163,12 @@ class GitLabConnectionStore {
       console.error('Error fetching GitLab stats:', error);
       return {
         success: false,
-        error: formatClientRuntimeResidualCopy(copy['clientRuntime.connection.statsFetchFailed'], {
-          provider: 'GitLab',
-        }),
+        error: error instanceof Error ? error.message : 'Unknown error',
       };
     }
   }
 
   disconnect() {
-    const copy = getGitLabConnectionCopy();
-
     // Remove cookies
     Cookies.remove('gitlabToken');
     Cookies.remove('gitlabUsername');
@@ -212,12 +185,9 @@ class GitLabConnectionStore {
       tokenType: 'personal-access-token',
     });
 
-    const disconnectedMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.disconnected'], {
-      provider: 'GitLab',
-    });
-    logStore.logInfo(disconnectedMessage, {
+    logStore.logInfo('Disconnected from GitLab', {
       type: 'system',
-      message: disconnectedMessage,
+      message: 'Disconnected from GitLab',
     });
   }
 
@@ -260,16 +230,9 @@ class GitLabConnectionStore {
 
   // Auto-connect using environment token
   async autoConnect() {
-    const copy = getGitLabConnectionCopy();
-
     // Check if token exists and is not empty
     if (!envToken || envToken.trim() === '') {
-      return {
-        success: false,
-        error: formatClientRuntimeResidualCopy(copy['clientRuntime.connection.environmentTokenMissing'], {
-          provider: 'GitLab',
-        }),
-      };
+      return { success: false, error: 'No GitLab token found in environment' };
     }
 
     try {
@@ -306,13 +269,9 @@ class GitLabConnectionStore {
         }),
       );
 
-      const connectedMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.autoConnectedAs'], {
-        provider: 'GitLab',
-        account: user.username,
-      });
-      logStore.logInfo(connectedMessage, {
+      logStore.logInfo('Auto-connected to GitLab', {
         type: 'system',
-        message: connectedMessage,
+        message: `Auto-connected to GitLab as ${user.username}`,
       });
 
       return { success: true };
@@ -325,22 +284,19 @@ class GitLabConnectionStore {
        * secrecy if captured from the browser console (extensions, screen-share,
        * error-reporting). Log only the error message.
        */
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       console.error('GitLab auto-connect error details:', {
         error: errorMessage,
       });
 
-      const failureMessage = formatClientRuntimeResidualCopy(copy['clientRuntime.connection.autoConnectionFailed'], {
-        provider: 'GitLab',
-      });
-      logStore.logError(failureMessage, {
+      logStore.logError(`GitLab auto-connection failed: ${errorMessage}`, {
         type: 'system',
-        message: failureMessage,
+        message: 'GitLab auto-connection failed',
       });
 
       return {
         success: false,
-        error: failureMessage,
+        error: errorMessage,
       };
     }
   }

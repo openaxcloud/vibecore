@@ -1,6 +1,5 @@
 import { getApiKeysFromCookie } from '~/lib/api/cookies';
 import { apiRequest } from '~/lib/enterprise-api.server';
-import { webApiErrorResponse, webApiLocaleHeaders } from '~/lib/i18n/catalogs/web-api-routes';
 import { json } from '~/lib/json-response';
 import { withSecurity } from '~/lib/security';
 
@@ -20,7 +19,7 @@ async function githubUserLoader({ request }: { request: Request; context?: unkno
         name: string;
       }>(request, '/api/github-user');
 
-      return json(upstream, { headers: webApiLocaleHeaders(request) });
+      return json(upstream);
     } catch (error) {
       /*
        * The API service returns 401 CONNECTOR_NOT_LINKED when the current
@@ -50,7 +49,7 @@ async function githubUserLoader({ request }: { request: Request; context?: unkno
     const githubToken = apiKeys.GITHUB_API_KEY || apiKeys.VITE_GITHUB_ACCESS_TOKEN;
 
     if (!githubToken) {
-      return webApiErrorResponse(request, 'GITHUB_TOKEN_MISSING', 401);
+      return json({ error: 'GitHub token not found' }, { status: 401 });
     }
 
     const response = await fetch('https://api.github.com/user', {
@@ -66,11 +65,10 @@ async function githubUserLoader({ request }: { request: Request; context?: unkno
 
     if (!response.ok) {
       if (response.status === 401) {
-        return webApiErrorResponse(request, 'GITHUB_TOKEN_INVALID', 401);
+        return json({ error: 'Invalid GitHub token' }, { status: 401 });
       }
 
-      console.error('GitHub user request failed:', { status: response.status });
-      throw new Error();
+      throw new Error(`GitHub API error: ${response.status}`);
     }
 
     const userData = (await response.json()) as {
@@ -81,20 +79,23 @@ async function githubUserLoader({ request }: { request: Request; context?: unkno
       type: string;
     };
 
-    return json(
-      {
-        login: userData.login,
-        name: userData.name,
-        avatar_url: userData.avatar_url,
-        html_url: userData.html_url,
-        type: userData.type,
-      },
-      { headers: webApiLocaleHeaders(request) },
-    );
+    return json({
+      login: userData.login,
+      name: userData.name,
+      avatar_url: userData.avatar_url,
+      html_url: userData.html_url,
+      type: userData.type,
+    });
   } catch (error) {
     console.error('Error fetching GitHub user:', error);
 
-    return webApiErrorResponse(request, 'GITHUB_USER_FAILED', 503);
+    return json(
+      {
+        error: 'Failed to fetch GitHub user information',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    );
   }
 }
 
@@ -179,7 +180,7 @@ async function githubUserAction({ request }: { request: Request; context?: unkno
      * endpoints with that token.
      */
     if (repoFullName && !/^[A-Za-z0-9._-]+\/[A-Za-z0-9._-]+$/.test(repoFullName)) {
-      return webApiErrorResponse(request, 'GITHUB_REPOSITORY_INVALID', 400);
+      return json({ error: 'Invalid repository name' }, { status: 400 });
     }
 
     /*
@@ -236,17 +237,12 @@ async function githubUserAction({ request }: { request: Request; context?: unkno
           }
         } catch (error) {
           if (error instanceof Response) {
-            console.error('GitHub proxy request failed:', { status: error.status });
+            const parsed = await error
+              .clone()
+              .json()
+              .catch(() => ({}));
 
-            if (error.status === 401) {
-              return webApiErrorResponse(request, 'GITHUB_TOKEN_MISSING', 401);
-            }
-
-            if (error.status === 404) {
-              return webApiErrorResponse(request, 'GITHUB_REPOSITORY_NOT_FOUND', 404);
-            }
-
-            return webApiErrorResponse(request, 'GITHUB_REQUEST_FAILED', error.status >= 500 ? 503 : error.status);
+            return json(parsed, { status: error.status });
           }
 
           throw error;
@@ -268,7 +264,7 @@ async function githubUserAction({ request }: { request: Request; context?: unkno
     const githubToken = apiKeys.GITHUB_API_KEY || apiKeys.VITE_GITHUB_ACCESS_TOKEN;
 
     if (!githubToken) {
-      return webApiErrorResponse(request, 'GITHUB_TOKEN_MISSING', 401);
+      return json({ error: 'GitHub token not found' }, { status: 401 });
     }
 
     if (action === 'get_repos') {
@@ -285,8 +281,7 @@ async function githubUserAction({ request }: { request: Request; context?: unkno
       });
 
       if (!response.ok) {
-        console.error('GitHub repositories request failed:', { status: response.status });
-        throw new Error();
+        throw new Error(`GitHub API error: ${response.status}`);
       }
 
       const repos = (await response.json()) as Array<{
@@ -322,7 +317,7 @@ async function githubUserAction({ request }: { request: Request; context?: unkno
 
     if (action === 'get_branches') {
       if (!repoFullName) {
-        return webApiErrorResponse(request, 'GITHUB_REPOSITORY_REQUIRED', 400);
+        return json({ error: 'Repository name is required' }, { status: 400 });
       }
 
       // Fetch repository branches
@@ -338,8 +333,7 @@ async function githubUserAction({ request }: { request: Request; context?: unkno
       });
 
       if (!response.ok) {
-        console.error('GitHub branches request failed:', { status: response.status });
-        throw new Error();
+        throw new Error(`GitHub API error: ${response.status}`);
       }
 
       const branches = (await response.json()) as Array<{
@@ -372,7 +366,7 @@ async function githubUserAction({ request }: { request: Request; context?: unkno
 
     if (action === 'search_repos') {
       if (!searchQuery) {
-        return webApiErrorResponse(request, 'GITHUB_SEARCH_REQUIRED', 400);
+        return json({ error: 'Search query is required' }, { status: 400 });
       }
 
       // Search repositories using GitHub API
@@ -391,8 +385,7 @@ async function githubUserAction({ request }: { request: Request; context?: unkno
       );
 
       if (!response.ok) {
-        console.error('GitHub search request failed:', { status: response.status });
-        throw new Error();
+        throw new Error(`GitHub API error: ${response.status}`);
       }
 
       const searchData = (await response.json()) as {
@@ -440,10 +433,16 @@ async function githubUserAction({ request }: { request: Request; context?: unkno
       });
     }
 
-    return webApiErrorResponse(request, 'GITHUB_ACTION_INVALID', 400);
+    return json({ error: 'Invalid action' }, { status: 400 });
   } catch (error) {
     console.error('Error in GitHub user action:', error);
-    return webApiErrorResponse(request, 'GITHUB_REQUEST_FAILED', 503);
+    return json(
+      {
+        error: 'Failed to process GitHub request',
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
+    );
   }
 }
 

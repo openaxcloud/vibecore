@@ -1,7 +1,6 @@
 import ignore from 'ignore';
 import { STARTER_TEMPLATES } from './constants';
 import { escapeBoltActionAttribute } from './projectCommands';
-import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import type { ProviderInfo } from '~/types/model';
 import type { Template } from '~/types/template';
 
@@ -60,7 +59,6 @@ Instructions:
 3. Follow the exact XML format
 4. Consider both technical requirements and tags
 5. If no perfect match exists, recommend the closest option
-6. Write the project title in the same language as the user's request
 
 Important: Provide only the selection tags in your response, no additional text.
 MOST IMPORTANT: YOU DONT HAVE TIME TO THINK JUST START RESPONDING BASED ON HUNCH 
@@ -78,10 +76,7 @@ const parseSelectedTemplate = (llmOutput: string): { template: string; title: st
       return null;
     }
 
-    return {
-      template: templateNameMatch[1].trim(),
-      title: titleMatch?.[1].trim() || clientStoresServicesText('clientRuntime.starter.untitled'),
-    };
+    return { template: templateNameMatch[1].trim(), title: titleMatch?.[1].trim() || 'Untitled Project' };
   } catch (error) {
     console.error('Error parsing template selection:', error);
     return null;
@@ -135,9 +130,7 @@ const getGitHubRepoContent = async (repoName: string): Promise<{ name: string; p
     const response = await fetch(`/api/github-template?repo=${encodeURIComponent(repoName)}`);
 
     if (!response.ok) {
-      throw new Error(
-        clientStoresServicesText('clientRuntime.starter.templateFetchFailed', { status: response.status }),
-      );
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
 
     // Our API will return the files in the format we need
@@ -203,10 +196,8 @@ export async function getTemplates(templateName: string, title?: string) {
   }
 
   const assistantMessage = `
-${clientStoresServicesText('clientRuntime.starter.initializing', { template: template.name })}
-<boltArtifact id="imported-files" title="${escapeBoltActionAttribute(
-    title || clientStoresServicesText('clientRuntime.starter.initialFilesTitle'),
-  )}" type="bundled">
+E-Code is initializing your project with the required files using the ${template.name} template.
+<boltArtifact id="imported-files" title="${escapeBoltActionAttribute(title || 'Create initial files')}" type="bundled">
 ${filesToImport.files
   .map(
     (file) =>
@@ -224,9 +215,10 @@ ${file.content}
 
   if (templatePromptFile) {
     userMessage = `
-${clientStoresServicesText('clientRuntime.starter.templateInstructions', {
-  instructions: templatePromptFile.content,
-})}
+TEMPLATE INSTRUCTIONS:
+${templatePromptFile.content}
+
+---
 `;
   }
 
@@ -234,14 +226,40 @@ ${clientStoresServicesText('clientRuntime.starter.templateInstructions', {
     userMessage =
       userMessage +
       `
-${clientStoresServicesText('clientRuntime.starter.protectedFilesRules', {
-  files: filesToImport.ignoreFile.map((file) => `- ${file.path}`).join('\n'),
-})}
+STRICT FILE ACCESS RULES - READ CAREFULLY:
+
+The following files are READ-ONLY and must never be modified:
+${filesToImport.ignoreFile.map((file) => `- ${file.path}`).join('\n')}
+
+Permitted actions:
+✓ Import these files as dependencies
+✓ Read from these files
+✓ Reference these files
+
+Strictly forbidden actions:
+❌ Modify any content within these files
+❌ Delete these files
+❌ Rename these files
+❌ Move these files
+❌ Create new versions of these files
+❌ Suggest changes to these files
+
+Any attempt to modify these protected files will result in immediate termination of the operation.
+
+If you need to make changes to functionality, create new files instead of modifying the protected ones listed above.
+---
 `;
   }
 
   userMessage += `
-${clientStoresServicesText('clientRuntime.starter.continueInstructions')}
+---
+template import is done, and you can now use the imported files,
+edit only the files that need to be changed, and you can create new files as needed.
+NO NOT EDIT/WRITE ANY FILES THAT ALREADY EXIST IN THE PROJECT AND DOES NOT NEED TO BE MODIFIED
+---
+Now that the Template is imported please continue with my original request
+
+IMPORTANT: Dont Forget to install the dependencies before running the app by using \`npm install && npm run dev\`
 `;
 
   return {

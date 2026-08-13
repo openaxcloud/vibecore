@@ -78,17 +78,6 @@ export interface CommandRequest {
     rows: number;
   };
   timeoutMs?: number;
-
-  /*
-   * True for the IDE's always-on managed shell (the primary "bolt" terminal
-   * where the dev server, installs and agent commands run). It is workspace
-   * infrastructure — like Replit's built-in Console/Shell — not a user-opened
-   * interactive terminal, so it must NOT consume the user-facing
-   * `terminals.concurrent` quota. The server honours this on the terminal
-   * socket to avoid free-tier IDEs (limit 1) flapping when the managed shell
-   * already occupies the single slot and the user shell can never connect.
-   */
-  managed?: boolean;
 }
 
 export interface CommandEvent {

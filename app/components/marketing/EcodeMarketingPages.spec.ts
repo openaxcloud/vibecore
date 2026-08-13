@@ -80,13 +80,6 @@ describe('E-Code marketing page registry', () => {
         'freelancers',
       ]),
     );
-    expect(solutionPages['app-builder'].description).toContain('structured data');
-    expect(solutionPages['app-builder'].highlights).toEqual([
-      'Responsive product screens',
-      'Typed routes and logic',
-      'Structured data model',
-      'Deployable source code',
-    ]);
 
     expect(Object.keys(comparePages)).toEqual(
       expect.arrayContaining(['github-codespaces', 'glitch', 'heroku', 'codesandbox', 'aws-cloud9']),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { decodeRuntimeFileContent, ProjectFileIoError } from './project-file-io';
+import { decodeRuntimeFileContent } from './project-file-io';
 
 describe('decodeRuntimeFileContent', () => {
   it('decodes a valid base64 payload back to its original bytes', () => {
@@ -24,7 +24,7 @@ describe('decodeRuntimeFileContent', () => {
     expect(decodeRuntimeFileContent({}).byteLength).toBe(0);
   });
 
-  it('throws a language-neutral structured error when the base64 body is corrupted', () => {
+  it('throws a structured 502 Response when the base64 body is corrupted', async () => {
     let thrown: unknown;
 
     try {
@@ -34,7 +34,13 @@ describe('decodeRuntimeFileContent', () => {
       thrown = error;
     }
 
-    expect(thrown).toBeInstanceOf(ProjectFileIoError);
-    expect(thrown).toMatchObject({ code: 'PROJECT_FILE_READ_FAILED', status: 502 });
+    expect(thrown).toBeInstanceOf(Response);
+
+    const response = thrown as Response;
+    expect(response.status).toBe(502);
+
+    const body = (await response.json()) as { ok: boolean; code: string };
+    expect(body.ok).toBe(false);
+    expect(body.code).toBe('PROJECT_FILE_READ_UNAVAILABLE');
   });
 });

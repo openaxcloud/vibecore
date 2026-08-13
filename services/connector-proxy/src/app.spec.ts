@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { signConnectorAccessToken } from '@vibecore/connector-sdk';
 import { buildConnectorProxyApp, type ConnectionResolution } from './app.js';
-import { connectorProxyFr } from './public-i18n.js';
 
 const secret = 'connector-proxy-spec-secret-do-not-ship';
 
@@ -73,15 +72,10 @@ describe('connector-proxy', () => {
     const response = await app.inject({
       method: 'POST',
       url: '/proxy/conn_1/anything',
-      headers: { 'accept-language': 'fr-FR,fr;q=0.9' },
     });
 
     expect(response.statusCode).toBe(401);
-    expect(response.headers['content-language']).toBe('fr');
-    expect(response.json()).toEqual({
-      error: connectorProxyFr.CONNECTOR_TOKEN_MISSING,
-      code: 'CONNECTOR_TOKEN_MISSING',
-    });
+    expect(response.json()).toMatchObject({ code: 'CONNECTOR_TOKEN_MISSING' });
 
     await app.close();
   });
@@ -132,15 +126,14 @@ describe('connector-proxy', () => {
     await app.close();
   });
 
-  it('maps ACL denials to localized stable copy without forwarding resolver details', async () => {
-    const rawResolverError = 'Project secret=do-not-serialize is not linked';
+  it('forwards the resolver error verbatim when the ACL denies the request', async () => {
     const app = await buildConnectorProxyApp({
       accessTokenSecret: secret,
       resolveConnection: async () => ({
         ok: false,
         status: 403,
         code: 'CONNECTOR_LINK_MISSING',
-        error: rawResolverError,
+        error: 'Project is not linked to this connection',
       }),
     });
 
@@ -152,16 +145,11 @@ describe('connector-proxy', () => {
     const response = await app.inject({
       method: 'GET',
       url: '/proxy/conn_1/repos/octo/hello',
-      headers: { authorization: `Bearer ${token}`, cookie: 'vibecore-lang=fr' },
+      headers: { authorization: `Bearer ${token}` },
     });
 
     expect(response.statusCode).toBe(403);
-    expect(response.headers['content-language']).toBe('fr');
-    expect(response.json()).toEqual({
-      error: 'Ce projet n’est pas lié à la connexion demandée.',
-      code: 'CONNECTOR_LINK_MISSING',
-    });
-    expect(response.body).not.toContain(rawResolverError);
+    expect(response.json()).toMatchObject({ code: 'CONNECTOR_LINK_MISSING' });
 
     await app.close();
   });
@@ -190,13 +178,10 @@ describe('connector-proxy', () => {
   });
 
   it('forwards GET to api.github.com with the injected Authorization header', async () => {
-    const { fn, calls } = recordingFetch(
-      async () =>
-        new Response(JSON.stringify({ id: 42, name: 'hello' }), {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
-    );
+    const { fn, calls } = recordingFetch(async () => new Response(
+      JSON.stringify({ id: 42, name: 'hello' }),
+      { status: 200, headers: { 'content-type': 'application/json' } },
+    ));
     const app = await buildConnectorProxyApp({
       accessTokenSecret: secret,
       resolveConnection: async () => allowResolver('github', 'gh-token-secret'),
@@ -226,13 +211,10 @@ describe('connector-proxy', () => {
   });
 
   it('strips the inbound Authorization header so the workspace token never reaches the provider', async () => {
-    const { fn, calls } = recordingFetch(
-      async () =>
-        new Response('{}', {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
-    );
+    const { fn, calls } = recordingFetch(async () => new Response('{}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
     const app = await buildConnectorProxyApp({
       accessTokenSecret: secret,
       resolveConnection: async () => allowResolver('github', 'gh-token-secret'),
@@ -285,13 +267,10 @@ describe('connector-proxy', () => {
   });
 
   it('forwards GET to api.vercel.com with a Bearer Authorization header', async () => {
-    const { fn, calls } = recordingFetch(
-      async () =>
-        new Response('{}', {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
-    );
+    const { fn, calls } = recordingFetch(async () => new Response('{}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
     const app = await buildConnectorProxyApp({
       accessTokenSecret: secret,
       resolveConnection: async () => allowResolver('vercel', 'vrc-token-secret'),
@@ -318,13 +297,10 @@ describe('connector-proxy', () => {
   });
 
   it('forwards GET to api.supabase.com with a Bearer Authorization header', async () => {
-    const { fn, calls } = recordingFetch(
-      async () =>
-        new Response('[]', {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
-    );
+    const { fn, calls } = recordingFetch(async () => new Response('[]', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
     const app = await buildConnectorProxyApp({
       accessTokenSecret: secret,
       resolveConnection: async () => allowResolver('supabase', 'sb-token-secret'),
@@ -350,13 +326,10 @@ describe('connector-proxy', () => {
   });
 
   it('forwards GET to api.netlify.com with a Bearer Authorization header', async () => {
-    const { fn, calls } = recordingFetch(
-      async () =>
-        new Response('{}', {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
-    );
+    const { fn, calls } = recordingFetch(async () => new Response('{}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
     const app = await buildConnectorProxyApp({
       accessTokenSecret: secret,
       resolveConnection: async () => allowResolver('netlify', 'nf-token-secret'),
@@ -381,13 +354,10 @@ describe('connector-proxy', () => {
   });
 
   it('forwards GET to gitlab.com/api/v4 with a Bearer Authorization header', async () => {
-    const { fn, calls } = recordingFetch(
-      async () =>
-        new Response('{}', {
-          status: 200,
-          headers: { 'content-type': 'application/json' },
-        }),
-    );
+    const { fn, calls } = recordingFetch(async () => new Response('{}', {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }));
     const app = await buildConnectorProxyApp({
       accessTokenSecret: secret,
       resolveConnection: async () => allowResolver('gitlab', 'gl-token-secret'),
@@ -434,7 +404,6 @@ describe('connector-proxy', () => {
 
     expect(response.statusCode).toBe(502);
     expect(response.json()).toMatchObject({ code: 'CONNECTOR_PROVIDER_UNREACHABLE' });
-    expect(response.body).not.toContain('ECONNRESET');
     await app.close();
   });
 });

@@ -2,13 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   applyKeybindingOverrides,
-  createProjectFocusTabKeybinding,
   defaultProjectKeybindings,
   detectKeybindingConflicts,
   findKeybinding,
   formatKeybindingCombo,
-  getKeybindingCategoryLabel,
-  localizeProjectKeybindings,
   normalizeCombo,
   serializeKeybindingOverrides,
   serializeKeyEvent,
@@ -86,26 +83,5 @@ describe('keybindings', () => {
         'unknown.action': 'cmd+u',
       }),
     ).toEqual({ 'file.quickOpen': 'cmd+alt+p' });
-  });
-
-  it('localizes labels, descriptions, categories, and generated tab bindings without changing actions', () => {
-    const french = localizeProjectKeybindings(defaultProjectKeybindings, 'fr');
-    const save = french.find((binding) => binding.action === 'file.save');
-
-    expect(save).toMatchObject({
-      combo: 'cmd+s',
-      action: 'file.save',
-      label: 'Enregistrer le fichier actif',
-      description: 'Enregistrez le fichier ouvert dans l’éditeur.',
-      category: 'File',
-    });
-    expect(getKeybindingCategoryLabel('fr', 'Workbench')).toBe('Espace de travail');
-    expect(getKeybindingCategoryLabel('de', 'Editor')).toBe('Editor');
-    expect(createProjectFocusTabKeybinding(3, 'fr')).toMatchObject({
-      combo: 'cmd+3',
-      action: 'tab.focus.3',
-      label: 'Activer l’onglet 3',
-      description: 'Activez l’onglet 3 de l’espace de travail.',
-    });
   });
 });

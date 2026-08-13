@@ -10,16 +10,7 @@
  */
 
 import { memo, useCallback, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 
-import {
-  formatAgentRepairDiagnostic,
-  formatChatResidualsDate,
-  formatChatResidualsNumber,
-  formatChatResidualsPlural,
-  getChatResidualsCopy,
-  type ChatResidualsCopy,
-} from '~/lib/i18n/catalogs/chat-residuals';
 import { fetchAgentRepairEvents, type AgentRepairEvent } from '~/lib/persistence/agentRepairEventSync';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 
@@ -27,32 +18,27 @@ interface AgentRepairHistoryProps {
   projectId: string;
 }
 
+const OUTCOME_LABEL: Record<AgentRepairEvent['outcome'], string> = {
+  repaired: 'Repaired',
+  failed: 'Failed',
+  gave_up: 'Gave up',
+};
+
 const OUTCOME_CLASS: Record<AgentRepairEvent['outcome'], string> = {
   repaired: 'text-[var(--status-success-text)]',
   failed: 'text-amber-500',
   gave_up: 'text-[var(--status-error-text)]',
 };
 
-function outcomeLabel(outcome: AgentRepairEvent['outcome'], copy: ChatResidualsCopy): string {
-  if (outcome === 'repaired') {
-    return copy['chatResiduals.agentRepair.outcome.repaired'];
+function formatTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleString();
+  } catch {
+    return iso;
   }
-
-  if (outcome === 'failed') {
-    return copy['chatResiduals.agentRepair.outcome.failed'];
-  }
-
-  if (outcome === 'gave_up') {
-    return copy['chatResiduals.agentRepair.outcome.gaveUp'];
-  }
-
-  return copy['chatResiduals.agentRepair.outcome.unknown'];
 }
 
 export const AgentRepairHistory = memo(({ projectId }: AgentRepairHistoryProps) => {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getChatResidualsCopy(language);
   const [events, setEvents] = useState<AgentRepairEvent[]>([]);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -99,18 +85,18 @@ export const AgentRepairHistory = memo(({ projectId }: AgentRepairHistoryProps) 
   return (
     <section
       className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2"
-      aria-label={copy['chatResiduals.agentRepair.aria']}
+      aria-label="Agent self-repair history"
     >
       <button
         type="button"
-        className="flex min-h-11 w-full min-w-0 items-center gap-2 px-3 py-2 text-left text-sm text-bolt-elements-textPrimary outline-none hover:bg-bolt-elements-background-depth-3 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-bolt-elements-focus"
+        className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-bolt-elements-textPrimary"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((open) => !open)}
       >
         <span className={isOpen ? 'i-ph:caret-down' : 'i-ph:caret-right'} aria-hidden />
-        <span className="min-w-0 break-words">{copy['chatResiduals.agentRepair.title']}</span>
+        <span>Self-repair history</span>
         <span className="rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
-          {formatChatResidualsNumber(events.length, language)}
+          {events.length}
         </span>
       </button>
 
@@ -119,30 +105,19 @@ export const AgentRepairHistory = memo(({ projectId }: AgentRepairHistoryProps) 
           {events.map((event) => (
             <li key={event.id} className="px-3 py-2 text-sm">
               <div className="flex flex-wrap items-center gap-2">
-                <span className={`font-medium ${OUTCOME_CLASS[event.outcome]}`}>
-                  {outcomeLabel(event.outcome, copy)}
-                </span>
-                <span className="min-w-0 break-all font-mono text-xs text-bolt-elements-textPrimary">
-                  {event.relativePath}
-                </span>
-                <span className="text-xs text-bolt-elements-textSecondary">
-                  {formatChatResidualsPlural(language, event.attempt, {
-                    one: copy['chatResiduals.agentRepair.attempt_one'],
-                    other: copy['chatResiduals.agentRepair.attempt_other'],
-                  })}
-                </span>
-                <time className="ml-auto text-xs text-bolt-elements-textSecondary" dateTime={event.createdAt}>
-                  {formatChatResidualsDate(event.createdAt, language)}
-                </time>
+                <span className={`font-medium ${OUTCOME_CLASS[event.outcome]}`}>{OUTCOME_LABEL[event.outcome]}</span>
+                <span className="font-mono text-xs text-bolt-elements-textPrimary">{event.relativePath}</span>
+                <span className="text-xs text-bolt-elements-textSecondary">attempt {event.attempt}</span>
+                <span className="ml-auto text-xs text-bolt-elements-textSecondary">{formatTime(event.createdAt)}</span>
               </div>
               {event.validationError ? (
-                <p className="mt-1 break-words text-xs text-bolt-elements-textSecondary">
-                  {formatAgentRepairDiagnostic(language, 'validation', event.validationError)}
+                <p className="mt-1 whitespace-pre-wrap break-words text-xs text-bolt-elements-textSecondary">
+                  {event.validationError}
                 </p>
               ) : null}
               {event.repairError ? (
-                <p className="mt-1 break-words text-xs text-bolt-elements-textSecondary">
-                  {formatAgentRepairDiagnostic(language, 'repair', event.repairError)}
+                <p className="mt-1 whitespace-pre-wrap break-words text-xs text-bolt-elements-textSecondary">
+                  {event.repairError}
                 </p>
               ) : null}
             </li>

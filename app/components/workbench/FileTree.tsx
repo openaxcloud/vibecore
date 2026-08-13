@@ -3,7 +3,6 @@ import * as ContextMenu from '@radix-ui/react-context-menu';
 import * as Tooltip from '@radix-ui/react-tooltip';
 import type { WorkspaceStatus } from '@vibecore/runtime-contract';
 import { memo, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { resolveCopyContent } from './file-tree-copy';
 import { computeFileDiffStats } from './file-tree-diff-stats';
@@ -12,7 +11,6 @@ import { buildOverwritePrompt, findUploadCollisions } from './file-tree-upload-c
 import { toRuntimeRelativePath } from './search-replace';
 import { GitStatusBadge } from '~/components/git/GitStatusBadge';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
-import { formatFileTreeCopy, getFileTreeCopy } from '~/lib/i18n/catalogs/file-tree';
 import {
   isFileLocked as readFileLockedFromStorage,
   isFolderLocked as readFolderLockedFromStorage,
@@ -39,7 +37,6 @@ const logger = createScopedLogger('FileTree');
 
 const NODE_BASE_PADDING_LEFT = 0;
 const NODE_PADDING_LEFT = 6;
-const FILE_CONTENT_UNAVAILABLE_ERROR = 'File content not available';
 
 function FileTreeName({ name, className }: { name: string; className?: string }) {
   return (
@@ -131,10 +128,6 @@ export const FileTree = memo(
     onReconnectWorkspace,
   }: Props) => {
     renderLogger.trace('FileTree');
-
-    const { i18n } = useTranslation();
-    const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
-    const copy = getFileTreeCopy(language);
 
     /*
      * Read workspace lifecycle from the store unless the caller overrode it.
@@ -249,8 +242,8 @@ export const FileTree = memo(
     const outline = useMemo(() => buildFileOutline(selectedFile, files), [files, selectedFile]);
 
     const timeline = useMemo(
-      () => buildFileTimeline(files, fileHistory, gitStatusByPath, { locale: language, copy: copy.timeline }),
-      [copy.timeline, fileHistory, files, gitStatusByPath, language],
+      () => buildFileTimeline(files, fileHistory, gitStatusByPath),
+      [files, fileHistory, gitStatusByPath],
     );
 
     const visibleBookmarks = useMemo(
@@ -274,15 +267,15 @@ export const FileTree = memo(
 
         if (next.has(filePath)) {
           next.delete(filePath);
-          toast.info(copy.toast.bookmarkRemoved);
+          toast.info('Bookmark removed');
         } else {
           next.add(filePath);
-          toast.success(copy.toast.bookmarkAdded);
+          toast.success('Bookmark added');
         }
 
         persistBookmarks(next);
       },
-      [bookmarks, copy.toast.bookmarkAdded, copy.toast.bookmarkRemoved, persistBookmarks],
+      [bookmarks, persistBookmarks],
     );
 
     const toggleCollapseState = (fullPath: string) => {
@@ -315,27 +308,24 @@ export const FileTree = memo(
       }
     };
 
-    const performDroppedUpload = useCallback(
-      async (droppedFiles: File[], targetFolder: string) => {
-        for (const file of droppedFiles) {
-          try {
-            const filePath = path.join(targetFolder, file.name);
-            const binaryContent = new Uint8Array(await file.arrayBuffer());
-            const success = await workbenchStore.createFile(filePath, binaryContent);
+    const performDroppedUpload = useCallback(async (droppedFiles: File[], targetFolder: string) => {
+      for (const file of droppedFiles) {
+        try {
+          const filePath = path.join(targetFolder, file.name);
+          const binaryContent = new Uint8Array(await file.arrayBuffer());
+          const success = await workbenchStore.createFile(filePath, binaryContent);
 
-            if (success) {
-              toast.success(formatFileTreeCopy(copy.toast.uploaded, { name: file.name }));
-            } else {
-              toast.error(formatFileTreeCopy(copy.toast.uploadFailed, { name: file.name }));
-            }
-          } catch (error) {
-            toast.error(formatFileTreeCopy(copy.toast.uploadError, { name: file.name }));
-            logger.error(error);
+          if (success) {
+            toast.success(`Uploaded ${file.name}`);
+          } else {
+            toast.error(`Failed to upload ${file.name}`);
           }
+        } catch (error) {
+          toast.error(`Error uploading ${file.name}`);
+          logger.error(error);
         }
-      },
-      [copy.toast.uploadError, copy.toast.uploadFailed, copy.toast.uploaded],
-    );
+      }
+    }, []);
 
     const uploadDroppedFiles = useCallback(
       async (event: React.DragEvent, targetFolder = rootFolder ?? '/') => {
@@ -360,14 +350,14 @@ export const FileTree = memo(
           setPendingOverwriteUpload({
             files: droppedFiles,
             targetFolder,
-            message: buildOverwritePrompt(collisions, copy.overwrite),
+            message: buildOverwritePrompt(collisions),
           });
           return;
         }
 
         await performDroppedUpload(droppedFiles, targetFolder);
       },
-      [copy.overwrite, rootFolder, performDroppedUpload],
+      [rootFolder, performDroppedUpload],
     );
 
     const openFileAtLine = useCallback(
@@ -386,7 +376,7 @@ export const FileTree = memo(
       filePath: string,
       meta?: { detail?: string; status?: GitFileStatus; line?: number; key?: string },
     ) => {
-      const icon = materialFileIcon(filePath, copy.fileTypes);
+      const icon = materialFileIcon(filePath);
       const label = filePath.split('/').pop() ?? filePath;
       const relativePath = normalizeWorkspacePath(filePath);
 
@@ -437,9 +427,9 @@ export const FileTree = memo(
               void performDroppedUpload(pending.files, pending.targetFolder);
             }
           }}
-          title={copy.overwrite.title}
+          title="Overwrite existing files?"
           description={<span className="whitespace-pre-line">{pendingOverwriteUpload?.message}</span>}
-          confirmLabel={copy.overwrite.confirm}
+          confirmLabel="Overwrite"
           variant="destructive"
         />
         {enableWorkspaceViews && (
@@ -447,14 +437,14 @@ export const FileTree = memo(
             <div
               className="bolt-file-tree-view-switcher grid grid-cols-5 gap-0.5 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 p-0.5"
               role="toolbar"
-              aria-label={copy.views.toolbar}
+              aria-label="File explorer views"
             >
               {[
-                ['files', copy.views.files, 'i-ph:file-text'],
-                ['open', copy.views.openEditors, 'i-ph:tabs'],
-                ['outline', copy.views.outline, 'i-ph:list-bullets'],
-                ['timeline', copy.views.timeline, 'i-ph:clock-counter-clockwise'],
-                ['bookmarks', copy.views.bookmarks, 'i-ph:bookmark-simple'],
+                ['files', 'Files', 'i-ph:file-text'],
+                ['open', 'Open editors', 'i-ph:tabs'],
+                ['outline', 'Outline', 'i-ph:list-bullets'],
+                ['timeline', 'Timeline', 'i-ph:clock-counter-clockwise'],
+                ['bookmarks', 'Bookmarks', 'i-ph:bookmark-simple'],
               ].map(([view, label, icon]) => (
                 <Tooltip.Root key={view} delayDuration={0}>
                   <Tooltip.Trigger asChild>
@@ -499,7 +489,7 @@ export const FileTree = memo(
           <div className="pointer-events-none absolute inset-2 z-20 grid place-items-center rounded-xl border border-dashed border-bolt-elements-item-contentAccent bg-bolt-elements-background-depth-2/90 text-bolt-elements-item-contentAccent">
             <div className="flex items-center gap-2 rounded-lg bg-bolt-elements-background-depth-1 px-3 py-2 shadow-lg">
               <span className="i-ph:upload-simple size-4" aria-hidden />
-              {copy.detail.dropFiles}
+              Drop files to upload
             </div>
           </div>
         )}
@@ -511,9 +501,9 @@ export const FileTree = memo(
                 renderFileRow(editor.filePath, {
                   key: editor.id,
                   detail: editor.dirty
-                    ? copy.detail.unsavedChanges
+                    ? 'Unsaved changes'
                     : editor.pinned
-                      ? copy.detail.pinnedEditor
+                      ? 'Pinned editor'
                       : normalizeWorkspacePath(editor.filePath),
                   status: gitStatusForPath(gitStatusByPath, editor.filePath),
                 }),
@@ -522,8 +512,8 @@ export const FileTree = memo(
           ) : (
             <EmptyExplorerState
               icon="i-ph:tabs"
-              title={copy.empty.openEditorsTitle}
-              description={copy.empty.openEditorsDescription}
+              title="No open editors"
+              description="Open a file to pin it in this view."
             />
           ))}
 
@@ -536,8 +526,8 @@ export const FileTree = memo(
           ) : (
             <EmptyExplorerState
               icon="i-ph:list-bullets"
-              title={copy.empty.outlineTitle}
-              description={copy.empty.outlineDescription}
+              title="No outline available"
+              description="Open a source file to inspect symbols and headings."
             />
           ))}
 
@@ -554,8 +544,8 @@ export const FileTree = memo(
           ) : (
             <EmptyExplorerState
               icon="i-ph:clock-counter-clockwise"
-              title={copy.empty.timelineTitle}
-              description={copy.empty.timelineDescription}
+              title="No timeline yet"
+              description="Edits and Git changes will appear here."
             />
           ))}
 
@@ -564,7 +554,7 @@ export const FileTree = memo(
             <div className="space-y-1 p-2">
               {visibleBookmarks.map((filePath) =>
                 renderFileRow(filePath, {
-                  detail: copy.detail.bookmarkedFile,
+                  detail: 'Bookmarked file',
                   status: gitStatusForPath(gitStatusByPath, filePath),
                 }),
               )}
@@ -572,8 +562,8 @@ export const FileTree = memo(
           ) : (
             <EmptyExplorerState
               icon="i-ph:bookmark-simple"
-              title={copy.empty.bookmarksTitle}
-              description={copy.empty.bookmarksDescription}
+              title="No bookmarks"
+              description="Use the file context menu to bookmark important files."
             />
           ))}
 
@@ -634,17 +624,13 @@ export const FileTree = memo(
             })
           ) : (
             <EmptyExplorerState
-              {...resolveEmptyExplorerState(
-                {
-                  filesEmpty: filteredFileList.length === 0,
-                  workspaceLoading,
-                  workspaceStatus,
-                  workspaceError,
-                  hasWorkspace,
-                },
-                copy.empty,
-                !language.toLowerCase().startsWith('fr'),
-              )}
+              {...resolveEmptyExplorerState({
+                filesEmpty: filteredFileList.length === 0,
+                workspaceLoading,
+                workspaceStatus,
+                workspaceError,
+                hasWorkspace,
+              })}
               onReconnect={reconnectWorkspace}
             />
           ))}
@@ -745,8 +731,6 @@ function FileContextMenu({
   bookmarked,
   onToggleBookmark,
 }: FolderContextMenuProps & { fullPath: string; bookmarked?: boolean; onToggleBookmark?: () => void }) {
-  const { i18n } = useTranslation();
-  const copy = getFileTreeCopy(i18n.resolvedLanguage ?? i18n.language);
   const [isCreatingFile, setIsCreatingFile] = useState(false);
   const [isCreatingFolder, setIsCreatingFolder] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -786,9 +770,6 @@ function FileContextMenu({
     return isFolder ? fullPath : path.dirname(fullPath);
   }, [fullPath, isFolder]);
 
-  const entityLower = isFolder ? copy.entity.folderLower : copy.entity.fileLower;
-  const entityTitle = isFolder ? copy.entity.folderTitle : copy.entity.fileTitle;
-
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -814,17 +795,17 @@ function FileContextMenu({
           const success = await workbenchStore.createFile(filePath, binaryContent);
 
           if (success) {
-            toast.success(formatFileTreeCopy(copy.toast.uploaded, { name: file.name }));
+            toast.success(`File ${file.name} uploaded successfully`);
           } else {
-            toast.error(formatFileTreeCopy(copy.toast.uploadFailed, { name: file.name }));
+            toast.error(`Failed to upload file ${file.name}`);
           }
         } catch (error) {
-          toast.error(formatFileTreeCopy(copy.toast.uploadError, { name: file.name }));
+          toast.error(`Error uploading ${file.name}`);
           logger.error(error);
         }
       }
     },
-    [copy.toast.uploadError, copy.toast.uploadFailed, copy.toast.uploaded, targetPath],
+    [targetPath],
   );
 
   const handleDrop = useCallback(
@@ -847,7 +828,7 @@ function FileContextMenu({
       const collisions = findUploadCollisions(droppedFiles, targetPath, workbenchStore.files.get());
 
       if (collisions.length > 0) {
-        setPendingOverwriteDrop({ files: droppedFiles, message: buildOverwritePrompt(collisions, copy.overwrite) });
+        setPendingOverwriteDrop({ files: droppedFiles, message: buildOverwritePrompt(collisions) });
         setIsDragging(false);
 
         return;
@@ -857,7 +838,7 @@ function FileContextMenu({
 
       setIsDragging(false);
     },
-    [copy.overwrite, fullPath, performDrop, targetPath],
+    [fullPath, performDrop],
   );
 
   const handleCreateFile = async (fileName: string) => {
@@ -869,7 +850,7 @@ function FileContextMenu({
      * is silently truncated to empty — data loss with no confirm.
      */
     if (workbenchStore.files.get()[newFilePath]) {
-      toast.error(formatFileTreeCopy(copy.toast.alreadyExists, { name: fileName }));
+      toast.error(`A file or folder named "${fileName}" already exists`);
       setIsCreatingFile(false);
 
       return;
@@ -878,17 +859,9 @@ function FileContextMenu({
     const success = await workbenchStore.createFile(newFilePath, '');
 
     if (success) {
-      toast.success(
-        formatFileTreeCopy(copy.toast.created, {
-          entityTitle: copy.entity.fileTitle,
-        }),
-      );
+      toast.success('File created successfully');
     } else {
-      toast.error(
-        formatFileTreeCopy(copy.toast.createFailed, {
-          entityLower: copy.entity.fileLower,
-        }),
-      );
+      toast.error('Failed to create file');
     }
 
     setIsCreatingFile(false);
@@ -899,7 +872,7 @@ function FileContextMenu({
 
     // Same collision guard as New File — don't clobber an existing entry.
     if (workbenchStore.files.get()[newFolderPath]) {
-      toast.error(formatFileTreeCopy(copy.toast.alreadyExists, { name: folderName }));
+      toast.error(`A file or folder named "${folderName}" already exists`);
       setIsCreatingFolder(false);
 
       return;
@@ -908,17 +881,9 @@ function FileContextMenu({
     const success = await workbenchStore.createFolder(newFolderPath);
 
     if (success) {
-      toast.success(
-        formatFileTreeCopy(copy.toast.created, {
-          entityTitle: copy.entity.folderTitle,
-        }),
-      );
+      toast.success('Folder created successfully');
     } else {
-      toast.error(
-        formatFileTreeCopy(copy.toast.createFailed, {
-          entityLower: copy.entity.folderLower,
-        }),
-      );
+      toast.error('Failed to create folder');
     }
 
     setIsCreatingFolder(false);
@@ -933,7 +898,7 @@ function FileContextMenu({
     const deleteLock = isFolder ? workbenchStore.isFolderLocked(fullPath) : workbenchStore.isFileLocked(fullPath);
 
     if ('locked' in deleteLock ? deleteLock.locked : deleteLock.isLocked) {
-      toast.error(formatFileTreeCopy(copy.toast.lockedCannotDelete, { entityLower }));
+      toast.error(`This ${isFolder ? 'folder' : 'file'} is locked and cannot be deleted. Unlock it first.`);
       return;
     }
 
@@ -957,12 +922,12 @@ function FileContextMenu({
       }
 
       if (success) {
-        toast.success(formatFileTreeCopy(copy.toast.deleted, { entityTitle }));
+        toast.success(`${isFolder ? 'Folder' : 'File'} deleted successfully`);
       } else {
-        toast.error(formatFileTreeCopy(copy.toast.deleteFailed, { entityLower }));
+        toast.error(`Failed to delete ${isFolder ? 'folder' : 'file'}`);
       }
     } catch (error) {
-      toast.error(formatFileTreeCopy(copy.toast.deleteError, { entityLower }));
+      toast.error(`Error deleting ${isFolder ? 'folder' : 'file'}`);
       logger.error(error);
     }
   };
@@ -988,7 +953,7 @@ function FileContextMenu({
     const renameLock = isFolder ? workbenchStore.isFolderLocked(fullPath) : workbenchStore.isFileLocked(fullPath);
 
     if ('locked' in renameLock ? renameLock.locked : renameLock.isLocked) {
-      toast.error(formatFileTreeCopy(copy.toast.lockedCannotRename, { entityLower }));
+      toast.error(`This ${isFolder ? 'folder' : 'file'} is locked and cannot be renamed. Unlock it first.`);
       setIsRenaming(false);
 
       return;
@@ -1001,7 +966,7 @@ function FileContextMenu({
      * data loss. Refuse the collision instead.
      */
     if (files[nextPath]) {
-      toast.error(formatFileTreeCopy(copy.toast.alreadyExists, { name: nextName }));
+      toast.error(`A file or folder named "${nextName}" already exists`);
       setIsRenaming(false);
 
       return;
@@ -1013,7 +978,7 @@ function FileContextMenu({
      * removes everything under foo/ — destroying the freshly-renamed copy too.
      */
     if (isFolder && nextPath.startsWith(`${fullPath}/`)) {
-      toast.error(copy.toast.renameIntoSelf);
+      toast.error('Cannot rename a folder into a path inside itself');
       setIsRenaming(false);
 
       return;
@@ -1042,7 +1007,7 @@ function FileContextMenu({
         const entry = files[fullPath];
 
         if (entry?.type !== 'file') {
-          throw new Error(FILE_CONTENT_UNAVAILABLE_ERROR);
+          throw new Error('File content not available');
         }
 
         /*
@@ -1055,9 +1020,9 @@ function FileContextMenu({
         await workbenchStore.deleteFile(fullPath);
       }
 
-      toast.success(formatFileTreeCopy(copy.toast.renamed, { entityTitle }));
+      toast.success(`${isFolder ? 'Folder' : 'File'} renamed`);
     } catch (error) {
-      toast.error(formatFileTreeCopy(copy.toast.renameFailed, { entityLower }));
+      toast.error(`Failed to rename ${isFolder ? 'folder' : 'file'}`);
       logger.error(error);
     } finally {
       setIsRenaming(false);
@@ -1104,22 +1069,22 @@ function FileContextMenu({
         const entry = files[fullPath];
 
         if (entry?.type !== 'file') {
-          throw new Error(FILE_CONTENT_UNAVAILABLE_ERROR);
+          throw new Error('File content not available');
         }
 
         await workbenchStore.createFile(duplicatePath, await resolveContentForCopy(fullPath, entry));
       }
 
-      toast.success(formatFileTreeCopy(copy.toast.duplicated, { entityTitle }));
+      toast.success(`${isFolder ? 'Folder' : 'File'} duplicated`);
     } catch (error) {
-      toast.error(formatFileTreeCopy(copy.toast.duplicateFailed, { entityLower }));
+      toast.error(`Failed to duplicate ${isFolder ? 'folder' : 'file'}`);
       logger.error(error);
     }
   };
 
   const handleReveal = () => {
     workbenchStore.setSelectedFile(fullPath);
-    toast.info(formatFileTreeCopy(copy.toast.revealed, { name: fileName }));
+    toast.info(`${fileName} revealed in project files`);
   };
 
   // Handler for locking a file with full lock
@@ -1132,24 +1097,12 @@ function FileContextMenu({
       const success = workbenchStore.lockFile(fullPath);
 
       if (success) {
-        toast.success(
-          formatFileTreeCopy(copy.toast.locked, {
-            entityTitle: copy.entity.fileTitle,
-          }),
-        );
+        toast.success(`File locked successfully`);
       } else {
-        toast.error(
-          formatFileTreeCopy(copy.toast.lockFailed, {
-            entityLower: copy.entity.fileLower,
-          }),
-        );
+        toast.error(`Failed to lock file`);
       }
     } catch (error) {
-      toast.error(
-        formatFileTreeCopy(copy.toast.lockError, {
-          entityLower: copy.entity.fileLower,
-        }),
-      );
+      toast.error(`Error locking file`);
       logger.error(error);
     }
   };
@@ -1164,24 +1117,12 @@ function FileContextMenu({
       const success = workbenchStore.unlockFile(fullPath);
 
       if (success) {
-        toast.success(
-          formatFileTreeCopy(copy.toast.unlocked, {
-            entityTitle: copy.entity.fileTitle,
-          }),
-        );
+        toast.success(`File unlocked successfully`);
       } else {
-        toast.error(
-          formatFileTreeCopy(copy.toast.unlockFailed, {
-            entityLower: copy.entity.fileLower,
-          }),
-        );
+        toast.error(`Failed to unlock file`);
       }
     } catch (error) {
-      toast.error(
-        formatFileTreeCopy(copy.toast.unlockError, {
-          entityLower: copy.entity.fileLower,
-        }),
-      );
+      toast.error(`Error unlocking file`);
       logger.error(error);
     }
   };
@@ -1196,24 +1137,12 @@ function FileContextMenu({
       const success = workbenchStore.lockFolder(fullPath);
 
       if (success) {
-        toast.success(
-          formatFileTreeCopy(copy.toast.locked, {
-            entityTitle: copy.entity.folderTitle,
-          }),
-        );
+        toast.success(`Folder locked successfully`);
       } else {
-        toast.error(
-          formatFileTreeCopy(copy.toast.lockFailed, {
-            entityLower: copy.entity.folderLower,
-          }),
-        );
+        toast.error(`Failed to lock folder`);
       }
     } catch (error) {
-      toast.error(
-        formatFileTreeCopy(copy.toast.lockError, {
-          entityLower: copy.entity.folderLower,
-        }),
-      );
+      toast.error(`Error locking folder`);
       logger.error(error);
     }
   };
@@ -1228,24 +1157,12 @@ function FileContextMenu({
       const success = workbenchStore.unlockFolder(fullPath);
 
       if (success) {
-        toast.success(
-          formatFileTreeCopy(copy.toast.unlocked, {
-            entityTitle: copy.entity.folderTitle,
-          }),
-        );
+        toast.success(`Folder unlocked successfully`);
       } else {
-        toast.error(
-          formatFileTreeCopy(copy.toast.unlockFailed, {
-            entityLower: copy.entity.folderLower,
-          }),
-        );
+        toast.error(`Failed to unlock folder`);
       }
     } catch (error) {
-      toast.error(
-        formatFileTreeCopy(copy.toast.unlockError, {
-          entityLower: copy.entity.folderLower,
-        }),
-      );
+      toast.error(`Error unlocking folder`);
       logger.error(error);
     }
   };
@@ -1282,25 +1199,25 @@ function FileContextMenu({
               <ContextMenuItem onSelect={() => setIsCreatingFile(true)}>
                 <div className="flex items-center gap-2">
                   <div className="i-ph:file-plus" />
-                  {copy.menu.newFile}
+                  New File
                 </div>
               </ContextMenuItem>
               <ContextMenuItem onSelect={() => setIsCreatingFolder(true)}>
                 <div className="flex items-center gap-2">
                   <div className="i-ph:folder-plus" />
-                  {copy.menu.newFolder}
+                  New Folder
                 </div>
               </ContextMenuItem>
             </ContextMenu.Group>
             <ContextMenu.Group className="p-1">
-              <ContextMenuItem onSelect={() => setIsRenaming(true)}>{copy.menu.rename}</ContextMenuItem>
-              <ContextMenuItem onSelect={handleDuplicate}>{copy.menu.duplicate}</ContextMenuItem>
-              <ContextMenuItem onSelect={onCopyPath}>{copy.menu.copyPath}</ContextMenuItem>
-              <ContextMenuItem onSelect={onCopyRelativePath}>{copy.menu.copyRelativePath}</ContextMenuItem>
-              <ContextMenuItem onSelect={handleReveal}>{copy.menu.reveal}</ContextMenuItem>
+              <ContextMenuItem onSelect={() => setIsRenaming(true)}>Rename</ContextMenuItem>
+              <ContextMenuItem onSelect={handleDuplicate}>Duplicate</ContextMenuItem>
+              <ContextMenuItem onSelect={onCopyPath}>Copy path</ContextMenuItem>
+              <ContextMenuItem onSelect={onCopyRelativePath}>Copy relative path</ContextMenuItem>
+              <ContextMenuItem onSelect={handleReveal}>Reveal in finder</ContextMenuItem>
               {!isFolder && (
                 <ContextMenuItem onSelect={onToggleBookmark}>
-                  {bookmarked ? copy.menu.removeBookmark : copy.menu.addBookmark}
+                  {bookmarked ? 'Remove bookmark' : 'Add bookmark'}
                 </ContextMenuItem>
               )}
             </ContextMenu.Group>
@@ -1311,13 +1228,13 @@ function FileContextMenu({
                   <ContextMenuItem onSelect={handleLockFile}>
                     <div className="flex items-center gap-2">
                       <div className="i-ph:lock-simple" />
-                      {copy.menu.lockFile}
+                      Lock File
                     </div>
                   </ContextMenuItem>
                   <ContextMenuItem onSelect={handleUnlockFile}>
                     <div className="flex items-center gap-2">
                       <div className="i-ph:lock-key-open" />
-                      {copy.menu.unlockFile}
+                      Unlock File
                     </div>
                   </ContextMenuItem>
                 </>
@@ -1326,13 +1243,13 @@ function FileContextMenu({
                   <ContextMenuItem onSelect={handleLockFolder}>
                     <div className="flex items-center gap-2">
                       <div className="i-ph:lock-simple" />
-                      {copy.menu.lockFolder}
+                      Lock Folder
                     </div>
                   </ContextMenuItem>
                   <ContextMenuItem onSelect={handleUnlockFolder}>
                     <div className="flex items-center gap-2">
                       <div className="i-ph:lock-key-open" />
-                      {copy.menu.unlockFolder}
+                      Unlock Folder
                     </div>
                   </ContextMenuItem>
                 </>
@@ -1343,7 +1260,7 @@ function FileContextMenu({
               <ContextMenuItem onSelect={handleDelete}>
                 <div className="flex items-center gap-2 text-[var(--status-error-text)]">
                   <div className="i-ph:trash" />
-                  {formatFileTreeCopy(copy.menu.delete, { entityLower })}
+                  Delete {isFolder ? 'Folder' : 'File'}
                 </div>
               </ContextMenuItem>
             </ContextMenu.Group>
@@ -1353,7 +1270,7 @@ function FileContextMenu({
       {isCreatingFile && (
         <InlineInput
           depth={depth}
-          placeholder={copy.placeholder.fileName}
+          placeholder="Enter file name..."
           onSubmit={handleCreateFile}
           onCancel={() => setIsCreatingFile(false)}
         />
@@ -1361,7 +1278,7 @@ function FileContextMenu({
       {isCreatingFolder && (
         <InlineInput
           depth={depth}
-          placeholder={copy.placeholder.folderName}
+          placeholder="Enter folder name..."
           onSubmit={handleCreateFolder}
           onCancel={() => setIsCreatingFolder(false)}
         />
@@ -1369,7 +1286,7 @@ function FileContextMenu({
       {isRenaming && (
         <InlineInput
           depth={depth}
-          placeholder={copy.placeholder.newName}
+          placeholder="Enter new name..."
           initialValue={fileName}
           onSubmit={handleRename}
           onCancel={() => setIsRenaming(false)}
@@ -1379,9 +1296,9 @@ function FileContextMenu({
         isOpen={isConfirmingDelete}
         onClose={() => setIsConfirmingDelete(false)}
         onConfirm={handleConfirmedDelete}
-        title={formatFileTreeCopy(copy.dialog.deleteTitle, { entityLower })}
-        description={formatFileTreeCopy(copy.dialog.deleteDescription, { entityLower, name: fileName })}
-        confirmLabel={copy.dialog.deleteConfirm}
+        title={`Delete ${isFolder ? 'Folder' : 'File'}`}
+        description={`Are you sure you want to delete ${isFolder ? 'folder' : 'file'} "${fileName}"? This cannot be undone.`}
+        confirmLabel="Delete"
         variant="destructive"
       />
       <ConfirmationDialog
@@ -1395,9 +1312,9 @@ function FileContextMenu({
             void performDrop(pending.files);
           }
         }}
-        title={copy.overwrite.title}
+        title="Overwrite existing files?"
         description={<span className="whitespace-pre-line">{pendingOverwriteDrop?.message}</span>}
-        confirmLabel={copy.overwrite.confirm}
+        confirmLabel="Overwrite"
         variant="destructive"
       />
     </>
@@ -1405,9 +1322,6 @@ function FileContextMenu({
 }
 
 function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativePath, onClick }: FolderProps) {
-  const { i18n } = useTranslation();
-  const copy = getFileTreeCopy(i18n.resolvedLanguage ?? i18n.language);
-
   /*
    * Read the lock flag from the already-subscribed dirent rather than calling the
    * side-effecting workbenchStore.isFolderLocked during render (it mutates the store
@@ -1444,7 +1358,7 @@ function Folder({ folder, collapsed, selected = false, onCopyPath, onCopyRelativ
           {isLocked && (
             <span
               className={classNames('shrink-0', 'i-ph:lock-simple scale-80 text-red-500')}
-              title={copy.detail.folderLocked}
+              title={'Folder is locked'}
             />
           )}
         </div>
@@ -1480,8 +1394,6 @@ function File({
   fileHistory = {},
   onToggleBookmark,
 }: FileProps) {
-  const { i18n } = useTranslation();
-  const copy = getFileTreeCopy(i18n.resolvedLanguage ?? i18n.language);
   const { depth, name, fullPath } = file;
 
   /*
@@ -1517,7 +1429,7 @@ function File({
             selected,
         })}
         depth={depth}
-        iconClasses={classNames(materialFileIcon(name, copy.fileTypes).icon, 'scale-98', {
+        iconClasses={classNames(materialFileIcon(name).icon, 'scale-98', {
           'group-hover:text-bolt-elements-item-contentActive': !selected,
         })}
         title={fullPath}
@@ -1541,16 +1453,16 @@ function File({
               <span
                 className={classNames('shrink-0', 'i-ph:lock-simple scale-80 text-red-500')}
                 role="img"
-                aria-label={copy.detail.fileLocked}
-                title={copy.detail.fileLocked}
+                aria-label="File is locked"
+                title={'File is locked'}
               />
             )}
             {bookmarked && (
               <span
                 className="i-ph:bookmark-simple-fill scale-75 shrink-0 text-sky-500"
                 role="img"
-                aria-label={copy.detail.bookmarked}
-                title={copy.detail.bookmarked}
+                aria-label="Bookmarked"
+                title="Bookmarked"
               />
             )}
             {gitStatus && <GitStatusPill status={gitStatus} />}
@@ -1558,8 +1470,8 @@ function File({
               <span
                 className="i-ph:circle-fill scale-68 shrink-0 text-orange-500"
                 role="img"
-                aria-label={copy.detail.unsavedChanges}
-                title={copy.detail.unsavedChanges}
+                aria-label="Unsaved changes"
+                title="Unsaved changes"
               />
             )}
           </div>
@@ -1574,9 +1486,6 @@ function GitStatusPill({ status }: { status: GitFileStatus }) {
 }
 
 function OutlineView({ symbols, onSelect }: { symbols: OutlineSymbol[]; onSelect: (symbol: OutlineSymbol) => void }) {
-  const { i18n } = useTranslation();
-  const copy = getFileTreeCopy(i18n.resolvedLanguage ?? i18n.language);
-
   return (
     <div className="space-y-1 p-2">
       {symbols.map((symbol) => (
@@ -1600,7 +1509,7 @@ function OutlineView({ symbols, onSelect }: { symbols: OutlineSymbol[]; onSelect
           <span className="min-w-0 flex-1">
             <span className="block truncate text-xs font-medium">{symbol.label}</span>
             <span className="block truncate text-[11px] text-bolt-elements-textTertiary">
-              {copy.detail.line} {symbol.line} · {symbol.detail}
+              Line {symbol.line} · {symbol.detail}
             </span>
           </span>
         </button>
@@ -1619,9 +1528,6 @@ interface EmptyExplorerStateProps {
 }
 
 function EmptyExplorerState({ icon, title, description, showReconnect = false, onReconnect }: EmptyExplorerStateProps) {
-  const { i18n } = useTranslation();
-  const copy = getFileTreeCopy(i18n.resolvedLanguage ?? i18n.language);
-
   return (
     <div className="flex h-40 flex-col items-center justify-center px-4 text-center text-bolt-elements-textTertiary">
       <span className={classNames('mb-3 size-7', icon)} aria-hidden />
@@ -1634,7 +1540,7 @@ function EmptyExplorerState({ icon, title, description, showReconnect = false, o
           className="mt-3 flex items-center gap-1.5 rounded-md bg-bolt-elements-item-backgroundActive px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-item-backgroundAccent"
         >
           <span className="i-ph:arrow-clockwise size-3.5" aria-hidden />
-          {copy.detail.reconnect}
+          Reconnect
         </button>
       ) : null}
     </div>

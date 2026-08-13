@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { classNames } from '~/utils/classNames';
 
 interface BreadcrumbItem {
@@ -25,8 +24,6 @@ export function Breadcrumbs({
   maxItems = 0,
   renderItem,
 }: BreadcrumbsProps) {
-  const { t } = useTranslation();
-
   const displayItems =
     maxItems > 0 && items.length > maxItems
       ? [
@@ -79,7 +76,7 @@ export function Breadcrumbs({
   };
 
   return (
-    <nav className={classNames('flex items-center', className)} aria-label={t('sharedUi.breadcrumbs')}>
+    <nav className={classNames('flex items-center', className)} aria-label="Breadcrumbs">
       <ol className="flex items-center gap-1.5">
         {displayItems.map((item, index) => {
           const isLast = index === displayItems.length - 1;

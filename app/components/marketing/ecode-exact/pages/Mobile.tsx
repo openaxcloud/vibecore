@@ -1,4 +1,3 @@
-import type { LucideIcon } from 'lucide-react';
 import {
   Smartphone,
   Code2,
@@ -15,7 +14,6 @@ import {
   Zap,
 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { SiReact, SiTypescript, SiPython, SiVite, SiNodedotjs, SiTailwindcss } from 'react-icons/si';
 import {
   EcodeExactPublicFooter as PublicFooter,
@@ -34,29 +32,8 @@ import {
   nextFeatureIndex,
   shouldAutoCycle,
 } from '~/components/marketing/ecode-exact/pages/mobile-auto-cycle';
-import {
-  getMarketingExactProductCopy,
-  type ExactMobileCapabilityId,
-  type ExactMobileHighlightId,
-} from '~/lib/i18n/catalogs/marketing-exact-product';
 
 const PRODUCT_MOBILE_SHOT = '/ecode-static/assets/product/mobile.png';
-
-const HIGHLIGHT_ICONS: Record<ExactMobileHighlightId, LucideIcon> = {
-  anywhere: Code2,
-  agent: Sparkles,
-  preview: Globe,
-  deploy: Rocket,
-};
-
-const CAPABILITY_ICONS: Record<ExactMobileCapabilityId, LucideIcon> = {
-  touch: Eye,
-  git: GitBranch,
-  cloud: Wifi,
-  projects: Layers,
-  security: ShieldCheck,
-  resume: Zap,
-};
 
 /**
  * A real photo-frame phone mockup that renders an actual product screenshot.
@@ -104,23 +81,46 @@ function PhoneMockup({
 }
 
 export default function Mobile() {
-  const { i18n } = useTranslation();
-  const copy = getMarketingExactProductCopy(i18n.resolvedLanguage ?? i18n.language).exactProduct.mobile;
   const navigate = useMarketingNavigate();
 
   // Real platform capabilities, each true to what the live E-Code IDE does.
-  const highlights = copy.highlights.map((highlight) => {
-    const Icon = HIGHLIGHT_ICONS[highlight.id];
-
-    return { ...highlight, icon: <Icon className="h-5 w-5" /> };
-  });
+  const highlights = [
+    {
+      id: 'anywhere',
+      icon: <Code2 className="h-5 w-5" />,
+      title: 'Code from anywhere',
+      description:
+        'Open any project in the mobile browser and pick up exactly where you left off. The full workspace — files, editor, and terminal — runs in the cloud, so nothing depends on the device in your hand.',
+    },
+    {
+      id: 'agent',
+      icon: <Sparkles className="h-5 w-5" />,
+      title: 'The agent on mobile',
+      description:
+        'Describe a change in plain language and the E-Code agent edits your code, runs commands, and proposes diffs you can review and accept — the same agent panel you use on the desktop, sized for a phone.',
+    },
+    {
+      id: 'preview',
+      icon: <Globe className="h-5 w-5" />,
+      title: 'Live preview on your phone',
+      description:
+        'Every workspace serves a live preview URL. Watch your app hot-reload as the agent works, and test real touch interactions on the actual device your users hold.',
+    },
+    {
+      id: 'deploy',
+      icon: <Rocket className="h-5 w-5" />,
+      title: 'Push to deploy',
+      description:
+        'Commit from the built-in Git panel and publish from the Deployments tab. Ship a fix from the train and share the live link before you reach your stop.',
+    },
+  ];
 
   const highlightCount = highlights.length;
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAutoCycling, setIsAutoCycling] = useState(true);
   const resumeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const activeHighlight = highlights[activeIndex] ?? highlights[0]!;
+  const activeHighlight = highlights[activeIndex] ?? highlights[0];
 
   const pauseAutoCycle = () => {
     setIsAutoCycling(false);
@@ -158,11 +158,38 @@ export default function Mobile() {
   }, []);
 
   // Real capabilities that genuinely carry over to the mobile experience.
-  const capabilities = copy.capabilities.map((capability) => {
-    const Icon = CAPABILITY_ICONS[capability.id];
-
-    return { ...capability, icon: <Icon className="h-5 w-5" /> };
-  });
+  const capabilities = [
+    {
+      icon: <Eye className="h-5 w-5" />,
+      title: 'Touch-first preview',
+      description: 'Interact with your running app exactly as your users will, on the device they actually use.',
+    },
+    {
+      icon: <GitBranch className="h-5 w-5" />,
+      title: 'Git in your pocket',
+      description: 'Branch, stage, commit, and view the working tree from the same Git panel as the desktop IDE.',
+    },
+    {
+      icon: <Wifi className="h-5 w-5" />,
+      title: 'Cloud workspaces',
+      description: 'Your environment lives in the cloud, so a phone, tablet, and laptop all open the same session.',
+    },
+    {
+      icon: <Layers className="h-5 w-5" />,
+      title: 'Real multi-file projects',
+      description: 'Navigate full codebases — not a single scratch file — with the file tree and editor side by side.',
+    },
+    {
+      icon: <ShieldCheck className="h-5 w-5" />,
+      title: 'Secure by default',
+      description: 'Workspaces are isolated and your code stays in your account, on every device you sign in from.',
+    },
+    {
+      icon: <Zap className="h-5 w-5" />,
+      title: 'Instant resume',
+      description: 'Reopen a project and the agent, files, and preview restore in seconds — no local setup.',
+    },
+  ];
 
   // Real stacks E-Code workspaces run — title-matched logos, never bare squares.
   const stacks = [
@@ -174,7 +201,12 @@ export default function Mobile() {
     { icon: <SiTailwindcss className="h-5 w-5" />, name: 'Tailwind' },
   ];
 
-  const flow = copy.flow;
+  const flow = [
+    { step: '01', title: 'Open your workspace', description: 'Sign in and resume any project from the dashboard.' },
+    { step: '02', title: 'Prompt the agent', description: 'Ask for a feature or fix; review the proposed diff.' },
+    { step: '03', title: 'Preview live', description: 'Watch the change hot-reload in the on-device preview.' },
+    { step: '04', title: 'Commit & publish', description: 'Commit from the Git panel, then deploy in a tap.' },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-background" data-testid="page-mobile">
@@ -189,17 +221,22 @@ export default function Mobile() {
               <div className="text-center lg:text-left">
                 <div className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-accent)]/30 bg-[var(--ecode-accent)]/10 px-4 py-1.5">
                   <Smartphone className="h-4 w-4 text-[var(--ecode-accent)]" />
-                  <span className="text-[13px] font-medium text-[var(--ecode-accent)]">{copy.hero.badge}</span>
+                  <span className="text-[13px] font-medium text-[var(--ecode-accent)]">
+                    Runs in your mobile browser
+                  </span>
                 </div>
 
                 <h1 className="mt-6 mkt-h1 font-bold leading-tight" data-testid="heading-mobile">
-                  {copy.hero.title}
+                  Your whole IDE,
                   <span className="block bg-gradient-to-r from-[#F26207] to-[#F99D25] bg-clip-text text-transparent">
-                    {copy.hero.accent}
+                    in your pocket
                   </span>
                 </h1>
 
-                <p className="mx-auto mt-6 max-w-xl mkt-lead text-muted-foreground lg:mx-0">{copy.hero.description}</p>
+                <p className="mx-auto mt-6 max-w-xl mkt-lead text-muted-foreground lg:mx-0">
+                  E-Code is a cloud development platform — so the editor, agent, terminal, live preview, and deploy you
+                  use on the desktop all open on your phone. No app to install, nothing to set up.
+                </p>
 
                 <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row lg:items-start lg:justify-start">
                   <Button
@@ -208,7 +245,7 @@ export default function Mobile() {
                     className="gap-2 bg-ecode-accent text-white hover:bg-ecode-accent-hover"
                     data-testid="button-mobile-hero-start"
                   >
-                    {copy.hero.primary}
+                    Get started free
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                   <Button
@@ -217,13 +254,13 @@ export default function Mobile() {
                     onClick={() => navigate('/dashboard')}
                     data-testid="button-mobile-hero-dashboard"
                   >
-                    {copy.hero.secondary}
+                    Open dashboard
                   </Button>
                 </div>
               </div>
 
               <div className="relative">
-                <PhoneMockup src={PRODUCT_MOBILE_SHOT} alt={copy.hero.imageAlt} loading="eager" />
+                <PhoneMockup src={PRODUCT_MOBILE_SHOT} alt="E-Code workspace dashboard on a phone" loading="eager" />
               </div>
             </div>
           </div>
@@ -234,9 +271,11 @@ export default function Mobile() {
           <div className="container-responsive">
             <div className="mx-auto mb-12 max-w-3xl text-center">
               <h2 className="mkt-h2 font-bold">
-                {copy.tour.title} <span className="text-[var(--ecode-accent)]">{copy.tour.accent}</span>
+                Everything you build with, <span className="text-[var(--ecode-accent)]">on the go</span>
               </h2>
-              <p className="mt-4 mkt-body text-muted-foreground">{copy.tour.description}</p>
+              <p className="mt-4 mkt-body text-muted-foreground">
+                The same platform — not a stripped-down companion app. Here is what carries straight over to mobile.
+              </p>
             </div>
 
             <div className="grid items-center gap-12 lg:grid-cols-2">
@@ -276,7 +315,7 @@ export default function Mobile() {
                       key={highlight.id}
                       type="button"
                       onClick={() => selectHighlight(index)}
-                      aria-label={`${copy.tour.showPrefix} ${highlight.title}`}
+                      aria-label={`Show ${highlight.title}`}
                       className={`h-2 rounded-full transition-all ${
                         index === activeIndex
                           ? 'w-8 bg-ecode-accent'
@@ -289,7 +328,7 @@ export default function Mobile() {
 
               <div className="relative order-1 lg:order-2">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(242,98,7,0.16),transparent_60%)]" />
-                <PhoneMockup src={PRODUCT_MOBILE_SHOT} alt={`${copy.tour.imageAltPrefix} — ${activeHighlight.title}`} />
+                <PhoneMockup src={PRODUCT_MOBILE_SHOT} alt={`E-Code on mobile — ${activeHighlight.title}`} />
                 <div className="mt-6 text-center">
                   <Badge variant="secondary" className="inline-flex items-center gap-2">
                     {activeHighlight.icon}
@@ -304,8 +343,11 @@ export default function Mobile() {
         {/* Stacks */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive text-center">
-            <h2 className="mkt-h2 font-bold">{copy.stacks.title}</h2>
-            <p className="mx-auto mt-4 max-w-2xl mkt-body text-muted-foreground">{copy.stacks.description}</p>
+            <h2 className="mkt-h2 font-bold">Bring any stack</h2>
+            <p className="mx-auto mt-4 max-w-2xl mkt-body text-muted-foreground">
+              Mobile workspaces run the same cloud runtime as the desktop — the frameworks and languages you already
+              ship.
+            </p>
             <div className="mx-auto mt-10 flex max-w-3xl flex-wrap justify-center gap-3">
               {stacks.map((stack) => (
                 <div
@@ -325,15 +367,16 @@ export default function Mobile() {
           <div className="container-responsive">
             <div className="mx-auto mb-12 max-w-3xl text-center">
               <h2 className="mkt-h2 font-bold">
-                {copy.capabilitiesIntro.title}{' '}
-                <span className="text-[var(--ecode-accent)]">{copy.capabilitiesIntro.accent}</span>
+                Professional development, <span className="text-[var(--ecode-accent)]">pocket-sized</span>
               </h2>
-              <p className="mt-4 mkt-body text-muted-foreground">{copy.capabilitiesIntro.description}</p>
+              <p className="mt-4 mkt-body text-muted-foreground">
+                No compromises — the capabilities you rely on are present on every screen size.
+              </p>
             </div>
 
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {capabilities.map((capability) => (
-                <Card key={capability.id} className="group transition-all hover:shadow-xl">
+                <Card key={capability.title} className="group transition-all hover:shadow-xl">
                   <CardContent className="pt-6">
                     <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)] transition-transform group-hover:scale-110">
                       {capability.icon}
@@ -352,7 +395,7 @@ export default function Mobile() {
           <div className="container-responsive">
             <div className="mx-auto mb-12 max-w-3xl text-center">
               <h2 className="mkt-h2 font-bold">
-                {copy.flowIntro.title} <span className="text-[var(--ecode-accent)]">{copy.flowIntro.accent}</span>
+                From idea to live, <span className="text-[var(--ecode-accent)]">without a laptop</span>
               </h2>
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -372,15 +415,19 @@ export default function Mobile() {
           <div className="container-responsive max-w-5xl">
             <div className="mb-12 text-center">
               <h2 className="mkt-h2 font-bold">
-                {copy.comparison.title} <span className="text-[var(--ecode-accent)]">{copy.comparison.accent}</span>{' '}
-                {copy.comparison.suffix}
+                Why coding on <span className="text-[var(--ecode-accent)]">E-Code mobile</span> is different
               </h2>
             </div>
             <div className="grid gap-8 rounded-2xl border border-border bg-muted p-8 md:grid-cols-2">
               <div>
-                <h3 className="mb-6 mkt-h3 font-bold text-muted-foreground">{copy.comparison.typicalTitle}</h3>
+                <h3 className="mb-6 mkt-h3 font-bold text-muted-foreground">A typical mobile code editor</h3>
                 <ul className="space-y-4">
-                  {copy.comparison.typicalItems.map((item) => (
+                  {[
+                    'A single file, no real project structure',
+                    'No terminal or package installs',
+                    'No live preview of a running app',
+                    'No way to deploy what you wrote',
+                  ].map((item) => (
                     <li key={item} className="flex items-start gap-3">
                       <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-muted-foreground/15 text-[13px] text-muted-foreground">
                         ×
@@ -391,9 +438,14 @@ export default function Mobile() {
                 </ul>
               </div>
               <div>
-                <h3 className="mb-6 mkt-h3 font-bold text-[var(--ecode-accent)]">{copy.comparison.ecodeTitle}</h3>
+                <h3 className="mb-6 mkt-h3 font-bold text-[var(--ecode-accent)]">E-Code mobile</h3>
                 <ul className="space-y-4">
-                  {copy.comparison.ecodeItems.map((item) => (
+                  {[
+                    'Full multi-file workspaces in the cloud',
+                    'Real terminal and the coding agent',
+                    'Live preview you can touch and test',
+                    'Commit with Git and deploy in a tap',
+                  ].map((item) => (
                     <li key={item} className="flex items-start gap-3">
                       <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--ecode-accent)]/15">
                         <Check className="h-4 w-4 text-[var(--ecode-accent)]" />
@@ -410,8 +462,11 @@ export default function Mobile() {
         {/* End CTA */}
         <section className="py-responsive bg-gradient-to-b from-background to-muted">
           <div className="container-responsive max-w-3xl text-center">
-            <h2 className="mkt-h2 font-bold">{copy.cta.title}</h2>
-            <p className="mx-auto mt-4 max-w-xl mkt-lead text-muted-foreground">{copy.cta.description}</p>
+            <h2 className="mkt-h2 font-bold">Ready to build from anywhere?</h2>
+            <p className="mx-auto mt-4 max-w-xl mkt-lead text-muted-foreground">
+              Open E-Code in your mobile browser and start a workspace in seconds — the same projects, agent, and
+              previews follow you across every device.
+            </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <Button
                 size="lg"
@@ -419,7 +474,7 @@ export default function Mobile() {
                 className="gap-2 bg-ecode-accent text-white hover:bg-ecode-accent-hover"
                 data-testid="button-mobile-cta-start"
               >
-                {copy.cta.primary}
+                Get started
                 <ArrowRight className="h-4 w-4" />
               </Button>
               <Button
@@ -428,7 +483,7 @@ export default function Mobile() {
                 onClick={() => navigate('/dashboard')}
                 data-testid="button-mobile-cta-dashboard"
               >
-                {copy.cta.secondary}
+                Open dashboard
               </Button>
             </div>
           </div>

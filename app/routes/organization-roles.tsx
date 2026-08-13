@@ -1,5 +1,4 @@
 import { Fragment } from 'react';
-import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData } from 'react-router';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
@@ -14,23 +13,17 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { formatOrganizationAccessCopy, getOrganizationAccessCopy } from '~/lib/i18n/catalogs/organization-access';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import {
+  BUILTIN_ROLE_LABELS,
   BUILTIN_ROLE_ORDER,
   BUILTIN_ROLE_PERMISSIONS,
-  getBuiltinRoleLabels,
-  getPermissionCatalog,
+  PERMISSION_CATALOG,
   permissionLabel,
   permissionsForRoleKey,
   type PermissionKey,
 } from '~/lib/rbac-catalog';
 
-export const meta: MetaFunction = ({ matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-
-  return [{ title: getOrganizationAccessCopy(rootData?.language)['organizationAccess.roles.metaTitle'] }];
-};
+export const meta: MetaFunction = () => [{ title: 'Organization roles - E-Code' }];
 
 type CustomRole = { id: string; key: string; name: string; permissions: string[]; createdAt?: string };
 
@@ -38,12 +31,11 @@ type CustomRole = { id: string; key: string; name: string; permissions: string[]
 const DEFAULT_ROLE_PERMISSIONS = BUILTIN_ROLE_PERMISSIONS.viewer;
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const copy = getOrganizationAccessCopy(resolveRequestLocale(request).language);
   const orgIdParam = new URL(request.url).searchParams.get('orgId');
   const organization = orgIdParam ? { id: orgIdParam } : await firstOrganizationOrNull(request);
 
   if (!organization) {
-    throw json({ error: copy['organizationAccess.common.organizationMissing'] }, { status: 400 });
+    throw json({ error: 'No organization found' }, { status: 400 });
   }
 
   try {
@@ -96,8 +88,6 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
-  const language = resolveRequestLocale(request).language;
-  const copy = getOrganizationAccessCopy(language);
   const formData = await request.formData();
   const body = formObject(formData) as { orgId?: string; key?: string; name?: string };
 
@@ -105,15 +95,15 @@ export async function action({ request }: EnterpriseActionArgs) {
   const permissions = formData.getAll('permissions').map(String);
 
   if (!body.orgId) {
-    return json({ error: copy['organizationAccess.common.organizationUnavailable'] }, { status: 400 });
+    return json({ error: 'Your organization is unavailable. Reload the page and try again.' }, { status: 400 });
   }
 
   if (!body.key || !body.name) {
-    return json({ error: copy['organizationAccess.roles.nameRequired'] }, { status: 400 });
+    return json({ error: 'Enter a name for the role.' }, { status: 400 });
   }
 
   if (permissions.length === 0) {
-    return json({ error: copy['organizationAccess.roles.permissionRequired'] }, { status: 400 });
+    return json({ error: 'Select at least one permission for the role.' }, { status: 400 });
   }
 
   try {
@@ -122,33 +112,23 @@ export async function action({ request }: EnterpriseActionArgs) {
       body: JSON.stringify({ key: body.key, name: body.name, permissions }),
     });
 
-    return json({
-      status: formatOrganizationAccessCopy(copy['organizationAccess.roles.created'], { role: result.role.name }),
-    });
+    return json({ status: `Role "${result.role.name}" created.` });
   } catch (error) {
     if (isForbiddenApiResponse(error)) {
       // Includes the friendly RBAC_PRIVILEGE_ESCALATION message from the server.
       return json(
         {
-          error:
-            language === 'fr'
-              ? copy['organizationAccess.roles.grantForbidden']
-              : await apiErrorMessage(error, copy['organizationAccess.roles.grantForbidden']),
+          error: await apiErrorMessage(
+            error,
+            'You can only grant permissions you already hold, and you need the "Manage roles" permission.',
+          ),
         },
         { status: 403 },
       );
     }
 
     if (error instanceof Response) {
-      return json(
-        {
-          error:
-            language === 'fr'
-              ? copy['organizationAccess.roles.createFailed']
-              : await apiErrorMessage(error, copy['organizationAccess.roles.createFailed']),
-        },
-        { status: error.status },
-      );
+      return json({ error: await apiErrorMessage(error, 'Could not create role.') }, { status: error.status });
     }
 
     throw error;
@@ -156,15 +136,6 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function OrganizationRolesPage() {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getOrganizationAccessCopy(language);
-
-  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
-    formatOrganizationAccessCopy(template, values);
-
-  const permissionCatalog = getPermissionCatalog(language);
-  const builtinRoleLabels = getBuiltinRoleLabels(language);
   const { forbidden, orgId, customRoles, grantablePermissions, callerRoleKey } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
 
@@ -172,12 +143,9 @@ export default function OrganizationRolesPage() {
 
   if (forbidden) {
     return (
-      <AppShell
-        title={copy['organizationAccess.roles.title']}
-        description={copy['organizationAccess.roles.description']}
-      >
+      <AppShell title="Organization roles" description="Define custom roles and see exactly what each role can do.">
         <p className="rounded-md border border-[var(--status-warning-border)] bg-[var(--status-warning-bg)] px-3 py-2 text-sm text-[var(--status-warning-text)]">
-          {copy['organizationAccess.roles.forbidden']}
+          Role management is available only to organization owners or role managers.
         </p>
       </AppShell>
     );
@@ -185,7 +153,7 @@ export default function OrganizationRolesPage() {
 
   const builtinRows = BUILTIN_ROLE_ORDER.map((key) => ({
     key,
-    name: builtinRoleLabels[key] ?? key,
+    name: BUILTIN_ROLE_LABELS[key] ?? key,
     permissions: BUILTIN_ROLE_PERMISSIONS[key] ?? [],
     builtin: true as const,
   }));
@@ -200,7 +168,7 @@ export default function OrganizationRolesPage() {
   const allRows = [...builtinRows, ...customRows];
 
   return (
-    <AppShell title={copy['organizationAccess.roles.title']} description={copy['organizationAccess.roles.description']}>
+    <AppShell title="Organization roles" description="Define custom roles and see exactly what each role can do.">
       <div className="grid gap-6">
         {actionData?.status ? (
           <p
@@ -222,11 +190,10 @@ export default function OrganizationRolesPage() {
         {/* Permission matrix: roles as columns, permissions as rows. */}
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm">
           <div className="border-b border-bolt-elements-borderColor px-4 py-3 sm:px-6">
-            <h2 className="font-semibold text-bolt-elements-textPrimary">{copy['organizationAccess.roles.matrix']}</h2>
+            <h2 className="font-semibold text-bolt-elements-textPrimary">Permission matrix</h2>
             <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-              {text(copy['organizationAccess.roles.matrixDescription'], {
-                role: builtinRoleLabels[callerRoleKey] ?? copy['organizationAccess.role.custom'],
-              })}
+              Built-in roles are read-only. Your role ({BUILTIN_ROLE_LABELS[callerRoleKey] ?? 'Custom role'}) determines
+              which permissions you can grant to a new custom role.
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -234,7 +201,7 @@ export default function OrganizationRolesPage() {
               <thead>
                 <tr className="border-b border-bolt-elements-borderColor">
                   <th className="sticky left-0 z-10 bg-bolt-elements-background-depth-2 px-4 py-2 font-medium text-bolt-elements-textSecondary sm:px-6">
-                    {copy['organizationAccess.roles.permission']}
+                    Permission
                   </th>
                   {allRows.map((role) => (
                     <th
@@ -243,16 +210,14 @@ export default function OrganizationRolesPage() {
                     >
                       {role.name}
                       <span className="ml-1 text-[10px] font-normal text-bolt-elements-textSecondary">
-                        {role.builtin
-                          ? copy['organizationAccess.roles.builtin']
-                          : copy['organizationAccess.roles.custom']}
+                        {role.builtin ? 'built-in' : 'custom'}
                       </span>
                     </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {permissionCatalog.map((group) => (
+                {PERMISSION_CATALOG.map((group) => (
                   <Fragment key={`grp-${group.group}`}>
                     <tr className="border-b border-bolt-elements-borderColor">
                       <td
@@ -278,20 +243,14 @@ export default function OrganizationRolesPage() {
                               {held ? (
                                 <span
                                   className="text-bolt-elements-icon-success"
-                                  aria-label={text(copy['organizationAccess.roles.hasPermission'], {
-                                    role: role.name,
-                                    permission: permission.label,
-                                  })}
+                                  aria-label={`${role.name} has ${permission.label}`}
                                 >
                                   ●
                                 </span>
                               ) : (
                                 <span
                                   className="text-bolt-elements-textTertiary"
-                                  aria-label={text(copy['organizationAccess.roles.lacksPermission'], {
-                                    role: role.name,
-                                    permission: permission.label,
-                                  })}
+                                  aria-label={`${role.name} lacks ${permission.label}`}
                                 >
                                   ·
                                 </span>
@@ -310,34 +269,20 @@ export default function OrganizationRolesPage() {
 
         {/* Create custom role. */}
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
-          <h2 className="mb-1 font-semibold text-bolt-elements-textPrimary">
-            {copy['organizationAccess.roles.createTitle']}
-          </h2>
+          <h2 className="mb-1 font-semibold text-bolt-elements-textPrimary">Create custom role</h2>
           <p className="mb-4 text-xs text-bolt-elements-textSecondary">
-            {copy['organizationAccess.roles.createDescription']}
+            Permissions outside your own role are unavailable and cannot be added when you save.
           </p>
           <Form method="post" className="grid gap-5">
             <input type="hidden" name="orgId" value={orgId} />
             <div className="grid gap-4 sm:grid-cols-2">
-              <TextField
-                label={copy['organizationAccess.roles.identifier']}
-                name="key"
-                placeholder={copy['organizationAccess.roles.identifierPlaceholder']}
-                required
-              />
-              <TextField
-                label={copy['organizationAccess.roles.displayName']}
-                name="name"
-                placeholder={copy['organizationAccess.roles.displayNamePlaceholder']}
-                required
-              />
+              <TextField label="Role identifier" name="key" placeholder="e.g. release-manager" required />
+              <TextField label="Display name" name="name" placeholder="e.g. Release Manager" required />
             </div>
 
             <fieldset className="grid gap-4">
-              <legend className="text-sm font-medium text-bolt-elements-textPrimary">
-                {copy['organizationAccess.roles.permissions']}
-              </legend>
-              {permissionCatalog.map((group) => (
+              <legend className="text-sm font-medium text-bolt-elements-textPrimary">Permissions</legend>
+              {PERMISSION_CATALOG.map((group) => (
                 <div key={group.group} className="grid gap-2">
                   <div className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
                     {group.group}
@@ -355,7 +300,7 @@ export default function OrganizationRolesPage() {
                               ? 'bg-bolt-elements-background-depth-1'
                               : 'cursor-not-allowed bg-bolt-elements-background-depth-3 opacity-60'
                           }`}
-                          title={canGrant ? permission.description : copy['organizationAccess.roles.cannotGrant']}
+                          title={canGrant ? permission.description : 'You cannot grant a permission you do not hold.'}
                         >
                           <input
                             type="checkbox"
@@ -380,7 +325,7 @@ export default function OrganizationRolesPage() {
             </fieldset>
 
             <div>
-              <PrimaryButton type="submit">{copy['organizationAccess.roles.create']}</PrimaryButton>
+              <PrimaryButton type="submit">Create role</PrimaryButton>
             </div>
           </Form>
         </section>
@@ -388,14 +333,10 @@ export default function OrganizationRolesPage() {
         {/* Existing custom roles. */}
         <section className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-sm shadow-sm">
           <div className="border-b border-bolt-elements-borderColor px-4 py-3 sm:px-6">
-            <h2 className="font-semibold text-bolt-elements-textPrimary">
-              {copy['organizationAccess.roles.customTitle']}
-            </h2>
+            <h2 className="font-semibold text-bolt-elements-textPrimary">Custom roles</h2>
           </div>
           {customRoles.length === 0 ? (
-            <div className="px-4 py-4 text-bolt-elements-textSecondary sm:px-6">
-              {copy['organizationAccess.roles.empty']}
-            </div>
+            <div className="px-4 py-4 text-bolt-elements-textSecondary sm:px-6">No custom roles yet.</div>
           ) : (
             customRoles.map((role) => (
               <div
@@ -409,7 +350,7 @@ export default function OrganizationRolesPage() {
                       key={permission}
                       className="rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-0.5 text-xs text-bolt-elements-textSecondary"
                     >
-                      {permissionLabel(permission, language)}
+                      {permissionLabel(permission)}
                     </span>
                   ))}
                 </div>

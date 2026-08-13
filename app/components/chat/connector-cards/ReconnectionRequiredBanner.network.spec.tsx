@@ -45,7 +45,7 @@ describe('ReconnectionRequiredBanner reconnect failure feedback', () => {
     vi.unstubAllGlobals();
   });
 
-  it('masks a server error message when the connect endpoint returns a non-ok response', async () => {
+  it('surfaces the server error message when the connect endpoint returns a non-ok response', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(
@@ -62,12 +62,11 @@ describe('ReconnectionRequiredBanner reconnect failure feedback', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reconnect GitHub' }));
 
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toBe('The reconnection could not be started. Try again.');
-    expect(screen.queryByText('Provider temporarily unavailable')).toBeNull();
+    expect(alert.textContent).toBe('Provider temporarily unavailable');
     expect(launch).not.toHaveBeenCalled();
   });
 
-  it('uses the same safe message when the error body is not parseable JSON', async () => {
+  it('falls back to an HTTP status message when the error body is not parseable JSON', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => new Response('<html>nope</html>', { status: 500 })),
@@ -78,12 +77,11 @@ describe('ReconnectionRequiredBanner reconnect failure feedback', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reconnect GitHub' }));
 
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toBe('The reconnection could not be started. Try again.');
-    expect(screen.queryByText(/HTTP 500/u)).toBeNull();
+    expect(alert.textContent).toBe('Failed to start reconnection (HTTP 500)');
     expect(launch).not.toHaveBeenCalled();
   });
 
-  it('masks a thrown fetch error with actionable localized copy', async () => {
+  it('surfaces a thrown fetch (transport) error inline', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async () => {
@@ -96,8 +94,7 @@ describe('ReconnectionRequiredBanner reconnect failure feedback', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reconnect GitHub' }));
 
     const alert = await screen.findByRole('alert');
-    expect(alert.textContent).toBe('The reconnection could not be started. Try again.');
-    expect(screen.queryByText('Network down')).toBeNull();
+    expect(alert.textContent).toBe('Network down');
     expect(launch).not.toHaveBeenCalled();
   });
 

@@ -9,7 +9,6 @@ import { Share } from '@capacitor/share';
 import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { readMobileRuntimeConfig, type MobileRuntimeConfig } from './config';
-import { formatMobileCopy, getMobileCopy } from './i18n';
 
 export interface MobileBootstrapOptions {
   config?: MobileRuntimeConfig;
@@ -215,15 +214,13 @@ export function extractPushActionData(event: PushActionEventLike) {
   return event.notification.data;
 }
 
-export async function shareProjectLink(projectId: string, url: string, language?: string | null) {
-  const copy = getMobileCopy(language ?? (typeof navigator !== 'undefined' ? navigator.language : 'en'));
-
+export async function shareProjectLink(projectId: string, url: string) {
   await Haptics.impact({ style: ImpactStyle.Light }).catch(() => undefined);
   await Share.share({
-    title: copy.shareTitle,
-    text: formatMobileCopy(copy.shareText, { projectId }),
+    title: 'E-Code project',
+    text: `Open project ${projectId} on E-Code`,
     url,
-    dialogTitle: copy.shareDialogTitle,
+    dialogTitle: 'Share project',
   });
 }
 
@@ -254,7 +251,7 @@ export async function uploadProjectFile(projectId: string, file: File, apiBaseUr
   });
 
   if (!response.ok) {
-    throw Object.assign(new Error(), { code: 'MOBILE_FILE_UPLOAD_FAILED', status: response.status });
+    throw new Error(`Mobile file upload failed: ${response.status}`);
   }
 
   return response.json() as Promise<{ path: string; size: number }>;

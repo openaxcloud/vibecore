@@ -16,10 +16,7 @@
 export function awaitTransaction(transaction: IDBTransaction): Promise<void> {
   return new Promise<void>((resolve, reject) => {
     transaction.oncomplete = () => resolve();
-    transaction.onerror = () =>
-      reject(transaction.error ?? new Error(getPersistenceRuntimeCopy()['persistence.error.transactionFailed']));
-    transaction.onabort = () =>
-      reject(transaction.error ?? new Error(getPersistenceRuntimeCopy()['persistence.error.transactionAborted']));
+    transaction.onerror = () => reject(transaction.error ?? new Error('Transaction failed'));
+    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction aborted'));
   });
 }
-import { getPersistenceRuntimeCopy } from '~/lib/i18n/catalogs/persistence-runtime';

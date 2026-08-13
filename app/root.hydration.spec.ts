@@ -28,7 +28,7 @@ describe('React Router document hydration contract', () => {
     expect(inlineThemeSource).toContain("root.setAttribute('data-ecode-theme-ready', 'true')");
     expect(inlineThemeSource).toContain("performance.mark('ecode-theme-applied')");
     expect(rootSource).toMatch(
-      /useEffect\(\(\) => \{\s*document\.documentElement\.setAttribute\('data-ecode-hydrated', 'true'\);\s*window\.dispatchEvent\(new Event\('ecode:hydrated'\)\);\s*\}, \[\]\);/,
+      /useEffect\(\(\) => \{\s*window\.dispatchEvent\(new Event\('ecode:hydrated'\)\);\s*\}, \[\]\);/,
     );
   });
 });

@@ -1,6 +1,5 @@
 /* eslint-disable import/order */
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { ClientOnly } from 'remix-utils/client-only';
 import { AgentPowerControls, type AgentModeAvailability, type AgentPowerControlsValue } from './AgentPowerControls';
@@ -30,11 +29,6 @@ import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
-import {
-  formatChatBoxAttachmentSummary,
-  getChatBoxCopy,
-  getChatBoxDroppedImageError,
-} from '~/lib/i18n/catalogs/chat-box';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
 
@@ -127,9 +121,6 @@ interface ChatBoxProps {
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getChatBoxCopy(language);
   const providerList = Array.isArray(props.providerList) ? props.providerList : (PROVIDER_LIST as ProviderInfo[]);
 
   const hasComposerPayload = props.input.trim().length > 0 || props.uploadedFiles.length > 0;
@@ -147,14 +138,14 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
 
   const settingsToggleTitle = props.projectIdeMode
     ? props.isModelSettingsCollapsed
-      ? copy['chatBox.settings.showAgent']
-      : copy['chatBox.settings.hideAgent']
-    : copy['chatBox.settings.model'];
+      ? 'Show agent settings'
+      : 'Hide agent settings'
+    : 'Model Settings';
   const enhancePromptTitle = props.enhancingPrompt
-    ? copy['chatBox.enhance.inProgress']
+    ? 'Enhancing your prompt with AI'
     : props.input.length === 0
-      ? copy['chatBox.enhance.emptyHint']
-      : copy['chatBox.enhance.readyHint'];
+      ? 'Type a prompt to enable AI prompt enhancement'
+      : 'Enhance this prompt with AI before sending';
 
   const [isToolsMenuOpen, setIsToolsMenuOpen] = React.useState(false);
   const toolsMenuRef = React.useRef<HTMLDivElement>(null);
@@ -418,11 +409,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                   })}
                   aria-pressed={props.planFirstEnabled ?? false}
                   disabled={props.isStreaming}
-                  title={copy['chatBox.planFirst.title']}
+                  title="Plan first: propose a reviewable plan and wait for approval before editing"
                   onClick={() => props.onPlanFirstChange?.(!(props.planFirstEnabled ?? false))}
                 >
                   <span className="i-ph:list-checks bolt-chatbox-plan-toggle-icon" aria-hidden />
-                  <span className="bolt-chatbox-plan-toggle-label">{copy['chatBox.planFirst.label']}</span>
+                  <span className="bolt-chatbox-plan-toggle-label">Plan</span>
                 </button>
               ) : null}
             </div>
@@ -448,20 +439,20 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         )}
       </ClientOnly>
       {props.selectedElement && (
-        <div className="mx-1.5 flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg rounded-b-none border border-b-0 border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary sm:flex-nowrap">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 lowercase">
-            <code className="rounded-4px mr-0.5 max-w-full whitespace-normal break-all bg-accent-500 px-1.5 py-1 text-white">
+        <div className="flex mx-1.5 gap-2 items-center justify-between rounded-lg rounded-b-none border border-b-none border-bolt-elements-borderColor text-bolt-elements-textPrimary flex py-1 px-2.5 font-medium text-xs">
+          <div className="flex gap-2 items-center lowercase">
+            <code className="bg-accent-500 rounded-4px px-1.5 py-1 mr-0.5 text-white">
               {props?.selectedElement?.tagName}
             </code>
-            <span className="min-w-0 break-words">{copy['chatBox.inspector.selected']}</span>
+            selected for inspection
           </div>
           <button
             type="button"
-            aria-label={copy['chatBox.inspector.clearAria']}
-            className="pointer-auto min-h-8 shrink-0 bg-transparent px-1 text-accent-500"
+            aria-label="Clear selected inspected element"
+            className="bg-transparent text-accent-500 pointer-auto"
             onClick={() => props.setSelectedElement?.(null)}
           >
-            {copy['chatBox.inspector.clear']}
+            Clear
           </button>
         </div>
       )}
@@ -473,7 +464,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         <div className="bolt-chatbox-input-frame relative">
           <textarea
             ref={props.textareaRef}
-            aria-label={props.projectIdeMode ? copy['chatBox.prompt.agentAria'] : copy['chatBox.prompt.chatAria']}
+            aria-label={props.projectIdeMode ? 'Agent prompt' : 'Chat prompt'}
             className={classNames(
               'block w-full pl-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
 
@@ -524,7 +515,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
 
                   reader.onerror = () => {
                     console.error('Failed to read dropped file:', file.name, reader.error);
-                    toast.error(getChatBoxDroppedImageError(language, reader.error));
+                    toast.error('Failed to read the dropped image. Please try again.');
                   };
                   reader.readAsDataURL(file);
                 }
@@ -566,9 +557,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             }}
             placeholder={
               props.placeholder ??
-              (props.chatMode === 'build'
-                ? copy['chatBox.prompt.buildPlaceholder']
-                : copy['chatBox.prompt.discussPlaceholder'])
+              (props.chatMode === 'build' ? 'How can E-Code help you today?' : 'What would you like to discuss?')
             }
             translate="no"
           />
@@ -620,8 +609,8 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         <div className="bolt-chatbox-toolbar" data-vc-composer-toolbar>
           <div className="bolt-chatbox-toolbar-primary">
             <IconButton
-              title={copy['chatBox.attachments.attach']}
-              tooltip={copy['chatBox.attachments.attach']}
+              title="Attach images"
+              tooltip="Attach images"
               className="bolt-chatbox-toolbar-button"
               onClick={() => props.handleFileUpload()}
             >
@@ -632,7 +621,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               <span
                 className="text-xs text-bolt-elements-textTertiary"
                 aria-live="polite"
-                title={formatChatBoxAttachmentSummary(language, props.uploadedFiles.length, MAX_IMAGE_ATTACHMENTS)}
+                title={`${props.uploadedFiles.length} of ${MAX_IMAGE_ATTACHMENTS} images attached`}
               >
                 {props.uploadedFiles.length}/{MAX_IMAGE_ATTACHMENTS}
               </span>
@@ -667,8 +656,8 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
 
             <div ref={toolsMenuRef} className="bolt-chatbox-tools-menu-anchor">
               <IconButton
-                title={copy['chatBox.tools.more']}
-                tooltip={copy['chatBox.tools.more']}
+                title="More composer & tools"
+                tooltip="More composer & tools"
                 className={classNames('bolt-chatbox-toolbar-button', isToolsMenuOpen ? 'is-active' : undefined)}
                 ariaExpanded={isToolsMenuOpen}
                 ariaHasPopup="menu"
@@ -681,20 +670,21 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 <div
                   className="bolt-chatbox-tools-menu"
                   role="menu"
-                  aria-label={copy['chatBox.tools.menuAria']}
+                  aria-label="Composer tools"
                   data-testid="composer-tools-menu"
                 >
                   <ColorSchemeDialog
                     designScheme={props.designScheme}
                     setDesignScheme={props.setDesignScheme}
                     triggerVariant="menu"
+                    triggerLabel="Design palette"
                   />
-                  <McpTools triggerVariant="menu" triggerLabel={copy['chatBox.tools.mcp']} />
+                  <McpTools triggerVariant="menu" triggerLabel="MCP tools" />
                   <WebSearch
                     onSearchResult={(result) => props.onWebSearchResult?.(result)}
                     disabled={props.isStreaming}
                     triggerVariant="menu"
-                    triggerLabel={copy['chatBox.tools.fetchUrl']}
+                    triggerLabel="Fetch URL"
                   />
                   <SupabaseConnection triggerVariant="menu" onOpen={() => setIsToolsMenuOpen(false)} />
                   <IconButton
@@ -710,9 +700,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                       ) : (
                         <div className="i-bolt:stars text-xl"></div>
                       )}
-                      <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
-                        {copy['chatBox.enhance.action']}
-                      </span>
+                      <span>Enhance prompt</span>
                     </>
                   </IconButton>
 
@@ -732,14 +720,14 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                       }}
                       disabled={props.isStreaming}
                       triggerVariant="menu"
-                      triggerLabel={props.isListening ? copy['chatBox.speech.stop'] : copy['chatBox.speech.start']}
+                      triggerLabel={props.isListening ? 'Stop speech' : 'Speech'}
                     />
                   ) : null}
 
                   {props.chatStarted && !props.projectIdeMode ? (
                     <IconButton
-                      title={copy['chatBox.discuss.title']}
-                      tooltip={copy['chatBox.discuss.title']}
+                      title="Discuss"
+                      tooltip="Discuss"
                       className={classNames('bolt-chatbox-tools-menu-item', {
                         'is-active': props.chatMode === 'discuss',
                       })}
@@ -747,11 +735,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                     >
                       <>
                         <div className="i-ph:chats text-xl" />
-                        <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
-                          {props.chatMode === 'discuss'
-                            ? copy['chatBox.discuss.switchToBuild']
-                            : copy['chatBox.discuss.title']}
-                        </span>
+                        <span>{props.chatMode === 'discuss' ? 'Switch to build' : 'Discuss'}</span>
                       </>
                     </IconButton>
                   ) : null}
@@ -768,9 +752,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                   >
                     <>
                       <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
-                      <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
-                        {settingsToggleTitle}
-                      </span>
+                      <span>{settingsToggleTitle}</span>
                     </>
                   </IconButton>
                 </div>
@@ -780,8 +762,8 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
 
           <div className="bolt-chatbox-toolbar-secondary">
             <IconButton
-              title={copy['chatBox.shortcuts.title']}
-              tooltip={copy['chatBox.shortcuts.newLine']}
+              title="Composer shortcuts"
+              tooltip="Shift + Return inserts a new line"
               tooltipLocked
               className="bolt-chatbox-toolbar-button bolt-chatbox-toolbar-info"
             >

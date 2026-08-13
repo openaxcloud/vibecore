@@ -25,15 +25,7 @@ async function registerUser(app: Awaited<ReturnType<typeof buildTestApiApp>>, em
 }
 
 type FeedResponse = {
-  notifications: Array<{
-    id: string;
-    title: string;
-    body?: string;
-    messageKey?: string;
-    messageParams?: Record<string, unknown>;
-    read: boolean;
-    category: string;
-  }>;
+  notifications: Array<{ id: string; title: string; read: boolean; category: string }>;
   unreadCount: number;
 };
 
@@ -117,53 +109,6 @@ describe('In-app notification feed routes', () => {
     const afterFeed = after.json() as FeedResponse;
     expect(afterFeed.unreadCount).toBe(0);
     expect(afterFeed.notifications[0].read).toBe(true);
-
-    await app.close();
-  });
-
-  it('renders a keyed notification from the persisted user locale and returns its descriptor', async () => {
-    const store = new TestApiStore();
-    const app = await buildTestApiApp({ store });
-    const { token, userId } = await registerUser(app, 'localized-feed@example.com');
-    await store.updateUser({ userId, language: 'fr' });
-    await store.createNotification({
-      userId,
-      category: 'security',
-      title: 'Reconnect GitHub',
-      body: 'English fallback',
-      messageKey: 'notifications.connectionReconnectRequired',
-      messageParams: { provider: 'GitHub', accountLabel: 'octocat' },
-    });
-
-    const response = await app.inject({
-      method: 'GET',
-      url: '/user/notifications',
-      headers: { authorization: `Bearer ${token}`, 'accept-language': 'en' },
-    });
-    const notification = (response.json() as FeedResponse).notifications[0];
-
-    expect(response.statusCode).toBe(200);
-    expect(notification).toMatchObject({
-      title: 'Reconnectez GitHub',
-      body: 'Votre connexion GitHub (octocat) doit être reconnectée : son accès a été révoqué ou a expiré.',
-      messageKey: 'notifications.connectionReconnectRequired',
-      messageParams: { provider: 'GitHub', accountLabel: 'octocat' },
-    });
-
-    const manuallySwitched = await app.inject({
-      method: 'GET',
-      url: '/user/notifications',
-      headers: {
-        authorization: `Bearer ${token}`,
-        'accept-language': 'en',
-        'x-vibecore-locale-source': 'manual-cookie',
-      },
-    });
-
-    expect((manuallySwitched.json() as FeedResponse).notifications[0]).toMatchObject({
-      title: 'Reconnect GitHub',
-      body: 'Your GitHub connection (octocat) needs to be reconnected — its access was revoked or expired.',
-    });
 
     await app.close();
   });

@@ -68,19 +68,4 @@ describe('spendAlertEmailContent', () => {
     expect(content.subject).toMatch(/usage limit/i);
     expect(content.text).toMatch(/paused/i);
   });
-
-  it('uses French number formatting while preserving the wallet currency', () => {
-    const content = spendAlertEmailContent({
-      pct: 80,
-      paygSpentCents: 800,
-      budgetCapCents: 1000,
-      currency: 'usd',
-      locale: 'fr',
-    });
-
-    expect(content.subject).toContain('80 %');
-    expect(content.text).toContain('8,00');
-    expect(content.text).toMatch(/\$US|USD/);
-    expect(content.text).not.toContain('€');
-  });
 });

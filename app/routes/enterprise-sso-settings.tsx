@@ -1,10 +1,10 @@
-import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useFetcher, useLoaderData, useNavigation } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import { AlertBanner } from '~/components/ui/AlertBanner';
 import { Button } from '~/components/ui/Button';
 import { Switch } from '~/components/ui/Switch';
 import {
+  apiErrorMessage,
   apiRequest,
   firstOrganizationOrNull,
   formObject,
@@ -13,20 +13,6 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import {
-  formatEnterpriseSsoCopy,
-  formatEnterpriseSsoDateTime,
-  formatEnterpriseSsoGracePeriod,
-  getEnterpriseSsoSettingsCopy,
-  localizeEnterpriseSsoCheck,
-  normalizeEnterpriseSsoChecks,
-  resolveEnterpriseSsoActionErrorCode,
-  type EnterpriseSsoActionIntent,
-  type EnterpriseSsoCheck,
-  type EnterpriseSsoErrorCode,
-  type EnterpriseSsoStatusCode,
-} from '~/lib/i18n/catalogs/enterprise-sso-settings';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { shouldRethrowActionError } from '~/lib/route-reauth';
 
 /*
@@ -38,6 +24,7 @@ import { shouldRethrowActionError } from '~/lib/route-reauth';
  */
 const OIDC_DEFAULT_SCOPES = 'openid profile email';
 
+type SsoCheck = { name: string; ok: boolean; detail: string };
 type EnforcementView = {
   enforced: boolean;
   enforcedAt: string | null;
@@ -46,26 +33,7 @@ type EnforcementView = {
   active: boolean;
 };
 
-type ActionData = {
-  statusCode?: EnterpriseSsoStatusCode;
-  errorCode?: EnterpriseSsoErrorCode;
-  test?: { type: 'oidc' | 'saml'; ok: boolean; checks: EnterpriseSsoCheck[] };
-  enforcement?: EnforcementView;
-};
-
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-  const copy = getEnterpriseSsoSettingsCopy(data?.language);
-
-  return [
-    { title: copy['enterpriseSso.meta.title'] },
-    { name: 'description', content: copy['enterpriseSso.meta.description'] },
-  ];
-};
-
-export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
-
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const language = resolveRequestLocale(request).language;
   const organization = await firstOrganizationOrNull(request);
 
   if (!organization) {
@@ -80,7 +48,6 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
    * (which contains no secret) so the toggle + grace deadline reflect reality.
    */
   let enforcement: EnforcementView | null = null;
-  let enforcementUnavailable = false;
 
   try {
     const result = await apiRequest<{ enforcement: EnforcementView }>(
@@ -92,35 +59,31 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   } catch {
     // A caller without security:manage (or a transient error) still gets the page.
     enforcement = null;
-    enforcementUnavailable = true;
   }
 
-  return json({ orgId: organization.id, enforcement, enforcementUnavailable, language });
+  return json({ orgId: organization.id, enforcement });
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData()) as Record<string, string>;
 
   if (!body.orgId) {
-    return json<ActionData>({ errorCode: 'organizationUnavailable' }, { status: 400 });
+    return json({ error: 'Your organization is unavailable. Reload the page and try again.' }, { status: 400 });
   }
 
-  const intent: EnterpriseSsoActionIntent =
-    body.intent === 'test' ? 'test' : body.intent === 'enforce' ? 'enforce' : 'save';
+  const intent = body.intent ?? 'save';
 
   try {
     if (intent === 'test') {
       const type = body.type === 'saml' ? 'saml' : 'oidc';
 
-      const result = await apiRequest<{ ok: boolean; checks: unknown }>(
+      const result = await apiRequest<{ ok: boolean; checks: SsoCheck[] }>(
         request,
         `/orgs/${body.orgId}/sso/${type}/test`,
         { method: 'POST', body: JSON.stringify({}) },
       );
 
-      return json<ActionData>({
-        test: { type, ok: result.ok, checks: normalizeEnterpriseSsoChecks(result.checks) },
-      });
+      return json({ test: { type, ok: result.ok, checks: result.checks } });
     }
 
     if (intent === 'enforce') {
@@ -132,9 +95,9 @@ export async function action({ request }: EnterpriseActionArgs) {
         { method: 'PUT', body: JSON.stringify({ enforced }) },
       );
 
-      return json<ActionData>({
+      return json({
         enforcement: result.enforcement,
-        statusCode: enforced ? 'enforcementEnabled' : 'enforcementDisabled',
+        status: enforced ? 'SSO enforcement enabled.' : 'SSO enforcement disabled.',
       });
     }
 
@@ -150,7 +113,7 @@ export async function action({ request }: EnterpriseActionArgs) {
         }),
       });
 
-      return json<ActionData>({ statusCode: 'settingsSaved' });
+      return json({ status: 'SSO settings saved.' });
     }
 
     // Mirrors oidcConfigSchema: issuer, clientId, clientSecret, optional URLs, enabled.
@@ -167,7 +130,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       }),
     });
 
-    return json<ActionData>({ statusCode: 'settingsSaved' });
+    return json({ status: 'SSO settings saved.' });
   } catch (error) {
     /*
      * apiRequest throws a real Response on any non-2xx upstream status. Re-auth
@@ -179,56 +142,57 @@ export async function action({ request }: EnterpriseActionArgs) {
       throw error;
     }
 
-    const status = error instanceof Response ? error.status : 400;
+    const context = intent === 'test' ? 'Could not test the connection.' : 'Could not save SSO settings.';
 
-    return json<ActionData>({ errorCode: resolveEnterpriseSsoActionErrorCode(status, intent) }, { status });
+    return json({ error: await apiErrorMessage(error, context) });
   }
 }
 
-function ConnectionTestResult({
-  result,
-  language,
-}: {
-  result: { ok: boolean; checks: EnterpriseSsoCheck[] };
-  language: string;
-}) {
-  const copy = getEnterpriseSsoSettingsCopy(language);
+type ActionData = {
+  status?: string;
+  error?: string;
+  test?: { type: 'oidc' | 'saml'; ok: boolean; checks: SsoCheck[] };
+  enforcement?: EnforcementView;
+};
 
+function formatDeadline(iso: string) {
+  // toUTCString is deterministic across server + client so hydration never mismatches.
+  return new Date(iso).toUTCString();
+}
+
+function ConnectionTestResult({ result }: { result: { ok: boolean; checks: SsoCheck[] } }) {
   return (
-    <div className="mt-3 min-w-0 space-y-2 break-words" role="status">
+    <div className="mt-3 space-y-2" role="status">
       <AlertBanner variant={result.ok ? 'success' : 'error'}>
-        {result.ok ? copy['enterpriseSso.connection.passed'] : copy['enterpriseSso.connection.failed']}
+        {result.ok
+          ? 'Connection test passed. The stored configuration looks reachable and valid.'
+          : 'Connection test found problems with the stored configuration.'}
       </AlertBanner>
       <ul className="space-y-1.5">
-        {result.checks.map((check, index) => {
-          const localized = localizeEnterpriseSsoCheck(check, language);
-
-          return (
-            <li key={`${check.nameCode}-${index}`} className="flex min-w-0 items-start gap-2 text-sm">
-              <span
-                aria-hidden
-                className={
-                  check.ok
-                    ? 'i-ph:check-circle-fill mt-0.5 shrink-0 text-base'
-                    : 'i-ph:x-circle-fill mt-0.5 shrink-0 text-base'
-                }
-                style={{ color: check.ok ? 'var(--status-success-text)' : 'var(--status-error-text)' }}
-              />
-              <span className="min-w-0 break-words">
-                <span className="font-medium text-bolt-elements-textPrimary">{localized.name}:</span>{' '}
-                <span className="text-bolt-elements-textSecondary">{localized.detail}</span>
-              </span>
-            </li>
-          );
-        })}
+        {result.checks.map((check) => (
+          <li key={check.name} className="flex items-start gap-2 text-sm">
+            <span
+              aria-hidden
+              className={
+                check.ok
+                  ? 'i-ph:check-circle-fill mt-0.5 shrink-0 text-base'
+                  : 'i-ph:x-circle-fill mt-0.5 shrink-0 text-base'
+              }
+              style={{ color: check.ok ? 'var(--status-success-text)' : 'var(--status-error-text)' }}
+            />
+            <span className="min-w-0">
+              <span className="font-medium text-bolt-elements-textPrimary">{check.name}:</span>{' '}
+              <span className="text-bolt-elements-textSecondary">{check.detail}</span>
+            </span>
+          </li>
+        ))}
       </ul>
     </div>
   );
 }
 
 export default function EnterpriseSsoSettingsPage() {
-  const { orgId, enforcement, enforcementUnavailable, language } = useLoaderData<typeof loader>();
-  const copy = getEnterpriseSsoSettingsCopy(language);
+  const { orgId, enforcement } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as ActionData | undefined;
   const navigation = useNavigation();
   const busy = navigation.state !== 'idle';
@@ -238,9 +202,9 @@ export default function EnterpriseSsoSettingsPage() {
   const enforceFetcher = useFetcher<ActionData>();
 
   const oidcTestResult = oidcTest.data?.test?.type === 'oidc' ? oidcTest.data.test : undefined;
-  const oidcTestError = oidcTest.data?.errorCode;
+  const oidcTestError = oidcTest.data?.error;
   const samlTestResult = samlTest.data?.test?.type === 'saml' ? samlTest.data.test : undefined;
-  const samlTestError = samlTest.data?.errorCode;
+  const samlTestError = samlTest.data?.error;
 
   /*
    * Optimistic enforcement state: prefer the in-flight submit, then the latest
@@ -248,255 +212,182 @@ export default function EnterpriseSsoSettingsPage() {
    */
   const inFlightEnforced = enforceFetcher.formData?.get('enforced');
   const currentEnforcement = enforceFetcher.data?.enforcement ?? enforcement;
-  const currentEnforcementUnavailable = enforcementUnavailable && !enforceFetcher.data?.enforcement;
 
   const enforced = inFlightEnforced != null ? inFlightEnforced === 'true' : (currentEnforcement?.enforced ?? false);
 
   const graceDays = currentEnforcement?.graceDays ?? 7;
-  const actionStatus = actionData?.statusCode ? copy[`enterpriseSso.status.${actionData.statusCode}`] : undefined;
-  const actionError = actionData?.errorCode ? copy[`enterpriseSso.error.${actionData.errorCode}`] : undefined;
-
-  const enforcementStatus = enforceFetcher.data?.statusCode
-    ? copy[`enterpriseSso.status.${enforceFetcher.data.statusCode}`]
-    : undefined;
-  const enforcementError = enforceFetcher.data?.errorCode
-    ? copy[`enterpriseSso.error.${enforceFetcher.data.errorCode}`]
-    : undefined;
-  const deadline = currentEnforcement?.graceDeadline
-    ? (formatEnterpriseSsoDateTime(currentEnforcement.graceDeadline, language) ??
-      copy['enterpriseSso.common.dateUnavailable'])
-    : null;
 
   return (
     <EnterpriseFormPage
-      title={copy['enterpriseSso.page.title']}
-      description={copy['enterpriseSso.page.description']}
-      status={actionStatus}
-      error={actionError}
+      title="Enterprise SSO settings"
+      description="Configure an OIDC (including Microsoft Entra ID) or SAML identity provider for your organization. Each provider is saved independently and can be enabled or disabled on its own."
+      status={actionData?.status}
+      error={actionData?.error}
     >
-      <p className="mb-6 min-w-0 break-words rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-xs text-bolt-elements-textTertiary">
-        {copy['enterpriseSso.security.prefix']}{' '}
-        <span className="font-medium">{copy['enterpriseSso.security.action']}</span>{' '}
-        {copy['enterpriseSso.security.suffix']}
+      <p className="mb-6 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-xs text-bolt-elements-textTertiary">
+        For your organization&apos;s security, provider secrets are stored encrypted and are never displayed after
+        saving, so these forms start blank. Saving a provider replaces its entire configuration. Use{' '}
+        <span className="font-medium">Test connection</span> to validate a saved provider without re-entering any
+        secret.
       </p>
 
-      <section className="min-w-0 space-y-4" aria-labelledby="enterprise-sso-oidc-title">
-        <div className="min-w-0">
-          <h2
-            className="break-words text-base font-semibold text-bolt-elements-textPrimary"
-            id="enterprise-sso-oidc-title"
-          >
-            {copy['enterpriseSso.oidc.title']}
-          </h2>
-          <p className="mt-1 min-w-0 break-words text-sm text-bolt-elements-textSecondary">
-            {copy['enterpriseSso.oidc.description']}{' '}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">OIDC / Entra ID</h2>
+          <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+            OpenID Connect discovery. Requested scopes are{' '}
             <code className="rounded bg-bolt-elements-background-depth-3 px-1 py-0.5 font-mono text-xs">
               {OIDC_DEFAULT_SCOPES}
             </code>
+            .
           </p>
         </div>
-        <Form method="post" className="min-w-0 space-y-4">
+        <Form method="post" className="space-y-4">
           <input type="hidden" name="type" value="oidc" />
           <input type="hidden" name="orgId" value={orgId} />
+          <TextField label="Issuer" name="issuer" type="url" placeholder="https://login.example.com" required />
+          <TextField label="Client ID" name="clientId" required />
+          <TextField label="Client secret" name="clientSecret" type="password" required autoComplete="off" />
           <TextField
-            label={copy['enterpriseSso.oidc.issuer']}
-            name="issuer"
-            type="url"
-            placeholder={copy['enterpriseSso.oidc.issuerPlaceholder']}
-            required
-          />
-          <TextField label={copy['enterpriseSso.oidc.clientId']} name="clientId" required />
-          <TextField
-            label={copy['enterpriseSso.oidc.clientSecret']}
-            name="clientSecret"
-            type="password"
-            required
-            autoComplete="off"
-          />
-          <TextField
-            label={copy['enterpriseSso.oidc.authorizationUrl']}
+            label="Authorization URL (optional)"
             name="authorizationUrl"
             type="url"
-            placeholder={copy['enterpriseSso.oidc.discoveryPlaceholder']}
+            placeholder="Discovered from issuer if omitted"
           />
           <TextField
-            label={copy['enterpriseSso.oidc.tokenUrl']}
+            label="Token URL (optional)"
             name="tokenUrl"
             type="url"
-            placeholder={copy['enterpriseSso.oidc.discoveryPlaceholder']}
+            placeholder="Discovered from issuer if omitted"
           />
           <TextField
-            label={copy['enterpriseSso.oidc.jwksUrl']}
+            label="JWKS URL (optional)"
             name="jwksUrl"
             type="url"
-            placeholder={copy['enterpriseSso.oidc.discoveryPlaceholder']}
+            placeholder="Discovered from issuer if omitted"
           />
-          <label className="flex min-w-0 items-start gap-2 text-sm font-medium text-bolt-elements-textPrimary">
+          <label className="flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
             <input
               type="checkbox"
               name="enabled"
               value="true"
               defaultChecked
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-bolt-elements-borderColor"
+              className="h-4 w-4 rounded border-bolt-elements-borderColor"
             />
-            <span className="min-w-0 break-words">{copy['enterpriseSso.oidc.enabled']}</span>
+            Enable OIDC sign-in
           </label>
-          <div className="grid min-w-0 sm:inline-grid [&_button]:!h-auto [&_button]:min-h-[44px] [&_button]:max-w-full [&_button]:!whitespace-normal [&_button]:break-words [&_button]:text-center [&_button]:leading-tight">
-            <PrimaryButton disabled={busy} aria-busy={busy}>
-              {busy ? copy['enterpriseSso.oidc.saving'] : copy['enterpriseSso.oidc.save']}
-            </PrimaryButton>
-          </div>
+          <PrimaryButton disabled={busy} aria-busy={busy}>
+            {busy ? 'Saving…' : 'Save OIDC provider'}
+          </PrimaryButton>
         </Form>
-        <oidcTest.Form method="post" className="min-w-0">
+        <oidcTest.Form method="post">
           <input type="hidden" name="intent" value="test" />
           <input type="hidden" name="type" value="oidc" />
           <input type="hidden" name="orgId" value={orgId} />
-          <Button
-            type="submit"
-            variant="secondary"
-            size="sm"
-            className="!h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
-            disabled={oidcTest.state !== 'idle'}
-          >
-            {oidcTest.state !== 'idle'
-              ? copy['enterpriseSso.connection.testing']
-              : copy['enterpriseSso.connection.test']}
+          <Button type="submit" variant="secondary" size="sm" disabled={oidcTest.state !== 'idle'}>
+            {oidcTest.state !== 'idle' ? 'Testing…' : 'Test connection'}
           </Button>
         </oidcTest.Form>
         {oidcTestError ? (
           <AlertBanner variant="error" className="mt-2">
-            {copy[`enterpriseSso.error.${oidcTestError}`]}
+            {oidcTestError}
           </AlertBanner>
         ) : null}
-        {oidcTestResult ? <ConnectionTestResult result={oidcTestResult} language={language} /> : null}
+        {oidcTestResult ? <ConnectionTestResult result={oidcTestResult} /> : null}
       </section>
 
       <hr className="my-8 border-bolt-elements-borderColor" />
 
-      <section className="min-w-0 space-y-4" aria-labelledby="enterprise-sso-saml-title">
-        <div className="min-w-0">
-          <h2
-            className="break-words text-base font-semibold text-bolt-elements-textPrimary"
-            id="enterprise-sso-saml-title"
-          >
-            {copy['enterpriseSso.saml.title']}
-          </h2>
-          <p className="mt-1 min-w-0 break-words text-sm text-bolt-elements-textSecondary">
-            {copy['enterpriseSso.saml.description']}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">SAML 2.0</h2>
+          <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+            Paste the identity provider&apos;s entity ID, single sign-on URL and X.509 signing certificate.
           </p>
         </div>
-        <Form method="post" className="min-w-0 space-y-4">
+        <Form method="post" className="space-y-4">
           <input type="hidden" name="type" value="saml" />
           <input type="hidden" name="orgId" value={orgId} />
-          <TextField
-            label={copy['enterpriseSso.saml.entityId']}
-            name="entityId"
-            placeholder={copy['enterpriseSso.saml.entityIdPlaceholder']}
-            required
-          />
-          <TextField
-            label={copy['enterpriseSso.saml.ssoUrl']}
-            name="ssoUrl"
-            type="url"
-            placeholder={copy['enterpriseSso.saml.ssoUrlPlaceholder']}
-            required
-          />
-          <label className="block min-w-0 break-words text-sm font-medium text-bolt-elements-textPrimary">
-            {copy['enterpriseSso.saml.certificate']}
+          <TextField label="Entity ID" name="entityId" placeholder="urn:example:idp" required />
+          <TextField label="SSO URL" name="ssoUrl" type="url" placeholder="https://idp.example.com/sso" required />
+          <label className="block text-sm font-medium text-bolt-elements-textPrimary">
+            X.509 certificate
             <textarea
               name="x509Certificate"
               required
               rows={5}
-              placeholder={copy['enterpriseSso.saml.certificatePlaceholder']}
-              className="mt-2 min-h-[120px] w-full max-w-full resize-y rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 font-mono text-xs outline-none focus:border-bolt-elements-focus"
+              placeholder="-----BEGIN CERTIFICATE-----"
+              className="mt-2 w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 font-mono text-xs outline-none focus:border-bolt-elements-focus"
             />
           </label>
-          <label className="flex min-w-0 items-start gap-2 text-sm font-medium text-bolt-elements-textPrimary">
+          <label className="flex items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
             <input
               type="checkbox"
               name="enabled"
               value="true"
               defaultChecked
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-bolt-elements-borderColor"
+              className="h-4 w-4 rounded border-bolt-elements-borderColor"
             />
-            <span className="min-w-0 break-words">{copy['enterpriseSso.saml.enabled']}</span>
+            Enable SAML sign-in
           </label>
-          <div className="grid min-w-0 sm:inline-grid [&_button]:!h-auto [&_button]:min-h-[44px] [&_button]:max-w-full [&_button]:!whitespace-normal [&_button]:break-words [&_button]:text-center [&_button]:leading-tight">
-            <PrimaryButton disabled={busy} aria-busy={busy}>
-              {busy ? copy['enterpriseSso.saml.saving'] : copy['enterpriseSso.saml.save']}
-            </PrimaryButton>
-          </div>
+          <PrimaryButton disabled={busy} aria-busy={busy}>
+            {busy ? 'Saving…' : 'Save SAML provider'}
+          </PrimaryButton>
         </Form>
-        <samlTest.Form method="post" className="min-w-0">
+        <samlTest.Form method="post">
           <input type="hidden" name="intent" value="test" />
           <input type="hidden" name="type" value="saml" />
           <input type="hidden" name="orgId" value={orgId} />
-          <Button
-            type="submit"
-            variant="secondary"
-            size="sm"
-            className="!h-auto min-h-[44px] w-full max-w-full !whitespace-normal break-words py-2 text-center leading-tight sm:w-auto"
-            disabled={samlTest.state !== 'idle'}
-          >
-            {samlTest.state !== 'idle'
-              ? copy['enterpriseSso.connection.testing']
-              : copy['enterpriseSso.connection.test']}
+          <Button type="submit" variant="secondary" size="sm" disabled={samlTest.state !== 'idle'}>
+            {samlTest.state !== 'idle' ? 'Testing…' : 'Test connection'}
           </Button>
         </samlTest.Form>
         {samlTestError ? (
           <AlertBanner variant="error" className="mt-2">
-            {copy[`enterpriseSso.error.${samlTestError}`]}
+            {samlTestError}
           </AlertBanner>
         ) : null}
-        {samlTestResult ? <ConnectionTestResult result={samlTestResult} language={language} /> : null}
+        {samlTestResult ? <ConnectionTestResult result={samlTestResult} /> : null}
       </section>
 
       <hr className="my-8 border-bolt-elements-borderColor" />
 
-      <section className="min-w-0 space-y-4" aria-labelledby="enterprise-sso-enforcement-title">
-        <div className="min-w-0">
-          <h2
-            className="break-words text-base font-semibold text-bolt-elements-textPrimary"
-            id="enterprise-sso-enforcement-title"
-          >
-            {copy['enterpriseSso.enforcement.title']}
-          </h2>
-          <p className="mt-1 min-w-0 break-words text-sm text-bolt-elements-textSecondary">
-            {formatEnterpriseSsoGracePeriod(graceDays, language)}
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Enforce SSO</h2>
+          <p className="mt-1 text-sm text-bolt-elements-textSecondary">
+            Require members to sign in through your identity provider. Enforcement begins after a {graceDays}-day grace
+            period so members have time to migrate. Organization owners are always exempt to prevent an IdP
+            misconfiguration from locking your team out.
           </p>
         </div>
 
-        {currentEnforcementUnavailable ? (
-          <AlertBanner variant="warning">{copy['enterpriseSso.enforcement.loadError']}</AlertBanner>
-        ) : null}
-
-        <div className="flex min-w-0 flex-col items-stretch gap-3 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="min-w-0 break-words">
-            <div className="break-words text-sm font-medium text-bolt-elements-textPrimary" id="sso-enforce-label">
-              {copy['enterpriseSso.enforcement.label']}
+        <div className="flex items-center justify-between gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 py-3">
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-bolt-elements-textPrimary" id="sso-enforce-label">
+              Require SSO for all members
             </div>
-            {enforcementStatus ? (
-              <p className="mt-0.5 break-words text-xs text-bolt-elements-textTertiary">{enforcementStatus}</p>
+            {enforceFetcher.data?.status ? (
+              <p className="mt-0.5 text-xs text-bolt-elements-textTertiary">{enforceFetcher.data.status}</p>
             ) : null}
           </div>
           <Switch
             aria-labelledby="sso-enforce-label"
-            className="shrink-0 self-end sm:self-auto"
             checked={enforced}
-            disabled={currentEnforcementUnavailable || enforceFetcher.state !== 'idle'}
+            disabled={enforceFetcher.state !== 'idle'}
             onCheckedChange={(next) =>
               enforceFetcher.submit({ intent: 'enforce', orgId, enforced: String(next) }, { method: 'post' })
             }
           />
         </div>
 
-        {enforcementError ? <AlertBanner variant="error">{enforcementError}</AlertBanner> : null}
+        {enforceFetcher.data?.error ? <AlertBanner variant="error">{enforceFetcher.data.error}</AlertBanner> : null}
 
-        {enforced && deadline ? (
-          <AlertBanner variant={currentEnforcement?.active ? 'warning' : 'info'}>
-            {currentEnforcement?.active
-              ? copy['enterpriseSso.enforcement.active']
-              : formatEnterpriseSsoCopy(copy['enterpriseSso.enforcement.grace'], { date: deadline })}
+        {enforced && currentEnforcement?.graceDeadline ? (
+          <AlertBanner variant={currentEnforcement.active ? 'warning' : 'info'}>
+            {currentEnforcement.active
+              ? 'SSO is now enforced. Non-owner members must sign in through your identity provider; password sign-in is blocked for them.'
+              : `Members must switch to SSO by ${formatDeadline(currentEnforcement.graceDeadline)}. Until then, password sign-in still works. Owners remain exempt.`}
           </AlertBanner>
         ) : null}
       </section>

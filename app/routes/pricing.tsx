@@ -1,8 +1,7 @@
-import { data as json, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
+import type { MetaFunction } from 'react-router';
 
-import { EcodePricingPage } from '~/components/marketing/EcodeProductMarketingPages';
-import { buildMarketingPricingMeta } from '~/lib/i18n/catalogs/marketing-pricing-route';
-import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { EcodePricingPage, ecodeProductMarketingPages } from '~/components/marketing/EcodeProductMarketingPages';
+import { socialMetaTags } from '~/utils/social-meta';
 
 /*
  * Replit-parity pricing is rendered in-repo via the main Remix app (SSR) rather
@@ -10,16 +9,20 @@ import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-
  * monthly/annual toggle is functional, and the plans stay in sync with the
  * backend credit plan catalog. See docs/REPLIT_PARITY_SPEC.md §10/§16.
  */
-export function loader({ request }: LoaderFunctionArgs) {
-  const locale = resolveRequestLocale(request);
-
-  return json({ language: locale.language }, { headers: localeResponseHeaders(request, locale) });
-}
-
-export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-
-  return buildMarketingPricingMeta(data?.language ?? rootData?.language);
+export const meta: MetaFunction = () => {
+  const page = ecodeProductMarketingPages.pricing;
+  return [
+    { title: 'Pricing — E-Code' },
+    {
+      name: 'description',
+      content:
+        'E-Code pricing: Starter (free daily Agent credits), Core €25/mo (€20 annual), Pro €100/mo (€95 annual), and Enterprise. Monthly or annual billing with included credits, parallel agents, collaborators and more.',
+    },
+    ...socialMetaTags({
+      title: 'E-Code Pricing',
+      description: page?.description ?? 'Pricing that scales with your growth.',
+    }),
+  ];
 };
 
 export default function PricingRoute() {

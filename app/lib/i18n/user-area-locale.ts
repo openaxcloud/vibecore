@@ -1,12 +1,4 @@
-import { detectUserLanguage, type SupportedLanguage } from './language';
-
 export const USER_AREA_LOCALE = 'en-GB';
-export const USER_AREA_LOCALES = {
-  en: 'en-GB',
-  fr: 'fr-FR',
-  es: 'es-ES',
-  ar: 'ar',
-} as const satisfies Record<SupportedLanguage, string>;
 export const USER_AREA_TIME_ZONE = 'UTC';
 
 type DateInput = Date | string | number;
@@ -17,23 +9,11 @@ function validDate(value: DateInput): Date | null {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function localeFor(language?: SupportedLanguage): string {
-  return USER_AREA_LOCALES[language ?? detectUserLanguage()];
+export function formatUserAreaNumber(value: number | bigint, options?: Intl.NumberFormatOptions): string {
+  return new Intl.NumberFormat(USER_AREA_LOCALE, options).format(value);
 }
 
-export function formatUserAreaNumber(
-  value: number | bigint,
-  options?: Intl.NumberFormatOptions,
-  language?: SupportedLanguage,
-): string {
-  return new Intl.NumberFormat(localeFor(language), options).format(value);
-}
-
-export function formatUserAreaDate(
-  value: DateInput,
-  options?: Intl.DateTimeFormatOptions,
-  language?: SupportedLanguage,
-): string | null {
+export function formatUserAreaDate(value: DateInput, options?: Intl.DateTimeFormatOptions): string | null {
   const date = validDate(value);
 
   if (!date) {
@@ -41,16 +21,12 @@ export function formatUserAreaDate(
   }
 
   return new Intl.DateTimeFormat(
-    localeFor(language),
+    USER_AREA_LOCALE,
     options ? { timeZone: USER_AREA_TIME_ZONE, ...options } : { dateStyle: 'medium', timeZone: USER_AREA_TIME_ZONE },
   ).format(date);
 }
 
-export function formatUserAreaTime(
-  value: DateInput,
-  options?: Intl.DateTimeFormatOptions,
-  language?: SupportedLanguage,
-): string | null {
+export function formatUserAreaTime(value: DateInput, options?: Intl.DateTimeFormatOptions): string | null {
   const date = validDate(value);
 
   if (!date) {
@@ -58,23 +34,19 @@ export function formatUserAreaTime(
   }
 
   return new Intl.DateTimeFormat(
-    localeFor(language),
+    USER_AREA_LOCALE,
     options ? { timeZone: USER_AREA_TIME_ZONE, ...options } : { timeStyle: 'short', timeZone: USER_AREA_TIME_ZONE },
   ).format(date);
 }
 
-export function formatUserAreaDateTime(
-  value: DateInput,
-  options?: Intl.DateTimeFormatOptions,
-  language?: SupportedLanguage,
-): string | null {
+export function formatUserAreaDateTime(value: DateInput, options?: Intl.DateTimeFormatOptions): string | null {
   const date = validDate(value);
 
   if (!date) {
     return null;
   }
 
-  return new Intl.DateTimeFormat(localeFor(language), {
+  return new Intl.DateTimeFormat(USER_AREA_LOCALE, {
     ...(options ?? {
       dateStyle: 'medium',
       timeStyle: 'short',

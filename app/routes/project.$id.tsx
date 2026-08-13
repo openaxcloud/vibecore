@@ -6,14 +6,11 @@ import {
   makeEcodeSurfaceMetaTags,
 } from '~/components/marketing/EcodeSurfacePages';
 
-export const meta: MetaFunction = ({ matches, params }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-
-  return makeEcodeSurfaceMetaTags(createProjectCompatSurfacePage(params.id ?? '—'), rootData?.language);
-};
+export const meta: MetaFunction = ({ params }) =>
+  makeEcodeSurfaceMetaTags(createProjectCompatSurfacePage(params.id ?? 'unknown'));
 
 export default function ProjectCompatSurfaceRoute() {
   const params = useParams();
 
-  return <EcodeSurfacePage page={createProjectCompatSurfacePage(params.id ?? '—')} />;
+  return <EcodeSurfacePage page={createProjectCompatSurfacePage(params.id ?? 'unknown')} />;
 }

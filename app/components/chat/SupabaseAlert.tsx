@@ -1,8 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { getChatResidualsCopy } from '~/lib/i18n/catalogs/chat-residuals';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import type { SupabaseAlert } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
@@ -45,28 +43,21 @@ export function cleanSqlContent(content: string) {
 }
 
 export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
-  const { i18n } = useTranslation();
-  const copy = getChatResidualsCopy(i18n.resolvedLanguage ?? i18n.language);
   const { content } = alert;
   const connection = useStore(supabaseConnection);
   const [isExecuting, setIsExecuting] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const [executionError, setExecutionError] = useState<string | null>(null);
 
   // Determine connection state
   const isConnected = !!(connection.token && connection.selectedProjectId);
 
   // Set title and description based on connection state
-  const title = isConnected
-    ? copy['chatResiduals.supabase.queryTitle']
-    : copy['chatResiduals.supabase.connectionTitle'];
-  const description = isConnected
-    ? copy['chatResiduals.supabase.queryDescription']
-    : copy['chatResiduals.supabase.connectionDescription'];
+  const title = isConnected ? 'Supabase Query' : 'Supabase Connection Required';
+  const description = isConnected ? 'Execute database query' : 'Supabase connection required';
 
   const message = isConnected
-    ? copy['chatResiduals.supabase.reviewMessage']
-    : copy['chatResiduals.supabase.connectMessage'];
+    ? 'Please review the proposed changes and apply them to your database.'
+    : 'Please connect to Supabase to continue with this operation.';
 
   const handleConnectClick = () => {
     // Dispatch an event to open the Supabase connection dialog
@@ -79,13 +70,10 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
   const executeSupabaseAction = async (sql: string) => {
     if (!connection.token || !connection.selectedProjectId) {
       console.error('No Supabase token or project selected');
-      setExecutionError(copy['chatResiduals.supabase.executionFailed']);
-
       return;
     }
 
     setIsExecuting(true);
-    setExecutionError(null);
 
     try {
       const response = await fetch('/api/supabase/query', {
@@ -101,15 +89,18 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
       });
 
       if (!response.ok) {
-        throw new Error(String(response.status));
+        const errorData = (await response.json()) as any;
+        throw new Error(`Supabase query failed: ${errorData.error?.message || response.statusText}`);
       }
 
-      await response.json().catch(() => undefined);
+      const result = await response.json();
+      console.log('Supabase query executed successfully:', result);
       clearAlert();
     } catch (error) {
       console.error('Failed to execute Supabase action:', error);
-      setExecutionError(copy['chatResiduals.supabase.executionFailed']);
-      postMessage(copy['chatResiduals.supabase.agentRetryMessage']);
+      postMessage(
+        `*Error executing Supabase query please fix and return the query again*\n\`\`\`\n${error instanceof Error ? error.message : String(error)}\n\`\`\`\n`,
+      );
     } finally {
       setIsExecuting(false);
     }
@@ -122,7 +113,7 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
         transition={{ duration: 0.3 }}
-        className="w-full max-w-chat rounded-lg border border-l-2 border-bolt-elements-borderColor border-l-[#098F5F] bg-bolt-elements-background-depth-2"
+        className="max-w-chat rounded-lg border-l-2 border-l-[#098F5F] border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2"
       >
         {/* Header */}
         <div className="p-4 pb-2">
@@ -142,9 +133,9 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
         {/* SQL Content */}
         <div className="px-4">
           {!isConnected ? (
-            <div className="rounded-md bg-bolt-elements-background-depth-3 p-3">
-              <span className="break-words text-sm text-bolt-elements-textPrimary">
-                {copy['chatResiduals.supabase.connectFirst']}
+            <div className="p-3 rounded-md bg-bolt-elements-background-depth-3">
+              <span className="text-sm text-bolt-elements-textPrimary">
+                You must first connect to Supabase and select a project.
               </span>
             </div>
           ) : (
@@ -152,15 +143,12 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
               <button
                 type="button"
                 aria-expanded={!isCollapsed}
-                aria-label={
-                  isCollapsed ? copy['chatResiduals.supabase.showQuery'] : copy['chatResiduals.supabase.hideQuery']
-                }
-                className="flex min-h-11 w-full min-w-0 cursor-pointer items-center rounded-md bg-bolt-elements-background-depth-3 p-2 text-left outline-none hover:bg-bolt-elements-background-depth-4 focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
+                className="flex w-full items-center p-2 rounded-md bg-bolt-elements-background-depth-3 cursor-pointer text-left"
                 onClick={() => setIsCollapsed(!isCollapsed)}
               >
-                <div className="i-ph:database mr-2 shrink-0 text-bolt-elements-textPrimary" aria-hidden></div>
-                <span className="min-w-0 flex-grow break-words text-sm text-bolt-elements-textPrimary">
-                  {description}
+                <div className="i-ph:database text-bolt-elements-textPrimary mr-2" aria-hidden></div>
+                <span className="text-sm text-bolt-elements-textPrimary flex-grow">
+                  {description || 'Create table and setup auth'}
                 </span>
                 <div
                   className={`i-ph:caret-up text-bolt-elements-textPrimary transition-transform ${isCollapsed ? 'rotate-180' : ''}`}
@@ -169,7 +157,7 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
               </button>
 
               {!isCollapsed && content && (
-                <div className="mt-2 max-h-60 overflow-auto rounded-md bg-bolt-elements-background-depth-4 p-3 font-mono text-xs text-bolt-elements-textSecondary">
+                <div className="mt-2 p-3 bg-bolt-elements-background-depth-4 rounded-md overflow-auto max-h-60 font-mono text-xs text-bolt-elements-textSecondary">
                   <pre>{cleanSqlContent(content)}</pre>
                 </div>
               )}
@@ -179,15 +167,14 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
 
         {/* Message and Actions */}
         <div className="p-4">
-          <p className="mb-4 break-words text-sm text-bolt-elements-textSecondary">{message}</p>
+          <p className="text-sm text-bolt-elements-textSecondary mb-4">{message}</p>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2">
             {showConnectButton ? (
               <button
-                type="button"
                 onClick={handleConnectClick}
                 className={classNames(
-                  'min-h-11 min-w-0 whitespace-normal rounded-md px-3 py-2 text-sm font-medium',
+                  `px-3 py-2 rounded-md text-sm font-medium`,
                   'bg-[#098F5F]',
                   'hover:bg-[#0aa06c]',
                   'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500',
@@ -195,15 +182,14 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
                   'flex items-center gap-1.5',
                 )}
               >
-                {copy['chatResiduals.supabase.connect']}
+                Connect to Supabase
               </button>
             ) : (
               <button
-                type="button"
                 onClick={() => executeSupabaseAction(cleanSqlContent(content))}
                 disabled={isExecuting}
                 className={classNames(
-                  'min-h-11 min-w-0 whitespace-normal rounded-md px-3 py-2 text-sm font-medium',
+                  `px-3 py-2 rounded-md text-sm font-medium`,
                   'bg-[#098F5F]',
                   'hover:bg-[#0aa06c]',
                   'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500',
@@ -212,15 +198,14 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
                   isExecuting ? 'opacity-70 cursor-not-allowed' : '',
                 )}
               >
-                {isExecuting ? copy['chatResiduals.supabase.applying'] : copy['chatResiduals.supabase.apply']}
+                {isExecuting ? 'Applying...' : 'Apply Changes'}
               </button>
             )}
             <button
-              type="button"
               onClick={clearAlert}
               disabled={isExecuting}
               className={classNames(
-                'min-h-11 min-w-0 whitespace-normal rounded-md px-3 py-2 text-sm font-medium',
+                `px-3 py-2 rounded-md text-sm font-medium`,
 
                 /*
                  * Theme tokens instead of a hardcoded dark-brown bg — the old
@@ -232,14 +217,9 @@ export function SupabaseChatAlert({ alert, clearAlert, postMessage }: Props) {
                 isExecuting ? 'opacity-70 cursor-not-allowed' : '',
               )}
             >
-              {copy['chatResiduals.supabase.dismiss']}
+              Dismiss
             </button>
           </div>
-          {executionError ? (
-            <p role="alert" className="mt-3 break-words text-xs text-bolt-elements-icon-error">
-              {executionError}
-            </p>
-          ) : null}
         </div>
       </motion.div>
     </AnimatePresence>

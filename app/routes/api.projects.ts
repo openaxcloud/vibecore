@@ -2,13 +2,6 @@ import type { ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
 
 import { apiRequest, firstOrganization, json } from '~/lib/enterprise-api.server';
-import {
-  getWebApiRoutesCopy,
-  interpolateWebApiCopy,
-  webApiErrorResponse,
-  webApiLocaleHeaders,
-} from '~/lib/i18n/catalogs/web-api-routes';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { getEcodeTemplateById } from '~/lib/marketing/ecode-template-catalog.server';
 
 const createProjectFromPublicTemplateSchema = z.object({
@@ -19,17 +12,16 @@ const createProjectFromPublicTemplateSchema = z.object({
 type Project = { id: string; slug?: string };
 
 export async function action({ request }: ActionFunctionArgs) {
-  const copy = getWebApiRoutesCopy(resolveRequestLocale(request).language);
   const body = createProjectFromPublicTemplateSchema.safeParse(await request.json().catch(() => undefined));
 
   if (!body.success) {
-    return webApiErrorResponse(request, 'TEMPLATE_PROJECT_PAYLOAD_INVALID', 400, { extra: { ok: false } });
+    return json({ ok: false, error: 'Invalid template project payload' }, { status: 400 });
   }
 
   const template = getEcodeTemplateById(body.data.templateId);
 
   if (!template) {
-    return webApiErrorResponse(request, 'TEMPLATE_PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
+    return json({ ok: false, error: 'Template not found' }, { status: 404 });
   }
 
   const organization = await firstOrganization(request);
@@ -41,9 +33,9 @@ export async function action({ request }: ActionFunctionArgs) {
       name: body.data.name?.trim() || template.name,
       slug,
       templateName: template.id,
-      description: interpolateWebApiCopy(copy.templateProjectDescription, { name: template.name }),
+      description: `${template.name} starter created from the public E-Code template gallery.`,
     }),
   });
 
-  return json({ id: result.project.id, project: result.project }, { headers: webApiLocaleHeaders(request) });
+  return json({ id: result.project.id, project: result.project });
 }

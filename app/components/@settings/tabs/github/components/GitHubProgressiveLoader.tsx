@@ -1,13 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Loader2, ChevronDown, RefreshCw, AlertCircle, CheckCircle } from 'lucide-react';
-import React, { useState, useCallback, useEffect, useId, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
+import React, { useState, useCallback, useMemo } from 'react';
 import { Button } from '~/components/ui/Button';
-import {
-  formatSettingsStatusNumber,
-  formatSettingsStatusSurfacesCopy,
-  getSettingsStatusSurfacesCopy,
-} from '~/lib/i18n/catalogs/settings-status-surfaces';
 import { classNames } from '~/utils/classNames';
 
 interface ProgressiveLoaderProps {
@@ -38,18 +32,12 @@ export function GitHubProgressiveLoader({
   onRefresh,
   children,
   className = '',
-  loadingMessage,
-  refreshingMessage,
+  loadingMessage = 'Loading...',
+  refreshingMessage = 'Refreshing...',
   showProgress = false,
   progressSteps = [],
 }: ProgressiveLoaderProps) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getSettingsStatusSurfacesCopy(language);
   const [isExpanded, setIsExpanded] = useState(false);
-  const progressStepsId = useId();
-  const resolvedLoadingMessage = loadingMessage ?? copy['settingsStatus.github.loading'];
-  const resolvedRefreshingMessage = refreshingMessage ?? copy['settingsStatus.github.refreshing'];
 
   // Calculate progress percentage
   const progress = useMemo(() => {
@@ -66,53 +54,28 @@ export function GitHubProgressiveLoader({
     setIsExpanded((prev) => !prev);
   }, []);
 
-  useEffect(() => {
-    if (error) {
-      console.error('githubProgressiveLoader.error', error);
-    }
-  }, [error]);
-
   // Loading state with progressive steps
   if (isLoading) {
     return (
-      <div
-        className={classNames('flex flex-col items-center justify-center px-4 py-8', className)}
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
-      >
+      <div className={classNames('flex flex-col items-center justify-center py-8', className)}>
         <div className="relative mb-4">
-          <Loader2
-            className="h-8 w-8 animate-spin text-bolt-elements-item-contentAccent motion-reduce:animate-none"
-            aria-hidden="true"
-          />
+          <Loader2 className="w-8 h-8 animate-spin text-bolt-elements-item-contentAccent" />
           {showProgress && progress > 0 && (
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-xs font-medium text-bolt-elements-item-contentAccent">
-                {formatSettingsStatusNumber(progress, language)}%
-              </span>
+              <span className="text-xs font-medium text-bolt-elements-item-contentAccent">{progress}%</span>
             </div>
           )}
         </div>
 
-        <div className="w-full space-y-2 text-center">
-          <p className="break-words text-sm font-medium text-bolt-elements-textPrimary">{resolvedLoadingMessage}</p>
+        <div className="text-center space-y-2">
+          <p className="text-sm font-medium text-bolt-elements-textPrimary">{loadingMessage}</p>
 
           {showProgress && progressSteps.length > 0 && (
             <div className="w-full max-w-sm">
               {/* Progress bar */}
-              <div
-                className="mb-3 h-2 w-full overflow-hidden rounded-full bg-bolt-elements-background-depth-2"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={100}
-                aria-valuenow={progress}
-                aria-label={formatSettingsStatusSurfacesCopy(copy['settingsStatus.github.progress'], {
-                  progress: formatSettingsStatusNumber(progress, language),
-                })}
-              >
+              <div className="w-full bg-bolt-elements-background-depth-2 rounded-full h-2 mb-3">
                 <motion.div
-                  className="h-2 rounded-full bg-bolt-elements-item-contentAccent motion-reduce:transition-none"
+                  className="bg-bolt-elements-item-contentAccent h-2 rounded-full"
                   initial={{ width: 0 }}
                   animate={{ width: `${progress}%` }}
                   transition={{ duration: 0.5, ease: 'easeOut' }}
@@ -121,21 +84,15 @@ export function GitHubProgressiveLoader({
 
               {/* Steps toggle */}
               <button
-                type="button"
                 onClick={handleToggleExpanded}
-                className="mx-auto flex min-h-11 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-focus-ring)]"
-                aria-expanded={isExpanded}
-                aria-controls={progressStepsId}
+                className="flex items-center justify-center gap-2 text-xs text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
               >
-                <span className="break-words">
-                  {copy[isExpanded ? 'settingsStatus.github.hideDetails' : 'settingsStatus.github.showDetails']}
-                </span>
+                <span>Show details</span>
                 <ChevronDown
                   className={classNames(
-                    'h-3 w-3 shrink-0 transform transition-transform duration-200 motion-reduce:transition-none',
+                    'w-3 h-3 transform transition-transform duration-200',
                     isExpanded ? 'rotate-180' : '',
                   )}
-                  aria-hidden="true"
                 />
               </button>
 
@@ -147,55 +104,34 @@ export function GitHubProgressiveLoader({
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.2 }}
-                    className="mt-3 space-y-2 overflow-hidden text-left motion-reduce:transition-none"
-                    id={progressStepsId}
-                    role="list"
-                    aria-label={copy['settingsStatus.github.steps']}
+                    className="mt-3 space-y-2 overflow-hidden"
                   >
-                    {progressSteps.map((step) => {
-                      const stateKey = step.error
-                        ? 'settingsStatus.github.stepFailed'
-                        : step.completed
-                          ? 'settingsStatus.github.stepCompleted'
-                          : step.loading
-                            ? 'settingsStatus.github.stepLoading'
-                            : 'settingsStatus.github.stepPending';
-
-                      return (
-                        <div key={step.key} className="flex min-w-0 items-center gap-2 text-xs" role="listitem">
-                          {step.error ? (
-                            <AlertCircle className="h-3 w-3 flex-shrink-0 text-red-500" aria-hidden="true" />
-                          ) : step.completed ? (
-                            <CheckCircle className="h-3 w-3 flex-shrink-0 text-green-500" aria-hidden="true" />
-                          ) : step.loading ? (
-                            <Loader2
-                              className="h-3 w-3 flex-shrink-0 animate-spin text-bolt-elements-item-contentAccent motion-reduce:animate-none"
-                              aria-hidden="true"
-                            />
-                          ) : (
-                            <div
-                              className="h-3 w-3 flex-shrink-0 rounded-full border border-bolt-elements-borderColor"
-                              aria-hidden="true"
-                            />
+                    {progressSteps.map((step) => (
+                      <div key={step.key} className="flex items-center gap-2 text-xs">
+                        {step.error ? (
+                          <AlertCircle className="w-3 h-3 text-red-500 flex-shrink-0" />
+                        ) : step.completed ? (
+                          <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                        ) : step.loading ? (
+                          <Loader2 className="w-3 h-3 animate-spin text-bolt-elements-item-contentAccent flex-shrink-0" />
+                        ) : (
+                          <div className="w-3 h-3 rounded-full border border-bolt-elements-borderColor flex-shrink-0" />
+                        )}
+                        <span
+                          className={classNames(
+                            step.error
+                              ? 'text-red-500'
+                              : step.completed
+                                ? 'text-green-600 dark:text-green-400'
+                                : step.loading
+                                  ? 'text-bolt-elements-textPrimary'
+                                  : 'text-bolt-elements-textSecondary',
                           )}
-                          <span className="sr-only">{copy[stateKey]}: </span>
-                          <span
-                            className={classNames(
-                              'min-w-0 break-words',
-                              step.error
-                                ? 'text-red-500'
-                                : step.completed
-                                  ? 'text-green-600 dark:text-green-400'
-                                  : step.loading
-                                    ? 'text-bolt-elements-textPrimary'
-                                    : 'text-bolt-elements-textSecondary',
-                            )}
-                          >
-                            {step.label}
-                          </span>
-                        </div>
-                      );
-                    })}
+                        >
+                          {step.label}
+                        </span>
+                      </div>
+                    ))}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -209,34 +145,27 @@ export function GitHubProgressiveLoader({
   // Error state
   if (error) {
     return (
-      <div
-        className={classNames('flex flex-col items-center justify-center space-y-4 px-4 py-8 text-center', className)}
-        role="alert"
-      >
+      <div className={classNames('flex flex-col items-center justify-center py-8 text-center space-y-4', className)}>
         <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center">
-          <AlertCircle className="h-5 w-5 text-red-500" aria-hidden="true" />
+          <AlertCircle className="w-5 h-5 text-red-500" />
         </div>
 
-        <div className="min-w-0">
-          <h3 className="mb-1 break-words text-sm font-medium text-bolt-elements-textPrimary">
-            {copy['settingsStatus.github.loadFailed']}
-          </h3>
-          <p className="mb-4 max-w-sm break-words text-xs text-bolt-elements-textSecondary">
-            {copy['settingsStatus.github.safeError']}
-          </p>
+        <div>
+          <h3 className="text-sm font-medium text-bolt-elements-textPrimary mb-1">Failed to Load</h3>
+          <p className="text-xs text-bolt-elements-textSecondary mb-4 max-w-sm">{error}</p>
         </div>
 
-        <div className="flex flex-wrap justify-center gap-2">
+        <div className="flex gap-2">
           {onRetry && (
-            <Button variant="outline" size="sm" onClick={onRetry} className="min-h-11 text-xs whitespace-normal">
-              <RefreshCw className="mr-1 h-3 w-3 shrink-0" aria-hidden="true" />
-              {copy['settingsStatus.github.retry']}
+            <Button variant="outline" size="sm" onClick={onRetry} className="text-xs">
+              <RefreshCw className="w-3 h-3 mr-1" />
+              Try Again
             </Button>
           )}
           {onRefresh && (
-            <Button variant="outline" size="sm" onClick={onRefresh} className="min-h-11 text-xs whitespace-normal">
-              <RefreshCw className="mr-1 h-3 w-3 shrink-0" aria-hidden="true" />
-              {copy['settingsStatus.github.refresh']}
+            <Button variant="outline" size="sm" onClick={onRefresh} className="text-xs">
+              <RefreshCw className="w-3 h-3 mr-1" />
+              Refresh
             </Button>
           )}
         </div>
@@ -248,13 +177,10 @@ export function GitHubProgressiveLoader({
   return (
     <div className={classNames('relative', className)}>
       {isRefreshing && (
-        <div className="absolute top-0 right-0 z-10" role="status" aria-live="polite">
+        <div className="absolute top-0 right-0 z-10">
           <div className="flex items-center gap-2 px-2 py-1 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-lg shadow-sm">
-            <Loader2
-              className="h-3 w-3 animate-spin text-bolt-elements-item-contentAccent motion-reduce:animate-none"
-              aria-hidden="true"
-            />
-            <span className="break-words text-xs text-bolt-elements-textSecondary">{resolvedRefreshingMessage}</span>
+            <Loader2 className="w-3 h-3 animate-spin text-bolt-elements-item-contentAccent" />
+            <span className="text-xs text-bolt-elements-textSecondary">{refreshingMessage}</span>
           </div>
         </div>
       )}

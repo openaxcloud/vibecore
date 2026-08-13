@@ -1,10 +1,8 @@
 import { ChevronLeft, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { InputHTMLAttributes, ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { EcodeBrandMark } from '~/components/brand/EcodeBrandMark';
-import { LanguageSwitch } from '~/components/i18n/LanguageSwitch';
 import { RevealButton } from '~/components/ui/RevealButton';
 
 /*
@@ -65,25 +63,16 @@ export function AuthScreen({
   error,
   children,
   footer,
-  heroEyebrow,
-  heroTitle,
-  heroBody,
+  heroEyebrow = 'Enterprise-grade security',
+  heroTitle = 'Build production apps with E-Code',
+  heroBody = 'Provision workspaces, share live previews and ship to your own infrastructure from a single browser tab.',
   heroAside,
   belowCard,
   backTo = '/login',
-  backLabel,
+  backLabel = 'Back to sign in',
 }: AuthScreenProps) {
-  const { t } = useTranslation();
-  const resolvedHeroEyebrow = heroEyebrow ?? t('auth.shell.enterpriseSecurity');
-  const resolvedHeroTitle = heroTitle ?? t('auth.shell.heroTitle');
-  const resolvedHeroBody = heroBody ?? t('auth.shell.heroBody');
-  const resolvedBackLabel = backLabel ?? t('auth.shell.backToSignIn');
-
   return (
     <main className="vc-auth-page min-h-dvh overflow-x-hidden lg:grid lg:grid-cols-[minmax(0,0.96fr)_minmax(420px,1.04fr)]">
-      <div className="fixed right-3 top-3 z-30 sm:right-5 sm:top-5">
-        <LanguageSwitch />
-      </div>
       <section className="relative flex min-h-dvh items-start justify-center overflow-y-auto px-4 py-5 sm:px-6 sm:py-8 md:px-10 lg:items-center lg:px-12 lg:py-10 xl:px-20">
         <div className="vc-auth-left-glow absolute inset-0" />
         <div className="vc-auth-left-shade pointer-events-none absolute inset-x-0 top-0 h-28 sm:h-36" />
@@ -93,14 +82,14 @@ export function AuthScreen({
             className="vc-auth-back-link mb-5 inline-flex w-fit items-center gap-2 rounded-md px-1 py-1 text-[12px] font-medium transition-colors sm:mb-7 sm:text-[13px]"
           >
             <ChevronLeft className="h-4 w-4" />
-            {resolvedBackLabel}
+            {backLabel}
           </Link>
 
           <div className="mb-6 flex items-center gap-3 sm:mb-8">
             <EcodeBrandMark size="md" showText={false} gradientId="ecode-auth-logo" />
             <div>
-              <p className="vc-auth-brand-title text-[15px] font-semibold leading-none">{t('auth.shell.brandName')}</p>
-              <p className="vc-auth-brand-subtitle mt-1 text-[12px]">{t('auth.shell.brandSubtitle')}</p>
+              <p className="vc-auth-brand-title text-[15px] font-semibold leading-none">E-Code</p>
+              <p className="vc-auth-brand-subtitle mt-1 text-[12px]">AI development workspace</p>
             </div>
           </div>
 
@@ -151,12 +140,10 @@ export function AuthScreen({
           <div className="max-w-[28rem] text-white xl:max-w-md">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-white/18 px-4 py-2 text-[13px] font-semibold backdrop-blur-md">
               <Sparkles className="h-4 w-4" />
-              {resolvedHeroEyebrow}
+              {heroEyebrow}
             </div>
-            <h2 className="text-[clamp(2.25rem,4vw,3.25rem)] font-bold leading-[1.03] tracking-normal">
-              {resolvedHeroTitle}
-            </h2>
-            <p className="mt-5 text-[15px] leading-7 text-white/88">{resolvedHeroBody}</p>
+            <h2 className="text-[clamp(2.25rem,4vw,3.25rem)] font-bold leading-[1.03] tracking-normal">{heroTitle}</h2>
+            <p className="mt-5 text-[15px] leading-7 text-white/88">{heroBody}</p>
             {heroAside}
             <div className="mt-10 overflow-hidden rounded-xl border border-white/25 bg-[rgba(10,15,28,0.24)] shadow-[0_24px_64px_rgba(10,15,28,0.35)]">
               <img src={heroScreenshot} alt="" aria-hidden="true" loading="lazy" className="block w-full" />
@@ -205,7 +192,6 @@ export function AuthField({
   icon,
   inputProps,
 }: AuthFieldProps) {
-  const { t } = useTranslation();
   const isPassword = type === 'password';
   const inputRef = useRef<HTMLInputElement>(null);
   const [revealed, setRevealed] = useState(false);
@@ -266,7 +252,7 @@ export function AuthField({
       </span>
       {isPassword && capsLockOn ? (
         <span className="mt-2 block text-[12px] leading-5" style={{ color: 'var(--status-warning-text)' }}>
-          {t('auth.shell.capsLock')}
+          Caps Lock is on
         </span>
       ) : null}
       {hint ? <span className="vc-auth-hint mt-2 block text-[11px] leading-5">{hint}</span> : null}

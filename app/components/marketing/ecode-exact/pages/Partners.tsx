@@ -13,8 +13,6 @@ import {
   Rocket,
   TrendingUp,
 } from 'lucide-react';
-import type { ComponentType } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   SiAnthropic,
   SiGithub,
@@ -40,55 +38,100 @@ import {
   CardTitle,
   Link,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
-import {
-  getMarketingExactPartnersBountiesCopy,
-  type PartnerBenefitId,
-  type PartnerProgramId,
-  type PartnerStepId,
-} from '~/lib/i18n/catalogs/marketing-exact-partners-bounties';
 
 const PRODUCT = '/ecode-static/assets/product';
-const PARTNER_APP_HOST = 'app.e-code.ai';
-
-const PROGRAM_ICONS: Record<PartnerProgramId, ComponentType<{ className?: string }>> = {
-  technology: Plug,
-  solutions: Briefcase,
-  agency: Building2,
-};
-
-const BENEFIT_ICONS: Record<PartnerBenefitId, ComponentType<{ className?: string }>> = {
-  revenue: TrendingUp,
-  market: Megaphone,
-  training: GraduationCap,
-  support: LifeBuoy,
-};
-
-const STEP_ICONS: Record<PartnerStepId, ComponentType<{ className?: string }>> = {
-  apply: FileSignature,
-  onboard: GraduationCap,
-  launch: Rocket,
-  grow: TrendingUp,
-};
-
-const PARTNER_INTEGRATIONS = [
-  { icon: SiGithub, brand: 'GitHub' },
-  { icon: SiGitlab, brand: 'GitLab' },
-  { icon: SiSlack, brand: 'Slack' },
-  { icon: SiOpenai, brand: 'OpenAI' },
-  { icon: SiAnthropic, brand: 'Anthropic' },
-  { icon: SiSupabase, brand: 'Supabase' },
-  { icon: SiPostgresql, brand: 'Postgres' },
-  { icon: SiVercel, brand: 'Vercel' },
-  { icon: SiStripe, brand: 'Stripe' },
-  { icon: SiNotion, brand: 'Notion' },
-] as const;
 
 export default function Partners() {
-  const { i18n } = useTranslation();
-  const copy = getMarketingExactPartnersBountiesCopy(i18n.resolvedLanguage ?? i18n.language).exactPartners;
-  const programs = copy.programs.items.map((program) => ({ ...program, icon: PROGRAM_ICONS[program.id] }));
-  const benefits = copy.benefits.items.map((benefit) => ({ ...benefit, icon: BENEFIT_ICONS[benefit.id] }));
-  const steps = copy.steps.items.map((step) => ({ ...step, icon: STEP_ICONS[step.id] }));
+  const programs = [
+    {
+      icon: Plug,
+      name: 'Technology Partners',
+      description:
+        'Integrate your platform, API, or developer tool with E-Code and reach teams building production apps with AI.',
+      points: [
+        'Co-built integrations & MCP connectors',
+        'Listing in the E-Code connector catalog',
+        'Joint launch & technical support',
+      ],
+    },
+    {
+      icon: Briefcase,
+      name: 'Solutions Partners',
+      description:
+        'Consultancies and SIs delivering E-Code to enterprise customers, from migration to managed delivery.',
+      points: [
+        'Implementation enablement & certification',
+        'Deal registration & revenue share',
+        'Dedicated partner success manager',
+      ],
+    },
+    {
+      icon: Building2,
+      name: 'Agency Partners',
+      description:
+        'Digital agencies and studios shipping client apps faster by building on E-Code as your delivery platform.',
+      points: ['Agency dashboard & pooled seats', 'Co-marketing & referral rewards', 'Priority access to new features'],
+    },
+  ];
+
+  const benefits = [
+    {
+      icon: TrendingUp,
+      title: 'Grow Revenue',
+      description: 'Earn referral commissions and revenue share on every customer you bring to E-Code.',
+    },
+    {
+      icon: Megaphone,
+      title: 'Go To Market Together',
+      description: 'Co-marketing, case studies, and joint launches that put your brand in front of our audience.',
+    },
+    {
+      icon: GraduationCap,
+      title: 'Enablement & Training',
+      description: 'Partner certification, technical workshops, and early access to product roadmaps.',
+    },
+    {
+      icon: LifeBuoy,
+      title: 'Dedicated Support',
+      description: 'A named partner manager and a private support channel for your team and customers.',
+    },
+  ];
+
+  /*
+   * Real platforms E-Code connects to today via OAuth integrations and MCP
+   * connectors — the surfaces technology partners build on.
+   */
+  const integrations = [
+    { icon: SiGithub, label: 'GitHub' },
+    { icon: SiGitlab, label: 'GitLab' },
+    { icon: SiSlack, label: 'Slack' },
+    { icon: SiOpenai, label: 'OpenAI' },
+    { icon: SiAnthropic, label: 'Anthropic' },
+    { icon: SiSupabase, label: 'Supabase' },
+    { icon: SiPostgresql, label: 'Postgres' },
+    { icon: SiVercel, label: 'Vercel' },
+    { icon: SiStripe, label: 'Stripe' },
+    { icon: SiNotion, label: 'Notion' },
+  ];
+
+  const steps = [
+    { icon: FileSignature, title: 'Apply', description: 'Tell us about your business and the customers you serve.' },
+    {
+      icon: GraduationCap,
+      title: 'Onboard',
+      description: 'Complete enablement and get certified on the E-Code platform.',
+    },
+    {
+      icon: Rocket,
+      title: 'Launch',
+      description: 'Go to market together with co-branded campaigns and joint sales.',
+    },
+    {
+      icon: TrendingUp,
+      title: 'Grow',
+      description: 'Scale your practice with revenue share, referrals, and roadmap access.',
+    },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col overflow-x-clip" data-testid="page-partners">
@@ -102,12 +145,15 @@ export default function Partners() {
               <div className="max-w-xl">
                 <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-surface-solid px-3 py-1 text-[13px] font-medium text-muted-foreground">
                   <Handshake className="h-4 w-4" style={{ color: 'var(--ecode-accent)' }} />
-                  {copy.hero.badge}
+                  Partner Program
                 </span>
                 <h1 className="mt-5 mkt-h1 font-bold tracking-tight" data-testid="heading-partners">
-                  {copy.hero.title}
+                  Partner with E-Code
                 </h1>
-                <p className="mt-4 mkt-lead text-muted-foreground">{copy.hero.description}</p>
+                <p className="mt-4 mkt-lead text-muted-foreground">
+                  Build, sell, and deliver alongside the AI development platform teams use to ship production apps. Join
+                  a program designed to grow your business.
+                </p>
                 <div className="mt-7 flex flex-col sm:flex-row gap-3">
                   <Link
                     to="/contact-sales"
@@ -115,7 +161,7 @@ export default function Partners() {
                     style={{ backgroundColor: 'var(--ecode-accent)' }}
                     data-testid="button-partners-hero-apply"
                   >
-                    {copy.hero.apply}
+                    Become a Partner
                     <ArrowRight className="h-4 w-4" />
                   </Link>
                   <Link
@@ -123,12 +169,12 @@ export default function Partners() {
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md border border-[var(--ecode-border)] bg-surface-solid text-foreground font-medium hover:bg-surface-hover-solid transition-all min-h-[44px]"
                     data-testid="button-partners-hero-signup"
                   >
-                    {copy.hero.signup}
+                    Get started free
                   </Link>
                 </div>
                 <div className="mt-6">
                   <Badge variant="secondary" className="text-[13px] px-3 py-1">
-                    {copy.hero.accepting}
+                    Now accepting partner applications
                   </Badge>
                 </div>
               </div>
@@ -142,19 +188,19 @@ export default function Partners() {
                     <span className="h-3 w-3 rounded-full bg-[#28c840]" />
                     <span className="ml-3 inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1 text-[11px] font-medium text-white/60">
                       <Building2 className="h-3 w-3 text-[#F26207]" />
-                      {PARTNER_APP_HOST}
+                      app.e-code.ai
                     </span>
                   </div>
                   <img
                     src={`${PRODUCT}/dashboard.png`}
-                    alt={copy.hero.imageAlt}
+                    alt="The E-Code workspace dashboard partners use to manage projects, seats, and deployments"
                     className="block w-full h-auto"
                     loading="eager"
                   />
                   <figcaption className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2 text-[11px] text-white">
                     <span className="inline-flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1 backdrop-blur">
                       <BadgeCheck className="h-3.5 w-3.5 text-[#F99D25]" />
-                      {copy.hero.imageCaption}
+                      Real product, captured live
                     </span>
                   </figcaption>
                 </figure>
@@ -168,16 +214,16 @@ export default function Partners() {
         {/* Partner Programs */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="mkt-h2 font-bold text-center mb-4">{copy.programs.title}</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-4">Partner Programs</h2>
             <p className="mkt-body text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-              {copy.programs.description}
+              Whatever you build or whoever you serve, there is an E-Code program built for you.
             </p>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {programs.map((program) => {
                 const Icon = program.icon;
                 return (
-                  <Card key={program.id} className="flex flex-col">
+                  <Card key={program.name} className="flex flex-col">
                     <CardHeader>
                       <span
                         className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg text-white"
@@ -211,21 +257,22 @@ export default function Partners() {
         {/* Integrations — real platforms partners build on */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
-            <h2 className="mkt-h2 font-bold text-center mb-4">{copy.integrations.title}</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-4">Build on a Connected Platform</h2>
             <p className="mkt-body text-muted-foreground text-center mb-12 max-w-2xl mx-auto">
-              {copy.integrations.description}
+              E-Code already connects to the tools your customers rely on — through OAuth integrations and MCP
+              connectors. Technology partners plug straight into these surfaces.
             </p>
 
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 max-w-4xl mx-auto">
-              {PARTNER_INTEGRATIONS.map((integration) => {
+              {integrations.map((integration) => {
                 const Icon = integration.icon;
                 return (
                   <div
-                    key={integration.brand}
+                    key={integration.label}
                     className="flex flex-col items-center justify-center gap-2 rounded-lg border border-[var(--ecode-border)] bg-surface-solid px-4 py-5 text-center"
                   >
                     <Icon className="h-7 w-7 text-foreground" aria-hidden />
-                    <span className="mkt-small font-medium text-muted-foreground">{integration.brand}</span>
+                    <span className="mkt-small font-medium text-muted-foreground">{integration.label}</span>
                   </div>
                 );
               })}
@@ -236,13 +283,13 @@ export default function Partners() {
         {/* Benefits */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="mkt-h2 font-bold text-center mb-12">{copy.benefits.title}</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">Why Partner With Us</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {benefits.map((benefit) => {
                 const Icon = benefit.icon;
                 return (
-                  <Card key={benefit.id}>
+                  <Card key={benefit.title}>
                     <CardContent className="pt-6 text-center">
                       <span
                         className="mx-auto mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl text-white"
@@ -263,13 +310,13 @@ export default function Partners() {
         {/* How It Works */}
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
-            <h2 className="mkt-h2 font-bold text-center mb-12">{copy.steps.title}</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">How It Works</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-5xl mx-auto">
               {steps.map((step, index) => {
                 const Icon = step.icon;
                 return (
-                  <div key={step.id} className="text-center">
+                  <div key={step.title} className="text-center">
                     <div className="relative mx-auto mb-4 h-14 w-14">
                       <span
                         className="flex h-14 w-14 items-center justify-center rounded-full text-white"
@@ -298,8 +345,11 @@ export default function Partners() {
                 className="absolute -z-10 -top-16 left-1/2 h-64 w-64 -translate-x-1/2 rounded-full blur-3xl"
                 style={{ backgroundColor: 'color-mix(in srgb, var(--ecode-accent) 18%, transparent)' }}
               />
-              <h2 className="mkt-h2 font-bold mb-4">{copy.cta.title}</h2>
-              <p className="mkt-body text-muted-foreground mb-8 max-w-2xl mx-auto">{copy.cta.description}</p>
+              <h2 className="mkt-h2 font-bold mb-4">Ready to build together?</h2>
+              <p className="mkt-body text-muted-foreground mb-8 max-w-2xl mx-auto">
+                Tell us about your business and our partnerships team will help you find the right program and get
+                started.
+              </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <Link
                   to="/contact-sales"
@@ -307,7 +357,7 @@ export default function Partners() {
                   style={{ backgroundColor: 'var(--ecode-accent)' }}
                   data-testid="button-partners-contact-sales"
                 >
-                  {copy.cta.apply}
+                  Become a Partner
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link
@@ -315,7 +365,7 @@ export default function Partners() {
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md border border-[var(--ecode-border)] bg-surface-solid text-foreground font-medium hover:bg-surface-hover-solid transition-all min-h-[44px]"
                   data-testid="button-partners-signup"
                 >
-                  {copy.cta.signup}
+                  Get started free
                 </Link>
               </div>
             </div>

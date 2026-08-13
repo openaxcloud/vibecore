@@ -1,7 +1,6 @@
 import 'katex/dist/katex.min.css';
 import type { Message } from 'ai';
-import { memo, useMemo, type ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
+import { memo, useMemo } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import type { BundledLanguage } from 'shiki';
 import { Artifact, openArtifactInWorkbench } from './Artifact';
@@ -9,39 +8,11 @@ import { CodeBlock } from './CodeBlock';
 import styles from './Markdown.module.scss';
 import { MermaidBlock } from './MermaidBlock';
 import ThoughtBox from './ThoughtBox';
-import { getChatResidualsCopy } from '~/lib/i18n/catalogs/chat-residuals';
 import type { ProviderInfo } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 import { rehypePlugins, remarkPlugins, allowedHTMLElements } from '~/utils/markdown';
 
 const logger = createScopedLogger('MarkdownComponent');
-
-function quickActionIconClass(type: string): string {
-  if (type === 'file') {
-    return 'i-ph:file';
-  }
-
-  if (type === 'message') {
-    return 'i-ph:chats';
-  }
-
-  if (type === 'implement') {
-    return 'i-ph:code';
-  }
-
-  if (type === 'link') {
-    return 'i-ph:link';
-  }
-
-  return 'i-ph:question';
-}
-
-function LocalizedThoughtBox({ children }: { children: ReactNode }) {
-  const { i18n } = useTranslation();
-  const copy = getChatResidualsCopy(i18n.resolvedLanguage ?? i18n.language);
-
-  return <ThoughtBox title={copy['chatResiduals.markdown.thoughtProcess']}>{children}</ThoughtBox>;
-}
 
 interface MarkdownProps {
   children: string;
@@ -115,7 +86,7 @@ export const Markdown = memo(
           }
 
           if (className?.includes('__boltThought__')) {
-            return <LocalizedThoughtBox>{children}</LocalizedThoughtBox>;
+            return <ThoughtBox title="Thought process">{children}</ThoughtBox>;
           }
 
           if (className?.includes('__boltQuickAction__') || dataProps?.dataBoltQuickAction) {
@@ -165,8 +136,15 @@ export const Markdown = memo(
             const path = dataProps['data-path'] || dataProps.dataPath;
             const href = dataProps['data-href'] || dataProps.dataHref;
 
+            const iconClassMap: Record<string, string> = {
+              file: 'i-ph:file',
+              message: 'i-ph:chats',
+              implement: 'i-ph:code',
+              link: 'i-ph:link',
+            };
+
             const safeType = typeof type === 'string' ? type : '';
-            const iconClass = quickActionIconClass(safeType);
+            const iconClass = iconClassMap[safeType] ?? 'i-ph:question';
 
             return (
               <button

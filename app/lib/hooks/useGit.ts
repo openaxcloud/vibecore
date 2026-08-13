@@ -3,37 +3,9 @@ import git, { type GitAuth, type PromiseFsClient } from 'isomorphic-git';
 import http from 'isomorphic-git/http/web';
 import Cookies from 'js-cookie';
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { encodeGitWriteContent } from './git-fs-encoding';
-import { formatGitCloneCopy, getGitCloneCopy } from '~/lib/i18n/catalogs/git-clone';
 import { runtimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
-
-export type GitCloneFailureKind = 'authentication' | 'network' | 'not-found' | 'unauthorized' | 'generic';
-
-class GitCloneUserFacingError extends Error {}
-
-export function classifyGitCloneFailure(error: unknown): GitCloneFailureKind {
-  const message = error instanceof Error ? error.message : String(error);
-
-  if (/authentication failed/iu.test(message)) {
-    return 'authentication';
-  }
-
-  if (/ENOTFOUND|ETIMEDOUT|ECONNREFUSED/u.test(message)) {
-    return 'network';
-  }
-
-  if (/\b404\b/u.test(message)) {
-    return 'not-found';
-  }
-
-  if (/\b401\b/u.test(message)) {
-    return 'unauthorized';
-  }
-
-  return 'generic';
-}
 
 const lookupSavedPassword = (url: string) => {
   const domain = url.split('/')[2];
@@ -64,13 +36,7 @@ const saveGitAuth = (url: string, auth: GitAuth) => {
 };
 
 export function useGit() {
-  const { i18n } = useTranslation();
-  const copy = getGitCloneCopy(i18n.resolvedLanguage ?? i18n.language);
-  const copyRef = useRef(copy);
-  copyRef.current = copy;
-
   const [ready, setReady] = useState(false);
-  const [initializationFailed, setInitializationFailed] = useState(false);
   const [runtime, setRuntime] = useState<RuntimeAdapter>();
   const [fs, setFs] = useState<PromiseFsClient>();
   const fileData = useRef<Record<string, { data: any; encoding?: string }>>({});
@@ -78,7 +44,6 @@ export function useGit() {
     runtimeAdapter
       .startWorkspace()
       .then(() => {
-        setInitializationFailed(false);
         fileData.current = {};
         setRuntime(runtimeAdapter);
         setFs(getFs(runtimeAdapter, fileData));
@@ -90,18 +55,13 @@ export function useGit() {
          * and `ready` never flips, leaving every git operation hung forever.
          */
         console.error('Failed to start workspace for git operations', error);
-
-        const safeMessage = copyRef.current['gitClone.error.workspaceStart'];
-
-        setInitializationFailed(true);
-        toast.error(safeMessage);
       });
   }, []);
 
   const gitClone = useCallback(
     async (url: string, retryCount = 0) => {
       if (!runtime || !fs || !ready) {
-        throw new Error(copy['gitClone.error.runtimeNotReady']);
+        throw new Error('Runtime not initialized. Please try again later.');
       }
 
       fileData.current = {};
@@ -160,10 +120,10 @@ export function useGit() {
 
             console.log('Repository requires authentication:', baseUrl);
 
-            if (confirm(copy['gitClone.auth.required'])) {
+            if (confirm('This repository requires authentication. Would you like to enter your GitHub credentials?')) {
               auth = {
-                username: prompt(copy['gitClone.auth.username']) || '',
-                password: prompt(copy['gitClone.auth.password']) || '',
+                username: prompt('Enter username') || '',
+                password: prompt('Enter password or personal access token') || '',
               };
               return auth;
             } else {
@@ -172,12 +132,12 @@ export function useGit() {
           },
           onAuthFailure: (baseUrl, _auth) => {
             console.error(`Authentication failed for ${baseUrl}`);
-
-            const safeMessage = formatGitCloneCopy(copy['gitClone.error.authenticationHost'], {
-              host: baseUrl.split('/')[2] ?? baseUrl,
-            });
-
-            throw new GitCloneUserFacingError(safeMessage);
+            toast.error(
+              `Authentication failed for ${baseUrl.split('/')[2]}. Please check your credentials and try again.`,
+            );
+            throw new Error(
+              `Authentication failed for ${baseUrl.split('/')[2]}. Please check your credentials and try again.`,
+            );
           },
           onAuthSuccess: (baseUrl, auth) => {
             console.log(`Authentication successful for ${baseUrl}`);
@@ -195,49 +155,46 @@ export function useGit() {
       } catch (error) {
         console.error('Git clone error:', error);
 
-        if (error instanceof GitCloneUserFacingError) {
-          toast.error(error.message);
+        // Handle specific error types
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        // Check for common error patterns
+        if (errorMessage.includes('Authentication failed')) {
+          toast.error(`Authentication failed. Please check your GitHub credentials and try again.`);
           throw error;
-        }
+        } else if (
+          errorMessage.includes('ENOTFOUND') ||
+          errorMessage.includes('ETIMEDOUT') ||
+          errorMessage.includes('ECONNREFUSED')
+        ) {
+          toast.error(`Network error while connecting to repository. Please check your internet connection.`);
 
-        const failure = classifyGitCloneFailure(error);
-
-        if (failure === 'authentication') {
-          const safeMessage = copy['gitClone.error.authentication'];
-          toast.error(safeMessage);
-          throw new Error(safeMessage);
-        } else if (failure === 'network') {
           // Retry for network errors, up to 3 times
           if (retryCount < 3) {
             return gitClone(url, retryCount + 1);
           }
 
-          const safeMessage = copy['gitClone.error.networkExhausted'];
-          toast.error(safeMessage);
-          throw new Error(safeMessage);
-        } else if (failure === 'not-found') {
-          const safeMessage = copy['gitClone.error.notFound'];
-          toast.error(safeMessage);
-          throw new Error(safeMessage);
-        } else if (failure === 'unauthorized') {
-          const safeMessage = copy['gitClone.error.unauthorized'];
-          toast.error(safeMessage);
-          throw new Error(safeMessage);
+          throw new Error(
+            `Failed to connect to repository after multiple attempts. Please check your internet connection.`,
+          );
+        } else if (errorMessage.includes('404')) {
+          toast.error(`Repository not found. Please check the URL and make sure the repository exists.`);
+          throw new Error(`Repository not found. Please check the URL and make sure the repository exists.`);
+        } else if (errorMessage.includes('401')) {
+          toast.error(`Unauthorized access to repository. Please connect your GitHub account with proper permissions.`);
+          throw new Error(
+            `Unauthorized access to repository. Please connect your GitHub account with proper permissions.`,
+          );
         } else {
-          const safeMessage = copy['gitClone.error.generic'];
-          toast.error(safeMessage);
-          throw new Error(safeMessage);
+          toast.error(`Failed to clone repository: ${errorMessage}`);
+          throw error;
         }
       }
     },
-    [copy, runtime, fs, ready],
+    [runtime, fs, ready],
   );
 
-  return {
-    ready,
-    gitClone,
-    initializationError: initializationFailed ? copy['gitClone.error.workspaceStart'] : null,
-  };
+  return { ready, gitClone };
 }
 
 const getFs = (

@@ -3,7 +3,6 @@ import { type ActionFunctionArgs } from 'react-router';
 import { buildSelfRepairMessageContent } from './api.agent.self-repair.message';
 import { streamText, type Messages } from '~/lib/.server/llm/stream-text';
 import { requireWebSession } from '~/lib/.server/require-session';
-import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 import type { IProviderSetting } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -59,7 +58,7 @@ function json(body: unknown, status = 200): Response {
 
 export async function action({ context, request }: ActionFunctionArgs) {
   if (request.method.toUpperCase() !== 'POST') {
-    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405);
+    return json({ error: 'Method not allowed' }, 405);
   }
 
   // Gate the platform's managed provider keys behind a valid session.
@@ -70,11 +69,11 @@ export async function action({ context, request }: ActionFunctionArgs) {
   try {
     body = (await request.json()) as { prompt?: unknown; model?: unknown; provider?: unknown };
   } catch {
-    return remainingApiErrorResponse(request, 'INVALID_JSON_BODY', 400);
+    return json({ error: 'Invalid JSON body' }, 400);
   }
 
   if (typeof body.prompt !== 'string' || body.prompt.length === 0) {
-    return remainingApiErrorResponse(request, 'SELF_REPAIR_PROMPT_REQUIRED', 400);
+    return json({ error: 'Body must include a non-empty string `prompt`' }, 400);
   }
 
   /*
@@ -88,9 +87,7 @@ export async function action({ context, request }: ActionFunctionArgs) {
   const provider = typeof body.provider === 'string' ? body.provider : null;
 
   if (body.prompt.length > MAX_PROMPT_BYTES) {
-    return remainingApiErrorResponse(request, 'SELF_REPAIR_PROMPT_TOO_LARGE', 413, {
-      values: { maximum: MAX_PROMPT_BYTES },
-    });
+    return json({ error: `Prompt exceeds the ${MAX_PROMPT_BYTES}-byte self-repair budget` }, 413);
   }
 
   const cookieHeader = request.headers.get('Cookie') ?? '';
@@ -103,7 +100,7 @@ export async function action({ context, request }: ActionFunctionArgs) {
     apiKeys = JSON.parse(cookies.apiKeys || '{}');
     providerSettings = JSON.parse(cookies.providers || '{}');
   } catch {
-    return remainingApiErrorResponse(request, 'SELF_REPAIR_COOKIE_INVALID', 400);
+    return json({ error: 'Invalid apiKeys / providers cookie payload' }, 400);
   }
 
   const messages: Messages = [
@@ -137,20 +134,12 @@ export async function action({ context, request }: ActionFunctionArgs) {
      * failed attempt instead of writing a truncated file.
      */
     if (finishReason === 'length') {
-      return remainingApiErrorResponse(request, 'SELF_REPAIR_TRUNCATED', 422);
+      return json({ error: 'self-repair response was truncated (max tokens reached)' }, 422);
     }
 
     return json({ content });
   } catch (error) {
-    logger.error(
-      'Self-repair LLM call failed',
-      error instanceof Response
-        ? { kind: 'response', status: error.status }
-        : error instanceof Error
-          ? { kind: 'error', name: error.name }
-          : { kind: 'unknown' },
-    );
-
-    return remainingApiErrorResponse(request, 'SELF_REPAIR_FAILED', 502);
+    logger.error('Self-repair LLM call failed:', error);
+    return json({ error: error instanceof Error ? error.message : 'self-repair failed' }, 502);
   }
 }

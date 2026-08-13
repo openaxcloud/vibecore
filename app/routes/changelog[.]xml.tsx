@@ -1,6 +1,4 @@
 import type { LoaderFunctionArgs } from 'react-router';
-import { getMarketingExactChangelogCopy } from '~/lib/i18n/catalogs/marketing-exact-changelog';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { changelogReleases } from '~/lib/marketing/changelog-releases';
 
 /*
@@ -29,27 +27,23 @@ export function loader({ request }: LoaderFunctionArgs) {
   const origin = new URL(request.url).origin;
   const self = `${origin}/changelog.xml`;
   const page = `${origin}/changelog`;
-  const language = resolveRequestLocale(request).language === 'fr' ? 'fr' : 'en';
-  const copy = getMarketingExactChangelogCopy(language).exactChangelog;
 
   const items = changelogReleases
     .map((release) => {
       const link = `${page}#${encodeURIComponent(release.version)}`;
-      const releaseCopy = copy.releases[release.id];
 
-      const description = [
-        `${copy.timeline.types[release.type]}: ${releaseCopy.title}`,
-        ...releaseCopy.changes.map((change) => `• ${change}`),
-      ].join('\n');
+      const description = [`${release.type}: ${release.title}`, ...release.changes.map((change) => `• ${change}`)].join(
+        '\n',
+      );
 
-      const pubDate = toRfc822(release.publishedAt);
+      const pubDate = toRfc822(release.date);
 
       return [
         '    <item>',
-        `      <title>${escapeXml(`${release.version} — ${releaseCopy.title}`)}</title>`,
+        `      <title>${escapeXml(`${release.version} — ${release.title}`)}</title>`,
         `      <link>${escapeXml(link)}</link>`,
         `      <guid isPermaLink="false">ecode-changelog-${escapeXml(release.version)}</guid>`,
-        `      <category>${escapeXml(copy.timeline.types[release.type])}</category>`,
+        `      <category>${escapeXml(release.type)}</category>`,
         pubDate ? `      <pubDate>${pubDate}</pubDate>` : '',
         `      <description>${escapeXml(description)}</description>`,
         '    </item>',
@@ -62,11 +56,11 @@ export function loader({ request }: LoaderFunctionArgs) {
   const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>${escapeXml(copy.feed.title)}</title>
+    <title>E-Code Changelog</title>
     <link>${escapeXml(page)}</link>
     <atom:link href="${escapeXml(self)}" rel="self" type="application/rss+xml" />
-    <description>${escapeXml(copy.feed.description)}</description>
-    <language>${language}</language>
+    <description>The latest features, improvements and fixes shipped in E-Code.</description>
+    <language>en</language>
 ${items}
   </channel>
 </rss>

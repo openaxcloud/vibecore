@@ -1,17 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { formatAbsoluteTime } from '~/lib/format-relative';
-import {
-  databaseRollbackStatusLabel,
-  databaseSnapshotKindLabel,
-  formatDatabaseBytes,
-  formatDatabaseRetention,
-  formatDatabaseRollbackCopy,
-  getDatabaseRollbackCopy,
-  resolveDatabaseRollbackLanguage,
-} from '~/lib/i18n/catalogs/database-rollback';
 
 /*
  * Replit-parity database point-in-time rollback — dormant UI shell (Phase-1).
@@ -88,10 +78,18 @@ export function shouldRefreshAfterRestore(prevRestoreOk: boolean, restoreOk: boo
   return restoreOk && !prevRestoreOk;
 }
 
+function formatBytes(bytes: number): string {
+  if (bytes <= 0) {
+    return '0 B';
+  }
+
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+  const exp = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+
+  return `${(bytes / 1024 ** exp).toFixed(exp === 0 ? 0 : 1)} ${units[exp]}`;
+}
+
 export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
-  const { i18n } = useTranslation();
-  const language = resolveDatabaseRollbackLanguage(i18n.resolvedLanguage ?? i18n.language);
-  const copy = getDatabaseRollbackCopy(language);
   const loadFetcher = useFetcher<PanelData>();
   const restoreFetcher = useFetcher<{ ok: boolean; error?: string }>();
   const [target, setTarget] = useState('');
@@ -125,19 +123,6 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
   const data = loadFetcher.data;
   const dormant = useMemo(() => isDatabasePanelDormant(data), [data]);
 
-  if (!data && loadFetcher.state !== 'idle') {
-    return (
-      <div
-        className="min-h-32 animate-pulse rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
-        role="status"
-        aria-label={copy['databaseRollback.loading']}
-      >
-        <div className="h-5 w-32 rounded bg-bolt-elements-background-depth-3" />
-        <div className="mt-3 h-4 w-full max-w-md rounded bg-bolt-elements-background-depth-3" />
-      </div>
-    );
-  }
-
   // Feature off / not provisioned → render nothing (dormant).
   if (dormant) {
     return null;
@@ -163,20 +148,19 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
   };
 
   return (
-    <div className="flex min-w-0 flex-col gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-      <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <h3 className="text-base font-semibold text-bolt-elements-textPrimary">{copy['databaseRollback.title']}</h3>
+    <div className="flex flex-col gap-4 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-base font-semibold text-bolt-elements-textPrimary">Database</h3>
           <p className="text-sm text-bolt-elements-textSecondary">
             {entitlement.allowed
-              ? formatDatabaseRetention(entitlement.retentionDays, language)
-              : copy['databaseRollback.entitlement.pro']}
+              ? `Point-in-time rollback up to ${entitlement.retentionDays} days (your plan).`
+              : 'Point-in-time rollback is available on the Pro plan.'}
           </p>
         </div>
         {instance ? (
-          <span className="max-w-full break-words rounded-full border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textSecondary">
-            {databaseRollbackStatusLabel(instance.status, language)} ·{' '}
-            {formatDatabaseBytes(instance.sizeBytes, language)}
+          <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
+            {instance.status} · {formatBytes(instance.sizeBytes)}
           </span>
         ) : null}
       </div>
@@ -186,31 +170,25 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
           type="button"
           onClick={() => submitIntent({ intent: 'provision' })}
           disabled={restoreFetcher.state !== 'idle'}
-          className="min-h-11 self-start rounded-md bg-bolt-elements-button-primary-background px-3 py-2 text-sm text-bolt-elements-button-primary-text disabled:opacity-50"
-          aria-busy={restoreFetcher.state !== 'idle'}
+          className="self-start rounded-md bg-bolt-elements-button-primary-background px-3 py-1 text-sm text-bolt-elements-button-primary-text disabled:opacity-50"
         >
-          {restoreFetcher.state === 'idle'
-            ? copy['databaseRollback.action.setup']
-            : copy['databaseRollback.action.settingUp']}
+          {restoreFetcher.state === 'idle' ? 'Set up database' : 'Setting up…'}
         </button>
       ) : (
         <button
           type="button"
           onClick={() => submitIntent({ intent: 'snapshot' })}
           disabled={restoreFetcher.state !== 'idle'}
-          className="min-h-11 self-start rounded-md border border-bolt-elements-borderColor px-3 py-2 text-sm text-bolt-elements-textPrimary disabled:opacity-50"
-          aria-busy={restoreFetcher.state !== 'idle'}
+          className="self-start rounded-md border border-bolt-elements-borderColor px-3 py-1 text-sm text-bolt-elements-textPrimary disabled:opacity-50"
         >
-          {restoreFetcher.state === 'idle'
-            ? copy['databaseRollback.action.snapshot']
-            : copy['databaseRollback.action.working']}
+          {restoreFetcher.state === 'idle' ? 'Create snapshot' : 'Working…'}
         </button>
       )}
 
       {entitlement.allowed && instance ? (
         <div className="flex flex-col gap-2">
           <label htmlFor="db-restore-target" className="text-sm font-medium text-bolt-elements-textPrimary">
-            {copy['databaseRollback.restore.label']}
+            Restore to a point in time
           </label>
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -218,46 +196,35 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
               type="datetime-local"
               value={target}
               onChange={(event) => setTarget(event.target.value)}
-              className="min-h-11 min-w-0 flex-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-2 text-sm text-bolt-elements-textPrimary"
+              className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-sm text-bolt-elements-textPrimary"
             />
             <button
               type="button"
               onClick={() => setRestoreConfirmOpen(true)}
               disabled={!target || restoreFetcher.state !== 'idle'}
-              className="min-h-11 rounded-md bg-bolt-elements-button-primary-background px-3 py-2 text-sm text-bolt-elements-button-primary-text disabled:opacity-50"
-              aria-busy={restoreFetcher.state !== 'idle'}
+              className="rounded-md bg-bolt-elements-button-primary-background px-3 py-1 text-sm text-bolt-elements-button-primary-text disabled:opacity-50"
             >
-              {restoreFetcher.state === 'idle'
-                ? copy['databaseRollback.restore.action']
-                : copy['databaseRollback.restore.requesting']}
+              {restoreFetcher.state === 'idle' ? 'Restore' : 'Requesting…'}
             </button>
           </div>
           {restoreFetcher.data?.error ? (
-            <p className="text-sm text-bolt-elements-icon-error" role="alert">
-              {copy['databaseRollback.restore.error']}
-            </p>
+            <p className="text-sm text-bolt-elements-icon-error">{restoreFetcher.data.error}</p>
           ) : null}
         </div>
       ) : null}
 
       <div className="flex flex-col gap-1">
-        <h4 className="text-sm font-medium text-bolt-elements-textPrimary">
-          {copy['databaseRollback.snapshots.title']}
-        </h4>
+        <h4 className="text-sm font-medium text-bolt-elements-textPrimary">Recovery points</h4>
         {snapshots.length === 0 ? (
-          <p className="text-sm text-bolt-elements-textSecondary">{copy['databaseRollback.snapshots.empty']}</p>
+          <p className="text-sm text-bolt-elements-textSecondary">No snapshots yet.</p>
         ) : (
           <ul className="flex flex-col gap-1">
             {snapshots.map((snapshot) => (
-              <li
-                key={snapshot.id}
-                className="flex min-w-0 flex-wrap justify-between gap-2 text-sm text-bolt-elements-textSecondary"
-              >
-                <span className="min-w-0 break-words">
-                  {snapshot.label ?? databaseSnapshotKindLabel(snapshot.kind, language)} ·{' '}
-                  {formatDatabaseBytes(snapshot.sizeBytes, language)}
+              <li key={snapshot.id} className="flex justify-between text-sm text-bolt-elements-textSecondary">
+                <span>
+                  {snapshot.label ?? snapshot.kind} · {formatBytes(snapshot.sizeBytes)}
                 </span>
-                <span>{formatAbsoluteTime(snapshot.createdAt, language)}</span>
+                <span>{formatAbsoluteTime(snapshot.createdAt)}</span>
               </li>
             ))}
           </ul>
@@ -266,17 +233,12 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
 
       {restores.length > 0 ? (
         <div className="flex flex-col gap-1">
-          <h4 className="text-sm font-medium text-bolt-elements-textPrimary">
-            {copy['databaseRollback.restores.title']}
-          </h4>
+          <h4 className="text-sm font-medium text-bolt-elements-textPrimary">Restores</h4>
           <ul className="flex flex-col gap-1">
             {restores.map((restore) => (
-              <li
-                key={restore.id}
-                className="flex min-w-0 flex-wrap justify-between gap-2 text-sm text-bolt-elements-textSecondary"
-              >
-                <span>{databaseRollbackStatusLabel(restore.status, language)}</span>
-                <span>{formatAbsoluteTime(restore.createdAt, language)}</span>
+              <li key={restore.id} className="flex justify-between text-sm text-bolt-elements-textSecondary">
+                <span>{restore.status}</span>
+                <span>{formatAbsoluteTime(restore.createdAt)}</span>
               </li>
             ))}
           </ul>
@@ -285,16 +247,14 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
 
       <ConfirmationDialog
         isOpen={restoreConfirmOpen}
-        title={copy['databaseRollback.dialog.title']}
+        title="Restore the database?"
         description={
           target
-            ? formatDatabaseRollbackCopy(copy['databaseRollback.dialog.description'], {
-                date: formatAbsoluteTime(new Date(target), language),
-              })
-            : copy['databaseRollback.dialog.targetRequired']
+            ? `This rewinds the database to ${formatAbsoluteTime(new Date(target))}. Any changes written after that point in time will be lost, and this can't be undone.`
+            : 'Pick a point in time to restore to.'
         }
-        confirmLabel={copy['databaseRollback.dialog.confirm']}
-        cancelLabel={copy['databaseRollback.dialog.cancel']}
+        confirmLabel="Restore database"
+        cancelLabel="Cancel"
         variant="destructive"
         onConfirm={confirmRestore}
         onClose={() => setRestoreConfirmOpen(false)}

@@ -203,7 +203,7 @@ describe('mfa-setup route', () => {
     expect(redirectResponse.headers.get('location')).toContain('/login');
   });
 
-  it('action masks the API error and skips recovery-code generation when verify fails', async () => {
+  it('action surfaces the API error and skips recovery-code generation when verify fails', async () => {
     const fetchSpy = vi.fn(async (url: string | URL | Request) => {
       const href = typeof url === 'string' ? url : url.toString();
 
@@ -222,8 +222,7 @@ describe('mfa-setup route', () => {
     expect(response.status).toBe(401);
 
     const payload = (await response.json()) as { error: string };
-    expect(payload.error).toBe('That code did not match. Check your authenticator app and try again.');
-    expect(payload.error).not.toContain('Invalid MFA code');
+    expect(payload.error).toBe('Invalid MFA code');
 
     const recoveryCalls = fetchSpy.mock.calls.filter(([url]) =>
       (typeof url === 'string' ? url : url.toString()).endsWith('/auth/recovery-codes'),

@@ -3,9 +3,7 @@ import {
   SKILL_REPO_CATALOG,
   findRepoEntry,
   isValidOwnerRepo,
-  localizedSkillRepoDescription,
   normalizeOwnerRepo,
-  skillRepoCatalogForLocale,
 } from '../skills-repo-catalog.js';
 import { TestApiStore } from './test-api-store.js';
 
@@ -39,47 +37,6 @@ describe('skills-repo-catalog: owner/repo validation', () => {
     expect(findRepoEntry('anthropics/skills')?.name).toBe('Anthropic Skills');
     expect(findRepoEntry('ANTHROPICS/SKILLS')?.ownerRepo).toBe('anthropics/skills');
     expect(findRepoEntry('does/not-exist')).toBeUndefined();
-  });
-});
-
-describe('skills-repo-catalog: localized server copy', () => {
-  it('ships complete French descriptions while preserving code-owned identifiers and brands', () => {
-    const english = skillRepoCatalogForLocale('en');
-    const french = skillRepoCatalogForLocale('fr-FR');
-
-    expect(french).toHaveLength(12);
-    expect(french).toHaveLength(english.length);
-    expect(Object.isFrozen(french)).toBe(true);
-
-    for (const [index, frenchEntry] of french.entries()) {
-      const englishEntry = english[index];
-
-      expect(englishEntry).toBeDefined();
-      expect(frenchEntry.ownerRepo).toBe(englishEntry?.ownerRepo);
-      expect(frenchEntry.name).toBe(englishEntry?.name);
-      expect(frenchEntry.category).toBe(englishEntry?.category);
-      expect(frenchEntry.homepageUrl).toBe(englishEntry?.homepageUrl);
-      expect(frenchEntry.description.trim()).not.toBe('');
-      expect(frenchEntry.description).not.toBe(englishEntry?.description);
-      expect(Object.isFrozen(frenchEntry)).toBe(true);
-    }
-
-    expect(findRepoEntry('ANTHROPICS/SKILLS', 'fr')?.description).toBe(
-      'Collection de référence de compétences pour agents : édition de documents, traitement de données et flux de travail réutilisables.',
-    );
-  });
-
-  it('keeps English as the default and unsupported-locale fallback', () => {
-    expect(skillRepoCatalogForLocale()).toBe(SKILL_REPO_CATALOG);
-    expect(skillRepoCatalogForLocale('de-DE')).toBe(SKILL_REPO_CATALOG);
-    expect(findRepoEntry('anthropics/skills', 'es')?.description).toBe(
-      'Reference collection of agent skills — document editing, data work, and reusable workflows.',
-    );
-  });
-
-  it('falls back per entry without leaking a raw key or throwing on incomplete copy', () => {
-    expect(localizedSkillRepoDescription({ en: 'English fallback' }, 'fr')).toBe('English fallback');
-    expect(localizedSkillRepoDescription({}, 'fr')).toBe('');
   });
 });
 

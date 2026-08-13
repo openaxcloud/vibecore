@@ -285,98 +285,6 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     expect(writeAttempts).toBe(2); // failed once (502), retried, succeeded — file not lost
   });
 
-  it('retries an idempotent write through a provisioning 404 (op raced ahead of workspace creation) instead of hard-failing', async () => {
-    let writeAttempts = 0;
-
-    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-
-      if (url.endsWith('/runtime/boot')) {
-        return new Response(null, { status: 204 });
-      }
-
-      if (url.endsWith('/workspaces') && init?.method === 'POST') {
-        return Response.json({
-          id: 'ws-1',
-          runtimeMode: 'remote-kubernetes',
-          status: 'running',
-          workdir: '/workspace',
-          createdAt: '2026-04-28T00:00:00.000Z',
-          updatedAt: '2026-04-28T00:00:00.000Z',
-        });
-      }
-
-      if (url.endsWith('/files/write')) {
-        writeAttempts += 1;
-
-        // First attempt lands before authorizeRuntimeWorkspace can resolve the id →
-        // 404 PROJECT_NOT_FOUND (the reported "Remote runtime request failed: 404").
-        // The record exists by the retry.
-        return writeAttempts === 1
-          ? Response.json({ code: 'PROJECT_NOT_FOUND', error: 'not found' }, { status: 404 })
-          : new Response(null, { status: 204 });
-      }
-
-      return Response.json([]);
-    });
-
-    const adapter = new RemoteKubernetesRuntimeAdapter({
-      baseUrl: 'https://runtime.example.com',
-      authToken: 'token-123',
-      fetchImpl: fetchMock as typeof fetch,
-      WebSocketImpl: FakeWebSocket,
-    });
-
-    await adapter.boot();
-    await adapter.startWorkspace();
-
-    await expect(adapter.writeFile('src/App.tsx', 'export default null;')).resolves.toBeUndefined();
-    expect(writeAttempts).toBe(2); // provisioning 404 on attempt 1, self-healed on retry
-  });
-
-  it('does NOT retry a 404 that is not a provisioning-not-found (a genuine 4xx stays a hard failure)', async () => {
-    let writeAttempts = 0;
-
-    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      const url = String(input);
-
-      if (url.endsWith('/runtime/boot')) {
-        return new Response(null, { status: 204 });
-      }
-
-      if (url.endsWith('/workspaces') && init?.method === 'POST') {
-        return Response.json({
-          id: 'ws-1',
-          runtimeMode: 'remote-kubernetes',
-          status: 'running',
-          workdir: '/workspace',
-          createdAt: '2026-04-28T00:00:00.000Z',
-          updatedAt: '2026-04-28T00:00:00.000Z',
-        });
-      }
-
-      if (url.endsWith('/files/write')) {
-        writeAttempts += 1;
-        return Response.json({ code: 'SOME_OTHER_404', error: 'nope' }, { status: 404 });
-      }
-
-      return Response.json([]);
-    });
-
-    const adapter = new RemoteKubernetesRuntimeAdapter({
-      baseUrl: 'https://runtime.example.com',
-      authToken: 'token-123',
-      fetchImpl: fetchMock as typeof fetch,
-      WebSocketImpl: FakeWebSocket,
-    });
-
-    await adapter.boot();
-    await adapter.startWorkspace();
-
-    await expect(adapter.writeFile('src/App.tsx', 'export default null;')).rejects.toMatchObject({ status: 404 });
-    expect(writeAttempts).toBe(1); // thrown immediately, not retried
-  });
-
   it('re-provisions a GC-reaped workspace (stale ws-id) on WORKSPACE_AGENT_REQUEST_FAILED, then retries — no ENOTFOUND loop', async () => {
     let podAlive = true;
     let provisionCount = 0;
@@ -719,27 +627,6 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     });
     stopLogs();
     expect(logs).toEqual(['server ready']);
-  });
-
-  it('marks the managed shell with managed=1 so the API skips the terminals.concurrent quota', async () => {
-    FakeWebSocket.instances = [];
-
-    const adapter = new RemoteKubernetesRuntimeAdapter({
-      baseUrl: 'https://runtime.example.com',
-      authToken: () => 'token-456',
-      workspaceId: 'ws-1',
-      fetchImpl: createFetchMock() as typeof fetch,
-      WebSocketImpl: FakeWebSocket,
-    });
-
-    // A user-opened terminal must NOT carry the managed flag (it stays metered).
-    await adapter.openTerminal({ terminal: { cols: 80, rows: 24 } });
-    expect(FakeWebSocket.instances[0].url).not.toContain('managed=1');
-
-    // The IDE's always-on managed shell carries managed=1 so it is not charged
-    // against terminals.concurrent (otherwise free-tier limit 1 flaps forever).
-    await adapter.openTerminal({ terminal: { cols: 80, rows: 24 }, managed: true });
-    expect(FakeWebSocket.instances[1].url).toContain('&managed=1');
   });
 
   it('reconnects watch sockets and terminal sockets after disconnects', async () => {

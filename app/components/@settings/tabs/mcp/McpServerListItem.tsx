@@ -1,5 +1,4 @@
 import type { Tool } from 'ai';
-import { useTranslation } from 'react-i18next';
 
 type ParameterProperty = {
   type?: string;
@@ -19,8 +18,6 @@ type McpToolProps = {
 };
 
 export default function McpServerListItem({ toolName, toolSchema }: McpToolProps) {
-  const { t } = useTranslation();
-
   if (!toolSchema) {
     return null;
   }
@@ -35,13 +32,11 @@ export default function McpServerListItem({ toolName, toolSchema }: McpToolProps
           {toolName}
         </h3>
 
-        <p className="text-bolt-elements-textSecondary">{toolSchema.description || t('settings.mcp.noDescription')}</p>
+        <p className="text-bolt-elements-textSecondary">{toolSchema.description || 'No description available'}</p>
 
         {Object.keys(parameters).length > 0 && (
           <div className="mt-2.5">
-            <h4 className="text-bolt-elements-textSecondary font-semibold mb-1.5">
-              {t('settings.copy.parameters_03acaf78')}
-            </h4>
+            <h4 className="text-bolt-elements-textSecondary font-semibold mb-1.5">Parameters:</h4>
             <ul className="ml-1 space-y-2">
               {Object.entries(parameters).map(([paramName, paramDetails]) => (
                 <li key={paramName} className="break-words">

@@ -11,7 +11,6 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { useState, type ComponentType, type FormEvent } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useEcodeToast } from '~/components/marketing/ecode-exact/EcodeExactLandingControls';
 import {
   EcodeExactPublicFooter as PublicFooter,
@@ -26,14 +25,6 @@ import {
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { FieldError, FormErrorSummary, fieldErrorProps } from '~/components/ui/FieldError';
-import {
-  getMarketingExactAboutContactCopy,
-  marketingExactAboutContactEn,
-  type ContactChannelId,
-  type ContactMailtoCopy,
-  type ContactTopic,
-  type ContactValidationCopy,
-} from '~/lib/i18n/catalogs/marketing-exact-about-contact';
 
 export type ContactMessage = {
   name: string;
@@ -55,52 +46,32 @@ type ContactResponse = {
 
 type ContactField = 'name' | 'email' | 'message';
 
-const CONTACT_FIELD_PREFIX = 'contact';
-const GENERAL_CONTACT_EMAIL = 'hello@e-code.ai';
-
 const FIELD_IDS: Record<ContactField, string> = {
   name: 'contact-name',
   email: 'contact-email',
-  message: `${CONTACT_FIELD_PREFIX}-message`,
+  message: 'contact-message',
 };
 
 /** Routing topics offered by the form — mirrors the channel cards above it. */
-export const CONTACT_TOPICS = [
-  'General',
-  'Sales',
-  'Support',
-  'Press',
-  'Security',
-] as const satisfies readonly ContactTopic[];
+export const CONTACT_TOPICS = ['General', 'Sales', 'Support', 'Press', 'Security'] as const;
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const CHANNEL_MEDIA: Record<ContactChannelId, { icon: ComponentType<{ className?: string }>; address: string }> = {
-  sales: { icon: BadgeDollarSign, address: 'sales@e-code.ai' },
-  support: { icon: Headset, address: 'support@e-code.ai' },
-  press: { icon: Newspaper, address: 'press@e-code.ai' },
-  security: { icon: ShieldCheck, address: 'security@e-code.ai' },
-};
-
-export function validateContactField(
-  field: ContactField,
-  value: string,
-  copy: ContactValidationCopy = marketingExactAboutContactEn.exactContact.validation,
-): string | undefined {
+export function validateContactField(field: ContactField, value: string): string | undefined {
   const trimmed = value.trim();
 
   switch (field) {
     case 'name':
-      return trimmed ? undefined : copy.nameRequired;
+      return trimmed ? undefined : 'Enter your name.';
     case 'email': {
       if (!trimmed) {
-        return copy.emailRequired;
+        return 'Enter your email.';
       }
 
-      return EMAIL_PATTERN.test(trimmed) ? undefined : copy.emailInvalid;
+      return EMAIL_PATTERN.test(trimmed) ? undefined : 'Enter a valid email address.';
     }
     case 'message':
-      return trimmed ? undefined : copy.messageRequired;
+      return trimmed ? undefined : 'Tell us briefly how we can help.';
     default:
       return undefined;
   }
@@ -114,19 +85,14 @@ export function validateContactField(
  * message is never lost. The `Reply-To` is carried in the body since mailto:
  * cannot set arbitrary headers reliably across clients.
  */
-export function buildContactMailto(
-  { name, email, message, topic }: ContactMessage,
-  copy: ContactMailtoCopy = marketingExactAboutContactEn.exactContact.mailto,
-) {
+export function buildContactMailto({ name, email, message, topic }: ContactMessage) {
   const trimmedName = name.trim();
-  const subject = trimmedName ? `${copy.subjectFrom} ${trimmedName}` : copy.subjectDefault;
-  const knownTopic = CONTACT_TOPICS.find((candidate) => candidate === topic?.trim());
-  const localizedTopic = knownTopic ? copy.topicLabels[knownTopic] : topic?.trim();
+  const subject = trimmedName ? `Message from ${trimmedName}` : 'Message via E-Code contact form';
 
   const body = [
-    trimmedName ? `${copy.name}: ${trimmedName}` : undefined,
-    email.trim() ? `${copy.email}: ${email.trim()}` : undefined,
-    localizedTopic ? `${copy.topic}: ${localizedTopic}` : undefined,
+    trimmedName ? `Name: ${trimmedName}` : undefined,
+    email.trim() ? `Email: ${email.trim()}` : undefined,
+    topic?.trim() ? `Topic: ${topic.trim()}` : undefined,
     '',
     message.trim(),
   ]
@@ -136,11 +102,7 @@ export function buildContactMailto(
   return `mailto:hello@e-code.ai?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-async function submitContactMessage(
-  payload: ContactMessage & { pagePath: string },
-  honeypot: string,
-  fallbackError: string,
-) {
+async function submitContactMessage(payload: ContactMessage & { pagePath: string }, honeypot: string) {
   const response = await fetch('/api/contact/general', {
     method: 'POST',
     headers: {
@@ -157,22 +119,20 @@ async function submitContactMessage(
       return { fallbackMailto: data.fallbackMailto };
     }
 
-    throw new Error(fallbackError);
+    throw new Error(data.error || 'Failed to send your message.');
   }
 
   return data;
 }
 
 export default function Contact() {
-  const { i18n } = useTranslation();
-  const copy = getMarketingExactAboutContactCopy(i18n.resolvedLanguage ?? i18n.language).exactContact;
   const { toast } = useEcodeToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<ContactField, string>>>({});
   const [sent, setSent] = useState<{ reference?: string } | null>(null);
 
   const handleBlur = (field: ContactField, value: string) => {
-    setErrors((previous) => ({ ...previous, [field]: validateContactField(field, value, copy.validation) }));
+    setErrors((previous) => ({ ...previous, [field]: validateContactField(field, value) }));
   };
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -198,7 +158,7 @@ export default function Contact() {
     const validation: Partial<Record<ContactField, string>> = {};
 
     for (const field of Object.keys(FIELD_IDS) as ContactField[]) {
-      validation[field] = validateContactField(field, payload[field], copy.validation);
+      validation[field] = validateContactField(field, payload[field]);
     }
 
     setErrors(validation);
@@ -213,26 +173,22 @@ export default function Contact() {
     setIsSubmitting(true);
 
     try {
-      const result = await submitContactMessage(
-        { ...payload, pagePath },
-        String(formData.get('website') ?? ''),
-        copy.errors.submit,
-      );
+      const result = await submitContactMessage({ ...payload, pagePath }, String(formData.get('website') ?? ''));
 
       if (result.fallbackMailto) {
         if (typeof window !== 'undefined') {
-          window.location.href = result.fallbackMailto || buildContactMailto(payload, copy.mailto);
+          window.location.href = result.fallbackMailto || buildContactMailto(payload);
         }
 
         toast({
-          title: copy.toasts.title,
-          description: copy.toasts.prepared,
+          title: 'Opening your email client',
+          description: "We've prepared your message for hello@e-code.ai so nothing gets lost.",
         });
       } else {
         // The reference is the API-allocated id of the stored message, never invented here.
         setSent({ reference: result.reference });
       }
-    } catch {
+    } catch (error) {
       /*
        * The intake backend (/api/contact/general → API /contact-sales) may
        * still reject or be unreachable. Rather than silently dropping the
@@ -242,19 +198,52 @@ export default function Contact() {
        * message intact.
        */
       if (typeof window !== 'undefined') {
-        window.location.href = buildContactMailto(payload, copy.mailto);
+        window.location.href = buildContactMailto(payload);
       }
 
       toast({
-        title: copy.toasts.title,
-        description: copy.toasts.fallback,
+        title: 'Opening your email client',
+        description:
+          error instanceof Error
+            ? `${error.message} We've prepared your message for hello@e-code.ai instead.`
+            : "We couldn't reach the server, so we've prepared your message for hello@e-code.ai instead.",
       });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const channels = copy.channels.items.map((channel) => ({ ...channel, ...CHANNEL_MEDIA[channel.id] }));
+  const channels: {
+    icon: ComponentType<{ className?: string }>;
+    title: string;
+    description: string;
+    email: string;
+  }[] = [
+    {
+      icon: BadgeDollarSign,
+      title: 'Sales',
+      description: 'Talk to our team about plans, pricing, and enterprise rollouts.',
+      email: 'sales@e-code.ai',
+    },
+    {
+      icon: Headset,
+      title: 'Support',
+      description: 'Get help with your projects, workspaces, and account.',
+      email: 'support@e-code.ai',
+    },
+    {
+      icon: Newspaper,
+      title: 'Press',
+      description: 'Media inquiries, brand assets, and company information.',
+      email: 'press@e-code.ai',
+    },
+    {
+      icon: ShieldCheck,
+      title: 'Security',
+      description: 'Report a vulnerability or ask about our security practices.',
+      email: 'security@e-code.ai',
+    },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col" data-testid="page-contact">
@@ -272,11 +261,14 @@ export default function Contact() {
                 <Mail className="h-7 w-7" />
               </span>
               <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-contact">
-                {copy.hero.title}
+                Get in Touch
               </h1>
-              <p className="mkt-lead text-muted-foreground mb-8">{copy.hero.description}</p>
+              <p className="mkt-lead text-muted-foreground mb-8">
+                Whether you have a question about features, pricing, security, or anything else, our team is ready to
+                help.
+              </p>
               <Badge variant="secondary" className="text-[15px] px-4 py-2">
-                {copy.hero.responseTime}
+                We typically reply within one business day
               </Badge>
             </div>
           </div>
@@ -285,13 +277,13 @@ export default function Contact() {
         {/* Contact Channels */}
         <section className="py-responsive">
           <div className="container-responsive">
-            <h2 className="mkt-h2 font-bold text-center mb-12">{copy.channels.title}</h2>
+            <h2 className="mkt-h2 font-bold text-center mb-12">How Can We Help?</h2>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {channels.map((channel) => {
                 const Icon = channel.icon;
                 return (
-                  <Card key={channel.id}>
+                  <Card key={channel.title}>
                     <CardContent className="pt-6 text-center">
                       <span
                         className="inline-flex h-12 w-12 items-center justify-center rounded-xl mb-4 text-white shadow-sm"
@@ -302,11 +294,11 @@ export default function Contact() {
                       <h3 className="mkt-h3 font-semibold mb-2">{channel.title}</h3>
                       <p className="mkt-body text-muted-foreground mb-4">{channel.description}</p>
                       <a
-                        href={`mailto:${channel.address}`}
+                        href={`mailto:${channel.email}`}
                         className="mkt-small font-medium text-[var(--ecode-accent)] hover:underline break-all"
-                        data-testid={`link-contact-${channel.id}`}
+                        data-testid={`link-contact-${channel.title.toLowerCase()}`}
                       >
-                        {channel.address}
+                        {channel.email}
                       </a>
                     </CardContent>
                   </Card>
@@ -320,23 +312,27 @@ export default function Contact() {
         <section className="py-responsive bg-muted">
           <div className="container-responsive">
             <div className="max-w-2xl mx-auto">
-              <h2 className="mkt-h2 font-bold text-center mb-4">{copy.formSection.title}</h2>
-              <p className="mkt-body text-muted-foreground text-center mb-12">{copy.formSection.description}</p>
+              <h2 className="mkt-h2 font-bold text-center mb-4">Send Us a Message</h2>
+              <p className="mkt-body text-muted-foreground text-center mb-12">
+                Fill out the form below and the right team will get back to you.
+              </p>
 
               <Card>
                 {sent ? (
                   <CardContent className="pt-6">
                     <div className="text-center space-y-4 py-8" role="status" data-testid="contact-success">
                       <CheckCircle className="h-12 w-12 mx-auto text-primary" />
-                      <h3 className="mkt-h3 font-semibold">{copy.success.title}</h3>
-                      <p className="mkt-body text-muted-foreground">{copy.success.description}</p>
+                      <h3 className="mkt-h3 font-semibold">Message received</h3>
+                      <p className="mkt-body text-muted-foreground">
+                        Thanks for reaching out — the right team will get back within 1 business day.
+                      </p>
                       {sent.reference ? (
                         <p className="mkt-body">
-                          {copy.success.referencePrefix}{' '}
+                          Your reference number is{' '}
                           <span className="font-mono font-semibold" data-testid="contact-reference">
                             {sent.reference}
                           </span>{' '}
-                          {copy.success.referenceSuffix}
+                          — quote it in any follow-up.
                         </p>
                       ) : null}
                     </div>
@@ -344,8 +340,8 @@ export default function Contact() {
                 ) : (
                   <>
                     <CardHeader>
-                      <CardTitle>{copy.form.title}</CardTitle>
-                      <CardDescription>{copy.form.description}</CardDescription>
+                      <CardTitle>Contact Form</CardTitle>
+                      <CardDescription>Tell us a little about what you need.</CardDescription>
                     </CardHeader>
                     <CardContent>
                       <form className="space-y-6" data-testid="form-contact" onSubmit={handleSubmit} noValidate>
@@ -357,14 +353,14 @@ export default function Contact() {
                         <div className="grid sm:grid-cols-2 gap-6">
                           <div className="space-y-2">
                             <label htmlFor="contact-name" className="mkt-small font-medium">
-                              {copy.form.name}
+                              Name
                             </label>
                             <input
                               id="contact-name"
                               name="name"
                               type="text"
                               autoComplete="name"
-                              placeholder={copy.form.namePlaceholder}
+                              placeholder="Ada Lovelace"
                               onBlur={(event) => handleBlur('name', event.currentTarget.value)}
                               className="flex h-10 w-full rounded-md border border-[var(--ecode-border)] bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2"
                               data-testid="input-contact-name"
@@ -374,14 +370,14 @@ export default function Contact() {
                           </div>
                           <div className="space-y-2">
                             <label htmlFor="contact-email" className="mkt-small font-medium">
-                              {copy.form.email}
+                              Email
                             </label>
                             <input
                               id="contact-email"
                               name="email"
                               type="email"
                               autoComplete="email"
-                              placeholder={copy.form.emailPlaceholder}
+                              placeholder="you@example.com"
                               onBlur={(event) => handleBlur('email', event.currentTarget.value)}
                               className="flex h-10 w-full rounded-md border border-[var(--ecode-border)] bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2"
                               data-testid="input-contact-email"
@@ -393,7 +389,7 @@ export default function Contact() {
 
                         <div className="space-y-2">
                           <label htmlFor="contact-topic" className="mkt-small font-medium">
-                            {copy.form.topic}
+                            Topic
                           </label>
                           <select
                             id="contact-topic"
@@ -404,7 +400,7 @@ export default function Contact() {
                           >
                             {CONTACT_TOPICS.map((topic) => (
                               <option key={topic} value={topic}>
-                                {copy.form.topicLabels[topic]}
+                                {topic}
                               </option>
                             ))}
                           </select>
@@ -412,13 +408,13 @@ export default function Contact() {
 
                         <div className="space-y-2">
                           <label htmlFor="contact-message" className="mkt-small font-medium">
-                            {copy.form.message}
+                            Message
                           </label>
                           <textarea
                             id="contact-message"
                             name="message"
                             rows={6}
-                            placeholder={copy.form.messagePlaceholder}
+                            placeholder="How can we help you?"
                             onBlur={(event) => handleBlur('message', event.currentTarget.value)}
                             className="flex min-h-[120px] w-full rounded-md border border-[var(--ecode-border)] bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2"
                             data-testid="textarea-contact-message"
@@ -445,11 +441,11 @@ export default function Contact() {
                           data-testid="button-contact-submit"
                         >
                           {isSubmitting ? (
-                            <>{copy.form.submitting}</>
+                            <>Sending...</>
                           ) : (
                             <>
                               <Send className="h-4 w-4" />
-                              {copy.form.submit}
+                              Send Message
                             </>
                           )}
                         </button>
@@ -470,21 +466,24 @@ export default function Contact() {
                 <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl mb-4 text-[var(--ecode-accent)] bg-[var(--bolt-elements-background-depth-2,rgba(255,255,255,0.04))] ring-1 ring-[var(--ecode-border)]">
                   <Globe className="h-6 w-6" />
                 </span>
-                <h2 className="mkt-h2 font-bold mb-4">{copy.remote.title}</h2>
+                <h2 className="mkt-h2 font-bold mb-4">Remote-first, built in the open</h2>
                 <p className="mkt-body text-muted-foreground mb-4">
-                  {copy.remote.firstBeforeEmail}{' '}
+                  E-Code is a remote-first company with team members around the world. There is no front desk to visit,
+                  but there is always someone online. For partnership or general inquiries, reach out to{' '}
                   <a href="mailto:hello@e-code.ai" className="font-medium text-[var(--ecode-accent)] hover:underline">
-                    {GENERAL_CONTACT_EMAIL}
+                    hello@e-code.ai
                   </a>{' '}
-                  {copy.remote.firstAfterEmail}
+                  and we will point you to the right person.
                 </p>
-                <p className="mkt-body text-muted-foreground">{copy.remote.second}</p>
+                <p className="mkt-body text-muted-foreground">
+                  Prefer to just start building? Spin up a project in your browser and talk to the AI agent directly.
+                </p>
               </div>
 
               <figure className="rounded-xl overflow-hidden ring-1 ring-[var(--ecode-border)] shadow-lg bg-[var(--bolt-elements-background-depth-2,rgba(255,255,255,0.04))]">
                 <img
                   src="/ecode-static/assets/product/dashboard.png"
-                  alt={copy.remote.imageAlt}
+                  alt="The E-Code dashboard where you create projects, open workspaces and manage your account"
                   width={1440}
                   height={900}
                   loading="lazy"
@@ -506,15 +505,18 @@ export default function Contact() {
               <span className="inline-flex h-14 w-14 items-center justify-center rounded-xl mb-5 bg-white/15 backdrop-blur-sm">
                 <Rocket className="h-7 w-7" />
               </span>
-              <h2 className="mkt-h2 font-bold mb-3">{copy.cta.title}</h2>
-              <p className="mkt-body text-white/90 max-w-xl mx-auto mb-8">{copy.cta.description}</p>
+              <h2 className="mkt-h2 font-bold mb-3">Start building with E-Code today</h2>
+              <p className="mkt-body text-white/90 max-w-xl mx-auto mb-8">
+                Describe what you want to build and the AI agent writes, runs, and deploys it — no setup required. No
+                credit card to get started.
+              </p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
                   href="/signup"
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold text-[var(--ecode-accent)] bg-white min-h-[44px] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ecode-accent)]"
                   data-testid="link-contact-cta-signup"
                 >
-                  {copy.cta.primary}
+                  Get started free
                   <ArrowRight className="h-4 w-4" />
                 </a>
                 <a
@@ -522,7 +524,7 @@ export default function Contact() {
                   className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold text-white ring-1 ring-inset ring-white/60 min-h-[44px] transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                   data-testid="link-contact-cta-dashboard"
                 >
-                  {copy.cta.secondary}
+                  Open dashboard
                 </a>
               </div>
             </div>

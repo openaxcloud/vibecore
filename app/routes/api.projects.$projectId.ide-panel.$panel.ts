@@ -13,14 +13,6 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import {
-  apiRuntimeRoutesEn,
-  formatApiRuntimeRoutesCopy,
-  getApiRuntimeRoutesCopy,
-  type ApiRuntimeRoutesCopy,
-} from '~/lib/i18n/catalogs/api-runtime-routes';
-import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
-import { reconcileDebugSessions } from '~/lib/ide/debug-session-status';
 import { isSecurityScheduleDue, vulnerabilitiesFromSecretScan } from '~/lib/ide-panel-security';
 import {
   computeNextRunFromCron,
@@ -96,22 +88,10 @@ function panelEnvelope<T>(panel: string, project: unknown, data: T): IdePanelEnv
   };
 }
 
-function panelEnvelopeError(
-  panel: string,
-  project: unknown,
-  error: unknown,
-  language?: string | null,
-): IdePanelEnvelope<null> {
-  const copy = getApiRuntimeRoutesCopy(language);
+function panelEnvelopeError(panel: string, project: unknown, error: unknown): IdePanelEnvelope<null> {
+  const message = error instanceof Error ? error.message : 'Failed to load panel data';
   const status = (error as { status?: number } | undefined)?.status;
 
-  /*
-   * BUG-QA-PANEL-429-MASKED-001 : 429 n'avait pas de branche et retombait dans
-   * le fourre-tout `PANEL_REQUEST_FAILED`, donc « les données du panneau n'ont
-   * pas pu être chargées » — alors que la cause réelle est un QUOTA atteint, que
-   * l'utilisateur peut corriger. La ligne `retryable` juste en dessous
-   * reconnaissait pourtant déjà 429.
-   */
   const code =
     status === 401
       ? 'PANEL_AUTH'
@@ -119,28 +99,11 @@ function panelEnvelopeError(
         ? 'PANEL_FORBIDDEN'
         : status === 404
           ? 'PANEL_NOT_FOUND'
-          : status === 429
-            ? 'PANEL_QUOTA_EXCEEDED'
-            : status && status >= 500
-              ? 'PANEL_BACKEND_UNAVAILABLE'
-              : 'PANEL_REQUEST_FAILED';
+          : status && status >= 500
+            ? 'PANEL_BACKEND_UNAVAILABLE'
+            : 'PANEL_REQUEST_FAILED';
 
   const retryable = !status || status >= 500 || status === 408 || status === 429;
-
-  const message =
-    code === 'PANEL_AUTH'
-      ? copy['apiRuntime.panel.authenticationRequired']
-      : code === 'PANEL_FORBIDDEN'
-        ? copy['apiRuntime.panel.forbidden']
-        : code === 'PANEL_NOT_FOUND'
-          ? copy['apiRuntime.panel.notFound']
-          : code === 'PANEL_QUOTA_EXCEEDED'
-            ? copy['apiRuntime.panel.quotaExceeded']
-            : code === 'PANEL_BACKEND_UNAVAILABLE'
-              ? copy['apiRuntime.panel.backendUnavailable']
-              : copy['apiRuntime.panel.loadFailed'];
-
-  console.error('IDE panel request failed:', { panel, status, error });
 
   return {
     panel,
@@ -151,10 +114,8 @@ function panelEnvelopeError(
   };
 }
 
-function panelErrorMessage(error: unknown, language?: string | null) {
-  console.error('IDE runtime request failed:', error);
-
-  return getApiRuntimeRoutesCopy(language)['apiRuntime.panel.runtimeFailed'];
+function panelErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : 'Runtime request failed';
 }
 
 export function scopeDeploymentsForWorkspace(
@@ -223,23 +184,16 @@ async function resolvePanelWorkspace(
   return { workspaceList, primaryWorkspaceId, activeWorkspaceId, selectedWorkspaceId };
 }
 
-async function loadOverviewPanelEnvelope(
-  request: Request,
-  projectId: string,
-  project: unknown,
-  language?: string | null,
-) {
+async function loadOverviewPanelEnvelope(request: Request, projectId: string, project: unknown) {
   try {
     const [dashboard, packages, collaborators, gitGraph, envVars] = await Promise.all([
-      apiRequest(request, `/projects/${projectId}/dashboard`).catch((error) => ({
-        error: panelErrorMessage(error, language),
-      })),
+      apiRequest(request, `/projects/${projectId}/dashboard`).catch((error) => ({ error: panelErrorMessage(error) })),
       apiRequest(request, `/projects/${projectId}/packages`).catch(() => null),
       apiRequest(request, `/projects/${projectId}/collaboration`).catch(() => ({ collaborators: [] })),
       apiRequest(request, `/projects/${projectId}/git/graph`).catch(() => ({ commits: [] })),
       apiRequest(request, `/projects/${projectId}/env-vars`).catch((error) => ({
         envVars: [],
-        error: panelErrorMessage(error, language),
+        error: panelErrorMessage(error),
       })),
     ]);
 
@@ -259,21 +213,20 @@ async function loadOverviewPanelEnvelope(
       presence: collaborationData?.presence ?? [],
       overview: buildProjectOverviewInsights({
         project: project as any,
-        language,
         dashboard: dashboardData as any,
         packages: packageData as any,
         gitGraph: gitGraphData as any,
         collaboration: collaborationData as any,
       }),
-      workflowsState: readWorkflowsState(envVars, language),
-      terminalState: readTerminalState(envVars, language),
+      workflowsState: readWorkflowsState(envVars),
+      terminalState: readTerminalState(envVars),
       packagesState: readPackagesState(envVars),
     });
   } catch (error) {
     return panelEnvelope('overview', project, {
-      overview: buildProjectOverviewInsights({ project: project as any, language }),
-      loadError: panelErrorMessage(error, language),
-      workflowsState: defaultWorkflowsState(language),
+      overview: buildProjectOverviewInsights({ project: project as any }),
+      loadError: panelErrorMessage(error),
+      workflowsState: defaultWorkflowsState(),
       terminalState: defaultTerminalState(),
       packagesState: defaultPackagesState(),
     });
@@ -284,7 +237,7 @@ function encodeServerSentEvent(eventName: string, data: unknown) {
   return `event: ${eventName}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 
-function streamOverviewPanel(request: Request, projectId: string, project: unknown, language?: string | null) {
+function streamOverviewPanel(request: Request, projectId: string, project: unknown) {
   const encoder = new TextEncoder();
 
   let interval: ReturnType<typeof setInterval> | undefined;
@@ -316,7 +269,7 @@ function streamOverviewPanel(request: Request, projectId: string, project: unkno
         sending = true;
 
         try {
-          const envelope = await loadOverviewPanelEnvelope(request, projectId, project, language);
+          const envelope = await loadOverviewPanelEnvelope(request, projectId, project);
 
           if (!closed) {
             controller.enqueue(encoder.encode(encodeServerSentEvent('overview', envelope)));
@@ -324,7 +277,7 @@ function streamOverviewPanel(request: Request, projectId: string, project: unkno
         } catch (error) {
           if (!closed) {
             controller.enqueue(
-              encoder.encode(encodeServerSentEvent('error', panelEnvelopeError('overview', project, error, language))),
+              encoder.encode(encodeServerSentEvent('error', panelEnvelopeError('overview', project, error))),
             );
           }
         } finally {
@@ -379,14 +332,12 @@ const panelEndpoints: Record<string, (projectId: string) => string> = {
   settings: (projectId) => `/projects/${projectId}/settings`,
 };
 
-async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
-  const language = resolveRequestLocale(request).language;
-  const copy = getApiRuntimeRoutesCopy(language);
+export async function loader({ request, params }: EnterpriseLoaderArgs) {
   const projectId = params.projectId;
   const panel = params.panel;
 
   if (!projectId || !panel) {
-    throw json({ error: copy['apiRuntime.panel.panelNotFound'], code: 'PANEL_NOT_FOUND' }, { status: 404 });
+    throw json({ error: 'Project panel not found' }, { status: 404 });
   }
 
   const project = await apiRequest<{ project: unknown }>(request, `/projects/${projectId}`);
@@ -396,11 +347,11 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
     panel === 'overview' &&
     (url.searchParams.get('stream') === '1' || request.headers.get('accept')?.includes('text/event-stream'))
   ) {
-    return streamOverviewPanel(request, projectId, project.project, language);
+    return streamOverviewPanel(request, projectId, project.project);
   }
 
   if (panel === 'overview') {
-    return json(await loadOverviewPanelEnvelope(request, projectId, project.project, language));
+    return json(await loadOverviewPanelEnvelope(request, projectId, project.project));
   }
 
   if (panel === 'domains') {
@@ -408,7 +359,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
       const organizationId = (project.project as any)?.organizationId;
 
       if (!organizationId) {
-        throw Object.assign(new Error(), { code: 'PROJECT_ORGANIZATION_MISSING' });
+        throw new Error('Project organization is missing');
       }
 
       const [domains, deployments] = await Promise.all([
@@ -423,7 +374,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -487,7 +438,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
       const [status, branches, graph, stashes] = await Promise.all([
         apiRequest(request, withWorkspace(`/projects/${projectId}/git/status`)).catch((error) => ({
           status: { branch: 'main', changedFiles: [], fileStatuses: [], conflicts: [], ahead: 0, behind: 0 },
-          gitLoadError: panelErrorMessage(error, language),
+          gitLoadError: panelErrorMessage(error),
         })),
         apiRequest(request, withWorkspace(`/projects/${projectId}/git/branches`)).catch(() => ({
           branches: [],
@@ -545,7 +496,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -592,7 +543,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -625,7 +576,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -644,7 +595,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         ? await apiRequest(
             request,
             `/projects/${projectId}/databases/schema?key=${encodeURIComponent(schemaKey)}`,
-          ).catch((error) => ({ schemaError: panelErrorMessage(error, language) }))
+          ).catch((error) => ({ schemaError: panelErrorMessage(error) }))
         : {};
 
       return json(
@@ -658,7 +609,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -702,29 +653,19 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
 
       const [runtimeStatus, runtimeProcesses, runtimeLogs] = await Promise.all([
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch((error) => ({
-          error: panelErrorMessage(error, language),
+          error: panelErrorMessage(error),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/processes`).catch((error) => ({
-          error: panelErrorMessage(error, language),
+          error: panelErrorMessage(error),
           processes: [],
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/logs/snapshot`).catch(
           (error) => ({
-            error: panelErrorMessage(error, language),
+            error: panelErrorMessage(error),
             logs: [],
           }),
         ),
       ]);
-
-      const debuggerState = readDebuggerState(envVars, language);
-
-      /*
-       * Report the real fate of each launch: a session is only "running" while
-       * its pid is still in the workspace's live process list. Read-side only —
-       * the stored blob keeps whatever start/stop wrote, and an unreadable
-       * process list downgrades nothing.
-       */
-      debuggerState.sessions = reconcileDebugSessions(debuggerState.sessions ?? [], runtimeProcesses);
 
       return json(
         panelEnvelope(panel, project.project, {
@@ -735,11 +676,11 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           runtimeStatus,
           runtimeProcesses,
           runtimeLogs,
-          debuggerState,
+          debuggerState: readDebuggerState(envVars),
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -754,7 +695,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         data: null,
         error: {
           code: 'PANEL_REVEAL_REQUIRES_CONFIRMATION',
-          message: copy['apiRuntime.panel.secretConfirmation'],
+          message: 'Secret reveal requires explicit user confirmation. Add &confirm=1 once acknowledged.',
           retryable: true,
         },
       });
@@ -770,7 +711,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
 
       return json(panelEnvelope(panel, project.project, data));
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -796,7 +737,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -824,7 +765,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           }),
         );
       } catch (error) {
-        return json(panelEnvelopeError(panel, project.project, error, language));
+        return json(panelEnvelopeError(panel, project.project, error));
       }
     }
 
@@ -848,12 +789,12 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           ? await Promise.all([
               apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch(
                 (error) => ({
-                  error: panelErrorMessage(error, language),
+                  error: panelErrorMessage(error),
                 }),
               ),
               apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/ports`).catch(
                 (error) => ({
-                  error: panelErrorMessage(error, language),
+                  error: panelErrorMessage(error),
                   ports: [],
                 }),
               ),
@@ -880,7 +821,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -903,7 +844,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -920,7 +861,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
       ]);
 
       const packageData = packages as Record<string, any> | null;
-      const workflowsState = readWorkflowsState(envVars, language);
+      const workflowsState = readWorkflowsState(envVars);
       const scheduleNow = new Date();
 
       /*
@@ -1020,7 +961,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -1037,7 +978,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
        * commands in the workspace and mutate project env-vars, so they are triggered
        * from the action (POST) path, never from a plain panel read/navigation.
        */
-      const securityState = readSecurityState(envVars, language);
+      const securityState = readSecurityState(envVars);
 
       return json(
         panelEnvelope(panel, project.project, {
@@ -1049,7 +990,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -1057,21 +998,12 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
     try {
       const [settings, account, sessions, envVars, secrets, aiUsage, organizations] = await Promise.all([
         apiRequest(request, `/projects/${projectId}/settings`),
-        apiRequest(request, '/auth/me').catch((error) => ({ error: panelErrorMessage(error, language) })),
-        apiRequest(request, '/auth/sessions').catch((error) => ({
-          error: panelErrorMessage(error, language),
-          sessions: [],
-        })),
+        apiRequest(request, '/auth/me').catch((error) => ({ error: panelErrorMessage(error) })),
+        apiRequest(request, '/auth/sessions').catch((error) => ({ error: panelErrorMessage(error), sessions: [] })),
         apiRequest(request, `/projects/${projectId}/env-vars`),
         apiRequest(request, `/projects/${projectId}/secrets`),
-        apiRequest(request, '/ai/usage').catch((error) => ({
-          error: panelErrorMessage(error, language),
-          usage: [],
-        })),
-        apiRequest(request, '/orgs').catch((error) => ({
-          error: panelErrorMessage(error, language),
-          organizations: [],
-        })),
+        apiRequest(request, '/ai/usage').catch((error) => ({ error: panelErrorMessage(error), usage: [] })),
+        apiRequest(request, '/orgs').catch((error) => ({ error: panelErrorMessage(error), organizations: [] })),
       ]);
 
       const orgs = (organizations as any)?.organizations ?? [];
@@ -1080,9 +1012,9 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
 
       const billing = billingOrg?.id
         ? await apiRequest(request, `/orgs/${billingOrg.id}/billing`).catch((error) => ({
-            error: panelErrorMessage(error, language),
+            error: panelErrorMessage(error),
           }))
-        : { error: copy['apiRuntime.panel.billingOrganizationMissing'] };
+        : { error: 'No organization available for billing.' };
 
       return json(
         panelEnvelope(panel, project.project, {
@@ -1098,7 +1030,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -1118,16 +1050,16 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
 
       const [runtimeStatus, runtimeFiles, runtimeProcesses, runtimePorts] = await Promise.all([
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch((error) => ({
-          error: panelErrorMessage(error, language),
+          error: panelErrorMessage(error),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/files`).catch((error) => ({
-          error: panelErrorMessage(error, language),
+          error: panelErrorMessage(error),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/processes`).catch((error) => ({
-          error: panelErrorMessage(error, language),
+          error: panelErrorMessage(error),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/ports`).catch((error) => ({
-          error: panelErrorMessage(error, language),
+          error: panelErrorMessage(error),
         })),
       ]);
 
@@ -1142,7 +1074,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
           runtimeFiles,
           runtimeProcesses,
           runtimePorts,
-          terminalState: readTerminalState(envVars, language),
+          terminalState: readTerminalState(envVars),
           workspaces: workspaceCtx.workspaceList,
           primaryWorkspaceId: workspaceCtx.primaryWorkspaceId,
           activeWorkspaceId: workspaceCtx.activeWorkspaceId,
@@ -1150,7 +1082,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -1169,17 +1101,17 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
 
       const [runtimeStatus, runtimeProcesses, runtimePorts, runtimeLogs] = await Promise.all([
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`).catch((error) => ({
-          error: panelErrorMessage(error, language),
+          error: panelErrorMessage(error),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/processes`).catch((error) => ({
-          error: panelErrorMessage(error, language),
+          error: panelErrorMessage(error),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/ports`).catch((error) => ({
-          error: panelErrorMessage(error, language),
+          error: panelErrorMessage(error),
         })),
         apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/logs/snapshot`).catch(
           (error) => ({
-            error: panelErrorMessage(error, language),
+            error: panelErrorMessage(error),
             logs: [],
           }),
         ),
@@ -1202,7 +1134,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -1239,7 +1171,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
@@ -1276,14 +1208,14 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
         }),
       );
     } catch (error) {
-      return json(panelEnvelopeError(panel, project.project, error, language));
+      return json(panelEnvelopeError(panel, project.project, error));
     }
   }
 
   const endpoint = panelEndpoints[panel];
 
   if (!endpoint) {
-    throw json({ error: copy['apiRuntime.panel.unsupportedPanel'], code: 'UNSUPPORTED_PANEL' }, { status: 404 });
+    throw json({ error: 'Unsupported IDE panel' }, { status: 404 });
   }
 
   try {
@@ -1291,7 +1223,7 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
 
     return json(panelEnvelope(panel, project.project, data));
   } catch (error) {
-    return json(panelEnvelopeError(panel, project.project, error, language));
+    return json(panelEnvelopeError(panel, project.project, error));
   }
 }
 
@@ -1316,14 +1248,12 @@ async function objectStorageResultOrDisabled(error: unknown): Promise<ReturnType
   throw error;
 }
 
-async function actionHandler({ request, params }: EnterpriseActionArgs) {
-  const language = resolveRequestLocale(request).language;
-  const copy = getApiRuntimeRoutesCopy(language);
+export async function action({ request, params }: EnterpriseActionArgs) {
   const projectId = params.projectId;
   const panel = params.panel;
 
   if (!projectId || !panel) {
-    throw json({ error: copy['apiRuntime.panel.panelNotFound'], code: 'PANEL_NOT_FOUND' }, { status: 404 });
+    throw json({ error: 'Project panel not found' }, { status: 404 });
   }
 
   /*
@@ -1343,7 +1273,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       body = formObject(await request.formData()) as Record<string, string>;
     }
   } catch {
-    throw json({ error: copy['apiRuntime.panel.invalidBody'], code: 'INVALID_REQUEST_BODY' }, { status: 400 });
+    throw json({ error: 'Invalid request body — expected form-encoded or application/json.' }, { status: 400 });
   }
 
   const intent = body.intent ?? 'default';
@@ -1354,7 +1284,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const snapshotId = (body.snapshotId ?? '').trim();
 
       if (!snapshotId) {
-        throw json({ error: copy['apiRuntime.panel.snapshotRequired'], code: 'SNAPSHOT_REQUIRED' }, { status: 400 });
+        throw json({ error: 'snapshotId is required for restore' }, { status: 400 });
       }
 
       await apiRequest(request, `/projects/${projectId}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
@@ -1386,21 +1316,13 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
               .json()
               .catch(() => ({}))) as { code?: string; error?: string };
 
-            databaseOutcome = classifyDatabaseRestoreError(
-              {
-                status: error.status,
-                code: payload.code,
-                message: payload.error ?? 'DATABASE_RESTORE_FAILED',
-              },
-              language,
-            );
+            databaseOutcome = classifyDatabaseRestoreError({
+              status: error.status,
+              code: payload.code,
+              message: payload.error ?? 'Database restore failed.',
+            });
           } else {
-            console.error('Database restore failed:', error);
-            databaseOutcome = {
-              kind: 'failed',
-              status: 502,
-              message: copy['apiRuntime.snapshot.failed'],
-            };
+            databaseOutcome = { kind: 'failed', status: 502, message: 'Database restore failed.' };
           }
         }
       }
@@ -1409,11 +1331,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     } else {
       await apiRequest(request, `/projects/${projectId}/snapshots`, {
         method: 'POST',
-        body: JSON.stringify({
-          label: body.label || copy['apiRuntime.panel.manualCheckpoint'],
-          kind: 'manual',
-          manifest: {},
-        }),
+        body: JSON.stringify({ label: body.label || 'Manual checkpoint', kind: 'manual', manifest: {} }),
       });
     }
   } else if (panel === 'deployments') {
@@ -1422,13 +1340,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const deploymentId = (body.deploymentId ?? '').trim();
 
       if (!deploymentId) {
-        throw json(
-          {
-            error: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.deploymentRequired'], { action: intent }),
-            code: 'DEPLOYMENT_REQUIRED',
-          },
-          { status: 400 },
-        );
+        throw json({ error: `deploymentId is required for ${intent}` }, { status: 400 });
       }
 
       await apiRequest(request, `/projects/${projectId}/deployments/${encodeURIComponent(deploymentId)}/${intent}`, {
@@ -1490,25 +1402,22 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
     const dashboard = await apiRequest<any>(request, `/projects/${projectId}/dashboard`).catch(() => null);
     const workspaceId = dashboard?.workspace?.id ?? projectId;
-    const state = readDebuggerState(envVars, language);
+    const state = readDebuggerState(envVars);
     const now = new Date().toISOString();
 
     if (intent === 'save-config') {
-      const config = normalizeLaunchConfig(
-        {
-          id: body.configId || randomUUID(),
-          name: body.name,
-          type: body.type,
-          request: body.request,
-          command: body.command,
-          program: body.program,
-          cwd: body.cwd,
-          args: parseDebugArgs(body.args ?? ''),
-          env: parseEnvVars(body.env ?? ''),
-          stopOnEntry: body.stopOnEntry === 'true',
-        },
-        language,
-      );
+      const config = normalizeLaunchConfig({
+        id: body.configId || randomUUID(),
+        name: body.name,
+        type: body.type,
+        request: body.request,
+        command: body.command,
+        program: body.program,
+        cwd: body.cwd,
+        args: parseDebugArgs(body.args ?? ''),
+        env: parseEnvVars(body.env ?? ''),
+        stopOnEntry: body.stopOnEntry === 'true',
+      });
       state.launchConfigs = [
         config,
         ...state.launchConfigs.filter((candidate: any) => candidate.id !== config.id),
@@ -1550,14 +1459,11 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         state.launchConfigs.find((candidate: any) => candidate.id === body.configId) ?? state.launchConfigs[0];
 
       if (!config) {
-        throw json(
-          { error: copy['apiRuntime.panel.debugConfigurationRequired'], code: 'DEBUG_CONFIGURATION_REQUIRED' },
-          { status: 400 },
-        );
+        throw json({ error: 'Create a launch configuration before starting the debugger.' }, { status: 400 });
       }
 
       const sessionId = randomUUID();
-      const command = buildDebugLaunchCommand(config, language);
+      const command = buildDebugLaunchCommand(config);
       const wrapper = `mkdir -p .vibecore/debug && nohup sh -lc ${shellQuote(command)} > .vibecore/debug/${sessionId}.log 2>&1 & echo $!`;
 
       const result = await apiRequest<{ output?: string; exitCode?: number }>(
@@ -1612,10 +1518,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
       method: 'PUT',
-      body: JSON.stringify({
-        key: DEBUGGER_STATE_ENV_KEY,
-        value: JSON.stringify(normalizeDebuggerState(state, language)),
-      }),
+      body: JSON.stringify({ key: DEBUGGER_STATE_ENV_KEY, value: JSON.stringify(normalizeDebuggerState(state)) }),
     });
   } else if (panel === 'collaborators') {
     if (intent === 'comment') {
@@ -1682,7 +1585,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
     if (!organizationId) {
       return json(
-        { error: copy['apiRuntime.panel.domainsOrganizationMissing'], code: 'PROJECT_ORGANIZATION_REQUIRED' },
+        { error: 'This project is not linked to an organization, so domains cannot be managed.' },
         {
           status: 400,
         },
@@ -1814,10 +1717,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const secretKey = provider ? SETTINGS_BYOK_SECRET_KEY_MAP[provider] : undefined;
 
       if (!secretKey) {
-        throw json(
-          { error: copy['apiRuntime.panel.unsupportedAiProvider'], code: 'UNSUPPORTED_AI_PROVIDER' },
-          { status: 400 },
-        );
+        throw json({ error: 'Unsupported AI provider' }, { status: 400 });
       }
 
       await apiRequest(request, `/projects/${projectId}/secrets`, {
@@ -1843,10 +1743,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const secretKey = provider ? SETTINGS_BYOK_SECRET_KEY_MAP[provider] : undefined;
 
       if (!secretKey) {
-        throw json(
-          { error: copy['apiRuntime.panel.unsupportedAiProvider'], code: 'UNSUPPORTED_AI_PROVIDER' },
-          { status: 400 },
-        );
+        throw json({ error: 'Unsupported AI provider' }, { status: 400 });
       }
 
       await apiRequest(request, `/projects/${projectId}/secrets`, {
@@ -1869,11 +1766,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       await apiRequest(request, `/projects/${projectId}/snapshots`, {
         method: 'POST',
         body: JSON.stringify({
-          label:
-            body.label ||
-            formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.databaseBackupName'], {
-              timestamp: new Date().toISOString(),
-            }),
+          label: body.label || `Database backup ${new Date().toISOString()}`,
           kind: 'manual',
           manifest: { scope: 'database', source: 'mobile-ide' },
         }),
@@ -1886,10 +1779,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const snapshotId = (body.snapshotId ?? '').trim();
 
       if (!snapshotId) {
-        throw json(
-          { error: copy['apiRuntime.panel.backupSnapshotRequired'], code: 'BACKUP_SNAPSHOT_REQUIRED' },
-          { status: 400 },
-        );
+        throw json({ error: 'snapshotId is required for restore-backup' }, { status: 400 });
       }
 
       await apiRequest(request, `/projects/${projectId}/snapshots/${encodeURIComponent(snapshotId)}/restore`, {
@@ -2016,7 +1906,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const key = (body.key ?? '').trim();
 
       if (!key) {
-        throw json({ error: copy['apiRuntime.panel.uploadKeyRequired'] }, { status: 400 });
+        throw json({ error: 'key is required for upload-url' }, { status: 400 });
       }
 
       try {
@@ -2032,10 +1922,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const key = (body.key ?? '').trim();
 
       if (!key) {
-        throw json(
-          { error: copy['apiRuntime.panel.downloadKeyRequired'], code: 'OBJECT_KEY_REQUIRED' },
-          { status: 400 },
-        );
+        throw json({ error: 'key is required for download-url' }, { status: 400 });
       }
 
       try {
@@ -2052,7 +1939,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const to = (body.to ?? '').trim();
 
       if (!from || !to) {
-        throw json({ error: copy['apiRuntime.panel.movePathsRequired'], code: 'MOVE_PATHS_REQUIRED' }, { status: 400 });
+        throw json({ error: 'from and to are required for move' }, { status: 400 });
       }
 
       try {
@@ -2068,10 +1955,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const payload = body.prefix ? { prefix: body.prefix } : { key: (body.key ?? '').trim() };
 
       if (!('prefix' in payload ? payload.prefix : payload.key)) {
-        throw json(
-          { error: copy['apiRuntime.panel.deleteKeyRequired'], code: 'OBJECT_KEY_OR_PREFIX_REQUIRED' },
-          { status: 400 },
-        );
+        throw json({ error: 'key or prefix is required for delete-object' }, { status: 400 });
       }
 
       try {
@@ -2104,10 +1988,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const scope = body.scope === 'workspace' ? 'workspace' : 'project';
 
       if (!ownerRepo) {
-        throw json(
-          { error: copy['apiRuntime.panel.repositoryRequired'], code: 'REPOSITORY_REQUIRED' },
-          { status: 400 },
-        );
+        throw json({ error: 'ownerRepo is required' }, { status: 400 });
       }
 
       if (intent === 'install') {
@@ -2159,7 +2040,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     const skillId = (body.skillId ?? '').trim();
 
     if (!skillId) {
-      throw json({ error: copy['apiRuntime.panel.skillRequired'], code: 'SKILL_REQUIRED' }, { status: 400 });
+      throw json({ error: 'skillId is required' }, { status: 400 });
     }
 
     const action = intent === 'disable' ? 'disable' : 'enable';
@@ -2196,9 +2077,8 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
           packageManager,
           packages: packageNames,
           dev: body.devDependency === 'true',
-          name: packageRunName(intent, packageManager, language),
+          name: packageRunName(intent, packageManager),
           startedAt: now,
-          language,
 
           // Same pod audit/outdated target below — see runPackageInstall.workspaceId.
           workspaceId: packages?.workspace?.id ?? body.workspaceId?.trim() ?? undefined,
@@ -2206,13 +2086,9 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       : await runTerminalCommand(
           request,
           workspaceId,
-          packagePanelCommand(
-            { intent, packageManager, packages: packageNames, dev: body.devDependency === 'true' },
-            language,
-          ),
-          packageRunName(intent, packageManager, language),
+          packagePanelCommand({ intent, packageManager, packages: packageNames, dev: body.devDependency === 'true' }),
+          packageRunName(intent, packageManager),
           now,
-          language,
         );
 
     state.runs.unshift({
@@ -2229,6 +2105,33 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       method: 'PUT',
       body: JSON.stringify({ key: PACKAGES_STATE_ENV_KEY, value: JSON.stringify(normalizePackagesState(state)) }),
     });
+
+    /*
+     * Report the run's REAL outcome. This branch used to fall through to the
+     * shared `{ ok: true }` return whatever `run.exitCode` was, so a failed
+     * `npm install` answered HTTP 200 "ok" and the only trace was the run
+     * history in a sidebar below the fold — the panel looked like it had
+     * succeeded while nothing was installed (BUG-IDE-005).
+     */
+    const outcome = describePackagesRunOutcome(run);
+
+    return json(
+      {
+        ok: outcome.ok,
+        ...(outcome.error ? { error: outcome.error } : {}),
+        run: {
+          id: run.id,
+          name: run.name,
+          script: run.script,
+          exitCode: run.exitCode,
+          status: run.status,
+          output: run.output,
+          packages: packageNames,
+          packageManager,
+        },
+      },
+      { status: outcome.status },
+    );
   } else if (panel === 'extensions') {
     /*
      * Extensions are MCP marketplace servers. Each action maps to a real
@@ -2240,7 +2143,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const slug = (body.extension ?? '').trim();
 
       if (!slug) {
-        throw json({ error: copy['apiRuntime.panel.extensionRequired'] }, { status: 400 });
+        throw json({ error: 'extension (catalog slug) is required' }, { status: 400 });
       }
 
       // Derive a valid alias from the slug (alphanumeric/dash/underscore, ≤64).
@@ -2259,7 +2162,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const installId = (body.installId ?? '').trim();
 
       if (!installId) {
-        throw json({ error: copy['apiRuntime.panel.installRequired'] }, { status: 400 });
+        throw json({ error: 'installId is required' }, { status: 400 });
       }
 
       await apiRequest(request, `/mcp/installs/${encodeURIComponent(installId)}`, { method: 'DELETE' });
@@ -2267,7 +2170,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const installId = (body.installId ?? '').trim();
 
       if (!installId) {
-        throw json({ error: copy['apiRuntime.panel.installRequired'] }, { status: 400 });
+        throw json({ error: 'installId is required' }, { status: 400 });
       }
 
       await apiRequest(request, `/mcp/installs/${encodeURIComponent(installId)}`, {
@@ -2275,10 +2178,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         body: JSON.stringify({ enabled: action === 'enable' }),
       });
     } else {
-      throw json(
-        { error: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.unsupportedExtensionAction'], { action }) },
-        { status: 400 },
-      );
+      throw json({ error: `unsupported extensionAction: ${action}` }, { status: 400 });
     }
   } else if (panel === 'integrations') {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
@@ -2290,10 +2190,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const integrationId = body.integrationId;
 
       if (!integrationId) {
-        throw json(
-          { error: copy['apiRuntime.panel.integrationRequired'], code: 'INTEGRATION_REQUIRED' },
-          { status: 400 },
-        );
+        throw json({ error: 'integrationId is required' }, { status: 400 });
       }
 
       state.integrations[integrationId] = {
@@ -2325,10 +2222,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const integrationId = body.integrationId;
 
       if (!integrationId) {
-        throw json(
-          { error: copy['apiRuntime.panel.integrationRequired'], code: 'INTEGRATION_REQUIRED' },
-          { status: 400 },
-        );
+        throw json({ error: 'integrationId is required' }, { status: 400 });
       }
 
       state.integrations[integrationId] = {
@@ -2347,7 +2241,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
       state.webhooks.unshift({
         id,
-        name: body.name || copy['apiRuntime.panel.projectWebhook'],
+        name: body.name || 'Project webhook',
         url: body.url,
         events: events.length ? events : ['all'],
         active: true,
@@ -2392,7 +2286,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
       state.apiKeys.unshift({
         id,
-        name: body.name || copy['apiRuntime.panel.projectApiKey'],
+        name: body.name || 'Project API key',
         prefix,
         permissions: (body.permissions ?? 'read,write')
           .split(',')
@@ -2414,7 +2308,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     } else if (intent === 'create-stream') {
       state.eventStreams.unshift({
         id: randomUUID(),
-        name: body.name || copy['apiRuntime.panel.projectEventStream'],
+        name: body.name || 'Project event stream',
         destination: body.destination || 'AWS Kinesis',
         events: (body.events ?? '*')
           .split(',')
@@ -2436,7 +2330,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
     });
   } else if (panel === 'workflows') {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
-    const state = readWorkflowsState(envVars, language);
+    const state = readWorkflowsState(envVars);
     const now = new Date().toISOString();
     const workflowId = body.workflowId ? Number(body.workflowId) : undefined;
     const taskId = body.taskId ? Number(body.taskId) : undefined;
@@ -2451,7 +2345,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       state.workflows.unshift({
         id,
         projectId,
-        name: body.name || copy['apiRuntime.panel.projectWorkflow'],
+        name: body.name || 'Project workflow',
         executionMode: body.executionMode === 'parallel' ? 'parallel' : 'sequential',
         isRunButton: body.isRunButton === 'true',
         isGenerated: body.isGenerated === 'true',
@@ -2506,16 +2400,10 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const scheduleEnabled = body.scheduleEnabled === 'true';
       const cronRaw = typeof body.cron === 'string' ? body.cron.trim() : '';
       const timezone = typeof body.timezone === 'string' && body.timezone.trim() ? body.timezone.trim() : 'UTC';
-      const validation = cronRaw ? validateCron(cronRaw) : { valid: false };
+      const validation = cronRaw ? validateCron(cronRaw) : { valid: false, error: 'Schedule is empty.' };
 
       if (scheduleEnabled && !validation.valid) {
-        throw json(
-          {
-            error: cronRaw ? copy['apiRuntime.panel.scheduleInvalid'] : copy['apiRuntime.panel.scheduleEmpty'],
-            code: cronRaw ? 'INVALID_CRON_SCHEDULE' : 'EMPTY_CRON_SCHEDULE',
-          },
-          { status: 400 },
-        );
+        throw json({ error: validation.error ?? 'Invalid cron schedule.' }, { status: 400 });
       }
 
       const cron = validation.valid ? validation.normalized! : cronRaw || null;
@@ -2541,7 +2429,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         scheduled = await apiRequest(request, `/projects/${projectId}/scheduled-tasks/${existing.id}`, {
           method: 'PATCH',
           body: JSON.stringify({
-            name: String(workflow?.name ?? copy['apiRuntime.panel.projectWorkflow']),
+            name: String(workflow?.name ?? 'Workflow'),
             cron,
             timezone,
             enabled,
@@ -2554,7 +2442,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
           body: JSON.stringify({
             kind: 'WORKFLOW',
             workflowId,
-            name: String(workflow?.name ?? copy['apiRuntime.panel.projectWorkflow']),
+            name: String(workflow?.name ?? 'Workflow'),
             cron,
             timezone,
             enabled,
@@ -2595,7 +2483,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const taskId = String(body.scheduledTaskId ?? '');
 
       if (!taskId) {
-        throw json({ error: copy['apiRuntime.panel.workflowNotArmed'], code: 'WORKFLOW_NOT_ARMED' }, { status: 400 });
+        throw json({ error: 'This workflow has no armed schedule to run.' }, { status: 400 });
       }
 
       await apiRequest(request, `/projects/${projectId}/scheduled-tasks/${taskId}/run`, { method: 'POST' });
@@ -2711,7 +2599,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const workflow = state.workflows.find((item: any) => item.id === workflowId);
 
       if (!workflow) {
-        throw json({ error: copy['apiRuntime.panel.workflowInvalid'], code: 'INVALID_WORKFLOW' }, { status: 400 });
+        throw json({ error: 'workflowId is invalid' }, { status: 400 });
       }
 
       const run = await runWorkflowTasks(
@@ -2721,7 +2609,6 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         state,
         workflow,
         now,
-        language,
       );
 
       /*
@@ -2756,15 +2643,12 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
       method: 'PUT',
-      body: JSON.stringify({
-        key: WORKFLOWS_STATE_ENV_KEY,
-        value: JSON.stringify(normalizeWorkflowsState(state, language)),
-      }),
+      body: JSON.stringify({ key: WORKFLOWS_STATE_ENV_KEY, value: JSON.stringify(normalizeWorkflowsState(state)) }),
     });
   } else if (panel === 'security') {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
     const dashboard = await apiRequest<any>(request, `/projects/${projectId}/dashboard`).catch(() => null);
-    const state = readSecurityState(envVars, language);
+    const state = readSecurityState(envVars);
     const now = new Date().toISOString();
 
     if (intent === 'settings') {
@@ -2799,7 +2683,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       );
     } else if (intent === 'scan') {
       const workspaceId = dashboard?.workspace?.id ?? projectId;
-      await runSecurityScan(request, projectId, workspaceId, state, now, language);
+      await runSecurityScan(request, projectId, workspaceId, state, now);
     }
 
     /*
@@ -2809,19 +2693,16 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
      */
     if (intent !== 'scan' && isSecurityScheduleDue(state, new Date(now))) {
       const workspaceId = dashboard?.workspace?.id ?? projectId;
-      await runSecurityScan(request, projectId, workspaceId, state, now, language);
+      await runSecurityScan(request, projectId, workspaceId, state, now);
     }
 
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
       method: 'PUT',
-      body: JSON.stringify({
-        key: SECURITY_STATE_ENV_KEY,
-        value: JSON.stringify(normalizeSecurityState(state, language)),
-      }),
+      body: JSON.stringify({ key: SECURITY_STATE_ENV_KEY, value: JSON.stringify(normalizeSecurityState(state)) }),
     });
   } else if (panel === 'terminal') {
     const envVars = await apiRequest(request, `/projects/${projectId}/env-vars`);
-    const state = readTerminalState(envVars, language);
+    const state = readTerminalState(envVars);
     const dashboard = await apiRequest<any>(request, `/projects/${projectId}/dashboard`).catch(() => null);
     const workspaceId = dashboard?.workspace?.id ?? projectId;
     const now = new Date().toISOString();
@@ -2849,15 +2730,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       );
     } else if (intent === 'run-script') {
       const script = body.script ?? '';
-
-      const run = await runTerminalCommand(
-        request,
-        workspaceId,
-        script,
-        body.name || copy['apiRuntime.panel.terminalScript'],
-        now,
-        language,
-      );
+      const run = await runTerminalCommand(request, workspaceId, script, body.name || 'Terminal script', now);
       state.scriptRuns.unshift(run);
       state.scriptRuns = state.scriptRuns.slice(0, 20);
     } else if (intent === 'stop-process') {
@@ -2921,10 +2794,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
       await apiRequest(request, `/projects/${projectId}/env-vars`, {
         method: 'PUT',
-        body: JSON.stringify({
-          key: TERMINAL_STATE_ENV_KEY,
-          value: JSON.stringify(normalizeTerminalState(state, language)),
-        }),
+        body: JSON.stringify({ key: TERMINAL_STATE_ENV_KEY, value: JSON.stringify(normalizeTerminalState(state)) }),
       });
 
       return json({
@@ -2949,10 +2819,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const connection = state.sshConnections.find((item: any) => item.id === body.connectionId);
 
       if (!connection) {
-        throw json(
-          { error: copy['apiRuntime.panel.sshConnectionMissing'], code: 'SSH_CONNECTION_NOT_FOUND' },
-          { status: 400 },
-        );
+        throw json({ error: 'SSH connection not found' }, { status: 400 });
       }
 
       /*
@@ -2968,7 +2835,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
         username: connection.username,
       });
 
-      const run = await runTerminalCommand(request, workspaceId, command, `SSH ${connection.name}`, now, language);
+      const run = await runTerminalCommand(request, workspaceId, command, `SSH ${connection.name}`, now);
       state.scriptRuns.unshift(run);
       state.scriptRuns = state.scriptRuns.slice(0, 20);
       state.sshConnections = state.sshConnections.map((item: any) =>
@@ -2991,20 +2858,20 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       const connection = state.sshConnections.find((item: any) => item.id === body.connectionId);
 
       if (!connection) {
-        throw json(
-          { error: copy['apiRuntime.panel.sshConnectionMissing'], code: 'SSH_CONNECTION_NOT_FOUND' },
-          { status: 400 },
-        );
+        throw json({ error: 'SSH connection not found' }, { status: 400 });
       }
 
       const repoUrl = (body.repoUrl ?? '').trim();
 
       if (!isSshGitUrl(repoUrl)) {
-        throw json({ error: copy['apiRuntime.panel.sshUrlInvalid'], code: 'INVALID_SSH_GIT_URL' }, { status: 400 });
+        throw json(
+          { error: 'Enter an SSH git URL such as git@github.com:owner/repo.git or ssh://host/path.git' },
+          { status: 400 },
+        );
       }
 
       const command = buildGitSshLsRemoteScript({ keyEnvVar: terminalSshSecretKey(connection.id), repoUrl });
-      const run = await runTerminalCommand(request, workspaceId, command, `git ls-remote ${repoUrl}`, now, language);
+      const run = await runTerminalCommand(request, workspaceId, command, `git ls-remote ${repoUrl}`, now);
       state.scriptRuns.unshift(run);
       state.scriptRuns = state.scriptRuns.slice(0, 20);
       state.sshConnections = state.sshConnections.map((item: any) =>
@@ -3021,10 +2888,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
 
     await apiRequest(request, `/projects/${projectId}/env-vars`, {
       method: 'PUT',
-      body: JSON.stringify({
-        key: TERMINAL_STATE_ENV_KEY,
-        value: JSON.stringify(normalizeTerminalState(state, language)),
-      }),
+      body: JSON.stringify({ key: TERMINAL_STATE_ENV_KEY, value: JSON.stringify(normalizeTerminalState(state)) }),
     });
   } else if (panel === 'git') {
     const workspaceId = body.workspaceId?.trim() || undefined;
@@ -3038,7 +2902,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       await apiRequest(request, `/projects/${projectId}/git/commit`, {
         method: 'POST',
         body: JSON.stringify({
-          message: body.message || copy['apiRuntime.panel.updateProjectFiles'],
+          message: body.message || 'Update project files',
           files,
           workspaceId,
           authorName: body.authorName?.trim() || undefined,
@@ -3063,7 +2927,6 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
             branch: branchName,
             remoteUrl,
             message: body.message,
-            language,
           });
         } else {
           await apiRequest(request, `/projects/${projectId}/git/push`, {
@@ -3084,15 +2947,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
        */
       if (remoteUrl && isSshGitUrl(remoteUrl)) {
         if (intent === 'sync' || intent === 'pull') {
-          await runWorkspaceSshGit({
-            request,
-            projectId,
-            workspaceId,
-            op: 'pull',
-            branch: branchName,
-            remoteUrl,
-            language,
-          });
+          await runWorkspaceSshGit({ request, projectId, workspaceId, op: 'pull', branch: branchName, remoteUrl });
         }
 
         if (intent === 'sync' || intent === 'push') {
@@ -3104,7 +2959,6 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
             branch: branchName,
             remoteUrl,
             message: body.message,
-            language,
           });
         }
       } else if (intent === 'sync') {
@@ -3200,7 +3054,7 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       await apiRequest(request, `/projects/${projectId}/git/pull-requests`, {
         method: 'POST',
         body: JSON.stringify({
-          title: body.title || copy['apiRuntime.panel.projectUpdate'],
+          title: body.title || 'Project update',
           sourceBranch: body.sourceBranch || 'main',
           targetBranch: body.targetBranch || 'main',
           body: body.body,
@@ -3209,118 +3063,10 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       });
     }
   } else {
-    throw json(
-      { error: copy['apiRuntime.panel.unsupportedAction'], code: 'UNSUPPORTED_PANEL_ACTION' },
-      { status: 404 },
-    );
+    throw json({ error: 'Unsupported IDE panel action' }, { status: 404 });
   }
 
   return json({ ok: true });
-}
-
-type RouteDataResult = {
-  type: 'DataWithResponseInit';
-  data: unknown;
-  init?: number | ResponseInit;
-};
-
-function isRouteDataResult(value: unknown): value is RouteDataResult {
-  return (
-    Boolean(value) &&
-    typeof value === 'object' &&
-    (value as { type?: unknown }).type === 'DataWithResponseInit' &&
-    'data' in (value as object)
-  );
-}
-
-function mergeLocaleHeaders(request: Request, initial?: HeadersInit): Headers {
-  const localeResolution = resolveRequestLocale(request);
-  const headers = localeResponseHeaders(request, localeResolution);
-
-  new Headers(initial).forEach((value, key) => {
-    if (key.toLowerCase() === 'set-cookie' && headers.has('Set-Cookie')) {
-      headers.append(key, value);
-    } else {
-      headers.set(key, value);
-    }
-  });
-
-  return headers;
-}
-
-function localizeRouteResult(request: Request, result: unknown): unknown {
-  if (result instanceof Response) {
-    return new Response(result.body, {
-      status: result.status,
-      statusText: result.statusText,
-      headers: mergeLocaleHeaders(request, result.headers),
-    });
-  }
-
-  if (isRouteDataResult(result)) {
-    const init = typeof result.init === 'number' ? { status: result.init } : (result.init ?? {});
-
-    return json(result.data, { ...init, headers: mergeLocaleHeaders(request, init.headers) });
-  }
-
-  return result;
-}
-
-async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | EnterpriseActionArgs>(
-  args: TArgs,
-  handler: (args: TArgs) => Promise<unknown>,
-): Promise<unknown> {
-  const { request } = args;
-  const copy = getApiRuntimeRoutesCopy(resolveRequestLocale(request).language);
-
-  try {
-    return localizeRouteResult(request, await handler(args));
-  } catch (error) {
-    if (isRouteDataResult(error)) {
-      throw localizeRouteResult(request, error);
-    }
-
-    if (error instanceof Response && error.status >= 300 && error.status < 400) {
-      throw localizeRouteResult(request, error);
-    }
-
-    console.error('IDE panel route failed:', error);
-
-    const status =
-      error instanceof Response
-        ? error.status
-        : Number((error as { status?: unknown } | undefined)?.status) >= 400 &&
-            Number((error as { status?: unknown } | undefined)?.status) <= 599
-          ? Number((error as { status?: unknown }).status)
-          : 500;
-
-    // Même masquage du 429 que dans panelEnvelopeError — voir BUG-QA-PANEL-429-MASKED-001.
-    const message =
-      status === 401
-        ? copy['apiRuntime.panel.authenticationRequired']
-        : status === 403
-          ? copy['apiRuntime.panel.forbidden']
-          : status === 404
-            ? copy['apiRuntime.panel.notFound']
-            : status === 429
-              ? copy['apiRuntime.panel.quotaExceeded']
-              : status >= 500
-                ? copy['apiRuntime.panel.backendUnavailable']
-                : copy['apiRuntime.panel.loadFailed'];
-
-    throw json(
-      { error: message, code: status === 429 ? 'PANEL_QUOTA_EXCEEDED' : 'PANEL_REQUEST_FAILED' },
-      { status, headers: mergeLocaleHeaders(request) },
-    );
-  }
-}
-
-export async function loader(args: EnterpriseLoaderArgs) {
-  return runLocalizedRoute(args, loaderHandler);
-}
-
-export async function action(args: EnterpriseActionArgs) {
-  return runLocalizedRoute(args, actionHandler);
 }
 
 function parseEnvVars(value: string) {
@@ -3509,6 +3255,38 @@ export function normalizeRuntimePorts(payload: unknown): unknown[] {
   return Array.isArray(ports) ? ports : [];
 }
 
+/*
+ * Map a Packages run onto the action's HTTP answer.
+ *
+ * The packages branch used to fall through to the shared `{ ok: true }` return
+ * whatever the run's exit code was, so a failed `npm install` replied 200 "ok"
+ * and the only trace was the run history in a sidebar below the fold — the
+ * panel looked like it had succeeded while nothing was installed (BUG-IDE-005).
+ *
+ * 422 is the right status: the request was well-formed and reached the runtime,
+ * the command ran, and it failed. The panel's generic submit renders `error`
+ * inline, so it carries the command and the tail of its output rather than the
+ * generic "Panel action failed".
+ */
+export function describePackagesRunOutcome(run: {
+  script?: string;
+  exitCode?: number;
+  status?: string;
+  output?: string;
+}): { ok: boolean; status: number; error?: string } {
+  if (run.status !== 'failed') {
+    return { ok: true, status: 200 };
+  }
+
+  const tail = (run.output ?? '').trim().split('\n').slice(-3).join(' ').slice(-300).trim();
+
+  return {
+    ok: false,
+    status: 422,
+    error: `${run.script ?? 'install'} failed (exit ${run.exitCode ?? 1})${tail ? `: ${tail}` : ''}`,
+  };
+}
+
 /** Persisted Ports config: primary port + per-port public/private visibility. */
 function readPortsState(envVarsResponse: unknown): { primaryPort?: number; visibility: Record<string, string> } {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
@@ -3631,23 +3409,18 @@ function parsePackageList(value: string) {
     .slice(0, 20);
 }
 
-function defaultDebuggerState(language?: string | null) {
-  const copy = getApiRuntimeRoutesCopy(language);
-
+function defaultDebuggerState() {
   return {
     launchConfigs: [
-      normalizeLaunchConfig(
-        {
-          id: 'node-inspector-dev',
-          name: copy['apiRuntime.panel.nodeInspectorDevelopment'],
-          type: 'node',
-          request: 'launch',
-          command: 'npm run dev',
-          cwd: '.',
-          stopOnEntry: false,
-        },
-        language,
-      ),
+      normalizeLaunchConfig({
+        id: 'node-inspector-dev',
+        name: 'Node inspector: development server',
+        type: 'node',
+        request: 'launch',
+        command: 'npm run dev',
+        cwd: '.',
+        stopOnEntry: false,
+      }),
     ],
     breakpoints: [],
     watches: [],
@@ -3655,50 +3428,40 @@ function defaultDebuggerState(language?: string | null) {
   };
 }
 
-function readDebuggerState(envVarsResponse: unknown, language?: string | null) {
+function readDebuggerState(envVarsResponse: unknown) {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
   const raw = envVars.find((item: any) => item.key === DEBUGGER_STATE_ENV_KEY)?.value;
 
   if (typeof raw !== 'string' || !raw.trim()) {
-    return defaultDebuggerState(language);
+    return defaultDebuggerState();
   }
 
   try {
-    return normalizeDebuggerState(JSON.parse(raw), language);
+    return normalizeDebuggerState(JSON.parse(raw));
   } catch {
-    return defaultDebuggerState(language);
+    return defaultDebuggerState();
   }
 }
 
-function normalizeDebuggerState(input: any, language?: string | null) {
-  const fallback = defaultDebuggerState(language);
+function normalizeDebuggerState(input: any) {
+  const fallback = defaultDebuggerState();
 
   const launchConfigs = Array.isArray(input?.launchConfigs)
-    ? input.launchConfigs.map((config: any) => normalizeLaunchConfig(config, language)).slice(0, 20)
+    ? input.launchConfigs.map(normalizeLaunchConfig).slice(0, 20)
     : fallback.launchConfigs;
 
   return {
     launchConfigs: launchConfigs.length ? launchConfigs : fallback.launchConfigs,
     breakpoints: Array.isArray(input?.breakpoints) ? input.breakpoints.map(normalizeBreakpoint).slice(0, 200) : [],
     watches: Array.isArray(input?.watches) ? input.watches.map(normalizeWatchExpression).slice(0, 80) : [],
-    sessions: Array.isArray(input?.sessions)
-      ? input.sessions.map((session: any) => normalizeDebugSession(session, language)).slice(0, 20)
-      : [],
+    sessions: Array.isArray(input?.sessions) ? input.sessions.map(normalizeDebugSession).slice(0, 20) : [],
   };
 }
 
-function normalizeLaunchConfig(input: any, language?: string | null) {
-  const copy = getApiRuntimeRoutesCopy(language);
-  const inputName = input?.name;
-
-  const normalizedName =
-    inputName === apiRuntimeRoutesEn['apiRuntime.panel.nodeInspectorDevelopment']
-      ? copy['apiRuntime.panel.nodeInspectorDevelopment']
-      : inputName;
-
+function normalizeLaunchConfig(input: any) {
   return {
     id: String(input?.id || randomUUID()),
-    name: String(normalizedName || copy['apiRuntime.panel.debugConfiguration']).slice(0, 120),
+    name: String(input?.name || 'Debug configuration').slice(0, 120),
     type: ['node', 'python', 'shell', 'browser'].includes(input?.type) ? input.type : 'node',
     request: input?.request === 'attach' ? 'attach' : 'launch',
     command: typeof input?.command === 'string' ? input.command.trim().slice(0, 800) : '',
@@ -3733,20 +3496,12 @@ function normalizeWatchExpression(input: any) {
   };
 }
 
-function normalizeDebugSession(input: any, language?: string | null) {
-  const copy = getApiRuntimeRoutesCopy(language);
-
+function normalizeDebugSession(input: any) {
   return {
     id: String(input?.id || randomUUID()),
     configId: String(input?.configId || ''),
-    name: String(input?.name || copy['apiRuntime.panel.debugSession']).slice(0, 120),
-
-    /*
-     * 'exited' fait partie des statuts acceptés : c'est celui que pose la
-     * réconciliation quand le pid d'une session a disparu de la liste des
-     * processus. L'omettre reclassait ces sessions en 'stopped'.
-     */
-    status: ['running', 'paused', 'stopped', 'exited', 'failed'].includes(input?.status) ? input.status : 'stopped',
+    name: String(input?.name || 'Debug session').slice(0, 120),
+    status: ['running', 'paused', 'stopped', 'failed'].includes(input?.status) ? input.status : 'stopped',
     adapter: String(input?.adapter || 'runtime-command'),
     command: String(input?.command || '').slice(0, 800),
     workspaceId: String(input?.workspaceId || ''),
@@ -3769,9 +3524,7 @@ function parseDebugArgs(value: string) {
     .slice(0, 32);
 }
 
-function buildDebugLaunchCommand(config: any, language?: string | null) {
-  const copy = getApiRuntimeRoutesCopy(language);
-
+function buildDebugLaunchCommand(config: any) {
   if (config.command) {
     return config.command;
   }
@@ -3780,10 +3533,7 @@ function buildDebugLaunchCommand(config: any, language?: string | null) {
 
   if (config.type === 'python') {
     if (!config.program) {
-      throw json(
-        { error: copy['apiRuntime.panel.pythonLaunchInvalid'], code: 'PYTHON_LAUNCH_INVALID' },
-        { status: 400 },
-      );
+      throw json({ error: 'Python launch requires a program path or command.' }, { status: 400 });
     }
 
     return `python -m debugpy --listen 0.0.0.0:5678 ${config.stopOnEntry ? '--wait-for-client ' : ''}${shellQuote(
@@ -3793,14 +3543,14 @@ function buildDebugLaunchCommand(config: any, language?: string | null) {
 
   if (config.type === 'shell') {
     if (!config.program) {
-      throw json({ error: copy['apiRuntime.panel.shellLaunchInvalid'], code: 'SHELL_LAUNCH_INVALID' }, { status: 400 });
+      throw json({ error: 'Shell launch requires a program path or command.' }, { status: 400 });
     }
 
     return `${shellQuote(config.program)}${args ? ` ${args}` : ''}`;
   }
 
   if (!config.program) {
-    throw json({ error: copy['apiRuntime.panel.nodeLaunchInvalid'], code: 'NODE_LAUNCH_INVALID' }, { status: 400 });
+    throw json({ error: 'Node launch requires a program path or command.' }, { status: 400 });
   }
 
   return `node ${config.stopOnEntry ? '--inspect-brk=0.0.0.0:9229' : '--inspect=0.0.0.0:9229'} ${shellQuote(
@@ -3808,34 +3558,28 @@ function buildDebugLaunchCommand(config: any, language?: string | null) {
   )}${args ? ` ${args}` : ''}`;
 }
 
-function packageRunName(intent: string, packageManager: ProjectPackageManager, language?: string | null) {
-  const copy = getApiRuntimeRoutesCopy(language);
-
+function packageRunName(intent: string, packageManager: ProjectPackageManager) {
   if (intent === 'audit') {
-    return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.packageAudit'], { manager: packageManager });
+    return `${packageManager} security audit`;
   }
 
   if (intent === 'outdated') {
-    return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.packageOutdated'], { manager: packageManager });
+    return `${packageManager} outdated check`;
   }
 
   if (intent === 'install-package') {
-    return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.packageAdd'], { manager: packageManager });
+    return `${packageManager} add package`;
   }
 
-  return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.packageInstall'], { manager: packageManager });
+  return `${packageManager} install`;
 }
 
-function packagePanelCommand(
-  input: {
-    intent: string;
-    packageManager: ProjectPackageManager;
-    packages: string[];
-    dev: boolean;
-  },
-  language?: string | null,
-) {
-  const copy = getApiRuntimeRoutesCopy(language);
+function packagePanelCommand(input: {
+  intent: string;
+  packageManager: ProjectPackageManager;
+  packages: string[];
+  dev: boolean;
+}) {
   const quotedPackages = input.packages.map(shellQuote).join(' ');
 
   if (input.intent === 'audit') {
@@ -3872,7 +3616,7 @@ function packagePanelCommand(
 
   if (input.intent === 'install-package') {
     if (!input.packages.length) {
-      throw json({ error: copy['apiRuntime.panel.packageRequired'], code: 'PACKAGE_REQUIRED' }, { status: 400 });
+      throw json({ error: 'At least one package is required' }, { status: 400 });
     }
 
     if (input.packageManager === 'pnpm') {
@@ -3912,7 +3656,7 @@ function defaultTerminalState() {
   };
 }
 
-function readTerminalState(envVarsResponse: unknown, language?: string | null) {
+function readTerminalState(envVarsResponse: unknown) {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
   const raw = envVars.find((item: any) => item.key === TERMINAL_STATE_ENV_KEY)?.value;
 
@@ -3921,20 +3665,18 @@ function readTerminalState(envVarsResponse: unknown, language?: string | null) {
   }
 
   try {
-    return normalizeTerminalState(JSON.parse(raw), language);
+    return normalizeTerminalState(JSON.parse(raw));
   } catch {
     return defaultTerminalState();
   }
 }
 
-function normalizeTerminalState(input: any, language?: string | null) {
-  const copy = getApiRuntimeRoutesCopy(language);
-
+function normalizeTerminalState(input: any) {
   return {
     sshConnections: Array.isArray(input?.sshConnections)
       ? input.sshConnections.map((connection: any) => ({
           id: String(connection.id || randomUUID()),
-          name: String(connection.name || connection.host || copy['apiRuntime.panel.sshConnection']),
+          name: String(connection.name || connection.host || 'SSH connection'),
           host: String(connection.host || ''),
           port: Number(connection.port) || 22,
           username: String(connection.username || ''),
@@ -4294,19 +4036,26 @@ async function runWorkspaceSshGit(input: {
   branch: string;
   remoteUrl: string;
   message?: string;
-  language?: string | null;
 }): Promise<{ output: string }> {
-  const copy = getApiRuntimeRoutesCopy(input.language);
   const workspaceId = await resolveSshGitWorkspaceId(input.request, input.projectId, input.workspaceId);
 
   if (!workspaceId) {
-    throw json({ error: copy['apiRuntime.panel.workspaceRequired'], code: 'WORKSPACE_REQUIRED' }, { status: 409 });
+    throw json(
+      { error: 'Open the workspace before pushing or pulling over SSH — this project has no running workspace yet.' },
+      { status: 409 },
+    );
   }
 
   const connections = await loadProjectSshConnections(input.request, input.projectId);
 
   if (connections.length === 0) {
-    throw json({ error: copy['apiRuntime.panel.sshKeyRequired'], code: 'SSH_KEY_REQUIRED' }, { status: 400 });
+    throw json(
+      {
+        error:
+          'No SSH key is configured for this project. Add or generate one in Terminal → SSH, then restart the workspace and retry.',
+      },
+      { status: 400 },
+    );
   }
 
   const connection = selectSshConnectionForOrigin(connections, input.remoteUrl);
@@ -4314,10 +4063,9 @@ async function runWorkspaceSshGit(input: {
   if (!connection) {
     throw json(
       {
-        error: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.sshKeyAmbiguous'], {
-          host: sshHostFromGitUrl(input.remoteUrl) ?? 'unknown',
-        }),
-        code: 'SSH_KEY_AMBIGUOUS',
+        error: `Several SSH keys are configured and none matches the origin host (${
+          sshHostFromGitUrl(input.remoteUrl) ?? 'unknown'
+        }). Add a key whose host matches the remote, or keep a single key.`,
       },
       { status: 400 },
     );
@@ -4331,7 +4079,7 @@ async function runWorkspaceSshGit(input: {
           keyEnvVar,
           repoUrl: input.remoteUrl,
           branch: input.branch,
-          message: input.message?.trim() || copy['apiRuntime.panel.updateFromWorkspace'],
+          message: input.message?.trim() || 'Update from workspace',
         })
       : input.op === 'pull'
         ? buildGitSshPullScript({ keyEnvVar, repoUrl: input.remoteUrl, branch: input.branch })
@@ -4343,17 +4091,13 @@ async function runWorkspaceSshGit(input: {
     script,
     `git ${input.op} ${input.remoteUrl}`,
     new Date().toISOString(),
-    input.language,
   );
 
   if (run.exitCode !== 0) {
-    console.error('Git over SSH failed:', { operation: input.op, exitCode: run.exitCode, output: run.output });
     throw json(
       {
-        error: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.sshOperationFailed'], {
-          operation: input.op,
-          exitCode: run.exitCode,
-        }),
+        error: `git ${input.op} over SSH failed (exit ${run.exitCode}).`,
+        detail: run.output.slice(-1200),
         code: 'GIT_SSH_FAILED',
       },
       { status: 400 },
@@ -4369,13 +4113,11 @@ async function runTerminalCommand(
   script: string,
   name: string,
   startedAt: string,
-  language?: string | null,
 ) {
-  const copy = getApiRuntimeRoutesCopy(language);
   const command = script.trim();
 
   if (!command) {
-    throw json({ error: copy['apiRuntime.panel.scriptRequired'], code: 'SCRIPT_REQUIRED' }, { status: 400 });
+    throw json({ error: 'Script is required' }, { status: 400 });
   }
 
   const finishedAt = new Date().toISOString();
@@ -4401,15 +4143,13 @@ async function runTerminalCommand(
       finishedAt,
     };
   } catch (error) {
-    console.error('Runtime command failed:', error);
-
     return {
       id: randomUUID(),
       name,
       script: command,
       exitCode: 1,
       status: 'failed',
-      output: panelErrorMessage(error, language),
+      output: panelErrorMessage(error),
       startedAt,
       finishedAt,
     };
@@ -4432,7 +4172,6 @@ async function runPackageInstall(
     dev: boolean;
     name: string;
     startedAt: string;
-    language?: string | null;
 
     /*
      * The workspace the panel resolved and is displaying. Audit/outdated already
@@ -4472,30 +4211,20 @@ async function runPackageInstall(
       finishedAt: finishedAt(),
     };
   } catch (error) {
-    console.error('Package installation failed:', error);
-
     return {
       id: randomUUID(),
       name: input.name,
       script: `${input.packageManager} install`,
       exitCode: 1,
       status: 'failed',
-      output: panelErrorMessage(error, input.language),
+      output: panelErrorMessage(error),
       startedAt: input.startedAt,
       finishedAt: finishedAt(),
     };
   }
 }
 
-async function runSecurityScan(
-  request: Request,
-  projectId: string,
-  workspaceId: string,
-  state: any,
-  now: string,
-  language?: string | null,
-) {
-  const copy = getApiRuntimeRoutesCopy(language);
+async function runSecurityScan(request: Request, projectId: string, workspaceId: string, state: any, now: string) {
   const scannerProfile = state.settings.scannerProfile ?? 'workspace-runtime';
 
   const runDependencyAudit =
@@ -4505,34 +4234,18 @@ async function runSecurityScan(
   const runSastScan = state.settings.sastEnabled && ['workspace-runtime', 'sast'].includes(scannerProfile);
 
   const auditCommand = runDependencyAudit ? 'npm audit --json || true' : 'node -e "console.log(\\"{}\\")"';
-
-  const auditRun = await runTerminalCommand(
-    request,
-    workspaceId,
-    auditCommand,
-    copy['apiRuntime.panel.securityDependencyAudit'],
-    now,
-    language,
-  );
-
-  const findings = vulnerabilitiesFromAuditOutput(auditRun.output, now, language);
+  const auditRun = await runTerminalCommand(request, workspaceId, auditCommand, 'Security dependency audit', now);
+  const findings = vulnerabilitiesFromAuditOutput(auditRun.output, now);
 
   if (runSecretScan) {
     const secretRun = await runTerminalCommand(
       request,
       workspaceId,
       "grep -RInE '(api[_-]?key|secret|password|token)\\s*[:=]' . --exclude-dir=node_modules --exclude-dir=.git | head -50 || true",
-      copy['apiRuntime.panel.securitySecretScan'],
+      'Security secret scan',
       now,
-      language,
     );
-    findings.push(
-      ...vulnerabilitiesFromSecretScan(secretRun.output, now).map((finding) => ({
-        ...finding,
-        title: copy['apiRuntime.panel.securitySecretFinding'],
-        recommendation: copy['apiRuntime.panel.securitySecretAdvice'],
-      })),
-    );
+    findings.push(...vulnerabilitiesFromSecretScan(secretRun.output, now));
   }
 
   if (runSastScan) {
@@ -4540,11 +4253,10 @@ async function runSecurityScan(
       request,
       workspaceId,
       "grep -RInE '(dangerouslySetInnerHTML|eval\\(|new Function\\(|innerHTML\\s*=|document\\.write\\(|child_process|exec\\(|spawn\\(|cors\\(|Access-Control-Allow-Origin)' . --exclude-dir=node_modules --exclude-dir=.git --exclude-dir=dist --exclude-dir=build | head -80 || true",
-      copy['apiRuntime.panel.securityStaticScan'],
+      'Security static code scan',
       now,
-      language,
     );
-    findings.push(...vulnerabilitiesFromSastOutput(sastRun.output, now, language));
+    findings.push(...vulnerabilitiesFromSastOutput(sastRun.output, now));
   }
 
   const existingById = new Map(state.vulnerabilities.map((item: any) => [item.id, item]));
@@ -4556,14 +4268,7 @@ async function runSecurityScan(
     status: auditRun.status === 'succeeded' ? 'completed' : 'failed',
     startedAt: now,
     completedAt: new Date().toISOString(),
-    summary: formatApiRuntimeRoutesCopy(
-      copy[
-        findings.length === 1
-          ? 'apiRuntime.panel.securityFindingCount_one'
-          : 'apiRuntime.panel.securityFindingCount_other'
-      ],
-      { count: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US').format(findings.length) },
-    ),
+    summary: `${findings.length} finding${findings.length === 1 ? '' : 's'}`,
     exitCode: auditRun.exitCode,
     counts: securitySeverityCounts(findings),
     sources: securitySourceCounts(findings),
@@ -4604,7 +4309,7 @@ function defaultSecurityState() {
   };
 }
 
-function readSecurityState(envVarsResponse: unknown, language?: string | null) {
+function readSecurityState(envVarsResponse: unknown) {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
   const raw = envVars.find((item: any) => item.key === SECURITY_STATE_ENV_KEY)?.value;
 
@@ -4613,18 +4318,14 @@ function readSecurityState(envVarsResponse: unknown, language?: string | null) {
   }
 
   try {
-    return normalizeSecurityState(JSON.parse(raw), language);
+    return normalizeSecurityState(JSON.parse(raw));
   } catch {
     return defaultSecurityState();
   }
 }
 
-function normalizeSecurityState(input: any, language?: string | null) {
-  const copy = getApiRuntimeRoutesCopy(language);
+function normalizeSecurityState(input: any) {
   const fallback = defaultSecurityState();
-
-  const localizedSecurityText = (value: unknown, key: keyof ApiRuntimeRoutesCopy) =>
-    value === apiRuntimeRoutesEn[key] ? copy[key] : value;
 
   return {
     settings: {
@@ -4663,24 +4364,7 @@ function normalizeSecurityState(input: any, language?: string | null) {
       ? input.vulnerabilities.map((vulnerability: any) => ({
           id: String(vulnerability.id || randomUUID()),
           packageName: String(vulnerability.packageName || vulnerability.title || 'workspace'),
-          title: String(
-            vulnerability.title === `${vulnerability.packageName} dependency advisory`
-              ? formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.securityDependencyAdvisory'], {
-                  name: vulnerability.packageName,
-                })
-              : localizedSecurityText(
-                  localizedSecurityText(
-                    localizedSecurityText(
-                      localizedSecurityText(vulnerability.title, 'apiRuntime.panel.securitySecretFinding'),
-                      'apiRuntime.panel.securityCommandFinding',
-                    ),
-                    'apiRuntime.panel.securityDomFinding',
-                  ),
-                  'apiRuntime.panel.securityReviewFinding',
-                ) ||
-                  vulnerability.packageName ||
-                  copy['apiRuntime.panel.securityFinding'],
-          ),
+          title: String(vulnerability.title || vulnerability.packageName || 'Security finding'),
           severity: ['critical', 'high', 'moderate', 'low', 'info'].includes(vulnerability.severity)
             ? vulnerability.severity
             : 'info',
@@ -4688,25 +4372,7 @@ function normalizeSecurityState(input: any, language?: string | null) {
           hidden: Boolean(vulnerability.hidden),
           source: String(vulnerability.source || 'workspace-runtime'),
           details: String(vulnerability.details || ''),
-          recommendation: vulnerability.recommendation
-            ? String(
-                localizedSecurityText(
-                  localizedSecurityText(
-                    localizedSecurityText(
-                      localizedSecurityText(
-                        localizedSecurityText(vulnerability.recommendation, 'apiRuntime.panel.securitySecretAdvice'),
-                        'apiRuntime.panel.securityUpdateRemediation',
-                      ),
-                      'apiRuntime.panel.securityPinRemediation',
-                    ),
-                    'apiRuntime.panel.securityCommandAdvice',
-                  ),
-                  vulnerability.recommendation === apiRuntimeRoutesEn['apiRuntime.panel.securityDomAdvice']
-                    ? 'apiRuntime.panel.securityDomAdvice'
-                    : 'apiRuntime.panel.securityReviewAdvice',
-                ),
-              )
-            : undefined,
+          recommendation: vulnerability.recommendation ? String(vulnerability.recommendation) : undefined,
           createdAt: vulnerability.createdAt,
           updatedAt: vulnerability.updatedAt,
         }))
@@ -4714,9 +4380,7 @@ function normalizeSecurityState(input: any, language?: string | null) {
   };
 }
 
-function vulnerabilitiesFromAuditOutput(output: string, timestamp: string, language?: string | null) {
-  const copy = getApiRuntimeRoutesCopy(language);
-
+function vulnerabilitiesFromAuditOutput(output: string, timestamp: string) {
   try {
     const parsed = JSON.parse(output || '{}');
 
@@ -4726,18 +4390,15 @@ function vulnerabilitiesFromAuditOutput(output: string, timestamp: string, langu
     return Object.entries(vulnerabilities).map(([name, value]: [string, any]) => ({
       id: `npm:${name}`,
       packageName: name,
-      title: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.securityDependencyAdvisory'], { name }),
+      title: `${name} dependency advisory`,
       severity: normalizeSeverity(value?.severity),
       status: 'open',
       hidden: false,
       source: 'npm-audit',
-      details: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.securityAuditDetails'], {
-        paths: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US').format(value?.via?.length ?? 0),
-        effects: new Intl.NumberFormat(language === 'fr' ? 'fr-FR' : 'en-US').format(value?.effects?.length ?? 0),
-      }),
+      details: `${value?.via?.length ?? 0} advisory path(s), ${value?.effects?.length ?? 0} effect(s).`,
       recommendation: value?.fixAvailable
-        ? copy['apiRuntime.panel.securityUpdateRemediation']
-        : copy['apiRuntime.panel.securityPinRemediation'],
+        ? 'Run the package manager update recommended by npm audit.'
+        : 'Review advisory and pin a safe dependency version.',
       createdAt: timestamp,
       updatedAt: timestamp,
     }));
@@ -4746,9 +4407,7 @@ function vulnerabilitiesFromAuditOutput(output: string, timestamp: string, langu
   }
 }
 
-function vulnerabilitiesFromSastOutput(output: string, timestamp: string, language?: string | null) {
-  const copy = getApiRuntimeRoutesCopy(language);
-
+function vulnerabilitiesFromSastOutput(output: string, timestamp: string) {
   return output
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -4762,20 +4421,20 @@ function vulnerabilitiesFromSastOutput(output: string, timestamp: string, langua
         id: `sast:${index}:${line.slice(0, 100)}`,
         packageName: 'workspace',
         title: isCommandExecution
-          ? copy['apiRuntime.panel.securityCommandFinding']
+          ? 'Potential command execution sink'
           : isDomSink
-            ? copy['apiRuntime.panel.securityDomFinding']
-            : copy['apiRuntime.panel.securityReviewFinding'],
+            ? 'Potential unsafe DOM injection sink'
+            : 'Static security review item',
         severity: isCommandExecution ? 'high' : isDomSink ? 'moderate' : 'low',
         status: 'open',
         hidden: false,
         source: 'sast',
         details: line,
         recommendation: isCommandExecution
-          ? copy['apiRuntime.panel.securityCommandAdvice']
+          ? 'Validate inputs, avoid shell interpolation, and restrict command execution to allow-listed operations.'
           : isDomSink
-            ? copy['apiRuntime.panel.securityDomAdvice']
-            : copy['apiRuntime.panel.securityReviewAdvice'],
+            ? 'Sanitize untrusted HTML and prefer safe rendering primitives.'
+            : 'Review the matched source line and document why the pattern is safe.',
         createdAt: timestamp,
         updatedAt: timestamp,
       };
@@ -4812,15 +4471,13 @@ function normalizeSeverity(value: unknown) {
   return ['critical', 'high', 'moderate', 'low', 'info'].includes(severity) ? severity : 'info';
 }
 
-function defaultWorkflowsState(language?: string | null) {
-  const copy = getApiRuntimeRoutesCopy(language);
-
+function defaultWorkflowsState() {
   return {
     workflows: [
       {
         id: 1001,
         projectId: null,
-        name: copy['apiRuntime.panel.runDevelopmentServer'],
+        name: 'Run development server',
         executionMode: 'sequential',
         isRunButton: true,
         isGenerated: true,
@@ -4842,35 +4499,30 @@ function defaultWorkflowsState(language?: string | null) {
   };
 }
 
-function readWorkflowsState(envVarsResponse: unknown, language?: string | null) {
+function readWorkflowsState(envVarsResponse: unknown) {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
   const raw = envVars.find((item: any) => item.key === WORKFLOWS_STATE_ENV_KEY)?.value;
 
   if (typeof raw !== 'string' || !raw.trim()) {
-    return defaultWorkflowsState(language);
+    return defaultWorkflowsState();
   }
 
   try {
-    return normalizeWorkflowsState(JSON.parse(raw), language);
+    return normalizeWorkflowsState(JSON.parse(raw));
   } catch {
-    return defaultWorkflowsState(language);
+    return defaultWorkflowsState();
   }
 }
 
-function normalizeWorkflowsState(input: any, language?: string | null) {
-  const copy = getApiRuntimeRoutesCopy(language);
-  const fallback = defaultWorkflowsState(language);
+function normalizeWorkflowsState(input: any) {
+  const fallback = defaultWorkflowsState();
   const workflows = Array.isArray(input?.workflows) ? input.workflows : fallback.workflows;
 
   return {
     workflows: workflows.map((workflow: any, index: number) => ({
       id: Number(workflow.id) || Date.now() + index,
       projectId: workflow.projectId ?? null,
-      name: String(
-        workflow.name === apiRuntimeRoutesEn['apiRuntime.panel.runDevelopmentServer']
-          ? copy['apiRuntime.panel.runDevelopmentServer']
-          : workflow.name || copy['apiRuntime.panel.projectWorkflow'],
-      ),
+      name: String(workflow.name || 'Project workflow'),
       executionMode: workflow.executionMode === 'parallel' ? 'parallel' : 'sequential',
       isRunButton: Boolean(workflow.isRunButton),
       isGenerated: Boolean(workflow.isGenerated),
@@ -4918,11 +4570,8 @@ async function runWorkflowTasks(
   state: WorkflowStateLike,
   workflow: WorkflowLike,
   startedAt: string,
-  language?: string | null,
 ) {
-  const copy = getApiRuntimeRoutesCopy(language);
-
-  const run = await runWorkflowSteps({
+  return runWorkflowSteps({
     state,
     workflow,
     startedAt,
@@ -4938,44 +4587,4 @@ async function runWorkflowTasks(
         },
       ),
   });
-
-  const localizeMessage = (message: string) => {
-    if (message === 'Workflow is disabled.') {
-      return copy['apiRuntime.panel.workflowDisabled'];
-    }
-
-    if (message === 'Nested workflow depth limit reached') {
-      return copy['apiRuntime.panel.workflowDepthLimit'];
-    }
-
-    if (message === 'Workflow task has no command') {
-      return copy['apiRuntime.panel.workflowTaskCommandMissing'];
-    }
-
-    const target = message.match(/^Target workflow (.*) was not found$/u);
-
-    if (target) {
-      return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.workflowTargetMissing'], { target: target[1] });
-    }
-
-    const nested = message.match(/^Nested workflow "(.*)" failed$/u);
-
-    if (nested) {
-      return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.workflowNestedFailed'], { name: nested[1] });
-    }
-
-    const exit = message.match(/^Command exited with (\d+)$/u);
-
-    if (exit) {
-      return formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.workflowCommandFailed'], { exitCode: exit[1] });
-    }
-
-    return message;
-  };
-
-  return {
-    ...run,
-    logs: run.logs.map((entry) => ({ ...entry, message: localizeMessage(entry.message) })),
-    steps: run.steps.map((step) => ({ ...step, outputTail: localizeMessage(step.outputTail) })),
-  };
 }

@@ -1,23 +1,23 @@
 import {
+  apiErrorMessage,
   apiRequest,
   formObject,
   json,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { remainingApiErrorResponse, remainingApiRouteMessage } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   const projectId = params.projectId;
 
   if (!projectId) {
-    throw remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404);
+    throw json({ error: 'Project not found' }, { status: 404 });
   }
 
   const url = new URL(request.url);
 
   if (url.searchParams.get('intent') !== 'export') {
-    throw remainingApiErrorResponse(request, 'PROJECT_ACTION_UNSUPPORTED', 404);
+    throw json({ error: 'Unsupported project action' }, { status: 404 });
   }
 
   let exported: { archive?: { base64?: string; storageKey?: string; byteLength?: number } };
@@ -28,20 +28,23 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
       `/projects/${projectId}/export/zip`,
     );
   } catch (error) {
+    const message = await apiErrorMessage(error, 'Project export failed');
     const status = error instanceof Response && error.status !== 500 ? error.status : 502;
 
-    throw remainingApiErrorResponse(
-      request,
-      status === 401 || status === 403 ? 'PROJECT_EXPORT_AUTH_REQUIRED' : 'PROJECT_EXPORT_UNAVAILABLE',
-      status,
-      { extra: { ok: false } },
+    throw json(
+      {
+        ok: false,
+        error: message,
+        code: status === 401 || status === 403 ? 'PROJECT_EXPORT_AUTH_REQUIRED' : 'PROJECT_EXPORT_UNAVAILABLE',
+      },
+      { status },
     );
   }
 
   const base64 = exported.archive?.base64;
 
   if (!base64) {
-    throw remainingApiErrorResponse(request, 'PROJECT_EXPORT_ARCHIVE_MISSING', 502);
+    throw json({ error: 'Project export did not return an archive' }, { status: 502 });
   }
 
   let bytes: Uint8Array;
@@ -49,7 +52,7 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   try {
     bytes = Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
   } catch {
-    throw remainingApiErrorResponse(request, 'PROJECT_EXPORT_ARCHIVE_CORRUPT', 502);
+    throw json({ error: 'Project export returned a corrupt archive' }, { status: 502 });
   }
 
   return new Response(bytes, {
@@ -65,7 +68,7 @@ export async function action({ request, params }: EnterpriseActionArgs) {
   const projectId = params.projectId;
 
   if (!projectId) {
-    throw remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404);
+    throw json({ error: 'Project not found' }, { status: 404 });
   }
 
   const body = formObject(await request.formData()) as Record<string, string>;
@@ -78,12 +81,11 @@ export async function action({ request, params }: EnterpriseActionArgs) {
    */
   try {
     if (intent === 'duplicate' || intent === 'fork') {
-      const suffix = remainingApiRouteMessage(request, intent === 'fork' ? 'projectForkSuffix' : 'projectCopySuffix');
-      const fallbackName = remainingApiRouteMessage(request, 'projectFallbackName');
+      const suffix = intent === 'fork' ? 'Fork' : 'Copy';
 
       const duplicated = await apiRequest(request, `/projects/${projectId}/duplicate`, {
         method: 'POST',
-        body: JSON.stringify({ name: body.name || `${body.projectName || fallbackName} ${suffix}` }),
+        body: JSON.stringify({ name: body.name || `${body.projectName || 'Project'} ${suffix}` }),
       });
 
       return json({ ok: true, project: duplicated });
@@ -127,15 +129,11 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       return json({ ok: true });
     }
   } catch (error) {
+    const message = await apiErrorMessage(error, 'Project action failed');
     const status = error instanceof Response && error.status !== 500 ? error.status : 502;
 
-    return remainingApiErrorResponse(
-      request,
-      status === 401 || status === 403 ? 'PROJECT_ACTION_AUTH_REQUIRED' : 'PROJECT_ACTION_FAILED',
-      status,
-      { extra: { ok: false } },
-    );
+    return json({ ok: false, error: message }, { status });
   }
 
-  throw remainingApiErrorResponse(request, 'PROJECT_ACTION_UNSUPPORTED', 404);
+  throw json({ error: 'Unsupported project action' }, { status: 404 });
 }

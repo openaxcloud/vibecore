@@ -1,13 +1,6 @@
 import { useEffect, useState, useRef, useMemo, useCallback } from 'react';
 import type { KeyboardEvent } from 'react';
-import { useTranslation } from 'react-i18next';
 import { AUTO_MODEL_OPTION, isAutoModel } from './modelList';
-import {
-  formatChatControlsCopy,
-  formatChatControlsPlural,
-  getChatControlsCopy,
-  resolveChatControlsLanguage,
-} from '~/lib/i18n/catalogs/chat-controls';
 import type { ModelInfo } from '~/lib/modules/llm/types';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
 import type { ProviderInfo } from '~/types/model';
@@ -91,67 +84,17 @@ const highlightText = (text: string, query: string): string => {
   return escapeHtml(text).replace(regex, '<mark class="bg-yellow-200 dark:bg-yellow-800 text-current">$1</mark>');
 };
 
-const formatContextSize = (tokens: number, language: string): string =>
-  new Intl.NumberFormat(resolveChatControlsLanguage(language) === 'fr' ? 'fr-FR' : 'en-US', {
-    notation: 'compact',
-    maximumFractionDigits: 1,
-  }).format(tokens);
-
-/**
- * Dynamic provider labels contain a small amount of platform-authored chrome
- * around model names and prices. Translate that chrome while preserving the
- * provider's model name, currency values, and context-size identifier exactly.
- */
-export function localizeDynamicModelLabel(label: string, language?: string | null): string {
-  if (resolveChatControlsLanguage(language) !== 'fr') {
-    return label;
+const formatContextSize = (tokens: number): string => {
+  if (tokens >= 1000000) {
+    return `${(tokens / 1000000).toFixed(1)}M`;
   }
 
-  const copy = getChatControlsCopy(language);
-  const context = copy['chatControls.model.dynamicLabel.context'];
-  const input = copy['chatControls.model.dynamicLabel.input'];
-  const output = copy['chatControls.model.dynamicLabel.output'];
-  const dynamic = copy['chatControls.model.dynamicLabel.dynamic'];
-  const by = copy['chatControls.model.dynamicLabel.by'];
-  const notAvailable = copy['chatControls.model.dynamicLabel.notAvailable'];
-
-  const dynamicModel = /^(.*) \(Dynamic\)$/u.exec(label);
-
-  if (dynamicModel) {
-    return `${dynamicModel[1]} (${dynamic})`;
+  if (tokens >= 1000) {
+    return `${(tokens / 1000).toFixed(0)}K`;
   }
 
-  const priceAndContext =
-    /^(.*) - in:(\$[0-9]+(?:\.[0-9]+)?) out:(\$[0-9]+(?:\.[0-9]+)?) - context ([0-9]+(?:\.[0-9]+)?[kM])$/u.exec(label);
-
-  if (priceAndContext) {
-    return `${priceAndContext[1]} — ${input} : ${priceAndContext[2]} · ${output} : ${priceAndContext[3]} — ${context} ${priceAndContext[4]}`;
-  }
-
-  const parentheticalContext = /^(.*) \(([0-9]+(?:\.[0-9]+)?[kM]) context\)$/u.exec(label);
-
-  if (parentheticalContext) {
-    return `${parentheticalContext[1]} (${context} ${parentheticalContext[2]})`;
-  }
-
-  const contextWithOwner = /^(.*) - context ([0-9]+(?:\.[0-9]+)?[kM]|N\/A) \[ by (.+)\]$/u.exec(label);
-
-  if (contextWithOwner) {
-    const contextSize = contextWithOwner[2] === 'N/A' ? notAvailable : contextWithOwner[2];
-
-    return `${contextWithOwner[1]} — ${context} ${contextSize} [${by} ${contextWithOwner[3]}]`;
-  }
-
-  const trailingContext = /^(.*) - context ([0-9]+(?:\.[0-9]+)?[kM]|N\/A)$/u.exec(label);
-
-  if (trailingContext) {
-    const contextSize = trailingContext[2] === 'N/A' ? notAvailable : trailingContext[2];
-
-    return `${trailingContext[1]} — ${context} ${contextSize}`;
-  }
-
-  return label;
-}
+  return tokens.toString();
+};
 
 interface ModelSelectorProps {
   model?: string;
@@ -190,10 +133,6 @@ export const ModelSelector = ({
   modelLoading,
   modelError,
 }: ModelSelectorProps) => {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getChatControlsCopy(language);
-  const autoModelLabel = copy['chatControls.model.autoLabel'];
   const [modelSearchQuery, setModelSearchQuery] = useState('');
   const [debouncedModelSearchQuery, setDebouncedModelSearchQuery] = useState('');
   const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
@@ -284,22 +223,19 @@ export const ModelSelector = ({
         return true;
       })
       .map((model) => {
-        const displayLabel = localizeDynamicModelLabel(model.label, language);
-
         // Calculate search scores for fuzzy matching
-        const labelMatch = fuzzyMatch(debouncedModelSearchQuery, displayLabel);
+        const labelMatch = fuzzyMatch(debouncedModelSearchQuery, model.label);
         const nameMatch = fuzzyMatch(debouncedModelSearchQuery, model.name);
-        const contextMatch = fuzzyMatch(debouncedModelSearchQuery, formatContextSize(model.maxTokenAllowed, language));
+        const contextMatch = fuzzyMatch(debouncedModelSearchQuery, formatContextSize(model.maxTokenAllowed));
 
         const bestScore = Math.max(labelMatch.score, nameMatch.score, contextMatch.score);
         const matches = labelMatch.matches || nameMatch.matches || contextMatch.matches || !debouncedModelSearchQuery; // Show all if no query
 
         return {
           ...model,
-          displayLabel,
           searchScore: bestScore,
           searchMatches: matches,
-          highlightedLabel: highlightText(displayLabel, debouncedModelSearchQuery),
+          highlightedLabel: highlightText(model.label, debouncedModelSearchQuery),
           highlightedName: highlightText(model.name, debouncedModelSearchQuery),
         };
       })
@@ -310,7 +246,7 @@ export const ModelSelector = ({
           return b.searchScore - a.searchScore;
         }
 
-        return a.displayLabel.localeCompare(b.displayLabel);
+        return a.label.localeCompare(b.label);
       });
 
     /*
@@ -319,7 +255,7 @@ export const ModelSelector = ({
      * It participates in the search (matches on its label/name) but never gets
      * sorted below the real models.
      */
-    const autoLabelMatch = fuzzyMatch(debouncedModelSearchQuery, autoModelLabel);
+    const autoLabelMatch = fuzzyMatch(debouncedModelSearchQuery, AUTO_MODEL_OPTION.label);
     const autoNameMatch = fuzzyMatch(debouncedModelSearchQuery, AUTO_MODEL_OPTION.name);
     const autoMatches = autoLabelMatch.matches || autoNameMatch.matches || !debouncedModelSearchQuery;
 
@@ -327,18 +263,16 @@ export const ModelSelector = ({
       ? [
           {
             ...AUTO_MODEL_OPTION,
-            label: autoModelLabel,
-            displayLabel: autoModelLabel,
             searchScore: 1000,
             searchMatches: true,
-            highlightedLabel: highlightText(autoModelLabel, debouncedModelSearchQuery),
+            highlightedLabel: highlightText(AUTO_MODEL_OPTION.label, debouncedModelSearchQuery),
             highlightedName: highlightText(AUTO_MODEL_OPTION.name, debouncedModelSearchQuery),
           },
         ]
       : [];
 
     return [...autoEntry, ...realModels];
-  }, [autoModelLabel, language, modelList, provider?.name, showFreeModelsOnly, debouncedModelSearchQuery]);
+  }, [modelList, provider?.name, showFreeModelsOnly, debouncedModelSearchQuery]);
 
   const filteredProviders = useMemo(() => {
     if (!debouncedProviderSearchQuery) {
@@ -568,7 +502,10 @@ export const ModelSelector = ({
         className="bolt-model-selector-empty mb-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-prompt-background p-4 text-bolt-elements-textPrimary"
         data-testid="agent-model-selector-empty"
       >
-        <p className="break-words text-center">{copy['chatControls.model.noProviders']}</p>
+        <p className="text-center">
+          No providers are currently enabled. Please enable at least one provider in the settings to start using the
+          chat.
+        </p>
       </div>
     );
   }
@@ -612,16 +549,14 @@ export const ModelSelector = ({
                   )}
                   title={
                     localProviderStatus[provider.name] === 'connected'
-                      ? formatChatControlsCopy(copy['chatControls.provider.running'], { provider: provider.name })
+                      ? `${provider.name} is running`
                       : localProviderStatus[provider.name] === 'disconnected'
-                        ? formatChatControlsCopy(copy['chatControls.provider.unreachable'], {
-                            provider: provider.name,
-                          })
-                        : copy['chatControls.provider.checking']
+                        ? `${provider.name} is not reachable`
+                        : 'Checking...'
                   }
                 />
               )}
-              {provider?.name || copy['chatControls.provider.select']}
+              {provider?.name || 'Select provider'}
             </div>
             <div
               className={classNames(
@@ -648,7 +583,7 @@ export const ModelSelector = ({
                   type="text"
                   value={providerSearchQuery}
                   onChange={(e) => setProviderSearchQuery(e.target.value)}
-                  placeholder={copy['chatControls.provider.searchPlaceholder']}
+                  placeholder="Search providers..."
                   className={classNames(
                     'w-full rounded-md py-1.5 pl-8 pr-8 text-sm',
                     'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
@@ -658,7 +593,7 @@ export const ModelSelector = ({
                   )}
                   onClick={(e) => e.stopPropagation()}
                   role="searchbox"
-                  aria-label={copy['chatControls.provider.searchAria']}
+                  aria-label="Search providers"
                   data-testid="agent-provider-search"
                 />
                 <div className="absolute left-2.5 top-1/2 -translate-y-1/2">
@@ -672,7 +607,7 @@ export const ModelSelector = ({
                       clearProviderSearch();
                     }}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-bolt-elements-background-depth-3 transition-colors"
-                    aria-label={copy['chatControls.search.clear']}
+                    aria-label="Clear search"
                   >
                     <span className="i-ph:x text-bolt-elements-textTertiary text-xs" />
                   </button>
@@ -700,14 +635,12 @@ export const ModelSelector = ({
                 <div className="px-3 py-3 text-sm">
                   <div className="text-bolt-elements-textTertiary mb-1">
                     {debouncedProviderSearchQuery
-                      ? formatChatControlsCopy(copy['chatControls.provider.noMatch'], {
-                          query: debouncedProviderSearchQuery,
-                        })
-                      : copy['chatControls.provider.none']}
+                      ? `No providers match "${debouncedProviderSearchQuery}"`
+                      : 'No providers found'}
                   </div>
                   {debouncedProviderSearchQuery && (
                     <div className="text-xs text-bolt-elements-textTertiary">
-                      {copy['chatControls.provider.searchHint']}
+                      Try searching for provider names like "OpenAI", "Anthropic", or "Google"
                     </div>
                   )}
                 </div>
@@ -721,9 +654,7 @@ export const ModelSelector = ({
                     key={providerOption.name}
                     role="option"
                     aria-selected={provider?.name === providerOption.name}
-                    aria-label={formatChatControlsCopy(copy['chatControls.provider.selectAria'], {
-                      provider: providerOption.name,
-                    })}
+                    aria-label={`Select ${providerOption.name} provider`}
                     data-testid="agent-provider-option"
                     className={classNames(
                       'bolt-model-selector-option cursor-pointer px-3 py-2 text-sm',
@@ -808,11 +739,8 @@ export const ModelSelector = ({
           <div className="flex min-w-0 items-center justify-between gap-2">
             <div className="bolt-model-selector-trigger-label">
               {isAutoModel(model)
-                ? autoModelLabel
-                : localizeDynamicModelLabel(
-                    modelList.find((candidate) => candidate.name === model)?.label ?? '',
-                    language,
-                  ) || copy['chatControls.model.select']}
+                ? AUTO_MODEL_OPTION.label
+                : modelList.find((m) => m.name === model)?.label || 'Select model'}
             </div>
             <div
               className={classNames(
@@ -851,16 +779,11 @@ export const ModelSelector = ({
                     )}
                   >
                     <span className="i-ph:gift text-xs" />
-                    {copy['chatControls.model.freeOnly']}
+                    Free models only
                   </button>
                   {showFreeModelsOnly && (
                     <span className="text-xs text-bolt-elements-textTertiary">
-                      {formatChatControlsPlural(
-                        language,
-                        filteredModels.length,
-                        copy['chatControls.model.freeCount.one'],
-                        copy['chatControls.model.freeCount.other'],
-                      )}
+                      {filteredModels.length} free model{filteredModels.length !== 1 ? 's' : ''}
                     </span>
                   )}
                 </div>
@@ -869,13 +792,8 @@ export const ModelSelector = ({
               {/* Search Result Count */}
               {debouncedModelSearchQuery && filteredModels.length > 0 && (
                 <div className="text-xs text-bolt-elements-textTertiary px-1">
-                  {formatChatControlsPlural(
-                    language,
-                    filteredModels.length,
-                    copy['chatControls.model.resultCount.one'],
-                    copy['chatControls.model.resultCount.other'],
-                  )}
-                  {filteredModels.length > 5 ? ` (${copy['chatControls.model.bestMatches']})` : null}
+                  {filteredModels.length} model{filteredModels.length !== 1 ? 's' : ''} found
+                  {filteredModels.length > 5 && ' (showing best matches)'}
                 </div>
               )}
 
@@ -886,7 +804,7 @@ export const ModelSelector = ({
                   type="text"
                   value={modelSearchQuery}
                   onChange={(e) => setModelSearchQuery(e.target.value)}
-                  placeholder={copy['chatControls.model.searchPlaceholder']}
+                  placeholder="Search models..."
                   className={classNames(
                     'w-full rounded-md py-1.5 pl-8 pr-8 text-sm',
                     'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
@@ -896,7 +814,7 @@ export const ModelSelector = ({
                   )}
                   onClick={(e) => e.stopPropagation()}
                   role="searchbox"
-                  aria-label={copy['chatControls.model.searchAria']}
+                  aria-label="Search models"
                   data-testid="agent-model-search"
                 />
                 <div className="absolute left-2.5 top-1/2 -translate-y-1/2">
@@ -910,7 +828,7 @@ export const ModelSelector = ({
                       clearModelSearch();
                     }}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-bolt-elements-background-depth-3 transition-colors"
-                    aria-label={copy['chatControls.search.clear']}
+                    aria-label="Clear search"
                   >
                     <span className="i-ph:x text-bolt-elements-textTertiary text-xs" />
                   </button>
@@ -938,47 +856,42 @@ export const ModelSelector = ({
                 <div className="px-3 py-3 text-sm">
                   <div className="flex items-center gap-2 text-bolt-elements-textTertiary">
                     <span className="i-ph:spinner animate-spin" />
-                    {copy['chatControls.model.loading']}
+                    Loading models...
                   </div>
                 </div>
               ) : modelError && filteredModels.length === 0 ? (
                 <div className="px-3 py-3 text-sm" role="alert">
                   <div className="flex items-center gap-2 text-bolt-elements-icon-error">
                     <span className="i-ph:warning-circle" />
-                    {copy['chatControls.model.loadError']}
+                    {modelError}
                   </div>
                 </div>
               ) : filteredModels.length === 0 ? (
                 <div className="px-3 py-3 text-sm">
                   <div className="text-bolt-elements-textTertiary mb-1">
                     {debouncedModelSearchQuery
-                      ? formatChatControlsCopy(copy['chatControls.model.noMatch'], {
-                          query: debouncedModelSearchQuery,
-                          filter: showFreeModelsOnly ? copy['chatControls.model.freeFilter'] : '',
-                        })
+                      ? `No models match "${debouncedModelSearchQuery}"${showFreeModelsOnly ? ' (free only)' : ''}`
                       : showFreeModelsOnly
-                        ? copy['chatControls.model.noFree']
+                        ? 'No free models available'
                         : provider?.name && LOCAL_PROVIDERS.includes(provider.name)
-                          ? formatChatControlsCopy(copy['chatControls.model.localNone'], {
-                              provider: provider.name,
-                            })
-                          : copy['chatControls.model.none']}
+                          ? `No models found — is ${provider.name} running?`
+                          : 'No models available'}
                   </div>
                   {!debouncedModelSearchQuery && provider?.name && LOCAL_PROVIDERS.includes(provider.name) && (
                     <div className="text-xs text-bolt-elements-textTertiary mt-1">
-                      {formatChatControlsCopy(copy['chatControls.model.localHint'], { provider: provider.name })}
-                      {provider.name === 'Ollama' ? ` ${copy['chatControls.model.ollamaHint']}` : null}
-                      {provider.name === 'LMStudio' ? ` ${copy['chatControls.model.lmStudioHint']}` : null}
+                      Make sure {provider.name} is running and has at least one model loaded.
+                      {provider.name === 'Ollama' && ' Try: ollama pull llama3.2'}
+                      {provider.name === 'LMStudio' && ' Load a model in LM Studio first.'}
                     </div>
                   )}
                   {debouncedModelSearchQuery && (
                     <div className="text-xs text-bolt-elements-textTertiary">
-                      {copy['chatControls.model.searchHint']}
+                      Try searching for model names, context sizes (e.g., "128k", "1M"), or capabilities
                     </div>
                   )}
                   {showFreeModelsOnly && !debouncedModelSearchQuery && (
                     <div className="text-xs text-bolt-elements-textTertiary">
-                      {copy['chatControls.model.disableFreeHint']}
+                      Try disabling the "Free models only" filter to see all available models
                     </div>
                   )}
                 </div>
@@ -992,9 +905,7 @@ export const ModelSelector = ({
                     key={modelOption.name}
                     role="option"
                     aria-selected={model === modelOption.name}
-                    aria-label={formatChatControlsCopy(copy['chatControls.model.selectAria'], {
-                      model: modelOption.displayLabel,
-                    })}
+                    aria-label={`Select ${modelOption.label} model`}
                     data-testid="agent-model-option"
                     className={classNames(
                       'bolt-model-selector-option cursor-pointer px-3 py-2 text-sm',
@@ -1020,26 +931,19 @@ export const ModelSelector = ({
                         <div className="bolt-model-selector-option-title">
                           <span
                             dangerouslySetInnerHTML={{
-                              __html: (modelOption as any).highlightedLabel || modelOption.displayLabel,
+                              __html: (modelOption as any).highlightedLabel || modelOption.label,
                             }}
                           />
                         </div>
                         <div className="bolt-model-selector-option-meta mt-0.5 flex items-center gap-2">
                           <span className="text-xs text-bolt-elements-textTertiary">
                             {isAutoModel(modelOption.name)
-                              ? copy['chatControls.model.autoDescription']
-                              : formatChatControlsCopy(copy['chatControls.model.tokens'], {
-                                  count: formatContextSize(modelOption.maxTokenAllowed, language),
-                                })}
+                              ? 'Fast model for simple turns, frontier for builds'
+                              : `${formatContextSize(modelOption.maxTokenAllowed)} tokens`}
                           </span>
                           {debouncedModelSearchQuery && (modelOption as any).searchScore > 70 && (
                             <span className="text-xs text-[var(--status-success-text)] font-medium">
-                              {formatChatControlsCopy(copy['chatControls.model.match'], {
-                                percent: new Intl.NumberFormat(
-                                  resolveChatControlsLanguage(language) === 'fr' ? 'fr-FR' : 'en-US',
-                                  { maximumFractionDigits: 0 },
-                                ).format((modelOption as any).searchScore),
-                              })}
+                              {(modelOption as any).searchScore.toFixed(0)}% match
                             </span>
                           )}
                         </div>
@@ -1048,14 +952,11 @@ export const ModelSelector = ({
                         {isModelLikelyFree(modelOption, provider?.name) && (
                           <span
                             className="i-ph:gift text-xs text-bolt-elements-item-contentAccent"
-                            title={copy['chatControls.model.freeTitle']}
+                            title="Free model"
                           />
                         )}
                         {model === modelOption.name && (
-                          <span
-                            className="i-ph:check text-xs text-green-500"
-                            title={copy['chatControls.model.selected']}
-                          />
+                          <span className="i-ph:check text-xs text-green-500" title="Selected" />
                         )}
                       </div>
                     </div>

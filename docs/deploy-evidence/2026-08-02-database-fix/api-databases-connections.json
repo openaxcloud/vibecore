@@ -1,1 +1,0 @@
-{"connections":[{"key":"DATABASE_URL","source":"secret","kind":"postgres","maskedUrl":"postgresql://***:***@shared-pg-0-pooler.project-databases.svc:5432/proj_cmsbxv1zi000n0nasl15no69y","environment":"shared","capabilities":["schema","readonly-sql","query"]}],"environments":["development","preview","staging","production","shared"]}

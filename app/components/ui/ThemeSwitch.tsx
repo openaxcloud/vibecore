@@ -1,8 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { forwardRef, memo, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { IconButton } from './IconButton';
-import { getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 import { themeStore, toggleTheme } from '~/lib/stores/theme';
 
 interface ThemeSwitchProps {
@@ -23,37 +21,36 @@ interface ThemeSwitchProps {
  * icon tracks the active theme.
  */
 export const ThemeSwitch = memo(
-  forwardRef<HTMLButtonElement, ThemeSwitchProps>(({ className, iconClassName, size = 'xl', title }, ref) => {
-    const { i18n } = useTranslation();
-    const copy = getClientAstResidualCopy(i18n.resolvedLanguage ?? i18n.language);
-    const theme = useStore(themeStore);
-    const [domLoaded, setDomLoaded] = useState(false);
-    const resolvedTitle = title || copy['clientAst.ui.theme.toggle'];
+  forwardRef<HTMLButtonElement, ThemeSwitchProps>(
+    ({ className, iconClassName, size = 'xl', title = 'Toggle Theme' }, ref) => {
+      const theme = useStore(themeStore);
+      const [domLoaded, setDomLoaded] = useState(false);
 
-    useEffect(() => {
-      setDomLoaded(true);
-    }, []);
+      useEffect(() => {
+        setDomLoaded(true);
+      }, []);
 
-    const icon = domLoaded
-      ? theme === 'dark'
-        ? 'i-ph-sun-dim-duotone'
-        : 'i-ph-moon-stars-duotone'
-      : 'i-ph-moon-stars-duotone';
+      const icon = domLoaded
+        ? theme === 'dark'
+          ? 'i-ph-sun-dim-duotone'
+          : 'i-ph-moon-stars-duotone'
+        : 'i-ph-moon-stars-duotone';
 
-    return (
-      <IconButton
-        ref={ref}
-        className={className}
-        icon={icon}
-        iconClassName={iconClassName}
-        size={size}
-        title={resolvedTitle}
-        aria-label={resolvedTitle}
-        aria-hidden={domLoaded ? undefined : true}
-        onClick={toggleTheme}
-      />
-    );
-  }),
+      return (
+        <IconButton
+          ref={ref}
+          className={className}
+          icon={icon}
+          iconClassName={iconClassName}
+          size={size}
+          title={title}
+          aria-label={title || 'Toggle theme'}
+          aria-hidden={domLoaded ? undefined : true}
+          onClick={toggleTheme}
+        />
+      );
+    },
+  ),
 );
 
 ThemeSwitch.displayName = 'ThemeSwitch';

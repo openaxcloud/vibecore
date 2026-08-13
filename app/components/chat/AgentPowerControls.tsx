@@ -1,8 +1,6 @@
 import { Check, ChevronDown, Gauge, Lock, SlidersHorizontal, Sparkles, Zap } from 'lucide-react';
 import { useEffect, useId, useRef, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 
-import { formatChatControlsCopy, formatChatControlsCost, getChatControlsCopy } from '~/lib/i18n/catalogs/chat-controls';
 import { classNames } from '~/utils/classNames';
 
 export type AgentBuildTier = 'lite' | 'economy' | 'power';
@@ -51,7 +49,23 @@ export interface AgentPowerControlsProps {
  * anywhere in this component, ever: a mode is a promise (speed/depth/cost),
  * the platform decides how to keep it.
  */
-const BUILD_TIER_IDS: AgentBuildTier[] = ['lite', 'economy', 'power'];
+const BUILD_TIERS: Array<{ id: AgentBuildTier; label: string; hint: string }> = [
+  { id: 'lite', label: 'Lite', hint: 'Fast and economical. Visual tweaks, bug fixes, targeted changes.' },
+  { id: 'economy', label: 'Economy', hint: 'The right balance.' },
+  { id: 'power', label: 'Power', hint: 'For complex tasks.' },
+];
+
+const LITE_GUARDRAIL =
+  'Lite is a good fit for existing apps when you know what you want to change. Starting from scratch, a big ' +
+  'architecture change, a new integration or a database schema change? Switch to Economy or Power.';
+
+function formatCents(cents?: number): string {
+  if (cents == null || !Number.isFinite(cents)) {
+    return '—';
+  }
+
+  return `~$${(Math.max(0, cents) / 100).toFixed(2)}`;
+}
 
 /**
  * Agent mode controls (AGM): a segmented Lite / Economy / Power control —
@@ -69,28 +83,6 @@ export function AgentPowerControls({
   onUpgrade,
   className,
 }: AgentPowerControlsProps) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getChatControlsCopy(language);
-
-  const buildTiers: Array<{ id: AgentBuildTier; label: string; hint: string }> = [
-    {
-      id: 'lite',
-      label: copy['chatControls.power.tier.lite'],
-      hint: copy['chatControls.power.tier.liteHint'],
-    },
-    {
-      id: 'economy',
-      label: copy['chatControls.power.tier.economy'],
-      hint: copy['chatControls.power.tier.economyHint'],
-    },
-    {
-      id: 'power',
-      label: copy['chatControls.power.tier.power'],
-      hint: copy['chatControls.power.tier.powerHint'],
-    },
-  ];
-
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
@@ -147,7 +139,7 @@ export function AgentPowerControls({
 
       event.preventDefault();
 
-      const order = BUILD_TIER_IDS.filter((mode) => modeAvailable(mode));
+      const order = BUILD_TIERS.map((tier) => tier.id).filter((mode) => modeAvailable(mode));
 
       if (order.length === 0) {
         return;
@@ -188,18 +180,18 @@ export function AgentPowerControls({
     };
   }, [advancedOpen]);
 
-  const activeTier = buildTiers.find((tier) => tier.id === value.buildTier) ?? buildTiers[1];
+  const activeTier = BUILD_TIERS.find((tier) => tier.id === value.buildTier) ?? BUILD_TIERS[1];
   const activeSwitches = (value.highEffort ? 1 : 0) + (value.turboMode ? 1 : 0);
 
   return (
     <div ref={rootRef} className={classNames('relative flex flex-wrap items-center gap-2', className)}>
       <div
         role="radiogroup"
-        aria-label={copy['chatControls.power.groupAria']}
+        aria-label="Agent mode (⌘⇧I to cycle)"
         data-testid="agent-mode-segmented"
-        className="inline-grid max-w-full grid-cols-3 items-stretch rounded-2xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-0.5"
+        className="inline-flex items-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-0.5"
       >
-        {buildTiers.map((tier) => {
+        {BUILD_TIERS.map((tier) => {
           const active = value.buildTier === tier.id;
           const available = modeAvailable(tier.id);
 
@@ -212,16 +204,11 @@ export function AgentPowerControls({
               disabled={disabled || !available}
               onClick={() => selectMode(tier.id)}
               title={
-                available
-                  ? formatChatControlsCopy(copy['chatControls.power.availableTitle'], {
-                      label: tier.label,
-                      hint: tier.hint,
-                    })
-                  : formatChatControlsCopy(copy['chatControls.power.unavailableTitle'], { label: tier.label })
+                available ? `${tier.label} — ${tier.hint} (⌘⇧I cycles)` : `${tier.label} is not available on your plan`
               }
               data-testid={`agent-mode-${tier.id}`}
               className={classNames(
-                'min-h-10 min-w-0 whitespace-normal break-words rounded-xl px-2 py-1 text-xs font-medium leading-tight transition-colors sm:px-3',
+                'rounded-full px-3 py-1 text-xs font-medium transition-colors',
                 'disabled:cursor-not-allowed disabled:opacity-50',
                 active ? 'text-white' : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
               )}
@@ -241,7 +228,7 @@ export function AgentPowerControls({
         aria-expanded={advancedOpen}
         aria-controls={panelId}
         onClick={() => setAdvancedOpen((prev) => !prev)}
-        title={copy['chatControls.power.advancedTitle']}
+        title="Advanced settings: High effort and Turbo"
         data-testid="agent-mode-advanced"
         className={classNames(
           'inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors',
@@ -253,7 +240,7 @@ export function AgentPowerControls({
         style={advancedOpen || activeSwitches > 0 ? { background: 'var(--vc-ide-accent-action)' } : undefined}
       >
         <SlidersHorizontal className="h-3.5 w-3.5" />
-        <span>{copy['chatControls.power.advanced']}</span>
+        <span>Advanced</span>
         {activeSwitches > 0 ? (
           <span className="rounded-full bg-white/25 px-1.5 text-[10px] font-semibold leading-4">+{activeSwitches}</span>
         ) : null}
@@ -262,25 +249,25 @@ export function AgentPowerControls({
 
       <span
         className="inline-flex items-center gap-1 self-center rounded-full bg-bolt-elements-background-depth-2 px-2.5 py-1 text-xs font-semibold text-bolt-elements-textPrimary"
-        title={copy['chatControls.power.estimatedTitle']}
+        title="Estimated cost for this request"
       >
         <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--vc-ide-accent-action)' }} />
-        {formatChatControlsCost(estimatedCents, language)}
+        {formatCents(estimatedCents)}
       </span>
 
       <p className="w-full text-[11px] leading-snug text-bolt-elements-textSecondary" data-testid="agent-mode-hint">
-        {value.buildTier === 'lite' ? copy['chatControls.power.liteGuardrail'] : activeTier.hint}
+        {value.buildTier === 'lite' ? LITE_GUARDRAIL : activeTier.hint}
       </p>
 
       {advancedOpen ? (
         <div
           id={panelId}
           role="dialog"
-          aria-label={copy['chatControls.power.dialogAria']}
-          className="bolt-agent-power-popover absolute bottom-full left-0 z-50 mb-2 w-[min(18rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl"
+          aria-label="Advanced agent settings"
+          className="bolt-agent-power-popover absolute bottom-full left-0 z-50 mb-2 w-72 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3 shadow-xl"
         >
           <p className="px-1 pb-1 text-[10px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-            {copy['chatControls.power.dialogTitle']}
+            Advanced settings
           </p>
 
           <div className="flex flex-col gap-0.5">
@@ -294,10 +281,10 @@ export function AgentPowerControls({
               data-testid="agent-switch-high-effort"
               title={
                 value.buildTier === 'lite'
-                  ? copy['chatControls.power.highEffortLite']
+                  ? 'High effort is not available in Lite'
                   : highEffortAvailable
-                    ? copy['chatControls.power.highEffortAvailable']
-                    : copy['chatControls.power.highEffortPaid']
+                    ? 'Escalates only genuinely hard tasks to a more capable model. When a task doesn’t need it, you pay +0 credit.'
+                    : 'High effort is available on paid plans'
               }
               className={classNames(
                 'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
@@ -313,15 +300,15 @@ export function AgentPowerControls({
                     className="h-3.5 w-3.5"
                     style={value.highEffort ? { color: 'var(--vc-ide-accent-action)' } : undefined}
                   />
-                  {copy['chatControls.power.highEffort']}
+                  High effort
                 </span>
                 <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
-                  {copy['chatControls.power.highEffortDescription']}
+                  Escalates only genuinely hard tasks — no systematic surcharge.
                 </span>
               </span>
               {!highEffortAvailable && value.buildTier !== 'lite' ? (
                 <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                  {copy['chatControls.power.proBadge']}
+                  Pro
                 </span>
               ) : (
                 <span
@@ -352,10 +339,10 @@ export function AgentPowerControls({
               data-testid="agent-switch-turbo"
               title={
                 value.buildTier !== 'power'
-                  ? copy['chatControls.power.turboPower']
+                  ? 'Turbo is only available in Power mode'
                   : turboAvailable
-                    ? copy['chatControls.power.turboAvailable']
-                    : copy['chatControls.power.turboOrganization']
+                    ? 'Fastest responses, billed at the advertised multiplier.'
+                    : 'Turbo is enabled by your organization admin'
               }
               className={classNames(
                 'flex items-center justify-between rounded-lg px-2 py-1.5 text-left text-xs transition-colors disabled:cursor-not-allowed',
@@ -371,15 +358,15 @@ export function AgentPowerControls({
                     className="h-3.5 w-3.5"
                     style={value.turboMode ? { color: 'var(--vc-ide-accent-action)' } : undefined}
                   />
-                  {copy['chatControls.power.turbo']}
+                  Turbo
                 </span>
                 <span className="pl-5 text-[10px] text-bolt-elements-textSecondary">
-                  {copy['chatControls.power.turboDescription']}
+                  Power only. Off by default; an org admin enables it.
                 </span>
               </span>
               {!turboAvailable && value.buildTier === 'power' ? (
                 <span className="rounded-full border border-bolt-elements-borderColor px-1.5 text-[9px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                  {copy['chatControls.power.organizationBadge']}
+                  Org
                 </span>
               ) : (
                 <span
@@ -409,15 +396,15 @@ export function AgentPowerControls({
               style={{ background: 'var(--ecode-accent)' }}
             >
               <Zap className="h-3 w-3" />
-              {copy['chatControls.power.upgrade']}
+              Upgrade to unlock advanced settings
             </button>
           ) : null}
 
           <div className="mt-2 flex items-center justify-between border-t border-bolt-elements-borderColor px-1 pt-2 text-xs">
-            <span className="text-bolt-elements-textSecondary">{copy['chatControls.power.estimated']}</span>
+            <span className="text-bolt-elements-textSecondary">Est. cost</span>
             <span className="inline-flex items-center gap-1 font-semibold text-bolt-elements-textPrimary">
               <Sparkles className="h-3.5 w-3.5" style={{ color: 'var(--vc-ide-accent-action)' }} />
-              {formatChatControlsCost(estimatedCents, language)}
+              {formatCents(estimatedCents)}
             </span>
           </div>
         </div>

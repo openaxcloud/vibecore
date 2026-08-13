@@ -31,33 +31,16 @@ function clean(value: string | null | undefined): string | undefined {
  * Primary label for a collaborator row: prefer the display name, then the
  * email, and only fall back to the opaque userId when neither is available.
  */
-export function collaboratorTitle(collaborator: ProjectCollaborator, language?: string | null): string {
-  return (
-    clean(collaborator.displayName) ??
-    clean(collaborator.email) ??
-    clean(collaborator.userId) ??
-    getProjectCollaboratorsCopy(language)['projectCollaborators.member.unknown']
-  );
+export function collaboratorTitle(collaborator: ProjectCollaborator): string {
+  return clean(collaborator.displayName) ?? clean(collaborator.email) ?? clean(collaborator.userId) ?? 'Unknown member';
 }
 
 /**
  * Secondary line for a collaborator row. When the title is a name we also show
  * the email (if known) alongside the role so the member stays identifiable.
  */
-export function collaboratorDetail(collaborator: ProjectCollaborator, language?: string | null): string {
-  const copy = getProjectCollaboratorsCopy(language);
-  const roleKey = clean(collaborator.roleKey);
-
-  const roleLabel =
-    language?.toLowerCase().startsWith('fr') && roleKey === 'owner'
-      ? copy['projectCollaborators.role.ownerShort']
-      : language?.toLowerCase().startsWith('fr') && roleKey === 'editor'
-        ? copy['projectCollaborators.role.editorShort']
-        : language?.toLowerCase().startsWith('fr') && roleKey === 'viewer'
-          ? copy['projectCollaborators.role.viewerShort']
-          : (roleKey ?? copy['projectCollaborators.member.defaultRole']);
-
-  const role = formatProjectCollaboratorsCopy(copy['projectCollaborators.member.role'], { role: roleLabel });
+export function collaboratorDetail(collaborator: ProjectCollaborator): string {
+  const role = `Role: ${clean(collaborator.roleKey) ?? 'member'}`;
   const name = clean(collaborator.displayName);
   const email = clean(collaborator.email);
 
@@ -68,4 +51,3 @@ export function collaboratorDetail(collaborator: ProjectCollaborator, language?:
 
   return role;
 }
-import { formatProjectCollaboratorsCopy, getProjectCollaboratorsCopy } from '~/lib/i18n/catalogs/project-collaborators';

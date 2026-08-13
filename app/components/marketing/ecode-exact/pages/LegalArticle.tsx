@@ -1,5 +1,4 @@
 import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
@@ -23,8 +22,6 @@ export function LegalArticle({
   intro?: ReactNode;
   children: ReactNode;
 }) {
-  const { t } = useTranslation();
-
   return (
     <div className="min-h-screen flex flex-col" data-testid={testId}>
       <PublicNavbar />
@@ -36,9 +33,7 @@ export function LegalArticle({
 
             <div className="prose prose-gray dark:prose-invert max-w-none space-y-8">
               <section>
-                <p className="text-[15px] text-muted-foreground">
-                  {t('sharedUi.legal.lastUpdated', { date: lastUpdated })}
-                </p>
+                <p className="text-[15px] text-muted-foreground">Last updated: {lastUpdated}</p>
                 {intro}
               </section>
               {children}

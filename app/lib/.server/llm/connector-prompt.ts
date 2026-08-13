@@ -4,7 +4,6 @@ import type {
   ConnectorDataPart,
   ExistingAccountConnection,
 } from '~/lib/chat/connector-messages';
-import { getApiChatCopy } from '~/lib/i18n/catalogs/api-chat';
 
 /*
  * Helpers used by the e-code agent orchestration to surface connector
@@ -44,43 +43,21 @@ export interface ConnectorKeywordEntry {
   codePatterns?: string[];
 }
 
-export function getDefaultConnectorKeywordCatalog(language?: string | null): ConnectorKeywordEntry[] {
-  const copy = getApiChatCopy(language);
-
-  return [
-    {
-      provider: 'github',
-      displayName: 'GitHub',
-      logoUrl: '/integrations/logos/github.svg',
-      defaultScopes: [
-        {
-          scope: 'repo',
-          label: copy.connectorScopeRepositories,
-          description: copy.connectorScopeRepositoriesDescription,
-        },
-        {
-          scope: 'read:org',
-          label: copy.connectorScopeOrganizations,
-          description: copy.connectorScopeOrganizationsDescription,
-        },
-        {
-          scope: 'read:user',
-          label: copy.connectorScopeProfile,
-          description: copy.connectorScopeProfileDescription,
-        },
-        {
-          scope: 'user:email',
-          label: copy.connectorScopeEmail,
-          description: copy.connectorScopeEmailDescription,
-        },
-      ],
-      keywords: ['github', 'pull request', 'repo', 'repository', 'issue', 'octocat'],
-      codePatterns: ['@octokit', 'api.github.com', 'github.com/api'],
-    },
-  ];
-}
-
-export const DEFAULT_CONNECTOR_KEYWORD_CATALOG: ConnectorKeywordEntry[] = getDefaultConnectorKeywordCatalog('en');
+export const DEFAULT_CONNECTOR_KEYWORD_CATALOG: ConnectorKeywordEntry[] = [
+  {
+    provider: 'github',
+    displayName: 'GitHub',
+    logoUrl: '/integrations/logos/github.svg',
+    defaultScopes: [
+      { scope: 'repo', label: 'Repositories', description: 'Read and write to your repositories.' },
+      { scope: 'read:org', label: 'Organizations', description: 'Read the organizations you belong to.' },
+      { scope: 'read:user', label: 'Profile', description: 'Read your public profile.' },
+      { scope: 'user:email', label: 'Email', description: 'Read your primary email address.' },
+    ],
+    keywords: ['github', 'pull request', 'repo', 'repository', 'issue', 'octocat'],
+    codePatterns: ['@octokit', 'api.github.com', 'github.com/api'],
+  },
+];
 
 export interface DetectedConnector {
   provider: string;
@@ -92,11 +69,10 @@ export interface DetectionInput {
   prompt?: string;
   recentCode?: string;
   catalog?: ConnectorKeywordEntry[];
-  language?: string | null;
 }
 
 export function detectConnectorNeeds(input: DetectionInput): DetectedConnector[] {
-  const catalog = input.catalog ?? getDefaultConnectorKeywordCatalog(input.language);
+  const catalog = input.catalog ?? DEFAULT_CONNECTOR_KEYWORD_CATALOG;
   const lowerPrompt = (input.prompt ?? '').toLowerCase();
   const code = input.recentCode ?? '';
   const detected: DetectedConnector[] = [];
@@ -197,11 +173,10 @@ export interface ConnectionRequestInput {
   scopes?: ConnectionRequestScopeDescription[];
   existingAccountConnections?: ExistingAccountConnection[];
   catalog?: ConnectorKeywordEntry[];
-  language?: string | null;
 }
 
 export function createConnectionRequestDataPart(input: ConnectionRequestInput): ConnectorDataPart {
-  const catalog = input.catalog ?? getDefaultConnectorKeywordCatalog(input.language);
+  const catalog = input.catalog ?? DEFAULT_CONNECTOR_KEYWORD_CATALOG;
   const entry = catalog.find((row) => row.provider === input.provider);
 
   if (!entry) {

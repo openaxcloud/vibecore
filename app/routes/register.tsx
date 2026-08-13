@@ -1,1 +1,1 @@
-export { action, loader, meta, default } from './signup';
+export { action, loader, default } from './signup';

@@ -3,7 +3,6 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { StringDecoder } from 'node:string_decoder';
-import { workspaceAgentError } from './public-i18n.js';
 
 /*
  * Real, persistent terminal sessions for the workspace agent.
@@ -414,10 +413,7 @@ export class TerminalSessionManager {
      * .finally(pending.delete) rolls the reservation back if creation rejects.
      */
     if (this.sessions.size + this.pending.size >= this.maxSessions) {
-      throw workspaceAgentError('tooManyTerminalSessions', {
-        statusCode: 429,
-        code: 'TERMINAL_SESSION_LIMIT_REACHED',
-      });
+      throw new Error('Too many terminal sessions');
     }
 
     const creation = this.#create(id, spawn).finally(() => {
@@ -430,10 +426,7 @@ export class TerminalSessionManager {
 
   async #create(id: string, spawn: { cols?: number; rows?: number }): Promise<TerminalSession> {
     if (this.sessions.size >= this.maxSessions) {
-      throw workspaceAgentError('tooManyTerminalSessions', {
-        statusCode: 429,
-        code: 'TERMINAL_SESSION_LIMIT_REACHED',
-      });
+      throw new Error('Too many terminal sessions');
     }
 
     const backend = await createTerminalBackend({

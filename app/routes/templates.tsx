@@ -6,51 +6,43 @@ import {
   type PublicTemplateCategory,
 } from '~/components/marketing/EcodePublicResourcePages';
 import { hasValidWebSession } from '~/lib/.server/require-session';
-import { buildPublicRouteMeta, getPublicRouteSeoCopy } from '~/lib/i18n/catalogs/public-route-seo';
-import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 import {
   getEcodeTemplateCategories,
   listEcodeTemplates,
   type EcodeTemplate,
   type EcodeTemplateCategory,
 } from '~/lib/marketing/ecode-template-catalog.server';
+import { socialMetaTags } from '~/utils/social-meta';
 
-export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-  const language = data?.language ?? rootData?.language;
-  const copy = getPublicRouteSeoCopy(language);
-
-  return buildPublicRouteMeta({
-    language,
-    pathname: '/templates',
-    seo: {
-      title: copy['publicRouteSeo.templates.title'],
-      description: copy['publicRouteSeo.templates.description'],
-      imageAlt: copy['publicRouteSeo.templates.imageAlt'],
-    },
-  });
-};
+export const meta: MetaFunction = () => [
+  { title: 'Templates - E-Code' },
+  {
+    name: 'description',
+    content: 'Public E-Code template gallery powered by real E-Code starter templates.',
+  },
+  ...socialMetaTags({
+    title: 'Templates - E-Code',
+    description: 'Public E-Code template gallery powered by real E-Code starter templates.',
+  }),
+];
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const locale = resolveRequestLocale(request);
-  const headers = localeResponseHeaders(request, locale);
-
   /*
    * A signed-in visitor who lands on the public gallery belongs in the in-app
    * templates page (real "Use template" actions), not the marketing twin.
    */
   if (await hasValidWebSession(request)) {
-    throw redirect('/dashboard/templates', { headers });
+    throw redirect('/dashboard/templates');
   }
 
-  const categories = getEcodeTemplateCategories(locale.language).map(toPublicCategory);
+  const categories = getEcodeTemplateCategories().map(toPublicCategory);
   const categoryNames = new Map(categories.map((category) => [category.slug, category.name]));
 
-  const templates = listEcodeTemplates({ sortBy: 'trending' }, locale.language).map((template) =>
+  const templates = listEcodeTemplates({ sortBy: 'trending' }).map((template) =>
     toPublicTemplate(template, categoryNames),
   );
 
-  return json({ language: locale.language, categories, templates }, { headers });
+  return json({ categories, templates });
 }
 
 export default function TemplatesRoute() {
@@ -63,12 +55,6 @@ export function toPublicTemplate(
   template: EcodeTemplate,
   categoryNames: Map<string, string> = new Map(),
 ): PublicTemplateCard {
-  const difficulty = {
-    beginner: 'easy',
-    intermediate: 'medium',
-    advanced: 'hard',
-  } as const;
-
   return {
     id: template.id,
     slug: template.slug,
@@ -76,7 +62,7 @@ export function toPublicTemplate(
     description: template.description,
     category: template.category,
     categoryName: categoryNames.get(template.category) ?? template.category,
-    difficulty: difficulty[template.difficulty],
+    difficulty: template.difficulty,
     featured: template.featured,
     trending: template.trending,
     technologies: template.technologies,

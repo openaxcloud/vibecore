@@ -1,8 +1,6 @@
 import { Readable } from 'node:stream';
-import { verifyConnectorAccessToken, type ConnectorErrorCode } from '@vibecore/connector-sdk';
-import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
-
-import { sendConnectorProxyError } from './public-i18n.js';
+import { verifyConnectorAccessToken, type ConnectorErrorBody } from '@vibecore/connector-sdk';
+import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 
 export interface ConnectionResolverInput {
   userConnectionId: string;
@@ -21,7 +19,7 @@ export type ConnectionResolution =
   | {
       ok: false;
       status: number;
-      code: ConnectorErrorCode;
+      code: ConnectorErrorBody['code'];
       error: string;
       detail?: string;
     };
@@ -161,7 +159,10 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
     const tokenVerification = verifyAccessTokenFromRequest(request, options.accessTokenSecret);
 
     if (!tokenVerification.ok) {
-      return sendConnectorProxyError(request, reply, tokenVerification.status, tokenVerification.code);
+      return sendError(reply, tokenVerification.status, {
+        error: tokenVerification.error,
+        code: tokenVerification.code,
+      });
     }
 
     const params = request.params as { userConnectionId: string; '*': string };
@@ -175,13 +176,20 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
     });
 
     if (!resolution.ok) {
-      return sendConnectorProxyError(request, reply, resolution.status, resolution.code);
+      return sendError(reply, resolution.status, {
+        error: resolution.error,
+        code: resolution.code,
+        detail: resolution.detail,
+      });
     }
 
     const upstream = PROVIDER_UPSTREAMS[resolution.provider];
 
     if (!upstream) {
-      return sendConnectorProxyError(request, reply, 501, 'CONNECTOR_UNKNOWN_PROVIDER');
+      return sendError(reply, 501, {
+        error: `Provider ${resolution.provider} is not yet wired in connector-proxy.`,
+        code: 'CONNECTOR_UNKNOWN_PROVIDER',
+      });
     }
 
     const safeWildcard = encodeUpstreamPathDelimiters(params['*']);
@@ -203,7 +211,7 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
     try {
       resolvedUrl = new URL(upstreamUrl);
     } catch {
-      return sendConnectorProxyError(request, reply, 400, 'CONNECTOR_INVALID_PATH');
+      return sendError(reply, 400, { error: 'Invalid upstream path', code: 'CONNECTOR_INVALID_PATH' });
     }
 
     const basePathPrefix = baseUrl.pathname.replace(/\/+$/, '');
@@ -214,7 +222,10 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
         resolvedUrl.pathname !== basePathPrefix &&
         !resolvedUrl.pathname.startsWith(`${basePathPrefix}/`))
     ) {
-      return sendConnectorProxyError(request, reply, 400, 'CONNECTOR_PATH_TRAVERSAL');
+      return sendError(reply, 400, {
+        error: 'Upstream path escapes the provider API base path',
+        code: 'CONNECTOR_PATH_TRAVERSAL',
+      });
     }
 
     const headers = buildUpstreamHeaders(request, resolution.accessToken, upstream.auth, upstream.defaultAccept);
@@ -252,7 +263,13 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
 
       const timedOut = error?.name === 'TimeoutError' || error?.name === 'AbortError';
 
-      return sendConnectorProxyError(request, reply, timedOut ? 504 : 502, 'CONNECTOR_PROVIDER_UNREACHABLE');
+      return sendError(reply, timedOut ? 504 : 502, {
+        error: timedOut
+          ? 'Connector proxy timed out waiting for the upstream provider.'
+          : 'Connector proxy could not reach the upstream provider.',
+        code: 'CONNECTOR_PROVIDER_UNREACHABLE',
+        detail: error?.message,
+      });
     }
 
     // Headers received — the connect phase is done; let the body stream unbounded.
@@ -389,7 +406,8 @@ export async function buildConnectorProxyApp(options: ConnectorProxyOptions): Pr
 type TokenVerificationFailure = {
   ok: false;
   status: number;
-  code: ConnectorErrorCode;
+  error: string;
+  code: ConnectorErrorBody['code'];
 };
 
 type TokenVerificationSuccess = {
@@ -413,6 +431,7 @@ function verifyAccessTokenFromRequest(
     return {
       ok: false,
       status: 401,
+      error: 'Missing bearer token',
       code: 'CONNECTOR_TOKEN_MISSING',
     };
   }
@@ -425,6 +444,7 @@ function verifyAccessTokenFromRequest(
       return {
         ok: false,
         status: 401,
+        error: 'Access token expired',
         code: 'CONNECTOR_TOKEN_EXPIRED',
       };
     }
@@ -432,6 +452,7 @@ function verifyAccessTokenFromRequest(
     return {
       ok: false,
       status: 401,
+      error: 'Invalid access token',
       code: 'CONNECTOR_TOKEN_INVALID',
     };
   }
@@ -482,4 +503,8 @@ function buildUpstreamHeaders(
 
 function shouldStreamBody(method: string): boolean {
   return method !== 'GET' && method !== 'HEAD';
+}
+
+function sendError(reply: FastifyReply, status: number, body: ConnectorErrorBody) {
+  return reply.code(status).send(body);
 }

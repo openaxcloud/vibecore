@@ -1,15 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
-import { DEFAULT_DEPLOY_BUILD_COMMAND, formatBuildFailureOutput } from './deployUtils';
-import {
-  getDeployRemainingCopy,
-  getRepositoryDeployErrorMessage,
-  getRepositoryDeployStatusMessage,
-  type RepositoryDeployErrorCode,
-  type RepositoryDeployStatus,
-} from '~/lib/i18n/catalogs/deploy-remaining';
+import { formatBuildFailureOutput } from './deployUtils';
 import { getLocalStorage } from '~/lib/persistence/localStorage';
 import { chatId } from '~/lib/persistence/useChatHistory';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
@@ -17,53 +9,32 @@ import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { collectRuntimeTextFiles } from '~/lib/runtime/runtime-files';
 import { workbenchStore } from '~/lib/stores/workbench';
 
-class GitHubDeployError extends Error {
-  constructor(
-    readonly code: Extract<RepositoryDeployErrorCode, 'no-active-project' | 'build-failed' | 'preparation-failed'>,
-    readonly technicalCause?: unknown,
-  ) {
-    super(code);
-    this.name = 'GitHubDeployError';
-  }
-}
-
 export function useGitHubDeploy() {
-  const { i18n } = useTranslation();
-
   // Workspace-bound adapter (the module singleton has no workspaceId → fails in remote-k8s).
   const runtimeAdapter = useRuntimeAdapter();
   const [isDeploying, setIsDeploying] = useState(false);
-  const [deploymentStatus, setDeploymentStatus] = useState<RepositoryDeployStatus>('idle');
   const currentChatId = useStore(chatId);
-  const language = i18n.resolvedLanguage ?? i18n.language;
-
-  const currentLanguage = () => i18n.resolvedLanguage ?? i18n.language;
 
   const handleGitHubDeploy = async () => {
     const connection = getLocalStorage('github_connection');
 
     if (!connection?.token || !connection?.user) {
-      setDeploymentStatus('error');
-      toast.error(getRepositoryDeployErrorMessage(currentLanguage(), 'github', 'connect-first'));
-
+      toast.error('Please connect your GitHub account in Settings > Connections first');
       return false;
     }
 
     if (!currentChatId) {
-      setDeploymentStatus('error');
-      toast.error(getRepositoryDeployErrorMessage(currentLanguage(), 'github', 'no-active-chat'));
-
+      toast.error('No active chat found');
       return false;
     }
 
     try {
       setIsDeploying(true);
-      setDeploymentStatus('building');
 
       const artifact = workbenchStore.firstArtifact;
 
       if (!artifact) {
-        throw new GitHubDeployError('no-active-project');
+        throw new Error('No active project found');
       }
 
       // Create a deployment artifact for visual feedback
@@ -71,7 +42,7 @@ export function useGitHubDeploy() {
       workbenchStore.addArtifact({
         id: deploymentId,
         messageId: deploymentId,
-        title: getDeployRemainingCopy(currentLanguage())['deployRemaining.repository.github.artifactTitle'],
+        title: 'GitHub Deployment',
         type: 'standalone',
       });
 
@@ -88,7 +59,7 @@ export function useGitHubDeploy() {
         actionId,
         action: {
           type: 'build' as const,
-          content: DEFAULT_DEPLOY_BUILD_COMMAND,
+          content: 'npm run build',
         },
       };
 
@@ -101,20 +72,15 @@ export function useGitHubDeploy() {
       const buildOutput = artifact.runner.buildOutput;
 
       if (!buildOutput || buildOutput.exitCode !== 0) {
-        const technicalOutput = formatBuildFailureOutput(buildOutput?.output);
-
-        console.error('GitHub build failed:', technicalOutput);
-
         // Notify that build failed
         deployArtifact.runner.handleDeployAction('building', 'failed', {
-          error: getRepositoryDeployErrorMessage(currentLanguage(), 'github', 'build-failed'),
+          error: formatBuildFailureOutput(buildOutput?.output),
           source: 'github',
         });
-        throw new GitHubDeployError('build-failed', technicalOutput);
+        throw new Error('Build failed');
       }
 
       // Notify that build succeeded and deployment preparation is starting
-      setDeploymentStatus('preparing');
       deployArtifact.runner.handleDeployAction('deploying', 'running', {
         source: 'github',
       });
@@ -138,8 +104,7 @@ export function useGitHubDeploy() {
       });
 
       // Show success toast notification
-      setDeploymentStatus('success');
-      toast.success(getDeployRemainingCopy(currentLanguage())['deployRemaining.repository.github.success']);
+      toast.success(`🚀 GitHub deployment preparation completed successfully!`);
 
       return {
         success: true,
@@ -148,11 +113,7 @@ export function useGitHubDeploy() {
       };
     } catch (err) {
       console.error('GitHub deploy error:', err);
-      setDeploymentStatus('error');
-
-      const errorCode = err instanceof GitHubDeployError ? err.code : 'preparation-failed';
-
-      toast.error(getRepositoryDeployErrorMessage(currentLanguage(), 'github', errorCode));
+      toast.error(err instanceof Error ? err.message : 'GitHub deployment preparation failed');
 
       return false;
     } finally {
@@ -164,7 +125,5 @@ export function useGitHubDeploy() {
     isDeploying,
     handleGitHubDeploy,
     isConnected: !!getLocalStorage('github_connection')?.user,
-    deploymentStatus,
-    statusMessage: getRepositoryDeployStatusMessage(language, deploymentStatus),
   };
 }

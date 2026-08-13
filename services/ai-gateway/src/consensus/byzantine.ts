@@ -1,5 +1,4 @@
 import type { AgentRoleId, AgentRunResult } from '../agent-executor.js';
-import { aiGatewayMessage } from '../public-i18n.js';
 import { aggregateClaims, buildClaimVote, determineParticipation } from './voting.js';
 import { detectAllConflicts } from './conflict-detection.js';
 import {
@@ -100,7 +99,7 @@ export class ByzantineConsensus implements ConsensusEngine {
       };
     });
 
-    const conflicts = detectAllConflicts(input.results, input.locale);
+    const conflicts = detectAllConflicts(input.results);
     const accepted = finalVotes.filter((v) => v.decision === 'accepted');
 
     /*
@@ -137,7 +136,7 @@ export class ByzantineConsensus implements ConsensusEngine {
         input.results
           .filter((r) => r.status !== 'failed' && r.summary)
           .map((r) => `[${r.roleId}] ${r.summary}`)
-          .join('\n\n') || aiGatewayMessage('consensusEmptySummary', input.locale),
+          .join('\n\n') || 'No sub-agent produced a usable summary.',
       acceptedRisks: accepted.filter((v) => v.type === 'risk').map((v) => v.claim),
       acceptedVerification: accepted.filter((v) => v.type === 'verification').map((v) => v.claim),
       acceptedFiles: accepted.filter((v) => v.type === 'file').map((v) => v.claim),

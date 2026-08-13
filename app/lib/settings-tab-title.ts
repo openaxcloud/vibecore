@@ -1,5 +1,4 @@
-import type { TabType } from '~/components/@settings/core/types';
-import { getSettingsCoreTabLabel } from '~/lib/i18n/catalogs/settings-core';
+import { TAB_LABELS, type TabType } from '~/components/@settings/core/types';
 
 /**
  * Maps a URL slug (e.g. from /settings/:tab) onto the canonical settings TabType.
@@ -38,28 +37,40 @@ export const TAB_ALIASES: Record<string, TabType> = {
 export const APP_NAME = 'E-Code';
 
 /**
- * Resolves the friendly settings tab name for a URL slug.
- * Unknown URL fragments deliberately use the localized generic settings label:
- * a raw slug is an implementation identifier, not reviewed interface copy.
+ * Turns a raw URL slug into a friendly, capitalized label when it is not a
+ * recognized settings tab (e.g. 'cloud-providers' -> 'Cloud Providers').
  */
-export function getSettingsTabName(slug?: string | null, language?: string | null): string {
+function capitalizeSlug(slug: string): string {
+  return slug
+    .split(/[-_]/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
+
+/**
+ * Resolves the friendly settings tab name for a URL slug.
+ * Returns 'Settings' when no slug is given, the canonical TAB_LABELS entry for
+ * known tabs/aliases, and a capitalized version of the slug otherwise.
+ */
+export function getSettingsTabName(slug?: string | null): string {
   if (!slug) {
-    return getSettingsCoreTabLabel('', language);
+    return 'Settings';
   }
 
   const tab = TAB_ALIASES[slug];
 
   if (tab) {
-    return getSettingsCoreTabLabel(tab, language);
+    return TAB_LABELS[tab];
   }
 
-  return getSettingsCoreTabLabel('', language);
+  return capitalizeSlug(slug);
 }
 
 /**
  * Builds the browser-tab title for a settings sub-route, e.g.
  * 'Profile | E-Code'. Never leaks the upstream codename or the raw URL slug.
  */
-export function settingsTabTitle(slug?: string | null, language?: string | null): string {
-  return `${getSettingsTabName(slug, language)} | ${APP_NAME}`;
+export function settingsTabTitle(slug?: string | null): string {
+  return `${getSettingsTabName(slug)} | ${APP_NAME}`;
 }

@@ -1,5 +1,4 @@
 import { data as json, type ActionFunctionArgs, type LoaderFunctionArgs } from 'react-router';
-import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 const MAX_BUFFERED_REPORTS = 200;
 
@@ -75,7 +74,7 @@ export async function loader(_args: LoaderFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== 'POST') {
-    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405, { extra: { ok: false } });
+    return json({ ok: false, error: 'Method not allowed' }, { status: 405 });
   }
 
   rememberReport({

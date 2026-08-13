@@ -1,5 +1,4 @@
 import { apiRequest, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
-import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 /*
  * Browser-accessible proxy for the @settings → Connections "Request an
@@ -33,7 +32,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
 export async function action({ request }: EnterpriseActionArgs) {
   if (request.method !== 'POST') {
-    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405);
+    return Response.json({ error: 'Method not allowed' }, { status: 405 });
   }
 
   const form = await request.formData();
@@ -42,7 +41,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   const organizationId = String(form.get('organizationId') ?? '').trim();
 
   if (!integrationName || !useCaseDescription) {
-    return remainingApiErrorResponse(request, 'INTEGRATION_REQUEST_INVALID', 400);
+    return Response.json({ error: 'An integration name and a use-case description are required.' }, { status: 400 });
   }
 
   try {
@@ -57,8 +56,9 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return Response.json({ ok: true, request: result.request });
   } catch (error) {
-    const status = error instanceof Response && error.status !== 500 ? error.status : 502;
-
-    return remainingApiErrorResponse(request, 'INTEGRATION_REQUEST_FAILED', status);
+    return Response.json(
+      { error: error instanceof Error ? error.message : 'Unable to submit your integration request.' },
+      { status: 502 },
+    );
   }
 }

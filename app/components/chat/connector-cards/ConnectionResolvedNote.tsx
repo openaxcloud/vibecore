@@ -1,6 +1,4 @@
-import { useTranslation } from 'react-i18next';
 import type { ConnectionResolvedMessage } from '~/lib/chat/connector-messages';
-import { formatChatResidualsCopy, getChatResidualsCopy } from '~/lib/i18n/catalogs/chat-residuals';
 
 /*
  * Small confirmation card rendered when the agent emits a
@@ -17,17 +15,11 @@ export interface ConnectionResolvedNoteProps {
 }
 
 export function ConnectionResolvedNote({ payload }: ConnectionResolvedNoteProps) {
-  const { i18n } = useTranslation();
-  const copy = getChatResidualsCopy(i18n.resolvedLanguage ?? i18n.language);
-
   return (
-    <div className="my-2 flex min-w-0 items-center gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2">
-      <span className="i-ph:check-circle-fill h-4 w-4 shrink-0 text-bolt-elements-icon-success" aria-hidden />
+    <div className="my-2 flex items-center gap-2 rounded-md border border-bolt-elements-borderColor px-3 py-2 bg-bolt-elements-background-depth-1">
+      <span className="i-ph:check-circle-fill w-4 h-4 shrink-0 text-bolt-elements-icon-success" />
       <p className="min-w-0 text-xs text-bolt-elements-textSecondary break-words">
-        {formatChatResidualsCopy(copy['chatResiduals.connectionResolved.success'], {
-          provider: payload.providerDisplayName,
-          account: payload.accountLabel,
-        })}
+        {payload.providerDisplayName} connected as <strong>{payload.accountLabel}</strong>.
       </p>
     </div>
   );

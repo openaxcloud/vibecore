@@ -36,7 +36,7 @@ export interface PollNetlifyDeployOptions {
 
 export type PollNetlifyDeployResult =
   | { outcome: 'ready'; status: NetlifyDeployStatus; attempts: number }
-  | { outcome: 'error'; technicalCause?: string; attempts: number }
+  | { outcome: 'error'; error: string; attempts: number }
   | { outcome: 'timeout'; attempts: number };
 
 const defaultSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -66,7 +66,7 @@ export async function pollNetlifyDeploy(options: PollNetlifyDeployOptions): Prom
       if (status.state === 'error') {
         return {
           outcome: 'error',
-          technicalCause: status.error_message,
+          error: 'Deployment failed: ' + (status.error_message || 'Unknown error'),
           attempts,
         };
       }

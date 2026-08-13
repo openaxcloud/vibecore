@@ -1,13 +1,7 @@
 import { StreamingMessageParser, type StreamingMessageParserOptions } from './message-parser';
-import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('EnhancedMessageParser');
-
-export interface EnhancedStreamingMessageParserOptions extends StreamingMessageParserOptions {
-  /** Reads the active UI locale when a synthetic artifact is created. */
-  language?: () => string | null | undefined;
-}
 
 /**
  * Enhanced message parser that detects code blocks and file patterns
@@ -17,7 +11,6 @@ export interface EnhancedStreamingMessageParserOptions extends StreamingMessageP
 export class EnhancedStreamingMessageParser extends StreamingMessageParser {
   private _processedCodeBlocks = new Map<string, Set<string>>();
   private _artifactCounter = 0;
-  private _language: () => string | null | undefined;
 
   /*
    * Tracks messages whose last parse() did a resetMessage()+full-reparse (the
@@ -55,9 +48,8 @@ export class EnhancedStreamingMessageParser extends StreamingMessageParser {
     ['system', /^(df|du|free|uname|whoami|id|groups|date|uptime)\s*/],
   ]);
 
-  constructor({ language, ...options }: EnhancedStreamingMessageParserOptions = {}) {
+  constructor(options: StreamingMessageParserOptions = {}) {
     super(options);
-    this._language = language ?? (() => undefined);
   }
 
   parse(messageId: string, input: string): string {
@@ -289,9 +281,8 @@ ${content}
 
   private _wrapInShellAction(content: string, messageId: string): string {
     const artifactId = `artifact-${messageId}-${this._artifactCounter++}`;
-    const title = clientStoresServicesText('clientRuntime.artifact.shellCommand', {}, this._language());
 
-    return `<boltArtifact id="${artifactId}" title="${title}" type="shell">
+    return `<boltArtifact id="${artifactId}" title="Shell Command" type="shell">
 <boltAction type="shell">
 ${content.trim()}
 </boltAction>

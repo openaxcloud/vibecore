@@ -74,29 +74,16 @@ contracts:
     signatureResult: REFUSED_V1
   - contractId: CTR-RUNTIME-NIX
     file: RUNTIME_NIX_CONTRACT.md
-    contractVersion: 7
+    contractVersion: 4
     refusalReasonV1: "format lock incompatible + rotation inconnue"
     refusalReasonV2: "format ecode.lock et rotation/révocation des générations restent des dépendances ouvertes"
     reviewReceiptIdV2: RR-20260721-CODEX-04
     refusalReasonV3: "lock pas prouvé immuable + enforcement incomplet (pin optionnel, rollback sans pin, validation partielle du catalogue, négatif live bloqué)"
-    refusalReasonV4: "négatif live révocation pas EXÉCUTÉ + config prod restaurée non vérifiée"
-    refusalReasonV5: "8.1 code typé non capturé : le contrat affirme ECODE_LOCK_GENERATION_REVOKED mais publish réduit à ecodeLockError = error.message — l artefact est un message textuel, pas un code typé ; 8.2 référence morte : contrat/README référencent live-revocation-EXECUTED.log alors que le fichier réel est .txt ; 8.3 sur-revendication UI : le README décrit UI → control plane alors que ce sont des appels HTTP directs"
-    reviewReceiptIdV5: RR-20260731-CODEX-08
-    refusalReasonV6: "Refs .log corrigées, revendication UI retirée, code typé préservé + tests. MAIS la preuve live du code typé porte sur le 409 de /nix-lock, PAS sur un publish exécuté avec l image contenant le correctif (le publish live a tourné sur une image antérieure, statut/log ne contient que le message). Une preuve future après déploiement ne vaut pas une preuve présente. Correction : 1) merger/déployer le correctif ; 2) rejouer ACTIVE→READY/200, REVOKED→publish FAILED avec statut/log du deployment contenant littéralement ECODE_LOCK_GENERATION_REVOKED + URL 410, restauration→READY/200 ; 3) archiver artefacts + hashes."
-    reviewReceiptIdV6: RR-20260802-CODEX-09
-    acceptedIndividualEvidence:
-      - evidenceId: NIX-REVOKED-GENERATION-FAILED-410-AND-RESTORE-READY-200
-        scope: "PORTÉE LIMITÉE (reçu RR-08) : sous-preuve fonctionnelle recevable — lock gen-2 → READY/200 ; révoquée → FAILED/410 ; restaurée → READY/200 ; pas de repli silencieux. Ne signe PAS le contrat."
     hardeningStatus: HARDENED_PENDING_REVIEW
-    anchor: "v7 (RR-09): code typé ECODE_LOCK_GENERATION_REVOKED capturé DANS LE LOG DU DEPLOYMENT d un publish sur l image CORRIGÉE déployée (merge #57 05319065, api 05319065be) — 03/08 : ACTIVE→READY/200, REVOKED→FAILED (log deployment contient le code littéral)+URL 410, restauré→READY/200, prod==main vérifié. Artefacts docs/deploy-evidence/2026-08-03-rr09-code-in-deployment/"
+    anchor: "v4 CORRIGE les 4 points: (1) pin de génération OBLIGATOIRE (assertLockPublishable, alias mutable refusé ECODE_LOCK_UNPINNED) ; (2) pin persisté+réutilisé dans release ET rollback (RetainedRelease.storeGeneration → RollbackPlan → nixGenerationRef, rollback évalué contre la génération de SA release) ; (3) validation EXHAUSTIVE bundles/store paths/hashes vs catalogue signé (ECODE_LOCK_BUNDLE_TAMPERED/UNKNOWN) ; tests négatifs sur le vrai gen-2 ; (4) négatif live révocation prêt via mini-merge"
     expectedReviewer: OpenAI-Codex
-    signatureResult: SIGNED
-    reviewer: OpenAI-Codex
-    signedAt: "2026-08-04"
-    reviewReceiptId: RR-20260804-CODEX-10
-    reviewReceiptIdV7: RR-20260804-CODEX-10
-    signedScope: "v7 (§D du reçu, verbatim) : « Réserve RR-09 levée. Artefacts : publish sur image corrigée 05319065be — ACTIVE→READY/200 ; REVOKED→FAILED ; log persistant du deployment contient littéralement ECODE_LOCK_GENERATION_REVOKED ; URL du deployment refusé → 410 ; restauration→READY/200. » Reçu COMPLET : docs/parity/incoming/REPONSE_EXPERT_V7_20260804.md (sha256 7832522b…)."
-    openDependencies: "l'api/manager prod n'interprètent pas encore NIX_STORE_GENERATIONS (durcissement post-signature, hors portée signée)"
+    signatureResult: PENDING_REVIEW
+    openDependencies: "négatif live révocation (Publish → refus) = prêt à jouer via mini-merge dédié (feu vert Avi) ; l'api/manager prod n'interprètent pas encore NIX_STORE_GENERATIONS"
   - contractId: CTR-PROJECT-FACTORY
     file: PROJECT_FACTORY_CONTRACT.md
     contractVersion: 1
@@ -136,11 +123,6 @@ contracts:
     file: OPERATIONS_DR.md
     contractVersion: 1
     refusalReasonV1: "SLO/astreinte/chaos/RTO-RPO non prouvés"
-    notSubmittedForWholeContractSignature: true   # décision RR-08 — aucun reviewer sur le contrat entier
-    remainingObligations: "astreinte outillée ; réplication cross-région ; RTO applicatif complet (reçu RR-08)"
-    acceptedIndividualEvidence:
-      - evidenceId: EVID-DR-SNAPSHOT-001
-        scope: "PORTÉE LIMITÉE (reçu RR-08) : policy Terraform quotidienne rétention 7 j + attache observée sur les disques PRÉSENTS + snapshot compatible scheduler + script idempotent. LIMITES verbatim : pas de CronJob d attache continue démontré (NE PAS prétendre couverture automatique des futurs disques) ; archiver aussi la sortie JSON brute gcloud compute snapshots describe / Cloud Audit Logs. Ne signe PAS le contrat."
     hardeningStatus: BLOCKED_ON_CHANTIER
     blockedBy: "exercices réels DR/restauration (PR-DR-01/02/03, WI-0051) — un plan non testé n'est pas un plan"
     expectedReviewer: OpenAI-Codex

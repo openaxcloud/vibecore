@@ -8,11 +8,10 @@
  *   - événement : push ; branche : head_branch == main ;
  *   - conclusion == success ; created_at cohérent avec runDate (±48h) ;
  *   - **TOUS les commits de provenance** (runCommit, mergedCommit, et le commit
- *     de dépôt déclaré repoCommit) OBLIGATOIRES et NON VIDES, liés au head_sha
- *     authentifié par la MÊME règle `sameCommit` (verdict -06 §1) — leur ABSENCE
- *     est REJETÉE (RR-20260723-CODEX-07, plus de fail-open) ;
- *   - **runUrl OBLIGATOIRE et NON VIDE**, égalité EXACTE après normalisation —
- *     plus de préfixe accepté, absence REJETÉE (verdict -06 §2 + CODEX-07).
+ *     de dépôt déclaré repoCommit s'il est présent) liés au head_sha authentifié
+ *     par la MÊME règle `sameCommit` (verdict -06 §1) ;
+ *   - **égalité EXACTE de l'URL** après normalisation — plus de préfixe accepté
+ *     (verdict -06 §2).
  * Sans GH_TOKEN (exécution locale), le contrôle est SAUTÉ EXPLICITEMENT — la CI
  * le fait avec le token du run.
  *
@@ -45,11 +44,6 @@ export const EXPECTED_HEAD_BRANCH = 'main';
 // head_sha authentifié, mais SEULEMENT s'il fait au moins 7 hex ET est
 // réellement un préfixe. Règle explicite, fail-closed.
 export const MIN_SHORT_SHA = 7;
-
-/** Champ manquant (undefined / null) ou vide (chaîne blanche) — fail-closed CODEX-07. */
-export function isBlank(v) {
-  return v === undefined || v === null || String(v).trim() === '';
-}
 
 /** Le commit déclaré == le head_sha authentifié, ou en est un préfixe court explicite (≥7 hex). */
 export function sameCommit(declared, headSha) {
@@ -94,21 +88,15 @@ export function checkAttestationFields(att, run) {
     errors.push(`branche: head_branch API (${run.head_branch}) ≠ attendu (${EXPECTED_HEAD_BRANCH})`);
   }
 
-  // Verdict -06 §1 + RR-20260723-CODEX-07 : TOUS les commits de provenance sont
-  // OBLIGATOIRES, NON VIDES et liés au head_sha authentifié. Leur ABSENCE
-  // (undefined / null / chaîne vide) est REJETÉE explicitement — plus de
-  // fail-open : une attestation « amputée » d'un de ces champs échoue.
+  // Verdict -06 §1 : TOUS les commits de provenance liés au head_sha authentifié.
   if (!sameCommit(att.runCommit, run.head_sha)) {
     errors.push(`sha: runCommit attesté (${String(att.runCommit).slice(0, 12)}) non lié au head_sha API (${String(run.head_sha).slice(0, 12)})`);
   }
-  if (isBlank(att.mergedCommit)) {
-    errors.push('sha: mergedCommit ABSENT/vide — champ OBLIGATOIRE (fail-closed CODEX-07)');
-  } else if (!sameCommit(att.mergedCommit, run.head_sha)) {
+  if (att.mergedCommit !== undefined && !sameCommit(att.mergedCommit, run.head_sha)) {
     errors.push(`sha: mergedCommit attesté (${String(att.mergedCommit).slice(0, 12)}) non lié au head_sha API (${String(run.head_sha).slice(0, 12)})`);
   }
-  if (isBlank(att.repoCommit)) {
-    errors.push('sha: repoCommit ABSENT/vide — champ OBLIGATOIRE (fail-closed CODEX-07)');
-  } else if (!sameCommit(att.repoCommit, run.head_sha)) {
+  // Commit de dépôt déclaré (repoCommit) — s'il est présent dans l'attestation.
+  if (att.repoCommit !== undefined && !sameCommit(att.repoCommit, run.head_sha)) {
     errors.push(`sha: repoCommit déclaré (${String(att.repoCommit).slice(0, 12)}) non lié au head_sha API (${String(run.head_sha).slice(0, 12)})`);
   }
 
@@ -116,16 +104,11 @@ export function checkAttestationFields(att, run) {
     errors.push(`conclusion: API (${run.conclusion}) ≠ attestée (${att.conclusion})`);
   }
 
-  // Verdict -06 §2 + CODEX-07 : runUrl OBLIGATOIRE, NON VIDE, égalité EXACTE
-  // après normalisation. Son absence est REJETÉE explicitement.
-  if (isBlank(att.runUrl)) {
-    errors.push('url: runUrl ABSENT/vide — champ OBLIGATOIRE (fail-closed CODEX-07)');
-  } else {
-    const attUrl = normalizeRunUrl(att.runUrl);
-    const apiUrl = normalizeRunUrl(run.html_url);
-    if (attUrl === null || apiUrl === null || attUrl !== apiUrl) {
-      errors.push(`url: runUrl attesté (${att.runUrl}) ≠ html_url API normalisée (${run.html_url})`);
-    }
+  // Verdict -06 §2 : égalité EXACTE de l'URL après normalisation.
+  const attUrl = normalizeRunUrl(att.runUrl);
+  const apiUrl = normalizeRunUrl(run.html_url);
+  if (att.runUrl !== undefined && (attUrl === null || apiUrl === null || attUrl !== apiUrl)) {
+    errors.push(`url: runUrl attesté (${att.runUrl}) ≠ html_url API normalisée (${run.html_url})`);
   }
 
   const apiDate = new Date(run.created_at).getTime();
@@ -171,8 +154,5 @@ if (isMain) {
     process.exit(1);
   }
 
-  // Le message n'est atteint que si errors.length === 0 : la garde exige
-  // désormais runCommit + mergedCommit + repoCommit + runUrl PRÉSENTS et liés —
-  // il ne peut donc plus affirmer « liés » alors qu'un champ serait absent.
-  console.log(`[verify-attestation-run] OK — run ${att.runId} authentifié (workflow, event, branche, runCommit+mergedCommit+repoCommit OBLIGATOIRES et liés au head_sha, conclusion, url exacte OBLIGATOIRE, date)`);
+  console.log(`[verify-attestation-run] OK — run ${att.runId} authentifié (workflow, event, branche, runCommit+mergedCommit+repoCommit liés au head_sha, conclusion, url exacte, date)`);
 }

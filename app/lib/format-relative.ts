@@ -1,52 +1,28 @@
-import { detectUserLanguage, type SupportedLanguage } from './i18n/language';
-import { USER_AREA_LOCALES, USER_AREA_TIME_ZONE } from './i18n/user-area-locale';
+import { USER_AREA_LOCALE, USER_AREA_TIME_ZONE } from './i18n/user-area-locale';
 
 /**
- * Relative timestamps for list surfaces ("Updated 2 hours ago"). Callers that
- * render during SSR pass the active request language explicitly so the server
- * and client produce the same string. Beyond a week the relative form stops
- * being useful and we fall back to an absolute date.
+ * Relative timestamps for list surfaces ("Updated 2 hours ago"). Fixed 'en'
+ * locale — the product UI is English — so server and client render the same
+ * string. Beyond a week the relative form stops being useful and we fall back
+ * to an absolute date.
  */
-type RelativeFormatters = Readonly<{
-  relative: Intl.RelativeTimeFormat;
-  absoluteDate: Intl.DateTimeFormat;
-  absoluteDateTime: Intl.DateTimeFormat;
-}>;
+const relativeFormatter = new Intl.RelativeTimeFormat(USER_AREA_LOCALE, { numeric: 'auto' });
 
-const FORMATTERS = new Map<SupportedLanguage, RelativeFormatters>();
+const absoluteDateFormatter = new Intl.DateTimeFormat(USER_AREA_LOCALE, {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  timeZone: USER_AREA_TIME_ZONE,
+});
 
-function formatters(language?: SupportedLanguage): RelativeFormatters {
-  const resolvedLanguage = language ?? detectUserLanguage();
-  const cached = FORMATTERS.get(resolvedLanguage);
-
-  if (cached) {
-    return cached;
-  }
-
-  const locale = USER_AREA_LOCALES[resolvedLanguage];
-
-  const created = {
-    relative: new Intl.RelativeTimeFormat(locale, { numeric: 'auto' }),
-    absoluteDate: new Intl.DateTimeFormat(locale, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      timeZone: USER_AREA_TIME_ZONE,
-    }),
-    absoluteDateTime: new Intl.DateTimeFormat(locale, {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: USER_AREA_TIME_ZONE,
-    }),
-  };
-
-  FORMATTERS.set(resolvedLanguage, created);
-
-  return created;
-}
+const absoluteDateTimeFormatter = new Intl.DateTimeFormat(USER_AREA_LOCALE, {
+  month: 'short',
+  day: 'numeric',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+  timeZone: USER_AREA_TIME_ZONE,
+});
 
 const MINUTE_MS = 60_000;
 const HOUR_MS = 60 * MINUTE_MS;
@@ -60,21 +36,17 @@ function toDate(value: string | number | Date): Date | null {
 }
 
 /** Full absolute form for tooltips ("Jul 3, 2026, 09:12 AM"). */
-export function formatAbsoluteTime(value: string | number | Date, language?: SupportedLanguage): string {
+export function formatAbsoluteTime(value: string | number | Date): string {
   const date = toDate(value);
 
-  return date ? formatters(language).absoluteDateTime.format(date) : '';
+  return date ? absoluteDateTimeFormatter.format(date) : '';
 }
 
 /**
  * "just now" (<45s), then minutes, hours, days — and past a week the absolute
  * date ("Jun 24, 2026"). Future dates degrade to the absolute form too.
  */
-export function formatRelativeTime(
-  value: string | number | Date,
-  now: Date = new Date(),
-  language?: SupportedLanguage,
-): string {
+export function formatRelativeTime(value: string | number | Date, now: Date = new Date()): string {
   const date = toDate(value);
 
   if (!date) {
@@ -82,23 +54,22 @@ export function formatRelativeTime(
   }
 
   const elapsedMs = now.getTime() - date.getTime();
-  const { absoluteDate, relative } = formatters(language);
 
   if (elapsedMs < 0 || elapsedMs > WEEK_MS) {
-    return absoluteDate.format(date);
+    return absoluteDateFormatter.format(date);
   }
 
   if (elapsedMs < 45_000) {
-    return relative.format(0, 'second');
+    return 'just now';
   }
 
   if (elapsedMs < HOUR_MS) {
-    return relative.format(-Math.round(elapsedMs / MINUTE_MS), 'minute');
+    return relativeFormatter.format(-Math.round(elapsedMs / MINUTE_MS), 'minute');
   }
 
   if (elapsedMs < DAY_MS) {
-    return relative.format(-Math.round(elapsedMs / HOUR_MS), 'hour');
+    return relativeFormatter.format(-Math.round(elapsedMs / HOUR_MS), 'hour');
   }
 
-  return relative.format(-Math.round(elapsedMs / DAY_MS), 'day');
+  return relativeFormatter.format(-Math.round(elapsedMs / DAY_MS), 'day');
 }

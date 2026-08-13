@@ -1,12 +1,6 @@
 import { Check, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Button } from '~/components/ui/Button';
-import {
-  formatProductTourStepCounter,
-  getProductTourCopy,
-  type ProductTourKey,
-} from '~/lib/i18n/catalogs/product-tour';
 import { classNames } from '~/utils/classNames';
 
 export const PRODUCT_TOUR_STORAGE_KEY = 'ecode:user-area-tour:v1';
@@ -14,31 +8,26 @@ export const PRODUCT_TOUR_STORAGE_KEY = 'ecode:user-area-tour:v1';
 export const PRODUCT_TOUR_STEPS = [
   {
     target: 'navigation',
-    titleKey: 'productTour.step.navigation.title',
-    descriptionKey: 'productTour.step.navigation.description',
+    title: 'Navigate your workspace',
+    description: 'Projects, usage, billing, team controls, and account settings stay together in the main menu.',
   },
   {
     target: 'create-project',
     fallbackTarget: 'navigation',
-    titleKey: 'productTour.step.createProject.title',
-    descriptionKey: 'productTour.step.createProject.description',
+    title: 'Build from a prompt',
+    description: 'Choose New project, describe what you need, then add advanced options only when they are useful.',
   },
   {
     target: 'tools',
-    titleKey: 'productTour.step.tools.title',
-    descriptionKey: 'productTour.step.tools.description',
+    title: 'Find work and updates',
+    description: 'Search opens any workspace destination, while notifications keep recent activity close at hand.',
   },
   {
     target: 'help',
-    titleKey: 'productTour.step.help.title',
-    descriptionKey: 'productTour.step.help.description',
+    title: 'Return whenever you need it',
+    description: 'Open Help to resume this guide, read the documentation, or contact support.',
   },
-] as const satisfies ReadonlyArray<{
-  target: string;
-  fallbackTarget?: string;
-  titleKey: ProductTourKey;
-  descriptionKey: ProductTourKey;
-}>;
+] as const;
 
 export type ProductTourStatus = 'new' | 'in_progress' | 'dismissed' | 'completed';
 
@@ -149,15 +138,10 @@ function findVisibleTarget(target: string, fallbackTarget?: string): HTMLElement
 }
 
 export function ProductTour({ restartToken }: { restartToken: number }) {
-  const { i18n } = useTranslation();
-  const language = i18n.resolvedLanguage ?? i18n.language;
-  const copy = getProductTourCopy(language);
   const [ready, setReady] = useState(false);
   const [open, setOpen] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const step = PRODUCT_TOUR_STEPS[stepIndex];
-  const stepTitle = copy[step.titleKey];
-  const stepDescription = copy[step.descriptionKey];
 
   useEffect(() => {
     const progress = readProductTourProgress(getBrowserStorage());
@@ -242,9 +226,9 @@ export function ProductTour({ restartToken }: { restartToken: number }) {
   };
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[80] flex justify-end px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+8px)] sm:px-4 sm:pt-4 sm:pb-[calc(env(safe-area-inset-bottom)+16px)]">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[80] flex justify-end p-3 pb-[calc(env(safe-area-inset-bottom)+12px)] sm:p-4">
       <aside
-        className="vc-product-tour pointer-events-auto max-h-[min(78dvh,480px)] w-full max-w-[380px] overflow-x-hidden overflow-y-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-bolt-elements-textPrimary shadow-2xl"
+        className="vc-product-tour pointer-events-auto max-h-[min(70dvh,430px)] w-full max-w-[380px] overflow-y-auto rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-bolt-elements-textPrimary shadow-2xl"
         role="dialog"
         aria-modal="false"
         aria-labelledby="vc-product-tour-title"
@@ -252,20 +236,20 @@ export function ProductTour({ restartToken }: { restartToken: number }) {
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="break-words text-xs font-medium uppercase leading-5 text-bolt-elements-textTertiary">
-              {formatProductTourStepCounter(language, stepIndex + 1, PRODUCT_TOUR_STEPS.length)}
+            <p className="text-xs font-medium uppercase text-bolt-elements-textTertiary">
+              Guided tour - Step {stepIndex + 1} of {PRODUCT_TOUR_STEPS.length}
             </p>
-            <h2 id="vc-product-tour-title" className="mt-1 break-words text-lg font-semibold leading-6">
-              {stepTitle}
+            <h2 id="vc-product-tour-title" className="mt-1 text-lg font-semibold leading-6">
+              {step.title}
             </h2>
           </div>
           <button
             type="button"
             onClick={dismiss}
             className="inline-flex h-[44px] w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)]"
-            aria-label={copy['productTour.close']}
+            aria-label="Close guided tour"
             aria-keyshortcuts="Escape"
-            title={copy['productTour.close']}
+            title="Close guided tour"
           >
             <X className="h-4 w-4" aria-hidden />
           </button>
@@ -274,7 +258,7 @@ export function ProductTour({ restartToken }: { restartToken: number }) {
         <div
           className="mt-3 grid grid-cols-4 gap-1.5"
           role="progressbar"
-          aria-label={copy['productTour.progress']}
+          aria-label="Guided tour progress"
           aria-valuemin={1}
           aria-valuemax={PRODUCT_TOUR_STEPS.length}
           aria-valuenow={stepIndex + 1}
@@ -293,46 +277,41 @@ export function ProductTour({ restartToken }: { restartToken: number }) {
 
         <p
           id="vc-product-tour-description"
-          className="mt-4 break-words text-sm leading-6 text-bolt-elements-textSecondary"
+          className="mt-4 text-sm leading-6 text-bolt-elements-textSecondary"
           aria-live="polite"
         >
-          {stepDescription}
+          {step.description}
         </p>
 
-        <div className="mt-5 flex flex-col items-stretch justify-between gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-          <Button
-            type="button"
-            variant="ghost"
-            className="min-h-[44px] w-full min-w-0 justify-center whitespace-normal px-3 text-center leading-snug sm:w-auto"
-            onClick={dismiss}
-          >
-            {copy['productTour.action.later']}
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-2">
+          <Button type="button" variant="ghost" className="min-h-[44px] px-3" onClick={dismiss}>
+            Not now
           </Button>
-          <div className="grid w-full min-w-0 grid-cols-2 items-stretch gap-2 sm:flex sm:w-auto sm:items-center">
+          <div className="flex items-center gap-2">
             <Button
               type="button"
               variant="outline"
-              className="min-h-[44px] min-w-0 justify-center whitespace-normal px-3 text-center leading-snug"
+              className="min-h-[44px] px-3"
               disabled={stepIndex === 0}
               onClick={() => setStepIndex((current) => Math.max(0, current - 1))}
             >
               <ChevronLeft className="h-4 w-4" aria-hidden />
-              {copy['productTour.action.back']}
+              Back
             </Button>
             <Button
               type="button"
               variant="primary"
-              className="min-h-[44px] min-w-0 justify-center whitespace-normal px-3 text-center leading-snug"
+              className="min-h-[44px] px-3"
               onClick={isLastStep ? complete : () => setStepIndex((current) => current + 1)}
             >
               {isLastStep ? (
                 <>
                   <Check className="h-4 w-4" aria-hidden />
-                  {copy['productTour.action.finish']}
+                  Finish
                 </>
               ) : (
                 <>
-                  {copy['productTour.action.next']}
+                  Next
                   <ChevronRight className="h-4 w-4" aria-hidden />
                 </>
               )}

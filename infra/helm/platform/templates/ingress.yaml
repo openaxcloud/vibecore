@@ -110,14 +110,6 @@ metadata:
     cert-manager.io/cluster-issuer: {{ .Values.ingress.issuerName | quote }}
     # Match the -app limit so uploads to a running preview app aren't 413'd at 1 MB.
     nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.ingress.proxyBodySize | default "26m" | quote }}
-    # The proxy answers a sleeping / booting / wedged app with its own branded
-    # holding page inside SERVER_DEPLOY_WAKE_WAIT_MS + the upstream budget. State
-    # the read timeout explicitly (rather than inheriting nginx's default) so the
-    # relationship between the two is deliberate: nginx must outlast the proxy,
-    # or the browser gets a raw `504 Gateway Time-out` instead — proven live
-    # 2026-08-06 (BUG-DEPLOY-003).
-    nginx.ingress.kubernetes.io/proxy-read-timeout: {{ .Values.ingress.previewProxyReadTimeout | default "75" | quote }}
-    nginx.ingress.kubernetes.io/proxy-send-timeout: {{ .Values.ingress.previewProxyReadTimeout | default "75" | quote }}
   labels:
     app.kubernetes.io/part-of: vibecore
 spec:

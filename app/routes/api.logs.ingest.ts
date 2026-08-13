@@ -1,8 +1,6 @@
 import { data as json, type ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
 
-import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
-
 const MAX_LOGS_PER_BATCH = 100;
 const MAX_BUFFERED_LOGS = 500;
 const RATE_LIMIT_WINDOW_MS = 60_000;
@@ -136,13 +134,13 @@ function writeServerLog(logs: BufferedFrontendLog[]) {
 
 export async function action({ request }: ActionFunctionArgs) {
   if (request.method !== 'POST') {
-    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405);
+    return json({ error: 'Method not allowed' }, { status: 405 });
   }
 
   const clientIp = getClientIP(request);
 
   if (!checkRateLimit(clientIp)) {
-    return remainingApiErrorResponse(request, 'RATE_LIMIT_EXCEEDED', 429);
+    return json({ error: 'Rate limit exceeded' }, { status: 429 });
   }
 
   /*
@@ -151,7 +149,7 @@ export async function action({ request }: ActionFunctionArgs) {
    * lost), so reject up front with a plain json() return.
    */
   if (!isJsonRequest(request)) {
-    return remainingApiErrorResponse(request, 'JSON_CONTENT_TYPE_REQUIRED', 415);
+    return json({ error: 'Expected application/json' }, { status: 415 });
   }
 
   let parsed: z.infer<typeof frontendLogBatchSchema>;
@@ -160,10 +158,10 @@ export async function action({ request }: ActionFunctionArgs) {
     parsed = frontendLogBatchSchema.parse(await request.json());
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return remainingApiErrorResponse(request, 'LOG_FORMAT_INVALID', 400);
+      return json({ error: 'Invalid log format', details: error.errors }, { status: 400 });
     }
 
-    return remainingApiErrorResponse(request, 'INVALID_JSON_PAYLOAD', 400);
+    return json({ error: 'Invalid JSON payload' }, { status: 400 });
   }
 
   const receivedAt = new Date().toISOString();

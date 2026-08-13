@@ -3,13 +3,10 @@
  */
 
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
-import type { ReactNode } from 'react';
-import { I18nextProvider } from 'react-i18next';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { InlineFileActionDiff, type InlineFileActionDiffApplyDetail } from './InlineFileActionDiff';
 import type { FileActionDiff } from '~/lib/hooks/useFileActionDiff';
-import { createI18nInstance } from '~/lib/i18n/runtime';
 import type { FileActionBlock } from '~/types/message-blocks';
 import { buildReviewableDiffHunks, summarizeReviewableDiffHunks, type ReviewableDiffSummary } from '~/utils/diff';
 
@@ -29,10 +26,6 @@ interface Fixture {
 }
 
 const fixtures = new Map<string, Fixture>();
-
-function renderDiff(node: ReactNode, language: 'en' | 'fr' = 'en') {
-  return render(<I18nextProvider i18n={createI18nInstance(language)}>{node}</I18nextProvider>);
-}
 
 function setFixture(actionId: string, fixture: Fixture) {
   fixtures.set(actionId, fixture);
@@ -75,11 +68,11 @@ describe('<InlineFileActionDiff />', () => {
   it('renders the file path, summary pill, and hunk lines for a settled diff', () => {
     setFixture('act-src/App.tsx', { original: 'export const App = () => null;\n', isNewFile: false });
 
-    renderDiff(<InlineFileActionDiff action={fileBlock('src/App.tsx', 'export const App = () => <div />;\n')} />);
+    render(<InlineFileActionDiff action={fileBlock('src/App.tsx', 'export const App = () => <div />;\n')} />);
 
     expect(screen.getByText('src/App.tsx')).toBeTruthy();
-    expect(screen.getByLabelText('1 line added').textContent).toBe('+1');
-    expect(screen.getByLabelText('1 line removed').textContent).toBe('−1');
+    expect(screen.getByLabelText('1 added').textContent).toBe('+1');
+    expect(screen.getByLabelText('1 removed').textContent).toBe('−1');
     expect(screen.getByText('export const App = () => <div />;')).toBeTruthy();
     expect(screen.getByText('export const App = () => null;')).toBeTruthy();
   });
@@ -87,7 +80,7 @@ describe('<InlineFileActionDiff />', () => {
   it('shows a streaming indicator and hides decision buttons mid-stream', () => {
     setFixture('act-src/Streaming.tsx', { original: 'old\n', isNewFile: false });
 
-    renderDiff(<InlineFileActionDiff action={fileBlock('src/Streaming.tsx', 'new\n', true)} />);
+    render(<InlineFileActionDiff action={fileBlock('src/Streaming.tsx', 'new\n', true)} />);
 
     expect(screen.getByText(/Streaming patch/)).toBeTruthy();
     expect(screen.queryByLabelText('Accept file')).toBeNull();
@@ -96,7 +89,7 @@ describe('<InlineFileActionDiff />', () => {
   it('toggles per-hunk inclusion with a checkbox', () => {
     setFixture('act-src/Decide.tsx', { original: 'one\n', isNewFile: false });
 
-    renderDiff(<InlineFileActionDiff action={fileBlock('src/Decide.tsx', 'one\ntwo\n')} />);
+    render(<InlineFileActionDiff action={fileBlock('src/Decide.tsx', 'one\ntwo\n')} />);
 
     const checkbox = screen.getByRole<HTMLInputElement>('checkbox');
     expect(checkbox.checked).toBe(true);
@@ -110,7 +103,7 @@ describe('<InlineFileActionDiff />', () => {
 
     const onApply = vi.fn<(detail: InlineFileActionDiffApplyDetail) => void>();
 
-    renderDiff(<InlineFileActionDiff action={fileBlock('src/Apply.tsx', 'new\n')} onApply={onApply} />);
+    render(<InlineFileActionDiff action={fileBlock('src/Apply.tsx', 'new\n')} onApply={onApply} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Accept file' }));
 
@@ -129,7 +122,7 @@ describe('<InlineFileActionDiff />', () => {
     const text = 'identical\nfile\n';
     setFixture('act-src/Same.tsx', { original: text, isNewFile: false });
 
-    renderDiff(<InlineFileActionDiff action={fileBlock('src/Same.tsx', text)} />);
+    render(<InlineFileActionDiff action={fileBlock('src/Same.tsx', text)} />);
 
     expect(screen.getByText('Content is identical to the file on disk.')).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Accept file' })).toBeNull();
@@ -138,17 +131,17 @@ describe('<InlineFileActionDiff />', () => {
   it('marks the file as a new file when the workbench has no matching path', () => {
     setFixture('act-src/brand-new.ts', { original: '', isNewFile: true });
 
-    renderDiff(<InlineFileActionDiff action={fileBlock('src/brand-new.ts', 'export const created = true;\n')} />);
+    render(<InlineFileActionDiff action={fileBlock('src/brand-new.ts', 'export const created = true;\n')} />);
 
     const section = screen.getByLabelText('File action diff for src/brand-new.ts');
     expect(within(section).getByText('New file')).toBeTruthy();
-    expect(within(section).getByLabelText('1 line added').textContent).toBe('+1');
+    expect(within(section).getByLabelText('1 added').textContent).toBe('+1');
   });
 
   it('surfaces the AST self-repair banner when selfRepair is passed', () => {
     setFixture('act-src/Repair.tsx', { original: 'old\n', isNewFile: false });
 
-    renderDiff(
+    render(
       <InlineFileActionDiff
         action={fileBlock('src/Repair.tsx', 'new\n')}
         selfRepair={{ attempt: 1, maxAttempts: 2, errorMessage: 'Unexpected token at line 3' }}
@@ -156,31 +149,9 @@ describe('<InlineFileActionDiff />', () => {
     );
 
     expect(screen.getByText(/Self-repair attempt 1\/2/)).toBeTruthy();
-    expect(screen.getByText('Code validation failed. A new repair attempt is in progress.')).toBeTruthy();
-    expect(screen.queryByText('Unexpected token at line 3')).toBeNull();
+    expect(screen.getByText('Unexpected token at line 3')).toBeTruthy();
 
     // Streaming + hunks should be replaced by the self-repair banner.
     expect(screen.queryByText(/Streaming patch/)).toBeNull();
-  });
-
-  it('renders French decisions, status, plurals and safe validation feedback', () => {
-    setFixture('act-src/Fr.tsx', { original: 'old\n', isNewFile: false });
-
-    renderDiff(
-      <InlineFileActionDiff
-        action={fileBlock('src/Fr.tsx', 'new\n')}
-        onApply={vi.fn()}
-        selfRepair={{ attempt: 1, maxAttempts: 2, errorMessage: 'Unexpected token at line 3' }}
-      />,
-      'fr',
-    );
-
-    expect(screen.getByLabelText('Diff des modifications du fichier src/Fr.tsx')).toBeTruthy();
-    expect(screen.getByText('Modifications')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Accepter le fichier' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Refuser le fichier' })).toBeTruthy();
-    expect(screen.getByText(/Tentative d’auto-réparation 1\/2/)).toBeTruthy();
-    expect(screen.getByText(/La validation du code a échoué/)).toBeTruthy();
-    expect(screen.queryByText('Unexpected token at line 3')).toBeNull();
   });
 });

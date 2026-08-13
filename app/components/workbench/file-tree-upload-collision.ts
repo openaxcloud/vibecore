@@ -1,4 +1,3 @@
-import { fileTreeEn, formatFileTreeCopy, type FileTreeCopy } from '~/lib/i18n/catalogs/file-tree';
 import type { FileMap } from '~/lib/stores/files';
 import { path } from '~/utils/path';
 
@@ -42,15 +41,12 @@ export function findUploadCollisions<TFile extends DroppedUploadName>(
 /**
  * Human-readable confirm() prompt listing the files that would be overwritten.
  */
-export function buildOverwritePrompt<TFile extends DroppedUploadName>(
-  collisions: UploadCollision<TFile>[],
-  copy: FileTreeCopy['overwrite'] = fileTreeEn.overwrite,
-): string {
+export function buildOverwritePrompt<TFile extends DroppedUploadName>(collisions: UploadCollision<TFile>[]): string {
   const names = collisions.map((collision) => collision.file.name);
 
   if (names.length === 1) {
-    return formatFileTreeCopy(copy.single, { name: names[0] ?? '' });
+    return `A file named "${names[0]}" already exists here. Overwrite it?`;
   }
 
-  return formatFileTreeCopy(copy.multiple, { count: names.length, names: names.join('\n') });
+  return `${names.length} files already exist here and will be overwritten:\n\n${names.join('\n')}\n\nOverwrite them?`;
 }

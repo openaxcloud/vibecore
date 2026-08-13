@@ -1,21 +1,8 @@
 import type { ToolInvocationUIPart } from '@ai-sdk/ui-utils';
 import { useStore } from '@nanostores/react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
-import { memo, useEffect, useId, useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { AnimatePresence, motion } from 'framer-motion';
+import { memo, useMemo, useState, useEffect } from 'react';
 import { createHighlighter, type BundledLanguage, type BundledTheme, type HighlighterGeneric } from 'shiki';
-
-import {
-  formatToolInvocationsCopy,
-  formatToolInvocationsNumber,
-  formatToolInvocationsPercent,
-  formatToolInvocationsProgress,
-  getToolInvocationSafeResultCopy,
-  getToolInvocationsCopy,
-  resolveToolInvocationsLanguage,
-  type ToolInvocationSafeResultKind,
-  type ToolInvocationsCopy,
-} from '~/lib/i18n/catalogs/tool-invocations';
 import { themeStore, type Theme } from '~/lib/stores/theme';
 import type { ToolCallAnnotation } from '~/types/context';
 import { classNames } from '~/utils/classNames';
@@ -41,124 +28,69 @@ if (import.meta.hot?.data) {
 }
 
 interface JsonCodeBlockProps {
-  ariaLabel: string;
   className?: string;
   code: string;
   theme: Theme;
 }
 
-function JsonCodeBlock({ ariaLabel, className, code, theme }: JsonCodeBlockProps) {
+function JsonCodeBlock({ className, code, theme }: JsonCodeBlockProps) {
   let formattedCode = code;
 
   try {
-    const parsed = JSON.parse(formattedCode);
-    formattedCode = JSON.stringify(parsed, null, 2);
-  } catch {
-    // Non-JSON tool output is intentionally rendered verbatim.
+    if (typeof formattedCode === 'object') {
+      formattedCode = JSON.stringify(formattedCode, null, 2);
+    } else if (typeof formattedCode === 'string') {
+      // Attempt to parse and re-stringify for formatting
+      try {
+        const parsed = JSON.parse(formattedCode);
+        formattedCode = JSON.stringify(parsed, null, 2);
+      } catch {
+        // Leave as is if not JSON
+      }
+    }
+  } catch (e) {
+    // If parsing fails, keep original code
+    logger.error('Failed to parse JSON', { error: e });
   }
 
-  try {
-    return (
-      <div
-        role="region"
-        aria-label={ariaLabel}
-        tabIndex={0}
-        className={classNames(
-          'm-0 max-w-full overflow-x-auto rounded-md p-0 text-xs mcp-tool-invocation-code',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-focus-ring)]',
-          className,
-        )}
-        dangerouslySetInnerHTML={{
-          __html: jsonHighlighter.codeToHtml(formattedCode, {
-            lang: 'json',
-            theme: theme === 'dark' ? 'dark-plus' : 'light-plus',
-          }),
-        }}
-      />
-    );
-  } catch (error) {
-    logger.error('Failed to highlight tool invocation JSON', { error });
-
-    return (
-      <pre
-        role="region"
-        aria-label={ariaLabel}
-        tabIndex={0}
-        className={classNames(
-          'm-0 max-w-full overflow-x-auto whitespace-pre rounded-md p-3 text-xs text-bolt-elements-textPrimary',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-focus-ring)]',
-          className,
-        )}
-      >
-        {formattedCode}
-      </pre>
-    );
-  }
+  return (
+    <div
+      className={classNames('text-xs rounded-md overflow-hidden mcp-tool-invocation-code', className)}
+      dangerouslySetInnerHTML={{
+        __html: jsonHighlighter.codeToHtml(formattedCode, {
+          lang: 'json',
+          theme: theme === 'dark' ? 'dark-plus' : 'light-plus',
+        }),
+      }}
+      style={{
+        padding: '0',
+        margin: '0',
+      }}
+    ></div>
+  );
 }
-
-type AddToolResult = ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
 
 interface ToolInvocationsProps {
   toolInvocations: ToolInvocationUIPart[];
   toolCallAnnotations: ToolCallAnnotation[];
-  addToolResult: AddToolResult;
-}
-
-/**
- * Application-owned approval/error sentinels are UI state, not tool output. Classifying only these
- * exact values prevents internal English error strings from leaking while preserving arbitrary
- * server names, tool names, arguments, results, stderr, and user-authored content without localization.
- */
-export function classifyToolInvocationSafeResult(result: unknown): ToolInvocationSafeResultKind | null {
-  if (result === TOOL_EXECUTION_APPROVAL.APPROVE) {
-    return 'approved';
-  }
-
-  if (result === TOOL_EXECUTION_APPROVAL.REJECT || result === TOOL_EXECUTION_DENIED) {
-    return 'denied';
-  }
-
-  if (result === TOOL_NO_EXECUTE_FUNCTION) {
-    return 'unavailable';
-  }
-
-  if (result === TOOL_EXECUTION_ERROR) {
-    return 'failed';
-  }
-
-  return null;
-}
-
-export function serializeToolInvocationValue(value: unknown): string {
-  try {
-    const serialized = JSON.stringify(value);
-
-    return serialized === undefined ? String(value) : serialized;
-  } catch (error) {
-    logger.error('Failed to serialize tool invocation value', { error });
-
-    return String(value);
-  }
+  addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
 }
 
 export const ToolInvocations = memo(({ toolInvocations, toolCallAnnotations, addToolResult }: ToolInvocationsProps) => {
   const theme = useStore(themeStore);
-  const { i18n } = useTranslation();
-  const language = resolveToolInvocationsLanguage(i18n?.resolvedLanguage ?? i18n?.language);
-  const copy = getToolInvocationsCopy(language);
-  const reduceMotion = Boolean(useReducedMotion());
   const [showDetails, setShowDetails] = useState(false);
-  const detailsId = useId();
-  const pendingHeadingId = useId();
-  const resultsHeadingId = useId();
+
+  const toggleDetails = () => {
+    setShowDetails((prev) => !prev);
+  };
 
   const toolCalls = useMemo(
-    () => toolInvocations.filter((invocation) => invocation.toolInvocation.state === 'call'),
+    () => toolInvocations.filter((inv) => inv.toolInvocation.state === 'call'),
     [toolInvocations],
   );
 
   const toolResults = useMemo(
-    () => toolInvocations.filter((invocation) => invocation.toolInvocation.state === 'result'),
+    () => toolInvocations.filter((inv) => inv.toolInvocation.state === 'result'),
     [toolInvocations],
   );
 
@@ -169,107 +101,70 @@ export const ToolInvocations = memo(({ toolInvocations, toolCallAnnotations, add
     return null;
   }
 
+  /*
+   * Compact, inline, collapsed-by-default summary (agent-panel UX refonte): the
+   * tool activity is an EVENT inside the agent turn, not a fixed widget that
+   * hides the agent's answer. Header is a single line — "🔧 Tool calls · R/T ·
+   * P% ▸" — and both the in-flight calls and the results only expand on tap, so
+   * the agent's streamed text stays the primary content.
+   */
   const total = toolCalls.length + toolResults.length;
   const resolved = toolResults.length;
-  const ratio = total > 0 ? resolved / total : 0;
+  const pct = total > 0 ? Math.round((resolved / total) * 100) : 0;
   const running = hasToolCalls;
-  const progress = formatToolInvocationsProgress(resolved, total, language);
-  const status = copy[running ? 'toolInvocations.summary.running' : 'toolInvocations.summary.complete'];
-  const toggleLabel = copy[showDetails ? 'toolInvocations.summary.collapse' : 'toolInvocations.summary.expand'];
 
   return (
-    <div className="tool-invocation flex min-w-0 w-full flex-col overflow-hidden rounded-lg border border-bolt-elements-borderColor transition-border duration-150">
+    <div className="tool-invocation border border-bolt-elements-borderColor flex flex-col overflow-hidden rounded-lg w-full transition-border duration-150">
       <button
         type="button"
-        onClick={() => setShowDetails((previous) => !previous)}
-        aria-controls={detailsId}
+        onClick={toggleDetails}
         aria-expanded={showDetails}
-        aria-label={`${toggleLabel}. ${status}. ${progress}`}
-        className={classNames(
-          'flex min-h-[44px] w-full min-w-0 items-center gap-2 px-3 py-2 text-left text-xs',
-          'bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-artifacts-backgroundHover',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--vc-ide-focus-ring)]',
-        )}
+        aria-label={showDetails ? 'Collapse tool calls' : 'Expand tool calls'}
+        className="flex items-center gap-2 w-full px-2.5 py-1.5 text-left text-xs bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-artifacts-backgroundHover"
       >
         <span
-          className={classNames(
-            running
-              ? 'i-ph:circle-notch motion-safe:animate-spin text-bolt-elements-item-contentAccent'
-              : 'i-ph:wrench text-bolt-elements-textSecondary',
-            'shrink-0 text-base',
-          )}
-          aria-hidden="true"
+          className={`${running ? 'i-ph:circle-notch animate-spin text-bolt-elements-item-contentAccent' : 'i-ph:wrench text-bolt-elements-textSecondary'} text-base shrink-0`}
+          aria-hidden
         />
-        <span className="min-w-0 flex-1 break-words font-medium leading-5 text-bolt-elements-textPrimary">
-          {copy['toolInvocations.summary.label']}
-          <span
-            className="ms-1.5 inline whitespace-nowrap font-normal text-bolt-elements-textSecondary"
-            aria-hidden="true"
-          >
-            · {formatToolInvocationsNumber(resolved, language)}/{formatToolInvocationsNumber(total, language)} ·{' '}
-            {formatToolInvocationsPercent(ratio, language)}
-          </span>
+        <span className="font-medium text-bolt-elements-textPrimary">Tool calls</span>
+        <span className="text-bolt-elements-textSecondary truncate">
+          · {resolved}/{total} · {pct}%
         </span>
         <span
-          className={classNames(
-            showDetails ? 'i-ph:caret-down' : 'i-ph:caret-right',
-            'ms-auto shrink-0 text-bolt-elements-textSecondary',
-          )}
-          aria-hidden="true"
+          className={`[margin-inline-start:auto] shrink-0 ${showDetails ? 'i-ph:caret-down' : 'i-ph:caret-right'} text-bolt-elements-textSecondary`}
+          aria-hidden
         />
       </button>
-
-      <span className="sr-only" aria-live="polite">
-        {status}. {progress}
-      </span>
-
       <AnimatePresence initial={false}>
         {showDetails && (
           <motion.div
-            id={detailsId}
-            className="details min-w-0 overflow-hidden"
-            initial={reduceMotion ? false : { height: 0 }}
+            className="details overflow-hidden"
+            initial={{ height: 0 }}
             animate={{ height: 'auto' }}
             exit={{ height: 0 }}
-            transition={{ duration: reduceMotion ? 0 : 0.15, ease: cubicEasingFn }}
+            transition={{ duration: 0.15, ease: cubicEasingFn }}
           >
-            <div className="h-px bg-bolt-elements-artifacts-borderColor" aria-hidden="true" />
+            <div className="bg-bolt-elements-artifacts-borderColor h-[1px]" />
 
             {hasToolCalls && (
-              <section
-                aria-labelledby={pendingHeadingId}
-                className="min-w-0 bg-bolt-elements-background-depth-2 px-3 py-4 text-left sm:px-4"
-              >
-                <h3 id={pendingHeadingId} className="sr-only">
-                  {copy['toolInvocations.section.pending']}
-                </h3>
+              <div className="px-3 py-3 text-left bg-bolt-elements-background-depth-2">
                 <ToolCallsList
                   toolInvocations={toolCalls}
                   toolCallAnnotations={toolCallAnnotations}
                   addToolResult={addToolResult}
-                  copy={copy}
-                  reduceMotion={reduceMotion}
+                  theme={theme}
                 />
-              </section>
+              </div>
             )}
 
             {hasToolResults && (
-              <section
-                aria-labelledby={resultsHeadingId}
-                className="min-w-0 bg-bolt-elements-actions-background px-3 py-4 text-left sm:p-5"
-              >
-                <h3 id={resultsHeadingId} className="sr-only">
-                  {copy['toolInvocations.section.results']}
-                </h3>
+              <div className="p-5 text-left bg-bolt-elements-actions-background">
                 <ToolResultsList
                   toolInvocations={toolResults}
                   toolCallAnnotations={toolCallAnnotations}
                   theme={theme}
-                  copy={copy}
-                  language={language}
-                  reduceMotion={reduceMotion}
                 />
-              </section>
+              </div>
             )}
           </motion.div>
         )}
@@ -287,327 +182,244 @@ interface ToolResultsListProps {
   toolInvocations: ToolInvocationUIPart[];
   toolCallAnnotations: ToolCallAnnotation[];
   theme: Theme;
-  copy: ToolInvocationsCopy;
-  language: string;
-  reduceMotion: boolean;
 }
 
-const ToolResultsList = memo(
-  ({ toolInvocations, toolCallAnnotations, theme, copy, language, reduceMotion }: ToolResultsListProps) => {
-    return (
-      <motion.div
-        className="min-w-0"
-        initial={reduceMotion ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: reduceMotion ? 0 : 0.15 }}
-      >
-        <ul className="min-w-0 list-none space-y-4">
-          {toolInvocations.map((tool) => {
-            const toolCallState = tool.toolInvocation.state;
+const ToolResultsList = memo(({ toolInvocations, toolCallAnnotations, theme }: ToolResultsListProps) => {
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+      <ul className="list-none space-y-4">
+        {toolInvocations.map((tool, index) => {
+          const toolCallState = tool.toolInvocation.state;
 
-            if (toolCallState !== 'result') {
-              return null;
-            }
+          if (toolCallState !== 'result') {
+            return null;
+          }
 
-            const { toolName, toolCallId, args, result } = tool.toolInvocation;
-            const annotation = toolCallAnnotations.find((item) => item.toolCallId === toolCallId);
-            const safeResultKind = classifyToolInvocationSafeResult(result);
-            const isErrorResult = safeResultKind !== null && safeResultKind !== 'approved';
-            const safeResultCopy = safeResultKind ? getToolInvocationSafeResultCopy(safeResultKind, language) : null;
+          const { toolName, toolCallId } = tool.toolInvocation;
 
-            const statusCopy =
-              copy[
-                safeResultKind === 'approved'
-                  ? 'toolInvocations.status.approved'
-                  : isErrorResult
-                    ? 'toolInvocations.status.error'
-                    : 'toolInvocations.status.success'
-              ];
+          const annotation = toolCallAnnotations.find((annotation) => {
+            return annotation.toolCallId === toolCallId;
+          });
 
-            return (
-              <motion.li
-                key={toolCallId}
-                className="min-w-0"
-                variants={toolVariants}
-                initial={reduceMotion ? false : 'hidden'}
-                animate="visible"
-                transition={{ duration: reduceMotion ? 0 : 0.2, ease: cubicEasingFn }}
-              >
-                <div className="mb-2 flex min-w-0 items-start gap-2 text-xs">
-                  <span
-                    className={classNames(
-                      isErrorResult
-                        ? 'i-ph:x text-bolt-elements-icon-error'
-                        : 'i-ph:check text-bolt-elements-icon-success',
-                      'shrink-0 text-lg',
-                    )}
-                    aria-hidden="true"
-                  />
-                  <span className="sr-only">{statusCopy}</span>
-                  <div className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
-                    <span className="text-bolt-elements-textSecondary">{copy['toolInvocations.field.server']}:</span>
-                    <code dir="ltr" className="min-w-0 break-all font-semibold text-bolt-elements-textPrimary">
-                      {annotation?.serverName ?? '—'}
-                    </code>
+          const isErrorResult = [TOOL_NO_EXECUTE_FUNCTION, TOOL_EXECUTION_DENIED, TOOL_EXECUTION_ERROR].includes(
+            tool.toolInvocation.result,
+          );
+
+          return (
+            <motion.li
+              key={index}
+              variants={toolVariants}
+              initial="hidden"
+              animate="visible"
+              transition={{
+                duration: 0.2,
+                ease: cubicEasingFn,
+              }}
+            >
+              <div className="flex items-center gap-1.5 text-xs mb-1">
+                {isErrorResult ? (
+                  <div className="text-lg text-bolt-elements-icon-error">
+                    <div className="i-ph:x"></div>
                   </div>
+                ) : (
+                  <div className="text-lg text-bolt-elements-icon-success">
+                    <div className="i-ph:check"></div>
+                  </div>
+                )}
+                <div className="text-bolt-elements-textSecondary text-xs">Server:</div>
+                <div className="text-bolt-elements-textPrimary font-semibold">{annotation?.serverName}</div>
+              </div>
+
+              <div className="ml-6 mb-2">
+                <div className="text-bolt-elements-textSecondary text-xs mb-1">
+                  Tool: <span className="text-bolt-elements-textPrimary font-semibold">{toolName}</span>
                 </div>
-
-                <div className="min-w-0 ps-0 sm:ps-7">
-                  <div className="mb-1 flex min-w-0 flex-wrap items-baseline gap-x-1.5 text-xs">
-                    <span className="text-bolt-elements-textSecondary">{copy['toolInvocations.field.tool']}:</span>
-                    <code dir="ltr" className="min-w-0 break-all font-semibold text-bolt-elements-textPrimary">
-                      {toolName}
-                    </code>
-                  </div>
-                  <div className="mb-2 flex min-w-0 flex-wrap items-baseline gap-x-1.5 text-xs">
-                    <span className="text-bolt-elements-textSecondary">
-                      {copy['toolInvocations.field.description']}:
-                    </span>
-                    <span className="min-w-0 [overflow-wrap:anywhere] font-semibold text-bolt-elements-textPrimary">
-                      {annotation?.toolDescription ?? '—'}
-                    </span>
-                  </div>
-
-                  <div className="mb-1 text-xs text-bolt-elements-textSecondary">
-                    {copy['toolInvocations.field.parameters']}:
-                  </div>
-                  <div className="min-w-0 max-w-full overflow-hidden rounded-md bg-bolt-elements-background-depth-1 p-2 sm:p-3">
-                    <JsonCodeBlock
-                      ariaLabel={formatToolInvocationsCopy(copy['toolInvocations.code.parametersAria'], { toolName })}
-                      className="mb-0"
-                      code={serializeToolInvocationValue(args)}
-                      theme={theme}
-                    />
-                  </div>
-
-                  <div className="mb-1 mt-3 text-xs text-bolt-elements-textSecondary">
-                    {copy['toolInvocations.field.result']}:
-                  </div>
-                  {safeResultCopy ? (
-                    <div
-                      role={isErrorResult ? 'alert' : 'status'}
-                      className={classNames(
-                        'min-w-0 rounded-md border p-3 text-xs',
-                        isErrorResult
-                          ? 'border-bolt-elements-icon-error/35 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary'
-                          : 'border-bolt-elements-icon-success/35 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary',
-                      )}
-                    >
-                      <strong className="block font-semibold">{safeResultCopy.title}</strong>
-                      <span className="mt-1 block [overflow-wrap:anywhere] text-bolt-elements-textSecondary">
-                        {safeResultCopy.body}
-                      </span>
-                    </div>
-                  ) : (
-                    <div className="min-w-0 max-w-full overflow-hidden rounded-md bg-bolt-elements-background-depth-1 p-2 sm:p-3">
-                      <JsonCodeBlock
-                        ariaLabel={formatToolInvocationsCopy(copy['toolInvocations.code.resultAria'], { toolName })}
-                        className="mb-0"
-                        code={serializeToolInvocationValue(result)}
-                        theme={theme}
-                      />
-                    </div>
-                  )}
+                <div className="text-bolt-elements-textSecondary text-xs mb-1">
+                  Description:{' '}
+                  <span className="text-bolt-elements-textPrimary font-semibold">{annotation?.toolDescription}</span>
                 </div>
-              </motion.li>
-            );
-          })}
-        </ul>
-      </motion.div>
-    );
-  },
-);
+                <div className="text-bolt-elements-textSecondary text-xs mb-1">Parameters:</div>
+                <div className="bg-bolt-elements-background-depth-1 p-3 rounded-md">
+                  <JsonCodeBlock className="mb-0" code={JSON.stringify(tool.toolInvocation.args)} theme={theme} />
+                </div>
+                <div className="text-bolt-elements-textSecondary text-xs mt-3 mb-1">Result:</div>
+                <div className="bg-bolt-elements-background-depth-1 p-3 rounded-md">
+                  <JsonCodeBlock className="mb-0" code={JSON.stringify(tool.toolInvocation.result)} theme={theme} />
+                </div>
+              </div>
+            </motion.li>
+          );
+        })}
+      </ul>
+    </motion.div>
+  );
+});
 
 interface ToolCallsListProps {
   toolInvocations: ToolInvocationUIPart[];
   toolCallAnnotations: ToolCallAnnotation[];
-  addToolResult: AddToolResult;
-  copy: ToolInvocationsCopy;
-  reduceMotion: boolean;
+  addToolResult: ({ toolCallId, result }: { toolCallId: string; result: any }) => void;
+  theme: Theme;
 }
 
 /**
  * Resolve which tool-call id the global Cmd/Ctrl+Enter / +Backspace shortcut should target.
- * The shortcut is intentionally disabled when more than one approval is pending.
+ *
+ * The shortcut is unambiguous only when exactly one tool call is pending approval. When two or
+ * more calls are pending concurrently there is no way to know which prompt the user is looking at,
+ * and silently approving/rejecting the first-keyed one is a data-affecting mistake. In that case we
+ * return `null` so the keyboard handler is a no-op and the user must click the intended button.
+ *
+ * `pendingIds` is the list of tool-call ids currently awaiting a decision (i.e. in the `call` state).
  */
 export function resolveShortcutTargetId(pendingIds: string[]): string | null {
   return pendingIds.length === 1 ? pendingIds[0] : null;
 }
 
-const ToolCallsList = memo(
-  ({ toolInvocations, toolCallAnnotations, addToolResult, copy, reduceMotion }: ToolCallsListProps) => {
-    const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+const ToolCallsList = memo(({ toolInvocations, toolCallAnnotations, addToolResult }: ToolCallsListProps) => {
+  const [expanded, setExpanded] = useState<{ [id: string]: boolean }>({});
 
-    const pendingIds = useMemo(
-      () =>
-        toolInvocations.flatMap((invocation) =>
-          invocation.toolInvocation.state === 'call' ? [invocation.toolInvocation.toolCallId] : [],
-        ),
-      [toolInvocations],
-    );
+  // OS detection for shortcut display
+  const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
 
-    const shortcutTargetId = resolveShortcutTargetId(pendingIds);
+  useEffect(() => {
+    const expandedState: { [id: string]: boolean } = {};
+    toolInvocations.forEach((inv) => {
+      if (inv.toolInvocation.state === 'call') {
+        expandedState[inv.toolInvocation.toolCallId] = true;
+      }
+    });
+    setExpanded(expandedState);
+  }, [toolInvocations]);
 
-    useEffect(() => {
-      const handleKeyDown = (event: KeyboardEvent) => {
-        const active = document.activeElement as HTMLElement | null;
+  // Keyboard shortcut logic
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if focus is in an input/textarea/contenteditable
+      const active = document.activeElement as HTMLElement | null;
 
-        if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
-          return;
-        }
+      if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.isContentEditable)) {
+        return;
+      }
 
-        if (!shortcutTargetId) {
-          return;
-        }
+      /*
+       * Only fire the global shortcut when a single tool call is pending approval. With multiple
+       * concurrent prompts there is no reliable way to tell which one the user means, so we require
+       * an explicit button click instead of guessing the first-keyed id.
+       */
+      const openId = resolveShortcutTargetId(Object.keys(expanded).filter((id) => expanded[id]));
 
-        if ((isMac ? event.metaKey : event.ctrlKey) && event.key === 'Backspace') {
-          event.preventDefault();
-          addToolResult({
-            toolCallId: shortcutTargetId,
-            result: TOOL_EXECUTION_APPROVAL.REJECT,
-          });
-        }
+      if (!openId) {
+        return;
+      }
 
-        if ((isMac ? event.metaKey : event.ctrlKey) && (event.key === 'Enter' || event.key === 'Return')) {
-          event.preventDefault();
-          addToolResult({
-            toolCallId: shortcutTargetId,
-            result: TOOL_EXECUTION_APPROVAL.APPROVE,
-          });
-        }
-      };
+      // Cancel: Cmd/Ctrl + Backspace
+      if ((isMac ? e.metaKey : e.ctrlKey) && e.key === 'Backspace') {
+        e.preventDefault();
+        addToolResult({
+          toolCallId: openId,
+          result: TOOL_EXECUTION_APPROVAL.REJECT,
+        });
+      }
 
-      window.addEventListener('keydown', handleKeyDown);
+      // Run tool: Cmd/Ctrl + Enter
+      if ((isMac ? e.metaKey : e.ctrlKey) && (e.key === 'Enter' || e.key === 'Return')) {
+        e.preventDefault();
+        addToolResult({
+          toolCallId: openId,
+          result: TOOL_EXECUTION_APPROVAL.APPROVE,
+        });
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
 
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [addToolResult, isMac, shortcutTargetId]);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [expanded, addToolResult, isMac]);
 
-    const shortcutActive = shortcutTargetId !== null;
-    const cancelShortcut = isMac ? '⌘⌫' : 'Ctrl+Backspace';
-    const runShortcut = isMac ? '⌘↵' : 'Ctrl+Enter';
+  /*
+   * The global keyboard shortcut only acts when a single tool call is pending; otherwise it would
+   * ambiguously target the first-keyed call. Hide the per-button shortcut hint when it is inactive
+   * so the affordance never lies about what Cmd/Ctrl+Enter will do.
+   */
+  const pendingCount = toolInvocations.filter((inv) => inv.toolInvocation.state === 'call').length;
+  const shortcutActive = pendingCount === 1;
 
-    return (
-      <motion.div
-        className="min-w-0"
-        initial={reduceMotion ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: reduceMotion ? 0 : 0.15 }}
-      >
-        <ul className="min-w-0 list-none space-y-4">
-          {toolInvocations.map((tool) => {
-            const toolCallState = tool.toolInvocation.state;
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.15 }}>
+      <ul className="list-none space-y-4">
+        {toolInvocations.map((tool, index) => {
+          const toolCallState = tool.toolInvocation.state;
 
-            if (toolCallState !== 'call') {
-              return null;
-            }
+          if (toolCallState !== 'call') {
+            return null;
+          }
 
-            const { toolName, toolCallId } = tool.toolInvocation;
-            const annotation = toolCallAnnotations.find((item) => item.toolCallId === toolCallId);
+          const { toolName, toolCallId } = tool.toolInvocation;
+          const annotation = toolCallAnnotations.find((annotation) => annotation.toolCallId === toolCallId);
 
-            const cancelAriaLabel = formatToolInvocationsCopy(copy['toolInvocations.action.cancelAria'], {
-              toolName,
-            });
-
-            const runAriaLabel = formatToolInvocationsCopy(copy['toolInvocations.action.runAria'], { toolName });
-
-            return (
-              <motion.li
-                key={toolCallId}
-                className="min-w-0"
-                variants={toolVariants}
-                initial={reduceMotion ? false : 'hidden'}
-                animate="visible"
-                transition={{ duration: reduceMotion ? 0 : 0.2, ease: cubicEasingFn }}
-              >
-                <div className="min-w-0 rounded-lg bg-bolt-elements-background-depth-3 p-3">
-                  <span className="sr-only">{copy['toolInvocations.status.pending']}</span>
-                  <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
-                    <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
-                      <code
-                        dir="ltr"
-                        className="max-w-full break-all text-sm font-normal text-bolt-elements-textPrimary"
-                      >
-                        {toolName}
-                      </code>
-                      {annotation?.toolDescription ? (
-                        <span className="max-w-full [overflow-wrap:anywhere] text-xs font-light text-bolt-elements-textSecondary">
-                          {annotation.toolDescription}
-                        </span>
-                      ) : null}
-                    </div>
-
-                    <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
-                      <button
-                        type="button"
-                        aria-label={cancelAriaLabel}
-                        title={
-                          shortcutActive
-                            ? formatToolInvocationsCopy(copy['toolInvocations.shortcut.cancel'], {
-                                shortcut: cancelShortcut,
-                              })
-                            : cancelAriaLabel
-                        }
-                        className={classNames(
-                          'inline-flex min-h-[44px] min-w-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs',
-                          'bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary',
-                          'transition-colors duration-200 motion-reduce:transition-none',
-                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-focus-ring)]',
-                        )}
-                        onClick={() =>
-                          addToolResult({
-                            toolCallId,
-                            result: TOOL_EXECUTION_APPROVAL.REJECT,
-                          })
-                        }
-                      >
-                        <span className="min-w-0 break-words">{copy['toolInvocations.action.cancel']}</span>
-                        {shortcutActive && (
-                          <kbd dir="ltr" aria-hidden="true" className="shrink-0 whitespace-nowrap text-xs opacity-70">
-                            {cancelShortcut}
-                          </kbd>
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={runAriaLabel}
-                        title={
-                          shortcutActive
-                            ? formatToolInvocationsCopy(copy['toolInvocations.shortcut.run'], {
-                                shortcut: runShortcut,
-                              })
-                            : runAriaLabel
-                        }
-                        className={classNames(
-                          'inline-flex min-h-[44px] min-w-0 items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-normal',
-                          'border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2',
-                          'text-accent-500 hover:text-bolt-elements-textPrimary',
-                          'transition-colors motion-reduce:transition-none',
-                          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-focus-ring)]',
-                        )}
-                        onClick={() =>
-                          addToolResult({
-                            toolCallId,
-                            result: TOOL_EXECUTION_APPROVAL.APPROVE,
-                          })
-                        }
-                      >
-                        <span className="min-w-0 break-words">{copy['toolInvocations.action.run']}</span>
-                        {shortcutActive && (
-                          <kbd dir="ltr" aria-hidden="true" className="shrink-0 whitespace-nowrap text-xs opacity-70">
-                            {runShortcut}
-                          </kbd>
-                        )}
-                      </button>
-                    </div>
+          return (
+            <motion.li
+              key={index}
+              variants={toolVariants}
+              initial="hidden"
+              animate="visible"
+              transition={{ duration: 0.2, ease: cubicEasingFn }}
+            >
+              <div className="bg-bolt-elements-background-depth-3 rounded-lg p-2">
+                <div key={toolCallId} className="flex gap-1">
+                  <div className="flex flex-col items-center ">
+                    <span className="[margin-inline-end:auto] font-light font-normal text-md text-bolt-elements-textPrimary rounded-md">
+                      {toolName}
+                    </span>
+                    <span className="text-xs text-bolt-elements-textSecondary font-light break-words max-w-64">
+                      {annotation?.toolDescription}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 [margin-inline-start:auto]">
+                    <button
+                      className={classNames(
+                        'h-10 px-2.5 py-1.5 rounded-lg text-xs h-auto',
+                        'bg-transparent',
+                        'text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary',
+                        'transition-all duration-200',
+                        'flex items-center gap-2',
+                      )}
+                      onClick={() =>
+                        addToolResult({
+                          toolCallId,
+                          result: TOOL_EXECUTION_APPROVAL.REJECT,
+                        })
+                      }
+                    >
+                      Cancel{' '}
+                      {shortcutActive && (
+                        <span className="opacity-70 text-xs ml-1">{isMac ? '⌘⌫' : 'Ctrl+Backspace'}</span>
+                      )}
+                    </button>
+                    <button
+                      className={classNames(
+                        'h-10 inline-flex items-center gap-2 px-3 py-1.5 text-xs font-normal rounded-lg transition-colors',
+                        'bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor',
+                        'text-accent-500 hover:text-bolt-elements-textPrimary',
+                        'disabled:opacity-50 disabled:cursor-not-allowed',
+                      )}
+                      onClick={() =>
+                        addToolResult({
+                          toolCallId,
+                          result: TOOL_EXECUTION_APPROVAL.APPROVE,
+                        })
+                      }
+                    >
+                      Run tool{' '}
+                      {shortcutActive && <span className="opacity-70 text-xs ml-1">{isMac ? '⌘↵' : 'Ctrl+Enter'}</span>}
+                    </button>
                   </div>
                 </div>
-              </motion.li>
-            );
-          })}
-        </ul>
-      </motion.div>
-    );
-  },
-);
+              </div>
+            </motion.li>
+          );
+        })}
+      </ul>
+    </motion.div>
+  );
+});

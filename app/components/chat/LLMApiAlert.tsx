@@ -1,7 +1,4 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useTranslation } from 'react-i18next';
-
-import { formatChatClientCopy, getChatClientCopy } from '~/lib/i18n/catalogs/chat-client';
 import type { LlmErrorAlertType } from '~/types/actions';
 import { classNames } from '~/utils/classNames';
 
@@ -24,10 +21,7 @@ interface Props {
 }
 
 export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [] }: Props) {
-  const { i18n } = useTranslation();
-  const copy = getChatClientCopy(i18n.resolvedLanguage ?? i18n.language);
-  const { provider, errorType } = alert;
-  const providerLabel = provider?.trim() || copy['chatClient.error.provider'];
+  const { title, description, provider, errorType } = alert;
 
   const retryWithModel = (option: LlmRetryModelOption | undefined) => {
     if (!option) {
@@ -61,9 +55,9 @@ export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [
   const getErrorMessage = () => {
     switch (errorType) {
       case 'authentication':
-        return formatChatClientCopy(copy['chatClient.error.authentication'], { provider: providerLabel });
+        return `Authentication failed with ${provider}. Please check your API key.`;
       case 'rate_limit':
-        return formatChatClientCopy(copy['chatClient.error.rateLimit'], { provider: providerLabel });
+        return `Rate limit exceeded for ${provider}. Please wait before retrying.`;
       case 'quota':
         /*
          * This is a plan/organization allowance (e.g. monthly AI token budget),
@@ -71,24 +65,9 @@ export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [
          * don't imply that simply waiting a moment will clear it. It refills next
          * billing period; the way out is upgrading the plan or raising the limit.
          */
-        return copy['chatClient.error.quota'];
+        return `You've reached your plan's AI usage limit for this billing period. Upgrade your plan or check your account limits — it refills next period.`;
       default:
-        return copy['chatClient.error.generic'];
-    }
-  };
-
-  const getErrorTitle = () => {
-    switch (errorType) {
-      case 'authentication':
-        return copy['chatClient.error.title.authentication'];
-      case 'rate_limit':
-        return copy['chatClient.error.title.rateLimit'];
-      case 'quota':
-        return copy['chatClient.error.title.quota'];
-      case 'network':
-        return copy['chatClient.error.title.server'];
-      default:
-        return copy['chatClient.error.title.request'];
+        return 'An error occurred while processing your request.';
     }
   };
 
@@ -114,14 +93,14 @@ export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [
             <div className={`${getErrorIcon()} text-xl text-bolt-elements-button-danger-text`}></div>
           </motion.div>
 
-          <div className="ml-3 min-w-0 flex-1">
+          <div className="ml-3 flex-1">
             <motion.h3
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className="break-words text-sm font-medium text-bolt-elements-textPrimary"
+              className="text-sm font-medium text-bolt-elements-textPrimary"
             >
-              {getErrorTitle()}
+              {title}
             </motion.h3>
 
             <motion.div
@@ -130,7 +109,13 @@ export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [
               transition={{ delay: 0.2 }}
               className="mt-2 text-sm text-bolt-elements-textSecondary"
             >
-              <p className="break-words">{getErrorMessage()}</p>
+              <p>{getErrorMessage()}</p>
+
+              {description && (
+                <div className="text-xs text-bolt-elements-textSecondary p-2 bg-bolt-elements-background-depth-3 rounded mt-4 mb-4 break-words whitespace-pre-wrap overflow-x-hidden max-h-40 overflow-y-auto">
+                  Error Details: {description}
+                </div>
+              )}
             </motion.div>
 
             <motion.div
@@ -158,19 +143,19 @@ export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [
                       }
                     }}
                     className={classNames(
-                      'min-h-11 min-w-11 px-3 py-2 rounded-md text-sm font-medium whitespace-normal',
+                      'px-2 py-1.5 rounded-md text-sm font-medium',
                       'bg-bolt-elements-button-primary-background',
                       'hover:bg-bolt-elements-button-primary-backgroundHover',
                       'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-button-primary-background',
                       'text-bolt-elements-button-primary-text',
                     )}
                   >
-                    {copy['chatClient.error.retry']}
+                    Retry
                   </button>
                 )}
                 {errorType !== 'quota' && alternativeModels.length > 0 && (
                   <select
-                    aria-label={copy['chatClient.error.retryWith.aria']}
+                    aria-label="Retry with a different model"
                     defaultValue=""
                     onChange={(event) => {
                       const option = alternativeModels.find((model) => model.name === event.currentTarget.value);
@@ -178,7 +163,7 @@ export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [
                       retryWithModel(option);
                     }}
                     className={classNames(
-                      'min-h-11 w-full sm:w-auto max-w-full sm:max-w-[14rem] px-3 py-2 rounded-md text-sm font-medium cursor-pointer',
+                      'max-w-[12rem] px-2 py-1.5 rounded-md text-sm font-medium cursor-pointer',
                       'bg-bolt-elements-button-secondary-background',
                       'hover:bg-bolt-elements-button-secondary-backgroundHover',
                       'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-button-secondary-background',
@@ -186,7 +171,7 @@ export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [
                     )}
                   >
                     <option value="" disabled>
-                      {copy['chatClient.error.retryWith']}
+                      Retry with…
                     </option>
                     {alternativeModels.map((model) => (
                       <option key={`${model.provider}:${model.name}`} value={model.name}>
@@ -201,26 +186,26 @@ export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [
                     target="_blank"
                     rel="noopener noreferrer"
                     className={classNames(
-                      'min-h-11 min-w-11 px-3 py-2 rounded-md text-sm font-medium inline-flex items-center text-center whitespace-normal',
+                      'px-2 py-1.5 rounded-md text-sm font-medium inline-flex items-center',
                       'bg-bolt-elements-button-secondary-background',
                       'hover:bg-bolt-elements-button-secondary-backgroundHover',
                       'text-bolt-elements-button-secondary-text',
                     )}
                   >
-                    {errorType === 'quota' ? copy['chatClient.error.viewPlan'] : copy['chatClient.error.openSettings']}
+                    {errorType === 'quota' ? 'View plan & limits' : 'Open settings'}
                   </a>
                 )}
                 <button
                   onClick={clearAlert}
                   className={classNames(
-                    'min-h-11 min-w-11 px-3 py-2 rounded-md text-sm font-medium whitespace-normal',
+                    'px-2 py-1.5 rounded-md text-sm font-medium',
                     'bg-bolt-elements-button-secondary-background',
                     'hover:bg-bolt-elements-button-secondary-backgroundHover',
                     'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-button-secondary-background',
                     'text-bolt-elements-button-secondary-text',
                   )}
                 >
-                  {copy['chatClient.error.dismiss']}
+                  Dismiss
                 </button>
               </div>
             </motion.div>

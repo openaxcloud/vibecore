@@ -1,10 +1,8 @@
 import { Database as DatabaseIcon, RefreshCw } from 'lucide-react';
 import { useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { DatabaseRollbackPanel } from './DatabaseRollbackPanel';
 import { SupabaseConnection } from '~/components/chat/SupabaseConnection';
-import { formatDatabaseSettingsBytes } from '~/lib/i18n/catalogs/database-studio';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -41,10 +39,18 @@ interface DatabasePanelData {
   computeHours?: number;
 }
 
-export function formatDatabasePanelBytes(bytes: number, language: string): string {
-  const safeBytes = Number.isFinite(bytes) && bytes > 0 ? bytes : 0;
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) {
+    return '0 MB';
+  }
 
-  return formatDatabaseSettingsBytes(safeBytes, language)!;
+  const mb = bytes / (1024 * 1024);
+
+  if (mb < 1024) {
+    return `${mb < 10 ? mb.toFixed(1) : Math.round(mb)} MB`;
+  }
+
+  return `${(mb / 1024).toFixed(2)} GB`;
 }
 
 function UsageCard({
@@ -52,15 +58,11 @@ function UsageCard({
   usedBytes,
   quotaBytes,
   status,
-  language,
-  statusLabel,
 }: {
   name: string;
   usedBytes: number;
   quotaBytes?: number;
   status?: string;
-  language: string;
-  statusLabel?: string;
 }) {
   const pct = quotaBytes && quotaBytes > 0 ? Math.min(100, Math.round((usedBytes / quotaBytes) * 100)) : undefined;
 
@@ -68,15 +70,12 @@ function UsageCard({
     <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
       <div className="flex items-center justify-between">
         <span className="text-[14px] font-medium text-bolt-elements-textPrimary">{name}</span>
-        {status ? <span className="text-[12px] text-bolt-elements-textTertiary">{statusLabel}</span> : null}
+        {status ? <span className="text-[12px] text-bolt-elements-textTertiary">{status}</span> : null}
       </div>
       <div className="mt-2 text-[13px] text-bolt-elements-textSecondary">
-        {formatDatabasePanelBytes(usedBytes, language)}
+        {formatBytes(usedBytes)}
         {quotaBytes && quotaBytes > 0 ? (
-          <span className="text-bolt-elements-textTertiary">
-            {' / '}
-            {formatDatabasePanelBytes(quotaBytes, language)}
-          </span>
+          <span className="text-bolt-elements-textTertiary"> / {formatBytes(quotaBytes)}</span>
         ) : null}
       </div>
       {pct !== undefined ? (
@@ -89,7 +88,6 @@ function UsageCard({
 }
 
 export function DatabasePanel({ projectId }: { projectId: string }) {
-  const { t, i18n } = useTranslation();
   const fetcher = useFetcher<DatabasePanelData>();
   const loadUrl = `/api/projects/${encodeURIComponent(projectId)}/database`;
   const loading = fetcher.state !== 'idle';
@@ -101,8 +99,6 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
   }, [fetcher, loadUrl]);
 
   const data = fetcher.data;
-  const language = i18n.resolvedLanguage?.startsWith('fr') ? 'fr-FR' : 'en-GB';
-  const failed = data?.ok === false;
 
   const enabled = Boolean(
     data?.ok !== false && data?.enabled !== false && (data?.instance || data?.environments?.length),
@@ -116,13 +112,7 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
     data?.environments && data.environments.length > 0
       ? data.environments
       : data?.instance
-        ? [
-            {
-              name: t('idePanels.database.production'),
-              usedBytes: data.instance.sizeBytes,
-              status: data.instance.status,
-            },
-          ]
+        ? [{ name: 'Production Database', usedBytes: data.instance.sizeBytes, status: data.instance.status }]
         : [];
 
   return (
@@ -130,14 +120,14 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <DatabaseIcon className="h-4 w-4 text-bolt-elements-textTertiary" aria-hidden />
-          <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">{t('idePanels.database.title')}</h2>
+          <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">Databases</h2>
         </div>
         <div className="flex items-center gap-2">
           <a
             href="/usage"
             className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[13px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
           >
-            {t('idePanels.database.all')}
+            All Databases
           </a>
           <button
             type="button"
@@ -146,7 +136,7 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
             className="inline-flex items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[13px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-60"
           >
             <RefreshCw className={classNames('h-3.5 w-3.5', loading && 'animate-spin')} aria-hidden />
-            {loading ? t('idePanels.database.refreshing') : t('idePanels.database.refresh')}
+            Refresh
           </button>
         </div>
       </header>
@@ -162,10 +152,10 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
       <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
-            <h3 className="text-[14px] font-medium text-bolt-elements-textPrimary">
-              {t('idePanels.database.externalTitle')}
-            </h3>
-            <p className="mt-1 text-[12px] text-bolt-elements-textSecondary">{t('idePanels.database.externalBody')}</p>
+            <h3 className="text-[14px] font-medium text-bolt-elements-textPrimary">Connect external database</h3>
+            <p className="mt-1 text-[12px] text-bolt-elements-textSecondary">
+              Link a Supabase project to this app — its connection string and SQL run against the database you select.
+            </p>
           </div>
           <div className="shrink-0">
             <SupabaseConnection triggerVariant="bar" />
@@ -176,26 +166,15 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
       {loading && !data ? (
         <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 py-10 text-center">
           <RefreshCw className="mx-auto h-6 w-6 animate-spin text-bolt-elements-textTertiary" aria-hidden />
-          <p className="mt-3 text-sm text-bolt-elements-textSecondary">{t('idePanels.database.loading')}</p>
-        </div>
-      ) : failed ? (
-        <div
-          className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 py-10 text-center"
-          role="alert"
-        >
-          <DatabaseIcon className="mx-auto h-7 w-7 text-bolt-elements-icon-error" aria-hidden />
-          <p className="mt-3 text-sm font-medium text-bolt-elements-textPrimary">
-            {t('idePanels.database.loadErrorTitle')}
-          </p>
-          <p className="mt-1 text-xs text-bolt-elements-textSecondary">{t('idePanels.database.loadErrorBody')}</p>
+          <p className="mt-3 text-sm text-bolt-elements-textSecondary">Loading databases…</p>
         </div>
       ) : !enabled ? (
         <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 py-10 text-center">
           <DatabaseIcon className="mx-auto h-7 w-7 text-bolt-elements-textTertiary" aria-hidden />
-          <p className="mt-3 text-sm font-medium text-bolt-elements-textPrimary">
-            {t('idePanels.database.emptyTitle')}
+          <p className="mt-3 text-sm font-medium text-bolt-elements-textPrimary">No database yet</p>
+          <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+            Attach a managed Postgres database to give this project persistent storage.
           </p>
-          <p className="mt-1 text-xs text-bolt-elements-textSecondary">{t('idePanels.database.emptyBody')}</p>
         </div>
       ) : (
         <>
@@ -207,8 +186,6 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
                 usedBytes={env.usedBytes}
                 quotaBytes={env.quotaBytes}
                 status={env.status}
-                statusLabel={databaseStatus(env.status, t)}
-                language={language}
               />
             ))}
           </div>
@@ -217,27 +194,24 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
             <div className="grid gap-3 sm:grid-cols-2">
               {data?.billing?.renewsAt ? (
                 <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-                  <span className="text-[13px] text-bolt-elements-textSecondary">
-                    {t('idePanels.database.billingPeriod')}
-                  </span>
+                  <span className="text-[13px] text-bolt-elements-textSecondary">Billing Period</span>
                   <p className="mt-1 text-[14px] text-bolt-elements-textPrimary">
-                    {billingCadence(data.billing.cadence, t)} · {formatBillingDate(data.billing.renewsAt, language)}
+                    {data.billing.cadence ?? 'Renews'} · {data.billing.renewsAt}
                   </p>
                 </div>
               ) : null}
               {typeof data?.computeHours === 'number' ? (
                 <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-                  <span className="text-[13px] text-bolt-elements-textSecondary">
-                    {t('idePanels.database.computeHours')}
-                  </span>
-                  <p className="mt-1 text-[14px] text-bolt-elements-textPrimary">
-                    {t('idePanels.database.hours', { count: data.computeHours })}
-                  </p>
+                  <span className="text-[13px] text-bolt-elements-textSecondary">Hours of Compute Used</span>
+                  <p className="mt-1 text-[14px] text-bolt-elements-textPrimary">{data.computeHours} hours</p>
                 </div>
               ) : null}
             </div>
           ) : (
-            <p className="text-[12px] text-bolt-elements-textTertiary">{t('idePanels.database.metricsPending')}</p>
+            <p className="text-[12px] text-bolt-elements-textTertiary">
+              Storage quota, billing period and compute hours appear here once the managed database service reports
+              them. Table browser, SQL editor and migrations are coming on the same connection.
+            </p>
           )}
 
           {/* Our extra beyond Replit: point-in-time rollback / snapshots. */}
@@ -246,46 +220,4 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
       )}
     </div>
   );
-}
-
-type Translate = (key: string, options?: Record<string, unknown>) => string;
-
-function databaseStatus(status: string | undefined, t: Translate): string | undefined {
-  if (!status) {
-    return undefined;
-  }
-
-  const keyByStatus: Record<string, string> = {
-    READY: 'idePanels.database.statusReady',
-    RUNNING: 'idePanels.database.statusRunning',
-    PROVISIONING: 'idePanels.database.statusProvisioning',
-    PENDING: 'idePanels.database.statusPending',
-    FAILED: 'idePanels.database.statusFailed',
-    ERROR: 'idePanels.database.statusFailed',
-    STOPPED: 'idePanels.database.statusStopped',
-  };
-
-  return t(keyByStatus[status.toUpperCase()] ?? 'idePanels.common.unavailable');
-}
-
-function billingCadence(cadence: string | undefined, t: Translate): string {
-  const keyByCadence: Record<string, string> = {
-    month: 'idePanels.database.renewsMonthly',
-    monthly: 'idePanels.database.renewsMonthly',
-    year: 'idePanels.database.renewsYearly',
-    yearly: 'idePanels.database.renewsYearly',
-    annual: 'idePanels.database.renewsYearly',
-  };
-
-  return t(keyByCadence[cadence?.toLowerCase() ?? ''] ?? 'idePanels.database.renews');
-}
-
-function formatBillingDate(value: string, language: string): string {
-  const date = new Date(value);
-
-  if (!Number.isFinite(date.getTime())) {
-    return '';
-  }
-
-  return new Intl.DateTimeFormat(language, { dateStyle: 'medium' }).format(date);
 }

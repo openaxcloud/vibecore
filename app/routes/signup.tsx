@@ -13,8 +13,6 @@ import {
   User as UserIcon,
 } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useNavigation } from 'react-router';
 import { AuthField, AuthOauthButton, AuthScreen, AuthSubmit, useAuthOauthPending } from '~/components/auth/AuthScreen';
 import { PASSWORD_MIN_LENGTH, PasswordStrengthMeter } from '~/components/auth/PasswordStrength';
@@ -27,42 +25,6 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import type { TranslationKey } from '~/lib/i18n/dictionary';
-import { resolveRequestLocale } from '~/lib/i18n/request-locale';
-import { translateServerMessage } from '~/lib/i18n/server';
-
-export const meta: MetaFunction<typeof loader> = ({ data }) => {
-  const language = data?.language ?? 'en';
-
-  return [
-    { title: translateServerMessage(language, 'auth.signup.metaTitle') },
-    { name: 'description', content: translateServerMessage(language, 'auth.signup.metaDescription') },
-  ];
-};
-
-type SignupFeedbackCode =
-  | 'AUTH_EMAIL_REQUIRED'
-  | 'AUTH_PASSWORD_TOO_SHORT'
-  | 'AUTH_PASSWORD_MISMATCH'
-  | 'AUTH_EMAIL_EXISTS'
-  | 'AUTH_SIGNUP_FAILED'
-  | 'AUTH_SIGNUP_UNAVAILABLE';
-
-const SIGNUP_FEEDBACK_KEYS = {
-  AUTH_EMAIL_REQUIRED: 'auth.feedback.emailRequired',
-  AUTH_PASSWORD_TOO_SHORT: 'auth.feedback.passwordTooShort',
-  AUTH_PASSWORD_MISMATCH: 'auth.feedback.passwordsMismatch',
-  AUTH_EMAIL_EXISTS: 'auth.feedback.emailExists',
-  AUTH_SIGNUP_FAILED: 'auth.feedback.signupFailed',
-  AUTH_SIGNUP_UNAVAILABLE: 'auth.feedback.signupUnavailable',
-} as const satisfies Record<SignupFeedbackCode, TranslationKey>;
-
-const SIGNUP_FEATURES = [
-  { icon: Shield, key: 'auth.signup.featureSecurity' },
-  { icon: Sparkles, key: 'auth.signup.featureAgent' },
-  { icon: Code2, key: 'auth.signup.featureIde' },
-  { icon: CheckCircle, key: 'auth.signup.featureProviders' },
-] as const;
 
 /*
  * Mirror login.tsx: the marketing host shouldn't expose the signup form.
@@ -79,7 +41,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return redirect(`https://app.e-code.ai/register${search}`, { status: 301 });
   }
 
-  return json({ language: resolveRequestLocale(request).language });
+  return null;
 }
 
 /*
@@ -97,11 +59,7 @@ function postRegisterDestination(request: Request): string {
 }
 
 type ActionResult =
-  | {
-      errorCode: SignupFeedbackCode;
-      errorParams?: { count: number };
-      fields?: { name?: string; email?: string; organizationName?: string };
-    }
+  | { error: string; fields?: { name?: string; email?: string; organizationName?: string } }
   | { ok: true };
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -122,7 +80,7 @@ export async function action({ request }: EnterpriseActionArgs) {
    */
   if (!email) {
     return json<ActionResult>(
-      { errorCode: 'AUTH_EMAIL_REQUIRED', fields: { name, email, organizationName } },
+      { error: 'Email is required.', fields: { name, email, organizationName } },
       { status: 400 },
     );
   }
@@ -130,8 +88,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   if (password.length < PASSWORD_MIN_LENGTH) {
     return json<ActionResult>(
       {
-        errorCode: 'AUTH_PASSWORD_TOO_SHORT',
-        errorParams: { count: PASSWORD_MIN_LENGTH },
+        error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
         fields: { name, email, organizationName },
       },
       { status: 400 },
@@ -140,7 +97,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 
   if (password !== confirmPassword) {
     return json<ActionResult>(
-      { errorCode: 'AUTH_PASSWORD_MISMATCH', fields: { name, email, organizationName } },
+      { error: 'Passwords do not match.', fields: { name, email, organizationName } },
       { status: 400 },
     );
   }
@@ -176,24 +133,29 @@ export async function action({ request }: EnterpriseActionArgs) {
     });
   } catch (error) {
     if (error instanceof Response) {
-      let errorCode: SignupFeedbackCode = 'AUTH_SIGNUP_FAILED';
+      let message = 'Could not create your account.';
 
       try {
         const payload = (await error.json()) as { error?: string; code?: string };
 
         if (payload.code === 'AUTH_EMAIL_EXISTS') {
-          errorCode = 'AUTH_EMAIL_EXISTS';
+          message = 'An account with this email already exists. Try signing in instead.';
+        } else if (payload.error) {
+          message = payload.error;
         }
       } catch {
-        // Never expose transport or API prose; the client translates a stable code.
+        message = error.statusText || message;
       }
 
-      return json<ActionResult>({ errorCode, fields: { name, email, organizationName } }, { status: error.status });
+      return json<ActionResult>(
+        { error: message, fields: { name, email, organizationName } },
+        { status: error.status },
+      );
     }
 
     return json<ActionResult>(
       {
-        errorCode: 'AUTH_SIGNUP_UNAVAILABLE',
+        error: `Signup failed. The API service is temporarily unreachable. Please try again in a moment.`,
         fields: { name, email, organizationName },
       },
       { status: 503 },
@@ -202,14 +164,8 @@ export async function action({ request }: EnterpriseActionArgs) {
 }
 
 export default function SignupPage() {
-  const { t } = useTranslation();
-
   const actionData = useActionData<typeof action>() as
-    | {
-        errorCode?: SignupFeedbackCode;
-        errorParams?: { count: number };
-        fields?: { name?: string; email?: string; organizationName?: string };
-      }
+    | { error?: string; fields?: { name?: string; email?: string; organizationName?: string } }
     | undefined;
 
   const navigation = useNavigation();
@@ -220,33 +176,34 @@ export default function SignupPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showOrgField, setShowOrgField] = useState(Boolean(actionData?.fields?.organizationName));
 
-  const error = actionData?.errorCode
-    ? t(SIGNUP_FEEDBACK_KEYS[actionData.errorCode], actionData.errorParams)
-    : undefined;
-
   return (
     <AuthScreen
-      eyebrow={t('auth.signup.eyebrow')}
-      title={t('auth.signup.title')}
-      description={t('auth.signup.description')}
-      error={error}
+      eyebrow="Free to get started"
+      title="Create your account"
+      description="Spin up your first workspace, invite teammates and start shipping with the AI agent in minutes."
+      error={actionData?.error}
       backTo="/"
-      backLabel={t('auth.common.backHome')}
-      heroEyebrow={t('auth.signup.heroEyebrow')}
-      heroTitle={t('auth.signup.heroTitle')}
-      heroBody={t('auth.signup.heroBody')}
+      backLabel="Back to home"
+      heroEyebrow="Start free, scale on demand"
+      heroTitle="Build production apps with an AI co-pilot"
+      heroBody="Provision a workspace, share live previews and ship to your own infrastructure — all from a single browser tab."
       heroAside={
         <>
           <div className="mt-9 grid gap-4">
-            {SIGNUP_FEATURES.map((feature) => {
+            {[
+              { icon: Shield, text: 'SOC2-ready controls, MFA and audit logs out of the box' },
+              { icon: Sparkles, text: 'AI agent that writes, reviews and ships code with you' },
+              { icon: Code2, text: 'Cloud IDE with terminal, preview and Git-native workflows' },
+              { icon: CheckCircle, text: 'Bring your own keys for 21 AI providers' },
+            ].map((feature) => {
               const Icon = feature.icon;
 
               return (
-                <div key={feature.key} className="flex items-center gap-3">
+                <div key={feature.text} className="flex items-center gap-3">
                   <div className="grid h-10 w-10 place-items-center rounded-lg bg-white/18 backdrop-blur-md">
                     <Icon className="h-5 w-5" />
                   </div>
-                  <span className="text-[14px] font-medium text-white/92">{t(feature.key)}</span>
+                  <span className="text-[14px] font-medium text-white/92">{feature.text}</span>
                 </div>
               );
             })}
@@ -255,32 +212,32 @@ export default function SignupPage() {
           <div className="mt-10 grid grid-cols-2 gap-5 border-t border-white/20 pt-8">
             <div>
               <div className="text-3xl font-bold">21</div>
-              <div className="mt-1 text-[12px] text-white/72">{t('auth.signup.statProviders')}</div>
+              <div className="mt-1 text-[12px] text-white/72">AI providers</div>
             </div>
             <div>
               <div className="text-3xl font-bold">29+</div>
-              <div className="mt-1 text-[12px] text-white/72">{t('auth.signup.statLanguages')}</div>
+              <div className="mt-1 text-[12px] text-white/72">Languages</div>
             </div>
           </div>
         </>
       }
       footer={
         <>
-          {t('auth.signup.footerPrompt')}{' '}
+          Already have an account?{' '}
           <Link to="/login" className="vc-auth-link font-semibold hover:underline">
-            {t('auth.signup.signIn')}
+            Sign in
           </Link>
         </>
       }
       belowCard={
         <p className="vc-auth-legal mt-5 text-center text-[11px] leading-5 sm:mt-6">
-          {t('auth.signup.legalPrefix')}{' '}
+          By creating an account, you agree to our{' '}
           <Link to="/terms" className="underline">
-            {t('auth.common.terms')}
+            Terms
           </Link>{' '}
-          {t('auth.common.and')}{' '}
+          and{' '}
           <Link to="/privacy" className="underline">
-            {t('auth.common.privacyPolicy')}
+            Privacy Policy
           </Link>
           .
         </p>
@@ -288,27 +245,27 @@ export default function SignupPage() {
     >
       <Form method="post" className="space-y-4 sm:space-y-5">
         <AuthField
-          label={t('auth.common.fullName')}
+          label="Full name"
           name="name"
           autoComplete="name"
           defaultValue={actionData?.fields?.name ?? ''}
-          placeholder={t('auth.common.fullNamePlaceholder')}
+          placeholder="Ada Lovelace"
           icon={<UserIcon className="h-4 w-4" />}
         />
 
         <AuthField
-          label={t('auth.common.workEmail')}
+          label="Work email"
           name="email"
           type="email"
           autoComplete="email"
           required
           defaultValue={actionData?.fields?.email ?? ''}
-          placeholder={t('auth.common.emailPlaceholder')}
+          placeholder="you@company.com"
           icon={<Mail className="h-4 w-4" />}
         />
 
         <label className="block">
-          <span className="vc-auth-label text-[13px] font-medium">{t('auth.common.password')}</span>
+          <span className="vc-auth-label text-[13px] font-medium">Password</span>
           <span className="relative mt-2 block">
             <Lock className="vc-auth-field-icon pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
             <input
@@ -319,14 +276,14 @@ export default function SignupPage() {
               minLength={PASSWORD_MIN_LENGTH}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              placeholder={t('auth.common.passwordMinCharacters', { count: PASSWORD_MIN_LENGTH })}
+              placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
               className="vc-auth-input h-12 w-full rounded-md border px-10 pr-12 text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]"
             />
             <button
               type="button"
               onClick={() => setShowPassword((value) => !value)}
               className="vc-auth-input-action absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-md transition-colors sm:h-8 sm:w-8"
-              aria-label={showPassword ? t('auth.common.hidePassword') : t('auth.common.showPassword')}
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -336,7 +293,7 @@ export default function SignupPage() {
         </label>
 
         <label className="block">
-          <span className="vc-auth-label text-[13px] font-medium">{t('auth.common.confirmPassword')}</span>
+          <span className="vc-auth-label text-[13px] font-medium">Confirm password</span>
           <span className="relative mt-2 block">
             <Lock className="vc-auth-field-icon pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
             <input
@@ -345,14 +302,14 @@ export default function SignupPage() {
               autoComplete="new-password"
               required
               minLength={8}
-              placeholder={t('auth.common.samePasswordPlaceholder')}
+              placeholder="Re-enter the same password"
               className="vc-auth-input h-12 w-full rounded-md border px-10 pr-12 text-[16px] outline-none transition-colors sm:h-11 sm:text-[13px]"
             />
             <button
               type="button"
               onClick={() => setShowConfirmPassword((value) => !value)}
               className="vc-auth-input-action absolute right-2 top-1/2 grid h-10 w-10 -translate-y-1/2 place-items-center rounded-md transition-colors sm:h-8 sm:w-8"
-              aria-label={showConfirmPassword ? t('auth.common.hidePassword') : t('auth.common.showPassword')}
+              aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
             >
               {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -361,13 +318,13 @@ export default function SignupPage() {
 
         {showOrgField ? (
           <AuthField
-            label={t('auth.common.organizationName')}
+            label="Organization name"
             name="organizationName"
             autoComplete="organization"
             defaultValue={actionData?.fields?.organizationName ?? ''}
-            placeholder={t('auth.common.organizationPlaceholder')}
+            placeholder="Acme Inc."
             icon={<Building2 className="h-4 w-4" />}
-            hint={t('auth.signup.organizationHint')}
+            hint="Leave blank to create a personal workspace — you can rename it later in settings."
           />
         ) : (
           <button
@@ -375,7 +332,7 @@ export default function SignupPage() {
             onClick={() => setShowOrgField(true)}
             className="vc-auth-inline-link text-[12px] font-semibold hover:underline"
           >
-            {t('auth.signup.addOrganization')}
+            + Add an organization name (optional)
           </button>
         )}
 
@@ -385,8 +342,8 @@ export default function SignupPage() {
          * recommended strength guidance and never blocks submission.
          */}
         <AuthSubmit
-          label={t('auth.signup.submit')}
-          loadingLabel={t('auth.signup.submitting')}
+          label="Create account"
+          loadingLabel="Creating account..."
           isSubmitting={isSubmitting}
           disabled={pendingProvider !== null || password.length < PASSWORD_MIN_LENGTH}
         />
@@ -395,7 +352,7 @@ export default function SignupPage() {
       <div className="vc-auth-secondary-actions mt-5 grid gap-3 border-t pt-5 sm:grid-cols-2">
         <AuthOauthButton
           provider="github"
-          label={t('auth.signup.github')}
+          label="Sign up with GitHub"
           icon={<Github className="h-4 w-4" />}
           pendingProvider={pendingProvider}
           onStart={startOAuth}
@@ -403,7 +360,7 @@ export default function SignupPage() {
         />
         <AuthOauthButton
           provider="google"
-          label={t('auth.signup.google')}
+          label="Sign up with Google"
           icon={<Chrome className="h-4 w-4" />}
           pendingProvider={pendingProvider}
           onStart={startOAuth}

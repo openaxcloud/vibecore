@@ -10,19 +10,9 @@
  * via `registerSlashCommand` without touching this file directly.
  */
 
-import {
-  getSlashCommandDisplayCopy,
-  getSlashCommandsCopy,
-  resolveSlashCommandsLanguage,
-  type BuiltInSlashCommandId,
-} from '~/lib/i18n/catalogs/slash-commands';
-
 export type ChatMode = 'discuss' | 'build';
 
 export interface SlashCommandContext {
-  /** Active interface language, used only for reviewed user-facing command output. */
-  language?: string | null;
-
   /**
    * Currently selected chat mode. Mode-switch commands read this so they
    * can no-op on a redundant click.
@@ -135,75 +125,15 @@ function asMatchKey(keyword: string): string {
   return keyword.replace(/^\//, '').toLowerCase();
 }
 
-const MAX_SAFE_PREVIEW_ERROR_LENGTH = 4_000;
-const ANSI_ESCAPE_PATTERN = /\u001B\[[0-?]*[ -/]*[@-~]/gu;
-
-const PRIVATE_KEY_BLOCK_PATTERN =
-  /-----BEGIN [^-]*(?:PRIVATE KEY|SECRET)[^-]*-----[\s\S]*?-----END [^-]*(?:PRIVATE KEY|SECRET)[^-]*-----/giu;
-
-const SENSITIVE_ASSIGNMENT_PATTERN =
-  /(\b(?:authorization|proxy-authorization|api[ _-]?key|access[ _-]?token|refresh[ _-]?token|id[ _-]?token|token|secret|password|passwd|credential|private[ _-]?key|client[ _-]?secret|service[ _-]?role(?:[ _-]?key)?|cookie|set-cookie)\b\s*[:=]\s*)(?:(?:Bearer|Basic)\s+[^\s,;}\]]+|"[^"\r\n]*"|'[^'\r\n]*'|`[^`\r\n]*`|[^\s,;}\]]+)/giu;
-
-const SENSITIVE_QUERY_PARAMETER_PATTERN =
-  /([?&](?:api[_-]?key|access[_-]?token|refresh[_-]?token|token|secret|password)=)[^&#\s]+/giu;
-
-const AUTHORIZATION_SCHEME_PATTERN = /\b(?:Bearer|Basic)\s+[A-Za-z0-9._~+/=-]+/giu;
-
-const RECOGNIZABLE_TOKEN_PATTERN =
-  /\b(?:(?:sk-(?:proj-)?|(?:sk|pk|rk)_(?:live|test)_|gh[pousr]_|github_pat_|glpat-|xox[baprs]-|sbp_|npm_)[A-Za-z0-9._-]{8,}|(?:AKIA|ASIA)[A-Z0-9]{16}|AIza[A-Za-z0-9_-]{30,})\b/gu;
-
-const JWT_PATTERN = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gu;
-const URL_CREDENTIALS_PATTERN = /(\/\/)[^/\s:@]+:[^@\s/]+@/gu;
-
-/**
- * Keep a preview diagnostic useful for the agent without copying credentials,
- * control sequences, or an unbounded payload into the visible composer.
- */
-export function sanitizeSlashCommandPreviewError(error: string, language?: string | null): string {
-  const copy = getSlashCommandsCopy(language);
-  const redacted = copy['slashCommands.previewError.redacted'];
-
-  const sanitized = error
-    .replace(ANSI_ESCAPE_PATTERN, '')
-    .replace(PRIVATE_KEY_BLOCK_PATTERN, redacted)
-    .replace(SENSITIVE_ASSIGNMENT_PATTERN, (_match, prefix: string) => `${prefix}${redacted}`)
-    .replace(SENSITIVE_QUERY_PARAMETER_PATTERN, (_match, prefix: string) => `${prefix}${redacted}`)
-    .replace(AUTHORIZATION_SCHEME_PATTERN, redacted)
-    .replace(RECOGNIZABLE_TOKEN_PATTERN, redacted)
-    .replace(JWT_PATTERN, redacted)
-    .replace(URL_CREDENTIALS_PATTERN, (_match, scheme: string) => `${scheme}${redacted}@`)
-    .replace(/```/gu, '`\u200B``')
-    .trim();
-
-  if (!sanitized) {
-    return copy['slashCommands.previewError.unavailable'];
-  }
-
-  if (sanitized.length <= MAX_SAFE_PREVIEW_ERROR_LENGTH) {
-    return sanitized;
-  }
-
-  return `${sanitized.slice(0, MAX_SAFE_PREVIEW_ERROR_LENGTH).trimEnd()}\n${copy['slashCommands.previewError.truncated']}`;
-}
-
-export function formatSlashCommandPreviewPrompt(error: string, language?: string | null): string {
-  const copy = getSlashCommandsCopy(language);
-  const diagnostic = sanitizeSlashCommandPreviewError(error, language);
-
-  return `${copy['slashCommands.previewError.prompt']}\n\n\`\`\`text\n${diagnostic}\n\`\`\`\n`;
-}
-
 /**
  * Built-in commands — the registry seed. Keep this list short and
  * obvious; specialised commands belong to feature modules.
  */
-type BuiltInSlashCommandDefinition = Omit<SlashCommand, 'description' | 'label'> & {
-  id: BuiltInSlashCommandId;
-};
-
-const BUILT_IN_SLASH_COMMAND_DEFINITIONS: readonly BuiltInSlashCommandDefinition[] = [
+export const BUILT_IN_SLASH_COMMANDS: readonly SlashCommand[] = [
   {
     id: 'clear',
+    label: 'Clear conversation',
+    description: 'Archive the current chat and start a fresh thread.',
     aliases: ['reset'],
     execute(context) {
       context.clearConversation?.();
@@ -211,6 +141,8 @@ const BUILT_IN_SLASH_COMMAND_DEFINITIONS: readonly BuiltInSlashCommandDefinition
   },
   {
     id: 'discuss',
+    label: 'Discuss mode',
+    description: 'Talk through the problem before writing any code.',
     aliases: ['chat'],
     execute(context) {
       if (context.chatMode !== 'discuss') {
@@ -220,6 +152,8 @@ const BUILT_IN_SLASH_COMMAND_DEFINITIONS: readonly BuiltInSlashCommandDefinition
   },
   {
     id: 'build',
+    label: 'Build mode',
+    description: 'Generate code and file actions directly.',
     aliases: ['code'],
     execute(context) {
       if (context.chatMode !== 'build') {
@@ -229,6 +163,8 @@ const BUILT_IN_SLASH_COMMAND_DEFINITIONS: readonly BuiltInSlashCommandDefinition
   },
   {
     id: 'plan',
+    label: 'Toggle plan-first',
+    description: 'Make the agent produce a checklist before applying changes.',
     aliases: ['planfirst', 'checklist'],
     execute(context) {
       context.setPlanFirst?.(!context.planFirst);
@@ -236,6 +172,8 @@ const BUILT_IN_SLASH_COMMAND_DEFINITIONS: readonly BuiltInSlashCommandDefinition
   },
   {
     id: 'help',
+    label: 'Help',
+    description: 'Open the keyboard shortcuts and command reference.',
     aliases: ['?'],
     execute(context) {
       context.openHelp?.();
@@ -243,6 +181,8 @@ const BUILT_IN_SLASH_COMMAND_DEFINITIONS: readonly BuiltInSlashCommandDefinition
   },
   {
     id: 'file',
+    label: 'Insert file mention',
+    description: 'Insert @<path> at the cursor without opening the @ autocomplete.',
     takesArgument: true,
     execute(context) {
       const trimmed = context.argument?.trim();
@@ -258,6 +198,8 @@ const BUILT_IN_SLASH_COMMAND_DEFINITIONS: readonly BuiltInSlashCommandDefinition
   },
   {
     id: 'snapshot',
+    label: 'Create project snapshot',
+    description: 'Take a manual git-style snapshot of the workspace so you can roll back later.',
     aliases: ['save'],
     async execute(context) {
       await context.createSnapshot?.();
@@ -265,6 +207,8 @@ const BUILT_IN_SLASH_COMMAND_DEFINITIONS: readonly BuiltInSlashCommandDefinition
   },
   {
     id: 'preview-error',
+    label: 'Fix last preview error',
+    description: 'Pre-fill the composer with the most recent preview error so you only press Enter.',
     aliases: ['fix-preview', 'fixerror'],
     execute(context) {
       const error = context.getLastPreviewError?.();
@@ -273,11 +217,13 @@ const BUILT_IN_SLASH_COMMAND_DEFINITIONS: readonly BuiltInSlashCommandDefinition
         return;
       }
 
-      context.insertIntoComposer(formatSlashCommandPreviewPrompt(error, context.language), { replace: true });
+      context.insertIntoComposer(`Fix this preview error:\n\n\`\`\`\n${error}\n\`\`\`\n`, { replace: true });
     },
   },
   {
     id: 'open',
+    label: 'Open file in editor',
+    description: 'Switch the workbench to code view and select the given file.',
     aliases: ['edit'],
     takesArgument: true,
     execute(context) {
@@ -292,6 +238,8 @@ const BUILT_IN_SLASH_COMMAND_DEFINITIONS: readonly BuiltInSlashCommandDefinition
   },
   {
     id: 'diff',
+    label: 'Show diff for file',
+    description: 'Switch the workbench to inline diff view for the given path (or the active file).',
     takesArgument: true,
     execute(context) {
       const trimmed = context.argument?.trim();
@@ -300,6 +248,8 @@ const BUILT_IN_SLASH_COMMAND_DEFINITIONS: readonly BuiltInSlashCommandDefinition
   },
   {
     id: 'run',
+    label: 'Run shell command',
+    description: 'Execute a shell command in the project workspace (output appears in the terminal).',
     aliases: ['sh', 'shell'],
     takesArgument: true,
     async execute(context) {
@@ -314,44 +264,7 @@ const BUILT_IN_SLASH_COMMAND_DEFINITIONS: readonly BuiltInSlashCommandDefinition
   },
 ];
 
-export const BUILT_IN_SLASH_COMMANDS: readonly SlashCommand[] = BUILT_IN_SLASH_COMMAND_DEFINITIONS.map(
-  (definition) => ({
-    ...definition,
-    ...getSlashCommandDisplayCopy(definition.id, 'en'),
-  }),
-);
-
 const registry = new Map<string, SlashCommand>();
-const builtInCommandSet = new Set(BUILT_IN_SLASH_COMMANDS);
-const frenchBuiltInCommandCache = new WeakMap<SlashCommand, SlashCommand>();
-
-function localizeSlashCommand(command: SlashCommand, language?: string | null): SlashCommand {
-  const resolvedLanguage = resolveSlashCommandsLanguage(language);
-
-  if (resolvedLanguage !== 'fr' || !builtInCommandSet.has(command)) {
-    return command;
-  }
-
-  const cached = frenchBuiltInCommandCache.get(command);
-
-  if (cached) {
-    return cached;
-  }
-
-  const display = getSlashCommandDisplayCopy(command.id as BuiltInSlashCommandId, resolvedLanguage);
-
-  const localized: SlashCommand = {
-    ...command,
-    ...display,
-    execute(context) {
-      return command.execute({ ...context, language: resolvedLanguage });
-    },
-  };
-
-  frenchBuiltInCommandCache.set(command, localized);
-
-  return localized;
-}
 
 function indexCommand(command: SlashCommand) {
   registry.set(asMatchKey(command.id), command);
@@ -390,13 +303,11 @@ export function registerSlashCommand(command: SlashCommand): () => void {
  * Lookup a command by its keyword (with or without leading slash).
  * Returns undefined when no command or alias matches.
  */
-export function getSlashCommand(keyword: string, language?: string | null): SlashCommand | undefined {
-  const command = registry.get(asMatchKey(keyword));
-
-  return command ? localizeSlashCommand(command, language) : undefined;
+export function getSlashCommand(keyword: string): SlashCommand | undefined {
+  return registry.get(asMatchKey(keyword));
 }
 
-export function listSlashCommands(language?: string | null): SlashCommand[] {
+export function listSlashCommands(): SlashCommand[] {
   /*
    * Deduplicate (aliases share the same command reference) and sort by
    * id so the palette renders a stable list.
@@ -410,7 +321,7 @@ export function listSlashCommands(language?: string | null): SlashCommand[] {
     }
 
     seen.add(command);
-    commands.push(localizeSlashCommand(command, language));
+    commands.push(command);
   }
 
   commands.sort((a, b) => a.id.localeCompare(b.id));
@@ -451,9 +362,6 @@ export function parseSlashInput(input: string): ParsedSlashCommand | undefined {
  * query returns every command (sorted as `listSlashCommands` does).
  */
 export interface SearchSlashCommandsOptions {
-  /** Active interface language. Unsupported locales fall back to English. */
-  language?: string | null;
-
   /**
    * MRU command-id list to boost in the ranking. First entry gets the
    * biggest bonus, decaying linearly so the most-used commands surface
@@ -481,7 +389,7 @@ function slashMruBonus(recent: readonly string[] | undefined, commandId: string)
 
 export function searchSlashCommands(query: string, options: SearchSlashCommandsOptions = {}): SlashCommand[] {
   const trimmed = query.trim().toLowerCase();
-  const haystack = listSlashCommands(options.language);
+  const haystack = listSlashCommands();
   const recent = options.recentSlashCommandIds;
 
   if (trimmed.length === 0) {

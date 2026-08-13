@@ -1,11 +1,9 @@
 import { motion } from 'framer-motion';
 import React from 'react';
-import { useTranslation } from 'react-i18next';
 import { GitHubOauthConnectButton } from './GitHubOauthConnectButton';
 
 import { Button } from '~/components/ui/Button';
 import { useGitHubConnection } from '~/lib/hooks';
-import { getSourceControlConnectionsCopy } from '~/lib/i18n/catalogs/source-control-connections';
 import { classNames } from '~/utils/classNames';
 
 interface ConnectionTestResult {
@@ -21,24 +19,26 @@ interface GitHubConnectionProps {
 
 export function GitHubConnection({ connectionTest, onTestConnection }: GitHubConnectionProps) {
   const { isConnected, isLoading, isConnecting, connect, disconnect, error } = useGitHubConnection();
-  const { i18n } = useTranslation();
-  const copy = getSourceControlConnectionsCopy(i18n.resolvedLanguage ?? i18n.language);
 
   const [token, setToken] = React.useState('');
   const [tokenType, setTokenType] = React.useState<'classic' | 'fine-grained'>('classic');
 
   const handleConnect = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('handleConnect called with token:', token ? 'token provided' : 'no token', 'tokenType:', tokenType);
 
     if (!token.trim()) {
+      console.log('No token provided, returning early');
       return;
     }
 
     try {
+      console.log('Calling connect function...');
       await connect(token, tokenType);
+      console.log('Connect function completed successfully');
       setToken(''); // Clear token on successful connection
-    } catch (caught) {
-      console.error('GitHub connection failed', caught);
+    } catch (error) {
+      console.log('Connect function failed:', error);
 
       // Error handling is done in the hook
     }
@@ -46,10 +46,10 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8" role="status" aria-live="polite" aria-busy="true">
+      <div className="flex items-center justify-center p-8">
         <div className="flex items-center gap-2">
-          <div className="i-ph:spinner-gap-bold animate-spin w-4 h-4" aria-hidden="true" />
-          <span className="text-bolt-elements-textSecondary">{copy['sourceControl.common.loadingConnection']}</span>
+          <div className="i-ph:spinner-gap-bold animate-spin w-4 h-4" />
+          <span className="text-bolt-elements-textSecondary">Loading connection...</span>
         </div>
       </div>
     );
@@ -62,32 +62,29 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.2 }}
     >
-      <div className="space-y-6 p-4 sm:p-6">
+      <div className="p-6 space-y-6">
         {!isConnected && (
           <>
             <div className="rounded-lg border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor p-4">
               <h3 className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary mb-2">
-                {copy['sourceControl.github.oauth.title']}
+                Connect with GitHub (OAuth)
               </h3>
               <p className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-3">
-                {copy['sourceControl.github.oauth.description']}
+                Authorize through GitHub. We store an encrypted server-side token tied to your e-code account — no
+                personal access token to copy, and the token never reaches your browser. Recommended.
               </p>
               <GitHubOauthConnectButton />
             </div>
 
             <div className="text-xs text-bolt-elements-textSecondary bg-bolt-elements-background-depth-1 dark:bg-bolt-elements-background-depth-1 p-3 rounded-lg mb-4">
-              <p className="mb-1 flex flex-wrap items-center gap-1">
-                <span
-                  className="i-ph:lightbulb w-3.5 h-3.5 shrink-0 text-bolt-elements-icon-success dark:text-bolt-elements-icon-success"
-                  aria-hidden="true"
-                />
-                <span className="font-medium">{copy['sourceControl.github.legacy.label']}</span>{' '}
-                {copy['sourceControl.github.legacy.intro']}{' '}
+              <p className="flex items-center gap-1 mb-1">
+                <span className="i-ph:lightbulb w-3.5 h-3.5 text-bolt-elements-icon-success dark:text-bolt-elements-icon-success" />
+                <span className="font-medium">Legacy:</span> You can also paste a Personal Access Token below. Use this
+                if you prefer to manage your own token rotation, or set the{' '}
                 <code className="px-1 py-0.5 bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 rounded">
                   VITE_GITHUB_ACCESS_TOKEN
                 </code>{' '}
-                {copy['sourceControl.github.legacy.automaticSuffix']}{' '}
-                {copy['sourceControl.github.legacy.fineGrainedPrefix']}{' '}
+                environment variable to connect automatically. For fine-grained tokens, also set{' '}
                 <code className="px-1 py-0.5 bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-2 rounded">
                   VITE_GITHUB_TOKEN_TYPE=fine-grained
                 </code>
@@ -104,7 +101,7 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
                 htmlFor="github-token-type"
                 className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2"
               >
-                {copy['sourceControl.github.token.type']}
+                Token Type
               </label>
               <select
                 id="github-token-type"
@@ -120,8 +117,8 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
                   'disabled:opacity-50',
                 )}
               >
-                <option value="classic">{copy['sourceControl.github.token.classicOption']}</option>
-                <option value="fine-grained">{copy['sourceControl.github.token.fineGrainedOption']}</option>
+                <option value="classic">Personal Access Token (Classic)</option>
+                <option value="fine-grained">Fine-grained Token</option>
               </select>
             </div>
 
@@ -130,9 +127,7 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
                 htmlFor="github-access-token"
                 className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2"
               >
-                {tokenType === 'classic'
-                  ? copy['sourceControl.github.token.classicLabel']
-                  : copy['sourceControl.github.token.fineGrainedLabel']}
+                {tokenType === 'classic' ? 'Personal Access Token' : 'Fine-grained Token'}
               </label>
               <input
                 id="github-access-token"
@@ -140,11 +135,9 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
                 value={token}
                 onChange={(e) => setToken(e.target.value)}
                 disabled={isConnecting || isConnected}
-                placeholder={
-                  tokenType === 'classic'
-                    ? copy['sourceControl.github.token.classicPlaceholder']
-                    : copy['sourceControl.github.token.fineGrainedPlaceholder']
-                }
+                placeholder={`Enter your GitHub ${
+                  tokenType === 'classic' ? 'personal access token' : 'fine-grained token'
+                }`}
                 className={classNames(
                   'w-full px-3 py-2 rounded-lg text-sm',
                   'bg-bolt-elements-background-depth-3',
@@ -161,26 +154,21 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
                   rel="noopener noreferrer"
                   className="text-bolt-elements-borderColorActive hover:underline inline-flex items-center gap-1"
                 >
-                  {copy['sourceControl.common.getToken']}
-                  <div className="i-ph:arrow-square-out w-4 h-4" aria-hidden="true" />
+                  Get your token
+                  <div className="i-ph:arrow-square-out w-4 h-4" />
                 </a>
                 <span className="mx-2">•</span>
                 <span>
-                  {copy['sourceControl.common.requiredScopes']}{' '}
-                  {tokenType === 'classic'
-                    ? copy['sourceControl.github.scopes.classic']
-                    : copy['sourceControl.github.scopes.fineGrained']}
+                  Required scopes:{' '}
+                  {tokenType === 'classic' ? 'repo, read:org, read:user' : 'Repository access, Organization access'}
                 </span>
               </div>
             </div>
           </div>
 
           {error && (
-            <div
-              className="rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4"
-              role="alert"
-            >
-              <p className="text-sm text-[var(--status-error-text)]">{copy['sourceControl.common.connectionError']}</p>
+            <div className="p-4 rounded-lg bg-red-50 border border-red-200 dark:bg-red-900/20 dark:border-red-700">
+              <p className="text-sm text-red-800 dark:text-red-200">{error}</p>
             </div>
           )}
 
@@ -190,7 +178,7 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
                 type="submit"
                 disabled={isConnecting || !token.trim()}
                 className={classNames(
-                  'min-h-11 px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 whitespace-normal',
+                  'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
                   'bg-[var(--vc-ide-accent-action)] text-white',
                   'hover:opacity-90 hover:text-white',
                   'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
@@ -199,62 +187,60 @@ export function GitHubConnection({ connectionTest, onTestConnection }: GitHubCon
               >
                 {isConnecting ? (
                   <>
-                    <div className="i-ph:spinner-gap animate-spin" aria-hidden="true" />
-                    {copy['sourceControl.common.connecting']}
+                    <div className="i-ph:spinner-gap animate-spin" />
+                    Connecting...
                   </>
                 ) : (
                   <>
-                    <div className="i-ph:plug-charging w-4 h-4" aria-hidden="true" />
-                    {copy['sourceControl.common.connect']}
+                    <div className="i-ph:plug-charging w-4 h-4" />
+                    Connect
                   </>
                 )}
               </button>
             ) : (
-              <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+              <div className="flex items-center justify-between w-full">
+                <div className="flex items-center gap-4">
                   <button
                     onClick={disconnect}
                     type="button"
                     className={classNames(
-                      'min-h-11 px-4 py-2 rounded-lg text-sm flex items-center justify-center gap-2 whitespace-normal',
+                      'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
                       'bg-red-500 text-white',
                       'hover:bg-red-600',
                     )}
                   >
-                    <div className="i-ph:plug w-4 h-4" aria-hidden="true" />
-                    {copy['sourceControl.common.disconnect']}
+                    <div className="i-ph:plug w-4 h-4" />
+                    Disconnect
                   </button>
                   <span className="text-sm text-bolt-elements-textSecondary flex items-center gap-1">
-                    <div className="i-ph:check-circle w-4 h-4 shrink-0 text-green-500" aria-hidden="true" />
-                    {copy['sourceControl.github.connected']}
+                    <div className="i-ph:check-circle w-4 h-4 text-green-500" />
+                    Connected to GitHub
                   </span>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex items-center gap-2">
                   <Button
-                    type="button"
                     variant="outline"
                     onClick={() => window.open('https://github.com/dashboard', '_blank', 'noopener,noreferrer')}
-                    className="min-h-11 flex-1 items-center justify-center gap-2 whitespace-normal hover:bg-bolt-elements-item-backgroundActive/10 hover:text-bolt-elements-textPrimary dark:hover:text-bolt-elements-textPrimary transition-colors sm:flex-none"
+                    className="flex items-center gap-2 hover:bg-bolt-elements-item-backgroundActive/10 hover:text-bolt-elements-textPrimary dark:hover:text-bolt-elements-textPrimary transition-colors"
                   >
-                    <div className="i-ph:layout w-4 h-4" aria-hidden="true" />
-                    {copy['sourceControl.common.dashboard']}
+                    <div className="i-ph:layout w-4 h-4" />
+                    Dashboard
                   </Button>
                   <Button
-                    type="button"
                     onClick={onTestConnection}
                     disabled={connectionTest?.status === 'testing'}
                     variant="outline"
-                    className="min-h-11 flex-1 items-center justify-center gap-2 whitespace-normal hover:bg-bolt-elements-item-backgroundActive/10 hover:text-bolt-elements-textPrimary dark:hover:text-bolt-elements-textPrimary transition-colors sm:flex-none"
+                    className="flex items-center gap-2 hover:bg-bolt-elements-item-backgroundActive/10 hover:text-bolt-elements-textPrimary dark:hover:text-bolt-elements-textPrimary transition-colors"
                   >
                     {connectionTest?.status === 'testing' ? (
                       <>
-                        <div className="i-ph:spinner-gap w-4 h-4 animate-spin" aria-hidden="true" />
-                        {copy['sourceControl.common.testing']}
+                        <div className="i-ph:spinner-gap w-4 h-4 animate-spin" />
+                        Testing...
                       </>
                     ) : (
                       <>
-                        <div className="i-ph:plug-charging w-4 h-4" aria-hidden="true" />
-                        {copy['sourceControl.common.testConnection']}
+                        <div className="i-ph:plug-charging w-4 h-4" />
+                        Test Connection
                       </>
                     )}
                   </Button>

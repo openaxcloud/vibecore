@@ -1,5 +1,3 @@
-import { useTranslation } from 'react-i18next';
-import { getChatResidualsCopy } from '~/lib/i18n/catalogs/chat-residuals';
 import { extractGenerationPrompt, isUngeneratedProject } from '~/lib/runtime/pending-generation';
 import type { FileMap } from '~/lib/stores/files';
 
@@ -20,9 +18,6 @@ interface GenerateAppCtaProps {
  * app files are present.
  */
 export function GenerateAppCta({ files, hasMessages, isGenerating, onGenerate }: GenerateAppCtaProps) {
-  const { i18n } = useTranslation();
-  const copy = getChatResidualsCopy(i18n.resolvedLanguage ?? i18n.language);
-
   if (hasMessages || isGenerating || !isUngeneratedProject(files)) {
     return null;
   }
@@ -34,24 +29,24 @@ export function GenerateAppCta({ files, hasMessages, isGenerating, onGenerate }:
   }
 
   return (
-    <div className="mx-auto mb-2 flex w-full max-w-chat flex-col items-stretch justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3 sm:flex-row sm:items-center">
-      <div className="flex min-w-0 items-start gap-3 sm:items-center">
+    <div className="mx-auto mb-2 flex w-full max-w-chat items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3">
+      <div className="flex items-center gap-3">
         <span className="i-ph:sparkle-fill shrink-0 text-lg text-bolt-elements-item-contentAccent" aria-hidden />
-        <div className="min-w-0">
-          <p className="break-words text-sm font-medium text-bolt-elements-textPrimary">
-            {copy['chatResiduals.generate.title']}
+        <div>
+          <p className="text-sm font-medium text-bolt-elements-textPrimary">
+            This project hasn&apos;t been generated yet
           </p>
-          <p className="break-words text-xs text-bolt-elements-textSecondary">
-            {copy['chatResiduals.generate.description']}
+          <p className="text-xs text-bolt-elements-textSecondary">
+            The workspace only has a README — generate the app from your original prompt.
           </p>
         </div>
       </div>
       <button
         type="button"
         onClick={() => onGenerate(prompt)}
-        className="min-h-11 w-full shrink-0 whitespace-normal rounded-md bg-bolt-elements-button-primary-background px-3 py-2 text-sm font-medium text-bolt-elements-button-primary-text outline-none transition-colors hover:bg-bolt-elements-button-primary-backgroundHover focus-visible:ring-2 focus-visible:ring-bolt-elements-focus sm:w-auto"
+        className="shrink-0 rounded-md bg-bolt-elements-button-primary-background px-3 py-1.5 text-sm font-medium text-bolt-elements-button-primary-text transition-colors hover:bg-bolt-elements-button-primary-backgroundHover"
       >
-        {copy['chatResiduals.generate.action']}
+        Generate app
       </button>
     </div>
   );

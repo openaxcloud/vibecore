@@ -1,178 +1,121 @@
 import type { LucideIcon } from 'lucide-react';
-import { ArrowRight, ArrowUpCircle, GitCommitHorizontal, Rocket, Sparkles, Wrench } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router';
-
+import { Rocket, Sparkles, Wrench, ArrowUpCircle, GitCommitHorizontal, ArrowRight } from 'lucide-react';
 import {
   EcodeExactPublicFooter as PublicFooter,
   EcodeExactPublicNavbar as PublicNavbar,
 } from '~/components/marketing/ecode-exact/EcodeExactShell';
 import {
-  Badge,
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
 } from '~/components/marketing/ecode-exact/EcodeExactUi';
-import { resolveMarketingLanguage } from '~/lib/i18n/catalogs/marketing';
-import {
-  formatMarketingExactChangelogDate,
-  getMarketingExactChangelogCopy,
-} from '~/lib/i18n/catalogs/marketing-exact-changelog';
+import { Badge } from '~/components/marketing/ecode-exact/EcodeExactUi';
 import { changelogReleases, type ReleaseType } from '~/lib/marketing/changelog-releases';
 
 const PRODUCT = '/ecode-static/assets/product';
 
-const CHANGELOG_ROUTES = {
-  signup: '/signup',
-  dashboard: '/dashboard',
-} as const;
-
+/**
+ * On-theme styling for each release type. We keep everything inside the E-Code
+ * palette: the orange accent for "New", and neutral dark surfaces with an
+ * orange glyph for the rest — no off-brand blue/amber/indigo.
+ */
 const typeStyles: Record<ReleaseType, { icon: LucideIcon; badgeClass: string }> = {
   New: {
     icon: Sparkles,
-    badgeClass: 'bg-[var(--ecode-accent)] text-[var(--ecode-accent-contrast)]',
+    badgeClass: 'bg-[var(--ecode-accent)] text-white',
   },
   Improved: {
     icon: ArrowUpCircle,
-    badgeClass:
-      'bg-bolt-elements-background-depth-3 text-[var(--ecode-accent-text)] ring-1 ring-[var(--ecode-accent)]/30',
+    badgeClass: 'bg-bolt-elements-background-depth-3 text-[var(--ecode-accent)] ring-1 ring-[var(--ecode-accent)]/30',
   },
   Fixed: {
     icon: Wrench,
-    badgeClass:
-      'bg-bolt-elements-background-depth-3 text-[var(--ecode-text-secondary)] ring-1 ring-[var(--ecode-border)]',
+    badgeClass: 'bg-bolt-elements-background-depth-3 text-muted-foreground ring-1 ring-bolt-elements-borderColor',
   },
 };
 
-function ChangelogActionLink({
-  children,
-  to,
-  variant = 'primary',
-}: {
-  children: React.ReactNode;
-  to: string;
-  variant?: 'primary' | 'secondary';
-}) {
-  const className =
-    variant === 'primary'
-      ? 'group inline-flex min-h-11 w-full items-center justify-center gap-2 whitespace-normal rounded-md bg-[var(--ecode-accent)] px-6 py-3 text-center font-semibold text-[var(--ecode-accent-contrast)] transition-colors hover:bg-[var(--ecode-accent-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ecode-background)] motion-reduce:transition-none sm:w-auto'
-      : 'inline-flex min-h-11 w-full items-center justify-center whitespace-normal rounded-md border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-6 py-3 text-center font-semibold text-[var(--ecode-text)] transition-colors hover:border-[var(--ecode-accent)] hover:bg-[var(--ecode-surface-secondary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ecode-background)] motion-reduce:transition-none sm:w-auto';
-
-  return (
-    <Link to={to} className={className}>
-      {children}
-      {variant === 'primary' ? (
-        <ArrowRight
-          className="h-4 w-4 shrink-0 transition-transform group-hover:translate-x-0.5 motion-reduce:transform-none motion-reduce:transition-none"
-          aria-hidden="true"
-        />
-      ) : null}
-    </Link>
-  );
-}
-
 export default function Changelog() {
-  const { i18n } = useTranslation();
-  const language = resolveMarketingLanguage(i18n.resolvedLanguage ?? i18n.language);
-  const copy = getMarketingExactChangelogCopy(language).exactChangelog;
+  const releases = changelogReleases;
 
   return (
-    <div
-      className="flex min-h-screen min-w-0 flex-col bg-[var(--ecode-background)] text-[var(--ecode-text)]"
-      data-testid="page-changelog"
-    >
+    <div className="min-h-screen flex flex-col" data-testid="page-changelog">
       <PublicNavbar />
 
-      <main className="min-w-0 flex-1">
-        <section
-          className="bg-gradient-to-b from-background to-muted py-responsive"
-          aria-labelledby="changelog-heading"
-        >
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="py-responsive bg-gradient-to-b from-background to-muted">
           <div className="container-responsive">
-            <div className="mx-auto min-w-0 max-w-3xl text-center">
-              <span className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--ecode-accent)] shadow-lg shadow-[var(--ecode-accent)]/30">
-                <Rocket className="h-7 w-7 text-[var(--ecode-accent-contrast)]" aria-hidden="true" />
+            <div className="text-center max-w-3xl mx-auto">
+              <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--ecode-accent)] shadow-lg shadow-[var(--ecode-accent)]/30 mb-5">
+                <Rocket className="h-7 w-7 text-white" />
               </span>
-              <h1
-                id="changelog-heading"
-                className="mkt-h1 mb-4 break-words font-bold [overflow-wrap:anywhere]"
-                data-testid="heading-changelog"
-              >
-                {copy.hero.title}
+              <h1 className="mkt-h1 font-bold mb-4" data-testid="heading-changelog">
+                Changelog
               </h1>
-              <p className="mkt-lead mb-8 break-words text-[var(--ecode-text-secondary)] [overflow-wrap:anywhere]">
-                {copy.hero.description}
+              <p className="mkt-lead text-muted-foreground mb-8">
+                Every feature, improvement, and fix shipping to E-Code — the AI software studio that turns a prompt into
+                a deployed app.
               </p>
               <Badge
                 variant="secondary"
-                className="whitespace-normal px-4 py-2 text-center text-[13px] text-[var(--ecode-accent-text)] ring-1 ring-[var(--ecode-accent)]/30"
+                className="text-[13px] px-4 py-2 ring-1 ring-[var(--ecode-accent)]/30 text-[var(--ecode-accent)]"
               >
-                {copy.hero.badge}
+                Updated continuously
               </Badge>
             </div>
 
-            <figure className="mx-auto mt-12 min-w-0 max-w-4xl">
-              <div className="overflow-hidden rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] shadow-2xl">
-                <div className="flex min-h-10 min-w-0 items-center gap-2 border-b border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] px-3 py-2 sm:px-4">
-                  <span className="flex shrink-0 gap-1.5" aria-hidden="true">
-                    <span className="h-3 w-3 rounded-full bg-red-500" />
-                    <span className="h-3 w-3 rounded-full bg-amber-400" />
-                    <span className="h-3 w-3 rounded-full bg-green-500" />
+            {/* Real product capture: the workspace these releases ship to. */}
+            <figure className="mt-12 max-w-4xl mx-auto">
+              <div className="rounded-xl overflow-hidden border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl">
+                <div className="flex items-center gap-2 px-4 h-10 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
+                  <span className="flex gap-1.5" aria-hidden="true">
+                    <span className="h-3 w-3 rounded-full bg-[#ff5f57]" />
+                    <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
+                    <span className="h-3 w-3 rounded-full bg-[#28c840]" />
                   </span>
-                  <span className="mkt-small mx-auto min-w-0 break-words px-2 text-center font-medium text-[var(--ecode-text-secondary)] [overflow-wrap:anywhere]">
-                    {copy.product.windowTitle}
+                  <span className="mx-auto mkt-small font-medium text-muted-foreground truncate px-3">
+                    E-Code · Agent panel, editor, terminal & live preview
                   </span>
-                  <span className="h-3 w-3 shrink-0" aria-hidden="true" />
+                  <span className="h-3 w-3" aria-hidden="true" />
                 </div>
                 <img
                   src={`${PRODUCT}/ide.png`}
-                  alt={copy.product.imageAlt}
+                  alt="The E-Code IDE showing the AI agent panel, code editor, terminal, and a live app preview"
                   loading="eager"
                   decoding="async"
-                  className="block h-auto w-full"
+                  className="block w-full h-auto"
                 />
               </div>
-              <figcaption className="mkt-small mt-3 break-words text-center text-[var(--ecode-text-secondary)] [overflow-wrap:anywhere]">
-                {copy.product.caption}
+              <figcaption className="mt-3 text-center mkt-small text-muted-foreground">
+                The workspace where each release below lands.
               </figcaption>
             </figure>
           </div>
         </section>
 
-        <section className="py-responsive" aria-labelledby="changelog-timeline-heading">
+        {/* Release Timeline */}
+        <section className="py-responsive">
           <div className="container-responsive">
-            <div className="mx-auto min-w-0 max-w-3xl">
-              <h2 id="changelog-timeline-heading" className="sr-only">
-                {copy.timeline.title}
-              </h2>
-              <ol className="relative ml-3 border-l border-[var(--ecode-border)] sm:ml-4">
-                {changelogReleases.map((release) => {
+            <div className="max-w-3xl mx-auto">
+              <ol className="relative border-l border-border ml-3 sm:ml-4">
+                {releases.map((release) => {
                   const { badgeClass } = typeStyles[release.type];
                   const TypeIcon = typeStyles[release.type].icon;
                   const ReleaseIcon = release.icon;
-                  const releaseCopy = copy.releases[release.id];
 
                   return (
-                    <li
-                      id={release.version}
-                      key={release.id}
-                      className="mb-10 ml-5 min-w-0 scroll-mt-24 last:mb-0 sm:ml-8"
-                      data-testid={`changelog-release-${release.id}`}
-                    >
-                      <span className="absolute -left-3 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--ecode-accent)] ring-4 ring-[var(--ecode-background)] sm:-left-4 sm:h-8 sm:w-8">
-                        <GitCommitHorizontal
-                          className="h-3 w-3 text-[var(--ecode-accent-contrast)] sm:h-4 sm:w-4"
-                          aria-hidden="true"
-                        />
+                    <li key={release.version} className="mb-10 ml-6 sm:ml-8">
+                      <span className="absolute -left-3 sm:-left-4 flex h-6 w-6 sm:h-8 sm:w-8 items-center justify-center rounded-full bg-[var(--ecode-accent)] ring-4 ring-background">
+                        <GitCommitHorizontal className="h-3 w-3 sm:h-4 sm:w-4 text-white" />
                       </span>
 
-                      <Card aria-labelledby={`changelog-release-heading-${release.id}`} className="min-w-0">
-                        <CardHeader className="min-w-0 p-4 sm:p-6">
-                          <div className="flex min-w-0 flex-wrap items-center gap-2 sm:gap-3">
-                            <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--ecode-surface-secondary)] text-[var(--ecode-accent-text)] ring-1 ring-[var(--ecode-border)]">
-                              <ReleaseIcon className="h-5 w-5" aria-hidden="true" />
+                      <Card>
+                        <CardHeader>
+                          <div className="flex flex-wrap items-center gap-3">
+                            <span className="inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-bolt-elements-background-depth-3 text-[var(--ecode-accent)] ring-1 ring-bolt-elements-borderColor">
+                              <ReleaseIcon className="h-5 w-5" />
                             </span>
                             <Badge variant="secondary" className="font-mono text-[13px]">
                               {release.version}
@@ -180,38 +123,20 @@ export default function Changelog() {
                             <span
                               className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[13px] font-medium ${badgeClass}`}
                             >
-                              <TypeIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                              {copy.timeline.types[release.type]}
+                              <TypeIcon className="h-3.5 w-3.5" />
+                              {release.type}
                             </span>
-                            <time
-                              dateTime={release.publishedAt}
-                              className="mkt-small break-words text-[var(--ecode-text-secondary)] [overflow-wrap:anywhere]"
-                            >
-                              {formatMarketingExactChangelogDate(release.publishedAt, language)}
-                            </time>
+                            <span className="mkt-small text-muted-foreground">{release.date}</span>
                           </div>
-                          <CardTitle
-                            id={`changelog-release-heading-${release.id}`}
-                            className="mt-3 break-words [overflow-wrap:anywhere]"
-                          >
-                            {releaseCopy.title}
-                          </CardTitle>
-                          <CardDescription className="break-words [overflow-wrap:anywhere]">
-                            {copy.timeline.changedLabel}
-                          </CardDescription>
+                          <CardTitle className="mt-3">{release.title}</CardTitle>
+                          <CardDescription>What changed in this release</CardDescription>
                         </CardHeader>
-                        <CardContent className="min-w-0 p-4 pt-0 sm:p-6 sm:pt-0">
+                        <CardContent>
                           <ul className="space-y-2">
-                            {releaseCopy.changes.map((change, index) => (
-                              <li
-                                key={`${release.id}-${index}`}
-                                className="mkt-body flex min-w-0 gap-3 text-[var(--ecode-text-secondary)]"
-                              >
-                                <span
-                                  className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--ecode-accent)]"
-                                  aria-hidden="true"
-                                />
-                                <span className="min-w-0 break-words [overflow-wrap:anywhere]">{change}</span>
+                            {release.changes.map((change) => (
+                              <li key={change} className="flex gap-3 mkt-body text-muted-foreground">
+                                <span className="mt-2 h-1.5 w-1.5 flex-shrink-0 rounded-full bg-[var(--ecode-accent)]" />
+                                <span>{change}</span>
                               </li>
                             ))}
                           </ul>
@@ -225,23 +150,34 @@ export default function Changelog() {
           </div>
         </section>
 
-        <section className="bg-[var(--ecode-surface-secondary)] py-responsive" aria-labelledby="changelog-cta-heading">
+        {/* End-of-page CTA */}
+        <section className="py-responsive bg-muted">
           <div className="container-responsive">
-            <div className="mx-auto min-w-0 max-w-3xl text-center">
-              <span className="mb-5 inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--ecode-accent)] shadow-lg shadow-[var(--ecode-accent)]/30">
-                <Sparkles className="h-7 w-7 text-[var(--ecode-accent-contrast)]" aria-hidden="true" />
+            <div className="max-w-3xl mx-auto text-center">
+              <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--ecode-accent)] shadow-lg shadow-[var(--ecode-accent)]/30 mb-5">
+                <Sparkles className="h-7 w-7 text-white" />
               </span>
-              <h2 id="changelog-cta-heading" className="mkt-h2 mb-4 break-words font-bold [overflow-wrap:anywhere]">
-                {copy.cta.title}
-              </h2>
-              <p className="mkt-body mx-auto mb-8 max-w-2xl break-words text-[var(--ecode-text-secondary)] [overflow-wrap:anywhere]">
-                {copy.cta.description}
+              <h2 className="mkt-h2 font-bold mb-4">Start building with the latest E-Code</h2>
+              <p className="mkt-body text-muted-foreground mb-8 max-w-2xl mx-auto">
+                Every release above is live in your workspace the moment you sign in. Describe what you want to build
+                and let the agents ship it.
               </p>
-              <div className="flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
-                <ChangelogActionLink to={CHANGELOG_ROUTES.signup}>{copy.cta.signup}</ChangelogActionLink>
-                <ChangelogActionLink to={CHANGELOG_ROUTES.dashboard} variant="secondary">
-                  {copy.cta.dashboard}
-                </ChangelogActionLink>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+                <a
+                  href="/signup"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-[var(--ecode-accent)] text-white font-medium rounded-md hover:opacity-90 transition-opacity min-h-[44px]"
+                  data-testid="button-changelog-signup"
+                >
+                  Get started free
+                  <ArrowRight className="h-4 w-4" />
+                </a>
+                <a
+                  href="/dashboard"
+                  className="inline-flex items-center justify-center px-6 py-3 font-medium rounded-md border border-bolt-elements-borderColor text-foreground hover:bg-bolt-elements-background-depth-3 transition-colors min-h-[44px]"
+                  data-testid="button-changelog-dashboard"
+                >
+                  Open dashboard
+                </a>
               </div>
             </div>
           </div>

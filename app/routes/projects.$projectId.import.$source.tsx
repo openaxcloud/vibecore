@@ -22,17 +22,15 @@ export function loader({ params }: LoaderFunctionArgs) {
     throw new Response(null, { status: 404 });
   }
 
-  return { projectId: params.projectId ?? '—', source: source as ProjectImportSource };
+  return { projectId: params.projectId ?? 'unknown', source: source as ProjectImportSource };
 }
 
-export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
   if (!data) {
-    return [];
+    return [{ title: 'Project Import - E-Code' }];
   }
 
-  return makeEcodeSurfaceMetaTags(createProjectImportSurfacePage(data.projectId, data.source), rootData?.language);
+  return makeEcodeSurfaceMetaTags(createProjectImportSurfacePage(data.projectId, data.source));
 };
 
 export default function ProjectImportSurfaceRoute() {

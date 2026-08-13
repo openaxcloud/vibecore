@@ -2,7 +2,6 @@ import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { createReadStream, existsSync, readFileSync } from 'node:fs';
 import { lstat, mkdir, readdir, readFile, readlink, realpath, rename, rm, stat, writeFile } from 'node:fs/promises';
-import { createServer as createNetServer } from 'node:net';
 import { networkInterfaces, type NetworkInterfaceInfo } from 'node:os';
 import { basename, dirname, join, relative, resolve, sep } from 'node:path';
 import { Readable } from 'node:stream';
@@ -16,15 +15,6 @@ import Fastify, { type FastifyRequest } from 'fastify';
 import { z } from 'zod';
 import { isBinaryBuffer } from './binary-detection.js';
 import { createPreviewWsBridgeHandler } from './preview-ws-proxy.js';
-import {
-  localizedWorkspaceAgentError,
-  workspaceAgentError,
-  workspaceAgentLocaleFromHeader,
-  workspaceAgentMessage,
-  workspaceAgentMessageKeyForEnglish,
-  type WorkspaceAgentLocale,
-  type WorkspaceAgentPublicError,
-} from './public-i18n.js';
 import { TerminalSessionManager, type TerminalSession } from './terminal-session.js';
 
 export interface WorkspaceAgentOptions {
@@ -62,9 +52,7 @@ const safePathString = z
   .string()
   .min(1)
 
-  .refine((value) => !/[\u0000-\u001f\u007f]/.test(value), {
-    message: workspaceAgentMessage('pathControlCharacters'),
-  });
+  .refine((value) => !/[\u0000-\u001f\u007f]/.test(value), { message: 'Path contains control characters' });
 
 const filePathSchema = z.object({ path: safePathString });
 
@@ -201,30 +189,6 @@ export function sanitizedChildEnv(
   }
 
   /*
-   * The agent's own control port (PORT — baked into the agent image as 8080)
-   * leaks into every child via process.env. A dev server that HONORS PORT
-   * (Express, CRA, Next, a bare node:http `listen(process.env.PORT)`) would then
-   * try to bind the agent's control port and crash-loop on EADDRINUSE — never
-   * listening, never appearing in /ports, so the preview never comes up. (A Vite
-   * app escapes only because Vite ignores PORT and we pin it to 5173 via args.)
-   * In the preview env (VITE_HMR_CLIENT_PORT is injected there) DELETE the
-   * inherited control port so a PORT-honoring framework falls back to its own
-   * default (3000, etc.) — surfaced by /ports and reachable via its own preview
-   * host — instead of colliding with the agent. We must NOT repoint it at Vite's
-   * pinned port (5173): a project that runs BOTH Vite and a PORT-honoring helper
-   * (or any second server) would then have the helper bind 5173 first and make
-   * the Vite `--strictPort` launch die with "Port 5173 is already in use". An
-   * explicit `--port`/`-p` flag still wins because frameworks read PORT only as a
-   * default. No-op outside the preview env.
-   */
-  const agentControlPort = Number(process.env.PORT) || 8080;
-  const childPort = Number(env.PORT);
-
-  if (env.VITE_HMR_CLIENT_PORT && Number.isFinite(childPort) && childPort === agentControlPort) {
-    delete env.PORT;
-  }
-
-  /*
    * Activate the shared Nix toolchain (Nix v2 signed catalog) so a Python/Go
    * project's `python`, `uv`, `pip`, `virtualenv`, `go` resolve automatically —
    * no manual venv-path munging, no per-project setup. The alpine base image has
@@ -311,14 +275,7 @@ export function nixToolchainBinDirs(catalogPath: string = NIX_CATALOG_PATH): str
  * their own ports and which would choke on `--strictPort` — are left untouched, as
  * are `vite build`/`vite preview` and any command already carrying an explicit port.
  */
-/**
- * The port the preview proxy targets for a Vite app and where the dev server is
- * pinned. Single-sourced so the `--port` pin and the child-env `PORT` repoint
- * (sanitizedChildEnv) can never drift apart.
- */
-export const PREVIEW_DEV_PORT = 5173;
-
-export const VITE_DEV_PIN_ARGS = ['--port', String(PREVIEW_DEV_PORT), '--strictPort', '--host'] as const;
+export const VITE_DEV_PIN_ARGS = ['--port', '5173', '--strictPort', '--host'] as const;
 
 const PACKAGE_MANAGER_BINS = new Set(['npm', 'pnpm', 'yarn', 'bun']);
 const RUNNER_SUBCOMMANDS = new Set(['exec', 'dlx', 'x']);
@@ -564,157 +521,50 @@ export function pinnedDevServerPort(spawnArgs: readonly string[]): number | null
   return Number.isInteger(port) && port > 0 && port <= 65535 ? port : null;
 }
 
-/*
- * Per-port serialization for pinned dev-server starts. Two dev-server launches
- * that race (the auto-run-preview boot AND an explicit "Run", or a reseed restart
- * overlapping a user start) can BOTH pass the conflict-heal while the port is
- * momentarily free and then BOTH reach the `--strictPort` bind → one crashes with
- * "Port <n> already in use". Chaining each pinned start for a given port behind
- * the previous one turns a concurrent double-start into a clean sequential
- * restart. Keyed by port; the map holds at most a couple of entries.
- */
-const pinnedDevPortLocks = new Map<number, Promise<void>>();
-
-/*
- * Authoritative "is this port free?" check: briefly bind it ourselves. Works on
- * every platform (no /proc dependency) and, unlike reading /proc/net/tcp, reflects
- * the true bindability the strictPort dev-server launch is about to test — including
- * the short post-SIGKILL window where a dead holder's socket is not yet released.
- * Binds to 0.0.0.0 so it collides with a dev server bound on any local interface.
- */
-async function isPortBindable(port: number): Promise<boolean> {
-  return new Promise((resolve) => {
-    const probe = createNetServer();
-    probe.once('error', () => resolve(false));
-    probe.listen(port, '0.0.0.0', () => {
-      probe.close(() => resolve(true));
-    });
-  });
-}
-
-export async function acquirePinnedDevPortLock(port: number): Promise<() => void> {
-  const prior = pinnedDevPortLocks.get(port) ?? Promise.resolve();
-
-  let release!: () => void;
-  const held = new Promise<void>((resolve) => {
-    release = resolve;
-  });
-
-  // The next acquirer waits until THIS holder releases.
-  const chained = prior.then(() => held);
-  pinnedDevPortLocks.set(port, chained);
-
-  await prior.catch(() => undefined);
-
-  return () => {
-    release();
-    // Drop the entry once we are the tail, so the map never grows unbounded.
-    if (pinnedDevPortLocks.get(port) === chained) {
-      pinnedDevPortLocks.delete(port);
-    }
-  };
-}
-
 /**
- * Guarantee the pinned dev-server port is FREE before a `--strictPort` launch.
- *
- * A Vite dev command is pinned to 5173 with `--strictPort`, so if ANYTHING still
- * holds the port the new spawn dies immediately with "Port 5173 already in use" —
- * the crash that turns the IDE's preview retry into an endless reload with a blank
- * app (the dev server never comes back). Two classes of holder cause it:
- *   1. a TRACKED prior dev server (normal restart) — killed by command marker;
- *   2. an UNTRACKED holder the marker misses — an orphan left when the agent
- *      process restarted (pod alive), a dev server started from the terminal, or
- *      a command whose marker didn't match. killStale used to ignore these, so the
- *      restart crash-looped.
- * Kill the tracked ones (whole process group, so vite's esbuild children die too),
- * then ACTIVELY confirm the socket is released — and if an untracked holder
- * remains, resolve its pid from /proc and SIGKILL it — retrying briefly until the
- * port is free. Linux-only for step 2 (/proc); on a dev host readListeningPorts
- * yields nothing, so it falls back to the tracked kill + settle.
+ * Idempotent dev-server (re)start. A Vite dev command is pinned to 5173 with
+ * `--strictPort`, so if a PRIOR dev server still holds the port the new spawn dies
+ * immediately with "Port 5173 already in use" — the exact crash that turned the
+ * IDE's preview retry into an endless reload with a blank app (the dev server
+ * never comes back). Before launching a pinned dev command, SIGKILL any tracked
+ * dev server already pinned to the SAME port (whole process group, so vite's
+ * esbuild children die too) and give the kernel a beat to release the socket, so
+ * the restart always binds cleanly instead of crash-looping.
  */
-export async function killStalePinnedDevServers(
-  processes: Map<string, ProcessRecord>,
-  spawnArgs: readonly string[],
-): Promise<(() => void) | undefined> {
+async function killStalePinnedDevServers(processes: Map<string, ProcessRecord>, spawnArgs: readonly string[]) {
   const port = pinnedDevServerPort(spawnArgs);
 
   if (port === null) {
-    return undefined;
+    return;
   }
 
-  /*
-   * Take the per-port lock BEFORE freeing the port and hold it across the caller's
-   * spawn (the caller releases it a beat after spawning), so a concurrent pinned
-   * start can't free-then-bind the same port in the window between our free and
-   * our bind. On any failure here, release before rethrowing so the lock can't leak.
-   */
-  const release = await acquirePinnedDevPortLock(port);
+  const marker = `--port ${port} --strictPort`;
+  const stale = [...processes.values()].filter((record) => record.command.includes(marker));
 
-  try {
-    const marker = `--port ${port} --strictPort`;
-    const stale = [...processes.values()].filter((record) => record.command.includes(marker));
+  if (stale.length === 0) {
+    return;
+  }
 
-    for (const record of stale) {
+  for (const record of stale) {
+    try {
+      if (record.process.pid) {
+        process.kill(-record.process.pid, 'SIGKILL');
+      } else {
+        record.process.kill('SIGKILL');
+      }
+    } catch {
       try {
-        if (record.process.pid) {
-          process.kill(-record.process.pid, 'SIGKILL');
-        } else {
-          record.process.kill('SIGKILL');
-        }
+        record.process.kill('SIGKILL');
       } catch {
-        try {
-          record.process.kill('SIGKILL');
-        } catch {
-          // already exited
-        }
+        // already exited
       }
-
-      processes.delete(record.id);
     }
 
-    /*
-     * Confirm the socket is actually BINDABLE before returning (the strictPort bind
-     * is about to run). We probe by briefly binding the port ourselves — authoritative
-     * and cross-platform, and it also absorbs the short window after a SIGKILL where
-     * the holder is dead but the socket has not been released yet (the old fixed
-     * 600ms settle). While it is still held, resolve the owning pid from /proc and
-     * SIGKILL that untracked orphan too. Bounded (~1.8s) so a launch never hangs; the
-     * agent runs alone in its pod, so the only thing that binds this port is a user
-     * dev server, safe to reclaim.
-     */
-    for (let attempt = 0; attempt < 12; attempt++) {
-      if (await isPortBindable(port)) {
-        break; // free — safe to bind
-      }
-
-      // Still held: find whoever LISTENs on it (Linux /proc) and kill the orphan.
-      const listening = await readListeningPorts();
-      const inode = listening.get(port);
-      const pid = inode !== undefined ? (await readSocketInodeToPid()).get(inode) : undefined;
-
-      if (pid !== undefined && pid !== process.pid) {
-        try {
-          process.kill(-pid, 'SIGKILL');
-        } catch {
-          try {
-            process.kill(pid, 'SIGKILL');
-          } catch {
-            // already gone; the next probe will confirm the socket is free
-          }
-        }
-      }
-
-      // Give the kernel a beat to release the socket before re-probing / binding.
-      await new Promise((settle) => setTimeout(settle, 150));
-    }
-
-    // Held on success — the caller releases it shortly after the strictPort spawn.
-    return release;
-  } catch (error) {
-    release();
-    throw error;
+    processes.delete(record.id);
   }
+
+  // Brief pause so the OS releases the listening socket before the strictPort bind.
+  await new Promise((settle) => setTimeout(settle, 600));
 }
 
 export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
@@ -784,41 +634,6 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   });
 
   app.addHook('onRequest', async (request, reply) => {
-    const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
-    reply.header('content-language', locale);
-    reply.header('vary', 'Accept-Language');
-  });
-
-  app.setErrorHandler((error, request, reply) => {
-    const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
-
-    if (error instanceof z.ZodError) {
-      const message = workspaceAgentMessage('validationFailed', locale);
-
-      return reply.code(400).send({ statusCode: 400, error: message, message, code: 'VALIDATION_ERROR' });
-    }
-
-    const typed = error as WorkspaceAgentPublicError;
-    const statusCode = typeof typed.statusCode === 'number' ? typed.statusCode : 500;
-    const exactKey = workspaceAgentMessageKeyForEnglish(typed.message);
-    const message =
-      typed.publicMessageKey || exactKey
-        ? workspaceAgentMessage(typed.publicMessageKey ?? exactKey!, locale, typed.publicMessageValues)
-        : workspaceAgentMessage(statusCode >= 500 ? 'internalServerError' : 'requestFailed', locale);
-
-    if (statusCode >= 500) {
-      request.log.error({ err: error, code: typed.code }, 'workspace-agent request failed');
-    }
-
-    return reply.code(statusCode).send({
-      statusCode,
-      error: message,
-      message,
-      code: typed.code ?? 'WORKSPACE_AGENT_ERROR',
-    });
-  });
-
-  app.addHook('onRequest', async (request, reply) => {
     /*
      * /health and /busy are unauthenticated, cluster-internal liveness/activity
      * probes for the workspace-manager (start-gate + GC busy guard). Both are
@@ -838,20 +653,14 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      * than silently fall open. Dev/local (no WORKSPACE_ID) stays lenient.
      */
     if (!workspaceId && process.env.NODE_ENV === 'production') {
-      const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
-      const message = workspaceAgentMessage('workspaceIdentityNotConfigured', locale);
-
-      return reply.code(503).send({ error: message, message, code: 'WORKSPACE_IDENTITY_NOT_CONFIGURED' });
+      return reply.code(503).send({ error: 'workspace identity not configured' });
     }
 
     const token = readBearerToken(request);
     const verified = token ? verifyAgentToken(token, tokenSecret, workspaceId) : false;
 
     if (!verified) {
-      const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
-      const message = workspaceAgentMessage('unauthorized', locale);
-
-      return reply.code(401).send({ error: message, message, code: 'WORKSPACE_AGENT_UNAUTHORIZED' });
+      return reply.code(401).send({ error: 'unauthorized' });
     }
   });
 
@@ -897,17 +706,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const realRel = relative(await canonicalRoot(root), realPath);
 
     if (realRel === '..' || realRel.startsWith(`..${sep}`)) {
-      throw workspaceAgentError('pathEscapesRoot', { statusCode: 400, code: 'EACCES' });
+      throw Object.assign(new Error('Path escapes workspace root'), { statusCode: 400, code: 'EACCES' });
     }
 
     const fileStat = await stat(realPath).catch(rethrowFsError);
 
     if (fileStat.size > maxFileBytes) {
-      throw workspaceAgentError('fileTooLargeToRead', { statusCode: 413, code: 'FILE_TOO_LARGE' });
+      throw Object.assign(new Error('File is too large to read'), { statusCode: 413, code: 'FILE_TOO_LARGE' });
     }
 
     if (fileStat.isDirectory()) {
-      throw workspaceAgentError('pathIsDirectory', { statusCode: 400, code: 'EISDIR' });
+      throw Object.assign(new Error('Path is a directory'), { statusCode: 400, code: 'EISDIR' });
     }
 
     /*
@@ -918,7 +727,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      * nodes are likewise rejected.
      */
     if (!fileStat.isFile()) {
-      throw workspaceAgentError('pathNotRegularFile', { statusCode: 400, code: 'EINVAL' });
+      throw Object.assign(new Error('Path is not a regular file'), { statusCode: 400, code: 'EINVAL' });
     }
 
     /*
@@ -1110,10 +919,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const targetPath = (request.params as { '*': string })['*'] ?? '';
 
     if (!Number.isInteger(port) || port <= 0 || port > 65535) {
-      const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
-      const message = workspaceAgentMessage('invalidPort', locale);
-
-      return reply.code(400).send({ error: message, message, code: 'INVALID_PORT' });
+      return reply.code(400).send({ error: 'invalid_port' });
     }
 
     /*
@@ -1124,10 +930,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const selfPort = numericEnv(process.env.PORT, 8080);
 
     if (port === selfPort) {
-      const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
-      const message = workspaceAgentMessage('invalidPort', locale);
-
-      return reply.code(400).send({ error: message, message, code: 'INVALID_PORT' });
+      return reply.code(400).send({ error: 'invalid_port' });
     }
 
     const queryIndex = request.url.indexOf('?');
@@ -1207,17 +1010,8 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       );
 
       return reply.code(502).send({
-        error: workspaceAgentMessage(
-          'previewUnavailable',
-          workspaceAgentLocaleFromHeader(request.headers['accept-language']),
-          { port },
-        ),
-        message: workspaceAgentMessage(
-          'previewUnavailable',
-          workspaceAgentLocaleFromHeader(request.headers['accept-language']),
-          { port },
-        ),
-        code: 'PREVIEW_UPSTREAM_UNREACHABLE',
+        error: 'preview_upstream_unreachable',
+        message: `Dev server on port ${port} is not reachable yet. It may still be starting, or it crashed — check the dev server logs.`,
       });
     }
 
@@ -1306,9 +1100,8 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
 
   app.register(async (terminalApp) => {
     await terminalApp.register(websocket);
-    terminalApp.get('/commands/stream', { websocket: true }, (rawSocket, request) => {
+    terminalApp.get('/commands/stream', { websocket: true }, (rawSocket) => {
       const socket = normalizeWebSocket(rawSocket);
-      const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
 
       /*
        * Track EVERY child spawned on this socket, not just the most recent one. A client
@@ -1344,10 +1137,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
             socket.send(
               JSON.stringify({
                 type: 'error',
-                error: {
-                  message: localizedWorkspaceAgentError(error, locale, 'commandStreamFailed'),
-                  code: (error as WorkspaceAgentPublicError | undefined)?.code ?? 'COMMAND_STREAM_FAILED',
-                },
+                error: { message: error instanceof Error ? error.message : String(error) },
                 timestamp: new Date().toISOString(),
               }),
             );
@@ -1362,7 +1152,6 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           maxOutputBytes,
           maxProcesses,
           streamTimeoutMs,
-          locale,
           processes,
           socket,
           isOpen: () => !socketClosed,
@@ -1381,10 +1170,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
             socket.send(
               JSON.stringify({
                 type: 'error',
-                error: {
-                  message: localizedWorkspaceAgentError(error, locale, 'commandStreamFailed'),
-                  code: (error as WorkspaceAgentPublicError | undefined)?.code ?? 'COMMAND_STREAM_FAILED',
-                },
+                error: { message: error instanceof Error ? error.message : String(error) },
                 timestamp: new Date().toISOString(),
               }),
             );
@@ -1455,7 +1241,6 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
      */
     terminalApp.get('/terminal', { websocket: true }, (rawSocket, request) => {
       const socket = normalizeWebSocket(rawSocket);
-      const locale = workspaceAgentLocaleFromHeader(request.headers['accept-language']);
       const requestUrl = new URL(request.url ?? '/terminal', 'http://workspace.local');
       const requestedSessionId = (requestUrl.searchParams.get('sessionId') ?? '').trim();
 
@@ -1582,13 +1367,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
           }
         })
         .catch((error) => {
-          sendOutput(
-            `\r\n[${workspaceAgentMessage('terminalErrorPrefix', locale)}] ${localizedWorkspaceAgentError(
-              error,
-              locale,
-              'terminalSessionFailed',
-            )}\r\n`,
-          );
+          sendOutput(`\r\n[terminal error] ${error instanceof Error ? error.message : String(error)}\r\n`);
 
           /*
            * Shell session creation failed: close the socket instead of leaving a
@@ -1688,10 +1467,7 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
             socket.send(
               JSON.stringify({
                 type: 'stdout',
-                data: `\r\n[${workspaceAgentMessage('terminalErrorPrefix', locale)}] ${workspaceAgentMessage(
-                  'terminalOperationFailed',
-                  locale,
-                )}\r\n`,
+                data: `\r\n[terminal error] ${error instanceof Error ? error.message : String(error)}\r\n`,
                 timestamp: new Date().toISOString(),
               }),
             );
@@ -1757,7 +1533,7 @@ function normalizeWebSocket(rawSocket: unknown) {
     typeof candidate.send !== 'function' ||
     (typeof candidate.on !== 'function' && typeof candidate.addEventListener !== 'function')
   ) {
-    throw workspaceAgentError('unsupportedWebSocket');
+    throw new Error('Unsupported WebSocket implementation');
   }
 
   return {
@@ -1821,15 +1597,15 @@ function rethrowFsError(error: unknown): never {
   const code = (error as NodeJS.ErrnoException)?.code;
 
   if (code === 'ENOENT') {
-    throw workspaceAgentError('fileNotFound', { statusCode: 404, code: 'ENOENT' });
+    throw Object.assign(new Error('File not found'), { statusCode: 404, code: 'ENOENT' });
   }
 
   if (code === 'EISDIR') {
-    throw workspaceAgentError('pathIsDirectory', { statusCode: 400, code: 'EISDIR' });
+    throw Object.assign(new Error('Path is a directory'), { statusCode: 400, code: 'EISDIR' });
   }
 
   if (code === 'ENOTDIR') {
-    throw workspaceAgentError('pathNotDirectory', { statusCode: 400, code: 'ENOTDIR' });
+    throw Object.assign(new Error('Path is not a directory'), { statusCode: 400, code: 'ENOTDIR' });
   }
 
   /*
@@ -1841,7 +1617,7 @@ function rethrowFsError(error: unknown): never {
    * the 502 also trips the local-runtime fallback in dev.
    */
   if (code === 'EEXIST') {
-    throw workspaceAgentError('fileAlreadyExists', { statusCode: 409, code: 'EEXIST' });
+    throw Object.assign(new Error('File already exists'), { statusCode: 409, code: 'EEXIST' });
   }
 
   /*
@@ -1851,7 +1627,7 @@ function rethrowFsError(error: unknown): never {
    * triggers the local-runtime fallback in dev).
    */
   if (code === 'ENOSPC' || code === 'EDQUOT') {
-    throw workspaceAgentError('workspaceDiskFull', { statusCode: 507, code: 'WORKSPACE_DISK_FULL' });
+    throw Object.assign(new Error('Workspace disk is full'), { statusCode: 507, code: 'WORKSPACE_DISK_FULL' });
   }
 
   throw error;
@@ -1862,7 +1638,7 @@ function resolveWorkspacePath(root: string, unsafePath: string) {
   const rel = relative(root, resolved);
 
   if (rel.startsWith('..') || rel === '..' || (resolve(root) === resolved && unsafePath.includes('..'))) {
-    throw workspaceAgentError('pathEscapesRoot', { statusCode: 400, code: 'EACCES' });
+    throw new Error('Path escapes workspace root');
   }
 
   return resolved;
@@ -1910,7 +1686,7 @@ async function assertRealPathContained(root: string, safePath: string): Promise<
   });
 
   if (finalStat?.isSymbolicLink()) {
-    throw workspaceAgentError('pathSymbolicLink', { statusCode: 400, code: 'EACCES' });
+    throw Object.assign(new Error('Path is a symbolic link'), { statusCode: 400, code: 'EACCES' });
   }
 
   let probe = safePath;
@@ -1928,7 +1704,7 @@ async function assertRealPathContained(root: string, safePath: string): Promise<
       const rel = relative(realRoot, real);
 
       if (rel === '..' || rel.startsWith(`..${sep}`)) {
-        throw workspaceAgentError('pathEscapesRoot', { statusCode: 400, code: 'EACCES' });
+        throw Object.assign(new Error('Path escapes workspace root'), { statusCode: 400, code: 'EACCES' });
       }
 
       return;
@@ -1972,7 +1748,7 @@ function assertContentSize(content: string, maxFileBytes: number, encoding?: 'ut
     encoding === 'base64' ? decodeWriteContent(content, encoding).byteLength : Buffer.byteLength(content);
 
   if (byteLength > maxFileBytes) {
-    throw workspaceAgentError('fileTooLarge', { statusCode: 413, code: 'FILE_TOO_LARGE' });
+    throw Object.assign(new Error('File is too large'), { statusCode: 413, code: 'FILE_TOO_LARGE' });
   }
 }
 
@@ -2200,14 +1976,14 @@ async function runCommand(
   },
 ) {
   if (options.processes.size >= options.maxProcesses) {
-    throw workspaceAgentError('processLimitReached', { statusCode: 429, code: 'PROCESS_LIMIT_REACHED' });
+    throw new Error('Process limit reached');
   }
 
   const normalizedArgs = normalizeShellCommandArgs(command, args);
   const signal = detectCommandAbuse(command, normalizedArgs);
 
   if (signal) {
-    throw workspaceAgentError('commandBlocked', {
+    throw Object.assign(new Error(`Command blocked by abuse policy: ${signal.reason}`), {
       statusCode: 409,
       code: `ABUSE_${signal.type.toUpperCase()}`,
     });
@@ -2216,16 +1992,8 @@ async function runCommand(
   // Force a Vite dev server onto 5173 in the preview env (no-op otherwise). See injectViteDevArgs.
   const spawnArgs = pinViteDevArgs(cwd, command, normalizedArgs);
 
-  // Idempotent restart: free the pinned port from a prior/orphan dev server, under a
-  // per-port lock held across the spawn below (see runCommandStream + killStalePinnedDevServers).
-  const releasePinnedLock = await killStalePinnedDevServers(options.processes, spawnArgs);
-
-  // Release the port lock a beat after the spawn so this child claims the port before
-  // a concurrent pinned start's port-free check runs. Scheduled now so it fires even if
-  // spawn throws (no deadlock).
-  if (releasePinnedLock) {
-    setTimeout(releasePinnedLock, 1200);
-  }
+  // Idempotent restart: free the pinned port from a prior dev server first (see runCommandStream).
+  await killStalePinnedDevServers(options.processes, spawnArgs);
 
   const id = createHash('sha256')
     /*
@@ -2392,7 +2160,6 @@ async function runCommandStream(
     maxOutputBytes: number;
     maxProcesses: number;
     streamTimeoutMs: number;
-    locale: WorkspaceAgentLocale;
     processes: Map<string, ProcessRecord>;
     socket: ReturnType<typeof normalizeWebSocket>;
     isOpen: () => boolean;
@@ -2401,14 +2168,14 @@ async function runCommandStream(
   },
 ) {
   if (options.processes.size >= options.maxProcesses) {
-    throw workspaceAgentError('processLimitReached', { statusCode: 429, code: 'PROCESS_LIMIT_REACHED' });
+    throw new Error('Process limit reached');
   }
 
   const normalizedArgs = normalizeShellCommandArgs(command, args);
   const signal = detectCommandAbuse(command, normalizedArgs);
 
   if (signal) {
-    throw workspaceAgentError('commandBlocked', {
+    throw Object.assign(new Error(`Command blocked by abuse policy: ${signal.reason}`), {
       statusCode: 409,
       code: `ABUSE_${signal.type.toUpperCase()}`,
     });
@@ -2423,19 +2190,11 @@ async function runCommandStream(
   const spawnArgs = pinViteDevArgs(cwd, command, normalizedArgs);
 
   /*
-   * Idempotent restart: tear down any prior/orphan dev server holding this port,
-   * under a per-port lock held across the spawn below, so the strictPort spawn never
-   * dies on "port already in use" (the crash that stranded the preview on an endless
-   * reload) — including when two starts race or an orphan survived an agent restart.
+   * Idempotent restart: tear down any prior dev server still pinned to this port
+   * so the strictPort spawn below never dies on "port already in use" (the crash
+   * that stranded the preview on an endless reload).
    */
-  const releasePinnedLock = await killStalePinnedDevServers(options.processes, spawnArgs);
-
-  // Release the port lock a beat after the spawn so this child claims the port before
-  // a concurrent pinned start's port-free check runs. Scheduled now so it fires even if
-  // spawn throws (no deadlock).
-  if (releasePinnedLock) {
-    setTimeout(releasePinnedLock, 1200);
-  }
+  await killStalePinnedDevServers(options.processes, spawnArgs);
 
   const id = createHash('sha256')
     // randomUUID() guards against same-millisecond id collisions (see runCommand).
@@ -2595,12 +2354,7 @@ async function runCommandStream(
         options.socket.send(
           JSON.stringify({
             type: 'error',
-            error: {
-              message: workspaceAgentMessage('commandTimedOut', options.locale, {
-                milliseconds: options.streamTimeoutMs,
-              }),
-              code: 'COMMAND_TIMEOUT',
-            },
+            error: { message: `Command timed out after ${options.streamTimeoutMs}ms` },
             timestamp: new Date().toISOString(),
           }),
         );
@@ -2650,10 +2404,7 @@ async function runCommandStream(
           options.socket.send(
             JSON.stringify({
               type: 'error',
-              error: {
-                message: workspaceAgentMessage('commandStartFailed', options.locale),
-                code: 'COMMAND_START_FAILED',
-              },
+              error: { message: error instanceof Error ? error.message : String(error) },
               timestamp: new Date().toISOString(),
             }),
           );

@@ -4,7 +4,6 @@ import { hostname } from 'node:os';
 import { dirname, join, normalize, relative } from 'node:path';
 import { promisify } from 'node:util';
 import JSZip from 'jszip';
-import { appPublicEnglish } from './app-public-copy.js';
 
 const execFile = promisify(execFileCallback);
 
@@ -240,7 +239,7 @@ const SAFE_WORKSPACE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 
 function workspaceSubpath(workspaceId: string, filePath = '') {
   if (!SAFE_WORKSPACE_ID.test(workspaceId)) {
-    throw new Error(appPublicEnglish('INVALID_WORKSPACE_ID'));
+    throw new Error('Invalid workspaceId');
   }
 
   return filePath
@@ -278,7 +277,7 @@ function safeProjectPath(projectId: string, filePath = '') {
   const target = normalize(join(root, filePath));
 
   if (relative(root, target).startsWith('..')) {
-    throw new Error(appPublicEnglish('INVALID_PROJECT_PATH'));
+    throw new Error('Invalid project file path');
   }
 
   return target;
@@ -324,7 +323,7 @@ const SAFE_PROJECT_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 
 async function acquireFileLock(projectId: string): Promise<() => Promise<void>> {
   if (!SAFE_PROJECT_ID.test(projectId)) {
-    throw new Error(appPublicEnglish('INVALID_PROJECT_PATH'));
+    throw new Error('Invalid projectId');
   }
 
   const root = locksRoot();
@@ -394,10 +393,7 @@ async function acquireFileLock(projectId: string): Promise<() => Promise<void>> 
 
       if (Date.now() - startedAt > PROJECT_LOCK_ACQUIRE_TIMEOUT_MS) {
         await unlink(sentinelPath).catch(() => undefined);
-        throw Object.assign(new Error(appPublicEnglish('PROJECT_LOCK_TIMEOUT', { projectId })), {
-          code: 'PROJECT_LOCK_TIMEOUT',
-          statusCode: 503,
-        });
+        throw new Error(`Timed out acquiring project lock for ${projectId}`);
       }
 
       const delay = Math.min(
@@ -441,52 +437,16 @@ export async function withProjectLock<T>(projectId: string, fn: () => Promise<T>
   }
 }
 
-/*
- * A stale NFS/overlay file handle (ESTALE) is TRANSIENT: it appears when the
- * backing mount is re-pointed (a pod moving during a redeploy) while an fd is
- * open, and it clears as soon as the path is re-resolved. Measured in prod
- * 2026-08-03: bursts of `listProjectFilesIncludingIdeState` 500s during
- * rollouts, all `errno -116` (ESTALE) on read. Node does not always map -116 to
- * the string code 'ESTALE' (the raw entry showed code "Unknown system error
- * -116"), so we match BOTH the mapped code and the raw errno.
- *
- * Retry is scoped to ESTALE only — ENOENT (a concurrent delete) must still fall
- * through to the existing TOCTOU skip, never be retried.
- */
-export function isStaleHandle(error: unknown): boolean {
-  const e = error as NodeJS.ErrnoException | undefined;
-
-  return e?.code === 'ESTALE' || e?.errno === -116;
-}
-
-export async function withStaleRetry<T>(op: () => Promise<T>, attempts = 3): Promise<T> {
-  for (let attempt = 1; ; attempt += 1) {
-    try {
-      return await op();
-    } catch (error) {
-      if (!isStaleHandle(error) || attempt >= attempts) {
-        throw error;
-      }
-
-      // Short backoff (20ms, 40ms): a stale handle resolves on re-open, so a
-      // couple of quick retries lisse the redeploy blip without slowing reads.
-      await new Promise((resolve) => setTimeout(resolve, 20 * attempt));
-    }
-  }
-}
-
 async function walkFiles(root: string, current = ''): Promise<ProjectFile[]> {
   const dir = join(root, current);
 
-  const entries = await withStaleRetry(() => readdir(dir, { withFileTypes: true })).catch(
-    (error: NodeJS.ErrnoException) => {
-      if (error.code === 'ENOENT') {
-        return [];
-      }
+  const entries = await readdir(dir, { withFileTypes: true }).catch((error: NodeJS.ErrnoException) => {
+    if (error.code === 'ENOENT') {
+      return [];
+    }
 
-      throw error;
-    },
-  );
+    throw error;
+  });
 
   const files: ProjectFile[] = [];
 
@@ -518,13 +478,13 @@ async function walkFiles(root: string, current = ''): Promise<ProjectFile[]> {
        * /projects/:projectId/dashboard).
        */
       try {
-        const metadata = await withStaleRetry(() => stat(fullPath));
+        const metadata = await stat(fullPath);
 
         /*
          * Read raw bytes and detect binary, so non-text assets (images, fonts, wasm)
          * survive instead of being lossily decoded as UTF-8 (git-import corruption).
          */
-        const { content, encoding } = encodeFileBuffer(await withStaleRetry(() => readFile(fullPath)));
+        const { content, encoding } = encodeFileBuffer(await readFile(fullPath));
         files.push({ path: child, content, encoding, updatedAt: metadata.mtime.toISOString() });
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -785,7 +745,7 @@ export class GitCliProvider implements GitProvider {
     }
 
     if (!SAFE_WORKSPACE_ID.test(workspaceId)) {
-      throw new Error(appPublicEnglish('INVALID_WORKSPACE_ID'));
+      throw new Error('Invalid workspaceId');
     }
 
     return safeProjectPath(projectId, `${SECONDARY_WORKSPACES_DIR}/${workspaceId}`);
@@ -1038,7 +998,7 @@ export class GitCliProvider implements GitProvider {
       const staged = await this.git(input.projectId, ['diff', '--cached', '--name-only'], input.workspaceId);
 
       if (!staged.trim()) {
-        throw Object.assign(new Error(appPublicEnglish('GIT_NOTHING_TO_COMMIT')), {
+        throw Object.assign(new Error('No changes to commit.'), {
           statusCode: 400,
           code: 'GIT_NOTHING_TO_COMMIT',
         });
@@ -1101,7 +1061,7 @@ export class GitCliProvider implements GitProvider {
           .filter(Boolean);
 
         if (conflicts.length > 0) {
-          throw Object.assign(new Error(appPublicEnglish('GIT_MERGE_CONFLICT')), {
+          throw Object.assign(new Error('Pull produced merge conflicts that must be resolved.'), {
             statusCode: 409,
             code: 'GIT_MERGE_CONFLICT',
             conflicts,
@@ -1280,10 +1240,7 @@ export class GitCliProvider implements GitProvider {
     const rev = sha.replace(/[^a-zA-Z0-9]/g, '');
 
     if (!rev) {
-      throw Object.assign(new Error(appPublicEnglish('GIT_BAD_REVISION')), {
-        statusCode: 400,
-        code: 'GIT_BAD_REVISION',
-      });
+      throw Object.assign(new Error('Invalid commit'), { statusCode: 400, code: 'GIT_BAD_REVISION' });
     }
 
     return withProjectLock(projectId, async () => {
@@ -1459,9 +1416,11 @@ export class GitCliProvider implements GitProvider {
      * guidance rather than a 500 — the operation isn't broken, it's simply not
      * supported by the local-git provider.
      */
-    throw Object.assign(new Error(appPublicEnglish('GIT_PR_REQUIRES_GITHUB')), {
-      statusCode: 501,
-      code: 'NOT_SUPPORTED',
-    });
+    throw Object.assign(
+      new Error(
+        'Pull request creation requires a connected GitHub account. Use the Git tab to push your branch, then create the PR on GitHub.',
+      ),
+      { statusCode: 501, code: 'NOT_SUPPORTED' },
+    );
   }
 }

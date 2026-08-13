@@ -20,7 +20,6 @@
  */
 
 import { parse as babelParse, type ParserPlugin } from '@babel/parser';
-import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 
 export type HunkLanguage =
   | 'javascript'
@@ -60,16 +59,16 @@ export interface HunkValidationSkipped {
 
 export type HunkValidationResult = HunkValidationOk | HunkValidationError | HunkValidationSkipped;
 
-const EXT_TO_LANGUAGE = new Map<string, HunkLanguage>([
-  ['js', 'javascript'],
-  ['cjs', 'javascript'],
-  ['mjs', 'javascript'],
-  ['jsx', 'jsx'],
-  ['ts', 'typescript'],
-  ['cts', 'typescript'],
-  ['mts', 'typescript'],
-  ['tsx', 'tsx'],
-  ['json', 'json'],
+const EXT_TO_LANGUAGE: Record<string, HunkLanguage> = {
+  js: 'javascript',
+  cjs: 'javascript',
+  mjs: 'javascript',
+  jsx: 'jsx',
+  ts: 'typescript',
+  cts: 'typescript',
+  mts: 'typescript',
+  tsx: 'tsx',
+  json: 'json',
 
   /*
    * .jsonc / .json5 legitimately allow comments + trailing commas, which
@@ -78,15 +77,15 @@ const EXT_TO_LANGUAGE = new Map<string, HunkLanguage>([
    * that would strip the comments) — mirrors isJsonLikePath() in
    * app/utils/sanitize-file-content.ts which excludes them too.
    */
-  ['jsonc', 'jsonc'],
-  ['json5', 'jsonc'],
-  ['css', 'css'],
-  ['scss', 'scss'],
-  ['html', 'html'],
-  ['htm', 'html'],
-  ['md', 'markdown'],
-  ['mdx', 'markdown'],
-]);
+  jsonc: 'jsonc',
+  json5: 'jsonc',
+  css: 'css',
+  scss: 'scss',
+  html: 'html',
+  htm: 'html',
+  md: 'markdown',
+  mdx: 'markdown',
+};
 
 export function detectHunkLanguage(filePath: string): HunkLanguage {
   const dotIdx = filePath.lastIndexOf('.');
@@ -97,7 +96,7 @@ export function detectHunkLanguage(filePath: string): HunkLanguage {
 
   const ext = filePath.slice(dotIdx + 1).toLowerCase();
 
-  return EXT_TO_LANGUAGE.get(ext) ?? 'unknown';
+  return EXT_TO_LANGUAGE[ext] ?? 'unknown';
 }
 
 function babelPluginsFor(language: HunkLanguage): ParserPlugin[] {
@@ -125,7 +124,7 @@ function parseError(error: unknown, language: HunkLanguage): HunkValidationError
 
   return {
     kind: 'error',
-    message: err.message ?? clientStoresServicesText('clientRuntime.hunk.parseFailed'),
+    message: err.message ?? 'Failed to parse hunk',
     line: err.loc?.line,
     column: err.loc?.column,
     language,
