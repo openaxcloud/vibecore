@@ -101,27 +101,6 @@ export interface PreviewWsProxyDeps {
   previewDomain: string | undefined;
   resolveAgent: (workspaceId: string, orgId?: string) => Promise<{ baseUrl: string; token: string } | undefined>;
 
-  /**
-   * Per-tenant authorization for the WebSocket door.
-   *
-   * This upgrade path used to call `resolveAgent(workspaceId)` with NO orgId and
-   * without reading the `vc_preview` cookie at all, so it bypassed the tenant gate
-   * entirely: with PREVIEW_PROXY_ENFORCE_TENANT=true an anonymous client — or one
-   * holding another tenant's cookie — still got a 101 and a live pipe to the
-   * workspace's dev server. Proven on the audit cluster (2026-08-09): the HTTP
-   * door answered 403 while the same host upgraded and delivered upstream bytes.
-   * A gate that covers GET but not UPGRADE is not a gate; Vite's HMR socket
-   * carries module source, so this was a cross-tenant read channel.
-   *
-   * `resolveRequesterOrgId` verifies the cookie and returns the requester's orgId
-   * (undefined when absent/invalid/expired). `enforceTenant` makes a missing orgId
-   * a hard refusal. The orgId is forwarded to `resolveAgent` in BOTH modes so the
-   * workspace-manager's ownership check can deny a mismatch even while enforcement
-   * is off — exactly what the HTTP path does.
-   */
-  enforceTenant?: boolean;
-  resolveRequesterOrgId?: (headers: IncomingMessage['headers']) => string | undefined;
-
   /** Interval for the server→client keepalive ping (survives the ~30s LB idle). */
   keepaliveMs?: number;
   logger?: { warn?: (msg: string) => void };
@@ -160,23 +139,7 @@ export function attachPreviewWebSocketProxy(server: ReturnType<typeof createServ
     }
 
     void (async () => {
-      /*
-       * Tenant gate, BEFORE resolving anything upstream. 403 (not 401): the
-       * refusal is final for this cookie, and it matches what the HTTP door
-       * answers for the same condition.
-       */
-      const requesterOrgId = deps.resolveRequesterOrgId?.(req.headers);
-
-      if (deps.enforceTenant && !requesterOrgId) {
-        deps.logger?.warn?.(
-          `preview ws upgrade refused: no valid vc_preview cookie (workspace=${target.workspaceId})`,
-        );
-        destroy(clientSocket, 403);
-
-        return;
-      }
-
-      const agent = await deps.resolveAgent(target.workspaceId, requesterOrgId).catch(() => undefined);
+      const agent = await deps.resolveAgent(target.workspaceId).catch(() => undefined);
 
       if (!agent) {
         destroy(clientSocket, 502);

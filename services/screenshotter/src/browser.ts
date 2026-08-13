@@ -1,6 +1,5 @@
 import { type Browser, chromium } from 'playwright-core';
 import type { PageRenderer } from './app.js';
-import { previewProxyPathUrl } from './preview-proxy-path.js';
 
 /*
  * The real headless renderer. Chromium is provided by the container base image
@@ -20,11 +19,6 @@ export interface PlaywrightRendererOptions {
    * navigate the URL directly (dev/local).
    */
   previewProxyUrl?: string;
-  /**
-   * Secret partagé du preview-proxy. Requis pour les vignettes de PUBLICATIONS,
-   * dont le routage par chemin est réservé aux appelants internes.
-   */
-  previewProxySecret?: string;
   /** Host suffixes that identify a preview to route through previewProxyUrl. */
   previewHostSuffixes?: string[];
 }
@@ -59,25 +53,7 @@ export class PlaywrightPageRenderer implements PageRenderer {
     return this.#launching;
   }
 
-  async render(input: {
-    url: string;
-    width: number;
-    height: number;
-
-    /*
-     * Jeton tenant `vc_preview` fourni par l'API pour l'organisation du projet.
-     *
-     * Ce renderer travaille dans un contexte navigateur volontairement vierge
-     * (aucun cookie ne doit fuir d'un projet à l'autre), donc il ne porte PAS le
-     * cookie `vc_preview` qu'un vrai navigateur enverrait. Dès que le
-     * preview-proxy applique l'isolation tenant, sa requête reçoit un
-     * 403 PREVIEW_TENANT_FORBIDDEN et TOUTE vignette casse — constaté en réel sur
-     * le cluster d'audit le 2026-08-09. Le jeton est donc transporté dans
-     * l'en-tête interne que le proxy accepte, et uniquement vers les hôtes de
-     * preview (jamais vers un hôte tiers).
-     */
-    tenantToken?: string;
-  }): Promise<Buffer> {
+  async render(input: { url: string; width: number; height: number }): Promise<Buffer> {
     const browser = await this.#browserInstance();
     const context = await browser.newContext({
       viewport: { width: input.width, height: input.height },
@@ -91,26 +67,11 @@ export class PlaywrightPageRenderer implements PageRenderer {
       /*
        * Route preview requests through the in-cluster preview-proxy. The public
        * preview URL resolves to the cluster's own external LB, which an in-cluster
-       * pod can't reach (hairpin), so the URL is rewritten to the internal proxy.
-       *
-       * L'AUTORITÉ DE ROUTAGE VOYAGE DANS LE CHEMIN, PAS DANS `Host`.
-       *
-       * La version précédente réécrivait l'URL en croyant conserver le `Host`
-       * d'origine (`headers: { host: requestUrl.host }`) pour que le proxy route
-       * par hôte. C'est impossible : `Host` est un en-tête interdit à la
-       * modification, et Chromium le RECALCULE à partir de la nouvelle URL. Rejoué
-       * avec un vrai Chromium, le serveur amont recevait
-       * `Host: 127.0.0.1:<port>` — l'hôte de preview était perdu, `parsePreviewHost`
-       * renvoyait null, et la requête tombait en 404. La « preuve » précédente
-       * posait ce header via `http.request`, ce qu'un navigateur ne peut pas faire :
-       * elle validait une forme de requête, pas le trajet réel du renderer.
-       *
-       * On passe donc par la route CHEMIN que le proxy expose déjà,
-       * `/p/<workspaceId>/<port>/…` (app.all('/p/:workspaceId/:port/*')), et qui
-       * aboutit au MÊME `handlePreviewRequest` — donc à la même porte tenant. Un
-       * chemin n'est pas un en-tête interdit : le navigateur le transmet tel quel.
-       * Couvre le document ET les sous-ressources, puisque chaque requête vers un
-       * hôte de preview est réécrite de la même façon.
+       * pod can't reach (hairpin). We rewrite the URL to the internal proxy while
+       * PRESERVING the original Host header — the proxy routes by Host, so it lands
+       * on the right workspace. Covers the document AND all subresources (JS/CSS/
+       * assets are loaded from the same preview host). The SSRF allowlist has
+       * already vetted the input URL in app.ts, so this only redirects vetted hosts.
        */
       const suffixes = this.options.previewHostSuffixes ?? [];
       const isPreviewHost = (h: string) => suffixes.some((suffix) => h === suffix || h.endsWith(`.${suffix}`));
@@ -128,42 +89,12 @@ export class PlaywrightPageRenderer implements PageRenderer {
               return;
             }
 
-            const target = previewProxyPathUrl(proxy, requestUrl, suffixes);
-
-            if (!target) {
-              // Hôte de preview dont on ne sait pas extraire workspace+port : on ne
-              // devine pas une cible de routage, on laisse la requête telle quelle
-              // (elle échouera visiblement plutôt que d'atterrir n'importe où).
-              await route.continue();
-              return;
-            }
-
-            // route.continue exige le MÊME protocole ; le proxy est en http, d'où
-            // le forçage http de la navigation ci-dessous.
-            await route.continue({
-              url: target,
-              headers: {
-                ...route.request().headers(),
-                // Porté seulement ici : on est dans la branche « hôte de preview
-                // vérifié par l'allowlist », donc le jeton ne peut pas partir
-                // vers un hôte tiers. `Host` n'est délibérément PAS surchargé :
-                // le navigateur l'ignorerait et cela masquerait le vrai mécanisme
-                // de routage, qui est le chemin.
-                ...(input.tenantToken ? { 'x-vibecore-preview-tenant': input.tenantToken } : {}),
-
-                /*
-                 * Routage par chemin des PUBLICATIONS (`/d/<id>`, `/s/<id>`) : le
-                 * proxy ne l'ouvre qu'aux appelants internes, sinon deux
-                 * publications se retrouveraient sur une même origine et
-                 * perdraient l'isolation que `d-`/`s-` existent pour donner. Même
-                 * préfixe `x-vibecore-` que le jeton tenant, donc retiré avant
-                 * tout forward vers l'amont.
-                 */
-                ...(this.options.previewProxySecret
-                  ? { 'x-vibecore-preview-internal': this.options.previewProxySecret }
-                  : {}),
-              },
-            });
+            // route.continue requires the SAME protocol; the proxy is http, so the
+            // request must already be http (we force http on the nav below, and an
+            // http page's subresources are http/relative). Preserve the original
+            // preview Host so the proxy routes to the right workspace.
+            const target = `${proxy.protocol}//${proxy.host}${requestUrl.pathname}${requestUrl.search}`;
+            await route.continue({ url: target, headers: { ...route.request().headers(), host: requestUrl.host } });
           } catch {
             // Never let a routing hiccup crash the process (an unhandled throw in a
             // route handler would take down the pod). Fall back to the original.

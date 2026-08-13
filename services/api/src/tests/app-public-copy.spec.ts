@@ -329,20 +329,6 @@ describe('app.ts i18n source guard', () => {
       // Security audit/SIEM framing and internal-secret maintenance response.
       '{…} (trigger={…})',
       'DB_ROLLBACK_ENABLED is off',
-      /*
-       * Motifs du verdict fail-closed de `/internal/preview/port-access`. Ils sont
-       * lus par le preview-proxy et par les logs, jamais rendus : les traduire
-       * casserait le contrat entre les deux services. Le fail-open que ce verdict
-       * ferme est décrit dans docs/audit/CONTRE_AUDIT_AFAA6441.md.
-       */
-      'feature-disabled',
-      'workspace-lookup-failed',
-      'workspace-unknown',
-      'env-lookup-failed',
-      'no-ports-state',
-      'ports-state-unparseable',
-      'ports-state-malformed',
-      'ports-state-read',
     ]);
 
     expect(result.parseErrors).toEqual([]);

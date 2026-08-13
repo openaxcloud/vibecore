@@ -12,7 +12,7 @@ import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest }
 
 export interface PageRenderer {
   /** Render `url` to a PNG buffer. Throws on failure. */
-  render(input: { url: string; width: number; height: number; tenantToken?: string }): Promise<Buffer>;
+  render(input: { url: string; width: number; height: number }): Promise<Buffer>;
 }
 
 export interface ScreenshotterOptions {
@@ -90,7 +90,7 @@ export async function buildScreenshotterApp(options: ScreenshotterOptions): Prom
       return reply.code(401).send({ error: 'unauthorized' });
     }
 
-    const body = (request.body ?? {}) as { url?: unknown; tenantToken?: unknown };
+    const body = (request.body ?? {}) as { url?: unknown };
     const rawUrl = typeof body.url === 'string' ? body.url : '';
 
     let parsed: URL;
@@ -112,14 +112,7 @@ export async function buildScreenshotterApp(options: ScreenshotterOptions): Prom
     await gate.acquire();
 
     try {
-      const png = await options.renderer.render({
-        url: parsed.toString(),
-        width,
-        height,
-        // Transmis tel quel : l'autorité qui le signe est l'API, le vérificateur
-        // est le preview-proxy. Le screenshotter n'est qu'un porteur.
-        tenantToken: typeof body.tenantToken === 'string' && body.tenantToken.trim() ? body.tenantToken.trim() : undefined,
-      });
+      const png = await options.renderer.render({ url: parsed.toString(), width, height });
 
       return reply.code(200).header('content-type', 'image/png').send(png);
     } catch (error) {

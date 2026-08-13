@@ -18,51 +18,13 @@ const renderer = new PlaywrightPageRenderer({
   // Route preview hosts through the in-cluster preview-proxy (avoids the hairpin).
   // Same suffixes as the SSRF allowlist: an allowed preview host is proxied.
   previewProxyUrl: process.env.SCREENSHOTTER_PREVIEW_PROXY_URL?.trim() || undefined,
-  // Le proxy compare ce secret sur `/d/<id>` et `/s/<id>` (vignettes de
-  // publications) ; c'est le meme PREVIEW_PROXY_SHARED_SECRET que cote API.
-  previewProxySecret: process.env.PREVIEW_PROXY_SHARED_SECRET?.trim() || undefined,
   previewHostSuffixes: allowedHostSuffixes,
 });
-
-/*
- * FAIL-CLOSED sur l'authentification de `/capture`.
- *
- * `buildScreenshotterApp` n'exige le porteur que SI un secret est fourni
- * (`if (options.sharedSecret && ...)`). Ce défaut par omission est le même motif que
- * ceux relevés au contre-audit : sans secret configuré, le service accepte
- * n'importe quel appelant du cluster, et `/capture` n'est pas une route anodine —
- * elle rend une URL arbitraire, en portant le jeton tenant fourni par l'appelant.
- * Un renderer ouvert est un SSRF avec autorisation en prime.
- *
- * On refuse donc de DÉMARRER sans secret, comme le preview-proxy refuse de démarrer
- * sans le sien. Même raison d'être : mieux vaut un pod qui ne monte pas, visible
- * tout de suite, qu'une porte ouverte que personne ne remarque.
- */
-const sharedSecret = process.env.SCREENSHOTTER_SHARED_SECRET?.trim();
-
-if (!sharedSecret) {
-  throw new Error(
-    'SCREENSHOTTER_SHARED_SECRET est requis : sans lui /capture accepterait tout appelant, ' +
-      'alors que cette route rend une URL arbitraire en portant le jeton tenant recu.',
-  );
-}
-
-/*
- * Même logique pour l'allowlist SSRF : `allowedHostSuffixes` vide signifie « tout
- * hôte autorisé » côté app (commentaire d'origine : « only safe for local/dev »).
- * En pod, cette permissivité n'a aucune raison d'exister.
- */
-if (allowedHostSuffixes.length === 0) {
-  throw new Error(
-    'SCREENSHOTTER_ALLOWED_HOSTS est requis : une liste vide autorise tout hote, ' +
-      'ce qui fait de /capture un renderer ouvert vers les adresses internes.',
-  );
-}
 
 const app = await buildScreenshotterApp({
   logger: true,
   renderer,
-  sharedSecret,
+  sharedSecret: process.env.SCREENSHOTTER_SHARED_SECRET,
   allowedHostSuffixes,
   maxConcurrency: Number(process.env.SCREENSHOTTER_MAX_CONCURRENCY ?? 2),
   width: Number(process.env.SCREENSHOTTER_WIDTH ?? 1280),

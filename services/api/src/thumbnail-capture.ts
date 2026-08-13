@@ -1,5 +1,4 @@
 import { type ObjectStorage, PROJECT_THUMBNAIL_KEY } from './object-storage.js';
-import { previewCaptureToken } from './preview-tenant-token.js';
 
 /*
  * P11 — automatic project thumbnails (Replit-style, no user gesture). When a
@@ -67,7 +66,7 @@ export class ThumbnailCapturer {
    * a fresh screenshot was stored, false when skipped (disabled/debounced) or on
    * any recoverable failure — it never throws, so a caller can call it inline.
    */
-  async capture(projectId: string, previewUrl: string, orgId?: string): Promise<boolean> {
+  async capture(projectId: string, previewUrl: string): Promise<boolean> {
     if (!this.enabled || !previewUrl || this.#shouldSkip(projectId)) {
       return false;
     }
@@ -91,17 +90,7 @@ export class ThumbnailCapturer {
           'content-type': 'application/json',
           ...(this.deps.sharedSecret ? { authorization: `Bearer ${this.deps.sharedSecret}` } : {}),
         },
-        /*
-         * `tenantToken`: the screenshotter renders from a blank browser context, so
-         * it carries no `vc_preview` cookie and the preview-proxy's tenant gate
-         * answers 403 once PREVIEW_PROXY_ENFORCE_TENANT is on — every thumbnail
-         * would break (proven live, audit cluster 2026-08-09). We mint a
-         * short-lived token for the project's org here and the screenshotter
-         * presents it on the internal header the proxy also accepts. Undefined
-         * when unprovisioned/no org: harmless, the proxy ignores it while
-         * enforcement is off.
-         */
-        body: JSON.stringify({ url: previewUrl, projectId, tenantToken: previewCaptureToken(orgId) }),
+        body: JSON.stringify({ url: previewUrl, projectId }),
         signal: controller.signal,
       });
 
@@ -138,8 +127,8 @@ export class ThumbnailCapturer {
   }
 
   /** Fire-and-forget: schedule a capture without ever affecting the caller. */
-  schedule(projectId: string, previewUrl: string, orgId?: string): void {
-    void this.capture(projectId, previewUrl, orgId).catch(() => {});
+  schedule(projectId: string, previewUrl: string): void {
+    void this.capture(projectId, previewUrl).catch(() => {});
   }
 }
 
