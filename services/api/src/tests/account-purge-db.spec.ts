@@ -1140,6 +1140,67 @@ runDbTests('account purge — durable proofs (real Postgres)', () => {
         await prisma.$disconnect();
       }
     });
+
+    /*
+     * Consequence of the guard that is worth pinning on its own: renewal and reclaim
+     * can no longer contend for the same plan AT ALL.
+     *
+     *   renew   requires  leaseExpiresAt >  now
+     *   reclaim requires  leaseExpiresAt <  now - reclaimGraceMs   (grace = 60s > 0)
+     *
+     * Those predicates are disjoint, so the old "renewal vs reclaim race" is not merely
+     * decided — it is unreachable by construction. This replaces the race it retired:
+     * an invariant is a stronger claim than one sampled interleaving, and it cannot go
+     * quietly one-sided the way test (21) did once renewal always lost.
+     *
+     * The window between the two (expired, but still inside grace) belongs to NEITHER:
+     * the owner must stop, and the reconciler must wait.
+     */
+    it('renew and reclaim are DISJOINT: no lease state can be a candidate for both', async () => {
+      const prisma = createDatabaseClient();
+
+      try {
+        const store = newStore(prisma);
+        const GRACE_MS = 60_000;
+
+        // PurgePlan.userId is UNIQUE (the per-subject singleton), so each lease state
+        // needs its own account rather than three plans on one user.
+        const a = await seedAccount(store);
+        const b = await seedAccount(store);
+        const c = await seedAccount(store);
+
+        // (a) Alive → renewable, and far from the reclaim cutoff.
+        const alive = await seedPlan(prisma, a.user.id, [a.org.id], [], {
+          leaseExpiresAt: new Date(T.getTime() + 60_000),
+        });
+        // (b) Expired but INSIDE the grace window → neither renewable nor reclaimable.
+        const limbo = await seedPlan(prisma, b.user.id, [], [], {
+          leaseExpiresAt: new Date(T.getTime() - GRACE_MS / 2),
+        });
+        // (c) Expired PAST grace → reclaimable, and definitively not renewable.
+        const dead = await seedPlan(prisma, c.user.id, [], [], {
+          leaseExpiresAt: new Date(T.getTime() - GRACE_MS - 60_000),
+        });
+
+        vi.useFakeTimers({ toFake: ['Date'] });
+        vi.setSystemTime(T);
+
+        const renewable = async (p: { id: string; ownerToken: string; version: number }) =>
+          (await store.renewPurgeLease(p.id, p.ownerToken, p.version)) !== null;
+
+        // Candidate for reclaim = what reconcilePurgeFreezes' own scan selects.
+        const reclaimCandidate = async (planId: string) =>
+          (await prisma.purgePlan.count({
+            where: { id: planId, leaseExpiresAt: { lt: new Date(Date.now() - GRACE_MS) } },
+          })) === 1;
+
+        expect([await renewable(alive), await reclaimCandidate(alive.id)]).toEqual([true, false]);
+        expect([await renewable(limbo), await reclaimCandidate(limbo.id)]).toEqual([false, false]);
+        expect([await renewable(dead), await reclaimCandidate(dead.id)]).toEqual([false, true]);
+      } finally {
+        await prisma.$disconnect();
+      }
+    });
   });
 
   it('(22) lease lost mid-erasure: after 1 resource, NO further delete, NO tombstone, recoverable', async () => {

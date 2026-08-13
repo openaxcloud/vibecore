@@ -60,7 +60,7 @@ code. Vérification : `select count(*) from pg_trigger where not tgisinternal;` 
 
 ## Résultats
 
-`account-purge-db.spec.ts` : **28/28**, exit 0, PostgreSQL 16.13 migré.
+`account-purge-db.spec.ts` : **29/29**, exit 0, PostgreSQL 16.13 migré.
 workspace-manager **132/132** · api purge voisines **25/25**.
 
 ## Les tests sont discriminants (vérifié)
@@ -84,13 +84,33 @@ Les deux ordonnancements et la frontière sont pilotés à l'horloge **gelée**
 non par des délais. `renew-before-death` utilise un lease vivant **d'exactement 1 ms**,
 le cas passant le plus serré.
 
-## Réserve
+## Le test de course retiré, et ce qui le remplace
 
 Le test (21) préexistant (« renewal vs reclaim race ») encodait l'ancien comportement en
 laissant le renouvellement gagner sur un lease expiré depuis 10 s. Il passe toujours,
-mais il est désormais **déterministe** : le renouvellement perd systématiquement et c'est
-le reconciler qui gagne. Cette assertion `expect(renewWon).not.toBe(reconWon)` reste
-vraie, ce qui est cohérent — mais elle ne teste plus une vraie course.
+mais il est devenu **déterministe** : le renouvellement perd systématiquement. La suite
+perdait donc un test de concurrence.
+
+En cherchant à le restaurer, le constat est plus fort que prévu — **la course n'est pas
+seulement décidée, elle est impossible** :
+
+```
+renew   exige   leaseExpiresAt >  now
+reclaim exige   leaseExpiresAt <  now - reclaimGraceMs      (grâce = 60 s > 0)
+```
+
+Ces deux prédicats sont **disjoints**. Aucun état de lease ne peut être candidat aux
+deux, et la fenêtre intermédiaire (expiré mais encore dans la grâce) n'appartient à
+personne : le propriétaire doit s'arrêter, le reconciler doit attendre.
+
+Le test `renew and reclaim are DISJOINT` épingle les trois régions sur vrai Postgres —
+`[renouvelable, candidat au reclaim]` valant `[true,false]`, `[false,false]`,
+`[false,true]`. Un invariant est une affirmation plus forte qu'un interleaving
+échantillonné, et il ne peut pas devenir silencieusement unilatéral comme l'a fait le
+test (21).
+
+Il discrimine : sans la garde, le lease **expiré mais dans la grâce** redevient
+`[true, false]` — renouvelable, c'est-à-dire ressuscité — au lieu de `[false, false]`.
 
 ---
 
