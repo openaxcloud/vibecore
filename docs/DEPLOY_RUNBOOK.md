@@ -244,6 +244,41 @@ owner stops looking. `POST /projects/:p/deployments/:d/access` now answers
 allowed everywhere — de-escalation must never be trapped. Real per-provider
 enforcement is separate work.
 
+#### Protection must survive every successor deployment (SEC-12 / 13 / 14)
+
+`metadata.access` has **exactly one writer** — the `/access` route. So any code
+path that creates a *successor* deployment from a fresh metadata literal produces
+a **public** release while the owner still believes a password is set. That is
+the dangerous direction, and it is silent.
+
+The same defect was found on three paths, each having re-derived the rule:
+
+| Path | Was | Now |
+|---|---|---|
+| publish (`POST /deployments`) | fresh literal → public | inherits (SEC-13) |
+| rollback-to-previous (static) | fresh literal → public | inherits (SEC-12) |
+| redeploy (`/:id/redeploy`) | spread of the **source** build | inherits current (SEC-14) |
+| rollback generic | spread of target; serves nothing (404) | asserted non-leaking (SEC-12b) |
+| rollback server · AI `deploy_project` | n/a — not protectable / no artifact | — |
+
+The rule therefore lives once, in `currentSiteAccessConfig(store, projectId,
+provider, environment)`:
+
+- **"current"** = newest release of the same project+environment — the owner's
+  last expressed intent. It protects when a password is set **and** does not
+  resurrect one they removed. Both directions are tested.
+- **static only** — the sole provider whose serve path enforces the gate, and
+  SEC-11 refuses to set protection anywhere else.
+- **sorted explicitly by `createdAt`**, never trusting store order: prisma-store
+  lists `desc` while the in-memory test double returned insertion order, so `[0]`
+  meant "newest" in production and "oldest" under test. That divergence made a
+  wrong implementation look correct; the double now models the real store.
+
+The other axis — an `updateDeployment` wiping `access` on a **live** deployment —
+was audited too: `provider` is never mutated (so SEC-11's key is stable) and all
+seven metadata writes spread the existing object. No in-place de-protection path
+exists.
+
 #### Relation to the release-gate lot (`feat/deploy-exact-sha-gate`)
 
 That lot is the *general* exact-SHA gate for deploys; this one is the *specific*
