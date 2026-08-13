@@ -34975,6 +34975,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         throw error;
       }
 
+      /*
+       * SEC-12: a rollback must NEVER silently unprotect the site.
+       *
+       * This metadata is built from a fresh literal, and `metadata.access` has
+       * exactly one writer (the /access route). So without this, the rollback
+       * deployment is created with no access config — i.e. PUBLIC — even when the
+       * release it replaces was password-protected. The serve gate reads the
+       * access config of the deployment actually being served, so the content
+       * went world-open while the owner still believed a password was set.
+       *
+       * Carry the CURRENT deployment's access config forward: it is the owner's
+       * latest expressed intent. If they had un-protected the site, there is
+       * nothing to carry and the rollback stays public — intent still wins. The
+       * hash travels as-is, so the existing password keeps working; the cookie is
+       * bound to the hash, so previously-issued cookies keep working too.
+       */
+      const currentAccess = (
+        (await store.getDeployment(project.id, current.deploymentId).catch(() => undefined))?.metadata as
+          | Record<string, unknown>
+          | undefined
+      )?.access;
+
       const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
         await ensureQuota(request, project.organizationId, 'deployments.count');
 
@@ -34990,6 +35012,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             restoredFromDeploymentId: previous.deploymentId,
             supersededVersion: current.version,
             manifestArtifactDigest: previous.artifactDigest,
+            ...(currentAccess === undefined ? {} : { access: currentAccess }),
           },
         });
       });

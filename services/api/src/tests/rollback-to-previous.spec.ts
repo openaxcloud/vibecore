@@ -200,3 +200,120 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     expect(body.releases.map((r) => r.version)).toEqual([2, 1]);
   });
 });
+
+/*
+ * SEC-12 — a rollback must not silently UNPROTECT a password-protected release.
+ *
+ * The static rollback builds its new deployment's metadata from a fresh literal
+ * (rollbackToPrevious, restoredFromVersion, …) and `metadata.access` has exactly
+ * one writer in the service — the /access route. So the rollback deployment is
+ * created with NO access config, i.e. PUBLIC, even when the release being rolled
+ * back was password-protected.
+ *
+ * The serve gate reads the access config of the deployment actually being served,
+ * so after a rollback the content is world-open while the owner still believes a
+ * password is set. Same family as the phantom-protection defect: the product's
+ * claim and the enforced reality diverge — here in the dangerous direction.
+ */
+describe('SEC-12 rollback preserves password protection', () => {
+  const prev = process.env.STATIC_DEPLOY_STORAGE_DIR;
+  const prevActivation = process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED;
+  let storageDir: string;
+
+  beforeEach(async () => {
+    storageDir = await mkdtemp(join(tmpdir(), 'rbsec12-'));
+    process.env.STATIC_DEPLOY_STORAGE_DIR = storageDir;
+    process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = '1';
+  });
+
+  afterEach(async () => {
+    if (prev === undefined) delete process.env.STATIC_DEPLOY_STORAGE_DIR;
+    else process.env.STATIC_DEPLOY_STORAGE_DIR = prev;
+    if (prevActivation === undefined) delete process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED;
+    else process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = prevActivation;
+    await rm(storageDir, { recursive: true, force: true });
+  });
+
+  it('the rolled-back deployment stays gated (401), it does not become public', async () => {
+    const store = new TestApiStore();
+    const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store });
+    const register = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: 'sec12@example.com', password: 'password123', name: 'S', organizationName: 'S Org' },
+    });
+    const auth = register.json() as { token: string; organization: { id: string } };
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'S Project' },
+    });
+    const projectId = (project.json() as { project: { id: string } }).project.id;
+
+    const publish = async (version: number, marker: string) => {
+      const deployment = await store.createDeployment({
+        projectId,
+        provider: 'static',
+        environment: 'preview',
+        status: 'READY',
+        url: 'https://example.test/x',
+      });
+      const dir = staticDeploymentSnapshotDir(deployment.id);
+      await mkdir(dir, { recursive: true });
+      await writeFile(join(dir, 'index.html'), `<!doctype html><body>${marker}</body>`, 'utf8');
+      await store.createReleaseManifest({
+        projectId,
+        deploymentId: deployment.id,
+        environment: 'preview',
+        version,
+        provider: 'static',
+        artifactKind: 'static-snapshot',
+        artifactRef: `static-deployments/${deployment.id}`,
+        artifactDigest: (await computeStaticSnapshotDigest(deployment.id))!,
+        configDigest: 'sha256:' + '0'.repeat(64),
+      });
+
+      return deployment;
+    };
+
+    await publish(1, 'SECRET CONTENT V1');
+    const v2 = await publish(2, 'SECRET CONTENT V2');
+
+    // The CURRENT release is password-protected.
+    const set = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${v2.id}/access`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { mode: 'password', password: 'letmein' },
+    });
+    expect(set.statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: `/static-deployments/${v2.id}/` })).statusCode).toBe(401);
+
+    // Roll back.
+    const res = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/rollback-to-previous`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { environment: 'preview' },
+    });
+    expect(res.statusCode).toBe(201);
+
+    const rolled = (res.json() as { deployment: { id: string } }).deployment;
+
+    // THE POINT: the deployment now being served must still be gated.
+    const anon = await app.inject({ method: 'GET', url: `/static-deployments/${rolled.id}/` });
+    expect(anon.statusCode).toBe(401);
+    expect(anon.body).not.toContain('SECRET CONTENT');
+
+    // And the original password still unlocks it — the hash was carried, not reset.
+    const gate = await app.inject({
+      method: 'POST',
+      url: `/static-deployments/${rolled.id}/__access`,
+      payload: { password: 'letmein' },
+    });
+    expect(gate.statusCode).toBe(200);
+  });
+});
