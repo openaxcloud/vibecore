@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 import { render, waitFor } from '@testing-library/react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 /*
@@ -65,7 +65,6 @@ describe('BUG-QA-DB-REFETCH-LOOP-001 — chargement initial', () => {
 
         loadedBaseRef.current = '/base';
         fetcher.load('/base');
-        // eslint-disable-next-line react-hooks/exhaustive-deps
       }, []);
 
       return <span>{tick}</span>;
@@ -94,7 +93,6 @@ describe('BUG-QA-DB-REFETCH-LOOP-001 — chargement initial', () => {
 
         loadedBaseRef.current = base;
         fetcher.load(base);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [base]);
 
       return <span>{base}</span>;
@@ -150,7 +148,6 @@ describe('BUG-QA-DB-REFETCH-LOOP-001 — rechargement après provisionnement', (
 
         handledRef.current = provisionData;
         fetcher.load('/base');
-        // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [tick]);
 
       return <span>{tick}</span>;

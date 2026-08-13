@@ -179,7 +179,6 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
     fetcher.load(base);
 
     // `fetcher` est volontairement absent : son identité change à chaque rendu.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [base]);
 
   // Après un provisionnement réussi, recharger le panneau UNE fois.
@@ -195,7 +194,7 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
     handledProvisionRef.current = data;
     fetcher.load(base);
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // `fetcher` est volontairement absent : son identité change à chaque rendu.
   }, [provisionFetcher.state, provisionFetcher.data, base]);
 
   const provisioning = provisionFetcher.state !== 'idle';
@@ -218,14 +217,14 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
    */
   const loadAttempted = loadedBaseRef.current === base;
 
+  /*
+   * Une réponse qui PORTE une erreur est un échec en soi : elle doit s'afficher
+   * dès le premier rendu, sans attendre qu'on ait nous-mêmes déclenché le
+   * chargement. Seul le cas « aucune donnée du tout » a besoin de la garde
+   * `loadAttempted`, pour distinguer « pas encore essayé » de « essayé, rien reçu ».
+   */
   const loadFailed =
     fetcher.state === 'idle' &&
-    /*
-     * Une réponse qui PORTE une erreur est un échec en soi : elle doit s'afficher
-     * dès le premier rendu, sans attendre qu'on ait nous-mêmes déclenché le
-     * chargement. Seul le cas « aucune donnée du tout » a besoin de la garde
-     * `loadAttempted`, pour distinguer « pas encore essayé » de « essayé, rien reçu ».
-     */
     ((Boolean(fetcher.data) && typeof container(fetcher.data).error === 'string' && environments.length === 0) ||
       (loadAttempted && fetcher.data === undefined));
 

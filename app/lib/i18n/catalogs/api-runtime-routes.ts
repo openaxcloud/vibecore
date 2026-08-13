@@ -75,7 +75,8 @@ export const apiRuntimeRoutesEn = {
   'apiRuntime.panel.forbidden': 'You do not have permission to load this panel.',
   'apiRuntime.panel.notFound': 'The requested panel data was not found.',
   'apiRuntime.panel.backendUnavailable': 'The panel service is temporarily unavailable. Please try again.',
-  'apiRuntime.panel.quotaExceeded': 'A quota was reached, so this panel could not load. Free up resources or upgrade, then try again.',
+  'apiRuntime.panel.quotaExceeded':
+    'A quota was reached, so this panel could not load. Free up resources or upgrade, then try again.',
   'apiRuntime.panel.runtimeFailed': 'The runtime request could not be completed. Please try again.',
   'apiRuntime.panel.panelNotFound': 'The project panel was not found.',
   'apiRuntime.panel.secretConfirmation': 'Confirm that you want to reveal this secret, then try again with confirm=1.',
@@ -247,7 +248,8 @@ export const apiRuntimeRoutesFr: ApiRuntimeRoutesCopy = {
   'apiRuntime.panel.forbidden': 'Vous n’avez pas l’autorisation de charger ce panneau.',
   'apiRuntime.panel.notFound': 'Les données demandées pour ce panneau sont introuvables.',
   'apiRuntime.panel.backendUnavailable': 'Le service du panneau est temporairement indisponible. Veuillez réessayer.',
-  'apiRuntime.panel.quotaExceeded': 'Un quota est atteint, le panneau n’a donc pas pu se charger. Libérez des ressources ou changez d’offre, puis réessayez.',
+  'apiRuntime.panel.quotaExceeded':
+    'Un quota est atteint, le panneau n’a donc pas pu se charger. Libérez des ressources ou changez d’offre, puis réessayez.',
   'apiRuntime.panel.runtimeFailed': 'La requête vers l’environnement d’exécution a échoué. Veuillez réessayer.',
   'apiRuntime.panel.panelNotFound': 'Le panneau du projet est introuvable.',
   'apiRuntime.panel.secretConfirmation': 'Confirmez l’affichage de ce secret, puis réessayez avec confirm=1.',
