@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-export type ProjectFileEntry = { path?: string; content?: string };
+export type ProjectFileEntry = { path?: string; content?: string; encoding?: unknown };
 
 export type PersistedPromptMessage = {
   role?: unknown;
@@ -309,7 +309,11 @@ export function projectFilesRevisionFromEntries(entries: readonly ProjectFileEnt
 
   const files = [...entries]
     .sort((left, right) => (left.path ?? '').localeCompare(right.path ?? ''))
-    .map((file) => ({ path: file.path ?? '', content: file.content ?? '' }));
+    .map((file) => ({
+      path: file.path ?? '',
+      content: file.content ?? '',
+      encoding: file.encoding === 'base64' ? 'base64' : 'utf8',
+    }));
 
   return createHash('sha256').update(JSON.stringify(files)).digest('hex');
 }

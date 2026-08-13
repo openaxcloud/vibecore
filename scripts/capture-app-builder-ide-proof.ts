@@ -2,7 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { access, chmod, cp, mkdir, mkdtemp, readFile, rename, rm, unlink, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, resolve } from 'node:path';
 
-import { chromium, expect, type FrameLocator, type Locator, type Page } from '@playwright/test';
+import { chromium, expect, type FrameLocator, type Locator, type Page, type Request } from '@playwright/test';
 import sharp from 'sharp';
 
 import {
@@ -23,6 +23,14 @@ import {
   selectOfficialRuntimePreviewUrl,
   type RuntimePreviewProvenance,
 } from './solution-runtime-preview-proof.js';
+import {
+  reconcileRuntimeFileSnapshot,
+  verifyRuntimeFileSnapshotStable,
+  type RuntimeFileSnapshot,
+  type RuntimeReconciliationEvent,
+  type RuntimeReconciliationOperations,
+  type RuntimeWriteQuiescenceDiagnostic,
+} from './solution-runtime-reconciliation.js';
 import { applyOfficialRuntimeCaptureTheme } from './solution-runtime-theme-control.js';
 
 type CaptureLocale = 'en' | 'fr';
@@ -69,6 +77,16 @@ type RuntimeWorkspace = {
   status?: string;
 };
 
+type PersistedRuntimeFile = Readonly<
+  ProjectFileEntry & {
+    path: string;
+    content: string;
+    encoding?: 'utf8' | 'base64';
+  }
+>;
+
+type PersistedRuntimeSnapshot = RuntimeFileSnapshot<PersistedRuntimeFile>;
+
 type RuntimePreviewPort = {
   port?: number;
   processId?: string;
@@ -99,6 +117,195 @@ type PreviewSurfaceState = {
 };
 
 const previewSurfaceStates = new WeakMap<Page, PreviewSurfaceState>();
+
+type RuntimeWriteActivityState = {
+  inflight: Set<Request>;
+  lastActivityAtMs: number;
+  mutationCount: number;
+};
+
+type RuntimeWriteActivityTracker = {
+  waitForQuiescence: (
+    workspaceId: string,
+    quietForMs: number,
+    deadlineMs: number,
+  ) => Promise<RuntimeWriteQuiescenceDiagnostic>;
+};
+
+type TrackedIdeRequest = { kind: 'chat' } | { kind: 'runtime'; workspaceId: string };
+
+const runtimeWriteActivityTrackers = new WeakMap<Page, RuntimeWriteActivityTracker>();
+
+function runtimeMutationWorkspaceId(request: Request) {
+  if (request.method() === 'GET' || request.method() === 'HEAD' || request.method() === 'OPTIONS') {
+    return undefined;
+  }
+
+  let pathname: string;
+
+  try {
+    pathname = new URL(request.url()).pathname;
+  } catch {
+    return undefined;
+  }
+
+  const match = pathname.match(
+    /^\/api\/runtime\/workspaces\/([^/]+)\/(?:files(?:\/write|\/move)?|directories|patch|import)(?:\/|$)/,
+  );
+
+  if (!match) {
+    return undefined;
+  }
+
+  try {
+    return decodeURIComponent(match[1]);
+  } catch {
+    return match[1];
+  }
+}
+
+function isAgentChatRequest(request: Request) {
+  if (request.method() !== 'POST') {
+    return false;
+  }
+
+  try {
+    return /^\/api\/chat\/?$/.test(new URL(request.url()).pathname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Track mutations emitted by the real IDE page while Agent actions are still
+ * streaming. Project ide-state can already look stable and the composer can look
+ * idle while a final lane keeps PUTing partial file bodies directly to runtime.
+ */
+function registerRuntimeWriteActivityTracker(page: Page) {
+  const states = new Map<string, RuntimeWriteActivityState>();
+  const trackedRequests = new Map<Request, TrackedIdeRequest>();
+  const chatInflight = new Set<Request>();
+
+  let chatRequestCount = 0;
+  let lastChatActivityAtMs = Date.now();
+
+  const stateFor = (workspaceId: string) => {
+    const existing = states.get(workspaceId);
+
+    if (existing) {
+      return existing;
+    }
+
+    const created: RuntimeWriteActivityState = {
+      inflight: new Set(),
+      lastActivityAtMs: Date.now(),
+      mutationCount: 0,
+    };
+    states.set(workspaceId, created);
+
+    return created;
+  };
+
+  page.on('request', (request) => {
+    if (isAgentChatRequest(request)) {
+      chatInflight.add(request);
+      chatRequestCount += 1;
+      lastChatActivityAtMs = Date.now();
+      trackedRequests.set(request, { kind: 'chat' });
+
+      return;
+    }
+
+    const workspaceId = runtimeMutationWorkspaceId(request);
+
+    if (!workspaceId) {
+      return;
+    }
+
+    const state = stateFor(workspaceId);
+    state.inflight.add(request);
+    state.lastActivityAtMs = Date.now();
+    state.mutationCount += 1;
+    trackedRequests.set(request, { kind: 'runtime', workspaceId });
+  });
+
+  const complete = (request: Request) => {
+    const tracked = trackedRequests.get(request);
+
+    if (!tracked) {
+      return;
+    }
+
+    trackedRequests.delete(request);
+
+    if (tracked.kind === 'chat') {
+      chatInflight.delete(request);
+      lastChatActivityAtMs = Date.now();
+
+      return;
+    }
+
+    const state = stateFor(tracked.workspaceId);
+    state.inflight.delete(request);
+    state.lastActivityAtMs = Date.now();
+  };
+
+  page.on('requestfinished', complete);
+  page.on('requestfailed', complete);
+
+  const tracker: RuntimeWriteActivityTracker = {
+    waitForQuiescence: async (workspaceId, quietForMs, deadlineMs) => {
+      /*
+       * Always observe a NEW quiet window from this call onward. Merely seeing a
+       * last write older than the threshold is not a fence: a falsely-idle Agent
+       * lane can resume later. Any request start/finish resets the window.
+       */
+      const waitStartedAtMs = Date.now();
+
+      while (Date.now() < deadlineMs) {
+        const state = states.get(workspaceId);
+
+        const quietSinceMs = Math.max(
+          waitStartedAtMs,
+          lastChatActivityAtMs,
+          state?.lastActivityAtMs ?? waitStartedAtMs,
+        );
+
+        const quietForObservedMs = Date.now() - quietSinceMs;
+
+        if (chatInflight.size === 0 && (state?.inflight.size ?? 0) === 0 && quietForObservedMs >= quietForMs) {
+          return {
+            chatInflight: 0,
+            chatRequestCount,
+            quietForMs: quietForObservedMs,
+            runtimeMutationCount: state?.mutationCount ?? 0,
+            runtimeMutationInflight: 0,
+          };
+        }
+
+        const remainingBudgetMs = deadlineMs - Date.now();
+        const remainingQuietMs = Math.max(1, quietForMs - quietForObservedMs);
+
+        await new Promise((resolveDelay) =>
+          setTimeout(resolveDelay, Math.min(1_000, remainingQuietMs, remainingBudgetMs)),
+        );
+      }
+
+      const state = states.get(workspaceId);
+
+      throw new Error(
+        `IDE runtime writes did not become quiescent for ${quietForMs}ms` +
+          ` (workspace=${workspaceId}, chatInflight=${chatInflight.size},` +
+          ` runtimeInflight=${state?.inflight.size ?? 0}, chatRequests=${chatRequestCount},` +
+          ` runtimeMutations=${state?.mutationCount ?? 0})`,
+      );
+    },
+  };
+
+  runtimeWriteActivityTrackers.set(page, tracker);
+
+  return tracker;
+}
 
 function previewSurfaceState(page: Page): PreviewSurfaceState {
   return (
@@ -203,7 +410,12 @@ const AGENT_SUBMIT_PROOF_TIMEOUT_MS = positiveDurationFromEnv('SOLUTION_PROOF_AG
 const PREVIEW_TIMEOUT_MS = positiveDurationFromEnv('SOLUTION_PROOF_PREVIEW_TIMEOUT_MS', 5 * 60 * 1000);
 const PREVIEW_RESTART_TIMEOUT_MS = 3 * 60 * 1000;
 const RUNTIME_SYNC_GRACE_MS = positiveDurationFromEnv('SOLUTION_PROOF_RUNTIME_SYNC_GRACE_MS', 20_000);
-const RUNTIME_RESEED_GRACE_MS = positiveDurationFromEnv('SOLUTION_PROOF_RUNTIME_RESEED_GRACE_MS', 30_000);
+const RUNTIME_SYNC_BUDGET_MS = positiveDurationFromEnv('SOLUTION_PROOF_RUNTIME_SYNC_BUDGET_MS', 6 * 60 * 1000);
+const RUNTIME_SYNC_STABLE_MS = positiveDurationFromEnv('SOLUTION_PROOF_RUNTIME_SYNC_STABLE_MS', 12_000);
+const RUNTIME_SYNC_POLL_MS = positiveDurationFromEnv('SOLUTION_PROOF_RUNTIME_SYNC_POLL_MS', 4_000);
+const RUNTIME_WRITE_QUIESCENCE_MS = positiveDurationFromEnv('SOLUTION_PROOF_RUNTIME_WRITE_QUIESCENCE_MS', 30_000);
+const RUNTIME_SYNC_MIN_MATCHING_READS = 4;
+const RUNTIME_SYNC_MAX_WRITE_CYCLES = 3;
 
 const PREVIEW_RUNTIME_ERROR_PATTERN =
   /internal server error|failed to resolve import|cannot find module|vite error|unexpected token|uncaught typeerror|plugin:vite|preview_upstream_unreachable|dev server on port .*not reachable|starting, or it crashed/i;
@@ -1062,79 +1274,122 @@ async function runtimeFileContent(page: Page, workspaceId: string, token: string
     return undefined;
   }
 
-  return payload.encoding === 'base64' ? Buffer.from(payload.content, 'base64').toString('utf8') : payload.content;
-}
-
-async function runtimeFileMismatches(page: Page, projectId: string, token: string) {
-  const [workspace, projectState] = await Promise.all([
-    resolveRuntimeWorkspace(page, projectId, token),
-    readProjectIdeState(page, projectId, token),
-  ]);
-
-  if (!workspace || !projectState) {
-    return { mismatches: ['runtime-or-ide-state-unavailable'], workspace };
-  }
-
-  const criticalFiles = projectState.files.filter((file) =>
-    /(?:^|\/)(?:package\.json|index\.html|main\.(?:tsx|jsx|js)|styles\.css|App\.(?:tsx|jsx))$/i.test(file.path ?? ''),
-  );
-
-  const comparisons: Array<{ path: string; matches: boolean }> = [];
-
-  /*
-   * Runtime file reads are deliberately sequential. The production runtime
-   * endpoint can be cold while several proof projects start together, and a
-   * burst of parallel reads made a transient timeout fail an otherwise valid
-   * capture before the reconciliation path could run.
-   */
-  for (const file of criticalFiles) {
-    comparisons.push({
-      path: file.path ?? '',
-      matches:
-        typeof file.content === 'string' &&
-        file.content === (await runtimeFileContent(page, workspace.id, token, file.path ?? '')),
-    });
-  }
-
   return {
-    mismatches: comparisons.filter((comparison) => !comparison.matches).map((comparison) => comparison.path),
-    workspace,
+    content: payload.content,
+    encoding: payload.encoding === 'base64' ? ('base64' as const) : ('utf8' as const),
   };
 }
 
-async function writePersistedFilesToRuntime(page: Page, projectId: string, workspaceId: string, token: string) {
+async function readPersistedRuntimeSnapshot(
+  page: Page,
+  projectId: string,
+  token: string,
+): Promise<PersistedRuntimeSnapshot> {
   const projectState = await readProjectIdeState(page, projectId, token);
 
   if (!projectState) {
     throw new Error('The authoritative persisted files are unavailable for runtime reconciliation');
   }
 
-  type PersistedRuntimeFile = ProjectFileEntry & {
-    path: string;
-    content: string;
-    encoding?: 'utf8' | 'base64';
-  };
+  const files = projectState.files.flatMap((file): PersistedRuntimeFile[] => {
+    const entry = file as ProjectFileEntry & { encoding?: unknown };
 
-  const files = projectState.files.filter((file): file is PersistedRuntimeFile => {
-    const encoding = (file as ProjectFileEntry & { encoding?: unknown }).encoding;
+    if (
+      typeof entry.path !== 'string' ||
+      entry.path.length === 0 ||
+      typeof entry.content !== 'string' ||
+      (entry.encoding !== undefined && entry.encoding !== 'utf8' && entry.encoding !== 'base64')
+    ) {
+      return [];
+    }
 
-    return (
-      typeof file.path === 'string' &&
-      file.path.length > 0 &&
-      typeof file.content === 'string' &&
-      (encoding === undefined || encoding === 'utf8' || encoding === 'base64')
-    );
+    return [
+      Object.freeze({
+        path: entry.path,
+        content: entry.content,
+        ...(entry.encoding === 'base64' || entry.encoding === 'utf8' ? { encoding: entry.encoding } : {}),
+      }),
+    ];
   });
 
   if (files.length === 0) {
     throw new Error('The authoritative persisted project contains no files for runtime reconciliation');
   }
 
+  /*
+   * Deliberately hash FILES only. ideState.version also changes for chat/UI
+   * persistence and must not invalidate an otherwise immutable runtime write.
+   */
+  const revision = projectFilesRevisionFromEntries(files);
+
+  if (!revision) {
+    throw new Error('The authoritative persisted project has no file revision');
+  }
+
+  return Object.freeze({ revision, files: Object.freeze(files) });
+}
+
+async function runtimeStatus(page: Page, workspaceId: string, token: string) {
+  const response = await page.request
+    .get(`${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/status`, {
+      headers: { authorization: `Bearer ${token}` },
+      timeout: 20_000,
+    })
+    .catch(() => undefined);
+
+  if (!response?.ok()) {
+    return 'unavailable';
+  }
+
+  const payload = (await response.json()) as { status?: string };
+
+  return payload.status?.toLocaleLowerCase() ?? 'unknown';
+}
+
+async function runtimeSnapshotMismatches(
+  page: Page,
+  workspaceId: string,
+  token: string,
+  snapshot: PersistedRuntimeSnapshot,
+) {
+  const mismatches: string[] = [];
+
+  /*
+   * Reads stay sequential: concurrent proof projects can cold-start the runtime,
+   * and a burst obscures whether a failure is a real byte mismatch or a transient
+   * agent timeout. Compare every persisted file, including base64 bytes.
+   */
+  for (const file of snapshot.files) {
+    const runtimeFile = await runtimeFileContent(page, workspaceId, token, file.path);
+    const expectedBytes = Buffer.from(file.content, file.encoding === 'base64' ? 'base64' : 'utf8');
+
+    const runtimeBytes = runtimeFile
+      ? Buffer.from(runtimeFile.content, runtimeFile.encoding === 'base64' ? 'base64' : 'utf8')
+      : undefined;
+
+    if (!runtimeBytes || !runtimeBytes.equals(expectedBytes)) {
+      mismatches.push(file.path);
+    }
+  }
+
+  return mismatches;
+}
+
+async function writePersistedSnapshotToRuntime(
+  page: Page,
+  workspaceId: string,
+  token: string,
+  snapshot: PersistedRuntimeSnapshot,
+) {
   process.stdout.write(
-    `${JSON.stringify({ status: 'runtime-authoritative-write-requested', fileCount: files.length })}\n`,
+    `${JSON.stringify({
+      status: 'runtime-authoritative-write-requested',
+      fileCount: snapshot.files.length,
+      projectFilesRevision: snapshot.revision,
+    })}\n`,
   );
 
-  for (const file of files) {
+  for (const file of snapshot.files) {
     const response = await page.request.put(
       `${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/files/write`,
       {
@@ -1150,176 +1405,134 @@ async function writePersistedFilesToRuntime(page: Page, projectId: string, works
   }
 
   process.stdout.write(
-    `${JSON.stringify({ status: 'runtime-authoritative-write-completed', fileCount: files.length })}\n`,
+    `${JSON.stringify({
+      status: 'runtime-authoritative-write-completed',
+      fileCount: snapshot.files.length,
+      projectFilesRevision: snapshot.revision,
+    })}\n`,
   );
 }
 
-async function waitForRuntimeFilesToMatchPersisted(page: Page, projectId: string, token: string) {
-  let lastMismatches: string[] = [];
+function runtimeReconciliationOptions(overrides: Partial<{ budgetMs: number; preRestartGraceMs: number }> = {}) {
+  return {
+    budgetMs: overrides.budgetMs ?? RUNTIME_SYNC_BUDGET_MS,
+    maxWriteCycles: RUNTIME_SYNC_MAX_WRITE_CYCLES,
+    minimumWriteQuiescenceMs: RUNTIME_WRITE_QUIESCENCE_MS,
+    minimumMatchingReads: RUNTIME_SYNC_MIN_MATCHING_READS,
+    minimumStableForMs: RUNTIME_SYNC_STABLE_MS,
+    pollIntervalMs: RUNTIME_SYNC_POLL_MS,
+    preRestartGraceMs: overrides.preRestartGraceMs ?? RUNTIME_SYNC_GRACE_MS,
+  };
+}
 
-  const synchronizedWithoutRestart = await expect
-    .poll(
-      async () => {
-        ({ mismatches: lastMismatches } = await runtimeFileMismatches(page, projectId, token));
+function reportRuntimeReconciliationEvent(event: RuntimeReconciliationEvent) {
+  process.stdout.write(`${JSON.stringify({ status: `runtime-${event.type}`, ...event })}\n`);
+}
 
-        return lastMismatches.length;
-      },
-      {
-        message: 'The running workspace should receive the authoritative persisted files without a restart',
-        intervals: [2_000, 3_000, 5_000],
-        timeout: RUNTIME_SYNC_GRACE_MS,
-      },
-    )
-    .toBe(0)
-    .then(() => true)
-    .catch(() => false);
+function runtimeReconciliationOperations(
+  page: Page,
+  projectId: string,
+  workspaceId: string,
+  token: string,
+): RuntimeReconciliationOperations<PersistedRuntimeFile> {
+  const writeActivity = runtimeWriteActivityTrackers.get(page);
 
-  if (!synchronizedWithoutRestart) {
-    const { workspace } = await runtimeFileMismatches(page, projectId, token);
+  if (!writeActivity) {
+    throw new Error('Runtime write activity tracking was not registered before opening the IDE');
+  }
 
-    if (!workspace?.id) {
-      throw new Error(`Runtime file synchronization failed: ${lastMismatches.join(', ')}`);
-    }
+  return {
+    now: () => Date.now(),
+    sleep: (durationMs) => new Promise((resolveDelay) => setTimeout(resolveDelay, durationMs)),
+    readSnapshot: () => readPersistedRuntimeSnapshot(page, projectId, token),
+    readStatus: () => runtimeStatus(page, workspaceId, token),
+    observeRuntime: async (snapshot) => {
+      const status = await runtimeStatus(page, workspaceId, token);
 
-    process.stdout.write(
-      `${JSON.stringify({ status: 'runtime-reseed-restart-requested', mismatches: lastMismatches })}\n`,
-    );
-
-    const restartResponse = await page.request
-      .post(`${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspace.id)}/restart`, {
-        headers: { authorization: `Bearer ${token}` },
-        timeout: PREVIEW_RESTART_TIMEOUT_MS,
-      })
-      .catch(() => undefined);
-
-    if (restartResponse && !restartResponse.ok()) {
-      throw new Error(`Runtime reseed restart failed with HTTP ${restartResponse.status()}`);
-    }
-
-    await expect
-      .poll(
-        async () => {
-          const statusResponse = await page.request
-            .get(`${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspace.id)}/status`, {
-              headers: { authorization: `Bearer ${token}` },
-              timeout: 20_000,
-            })
-            .catch(() => undefined);
-
-          if (!statusResponse?.ok()) {
-            return 'unavailable';
-          }
-
-          const payload = (await statusResponse.json()) as { status?: string };
-
-          return payload.status ?? 'unknown';
-        },
-        {
-          message: 'The restarted workspace must return to running before file verification continues',
-          intervals: [2_000, 3_000, 5_000],
-          timeout: PREVIEW_TIMEOUT_MS,
-        },
-      )
-      .toBe('running');
-
-    const reconciledAfterRestart = await expect
-      .poll(
-        async () => {
-          ({ mismatches: lastMismatches } = await runtimeFileMismatches(page, projectId, token));
-
-          return lastMismatches.length;
-        },
-        {
-          message: `Runtime restart must reconcile persisted files: ${lastMismatches.join(', ')}`,
-          intervals: [2_000, 3_000, 5_000],
-          timeout: RUNTIME_RESEED_GRACE_MS,
-        },
-      )
-      .toBe(0)
-      .then(() => true)
-      .catch(() => false);
-
-    if (!reconciledAfterRestart) {
-      await writePersistedFilesToRuntime(page, projectId, workspace.id, token);
-
-      const authoritativeRestartResponse = await page.request.post(
-        `${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspace.id)}/restart`,
+      return {
+        status,
+        mismatches: status === 'running' ? await runtimeSnapshotMismatches(page, workspaceId, token, snapshot) : [],
+      };
+    },
+    restart: async () => {
+      const response = await page.request.post(
+        `${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/restart`,
         {
           headers: { authorization: `Bearer ${token}` },
           timeout: PREVIEW_RESTART_TIMEOUT_MS,
         },
       );
 
-      if (!authoritativeRestartResponse.ok()) {
-        throw new Error(
-          `Runtime restart after authoritative write failed with HTTP ${authoritativeRestartResponse.status()}`,
-        );
+      if (!response.ok()) {
+        throw new Error(`Runtime reseed restart failed with HTTP ${response.status()}`);
       }
 
-      process.stdout.write(`${JSON.stringify({ status: 'runtime-authoritative-restart-requested' })}\n`);
+      const payload = (await response.json().catch(() => undefined)) as { status?: string } | undefined;
 
-      await expect
-        .poll(
-          async () => {
-            const statusResponse = await page.request
-              .get(`${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspace.id)}/status`, {
-                headers: { authorization: `Bearer ${token}` },
-                timeout: 20_000,
-              })
-              .catch(() => undefined);
-
-            if (!statusResponse?.ok()) {
-              return 'unavailable';
-            }
-
-            const payload = (await statusResponse.json()) as { status?: string };
-
-            return payload.status ?? 'unknown';
-          },
-          {
-            message: 'The runtime must return to running after the authoritative file write',
-            intervals: [2_000, 3_000, 5_000],
-            timeout: PREVIEW_TIMEOUT_MS,
-          },
-        )
-        .toBe('running');
-
-      /*
-       * A restart can reseed the pod from an older project-storage snapshot
-       * after the authoritative runtime write above. Re-apply the persisted IDE
-       * files only after the replacement pod is running, then verify those exact
-       * bytes without another restart that could overwrite them again.
-       */
-      await writePersistedFilesToRuntime(page, projectId, workspace.id, token);
-
-      const reconciledAfterAuthoritativeWrite = await expect
-        .poll(
-          async () => {
-            ({ mismatches: lastMismatches } = await runtimeFileMismatches(page, projectId, token));
-
-            return lastMismatches.length;
-          },
-          {
-            message: `The official runtime write must reconcile persisted files: ${lastMismatches.join(', ')}`,
-            intervals: [1_000, 2_000, 3_000],
-            timeout: PREVIEW_RESTART_TIMEOUT_MS,
-          },
-        )
-        .toBe(0)
-        .then(() => true)
-        .catch(() => false);
-
-      if (!reconciledAfterAuthoritativeWrite) {
-        throw new Error(
-          `Runtime files still diverge after authoritative write and restart: ${lastMismatches.join(', ') || 'unknown file'}`,
-        );
+      if (!payload?.status) {
+        throw new Error('Runtime reseed restart returned no lifecycle status');
       }
-    }
 
-    process.stdout.write(`${JSON.stringify({ status: 'runtime-reseed-restart-completed' })}\n`);
+      return payload.status.toLocaleLowerCase();
+    },
+    waitForWriteQuiescence: (quietForMs, deadlineMs) =>
+      writeActivity.waitForQuiescence(workspaceId, quietForMs, deadlineMs),
+    writeSnapshot: (snapshot) => writePersistedSnapshotToRuntime(page, workspaceId, token, snapshot),
+    onEvent: reportRuntimeReconciliationEvent,
+  };
+}
+
+async function waitForRuntimeFilesToMatchPersisted(page: Page, projectId: string, token: string) {
+  /* Pin one workspace id for the entire restart/write/verify transaction. */
+  const workspace = await resolveRuntimeWorkspace(page, projectId, token);
+
+  if (!workspace?.id) {
+    throw new Error('Runtime file synchronization failed: no workspace is available');
   }
 
-  process.stdout.write(`${JSON.stringify({ status: 'runtime-files-synchronized' })}\n`);
+  const result = await reconcileRuntimeFileSnapshot(
+    runtimeReconciliationOperations(page, projectId, workspace.id, token),
+    runtimeReconciliationOptions(),
+  );
+
+  process.stdout.write(
+    `${JSON.stringify({
+      status: 'runtime-files-synchronized',
+      workspaceId: workspace.id,
+      projectFilesRevision: result.snapshot.revision,
+      matchingReads: result.matchingReads,
+      stableForMs: result.stableForMs,
+      restartCount: result.restartCount,
+      writeCycles: result.writeCycles,
+    })}\n`,
+  );
+}
+
+async function verifyRuntimeFilesBeforePromotion(page: Page, projectId: string, token: string) {
+  const workspace = await resolveRuntimeWorkspace(page, projectId, token);
+
+  if (!workspace?.id) {
+    throw new Error('Runtime promotion gate failed: no workspace is available');
+  }
+
+  const result = await verifyRuntimeFileSnapshotStable(
+    runtimeReconciliationOperations(page, projectId, workspace.id, token),
+    runtimeReconciliationOptions({
+      budgetMs: Math.max(2 * 60 * 1000, RUNTIME_WRITE_QUIESCENCE_MS + RUNTIME_SYNC_STABLE_MS + 60_000),
+      preRestartGraceMs: 0,
+    }),
+  );
+
+  const proof = {
+    workspaceId: workspace.id,
+    projectFilesRevision: result.snapshot.revision,
+    matchingReads: result.matchingReads,
+    stableForMs: result.stableForMs,
+  };
+
+  process.stdout.write(`${JSON.stringify({ status: 'runtime-files-stable-before-promotion', ...proof })}\n`);
+
+  return proof;
 }
 
 async function readRuntimePreviewPorts(page: Page, projectId: string, token: string) {
@@ -4096,6 +4309,8 @@ async function main() {
     `);
 
     const page = await context.newPage();
+    registerRuntimeWriteActivityTracker(page);
+
     const consoleErrors: string[] = [];
 
     const consoleErrorRecords: Array<{
@@ -4832,6 +5047,14 @@ async function main() {
           )
         : verifiedCaptureFilenames;
 
+    /*
+     * Captures can take several minutes. Prove the exact persisted file revision
+     * still runs in the official E-Code workspace immediately before the atomic
+     * public-asset promotion; this gate is read-only and cannot hide a late race
+     * by restarting or rewriting the runtime.
+     */
+    const runtimePromotionProof = await verifyRuntimeFilesBeforePromotion(page, projectId, token);
+
     const promotedAssets = await promoteVerifiedThemedAssets(stagingRoot, outputRoot, publishableCaptureFilenames);
 
     if (slug !== 'app-builder') {
@@ -4857,6 +5080,7 @@ async function main() {
       unscopedConsoleErrorCount: unscopedConsoleErrors.length,
       pageErrorCount: pageErrors.length,
       previewProvenance: finalPreviewSurface.provenance,
+      runtimePromotionProof,
       previewRuntimeErrors: finalPreviewSurface.runtimeErrors,
       previewOutput,
       promptOutput,

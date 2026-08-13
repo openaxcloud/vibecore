@@ -478,6 +478,19 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
         expectCleanRuntimeProvenance(manifest.previewProvenance, `${label}.previewProvenance`);
         expectPromptSurfaceProvenance(manifest.promptSurfaceProvenance, `${label}.promptSurfaceProvenance`, prompt);
 
+        const runtimePromotionProof = asRecord(manifest.runtimePromotionProof, `${label}.runtimePromotionProof`);
+
+        expect(
+          asString(runtimePromotionProof.workspaceId, `${label}.runtimePromotionProof.workspaceId`),
+          label,
+        ).toMatch(/^ws-[a-z0-9]+$/);
+        expect(
+          asString(runtimePromotionProof.projectFilesRevision, `${label}.runtimePromotionProof.projectFilesRevision`),
+          label,
+        ).toMatch(/^[a-f0-9]{64}$/);
+        expect(runtimePromotionProof.matchingReads, label).toBeGreaterThanOrEqual(4);
+        expect(runtimePromotionProof.stableForMs, label).toBeGreaterThanOrEqual(12_000);
+
         const audits = asArray(manifest.themedCaptureAudits, `${label}.themedCaptureAudits`);
 
         expect(audits, label).toHaveLength(6);
