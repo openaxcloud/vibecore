@@ -251,11 +251,16 @@ describe('deploy-main.yml — SEC-8 wiring', () => {
     expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
-  it('runs the barrier and phase 2 under the SAME guard, so neither can run alone', () => {
+  it('gates phase 2 at least as tightly as the barrier — never the other way round', () => {
     const guard = "steps.cutover.outputs.barrier == 'true'";
 
     expect(stepByName(BARRIER_STEP).if).toBe(guard);
-    expect(stepByName(PHASE2_STEP).if).toBe(guard);
+
+    // Phase 2 must carry the barrier's condition AND the SEC-10 armable check:
+    // a SUPERSET, so it can never run in a case where the barrier did not.
+    const phase2Guard = stepByName(PHASE2_STEP).if;
+    expect(phase2Guard).toContain(guard);
+    expect(phase2Guard).toContain("steps.barrier.outputs.armable == 'true'");
   });
 
   it('passes the phase-1 value into the first helm upgrade explicitly', () => {
@@ -297,6 +302,9 @@ describe('deploy-main.yml — SEC-8 wiring', () => {
       writeFileSync(kubectl, '#!/bin/sh\nprintf "%s" "eu.pkg.dev/p/r/api:oldsha0000"\n');
       chmodSync(kubectl, 0o755);
 
+      const outputFile = join(dir, 'github_output');
+      writeFileSync(outputFile, '');
+
       const script = stepByName(BARRIER_STEP).run;
       let code = 0;
       let out = '';
@@ -311,6 +319,7 @@ describe('deploy-main.yml — SEC-8 wiring', () => {
             HELM_NAMESPACE: 'vibecore',
             HELM_RELEASE: 'vibecore',
             SHORT_SHA: 'newsha1234',
+            GITHUB_OUTPUT: outputFile,
           },
         });
       } catch (error) {
@@ -318,9 +327,18 @@ describe('deploy-main.yml — SEC-8 wiring', () => {
         out = `${error.stdout ?? ''}${error.stderr ?? ''}`;
       }
 
-      expect(code).not.toBe(0);
+      /*
+       * It must NOT fail the job: by this point the rollout already succeeded, and
+       * turning "cannot certify" into "the deploy failed" would fire the rollback
+       * alarms for a healthy deploy. The correct outcome is to withhold arming.
+       */
+      expect(code).toBe(0);
       expect(out).toContain('SEC-10');
       expect(out).toMatch(/not built from the commit whose production bundle was certified/);
+      expect(out).toContain('::warning::');
+
+      // ...and phase 2 is skipped because armable=false was published.
+      expect(readFileSync(outputFile, 'utf8')).toContain('armable=false');
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

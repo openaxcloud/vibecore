@@ -693,6 +693,7 @@ jobs:
           esac
 
       - name: Drain barrier — outlast the legacy public max-age (SEC-8)
+        id: barrier
         if: steps.cutover.outputs.barrier == 'true'
         env:
           LEGACY_MAX_AGE_SECONDS: '60'
@@ -728,17 +729,25 @@ jobs:
           # it either: it is unauthenticated, and the route answers 401 before the
           # interlock is ever consulted, so a pre-cutover api looks identical.
           #
-          # Refuse to arm instead. Fail-closed: the release stays at
-          # DEPLOYMENT_ACCESS_ACTIVATION_ENABLED=0 and the next deploy that
-          # actually rebuilds the api re-runs the whole sequence.
+          # Withhold arming instead — do NOT fail the job. By this point the
+          # rollout has already succeeded, and turning "cannot certify the
+          # interlock" into "the production deploy failed" would be both wrong and
+          # actively harmful: it fires the rollback alarms for a deploy that is
+          # fine. The safe outcome is simply that activation stays closed, so this
+          # sets armable=false and the phase-2 step below skips. The release stays
+          # at DEPLOYMENT_ACCESS_ACTIVATION_ENABLED=0 and the next deploy that
+          # really rebuilds the api re-runs the whole sequence.
           case "${EXPECTED_IMAGE}" in
-            *:"${SHORT_SHA}") ;;
+            *:"${SHORT_SHA}")
+              echo "armable=true" >> "$GITHUB_OUTPUT"
+              echo "SEC-10 ok: running api image is built from the certified commit ${SHORT_SHA}"
+              ;;
             *)
-              echo "::error::SEC-10: the api Deployment runs ${EXPECTED_IMAGE}, which is not built from the commit whose production bundle was certified (${SHORT_SHA}). The running code may predate the activation interlock, so arming it is unsafe. Not arming; the release stays fail-closed." >&2
-              exit 1
+              echo "armable=false" >> "$GITHUB_OUTPUT"
+              echo "::warning::SEC-10: the api Deployment runs ${EXPECTED_IMAGE}, which is not built from the commit whose production bundle was certified (${SHORT_SHA}) — the runtime tier was not rebuilt this run, so the running code may predate the activation interlock. NOT arming password activation; the release stays fail-closed at DEPLOYMENT_ACCESS_ACTIVATION_ENABLED=0. The deploy itself is unaffected."
+              exit 0
               ;;
           esac
-          echo "SEC-10 ok: running api image is built from the certified commit ${SHORT_SHA}"
           EXPECTED_IMAGE="${EXPECTED_IMAGE}" node scripts/deploy-cache-window.mjs
 
       # ---- P104 / SEC-8 · phase 2: NOW it is safe to arm activation ----------
@@ -751,7 +760,9 @@ jobs:
       # roll is in flight, activation requests may hit a not-yet-updated pod and
       # get 503 DEPLOYMENT_ACCESS_ACTIVATION_DISABLED: fail-closed, and transient.
       - name: Phase 2 — arm password activation (SEC-8)
-        if: steps.cutover.outputs.barrier == 'true'
+        # SEC-10: also requires the barrier to have certified that the api pods
+        # actually run the commit whose production bundle was verified.
+        if: steps.cutover.outputs.barrier == 'true' && steps.barrier.outputs.armable == 'true'
         run: |
           set -euo pipefail
           helm upgrade "${HELM_RELEASE}" infra/helm/platform \
