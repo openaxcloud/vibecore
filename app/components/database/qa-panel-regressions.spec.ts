@@ -25,8 +25,10 @@ describe('BUG-QA-DB-REFETCH-LOOP-001 — le panneau DB ne peut plus boucler', ()
      * dépendance relance l'effet indéfiniment. C'est la cause mesurée des
      * ~110 requêtes / 30 s.
      */
-    // Le motif dangereux est l'identifiant NU `fetcher`. Dépendre de
-    // `fetcher.data` ou `fetcher.state` est légitime : ce sont des valeurs.
+    /*
+     * Le motif dangereux est l'identifiant NU `fetcher`. Dépendre de
+     * `fetcher.data` ou `fetcher.state` est légitime : ce sont des valeurs.
+     */
     expect(code).not.toMatch(/\}, \[(?:[^\]]*,\s*)?fetcher\s*(?:,[^\]]*)?\]\)/);
   });
 
@@ -52,7 +54,7 @@ describe('BUG-QA-DB-IDE-BRICK-001 — un provisionnement échoué ne bloque plus
     expect(code).toMatch(/loadAttempted && fetcher\.data === undefined/);
   });
 
-  it("une réponse portant une erreur reste affichée dès le premier rendu", () => {
+  it('une réponse portant une erreur reste affichée dès le premier rendu', () => {
     /*
      * Régression que le spec i18n existant a rattrapée : gater TOUT l'échec sur
      * `loadAttempted` masquait une erreur déjà présente au premier rendu. Seul
@@ -81,8 +83,10 @@ describe('BUG-QA-MONITORING-CRASH-001 — le panneau Supervision ne plante plus'
   })();
 
   it('le composant déclare `language` avant de s_en servir', () => {
-    // Il l'utilisait dans cinq appels de formatage sans jamais le définir :
-    // `ReferenceError: language is not defined` à chaque rendu.
+    /*
+     * Il l'utilisait dans cinq appels de formatage sans jamais le définir :
+     * `ReferenceError: language is not defined` à chaque rendu.
+     */
     expect(panel).toMatch(/const \{ t, i18n \} = useTranslation\(\)/);
     expect(panel).toMatch(/const language = resolvedBaseChatLanguage\(i18n\)/);
   });

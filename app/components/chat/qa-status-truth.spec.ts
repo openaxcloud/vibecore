@@ -12,10 +12,8 @@ import { deriveProgressState } from './ProgressCompilation';
 
 const APP = join(__dirname, '..', '..');
 const baseChat = readFileSync(join(__dirname, 'BaseChat.tsx'), 'utf8');
-const panelRoute = readFileSync(
-  join(APP, 'routes', 'api.projects.$projectId.ide-panel.$panel.ts'),
-  'utf8',
-);
+
+const panelRoute = readFileSync(join(APP, 'routes', 'api.projects.$projectId.ide-panel.$panel.ts'), 'utf8');
 
 describe('BUG-QA-AGENT-PROGRESS-001 — la progression ne ment plus après une erreur', () => {
   /*

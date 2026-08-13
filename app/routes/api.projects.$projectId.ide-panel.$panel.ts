@@ -3293,6 +3293,7 @@ async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | Enterprise
             Number((error as { status?: unknown } | undefined)?.status) <= 599
           ? Number((error as { status?: unknown }).status)
           : 500;
+
     // Même masquage du 429 que dans panelEnvelopeError — voir BUG-QA-PANEL-429-MASKED-001.
     const message =
       status === 401
