@@ -35,10 +35,10 @@ added the trigger.
 |---|---|---|---|
 | 1 | Target is the full `GITHUB_SHA`; no free dispatch input | `resolve-target` job. `short_sha` deleted; `target_sha` must be 40-hex **and** an ancestor of `origin/main`; the image tag is *derived* (`sha[0:10]`) | `validate-deploy-gate-wired` fails if `short_sha` returns; spec `catches a reintroduced free-form short_sha input` |
 | 2 | `checkout HEAD == TARGET_SHA` before build/deploy | asserted in `resolve-target`, `release-gate`, `preflight-gates`, `build-and-deploy` | wiring validator asserts the assertion exists in each job |
-| 3 | Official checks green, by workflow **ID** | `required-checks.json` pins **id + file path + job names** | 65 vitest cases; pinning by name alone cannot pass |
+| 3 | Official checks green, by workflow **ID** | `required-checks.json` pins **id + file path + job names** | 77 vitest cases; pinning by name alone cannot pass |
 | 4 | missing/pending/skipped/cancelled/failure/wrong-sha/usurped ⇒ refuse **before WIF** | `release-gate` job has `contents: read, actions: read` and **no `id-token`**; `id-token: write` is granted to `build-and-deploy` alone | run [31597733139](https://github.com/openaxcloud/vibecore/actions/runs/31597733139), **7/7 green**: the 3 red SHAs refused, 2 of them still refused under an E2E waiver, and the all-green SHA authorised — all in jobs that cannot exchange a WIF token. Wiring validator fails if `id-token` moves to workflow level |
 | 5 | Manifest: service → source SHA → build id → digest → signature/SBOM | `release-manifest.mjs build` — refuses to emit an unverifiable manifest | 13 spec cases: no digest, malformed digest, rebuilt without build id, built from another commit, unverified signature all throw. The build-id resolution was also run **against 40 real production Cloud Build records** (read-only `gcloud builds list`): it returns the right build for the tier that was built, an empty string for a tier that was not, and traverses the 2 records that carry no `_SHORT_SHA` substitution without erroring |
-| 6 | Deploy **by digest**, verify `imageID` after rollout | chart renders `@sha256:` and **fails the render** on a malformed or absent pin; what each non-rebuilt service currently runs is read from the **live Deployment** (authoritative, and unlike `helm get values` always valid JSON); post-rollout check compares kubelet `imageID` for the Deployment's **current revision** ReplicaSet. `screenshotter` is pinned but deliberately not imageID-checked — this path has never waited on its rollout and it is not enabled everywhere | `proof-digest-rollout.sh` on a real cluster, 8/8: 7 distinct digests, 17 containers, 7/7 imageIDs match, a wrong digest is rejected, **a partial `--reuse-values` upgrade leaves every other service pinned**, and **a last-known-good manifest restores them** |
+| 6 | Deploy **by digest**, verify `imageID` after rollout | chart renders `@sha256:` and **fails the render** on a malformed or absent pin; what each non-rebuilt service currently runs is read from the **live Deployment** (authoritative, and unlike `helm get values` always valid JSON); post-rollout check compares kubelet `imageID` for the Deployment's **current revision** ReplicaSet. `screenshotter` is pinned but deliberately not imageID-checked — this path has never waited on its rollout and it is not enabled everywhere | `proof-digest-rollout.sh` on a real cluster, **9/9**: 7 distinct digests, 17 containers, 7/7 imageIDs match, a wrong digest is rejected, a partial `--reuse-values` upgrade leaves every other service pinned, a last-known-good manifest restores them, and **a post-check failure is rolled back to the last verified revision** |
 | 7 | Manual path bound to the same SHA/image | same jobs, same gate, same digests; dispatch names a commit already on `main` | wiring validator + spec |
 | 8 | Break-glass only to a signed last-known-good, double approval | `deploy-break-glass.yml`: no build step, restores a previous **successful gated** run's manifest, cosign-verifies every digest, `production-break-glass` environment | wiring validator fails if break-glass gains a build step or loses its signature check. **The restore mechanism is executed** in `proof-digest-rollout.sh` step 8 — same `jq` filter, same `--set-string services.<key>.imageDigest`, same `--reuse-values --atomic` — and the cluster returns to every digest the manifest names. Only the cosign step needs the production KMS key and cannot run outside prod |
 
@@ -50,9 +50,9 @@ GITHUB_TOKEN="$(gh auth token)" \
   node scripts/release-gate/verify-required-checks.mjs --no-wait --sha <40-hex>
 #    exit 0 = authorised · exit 2 = refused, with the reason per workflow
 
-# 2. Deploy-by-digest end to end on a real cluster (~10 min): distinct digests,
-#    imageID concordance, a negative control, the --reuse-values round trip, and a
-#    break-glass restore
+# 2. Deploy-by-digest end to end on a real cluster (~12 min): distinct digests,
+#    imageID concordance, a negative control, the --reuse-values round trip, a
+#    break-glass restore, and an EXERCISED rollback after a post-check failure
 bash scripts/release-gate/proof-digest-rollout.sh
 
 # 3. The gate's own wiring — proves it can FAIL before trusting its all-clear
@@ -63,7 +63,7 @@ node scripts/release-gate/validate-deploy-gate-wired.mjs
 node scripts/release-gate/verify-required-checks.mjs --self-test
 
 # 5. Full suite
-pnpm vitest --run scripts/release-gate      # 65 tests
+pnpm vitest --run scripts/release-gate      # 77 tests
 ```
 
 ## Expert review round 1 (CHANGES_REQUESTED on 3320cde9) — what changed
@@ -90,13 +90,20 @@ real Kubernetes cluster, but the production `helm upgrade` by digest has not bee
 executed — it cannot be, without deploying to production. That is the one item
 awaiting a go-ahead.
 
-Two prerequisites must also be granted before the first gated deploy can succeed; both
-need admin rights and both fail **closed**, so getting them wrong blocks deploys rather
-than weakening the gate:
+Four prerequisites need repo/GCP admin. All fail **closed** — getting one wrong blocks
+deploys rather than weakening the gate — except (3) and (4), whose absence is what the
+in-workflow `GITHUB_WORKFLOW_REF` guard currently substitutes for:
 
-1. `roles/cloudkms.publicKeyViewer` on the `cosign-images` KMS key for the deploy
-   service account — without it `cosign verify` fails and nothing deploys.
-2. GitHub environment `production-break-glass` with **two** required reviewers.
+1. `roles/cloudkms.publicKeyViewer` on
+   `keyRings/`**`ecode-supply-chain`**`/cryptoKeys/cosign-images` for the deploy service
+   account. No signing role.
+2. GitHub environments `production-break-glass-1` **and** `-2`, reviewers required,
+   branches limited to `main`. Two environments, because one with N reviewers requires
+   one approval.
+3. Protection on the `production` environment — as of 2026-08-13 it has
+   `protection_rules: []` and `deployment_branch_policy: null`, i.e. none.
+4. A WIF subject condition pinning
+   `assertion.workflow_ref == "openaxcloud/vibecore/.github/workflows/deploy-main.yml@refs/heads/main"`.
 
 ## Defects found by these proofs
 
