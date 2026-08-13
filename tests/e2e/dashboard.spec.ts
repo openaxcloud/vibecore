@@ -78,7 +78,16 @@ async function openVisibleIdeToolMenu(page: import('@playwright/test').Page) {
   await expect(trigger).toBeVisible({ timeout: 15_000 });
   await trigger.evaluate((element) => (element as HTMLButtonElement).click());
 
-  const toolMenu = page.locator('.bolt-project-tool-menu:visible').last();
+  /*
+   * The palette renders as `.bolt-project-tool-modal[data-testid=
+   * "ide-add-tab-command-palette"]` wrapping `.bolt-project-tool-menu--modal`.
+   * Prefer the stable test id and fall back to the class, so a styling change
+   * to the menu wrapper does not read as "the palette never opened".
+   */
+  const toolMenu = page
+    .locator('[data-testid="ide-add-tab-command-palette"] .bolt-project-tool-menu, .bolt-project-tool-menu')
+    .filter({ visible: true })
+    .last();
   await expect(toolMenu).toBeVisible({ timeout: 15_000 });
 
   return toolMenu;
@@ -153,6 +162,13 @@ test('project creation exposes templates and import paths', async ({ page }) => 
 test('project creation light theme uses light containers and readable image previews', async ({ page }) => {
   await authenticate(page);
   await page.addInitScript(() => {
+    /*
+     * Theme resolution order is cookie -> localStorage -> server-seeded
+     * attribute, so seeding only localStorage let a stale `ecode_theme` cookie
+     * keep the surface dark and made these light-theme assertions read the dark
+     * palette. Seed both.
+     */
+    document.cookie = 'ecode_theme=light; path=/; SameSite=Lax';
     localStorage.setItem('bolt_theme', 'light');
   });
 
@@ -210,6 +226,13 @@ test('project creation light theme uses light containers and readable image prev
 test('app shell form buttons stay visible in light theme', async ({ page }) => {
   await authenticate(page);
   await page.addInitScript(() => {
+    /*
+     * Theme resolution order is cookie -> localStorage -> server-seeded
+     * attribute, so seeding only localStorage let a stale `ecode_theme` cookie
+     * keep the surface dark and made these light-theme assertions read the dark
+     * palette. Seed both.
+     */
+    document.cookie = 'ecode_theme=light; path=/; SameSite=Lax';
     localStorage.setItem('bolt_theme', 'light');
   });
 
@@ -416,7 +439,16 @@ test('public templates stay marketing-only for anonymous visitors', async ({ pag
   await expect(
     page.getByRole('heading', { name: 'Start faster with production-ready E-Code templates' }),
   ).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByRole('link', { name: 'Sign in to use' }).first()).toHaveAttribute('href', '/login');
+  /*
+   * Anonymous template cards now link "Use template" to a login round-trip that
+   * carries the chosen template — /login?returnTo=/projects/new?template=<slug>
+   * — instead of a bare /login with a "Sign in to use" label. The guarantee the
+   * test exists for is unchanged: an anonymous visitor cannot reach the create
+   * flow without signing in first.
+   */
+  const templateCta = page.getByRole('link', { name: 'Use template' }).first();
+  await expect(templateCta).toBeVisible();
+  await expect(templateCta).toHaveAttribute('href', /^\/login\?returnTo=/);
 });
 
 /*
@@ -683,6 +715,8 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   expect(filesPanelFillMetrics.treeBackground).toBe('rgb(14, 21, 37)');
 
   await page.evaluate(() => {
+    // Cookie wins over localStorage in theme resolution — seed both.
+    document.cookie = 'ecode_theme=light; path=/; SameSite=Lax';
     localStorage.setItem('bolt_theme', 'light');
     document.documentElement.setAttribute('data-theme', 'light');
     document.documentElement.classList.remove('dark');
@@ -1080,6 +1114,8 @@ test('all IDE service panels keep light theme containers readable', async ({ pag
   const forbiddenLightBackgrounds = ['rgb(10, 15, 28)', 'rgb(14, 21, 37)', 'rgb(26, 32, 48)', 'rgb(43, 50, 69)'];
 
   await page.evaluate(() => {
+    // Cookie wins over localStorage in theme resolution — seed both.
+    document.cookie = 'ecode_theme=light; path=/; SameSite=Lax';
     localStorage.setItem('bolt_theme', 'light');
   });
 
@@ -1087,6 +1123,8 @@ test('all IDE service panels keep light theme containers readable', async ({ pag
     await page.goto(`/projects/${projectId}/ide?panel=${panel}`, { waitUntil: 'domcontentloaded' });
     await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30_000 });
     await page.evaluate(() => {
+      // Cookie wins over localStorage in theme resolution — seed both.
+      document.cookie = 'ecode_theme=light; path=/; SameSite=Lax';
       localStorage.setItem('bolt_theme', 'light');
       document.documentElement.setAttribute('data-theme', 'light');
       document.documentElement.classList.remove('dark');
@@ -1592,6 +1630,13 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.addInitScript(() => {
+    /*
+     * Theme resolution order is cookie -> localStorage -> server-seeded
+     * attribute, so seeding only localStorage let a stale `ecode_theme` cookie
+     * keep the surface dark and made these light-theme assertions read the dark
+     * palette. Seed both.
+     */
+    document.cookie = 'ecode_theme=light; path=/; SameSite=Lax';
     localStorage.setItem('bolt_theme', 'light');
   });
 
