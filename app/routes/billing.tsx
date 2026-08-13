@@ -523,6 +523,10 @@ export default function BillingPage() {
           <LinkButton to="/payment-method" variant="outline">
             {t('billing.page.paymentMethod')}
           </LinkButton>
+          {/* BD-04: surface the invoices page (GET /orgs/:id/billing/invoices) from the billing page. */}
+          <LinkButton to="/invoices" variant="outline">
+            {t('invoices.page.title')}
+          </LinkButton>
         </>
       }
     >
