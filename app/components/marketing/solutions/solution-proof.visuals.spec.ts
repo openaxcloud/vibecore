@@ -452,10 +452,15 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
           for (const [stateIndex, stateValue] of states.entries()) {
             const stateLabel = `${auditLabel}.states[${stateIndex}]`;
             const state = asRecord(stateValue, stateLabel);
+            const applicationTheme = asRecord(state.applicationTheme, `${stateLabel}.applicationTheme`);
             const provenance = expectCleanRuntimeProvenance(state.provenance, `${stateLabel}.provenance`);
 
             expectCleanShell(state.shell, `${stateLabel}.shell`);
             expectResponsiveAudit(state.responsive, `${stateLabel}.responsive`);
+            expect(applicationTheme.activeTheme, stateLabel).toBe(state.theme);
+            expect(applicationTheme.strategy, stateLabel).toMatch(
+              /^(?:explicit-state-already-applied|visible-runtime-control)$/,
+            );
             expect(state.device, stateLabel).toMatch(/^(?:desktop|tablet|mobile)$/);
             expect(state.captureSurface, stateLabel).toMatch(
               /^(?:ide-shell-native-webview|ide-shell-official-runtime-verified|official-runtime-direct)$/,

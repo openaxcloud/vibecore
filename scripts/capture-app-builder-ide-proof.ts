@@ -2938,47 +2938,76 @@ async function verifyPreviewResponsiveState(
   return lastAudit;
 }
 
-async function verifyScenarioAppearance(page: Page, scenario: SolutionScenario) {
+async function verifyScenarioAppearance(page: Page, scenario: SolutionScenario, theme: CaptureTheme) {
   if (!scenario.requiresDarkCanvas) {
     return;
   }
 
   const body = previewBody(page);
 
-  const darkSurfaceCount = await body.evaluate((previewBody) => {
+  const surfaceAudit = await body.evaluate((previewBody) => {
     const previewDocument = previewBody.ownerDocument;
     const previewWindow = previewDocument.defaultView;
 
     if (!previewWindow) {
-      return 0;
+      return { darkSurfaceCount: 0, lightSurfaceCount: 0, surfaces: [] };
     }
 
-    let count = 0;
+    let darkSurfaceCount = 0;
+    let lightSurfaceCount = 0;
+
+    const surfaces: Array<{ backgroundColor: string; element: string; luminance: number }> = [];
 
     for (const element of previewDocument.querySelectorAll('body, #root, main, [data-app-shell]')) {
       const bounds = element.getBoundingClientRect();
       const style = previewWindow.getComputedStyle(element);
-      const match = style.backgroundColor.match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/i);
+      const channels = style.backgroundColor.match(/[\d.]+/g)?.map(Number);
 
-      if (!match || bounds.width < previewWindow.innerWidth * 0.7 || bounds.height < previewWindow.innerHeight * 0.5) {
+      if (
+        !channels ||
+        channels.length < 3 ||
+        (channels[3] ?? 1) < 0.5 ||
+        bounds.width < previewWindow.innerWidth * 0.7 ||
+        bounds.height < previewWindow.innerHeight * 0.5
+      ) {
         continue;
       }
 
-      const red = Number(match[1]) / 255;
-      const green = Number(match[2]) / 255;
-      const blue = Number(match[3]) / 255;
+      const red = channels[0] / 255;
+      const green = channels[1] / 255;
+      const blue = channels[2] / 255;
       const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
 
+      surfaces.push({
+        backgroundColor: style.backgroundColor,
+        element: element.id
+          ? `${element.tagName.toLocaleLowerCase()}#${element.id}`
+          : element.tagName.toLocaleLowerCase(),
+        luminance,
+      });
+
       if (luminance <= 0.3) {
-        count += 1;
+        darkSurfaceCount += 1;
+      }
+
+      if (luminance >= 0.65) {
+        lightSurfaceCount += 1;
       }
     }
 
-    return count;
+    return { darkSurfaceCount, lightSurfaceCount, surfaces };
   });
 
-  if (darkSurfaceCount === 0) {
-    throw new Error(`The ${scenario.expectedTerms[0]} Preview does not render the requested dark full-canvas theme`);
+  if (theme === 'dark' && surfaceAudit.darkSurfaceCount === 0) {
+    throw new Error(
+      `The ${scenario.expectedTerms[0]} Preview does not render the requested dark full-canvas theme: ${JSON.stringify(surfaceAudit)}`,
+    );
+  }
+
+  if (theme === 'light' && (surfaceAudit.lightSurfaceCount === 0 || surfaceAudit.darkSurfaceCount > 0)) {
+    throw new Error(
+      `The ${scenario.expectedTerms[0]} Preview does not render a genuine light full-canvas theme: ${JSON.stringify(surfaceAudit)}`,
+    );
   }
 }
 
@@ -3370,10 +3399,31 @@ async function applyCaptureTheme(page: Page, theme: CaptureTheme) {
 
   const state = previewSurfaceState(page);
 
+  let applicationTheme: Awaited<ReturnType<typeof applyOfficialRuntimeCaptureTheme>>;
+
   if (state.mode === 'official-runtime-direct' && state.directPage) {
-    await applyOfficialRuntimeCaptureTheme(state.directPage, theme);
+    applicationTheme = await applyOfficialRuntimeCaptureTheme(state.directPage, theme, {
+      requireVisibleControl: true,
+    });
     assertDirectRuntimeStayedClean(page);
+  } else {
+    const iframe = page.locator('iframe[data-testid="preview-iframe"]:visible').last();
+
+    await expect(iframe).toBeVisible({ timeout: 30_000 });
+
+    const iframeHandle = await iframe.elementHandle();
+    const nativePreviewFrame = await iframeHandle?.contentFrame();
+
+    if (!nativePreviewFrame) {
+      throw new Error(`The native Webview iframe is unavailable while applying the generated ${theme} theme`);
+    }
+
+    applicationTheme = await applyOfficialRuntimeCaptureTheme(nativePreviewFrame, theme, {
+      requireVisibleControl: true,
+    });
   }
+
+  return applicationTheme;
 }
 
 type IdeShellAudit = {
@@ -3391,6 +3441,7 @@ type ThemedCaptureAudit = {
   filename: string;
   states: Array<{
     accent: { orangeActionCount: number; orangeCount: number; purpleCount: number };
+    applicationTheme: Awaited<ReturnType<typeof applyOfficialRuntimeCaptureTheme>>;
     captureSurface: 'ide-shell-native-webview' | 'ide-shell-official-runtime-verified' | 'official-runtime-direct';
     device: 'desktop' | 'tablet' | 'mobile';
     provenance?: RuntimePreviewProvenance;
@@ -3718,7 +3769,7 @@ async function captureThemedIdeState(
   ]);
 
   for (const theme of CAPTURE_THEMES) {
-    await applyCaptureTheme(page, theme);
+    const applicationTheme = await applyCaptureTheme(page, theme);
     await options.verifySurface?.();
 
     const shell = await waitForStableIdeCaptureShell(page);
@@ -3728,7 +3779,7 @@ async function captureThemedIdeState(
       throw new Error(`Unknown Preview device before ${theme}/${filename} capture: ${selectedDevice || 'missing'}`);
     }
 
-    await verifyScenarioAppearance(page, options.scenario);
+    await verifyScenarioAppearance(page, options.scenario, theme);
 
     const accent = await waitForOrangePreview(page, options.evidenceRoot, 60_000, false);
 
@@ -3806,6 +3857,7 @@ async function captureThemedIdeState(
 
     states.push({
       accent,
+      applicationTheme,
       captureSurface,
       device: selectedDevice,
       provenance: surfaceState.provenance,
@@ -4395,7 +4447,7 @@ async function main() {
 
     if (!iterationOnly) {
       try {
-        await verifyScenarioAppearance(page, copy);
+        await verifyScenarioAppearance(page, copy, 'dark');
         initialAccentAudit = await waitForOrangePreview(page, evidenceRoot, 60_000);
       } catch (error) {
         if (singleGeneration) {
@@ -4412,7 +4464,7 @@ async function main() {
         iterationRepairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token, themeRepairPrompt);
         iterationRepairPrompt = themeRepairPrompt;
         ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
-        await verifyScenarioAppearance(page, copy);
+        await verifyScenarioAppearance(page, copy, 'dark');
         initialAccentAudit = await waitForOrangePreview(page, evidenceRoot);
       }
 
@@ -4441,7 +4493,7 @@ async function main() {
 
       if (locale === 'fr') {
         await selectPreviewDevice(page, 'tablet');
-        await verifyScenarioAppearance(page, copy);
+        await verifyScenarioAppearance(page, copy, 'dark');
         responsiveAccentAudits.push({
           stage: 'preview',
           device: 'tablet',
@@ -4459,7 +4511,7 @@ async function main() {
       const overviewDevice = locale === 'fr' ? 'mobile' : 'tablet';
 
       await selectPreviewDevice(page, overviewDevice);
-      await verifyScenarioAppearance(page, copy);
+      await verifyScenarioAppearance(page, copy, 'dark');
       responsiveAccentAudits.push({
         stage: 'overview',
         device: overviewDevice,
@@ -4526,10 +4578,10 @@ async function main() {
       process.stdout.write(`${JSON.stringify({ status: 'orange-iteration-settled', locale })}\n`);
 
       ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
-      await verifyScenarioAppearance(page, copy);
+      await verifyScenarioAppearance(page, copy, 'dark');
       accentAudit = await waitForOrangePreview(page, evidenceRoot);
       scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot);
-      await verifyScenarioAppearance(page, copy);
+      await verifyScenarioAppearance(page, copy, 'dark');
       interactionAccentAudit = await waitForOrangePreview(page, evidenceRoot, 60_000, false);
       responsiveAccentAudits.push({ stage: 'interaction', device: 'desktop', audit: interactionAccentAudit });
       responsiveStateAudits.push(
@@ -4545,7 +4597,7 @@ async function main() {
       verifiedCaptureFilenames.push(iterationFilename);
 
       await selectPreviewDevice(page, 'mobile');
-      await verifyScenarioAppearance(page, copy);
+      await verifyScenarioAppearance(page, copy, 'dark');
       responsiveAccentAudits.push({
         stage: 'interaction',
         device: 'mobile',
@@ -4567,7 +4619,7 @@ async function main() {
     } else if (singleGeneration) {
       ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
       scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot);
-      await verifyScenarioAppearance(page, copy);
+      await verifyScenarioAppearance(page, copy, 'dark');
       interactionAccentAudit = await waitForOrangePreview(page, evidenceRoot, 60_000, false);
       responsiveAccentAudits.push({ stage: 'interaction', device: 'desktop', audit: interactionAccentAudit });
       responsiveStateAudits.push(
@@ -4585,7 +4637,7 @@ async function main() {
       verifiedCaptureFilenames.push(interactionFilename);
 
       await selectPreviewDevice(page, 'mobile');
-      await verifyScenarioAppearance(page, copy);
+      await verifyScenarioAppearance(page, copy, 'dark');
       responsiveAccentAudits.push({
         stage: 'interaction',
         device: 'mobile',
@@ -4606,7 +4658,7 @@ async function main() {
       await selectPreviewDevice(page, 'desktop');
     } else {
       scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot);
-      await verifyScenarioAppearance(page, copy);
+      await verifyScenarioAppearance(page, copy, 'dark');
       interactionAccentAudit = await waitForOrangePreview(page, evidenceRoot, 60_000, false);
       responsiveStateAudits.push(
         await verifyPreviewResponsiveState(page, copy, evidenceRoot, 'interaction', 'desktop'),
@@ -4637,7 +4689,7 @@ async function main() {
 
     await expect(appFile).toBeVisible({ timeout: 60_000 });
 
-    await verifyScenarioAppearance(page, copy);
+    await verifyScenarioAppearance(page, copy, 'dark');
     responsiveAccentAudits.push({
       stage: 'files',
       device: 'desktop',

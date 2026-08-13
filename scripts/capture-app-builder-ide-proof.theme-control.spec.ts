@@ -22,6 +22,11 @@ describe('Solutions proof capture theme control', () => {
 
   const runtimeThemeControlSource = readSource('scripts/solution-runtime-theme-control.ts');
 
+  const scenarioAppearanceSource = captureSource.slice(
+    captureSource.indexOf('async function verifyScenarioAppearance'),
+    captureSource.indexOf('\ntype ResumedPromptProvenance'),
+  );
+
   const baseChatSource = readSource('app/components/chat/BaseChat.tsx');
 
   it('uses the real localized command-palette control instead of compact Agent header actions', () => {
@@ -48,7 +53,26 @@ describe('Solutions proof capture theme control', () => {
       /setAttribute\(['"]data-theme|classList\.(?:add|remove|replace|toggle)/u,
     );
     expect(runtimeThemeControlSource).toContain('page.emulateMedia({ colorScheme: theme })');
+    expect(runtimeThemeControlSource).toContain("surface.getByTestId('app-theme-toggle')");
     expect(runtimeThemeControlSource).toContain('await control.click()');
+  });
+
+  it('applies and records the generated app theme for native Webview captures', () => {
+    expect(applyCaptureThemeSource).toContain('iframe[data-testid="preview-iframe"]:visible');
+    expect(applyCaptureThemeSource).toContain('iframeHandle?.contentFrame()');
+    expect(applyCaptureThemeSource).toContain('applyOfficialRuntimeCaptureTheme(nativePreviewFrame, theme');
+    expect(applyCaptureThemeSource).toContain('requireVisibleControl: true');
+    expect(captureSource).toContain('const applicationTheme = await applyCaptureTheme(page, theme)');
+    expect(captureSource).toContain('applicationTheme,');
+  });
+
+  it('audits the Game full-canvas palette against the captured application theme', () => {
+    expect(captureSource).toContain('verifyScenarioAppearance(page, options.scenario, theme)');
+    expect(scenarioAppearanceSource).toContain("theme === 'dark' && surfaceAudit.darkSurfaceCount === 0");
+    expect(scenarioAppearanceSource).toContain(
+      "theme === 'light' && (surfaceAudit.lightSurfaceCount === 0 || surfaceAudit.darkSurfaceCount > 0)",
+    );
+    expect(scenarioAppearanceSource).toContain('does not render a genuine light full-canvas theme');
   });
 });
 
@@ -112,6 +136,57 @@ describe.sequential('official runtime direct theme control', () => {
     await applyOfficialRuntimeCaptureTheme(page, 'dark', { timeoutMs: 2_000 });
     expect(await page.locator('html').getAttribute('data-theme')).toBe('dark');
     expect(await page.evaluate(`window.themeClickCount`)).toBe(2);
+  });
+
+  it('emulates the containing page and clicks the real data-testid control inside a native iframe', async () => {
+    await page.setContent('<iframe title="Preview"></iframe>');
+
+    const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
+
+    if (!frame) {
+      throw new Error('Expected the native Preview iframe');
+    }
+
+    await frame.setContent(`
+      <style>
+        :root[data-theme='dark'] { color-scheme: dark; background: rgb(10, 20, 30); }
+        :root[data-theme='light'] { color-scheme: light; background: rgb(240, 245, 250); }
+      </style>
+      <button data-testid="app-theme-toggle" aria-label="Palette">Theme</button>
+      <script>
+        window.themeClickCount = 0;
+        document.documentElement.dataset.theme = window.matchMedia('(prefers-color-scheme: dark)').matches
+          ? 'dark'
+          : 'light';
+        document.querySelector('button').addEventListener('click', () => {
+          window.themeClickCount += 1;
+          document.documentElement.dataset.theme =
+            document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        });
+      </script>
+    `);
+
+    await expect(
+      applyOfficialRuntimeCaptureTheme(frame, 'light', { requireVisibleControl: true, timeoutMs: 2_000 }),
+    ).resolves.toEqual({
+      activeTheme: 'light',
+      strategy: 'visible-runtime-control',
+    });
+    expect(await frame.locator('html').getAttribute('data-theme')).toBe('light');
+    expect(await frame.evaluate(`window.matchMedia('(prefers-color-scheme: light)').matches`)).toBe(true);
+    expect(await frame.evaluate(`window.themeClickCount`)).toBe(1);
+
+    await applyOfficialRuntimeCaptureTheme(frame, 'dark', { requireVisibleControl: true, timeoutMs: 2_000 });
+    expect(await frame.locator('html').getAttribute('data-theme')).toBe('dark');
+    expect(await frame.evaluate(`window.themeClickCount`)).toBe(2);
+  });
+
+  it('fails closed when a generated app exposes no real theme control', async () => {
+    await page.setContent('<html data-theme="dark"><body><main>No theme control</main></body></html>');
+
+    await expect(
+      applyOfficialRuntimeCaptureTheme(page, 'light', { requireVisibleControl: true, timeoutMs: 250 }),
+    ).rejects.toThrow(/no visible data-testid=app-theme-toggle or EN\/FR theme control/);
   });
 
   it('keeps prefers-color-scheme support when the runtime has no explicit theme state', async () => {

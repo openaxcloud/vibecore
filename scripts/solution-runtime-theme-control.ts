@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from '@playwright/test';
+import { expect, type Frame, type Locator, type Page } from '@playwright/test';
 
 export type RuntimeCaptureTheme = 'light' | 'dark';
 
@@ -31,6 +31,8 @@ const THEME_CONTROL_LABEL_PARTS = [
 
 export const OFFICIAL_RUNTIME_THEME_CONTROL_LABEL = new RegExp(`^(?:${THEME_CONTROL_LABEL_PARTS.join('|')})$`, 'iu');
 
+type RuntimeThemeSurface = Frame | Page;
+
 function themeFromClassName(className: string): RuntimeCaptureTheme | undefined {
   const match = className.match(THEME_CLASS_PATTERN);
   const value = match?.slice(1).find(Boolean)?.toLocaleLowerCase();
@@ -50,8 +52,8 @@ export function explicitRuntimeTheme(snapshot: Pick<RuntimeThemeSnapshot, 'dataT
   return classThemes.size === 1 ? ([...classThemes][0] as RuntimeCaptureTheme) : undefined;
 }
 
-async function runtimeThemeSnapshot(page: Page): Promise<RuntimeThemeSnapshot> {
-  return page.evaluate(`(() => {
+async function runtimeThemeSnapshot(surface: RuntimeThemeSurface): Promise<RuntimeThemeSnapshot> {
+  return surface.evaluate(`(() => {
     const isVisible = (element) => {
       const bounds = element.getBoundingClientRect();
       const style = window.getComputedStyle(element);
@@ -86,11 +88,12 @@ async function runtimeThemeSnapshot(page: Page): Promise<RuntimeThemeSnapshot> {
   })()`);
 }
 
-async function firstVisibleThemeControl(page: Page): Promise<Locator | undefined> {
+async function firstVisibleThemeControl(surface: RuntimeThemeSurface): Promise<Locator | undefined> {
   const candidates = [
-    page.getByRole('button', { name: OFFICIAL_RUNTIME_THEME_CONTROL_LABEL }),
-    page.getByRole('switch', { name: OFFICIAL_RUNTIME_THEME_CONTROL_LABEL }),
-    page.getByRole('checkbox', { name: OFFICIAL_RUNTIME_THEME_CONTROL_LABEL }),
+    surface.getByTestId('app-theme-toggle'),
+    surface.getByRole('button', { name: OFFICIAL_RUNTIME_THEME_CONTROL_LABEL }),
+    surface.getByRole('switch', { name: OFFICIAL_RUNTIME_THEME_CONTROL_LABEL }),
+    surface.getByRole('checkbox', { name: OFFICIAL_RUNTIME_THEME_CONTROL_LABEL }),
   ];
 
   for (const candidatesForRole of candidates) {
@@ -108,6 +111,10 @@ async function firstVisibleThemeControl(page: Page): Promise<Locator | undefined
   return undefined;
 }
 
+function runtimeThemePage(surface: RuntimeThemeSurface): Page {
+  return typeof (surface as Page).emulateMedia === 'function' ? (surface as Page) : (surface as Frame).page();
+}
+
 async function runtimeThemeControlLabel(control: Locator) {
   return control.evaluate((element) => {
     const ariaLabel = element.getAttribute('aria-label')?.trim();
@@ -119,30 +126,45 @@ async function runtimeThemeControlLabel(control: Locator) {
 }
 
 export async function applyOfficialRuntimeCaptureTheme(
-  page: Page,
+  surface: RuntimeThemeSurface,
   theme: RuntimeCaptureTheme,
-  { timeoutMs = 30_000 }: { timeoutMs?: number } = {},
+  { requireVisibleControl = false, timeoutMs = 30_000 }: { requireVisibleControl?: boolean; timeoutMs?: number } = {},
 ) {
   /*
    * Keep the browser-level signal for generated apps that follow
    * prefers-color-scheme. Explicit app-owned theme state must instead be
    * exercised through the same visible control a user clicks.
    */
-  await page.emulateMedia({ colorScheme: theme });
-  await page.evaluate(`document.fonts && document.fonts.ready`);
+  const page = runtimeThemePage(surface);
 
-  const before = await runtimeThemeSnapshot(page);
+  await page.emulateMedia({ colorScheme: theme });
+  await surface.evaluate(`document.fonts && document.fonts.ready`);
+
+  const before = await runtimeThemeSnapshot(surface);
   const activeTheme = explicitRuntimeTheme(before);
+  const control = await firstVisibleThemeControl(surface);
+
+  if (requireVisibleControl && !control) {
+    throw new Error(
+      `The generated application exposes no visible data-testid=app-theme-toggle or EN/FR theme control for ${theme}. ` +
+        `Diagnostics: ${JSON.stringify(before)}`,
+    );
+  }
 
   if (!activeTheme) {
+    if (requireVisibleControl) {
+      throw new Error(
+        `The generated application theme is not explicit after emulating ${theme}; expected html[data-theme] or a supported root theme class. ` +
+          `Diagnostics: ${JSON.stringify(before)}`,
+      );
+    }
+
     return { activeTheme: theme, strategy: 'prefers-color-scheme' as const };
   }
 
   if (activeTheme === theme) {
     return { activeTheme: theme, strategy: 'explicit-state-already-applied' as const };
   }
-
-  const control = await firstVisibleThemeControl(page);
 
   if (!control) {
     throw new Error(
@@ -157,14 +179,14 @@ export async function applyOfficialRuntimeCaptureTheme(
 
   try {
     await expect
-      .poll(async () => explicitRuntimeTheme(await runtimeThemeSnapshot(page)), {
+      .poll(async () => explicitRuntimeTheme(await runtimeThemeSnapshot(surface)), {
         message: `The official runtime theme control must switch from ${activeTheme} to ${theme}`,
         intervals: [100, 250, 500],
         timeout: timeoutMs,
       })
       .toBe(theme);
   } catch (error) {
-    const after = await runtimeThemeSnapshot(page).catch((diagnosticError) => ({
+    const after = await runtimeThemeSnapshot(surface).catch((diagnosticError) => ({
       diagnosticError: diagnosticError instanceof Error ? diagnosticError.message : String(diagnosticError),
       url: page.url(),
     }));
@@ -176,7 +198,7 @@ export async function applyOfficialRuntimeCaptureTheme(
     );
   }
 
-  await page.evaluate(`document.fonts && document.fonts.ready`);
+  await surface.evaluate(`document.fonts && document.fonts.ready`);
 
   return { activeTheme: theme, strategy: 'visible-runtime-control' as const };
 }
