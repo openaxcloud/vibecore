@@ -713,6 +713,32 @@ jobs:
             exit 1
           fi
           echo "Barrier target image: ${EXPECTED_IMAGE}"
+
+          # SEC-10: the api actually running MUST be the commit whose production
+          # bundle we certified, or the certification says nothing about it.
+          #
+          # Without this the barrier can clear against PRE-cutover code. Concretely:
+          # a cutover run dies before the helm upgrade (flag never set, api still
+          # pre-cutover); a later push touches only app/, so `Detect changed tiers`
+          # leaves runtime=false and the api keeps its old image. Cutover detection
+          # still says "cutover" (the TREE carries the interlock), the barrier
+          # compares pods against that OLD image, finds nothing older, clears after
+          # 90s — and phase 2 arms activation against an api with no interlock that
+          # is still emitting `max-age=60`. The runtime probe above does not catch
+          # it either: it is unauthenticated, and the route answers 401 before the
+          # interlock is ever consulted, so a pre-cutover api looks identical.
+          #
+          # Refuse to arm instead. Fail-closed: the release stays at
+          # DEPLOYMENT_ACCESS_ACTIVATION_ENABLED=0 and the next deploy that
+          # actually rebuilds the api re-runs the whole sequence.
+          case "${EXPECTED_IMAGE}" in
+            *:"${SHORT_SHA}") ;;
+            *)
+              echo "::error::SEC-10: the api Deployment runs ${EXPECTED_IMAGE}, which is not built from the commit whose production bundle was certified (${SHORT_SHA}). The running code may predate the activation interlock, so arming it is unsafe. Not arming; the release stays fail-closed." >&2
+              exit 1
+              ;;
+          esac
+          echo "SEC-10 ok: running api image is built from the certified commit ${SHORT_SHA}"
           EXPECTED_IMAGE="${EXPECTED_IMAGE}" node scripts/deploy-cache-window.mjs
 
       # ---- P104 / SEC-8 · phase 2: NOW it is safe to arm activation ----------

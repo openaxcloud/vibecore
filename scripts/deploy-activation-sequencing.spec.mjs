@@ -278,6 +278,54 @@ describe('deploy-main.yml — SEC-8 wiring', () => {
     expect(verify.run).toContain('steps.cutover.outputs.final_flag');
   });
 
+  it('SEC-10: refuses to arm unless the running api image is the certified commit', () => {
+    /*
+     * The barrier compares pods against "the image the Deployment wants", which on
+     * a run that did not rebuild the runtime tier can still be PRE-cutover code.
+     * It would then find nothing older, clear, and phase 2 would arm activation
+     * against an api with no interlock. Executing the guard rather than trusting
+     * the comment: run the step's shell against a fake kubectl that reports a
+     * mismatched image, and require a non-zero exit.
+     */
+    const dir = mkdtempSync(join(tmpdir(), 'sec10-'));
+
+    try {
+      const bin = join(dir, 'bin');
+      mkdirSync(bin);
+      const kubectl = join(bin, 'kubectl');
+      // Reports an api image built from a DIFFERENT commit than SHORT_SHA.
+      writeFileSync(kubectl, '#!/bin/sh\nprintf "%s" "eu.pkg.dev/p/r/api:oldsha0000"\n');
+      chmodSync(kubectl, 0o755);
+
+      const script = stepByName(BARRIER_STEP).run;
+      let code = 0;
+      let out = '';
+
+      try {
+        out = execFileSync('bash', ['-c', script], {
+          cwd: dir,
+          encoding: 'utf8',
+          env: {
+            ...process.env,
+            PATH: `${bin}:${process.env.PATH}`,
+            HELM_NAMESPACE: 'vibecore',
+            HELM_RELEASE: 'vibecore',
+            SHORT_SHA: 'newsha1234',
+          },
+        });
+      } catch (error) {
+        code = error.status ?? 1;
+        out = `${error.stdout ?? ''}${error.stderr ?? ''}`;
+      }
+
+      expect(code).not.toBe(0);
+      expect(out).toContain('SEC-10');
+      expect(out).toMatch(/not built from the commit whose production bundle was certified/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it('waits longer than the legacy max-age it has to outlast', () => {
     const barrier = stepByName(BARRIER_STEP);
 
