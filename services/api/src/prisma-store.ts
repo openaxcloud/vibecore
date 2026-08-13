@@ -45,6 +45,7 @@ import type {
   CustomRoleRecord,
   DeploymentRecord,
   ReleaseManifestRecord,
+  RollbackIdempotencyRecord,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -3024,6 +3025,84 @@ export class PrismaApiStore implements ApiStore {
         take: options?.take ?? 100,
       })
     ).map(mapReleaseManifest);
+  }
+
+  /*
+   * Idempotence durable des rollbacks (réserve expert P1).
+   *
+   * La revendication EST l'INSERT : la contrainte unique
+   * (projectId, environment, key) fait trancher la course par Postgres. Le gagnant
+   * exécute, tout autre appelant — retry après réponse perdue, ou appel concurrent de
+   * même clé — retombe sur P2002 et récupère la ligne existante à rejouer.
+   */
+  async claimRollbackIdempotency(input: { projectId: string; environment: string; key: string }) {
+    try {
+      await (this.prisma as any).rollbackIdempotency.create({
+        data: {
+          projectId: input.projectId,
+          environment: input.environment,
+          key: input.key,
+          state: 'IN_FLIGHT',
+        },
+      });
+
+      return { owned: true as const };
+    } catch (error) {
+      if ((error as { code?: string }).code !== 'P2002') {
+        throw error;
+      }
+
+      const existing = await (this.prisma as any).rollbackIdempotency.findUnique({
+        where: {
+          projectId_environment_key: {
+            projectId: input.projectId,
+            environment: input.environment,
+            key: input.key,
+          },
+        },
+      });
+
+      return { owned: false as const, existing: existing ? mapRollbackIdempotency(existing) : undefined };
+    }
+  }
+
+  async completeRollbackIdempotency(input: {
+    projectId: string;
+    environment: string;
+    key: string;
+    responseStatus: number;
+    responseBody: unknown;
+    deploymentId?: string;
+  }) {
+    await (this.prisma as any).rollbackIdempotency.update({
+      where: {
+        projectId_environment_key: {
+          projectId: input.projectId,
+          environment: input.environment,
+          key: input.key,
+        },
+      },
+      data: {
+        state: 'COMPLETED',
+        responseStatus: input.responseStatus,
+        responseBody: input.responseBody as never,
+        deploymentId: input.deploymentId,
+      },
+    });
+  }
+
+  async releaseRollbackIdempotency(input: { projectId: string; environment: string; key: string }) {
+    await (this.prisma as any).rollbackIdempotency
+      .delete({
+        where: {
+          projectId_environment_key: {
+            projectId: input.projectId,
+            environment: input.environment,
+            key: input.key,
+          },
+        },
+      })
+      .catch(() => undefined);
   }
 
   async getActiveRateCard() {
@@ -6370,6 +6449,20 @@ function mapDeployment(deployment: any): DeploymentRecord {
     canceledAt: toIso(deployment.canceledAt),
     createdAt: toIso(deployment.createdAt)!,
     updatedAt: toIso(deployment.updatedAt),
+  };
+}
+
+function mapRollbackIdempotency(row: any): RollbackIdempotencyRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    environment: row.environment,
+    key: row.key,
+    state: row.state,
+    responseStatus: row.responseStatus ?? undefined,
+    responseBody: row.responseBody ?? undefined,
+    deploymentId: row.deploymentId ?? undefined,
+    createdAt: row.createdAt.toISOString(),
   };
 }
 

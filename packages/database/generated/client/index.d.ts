@@ -204,6 +204,11 @@ export type DeploymentEnvironment = $Result.DefaultSelection<Prisma.$DeploymentE
  */
 export type ReleaseManifest = $Result.DefaultSelection<Prisma.$ReleaseManifestPayload>
 /**
+ * Model RollbackIdempotency
+ * 
+ */
+export type RollbackIdempotency = $Result.DefaultSelection<Prisma.$RollbackIdempotencyPayload>
+/**
  * Model RateCard
  * 
  */
@@ -1539,6 +1544,16 @@ export class PrismaClient<
   get releaseManifest(): Prisma.ReleaseManifestDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.rollbackIdempotency`: Exposes CRUD operations for the **RollbackIdempotency** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more RollbackIdempotencies
+    * const rollbackIdempotencies = await prisma.rollbackIdempotency.findMany()
+    * ```
+    */
+  get rollbackIdempotency(): Prisma.RollbackIdempotencyDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.rateCard`: Exposes CRUD operations for the **RateCard** model.
     * Example usage:
     * ```ts
@@ -2849,6 +2864,7 @@ export namespace Prisma {
     Deployment: 'Deployment',
     DeploymentEnvironment: 'DeploymentEnvironment',
     ReleaseManifest: 'ReleaseManifest',
+    RollbackIdempotency: 'RollbackIdempotency',
     RateCard: 'RateCard',
     AuditLog: 'AuditLog',
     SecurityEventResolution: 'SecurityEventResolution',
@@ -2948,7 +2964,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotency" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5745,6 +5761,80 @@ export namespace Prisma {
           count: {
             args: Prisma.ReleaseManifestCountArgs<ExtArgs>
             result: $Utils.Optional<ReleaseManifestCountAggregateOutputType> | number
+          }
+        }
+      }
+      RollbackIdempotency: {
+        payload: Prisma.$RollbackIdempotencyPayload<ExtArgs>
+        fields: Prisma.RollbackIdempotencyFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.RollbackIdempotencyFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.RollbackIdempotencyFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyPayload>
+          }
+          findFirst: {
+            args: Prisma.RollbackIdempotencyFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.RollbackIdempotencyFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyPayload>
+          }
+          findMany: {
+            args: Prisma.RollbackIdempotencyFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyPayload>[]
+          }
+          create: {
+            args: Prisma.RollbackIdempotencyCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyPayload>
+          }
+          createMany: {
+            args: Prisma.RollbackIdempotencyCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.RollbackIdempotencyCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyPayload>[]
+          }
+          delete: {
+            args: Prisma.RollbackIdempotencyDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyPayload>
+          }
+          update: {
+            args: Prisma.RollbackIdempotencyUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyPayload>
+          }
+          deleteMany: {
+            args: Prisma.RollbackIdempotencyDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.RollbackIdempotencyUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.RollbackIdempotencyUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyPayload>[]
+          }
+          upsert: {
+            args: Prisma.RollbackIdempotencyUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyPayload>
+          }
+          aggregate: {
+            args: Prisma.RollbackIdempotencyAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRollbackIdempotency>
+          }
+          groupBy: {
+            args: Prisma.RollbackIdempotencyGroupByArgs<ExtArgs>
+            result: $Utils.Optional<RollbackIdempotencyGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.RollbackIdempotencyCountArgs<ExtArgs>
+            result: $Utils.Optional<RollbackIdempotencyCountAggregateOutputType> | number
           }
         }
       }
@@ -12110,6 +12200,7 @@ export namespace Prisma {
     deployment?: DeploymentOmit
     deploymentEnvironment?: DeploymentEnvironmentOmit
     releaseManifest?: ReleaseManifestOmit
+    rollbackIdempotency?: RollbackIdempotencyOmit
     rateCard?: RateCardOmit
     auditLog?: AuditLogOmit
     securityEventResolution?: SecurityEventResolutionOmit
@@ -59174,6 +59265,1101 @@ export namespace Prisma {
      * Omit specific fields from the ReleaseManifest
      */
     omit?: ReleaseManifestOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model RollbackIdempotency
+   */
+
+  export type AggregateRollbackIdempotency = {
+    _count: RollbackIdempotencyCountAggregateOutputType | null
+    _avg: RollbackIdempotencyAvgAggregateOutputType | null
+    _sum: RollbackIdempotencySumAggregateOutputType | null
+    _min: RollbackIdempotencyMinAggregateOutputType | null
+    _max: RollbackIdempotencyMaxAggregateOutputType | null
+  }
+
+  export type RollbackIdempotencyAvgAggregateOutputType = {
+    responseStatus: number | null
+  }
+
+  export type RollbackIdempotencySumAggregateOutputType = {
+    responseStatus: number | null
+  }
+
+  export type RollbackIdempotencyMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    environment: string | null
+    key: string | null
+    state: string | null
+    responseStatus: number | null
+    deploymentId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type RollbackIdempotencyMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    environment: string | null
+    key: string | null
+    state: string | null
+    responseStatus: number | null
+    deploymentId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type RollbackIdempotencyCountAggregateOutputType = {
+    id: number
+    projectId: number
+    environment: number
+    key: number
+    state: number
+    responseStatus: number
+    responseBody: number
+    deploymentId: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type RollbackIdempotencyAvgAggregateInputType = {
+    responseStatus?: true
+  }
+
+  export type RollbackIdempotencySumAggregateInputType = {
+    responseStatus?: true
+  }
+
+  export type RollbackIdempotencyMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    environment?: true
+    key?: true
+    state?: true
+    responseStatus?: true
+    deploymentId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type RollbackIdempotencyMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    environment?: true
+    key?: true
+    state?: true
+    responseStatus?: true
+    deploymentId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type RollbackIdempotencyCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    environment?: true
+    key?: true
+    state?: true
+    responseStatus?: true
+    responseBody?: true
+    deploymentId?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type RollbackIdempotencyAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RollbackIdempotency to aggregate.
+     */
+    where?: RollbackIdempotencyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RollbackIdempotencies to fetch.
+     */
+    orderBy?: RollbackIdempotencyOrderByWithRelationInput | RollbackIdempotencyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: RollbackIdempotencyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RollbackIdempotencies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RollbackIdempotencies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned RollbackIdempotencies
+    **/
+    _count?: true | RollbackIdempotencyCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: RollbackIdempotencyAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: RollbackIdempotencySumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: RollbackIdempotencyMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: RollbackIdempotencyMaxAggregateInputType
+  }
+
+  export type GetRollbackIdempotencyAggregateType<T extends RollbackIdempotencyAggregateArgs> = {
+        [P in keyof T & keyof AggregateRollbackIdempotency]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRollbackIdempotency[P]>
+      : GetScalarType<T[P], AggregateRollbackIdempotency[P]>
+  }
+
+
+
+
+  export type RollbackIdempotencyGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RollbackIdempotencyWhereInput
+    orderBy?: RollbackIdempotencyOrderByWithAggregationInput | RollbackIdempotencyOrderByWithAggregationInput[]
+    by: RollbackIdempotencyScalarFieldEnum[] | RollbackIdempotencyScalarFieldEnum
+    having?: RollbackIdempotencyScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: RollbackIdempotencyCountAggregateInputType | true
+    _avg?: RollbackIdempotencyAvgAggregateInputType
+    _sum?: RollbackIdempotencySumAggregateInputType
+    _min?: RollbackIdempotencyMinAggregateInputType
+    _max?: RollbackIdempotencyMaxAggregateInputType
+  }
+
+  export type RollbackIdempotencyGroupByOutputType = {
+    id: string
+    projectId: string
+    environment: string
+    key: string
+    state: string
+    responseStatus: number | null
+    responseBody: JsonValue | null
+    deploymentId: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: RollbackIdempotencyCountAggregateOutputType | null
+    _avg: RollbackIdempotencyAvgAggregateOutputType | null
+    _sum: RollbackIdempotencySumAggregateOutputType | null
+    _min: RollbackIdempotencyMinAggregateOutputType | null
+    _max: RollbackIdempotencyMaxAggregateOutputType | null
+  }
+
+  type GetRollbackIdempotencyGroupByPayload<T extends RollbackIdempotencyGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<RollbackIdempotencyGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof RollbackIdempotencyGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], RollbackIdempotencyGroupByOutputType[P]>
+            : GetScalarType<T[P], RollbackIdempotencyGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type RollbackIdempotencySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    environment?: boolean
+    key?: boolean
+    state?: boolean
+    responseStatus?: boolean
+    responseBody?: boolean
+    deploymentId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["rollbackIdempotency"]>
+
+  export type RollbackIdempotencySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    environment?: boolean
+    key?: boolean
+    state?: boolean
+    responseStatus?: boolean
+    responseBody?: boolean
+    deploymentId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["rollbackIdempotency"]>
+
+  export type RollbackIdempotencySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    environment?: boolean
+    key?: boolean
+    state?: boolean
+    responseStatus?: boolean
+    responseBody?: boolean
+    deploymentId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["rollbackIdempotency"]>
+
+  export type RollbackIdempotencySelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    environment?: boolean
+    key?: boolean
+    state?: boolean
+    responseStatus?: boolean
+    responseBody?: boolean
+    deploymentId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type RollbackIdempotencyOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "environment" | "key" | "state" | "responseStatus" | "responseBody" | "deploymentId" | "createdAt" | "updatedAt", ExtArgs["result"]["rollbackIdempotency"]>
+
+  export type $RollbackIdempotencyPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "RollbackIdempotency"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      environment: string
+      key: string
+      state: string
+      responseStatus: number | null
+      responseBody: Prisma.JsonValue | null
+      deploymentId: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["rollbackIdempotency"]>
+    composites: {}
+  }
+
+  type RollbackIdempotencyGetPayload<S extends boolean | null | undefined | RollbackIdempotencyDefaultArgs> = $Result.GetResult<Prisma.$RollbackIdempotencyPayload, S>
+
+  type RollbackIdempotencyCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<RollbackIdempotencyFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: RollbackIdempotencyCountAggregateInputType | true
+    }
+
+  export interface RollbackIdempotencyDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['RollbackIdempotency'], meta: { name: 'RollbackIdempotency' } }
+    /**
+     * Find zero or one RollbackIdempotency that matches the filter.
+     * @param {RollbackIdempotencyFindUniqueArgs} args - Arguments to find a RollbackIdempotency
+     * @example
+     * // Get one RollbackIdempotency
+     * const rollbackIdempotency = await prisma.rollbackIdempotency.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends RollbackIdempotencyFindUniqueArgs>(args: SelectSubset<T, RollbackIdempotencyFindUniqueArgs<ExtArgs>>): Prisma__RollbackIdempotencyClient<$Result.GetResult<Prisma.$RollbackIdempotencyPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one RollbackIdempotency that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {RollbackIdempotencyFindUniqueOrThrowArgs} args - Arguments to find a RollbackIdempotency
+     * @example
+     * // Get one RollbackIdempotency
+     * const rollbackIdempotency = await prisma.rollbackIdempotency.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends RollbackIdempotencyFindUniqueOrThrowArgs>(args: SelectSubset<T, RollbackIdempotencyFindUniqueOrThrowArgs<ExtArgs>>): Prisma__RollbackIdempotencyClient<$Result.GetResult<Prisma.$RollbackIdempotencyPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RollbackIdempotency that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyFindFirstArgs} args - Arguments to find a RollbackIdempotency
+     * @example
+     * // Get one RollbackIdempotency
+     * const rollbackIdempotency = await prisma.rollbackIdempotency.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends RollbackIdempotencyFindFirstArgs>(args?: SelectSubset<T, RollbackIdempotencyFindFirstArgs<ExtArgs>>): Prisma__RollbackIdempotencyClient<$Result.GetResult<Prisma.$RollbackIdempotencyPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RollbackIdempotency that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyFindFirstOrThrowArgs} args - Arguments to find a RollbackIdempotency
+     * @example
+     * // Get one RollbackIdempotency
+     * const rollbackIdempotency = await prisma.rollbackIdempotency.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends RollbackIdempotencyFindFirstOrThrowArgs>(args?: SelectSubset<T, RollbackIdempotencyFindFirstOrThrowArgs<ExtArgs>>): Prisma__RollbackIdempotencyClient<$Result.GetResult<Prisma.$RollbackIdempotencyPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more RollbackIdempotencies that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all RollbackIdempotencies
+     * const rollbackIdempotencies = await prisma.rollbackIdempotency.findMany()
+     * 
+     * // Get first 10 RollbackIdempotencies
+     * const rollbackIdempotencies = await prisma.rollbackIdempotency.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const rollbackIdempotencyWithIdOnly = await prisma.rollbackIdempotency.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends RollbackIdempotencyFindManyArgs>(args?: SelectSubset<T, RollbackIdempotencyFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RollbackIdempotencyPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a RollbackIdempotency.
+     * @param {RollbackIdempotencyCreateArgs} args - Arguments to create a RollbackIdempotency.
+     * @example
+     * // Create one RollbackIdempotency
+     * const RollbackIdempotency = await prisma.rollbackIdempotency.create({
+     *   data: {
+     *     // ... data to create a RollbackIdempotency
+     *   }
+     * })
+     * 
+     */
+    create<T extends RollbackIdempotencyCreateArgs>(args: SelectSubset<T, RollbackIdempotencyCreateArgs<ExtArgs>>): Prisma__RollbackIdempotencyClient<$Result.GetResult<Prisma.$RollbackIdempotencyPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many RollbackIdempotencies.
+     * @param {RollbackIdempotencyCreateManyArgs} args - Arguments to create many RollbackIdempotencies.
+     * @example
+     * // Create many RollbackIdempotencies
+     * const rollbackIdempotency = await prisma.rollbackIdempotency.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends RollbackIdempotencyCreateManyArgs>(args?: SelectSubset<T, RollbackIdempotencyCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many RollbackIdempotencies and returns the data saved in the database.
+     * @param {RollbackIdempotencyCreateManyAndReturnArgs} args - Arguments to create many RollbackIdempotencies.
+     * @example
+     * // Create many RollbackIdempotencies
+     * const rollbackIdempotency = await prisma.rollbackIdempotency.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many RollbackIdempotencies and only return the `id`
+     * const rollbackIdempotencyWithIdOnly = await prisma.rollbackIdempotency.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends RollbackIdempotencyCreateManyAndReturnArgs>(args?: SelectSubset<T, RollbackIdempotencyCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RollbackIdempotencyPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a RollbackIdempotency.
+     * @param {RollbackIdempotencyDeleteArgs} args - Arguments to delete one RollbackIdempotency.
+     * @example
+     * // Delete one RollbackIdempotency
+     * const RollbackIdempotency = await prisma.rollbackIdempotency.delete({
+     *   where: {
+     *     // ... filter to delete one RollbackIdempotency
+     *   }
+     * })
+     * 
+     */
+    delete<T extends RollbackIdempotencyDeleteArgs>(args: SelectSubset<T, RollbackIdempotencyDeleteArgs<ExtArgs>>): Prisma__RollbackIdempotencyClient<$Result.GetResult<Prisma.$RollbackIdempotencyPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one RollbackIdempotency.
+     * @param {RollbackIdempotencyUpdateArgs} args - Arguments to update one RollbackIdempotency.
+     * @example
+     * // Update one RollbackIdempotency
+     * const rollbackIdempotency = await prisma.rollbackIdempotency.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends RollbackIdempotencyUpdateArgs>(args: SelectSubset<T, RollbackIdempotencyUpdateArgs<ExtArgs>>): Prisma__RollbackIdempotencyClient<$Result.GetResult<Prisma.$RollbackIdempotencyPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more RollbackIdempotencies.
+     * @param {RollbackIdempotencyDeleteManyArgs} args - Arguments to filter RollbackIdempotencies to delete.
+     * @example
+     * // Delete a few RollbackIdempotencies
+     * const { count } = await prisma.rollbackIdempotency.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends RollbackIdempotencyDeleteManyArgs>(args?: SelectSubset<T, RollbackIdempotencyDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RollbackIdempotencies.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many RollbackIdempotencies
+     * const rollbackIdempotency = await prisma.rollbackIdempotency.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends RollbackIdempotencyUpdateManyArgs>(args: SelectSubset<T, RollbackIdempotencyUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RollbackIdempotencies and returns the data updated in the database.
+     * @param {RollbackIdempotencyUpdateManyAndReturnArgs} args - Arguments to update many RollbackIdempotencies.
+     * @example
+     * // Update many RollbackIdempotencies
+     * const rollbackIdempotency = await prisma.rollbackIdempotency.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more RollbackIdempotencies and only return the `id`
+     * const rollbackIdempotencyWithIdOnly = await prisma.rollbackIdempotency.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends RollbackIdempotencyUpdateManyAndReturnArgs>(args: SelectSubset<T, RollbackIdempotencyUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RollbackIdempotencyPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one RollbackIdempotency.
+     * @param {RollbackIdempotencyUpsertArgs} args - Arguments to update or create a RollbackIdempotency.
+     * @example
+     * // Update or create a RollbackIdempotency
+     * const rollbackIdempotency = await prisma.rollbackIdempotency.upsert({
+     *   create: {
+     *     // ... data to create a RollbackIdempotency
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the RollbackIdempotency we want to update
+     *   }
+     * })
+     */
+    upsert<T extends RollbackIdempotencyUpsertArgs>(args: SelectSubset<T, RollbackIdempotencyUpsertArgs<ExtArgs>>): Prisma__RollbackIdempotencyClient<$Result.GetResult<Prisma.$RollbackIdempotencyPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of RollbackIdempotencies.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyCountArgs} args - Arguments to filter RollbackIdempotencies to count.
+     * @example
+     * // Count the number of RollbackIdempotencies
+     * const count = await prisma.rollbackIdempotency.count({
+     *   where: {
+     *     // ... the filter for the RollbackIdempotencies we want to count
+     *   }
+     * })
+    **/
+    count<T extends RollbackIdempotencyCountArgs>(
+      args?: Subset<T, RollbackIdempotencyCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], RollbackIdempotencyCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a RollbackIdempotency.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends RollbackIdempotencyAggregateArgs>(args: Subset<T, RollbackIdempotencyAggregateArgs>): Prisma.PrismaPromise<GetRollbackIdempotencyAggregateType<T>>
+
+    /**
+     * Group by RollbackIdempotency.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends RollbackIdempotencyGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: RollbackIdempotencyGroupByArgs['orderBy'] }
+        : { orderBy?: RollbackIdempotencyGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, RollbackIdempotencyGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRollbackIdempotencyGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the RollbackIdempotency model
+   */
+  readonly fields: RollbackIdempotencyFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for RollbackIdempotency.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__RollbackIdempotencyClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the RollbackIdempotency model
+   */
+  interface RollbackIdempotencyFieldRefs {
+    readonly id: FieldRef<"RollbackIdempotency", 'String'>
+    readonly projectId: FieldRef<"RollbackIdempotency", 'String'>
+    readonly environment: FieldRef<"RollbackIdempotency", 'String'>
+    readonly key: FieldRef<"RollbackIdempotency", 'String'>
+    readonly state: FieldRef<"RollbackIdempotency", 'String'>
+    readonly responseStatus: FieldRef<"RollbackIdempotency", 'Int'>
+    readonly responseBody: FieldRef<"RollbackIdempotency", 'Json'>
+    readonly deploymentId: FieldRef<"RollbackIdempotency", 'String'>
+    readonly createdAt: FieldRef<"RollbackIdempotency", 'DateTime'>
+    readonly updatedAt: FieldRef<"RollbackIdempotency", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * RollbackIdempotency findUnique
+   */
+  export type RollbackIdempotencyFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotency
+     */
+    select?: RollbackIdempotencySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotency
+     */
+    omit?: RollbackIdempotencyOmit<ExtArgs> | null
+    /**
+     * Filter, which RollbackIdempotency to fetch.
+     */
+    where: RollbackIdempotencyWhereUniqueInput
+  }
+
+  /**
+   * RollbackIdempotency findUniqueOrThrow
+   */
+  export type RollbackIdempotencyFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotency
+     */
+    select?: RollbackIdempotencySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotency
+     */
+    omit?: RollbackIdempotencyOmit<ExtArgs> | null
+    /**
+     * Filter, which RollbackIdempotency to fetch.
+     */
+    where: RollbackIdempotencyWhereUniqueInput
+  }
+
+  /**
+   * RollbackIdempotency findFirst
+   */
+  export type RollbackIdempotencyFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotency
+     */
+    select?: RollbackIdempotencySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotency
+     */
+    omit?: RollbackIdempotencyOmit<ExtArgs> | null
+    /**
+     * Filter, which RollbackIdempotency to fetch.
+     */
+    where?: RollbackIdempotencyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RollbackIdempotencies to fetch.
+     */
+    orderBy?: RollbackIdempotencyOrderByWithRelationInput | RollbackIdempotencyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RollbackIdempotencies.
+     */
+    cursor?: RollbackIdempotencyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RollbackIdempotencies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RollbackIdempotencies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RollbackIdempotencies.
+     */
+    distinct?: RollbackIdempotencyScalarFieldEnum | RollbackIdempotencyScalarFieldEnum[]
+  }
+
+  /**
+   * RollbackIdempotency findFirstOrThrow
+   */
+  export type RollbackIdempotencyFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotency
+     */
+    select?: RollbackIdempotencySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotency
+     */
+    omit?: RollbackIdempotencyOmit<ExtArgs> | null
+    /**
+     * Filter, which RollbackIdempotency to fetch.
+     */
+    where?: RollbackIdempotencyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RollbackIdempotencies to fetch.
+     */
+    orderBy?: RollbackIdempotencyOrderByWithRelationInput | RollbackIdempotencyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RollbackIdempotencies.
+     */
+    cursor?: RollbackIdempotencyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RollbackIdempotencies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RollbackIdempotencies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RollbackIdempotencies.
+     */
+    distinct?: RollbackIdempotencyScalarFieldEnum | RollbackIdempotencyScalarFieldEnum[]
+  }
+
+  /**
+   * RollbackIdempotency findMany
+   */
+  export type RollbackIdempotencyFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotency
+     */
+    select?: RollbackIdempotencySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotency
+     */
+    omit?: RollbackIdempotencyOmit<ExtArgs> | null
+    /**
+     * Filter, which RollbackIdempotencies to fetch.
+     */
+    where?: RollbackIdempotencyWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RollbackIdempotencies to fetch.
+     */
+    orderBy?: RollbackIdempotencyOrderByWithRelationInput | RollbackIdempotencyOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing RollbackIdempotencies.
+     */
+    cursor?: RollbackIdempotencyWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RollbackIdempotencies from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RollbackIdempotencies.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RollbackIdempotencies.
+     */
+    distinct?: RollbackIdempotencyScalarFieldEnum | RollbackIdempotencyScalarFieldEnum[]
+  }
+
+  /**
+   * RollbackIdempotency create
+   */
+  export type RollbackIdempotencyCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotency
+     */
+    select?: RollbackIdempotencySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotency
+     */
+    omit?: RollbackIdempotencyOmit<ExtArgs> | null
+    /**
+     * The data needed to create a RollbackIdempotency.
+     */
+    data: XOR<RollbackIdempotencyCreateInput, RollbackIdempotencyUncheckedCreateInput>
+  }
+
+  /**
+   * RollbackIdempotency createMany
+   */
+  export type RollbackIdempotencyCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many RollbackIdempotencies.
+     */
+    data: RollbackIdempotencyCreateManyInput | RollbackIdempotencyCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RollbackIdempotency createManyAndReturn
+   */
+  export type RollbackIdempotencyCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotency
+     */
+    select?: RollbackIdempotencySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotency
+     */
+    omit?: RollbackIdempotencyOmit<ExtArgs> | null
+    /**
+     * The data used to create many RollbackIdempotencies.
+     */
+    data: RollbackIdempotencyCreateManyInput | RollbackIdempotencyCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RollbackIdempotency update
+   */
+  export type RollbackIdempotencyUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotency
+     */
+    select?: RollbackIdempotencySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotency
+     */
+    omit?: RollbackIdempotencyOmit<ExtArgs> | null
+    /**
+     * The data needed to update a RollbackIdempotency.
+     */
+    data: XOR<RollbackIdempotencyUpdateInput, RollbackIdempotencyUncheckedUpdateInput>
+    /**
+     * Choose, which RollbackIdempotency to update.
+     */
+    where: RollbackIdempotencyWhereUniqueInput
+  }
+
+  /**
+   * RollbackIdempotency updateMany
+   */
+  export type RollbackIdempotencyUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update RollbackIdempotencies.
+     */
+    data: XOR<RollbackIdempotencyUpdateManyMutationInput, RollbackIdempotencyUncheckedUpdateManyInput>
+    /**
+     * Filter which RollbackIdempotencies to update
+     */
+    where?: RollbackIdempotencyWhereInput
+    /**
+     * Limit how many RollbackIdempotencies to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * RollbackIdempotency updateManyAndReturn
+   */
+  export type RollbackIdempotencyUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotency
+     */
+    select?: RollbackIdempotencySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotency
+     */
+    omit?: RollbackIdempotencyOmit<ExtArgs> | null
+    /**
+     * The data used to update RollbackIdempotencies.
+     */
+    data: XOR<RollbackIdempotencyUpdateManyMutationInput, RollbackIdempotencyUncheckedUpdateManyInput>
+    /**
+     * Filter which RollbackIdempotencies to update
+     */
+    where?: RollbackIdempotencyWhereInput
+    /**
+     * Limit how many RollbackIdempotencies to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * RollbackIdempotency upsert
+   */
+  export type RollbackIdempotencyUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotency
+     */
+    select?: RollbackIdempotencySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotency
+     */
+    omit?: RollbackIdempotencyOmit<ExtArgs> | null
+    /**
+     * The filter to search for the RollbackIdempotency to update in case it exists.
+     */
+    where: RollbackIdempotencyWhereUniqueInput
+    /**
+     * In case the RollbackIdempotency found by the `where` argument doesn't exist, create a new RollbackIdempotency with this data.
+     */
+    create: XOR<RollbackIdempotencyCreateInput, RollbackIdempotencyUncheckedCreateInput>
+    /**
+     * In case the RollbackIdempotency was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<RollbackIdempotencyUpdateInput, RollbackIdempotencyUncheckedUpdateInput>
+  }
+
+  /**
+   * RollbackIdempotency delete
+   */
+  export type RollbackIdempotencyDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotency
+     */
+    select?: RollbackIdempotencySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotency
+     */
+    omit?: RollbackIdempotencyOmit<ExtArgs> | null
+    /**
+     * Filter which RollbackIdempotency to delete.
+     */
+    where: RollbackIdempotencyWhereUniqueInput
+  }
+
+  /**
+   * RollbackIdempotency deleteMany
+   */
+  export type RollbackIdempotencyDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RollbackIdempotencies to delete
+     */
+    where?: RollbackIdempotencyWhereInput
+    /**
+     * Limit how many RollbackIdempotencies to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * RollbackIdempotency without action
+   */
+  export type RollbackIdempotencyDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotency
+     */
+    select?: RollbackIdempotencySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotency
+     */
+    omit?: RollbackIdempotencyOmit<ExtArgs> | null
   }
 
 
@@ -155285,6 +156471,22 @@ export namespace Prisma {
   export type ReleaseManifestScalarFieldEnum = (typeof ReleaseManifestScalarFieldEnum)[keyof typeof ReleaseManifestScalarFieldEnum]
 
 
+  export const RollbackIdempotencyScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    environment: 'environment',
+    key: 'key',
+    state: 'state',
+    responseStatus: 'responseStatus',
+    responseBody: 'responseBody',
+    deploymentId: 'deploymentId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type RollbackIdempotencyScalarFieldEnum = (typeof RollbackIdempotencyScalarFieldEnum)[keyof typeof RollbackIdempotencyScalarFieldEnum]
+
+
   export const RateCardScalarFieldEnum: {
     id: 'id',
     version: 'version',
@@ -160262,6 +161464,86 @@ export namespace Prisma {
     configDigest?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ReleaseManifest"> | Date | string
+  }
+
+  export type RollbackIdempotencyWhereInput = {
+    AND?: RollbackIdempotencyWhereInput | RollbackIdempotencyWhereInput[]
+    OR?: RollbackIdempotencyWhereInput[]
+    NOT?: RollbackIdempotencyWhereInput | RollbackIdempotencyWhereInput[]
+    id?: StringFilter<"RollbackIdempotency"> | string
+    projectId?: StringFilter<"RollbackIdempotency"> | string
+    environment?: StringFilter<"RollbackIdempotency"> | string
+    key?: StringFilter<"RollbackIdempotency"> | string
+    state?: StringFilter<"RollbackIdempotency"> | string
+    responseStatus?: IntNullableFilter<"RollbackIdempotency"> | number | null
+    responseBody?: JsonNullableFilter<"RollbackIdempotency">
+    deploymentId?: StringNullableFilter<"RollbackIdempotency"> | string | null
+    createdAt?: DateTimeFilter<"RollbackIdempotency"> | Date | string
+    updatedAt?: DateTimeFilter<"RollbackIdempotency"> | Date | string
+  }
+
+  export type RollbackIdempotencyOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    environment?: SortOrder
+    key?: SortOrder
+    state?: SortOrder
+    responseStatus?: SortOrderInput | SortOrder
+    responseBody?: SortOrderInput | SortOrder
+    deploymentId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RollbackIdempotencyWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    projectId_environment_key?: RollbackIdempotencyProjectIdEnvironmentKeyCompoundUniqueInput
+    AND?: RollbackIdempotencyWhereInput | RollbackIdempotencyWhereInput[]
+    OR?: RollbackIdempotencyWhereInput[]
+    NOT?: RollbackIdempotencyWhereInput | RollbackIdempotencyWhereInput[]
+    projectId?: StringFilter<"RollbackIdempotency"> | string
+    environment?: StringFilter<"RollbackIdempotency"> | string
+    key?: StringFilter<"RollbackIdempotency"> | string
+    state?: StringFilter<"RollbackIdempotency"> | string
+    responseStatus?: IntNullableFilter<"RollbackIdempotency"> | number | null
+    responseBody?: JsonNullableFilter<"RollbackIdempotency">
+    deploymentId?: StringNullableFilter<"RollbackIdempotency"> | string | null
+    createdAt?: DateTimeFilter<"RollbackIdempotency"> | Date | string
+    updatedAt?: DateTimeFilter<"RollbackIdempotency"> | Date | string
+  }, "id" | "projectId_environment_key">
+
+  export type RollbackIdempotencyOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    environment?: SortOrder
+    key?: SortOrder
+    state?: SortOrder
+    responseStatus?: SortOrderInput | SortOrder
+    responseBody?: SortOrderInput | SortOrder
+    deploymentId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: RollbackIdempotencyCountOrderByAggregateInput
+    _avg?: RollbackIdempotencyAvgOrderByAggregateInput
+    _max?: RollbackIdempotencyMaxOrderByAggregateInput
+    _min?: RollbackIdempotencyMinOrderByAggregateInput
+    _sum?: RollbackIdempotencySumOrderByAggregateInput
+  }
+
+  export type RollbackIdempotencyScalarWhereWithAggregatesInput = {
+    AND?: RollbackIdempotencyScalarWhereWithAggregatesInput | RollbackIdempotencyScalarWhereWithAggregatesInput[]
+    OR?: RollbackIdempotencyScalarWhereWithAggregatesInput[]
+    NOT?: RollbackIdempotencyScalarWhereWithAggregatesInput | RollbackIdempotencyScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"RollbackIdempotency"> | string
+    projectId?: StringWithAggregatesFilter<"RollbackIdempotency"> | string
+    environment?: StringWithAggregatesFilter<"RollbackIdempotency"> | string
+    key?: StringWithAggregatesFilter<"RollbackIdempotency"> | string
+    state?: StringWithAggregatesFilter<"RollbackIdempotency"> | string
+    responseStatus?: IntNullableWithAggregatesFilter<"RollbackIdempotency"> | number | null
+    responseBody?: JsonNullableWithAggregatesFilter<"RollbackIdempotency">
+    deploymentId?: StringNullableWithAggregatesFilter<"RollbackIdempotency"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"RollbackIdempotency"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"RollbackIdempotency"> | Date | string
   }
 
   export type RateCardWhereInput = {
@@ -170490,6 +171772,97 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type RollbackIdempotencyCreateInput = {
+    id?: string
+    projectId: string
+    environment: string
+    key: string
+    state?: string
+    responseStatus?: number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RollbackIdempotencyUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    environment: string
+    key: string
+    state?: string
+    responseStatus?: number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RollbackIdempotencyUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RollbackIdempotencyUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RollbackIdempotencyCreateManyInput = {
+    id?: string
+    projectId: string
+    environment: string
+    key: string
+    state?: string
+    responseStatus?: number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RollbackIdempotencyUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RollbackIdempotencyUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    environment?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type RateCardCreateInput = {
     id?: string
     version: number
@@ -180642,6 +182015,57 @@ export namespace Prisma {
 
   export type ReleaseManifestSumOrderByAggregateInput = {
     version?: SortOrder
+  }
+
+  export type RollbackIdempotencyProjectIdEnvironmentKeyCompoundUniqueInput = {
+    projectId: string
+    environment: string
+    key: string
+  }
+
+  export type RollbackIdempotencyCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    environment?: SortOrder
+    key?: SortOrder
+    state?: SortOrder
+    responseStatus?: SortOrder
+    responseBody?: SortOrder
+    deploymentId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RollbackIdempotencyAvgOrderByAggregateInput = {
+    responseStatus?: SortOrder
+  }
+
+  export type RollbackIdempotencyMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    environment?: SortOrder
+    key?: SortOrder
+    state?: SortOrder
+    responseStatus?: SortOrder
+    deploymentId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RollbackIdempotencyMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    environment?: SortOrder
+    key?: SortOrder
+    state?: SortOrder
+    responseStatus?: SortOrder
+    deploymentId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RollbackIdempotencySumOrderByAggregateInput = {
+    responseStatus?: SortOrder
   }
 
   export type RateCardCountOrderByAggregateInput = {

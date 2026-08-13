@@ -20,6 +20,7 @@ import type {
   ApiKeyRecord,
   ApiKeyScope,
   ApiStore,
+  RollbackIdempotencyRecord,
   AiCostLedgerRecord,
   AiConversationRecord,
   AiMessageRecord,
@@ -2064,6 +2065,64 @@ export class TestApiStore implements ApiStore {
       .filter((m) => m.projectId === projectId && m.environment === environment)
       .sort((a, b) => b.version - a.version)
       .slice(0, options?.take ?? 100);
+  }
+
+  /*
+   * Idempotence durable des rollbacks — modèle en mémoire de la contrainte UNIQUE.
+   * La revendication est un test-and-set SYNCHRONE (aucun `await` entre la lecture et
+   * l'écriture), ce qui reproduit l'atomicité de l'INSERT Postgres : deux appels
+   * concurrents de même clé ne peuvent pas gagner tous les deux.
+   */
+  readonly rollbackIdempotency = new Map<string, RollbackIdempotencyRecord>();
+
+  #idemKey(projectId: string, environment: string, key: string) {
+    return `${projectId} ${environment} ${key}`;
+  }
+
+  async claimRollbackIdempotency(input: { projectId: string; environment: string; key: string }) {
+    const mapKey = this.#idemKey(input.projectId, input.environment, input.key);
+    const existing = this.rollbackIdempotency.get(mapKey);
+
+    if (existing) {
+      return { owned: false as const, existing };
+    }
+
+    this.rollbackIdempotency.set(mapKey, {
+      id: id('rbidem'),
+      projectId: input.projectId,
+      environment: input.environment,
+      key: input.key,
+      state: 'IN_FLIGHT',
+      createdAt: now(),
+    });
+
+    return { owned: true as const };
+  }
+
+  async completeRollbackIdempotency(input: {
+    projectId: string;
+    environment: string;
+    key: string;
+    responseStatus: number;
+    responseBody: unknown;
+    deploymentId?: string;
+  }) {
+    const mapKey = this.#idemKey(input.projectId, input.environment, input.key);
+    const row = this.rollbackIdempotency.get(mapKey);
+
+    if (row) {
+      this.rollbackIdempotency.set(mapKey, {
+        ...row,
+        state: 'COMPLETED',
+        responseStatus: input.responseStatus,
+        responseBody: input.responseBody,
+        deploymentId: input.deploymentId,
+      });
+    }
+  }
+
+  async releaseRollbackIdempotency(input: { projectId: string; environment: string; key: string }) {
+    this.rollbackIdempotency.delete(this.#idemKey(input.projectId, input.environment, input.key));
   }
 
   /** No DB-backed rate card in tests: callers fall back to the built-in card. */

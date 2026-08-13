@@ -2499,6 +2499,10 @@
     "en": "Rolled back to release v{version} (deployment {deploymentId}); artifact digest {artifactDigest} verified byte-identical before restore.",
     "fr": "Retour effectué vers la version v{version} (déploiement {deploymentId}) ; l’empreinte d’artefact {artifactDigest} a été vérifiée à l’identique avant la restauration."
   },
+  "ROLLBACK_IN_PROGRESS": {
+    "en": "A rollback with this idempotency key is already running. Retry once it has finished.",
+    "fr": "Un retour arrière portant cette clé d’idempotence est déjà en cours. Réessayez une fois qu’il sera terminé."
+  },
   "ROLLBACK_DEST_DIGEST_FAILED_LOG": {
     "en": "Rollback destination snapshot could not be digested after restore — refusing to serve/record an unverified rollback.",
     "fr": "L’empreinte de l’instantané de destination n’a pas pu être calculée après la restauration — retour arrière non vérifié refusé, ni servi ni enregistré."

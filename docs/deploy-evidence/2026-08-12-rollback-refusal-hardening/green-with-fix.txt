@@ -1,0 +1,18 @@
+
+ RUN  v3.2.6 /Users/hb/dev/vibecore-wt-rollback/services/api
+
+ ✓ src/tests/rollback-refusal-hardening.spec.ts (8 tests) 8296ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 500 → NOT a tidy FAILED+409: incident, 500, row flagged stale-active  797ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop times out → same incident treatment, never a silent success  880ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 200 but the workload is STILL present → still an incident  4705ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop succeeds AND the workload disappears → the normal 409 refusal, row FAILED  388ms
+   ✓ rollback refusal — what the loser leaves behind > P2 — a refused static rollback leaves NO orphan snapshot on the volume  358ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a retry after a LOST response replays the original — it does not roll back again  400ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > two CONCURRENT calls with the same key produce exactly ONE effect  409ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a different key is a different operation — it is NOT deduplicated  358ms
+
+ Test Files  1 passed (1)
+      Tests  8 passed (8)
+   Start at  10:12:08
+   Duration  10.54s (transform 1.10s, setup 0ms, collect 2.09s, tests 8.30s, environment 0ms, prepare 45ms)
+

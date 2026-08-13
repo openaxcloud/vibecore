@@ -346,6 +346,19 @@ export interface DeploymentRecord {
  * the schema model for the durability/fail-closed contract. `version` is monotonic
  * per (projectId, environment) so N-1 is unambiguous.
  */
+/** A durable rollback idempotency claim — see `claimRollbackIdempotency`. */
+export interface RollbackIdempotencyRecord {
+  id: string;
+  projectId: string;
+  environment: string;
+  key: string;
+  state: 'IN_FLIGHT' | 'COMPLETED';
+  responseStatus?: number;
+  responseBody?: unknown;
+  deploymentId?: string;
+  createdAt: string;
+}
+
 export interface ReleaseManifestRecord {
   id: string;
   projectId: string;
@@ -1948,6 +1961,37 @@ export interface ApiStore {
     environment: string,
     options?: { take?: number },
   ): Promise<ReleaseManifestRecord[]>;
+
+  /**
+   * DURABLE rollback idempotency (expert reserve P1).
+   *
+   * `claimRollbackIdempotency` is a compare-and-set on the unique
+   * (projectId, environment, key): it returns `{ owned: true }` to exactly one caller and
+   * `{ owned: false, existing }` to every other one — including a retry that arrives after
+   * the original response was lost. The claim is the INSERT, so the race is decided by the
+   * database, not by application timing.
+   */
+  claimRollbackIdempotency(input: {
+    projectId: string;
+    environment: string;
+    key: string;
+  }): Promise<{ owned: boolean; existing?: RollbackIdempotencyRecord }>;
+
+  /** Store the response to replay, flipping the claim IN_FLIGHT → COMPLETED. */
+  completeRollbackIdempotency(input: {
+    projectId: string;
+    environment: string;
+    key: string;
+    responseStatus: number;
+    responseBody: unknown;
+    deploymentId?: string;
+  }): Promise<void>;
+
+  /**
+   * Release a claim whose execution did NOT produce a replayable outcome (an unexpected
+   * throw). Leaving it IN_FLIGHT forever would wedge that key permanently.
+   */
+  releaseRollbackIdempotency(input: { projectId: string; environment: string; key: string }): Promise<void>;
   /**
    * The ACTIVE versioned Rate Card row (undefined when none is active — the
    * caller falls back to the built-in card). `data` is the serialized RateCard.

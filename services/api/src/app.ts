@@ -7290,6 +7290,66 @@ async function stopServerDeploymentViaManager(deploymentId: string): Promise<voi
  *
  * Constaté en réel : manager répondant 500, `stopped:["…"]` et `expiredAt` posé.
  */
+/**
+ * Retire a server workload and PROVE it is gone.
+ *
+ * Expert reserve P0 — the losing side of a rollback race used the best-effort stop, which
+ * swallows every failure INCLUDING a non-OK HTTP status. A manager 500, a timeout, or a
+ * crash therefore looked exactly like a successful stop: the row was written FAILED, the
+ * caller got a tidy 409, and the stale N-1 workload stayed PUBLICLY ACTIVE at its own host.
+ * The database said one thing and the cluster served another.
+ *
+ * So: strict stop (throws on non-OK / timeout), then CONFIRM disappearance by asking the
+ * manager. Only `exists === false` counts as proof — `undefined` means the status call
+ * itself failed, and treating "I could not check" as "it is gone" is the same fail-open
+ * one level down.
+ *
+ * Throws {@link StaleWorkloadActiveError} when the workload cannot be proven gone, so the
+ * caller can escalate instead of quietly declaring FAILED.
+ */
+class StaleWorkloadActiveError extends Error {
+  readonly code = 'ROLLBACK_STALE_WORKLOAD_ACTIVE';
+  readonly statusCode = 500;
+
+  constructor(
+    readonly deploymentId: string,
+    readonly cause: string,
+  ) {
+    super(
+      `Rollback was refused but its server workload could not be proven stopped (${cause}) — a stale release may still be serving publicly. Manual intervention required for deployment ${deploymentId}.`,
+    );
+    this.name = 'StaleWorkloadActiveError';
+  }
+}
+
+async function retireServerWorkloadOrThrow(
+  deploymentId: string,
+  options: { attempts?: number; delayMs?: number } = {},
+): Promise<void> {
+  const attempts = options.attempts ?? 5;
+  const delayMs = options.delayMs ?? 1000;
+
+  try {
+    await stopServerDeploymentViaManagerStrict(deploymentId);
+  } catch (error) {
+    throw new StaleWorkloadActiveError(deploymentId, `stop failed: ${(error as Error).message}`);
+  }
+
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const live = await getServerDeploymentStatusViaManager(deploymentId).catch(() => undefined);
+
+    if (live && live.exists === false) {
+      return;
+    }
+
+    if (attempt < attempts - 1) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  throw new StaleWorkloadActiveError(deploymentId, 'workload still reported present after stop');
+}
+
 async function stopServerDeploymentViaManagerStrict(deploymentId: string): Promise<void> {
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
 
@@ -34643,15 +34703,92 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * stale rollback. Static re-materialises + re-verifies the previous snapshot;
    * server re-deploys the previous image by its retained digest (I-REL-1).
    */
-  app.post('/projects/:projectId/deployments/rollback-to-previous', async (request, reply) => {
-    const { projectId } = parse(z.object({ projectId: z.string().min(1) }), request.params);
-    const body = parse(z.object({ environment: z.string().min(1).max(64).optional() }), request.body ?? {});
-    const project = await requireProject(request, store, projectId, 'projects:write');
-    await requireOrganizationNotSuspended(store, project.organizationId);
-    const locale = transactionalLocaleForRequest(request);
-    setAppLocaleResponseHeaders(reply, locale);
+  app.post(
+    '/projects/:projectId/deployments/rollback-to-previous',
+    {
+      /*
+       * Expert reserve P1 — the response is made durable BEFORE it is flushed.
+       *
+       * `onSend` is awaited by Fastify, so by the time the client can possibly receive the
+       * 201 the replay row is already committed. Doing this fire-and-forget after
+       * `reply.send` would leave the exact window that matters: client sees 201, process
+       * dies, key still IN_FLIGHT, retry re-executes and the environment oscillates.
+       */
+      onSend: async (request, reply, payload) => {
+        const claim = (request as { rollbackIdempotency?: { projectId: string; environment: string; key: string } })
+          .rollbackIdempotency;
 
-    const environment = body.environment ?? 'preview';
+        if (!claim) {
+          return payload;
+        }
+
+        let parsed: unknown;
+
+        try {
+          parsed = typeof payload === 'string' ? JSON.parse(payload) : payload;
+        } catch {
+          parsed = undefined;
+        }
+
+        await store
+          .completeRollbackIdempotency({
+            ...claim,
+            responseStatus: reply.statusCode,
+            responseBody: parsed,
+            deploymentId: (parsed as { deployment?: { id?: string } } | undefined)?.deployment?.id,
+          })
+          .catch((error) => {
+            request.log.error({ err: error, ...claim }, 'rollback idempotency: could not persist response for replay');
+          });
+
+        return payload;
+      },
+    },
+    async (request, reply) => {
+      const { projectId } = parse(z.object({ projectId: z.string().min(1) }), request.params);
+      const body = parse(z.object({ environment: z.string().min(1).max(64).optional() }), request.body ?? {});
+      const project = await requireProject(request, store, projectId, 'projects:write');
+      await requireOrganizationNotSuspended(store, project.organizationId);
+      const locale = transactionalLocaleForRequest(request);
+      setAppLocaleResponseHeaders(reply, locale);
+
+      const environment = body.environment ?? 'preview';
+
+      /*
+       * Expert reserve P1 — DURABLE idempotency. A rollback is not naturally idempotent:
+       * replaying it cuts a NEW release, so a client that loses the 201 and retries makes
+       * the environment oscillate v1 → v2 → v1 with no way back to a known state.
+       *
+       * The claim is an INSERT on a unique (project, environment, key), so Postgres — not
+       * application timing — decides who executes. Everyone else replays the stored
+       * response, or is refused while it is still in flight. Opt-in by header: callers that
+       * send no key keep the previous behaviour.
+       */
+      const idempotencyKey = (request.headers['idempotency-key'] as string | undefined)?.trim();
+
+      if (idempotencyKey) {
+        const claim = await store.claimRollbackIdempotency({ projectId: project.id, environment, key: idempotencyKey });
+
+        if (!claim.owned) {
+          const existing = claim.existing;
+
+          if (existing?.state === 'COMPLETED' && existing.responseStatus) {
+            // Replay verbatim: the retry must be indistinguishable from the original.
+            reply.header('idempotency-replayed', 'true');
+
+            return reply.code(existing.responseStatus).send(existing.responseBody);
+          }
+
+          return reply.code(409).send({
+            error: appPublicCopy('ROLLBACK_IN_PROGRESS', locale),
+            code: 'ROLLBACK_IN_PROGRESS',
+          });
+        }
+
+        // Owned: the onSend hook above persists whatever this handler ends up returning.
+        (request as { rollbackIdempotency?: { projectId: string; environment: string; key: string } }).rollbackIdempotency =
+          { projectId: project.id, environment, key: idempotencyKey };
+      }
 
     /*
      * ===================================================================================
@@ -34872,11 +35009,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         /*
          * CONCURRENCY: the head moved while we were restoring, so this rollback was
          * computed against a stale N-1 and MUST NOT be served — serving it would clobber
-         * whatever the winner just published. Fail the row and refuse. The restored bytes
-         * are already on disk under this deployment's id, but the static serve gate only
-         * serves READY rows, so a FAILED row is never publicly reachable.
+         * whatever the winner just published. Fail the row and refuse.
+         *
+         * The restored bytes are already on disk under this deployment's id. The static
+         * serve gate only serves READY rows, so they are not publicly reachable — but
+         * "not served" is not "not there": left alone they are an ORPHAN that nothing
+         * ever collects, growing the shared RWX volume by a full snapshot on every lost
+         * race. Delete them here, while we still hold the id that owns them.
          */
         if (isReleaseMoved(error)) {
+          await removeStaticDeploymentSnapshot(rollback.id).catch((cleanupError) => {
+            request.log.error(
+              { err: cleanupError, deploymentId: rollback.id },
+              'rollback refused: orphan snapshot cleanup failed — bytes left on the shared volume',
+            );
+          });
+
           await store
             .updateDeployment(project.id, rollback.id, {
               status: 'FAILED',
@@ -35089,8 +35237,59 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             await appendRollbackManifest(rollback.id, 'server-image', previous.artifactRef, previous.artifactDigest);
           } catch (error) {
             if (isReleaseMoved(error)) {
-              // Never leave a live pod serving a rollback computed against a stale head.
-              await stopServerDeploymentViaManager(rollback.id).catch(() => undefined);
+              /*
+               * The pod started by THIS rollback is live and serving a stale N-1. Refusing
+               * the race is only half the job: the workload has to actually go away, and we
+               * have to SEE it go away. If we cannot prove that, we must not write a tidy
+               * FAILED + 409 — that reads as "nothing happened" while the cluster serves
+               * the wrong release. Escalate instead (expert reserve P0).
+               */
+              try {
+                await retireServerWorkloadOrThrow(rollback.id);
+              } catch (stopError) {
+                const incident =
+                  stopError instanceof StaleWorkloadActiveError
+                    ? stopError
+                    : new StaleWorkloadActiveError(rollback.id, (stopError as Error).message);
+
+                await store
+                  .updateDeployment(project.id, rollback.id, {
+                    // NOT terminal-FAILED: a stale workload is live, the row must not claim otherwise.
+                    metadata: {
+                      ...(rollback.metadata as Record<string, unknown>),
+                      staleWorkloadActive: true,
+                      staleWorkloadHost: rbHost,
+                      staleWorkloadReason: incident.cause,
+                    },
+                    logs: [
+                      ...rollback.logs,
+                      {
+                        timestamp: new Date().toISOString(),
+                        level: 'error' as const,
+                        message: incident.message,
+                      },
+                    ],
+                  })
+                  .catch(() => undefined);
+
+                request.log.error(
+                  {
+                    deploymentId: rollback.id,
+                    host: rbHost,
+                    expectedVersion: supersededVersion,
+                    observedVersion: error.observedVersion,
+                    cause: incident.cause,
+                  },
+                  'rollback refused BUT stale workload could not be proven stopped — still serving',
+                );
+
+                return reply.code(incident.statusCode).send({
+                  error: localizeBackendErrorForResponse(incident.message, locale, 'ROLLBACK_REQUEST_FAILED'),
+                  code: incident.code,
+                  deploymentId: rollback.id,
+                  staleWorkloadActive: true,
+                });
+              }
 
               await store
                 .updateDeployment(project.id, rollback.id, {
@@ -35114,7 +35313,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                   expectedVersion: supersededVersion,
                   observedVersion: error.observedVersion,
                 },
-                'rollback refused: release head moved (concurrent rollback or publish)',
+                'rollback refused: release head moved; stale workload confirmed stopped',
               );
 
               return reply.code(409).send({
@@ -35217,11 +35416,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
-    return reply.code(409).send({
-      error: appPublicCopy('ROLLBACK_UNSUPPORTED_KIND', locale, { artifactKind: previous.artifactKind }),
-      code: 'ROLLBACK_UNSUPPORTED_KIND',
-    });
-  });
+      return reply.code(409).send({
+        error: appPublicCopy('ROLLBACK_UNSUPPORTED_KIND', locale, { artifactKind: previous.artifactKind }),
+        code: 'ROLLBACK_UNSUPPORTED_KIND',
+      });
+    },
+  );
 
   app.post('/projects/:projectId/deployments/:deploymentId/rollback', async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);

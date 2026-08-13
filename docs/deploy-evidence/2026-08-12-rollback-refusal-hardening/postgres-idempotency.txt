@@ -1,0 +1,55 @@
+
+ RUN  v3.2.6 /Users/hb/dev/vibecore-wt-rollback/services/api
+
+stdout | src/tests/rollback-concurrency-postgres.spec.ts > rollback concurrency — real Postgres, both interleavings > (D) concurrent idempotency claims on separate connections: exactly one owner
+prisma:error 
+Invalid `any).rollbackIdempotency.create()` invocation in
+/Users/hb/dev/vibecore-wt-rollback/services/api/src/prisma-store.ts:3040:54
+
+  3037  */
+  3038 async claimRollbackIdempotency(input: { projectId: string; environment: string; key: string }) {
+  3039   try {
+→ 3040     await (this.prisma as any).rollbackIdempotency.create(
+Unique constraint failed on the fields: (`"projectId"`, `environment`, `key`)
+
+stdout | src/tests/rollback-concurrency-postgres.spec.ts > rollback concurrency — real Postgres, both interleavings > (D) concurrent idempotency claims on separate connections: exactly one owner
+prisma:error 
+Invalid `any).rollbackIdempotency.create()` invocation in
+/Users/hb/dev/vibecore-wt-rollback/services/api/src/prisma-store.ts:3040:54
+
+  3037  */
+  3038 async claimRollbackIdempotency(input: { projectId: string; environment: string; key: string }) {
+  3039   try {
+→ 3040     await (this.prisma as any).rollbackIdempotency.create(
+Unique constraint failed on the fields: (`"projectId"`, `environment`, `key`)
+
+stdout | src/tests/rollback-concurrency-postgres.spec.ts > rollback concurrency — real Postgres, both interleavings > (D) concurrent idempotency claims on separate connections: exactly one owner
+prisma:error 
+Invalid `any).rollbackIdempotency.create()` invocation in
+/Users/hb/dev/vibecore-wt-rollback/services/api/src/prisma-store.ts:3040:54
+
+  3037  */
+  3038 async claimRollbackIdempotency(input: { projectId: string; environment: string; key: string }) {
+  3039   try {
+→ 3040     await (this.prisma as any).rollbackIdempotency.create(
+Unique constraint failed on the fields: (`"projectId"`, `environment`, `key`)
+
+stdout | src/tests/rollback-concurrency-postgres.spec.ts > rollback concurrency — real Postgres, both interleavings > (D) concurrent idempotency claims on separate connections: exactly one owner
+prisma:error 
+Invalid `any).rollbackIdempotency.create()` invocation in
+/Users/hb/dev/vibecore-wt-rollback/services/api/src/prisma-store.ts:3040:54
+
+  3037  */
+  3038 async claimRollbackIdempotency(input: { projectId: string; environment: string; key: string }) {
+  3039   try {
+→ 3040     await (this.prisma as any).rollbackIdempotency.create(
+Unique constraint failed on the fields: (`"projectId"`, `environment`, `key`)
+
+ ✓ src/tests/rollback-concurrency-postgres.spec.ts (6 tests) 1632ms
+   ✓ rollback concurrency — real Postgres, both interleavings > (C) rollback and publish serialise on one and the same stream lock key  818ms
+
+ Test Files  1 passed (1)
+      Tests  6 passed (6)
+   Start at  10:12:19
+   Duration  2.15s (transform 171ms, setup 0ms, collect 358ms, tests 1.63s, environment 0ms, prepare 35ms)
+

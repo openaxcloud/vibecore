@@ -861,6 +861,40 @@ model ReleaseManifest {
   @@index([deploymentId])
 }
 
+// DURABLE idempotency for rollback requests (expert reserve P1).
+//
+// A rollback is NOT naturally idempotent: replaying it cuts a NEW release, so a client
+// that loses the 201 (proxy timeout, pod restart, dropped connection) and retries makes
+// the environment oscillate v1 → v2 → v1 … with no way back to a known state. An
+// in-process map does not fix it — the retry commonly lands on a different API replica,
+// and a restart forgets everything. Hence a table.
+//
+// `@@unique([projectId, environment, key])` is the whole mechanism: the INSERT is the
+// claim. Winning it means "I own this execution"; losing it means the work is already
+// done or in flight, and the stored response is replayed instead of re-executed.
+model RollbackIdempotency {
+  id          String @id @default(cuid())
+  projectId   String
+  environment String
+  key         String
+
+  // IN_FLIGHT while the owner executes; COMPLETED once the response is durable.
+  // A replay of an IN_FLIGHT key is refused (409) rather than executed twice.
+  state String @default("IN_FLIGHT")
+
+  // The response to replay verbatim on retry — status code + JSON body, so a retried
+  // call is byte-identical to the original instead of a fresh rollback.
+  responseStatus Int?
+  responseBody   Json?
+  deploymentId   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, environment, key])
+  @@index([projectId, environment])
+}
+
 // Versioned Rate Card: the priced catalogue (machine sizes, compute-unit and
 // request rates) served to the app and stamped on every metering event. A
 // price change INSERTS a new version and flips `active` — history is never

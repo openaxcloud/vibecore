@@ -334,6 +334,57 @@ runDbTests('rollback concurrency — real Postgres, both interleavings', () => {
   });
 
   /* ==================================================================
+   * (D) DURABLE IDEMPOTENCY (expert reserve P1) on real Postgres.
+   *     The claim is an INSERT on a unique constraint, so the database —
+   *     not application timing — decides who executes. An in-memory map
+   *     cannot prove this: the retry usually lands on another replica.
+   * ================================================================== */
+  it('(D) concurrent idempotency claims on separate connections: exactly one owner', async () => {
+    const seed = createDatabaseClient();
+    const clients = [createDatabaseClient(), createDatabaseClient(), createDatabaseClient(), createDatabaseClient()];
+
+    try {
+      const { projectId } = await seedProject(seed);
+      const environment = 'preview';
+      const key = uniqueId('idem');
+
+      // Four independent connections race for the same key at the same instant.
+      const claims = await Promise.all(
+        clients.map((client) =>
+          new PrismaApiStore(client).claimRollbackIdempotency({ projectId, environment, key }),
+        ),
+      );
+
+      const owners = claims.filter((c) => c.owned);
+      expect(owners, 'the unique constraint must elect exactly one owner').toHaveLength(1);
+      expect(claims.filter((c) => !c.owned)).toHaveLength(3);
+
+      // The owner completes; every later retry must replay, never re-execute.
+      const ownerStore = new PrismaApiStore(seed);
+      await ownerStore.completeRollbackIdempotency({
+        projectId,
+        environment,
+        key,
+        responseStatus: 201,
+        responseBody: { deployment: { id: 'dep-winner' }, restoredFromVersion: 1 },
+        deploymentId: 'dep-winner',
+      });
+
+      const replay = await ownerStore.claimRollbackIdempotency({ projectId, environment, key });
+      expect(replay.owned).toBe(false);
+      expect(replay.existing?.state).toBe('COMPLETED');
+      expect(replay.existing?.responseStatus).toBe(201);
+      expect((replay.existing?.responseBody as { deployment: { id: string } }).deployment.id).toBe('dep-winner');
+
+      // A different key is a different operation and must still be claimable.
+      const other = await ownerStore.claimRollbackIdempotency({ projectId, environment, key: uniqueId('idem') });
+      expect(other.owned).toBe(true);
+    } finally {
+      await Promise.all([seed, ...clients].map((c) => c.$disconnect()));
+    }
+  });
+
+  /* ==================================================================
    * (C) The lock key is the SAME one the publish path takes, so the two
    *     provably contend rather than passing each other by.
    * ================================================================== */
