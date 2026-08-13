@@ -551,7 +551,7 @@ describe('READY↔manifest atomicity, crash injected on the REAL transitions', (
         .inject({
           method: 'POST',
           url: `/projects/${projectId}/deployments/rollback-to-previous?environment=preview`,
-          headers: { authorization: `Bearer ${auth.token}` },
+          headers: { authorization: `Bearer ${auth.token}`, 'idempotency-key': `crash-${projectId}` },
         })
         .catch(() => undefined);
 
@@ -588,7 +588,7 @@ describe('READY↔manifest atomicity, crash injected on the REAL transitions', (
       const res = await app.inject({
         method: 'POST',
         url: `/projects/${projectId}/deployments/rollback-to-previous?environment=preview`,
-        headers: { authorization: `Bearer ${auth.token}` },
+          headers: { authorization: `Bearer ${auth.token}`, 'idempotency-key': `success-${projectId}` },
       });
       expect(res.statusCode).toBe(201);
 

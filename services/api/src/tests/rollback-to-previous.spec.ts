@@ -101,7 +101,11 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     const res = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/deployments/rollback-to-previous`,
-      headers: { authorization: `Bearer ${auth.token}`, 'accept-language': 'fr-FR, en;q=0.8' },
+      headers: {
+        authorization: `Bearer ${auth.token}`,
+        'accept-language': 'fr-FR, en;q=0.8',
+        'idempotency-key': `restore-${projectId}`,
+      },
       payload: { environment: 'preview' },
     });
 
@@ -135,7 +139,11 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     const res = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/deployments/rollback-to-previous`,
-      headers: { authorization: `Bearer ${auth.token}`, 'accept-language': 'fr' },
+      headers: {
+        authorization: `Bearer ${auth.token}`,
+        'accept-language': 'fr',
+        'idempotency-key': `no-previous-${projectId}`,
+      },
       payload: { environment: 'preview' },
     });
 
@@ -158,7 +166,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     const res = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/deployments/rollback-to-previous`,
-      headers: { authorization: `Bearer ${auth.token}` },
+      headers: { authorization: `Bearer ${auth.token}`, 'idempotency-key': `digest-mismatch-${projectId}` },
       payload: { environment: 'preview' },
     });
 
@@ -176,7 +184,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
     const res = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/deployments/rollback-to-previous`,
-      headers: { authorization: `Bearer ${auth.token}` },
+      headers: { authorization: `Bearer ${auth.token}`, 'idempotency-key': `missing-source-${projectId}` },
       payload: { environment: 'preview' },
     });
 

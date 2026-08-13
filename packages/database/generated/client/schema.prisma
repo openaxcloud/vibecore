@@ -236,12 +236,12 @@ model RolePermission {
 }
 
 model Project {
-  id                     String                  @id @default(cuid())
+  id                     String                       @id @default(cuid())
   organizationId         String
   name                   String
   slug                   String
   description            String?
-  sourceType             String                  @default("blank")
+  sourceType             String                       @default("blank")
   templateName           String?
   gitRepositoryUrl       String?
   gitDefaultBranch       String?
@@ -249,20 +249,21 @@ model Project {
   thumbnailUrl           String?
   thumbnailUpdatedAt     DateTime?
   deletedAt              DateTime?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+  organization           Organization                 @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   environments           ProjectEnvironment[]
   envVars                ProjectEnvVar[]
   secrets                ProjectSecret[]
   collaborators          ProjectCollaborator[]
   activity               ProjectActivity[]
-  templates              ProjectTemplate[]       @relation("ProjectTemplates")
-  galleryListings        GalleryListing[]        @relation("ProjectGalleryListings")
+  templates              ProjectTemplate[]            @relation("ProjectTemplates")
+  galleryListings        GalleryListing[]             @relation("ProjectGalleryListings")
   workspaces             Workspace[]
   snapshots              ProjectSnapshot[]
   storageObjects         ProjectStorageObject[]
   deployments            Deployment[]
+  rollbackIdempotency    RollbackIdempotencyRequest[]
   fileSnapshots          FileSnapshot[]
   conversations          AiConversation[]
   ideState               ProjectIdeState?
@@ -859,6 +860,28 @@ model ReleaseManifest {
   @@unique([projectId, environment, version])
   @@index([projectId, environment])
   @@index([deploymentId])
+}
+
+// Durable result ledger for POST .../deployments/rollback-to-previous.
+// A client retry after a lost response — including on another API replica —
+// must replay the original response instead of rolling the release stream again.
+// The key is scoped to one project and the request fingerprint binds all inputs;
+// reusing a key for a different request is rejected fail-closed.
+model RollbackIdempotencyRequest {
+  id                 String   @id @default(cuid())
+  projectId          String
+  idempotencyKey     String
+  requestFingerprint String
+  status             String   @default("IN_PROGRESS")
+  responseStatus     Int?
+  responseBody       Json?
+  deploymentId       String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  project            Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, idempotencyKey])
+  @@index([status, updatedAt])
 }
 
 // Versioned Rate Card: the priced catalogue (machine sizes, compute-unit and

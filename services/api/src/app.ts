@@ -7278,6 +7278,13 @@ async function stopServerDeploymentViaManager(deploymentId: string): Promise<voi
   }).catch(() => undefined);
 }
 
+declare module 'fastify' {
+  interface FastifyRequest {
+    /** Set only by the rollback-to-previous winner until onSend persists its response. */
+    rollbackIdempotency?: { id: string };
+  }
+}
+
 /**
  * Arrêt STRICT — lève si le manager n'a pas confirmé.
  *
@@ -7292,16 +7299,89 @@ async function stopServerDeploymentViaManager(deploymentId: string): Promise<voi
  */
 async function stopServerDeploymentViaManagerStrict(deploymentId: string): Promise<void> {
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+  const configuredTimeout = Number(process.env.SERVER_DEPLOY_STOP_TIMEOUT_MS);
+  const timeoutMs = Number.isFinite(configuredTimeout) ? Math.min(30_000, Math.max(10, configuredTimeout)) : 30_000;
 
   const response = await fetch(`${workspaceManagerUrl()}/server-deployments/${encodeURIComponent(deploymentId)}/stop`, {
     method: 'POST',
     headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 
   if (!response.ok) {
     throw new Error(appPublicEnglish('DEPLOY_STOP_MANAGER_REFUSED', { deploymentId, status: response.status }));
   }
+}
+
+async function getServerDeploymentStatusViaManagerStrict(
+  deploymentId: string,
+): Promise<{ exists: boolean; readyReplicas: number; replicas: number }> {
+  const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+  const configuredTimeout = Number(process.env.SERVER_DEPLOY_STOP_TIMEOUT_MS);
+  const timeoutMs = Number.isFinite(configuredTimeout) ? Math.min(30_000, Math.max(10, configuredTimeout)) : 30_000;
+  const response = await fetch(
+    `${workspaceManagerUrl()}/server-deployments/${encodeURIComponent(deploymentId)}/status`,
+    {
+      method: 'GET',
+      headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
+      signal: AbortSignal.timeout(timeoutMs),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(appPublicEnglish('DEPLOY_STATUS_MANAGER_REFUSED', { deploymentId, status: response.status }));
+  }
+
+  const body = (await response.json()) as { exists?: unknown; readyReplicas?: unknown; replicas?: unknown };
+  if (typeof body.exists !== 'boolean') {
+    throw new Error(appPublicEnglish('DEPLOY_STATUS_MANAGER_INVALID', { deploymentId }));
+  }
+
+  return {
+    exists: body.exists,
+    readyReplicas: typeof body.readyReplicas === 'number' ? body.readyReplicas : 0,
+    replicas: typeof body.replicas === 'number' ? body.replicas : 0,
+  };
+}
+
+/**
+ * A CAS-losing rollback has already started a real workload. Do not acknowledge
+ * the 409 until workspace-manager proves that resource no longer exists. Both
+ * stop and status are retried because HTTP 500, timeout, and a severed socket are
+ * all indeterminate outcomes rather than evidence of deletion.
+ */
+async function ensureServerDeploymentAbsentViaManager(deploymentId: string): Promise<void> {
+  const configuredRetries = Number(process.env.SERVER_DEPLOY_CLEANUP_RETRIES);
+  const attempts = Number.isFinite(configuredRetries) ? Math.min(10, Math.max(1, configuredRetries)) : 5;
+  const configuredDelay = Number(process.env.SERVER_DEPLOY_CLEANUP_RETRY_DELAY_MS);
+  const baseDelayMs = Number.isFinite(configuredDelay) ? Math.min(2_000, Math.max(1, configuredDelay)) : 100;
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await stopServerDeploymentViaManagerStrict(deploymentId);
+    } catch (error) {
+      lastError = error;
+    }
+
+    try {
+      const status = await getServerDeploymentStatusViaManagerStrict(deploymentId);
+      if (!status.exists) return;
+      lastError = new Error(appPublicEnglish('ROLLBACK_CLEANUP_STILL_EXISTS', { deploymentId }));
+    } catch (error) {
+      lastError = error;
+    }
+
+    if (attempt < attempts) {
+      await new Promise((resolve) => setTimeout(resolve, baseDelayMs * attempt));
+    }
+  }
+
+  throw Object.assign(new Error(appPublicEnglish('ROLLBACK_CLEANUP_UNCONFIRMED', { deploymentId })), {
+    code: 'ROLLBACK_CLEANUP_UNCONFIRMED',
+    statusCode: 503,
+    cause: lastError,
+  });
 }
 
 /*
@@ -8405,6 +8485,37 @@ export function publishedDeploymentExpired(input: {
   });
 }
 
+function rollbackIdempotencyKey(request: FastifyRequest): string | undefined {
+  const header = request.headers['idempotency-key'];
+  if (typeof header !== 'string') return undefined;
+  const key = header.trim();
+  return key.length >= 1 && key.length <= 200 ? key : undefined;
+}
+
+function rollbackRequestFingerprint(environment: string): string {
+  return createHash('sha256')
+    .update(JSON.stringify({ operation: 'rollback-to-previous', environment }))
+    .digest('hex');
+}
+
+async function waitForRollbackIdempotency(
+  store: ApiStore,
+  projectId: string,
+  idempotencyKey: string,
+): Promise<Awaited<ReturnType<ApiStore['getRollbackIdempotency']>>> {
+  const configured = Number(process.env.ROLLBACK_IDEMPOTENCY_WAIT_MS);
+  const waitMs = Number.isFinite(configured) ? Math.min(210_000, Math.max(100, configured)) : 205_000;
+  const deadline = Date.now() + waitMs;
+
+  while (Date.now() < deadline) {
+    const record = await store.getRollbackIdempotency(projectId, idempotencyKey);
+    if (!record || record.status === 'COMPLETED') return record;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+
+  return undefined;
+}
+
 export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyInstance> {
   const store = options.store ?? createDefaultStore();
   const agentMemory = options.agentMemory ?? createDefaultAgentMemory(store);
@@ -8670,7 +8781,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   await app.register(cors, {
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['authorization', 'content-type', 'accept', 'x-org-id', 'x-csrf-token'],
+    allowedHeaders: ['authorization', 'content-type', 'accept', 'x-org-id', 'x-csrf-token', 'idempotency-key'],
     origin(origin, callback) {
       callback(null, assertStrictCorsOrigin(origin, allowedOrigins));
     },
@@ -8769,6 +8880,43 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return localizedPublicErrorPayload(errorPayload, locale);
+  });
+  app.addHook('onSend', async (request, _reply, payload) => {
+    const idempotency = request.rollbackIdempotency;
+
+    if (!idempotency) return payload;
+
+    // Clear first: if persistence throws, Fastify's error response must not
+    // recursively try to complete the same request with a different payload.
+    request.rollbackIdempotency = undefined;
+
+    let responseBody: unknown;
+    try {
+      const serialized = Buffer.isBuffer(payload) ? payload.toString('utf8') : payload;
+      responseBody = typeof serialized === 'string' ? JSON.parse(serialized) : serialized;
+    } catch {
+      throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+        code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+
+    if (!responseBody || typeof responseBody !== 'object') {
+      throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+        code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+
+    const deployment = (responseBody as { deployment?: { id?: unknown } }).deployment;
+    await store.completeRollbackIdempotency({
+      id: idempotency.id,
+      responseStatus: _reply.statusCode,
+      responseBody,
+      ...(typeof deployment?.id === 'string' ? { deploymentId: deployment.id } : {}),
+    });
+
+    return payload;
   });
   app.addHook('onResponse', async (request, reply) => {
     const route = request.routeOptions.url ?? request.url.split('?')[0] ?? 'unknown';
@@ -34652,6 +34800,65 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     setAppLocaleResponseHeaders(reply, locale);
 
     const environment = body.environment ?? 'preview';
+    const idempotencyKey = rollbackIdempotencyKey(request);
+
+    if (!idempotencyKey) {
+      return reply.code(400).send({
+        error: appPublicCopy('ROLLBACK_IDEMPOTENCY_KEY_REQUIRED', locale),
+        code: 'IDEMPOTENCY_KEY_REQUIRED',
+      });
+    }
+
+    const requestFingerprint = rollbackRequestFingerprint(environment);
+    const claim = await store.claimRollbackIdempotency({
+      projectId: project.id,
+      idempotencyKey,
+      requestFingerprint,
+    });
+
+    if (claim.record.requestFingerprint !== requestFingerprint) {
+      return reply.code(409).send({
+        error: appPublicCopy('ROLLBACK_IDEMPOTENCY_KEY_REUSED', locale),
+        code: 'IDEMPOTENCY_KEY_REUSED',
+      });
+    }
+
+    if (!claim.claimed) {
+      const durable =
+        claim.record.status === 'COMPLETED'
+          ? claim.record
+          : await waitForRollbackIdempotency(store, project.id, idempotencyKey);
+
+      if (!durable) {
+        reply.header('retry-after', '2');
+        return reply.code(409).send({
+          error: appPublicCopy('ROLLBACK_IDEMPOTENCY_IN_PROGRESS', locale),
+          code: 'ROLLBACK_IN_PROGRESS',
+          retryable: true,
+        });
+      }
+
+      if (
+        durable.requestFingerprint !== requestFingerprint ||
+        durable.status !== 'COMPLETED' ||
+        typeof durable.responseStatus !== 'number' ||
+        !durable.responseBody ||
+        typeof durable.responseBody !== 'object'
+      ) {
+        return reply.code(503).send({
+          error: appPublicCopy('ROLLBACK_IDEMPOTENCY_UNAVAILABLE', locale),
+          code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+          retryable: true,
+        });
+      }
+
+      reply.header('idempotency-replayed', 'true');
+      return reply.code(durable.responseStatus).send(durable.responseBody);
+    }
+
+    // onSend commits the fully-localized serialized response before Fastify
+    // writes it to the client. A disconnected client can then replay this key.
+    request.rollbackIdempotency = { id: claim.record.id };
 
     /*
      * ===================================================================================
@@ -35089,24 +35296,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             await appendRollbackManifest(rollback.id, 'server-image', previous.artifactRef, previous.artifactDigest);
           } catch (error) {
             if (isReleaseMoved(error)) {
-              // Never leave a live pod serving a rollback computed against a stale head.
-              await stopServerDeploymentViaManager(rollback.id).catch(() => undefined);
+              // Close the public authority first, then prove the manager resource
+              // disappeared. A DB flag alone is not teardown evidence.
+              await store.updateDeployment(project.id, rollback.id, {
+                status: 'FAILED',
+                url: '',
+                previewUrl: '',
+                productionUrl: '',
+                logs: [
+                  ...rollback.logs,
+                  {
+                    timestamp: new Date().toISOString(),
+                    level: 'error' as const,
+                    message: error.message,
+                  },
+                ],
+                finishedAt: new Date().toISOString(),
+              });
 
-              await store
-                .updateDeployment(project.id, rollback.id, {
-                  status: 'FAILED',
-                  url: '',
-                  logs: [
-                    ...rollback.logs,
-                    {
-                      timestamp: new Date().toISOString(),
-                      level: 'error' as const,
-                      message: error.message,
-                    },
-                  ],
-                  finishedAt: new Date().toISOString(),
-                })
-                .catch(() => undefined);
+              try {
+                await ensureServerDeploymentAbsentViaManager(rollback.id);
+              } catch (cleanupError) {
+                request.log.error(
+                  { err: cleanupError, deploymentId: rollback.id },
+                  'rollback CAS loser cleanup could not prove workload absence',
+                );
+                return reply.code(503).send({
+                  error: appPublicCopy('ROLLBACK_CLEANUP_UNCONFIRMED', locale, { deploymentId: rollback.id }),
+                  code: 'ROLLBACK_CLEANUP_UNCONFIRMED',
+                  retryable: true,
+                });
+              }
 
               request.log.warn(
                 {

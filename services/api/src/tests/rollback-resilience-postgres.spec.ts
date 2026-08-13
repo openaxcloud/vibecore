@@ -163,7 +163,8 @@ async function startManager(options: { stopFault?: StopFault; startDelayMs?: num
     },
     async status(deploymentId: string): Promise<{ exists: boolean }> {
       const response = await fetch(`${url}/server-deployments/${encodeURIComponent(deploymentId)}/status`);
-      return (await response.json()) as { exists: boolean };
+      const body = (await response.json()) as { exists: boolean };
+      return { exists: body.exists };
     },
     close: () => closeServer(server, sockets),
   };
@@ -279,9 +280,12 @@ function rollback(
   });
 }
 
-async function cleanProject(prisma: DatabaseClient, input: { projectId: string; organizationId: string; user: { id: string } }) {
+async function cleanProject(
+  prisma: DatabaseClient,
+  input: { projectId: string; organization: { id: string }; user: { id: string } },
+) {
   await prisma.releaseManifest.deleteMany({ where: { projectId: input.projectId } });
-  await prisma.organization.delete({ where: { id: input.organizationId } }).catch(() => undefined);
+  await prisma.organization.delete({ where: { id: input.organization.id } }).catch(() => undefined);
   await prisma.user.delete({ where: { id: input.user.id } }).catch(() => undefined);
 }
 
@@ -430,6 +434,7 @@ runDbTests('rollback resilience — real PostgreSQL + real HTTP manager/proxy', 
       const key = unique('lost-201');
       const first = await rollback(appA, seeded.token, seeded.projectId, key);
       expect(first.statusCode).toBe(201);
+      const firstBody = first.json();
       const committedId = String(manager.starts[0].deploymentId);
 
       // Simulate the client losing the response and the serving API process being
@@ -444,6 +449,8 @@ runDbTests('rollback resilience — real PostgreSQL + real HTTP manager/proxy', 
       try {
         const replay = await rollback(appB, seeded.token, seeded.projectId, key);
         expect(replay.statusCode).toBe(201);
+        expect(replay.headers['idempotency-replayed']).toBe('true');
+        expect(replay.json()).toEqual(firstBody);
         expect(replay.json().deployment.id).toBe(committedId);
         expect(manager.starts).toHaveLength(1);
         expect(
@@ -487,6 +494,8 @@ runDbTests('rollback resilience — real PostgreSQL + real HTTP manager/proxy', 
       ]);
 
       expect([a.statusCode, b.statusCode].sort()).toEqual([201, 201]);
+      expect([a.headers['idempotency-replayed'], b.headers['idempotency-replayed']].filter(Boolean)).toEqual(['true']);
+      expect(a.json()).toEqual(b.json());
       expect(a.json().deployment.id).toBe(b.json().deployment.id);
       expect(manager.starts).toHaveLength(1);
       expect(

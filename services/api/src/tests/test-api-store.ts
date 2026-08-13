@@ -45,6 +45,7 @@ import type {
   CustomRoleRecord,
   DeploymentRecord,
   ReleaseManifestRecord,
+  RollbackIdempotencyRecord,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -2021,6 +2022,7 @@ export class TestApiStore implements ApiStore {
   }
 
   readonly releaseManifests: ReleaseManifestRecord[] = [];
+  readonly rollbackIdempotency = new Map<string, RollbackIdempotencyRecord>();
 
   async createReleaseManifest(input: {
     projectId: string;
@@ -2064,6 +2066,52 @@ export class TestApiStore implements ApiStore {
       .filter((m) => m.projectId === projectId && m.environment === environment)
       .sort((a, b) => b.version - a.version)
       .slice(0, options?.take ?? 100);
+  }
+
+  async claimRollbackIdempotency(input: {
+    projectId: string;
+    idempotencyKey: string;
+    requestFingerprint: string;
+  }): Promise<{ claimed: boolean; record: RollbackIdempotencyRecord }> {
+    const mapKey = `${input.projectId}:${input.idempotencyKey}`;
+    const existing = this.rollbackIdempotency.get(mapKey);
+    if (existing) return { claimed: false, record: existing };
+
+    const timestamp = now();
+    const record: RollbackIdempotencyRecord = {
+      id: id('rollback-idempotency'),
+      ...input,
+      status: 'IN_PROGRESS',
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.rollbackIdempotency.set(mapKey, record);
+    return { claimed: true, record };
+  }
+
+  async getRollbackIdempotency(projectId: string, idempotencyKey: string) {
+    return this.rollbackIdempotency.get(`${projectId}:${idempotencyKey}`);
+  }
+
+  async completeRollbackIdempotency(input: {
+    id: string;
+    responseStatus: number;
+    responseBody: unknown;
+    deploymentId?: string;
+  }) {
+    const entry = [...this.rollbackIdempotency.entries()].find(([, record]) => record.id === input.id);
+    if (!entry) throw new Error(`Rollback idempotency request not found: ${input.id}`);
+    const [key, current] = entry;
+    const completed: RollbackIdempotencyRecord = {
+      ...current,
+      status: 'COMPLETED',
+      responseStatus: input.responseStatus,
+      responseBody: input.responseBody,
+      deploymentId: input.deploymentId,
+      updatedAt: now(),
+    };
+    this.rollbackIdempotency.set(key, completed);
+    return completed;
   }
 
   /** No DB-backed rate card in tests: callers fall back to the built-in card. */

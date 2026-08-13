@@ -45,6 +45,7 @@ import type {
   CustomRoleRecord,
   DeploymentRecord,
   ReleaseManifestRecord,
+  RollbackIdempotencyRecord,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -214,6 +215,32 @@ function mapDatabaseRestore(row: {
     createdAt: toIso(row.createdAt)!,
     startedAt: toIso(row.startedAt),
     completedAt: toIso(row.completedAt),
+  };
+}
+
+function mapRollbackIdempotency(row: {
+  id: string;
+  projectId: string;
+  idempotencyKey: string;
+  requestFingerprint: string;
+  status: string;
+  responseStatus: number | null;
+  responseBody: unknown;
+  deploymentId: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}): RollbackIdempotencyRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    idempotencyKey: row.idempotencyKey,
+    requestFingerprint: row.requestFingerprint,
+    status: row.status === 'COMPLETED' ? 'COMPLETED' : 'IN_PROGRESS',
+    responseStatus: row.responseStatus ?? undefined,
+    responseBody: row.responseBody ?? undefined,
+    deploymentId: row.deploymentId ?? undefined,
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
   };
 }
 
@@ -3024,6 +3051,73 @@ export class PrismaApiStore implements ApiStore {
         take: options?.take ?? 100,
       })
     ).map(mapReleaseManifest);
+  }
+
+  async claimRollbackIdempotency(input: {
+    projectId: string;
+    idempotencyKey: string;
+    requestFingerprint: string;
+  }): Promise<{ claimed: boolean; record: RollbackIdempotencyRecord }> {
+    const inserted = await this.prisma.rollbackIdempotencyRequest.createMany({
+      data: {
+        projectId: input.projectId,
+        idempotencyKey: input.idempotencyKey,
+        requestFingerprint: input.requestFingerprint,
+      },
+      skipDuplicates: true,
+    });
+    const record = await this.prisma.rollbackIdempotencyRequest.findUnique({
+      where: {
+        projectId_idempotencyKey: {
+          projectId: input.projectId,
+          idempotencyKey: input.idempotencyKey,
+        },
+      },
+    });
+
+    if (!record) {
+      throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+        code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+
+    return { claimed: inserted.count === 1, record: mapRollbackIdempotency(record) };
+  }
+
+  async getRollbackIdempotency(projectId: string, idempotencyKey: string) {
+    const row = await this.prisma.rollbackIdempotencyRequest.findUnique({
+      where: { projectId_idempotencyKey: { projectId, idempotencyKey } },
+    });
+    return row ? mapRollbackIdempotency(row) : undefined;
+  }
+
+  async completeRollbackIdempotency(input: {
+    id: string;
+    responseStatus: number;
+    responseBody: unknown;
+    deploymentId?: string;
+  }) {
+    const result = await this.prisma.rollbackIdempotencyRequest.updateMany({
+      where: { id: input.id, status: 'IN_PROGRESS' },
+      data: {
+        status: 'COMPLETED',
+        responseStatus: input.responseStatus,
+        responseBody: input.responseBody as Prisma.InputJsonValue,
+        deploymentId: input.deploymentId ?? null,
+      },
+    });
+
+    const row = await this.prisma.rollbackIdempotencyRequest.findUniqueOrThrow({ where: { id: input.id } });
+
+    if (result.count === 0 && row.status !== 'COMPLETED') {
+      throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+        code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+
+    return mapRollbackIdempotency(row);
   }
 
   async getActiveRateCard() {

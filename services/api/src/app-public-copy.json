@@ -2531,6 +2531,26 @@
     "en": "The rollback could not be completed.",
     "fr": "Le retour arrière n’a pas pu être effectué."
   },
+  "ROLLBACK_IDEMPOTENCY_KEY_REQUIRED": {
+    "en": "A valid Idempotency-Key header is required for rollback.",
+    "fr": "Un en-tête Idempotency-Key valide est requis pour le retour arrière."
+  },
+  "ROLLBACK_IDEMPOTENCY_KEY_REUSED": {
+    "en": "This idempotency key was already used for a different rollback request.",
+    "fr": "Cette clé d’idempotence a déjà été utilisée pour une autre demande de retour arrière."
+  },
+  "ROLLBACK_IDEMPOTENCY_IN_PROGRESS": {
+    "en": "The rollback for this idempotency key is still in progress. Retry with the same key.",
+    "fr": "Le retour arrière associé à cette clé d’idempotence est toujours en cours. Réessayez avec la même clé."
+  },
+  "ROLLBACK_IDEMPOTENCY_UNAVAILABLE": {
+    "en": "The durable rollback result is unavailable. Retry with the same idempotency key.",
+    "fr": "Le résultat durable du retour arrière est indisponible. Réessayez avec la même clé d’idempotence."
+  },
+  "ROLLBACK_CLEANUP_UNCONFIRMED": {
+    "en": "The stale rollback workload could not be proven absent. Public routing remains closed; retry cleanup.",
+    "fr": "L’absence du workload obsolète n’a pas pu être prouvée. Le routage public reste fermé ; relancez le nettoyage."
+  },
   "APP_IMAGE_BUILD_QUEUED": {
     "en": "[image] build {buildId} queued (context gs://{bucket}/{object})",
     "fr": "[image] compilation {buildId} mise en file (contexte gs://{bucket}/{object})"
@@ -2542,6 +2562,18 @@
   "DEPLOY_STOP_MANAGER_REFUSED": {
     "en": "workspace-manager refused to stop {deploymentId} (HTTP {status})",
     "fr": "Le gestionnaire d’espaces de travail a refusé l’arrêt de {deploymentId} (HTTP {status})"
+  },
+  "DEPLOY_STATUS_MANAGER_REFUSED": {
+    "en": "workspace-manager refused the status check for {deploymentId} (HTTP {status})",
+    "fr": "Le gestionnaire d’espaces de travail a refusé la vérification d’état de {deploymentId} (HTTP {status})"
+  },
+  "DEPLOY_STATUS_MANAGER_INVALID": {
+    "en": "workspace-manager returned an invalid status for {deploymentId}",
+    "fr": "Le gestionnaire d’espaces de travail a renvoyé un état invalide pour {deploymentId}"
+  },
+  "ROLLBACK_CLEANUP_STILL_EXISTS": {
+    "en": "The stale rollback workload {deploymentId} still exists.",
+    "fr": "Le workload obsolète du retour arrière {deploymentId} existe toujours."
   },
   "DEPLOY_INVALID_ID": {
     "en": "Invalid deployment identifier.",

@@ -175,11 +175,15 @@ describe('rollback concurrency — serial equivalence of the release stream', ()
     return { deployment, digest, marker };
   }
 
+  let rollbackAttempt = 0;
   const rollback = (app: Awaited<ReturnType<typeof setup>>['app'], token: string, projectId: string) =>
     app.inject({
       method: 'POST',
       url: `/projects/${projectId}/deployments/rollback-to-previous`,
-      headers: { authorization: `Bearer ${token}` },
+      headers: {
+        authorization: `Bearer ${token}`,
+        'idempotency-key': `linearization-${projectId}-${++rollbackAttempt}`,
+      },
       payload: { environment: 'preview' },
     });
 

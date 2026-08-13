@@ -189,7 +189,7 @@ describe('rollback fault injection (fail-closed integrity)', () => {
     app.inject({
       method: 'POST',
       url: `/projects/${projectId}/deployments/rollback-to-previous`,
-      headers: { authorization: `Bearer ${token}` },
+      headers: { authorization: `Bearer ${token}`, 'idempotency-key': `fault-${projectId}` },
       payload: { environment: 'preview' },
     });
 

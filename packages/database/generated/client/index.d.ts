@@ -204,6 +204,11 @@ export type DeploymentEnvironment = $Result.DefaultSelection<Prisma.$DeploymentE
  */
 export type ReleaseManifest = $Result.DefaultSelection<Prisma.$ReleaseManifestPayload>
 /**
+ * Model RollbackIdempotencyRequest
+ * 
+ */
+export type RollbackIdempotencyRequest = $Result.DefaultSelection<Prisma.$RollbackIdempotencyRequestPayload>
+/**
  * Model RateCard
  * 
  */
@@ -1539,6 +1544,16 @@ export class PrismaClient<
   get releaseManifest(): Prisma.ReleaseManifestDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.rollbackIdempotencyRequest`: Exposes CRUD operations for the **RollbackIdempotencyRequest** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more RollbackIdempotencyRequests
+    * const rollbackIdempotencyRequests = await prisma.rollbackIdempotencyRequest.findMany()
+    * ```
+    */
+  get rollbackIdempotencyRequest(): Prisma.RollbackIdempotencyRequestDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.rateCard`: Exposes CRUD operations for the **RateCard** model.
     * Example usage:
     * ```ts
@@ -2849,6 +2864,7 @@ export namespace Prisma {
     Deployment: 'Deployment',
     DeploymentEnvironment: 'DeploymentEnvironment',
     ReleaseManifest: 'ReleaseManifest',
+    RollbackIdempotencyRequest: 'RollbackIdempotencyRequest',
     RateCard: 'RateCard',
     AuditLog: 'AuditLog',
     SecurityEventResolution: 'SecurityEventResolution',
@@ -2948,7 +2964,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rollbackIdempotencyRequest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -5745,6 +5761,80 @@ export namespace Prisma {
           count: {
             args: Prisma.ReleaseManifestCountArgs<ExtArgs>
             result: $Utils.Optional<ReleaseManifestCountAggregateOutputType> | number
+          }
+        }
+      }
+      RollbackIdempotencyRequest: {
+        payload: Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>
+        fields: Prisma.RollbackIdempotencyRequestFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.RollbackIdempotencyRequestFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyRequestPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.RollbackIdempotencyRequestFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyRequestPayload>
+          }
+          findFirst: {
+            args: Prisma.RollbackIdempotencyRequestFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyRequestPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.RollbackIdempotencyRequestFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyRequestPayload>
+          }
+          findMany: {
+            args: Prisma.RollbackIdempotencyRequestFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyRequestPayload>[]
+          }
+          create: {
+            args: Prisma.RollbackIdempotencyRequestCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyRequestPayload>
+          }
+          createMany: {
+            args: Prisma.RollbackIdempotencyRequestCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.RollbackIdempotencyRequestCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyRequestPayload>[]
+          }
+          delete: {
+            args: Prisma.RollbackIdempotencyRequestDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyRequestPayload>
+          }
+          update: {
+            args: Prisma.RollbackIdempotencyRequestUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyRequestPayload>
+          }
+          deleteMany: {
+            args: Prisma.RollbackIdempotencyRequestDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.RollbackIdempotencyRequestUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.RollbackIdempotencyRequestUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyRequestPayload>[]
+          }
+          upsert: {
+            args: Prisma.RollbackIdempotencyRequestUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RollbackIdempotencyRequestPayload>
+          }
+          aggregate: {
+            args: Prisma.RollbackIdempotencyRequestAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRollbackIdempotencyRequest>
+          }
+          groupBy: {
+            args: Prisma.RollbackIdempotencyRequestGroupByArgs<ExtArgs>
+            result: $Utils.Optional<RollbackIdempotencyRequestGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.RollbackIdempotencyRequestCountArgs<ExtArgs>
+            result: $Utils.Optional<RollbackIdempotencyRequestCountAggregateOutputType> | number
           }
         }
       }
@@ -12110,6 +12200,7 @@ export namespace Prisma {
     deployment?: DeploymentOmit
     deploymentEnvironment?: DeploymentEnvironmentOmit
     releaseManifest?: ReleaseManifestOmit
+    rollbackIdempotencyRequest?: RollbackIdempotencyRequestOmit
     rateCard?: RateCardOmit
     auditLog?: AuditLogOmit
     securityEventResolution?: SecurityEventResolutionOmit
@@ -12976,6 +13067,7 @@ export namespace Prisma {
     snapshots: number
     storageObjects: number
     deployments: number
+    rollbackIdempotency: number
     fileSnapshots: number
     conversations: number
     collaborationPresence: number
@@ -13003,6 +13095,7 @@ export namespace Prisma {
     snapshots?: boolean | ProjectCountOutputTypeCountSnapshotsArgs
     storageObjects?: boolean | ProjectCountOutputTypeCountStorageObjectsArgs
     deployments?: boolean | ProjectCountOutputTypeCountDeploymentsArgs
+    rollbackIdempotency?: boolean | ProjectCountOutputTypeCountRollbackIdempotencyArgs
     fileSnapshots?: boolean | ProjectCountOutputTypeCountFileSnapshotsArgs
     conversations?: boolean | ProjectCountOutputTypeCountConversationsArgs
     collaborationPresence?: boolean | ProjectCountOutputTypeCountCollaborationPresenceArgs
@@ -13104,6 +13197,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountDeploymentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: DeploymentWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountRollbackIdempotencyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RollbackIdempotencyRequestWhereInput
   }
 
   /**
@@ -25710,6 +25810,7 @@ export namespace Prisma {
     snapshots?: boolean | Project$snapshotsArgs<ExtArgs>
     storageObjects?: boolean | Project$storageObjectsArgs<ExtArgs>
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
+    rollbackIdempotency?: boolean | Project$rollbackIdempotencyArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
     ideState?: boolean | Project$ideStateArgs<ExtArgs>
@@ -25797,6 +25898,7 @@ export namespace Prisma {
     snapshots?: boolean | Project$snapshotsArgs<ExtArgs>
     storageObjects?: boolean | Project$storageObjectsArgs<ExtArgs>
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
+    rollbackIdempotency?: boolean | Project$rollbackIdempotencyArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
     conversations?: boolean | Project$conversationsArgs<ExtArgs>
     ideState?: boolean | Project$ideStateArgs<ExtArgs>
@@ -25835,6 +25937,7 @@ export namespace Prisma {
       snapshots: Prisma.$ProjectSnapshotPayload<ExtArgs>[]
       storageObjects: Prisma.$ProjectStorageObjectPayload<ExtArgs>[]
       deployments: Prisma.$DeploymentPayload<ExtArgs>[]
+      rollbackIdempotency: Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>[]
       fileSnapshots: Prisma.$FileSnapshotPayload<ExtArgs>[]
       conversations: Prisma.$AiConversationPayload<ExtArgs>[]
       ideState: Prisma.$ProjectIdeStatePayload<ExtArgs> | null
@@ -26272,6 +26375,7 @@ export namespace Prisma {
     snapshots<T extends Project$snapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Project$snapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     storageObjects<T extends Project$storageObjectsArgs<ExtArgs> = {}>(args?: Subset<T, Project$storageObjectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectStorageObjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     deployments<T extends Project$deploymentsArgs<ExtArgs> = {}>(args?: Subset<T, Project$deploymentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DeploymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    rollbackIdempotency<T extends Project$rollbackIdempotencyArgs<ExtArgs> = {}>(args?: Subset<T, Project$rollbackIdempotencyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     fileSnapshots<T extends Project$fileSnapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Project$fileSnapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FileSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     conversations<T extends Project$conversationsArgs<ExtArgs> = {}>(args?: Subset<T, Project$conversationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiConversationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     ideState<T extends Project$ideStateArgs<ExtArgs> = {}>(args?: Subset<T, Project$ideStateArgs<ExtArgs>>): Prisma__ProjectIdeStateClient<$Result.GetResult<Prisma.$ProjectIdeStatePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -26992,6 +27096,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: DeploymentScalarFieldEnum | DeploymentScalarFieldEnum[]
+  }
+
+  /**
+   * Project.rollbackIdempotency
+   */
+  export type Project$rollbackIdempotencyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestInclude<ExtArgs> | null
+    where?: RollbackIdempotencyRequestWhereInput
+    orderBy?: RollbackIdempotencyRequestOrderByWithRelationInput | RollbackIdempotencyRequestOrderByWithRelationInput[]
+    cursor?: RollbackIdempotencyRequestWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RollbackIdempotencyRequestScalarFieldEnum | RollbackIdempotencyRequestScalarFieldEnum[]
   }
 
   /**
@@ -59174,6 +59302,1164 @@ export namespace Prisma {
      * Omit specific fields from the ReleaseManifest
      */
     omit?: ReleaseManifestOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model RollbackIdempotencyRequest
+   */
+
+  export type AggregateRollbackIdempotencyRequest = {
+    _count: RollbackIdempotencyRequestCountAggregateOutputType | null
+    _avg: RollbackIdempotencyRequestAvgAggregateOutputType | null
+    _sum: RollbackIdempotencyRequestSumAggregateOutputType | null
+    _min: RollbackIdempotencyRequestMinAggregateOutputType | null
+    _max: RollbackIdempotencyRequestMaxAggregateOutputType | null
+  }
+
+  export type RollbackIdempotencyRequestAvgAggregateOutputType = {
+    responseStatus: number | null
+  }
+
+  export type RollbackIdempotencyRequestSumAggregateOutputType = {
+    responseStatus: number | null
+  }
+
+  export type RollbackIdempotencyRequestMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    idempotencyKey: string | null
+    requestFingerprint: string | null
+    status: string | null
+    responseStatus: number | null
+    deploymentId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type RollbackIdempotencyRequestMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    idempotencyKey: string | null
+    requestFingerprint: string | null
+    status: string | null
+    responseStatus: number | null
+    deploymentId: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type RollbackIdempotencyRequestCountAggregateOutputType = {
+    id: number
+    projectId: number
+    idempotencyKey: number
+    requestFingerprint: number
+    status: number
+    responseStatus: number
+    responseBody: number
+    deploymentId: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type RollbackIdempotencyRequestAvgAggregateInputType = {
+    responseStatus?: true
+  }
+
+  export type RollbackIdempotencyRequestSumAggregateInputType = {
+    responseStatus?: true
+  }
+
+  export type RollbackIdempotencyRequestMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    idempotencyKey?: true
+    requestFingerprint?: true
+    status?: true
+    responseStatus?: true
+    deploymentId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type RollbackIdempotencyRequestMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    idempotencyKey?: true
+    requestFingerprint?: true
+    status?: true
+    responseStatus?: true
+    deploymentId?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type RollbackIdempotencyRequestCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    idempotencyKey?: true
+    requestFingerprint?: true
+    status?: true
+    responseStatus?: true
+    responseBody?: true
+    deploymentId?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type RollbackIdempotencyRequestAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RollbackIdempotencyRequest to aggregate.
+     */
+    where?: RollbackIdempotencyRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RollbackIdempotencyRequests to fetch.
+     */
+    orderBy?: RollbackIdempotencyRequestOrderByWithRelationInput | RollbackIdempotencyRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: RollbackIdempotencyRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RollbackIdempotencyRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RollbackIdempotencyRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned RollbackIdempotencyRequests
+    **/
+    _count?: true | RollbackIdempotencyRequestCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: RollbackIdempotencyRequestAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: RollbackIdempotencyRequestSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: RollbackIdempotencyRequestMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: RollbackIdempotencyRequestMaxAggregateInputType
+  }
+
+  export type GetRollbackIdempotencyRequestAggregateType<T extends RollbackIdempotencyRequestAggregateArgs> = {
+        [P in keyof T & keyof AggregateRollbackIdempotencyRequest]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRollbackIdempotencyRequest[P]>
+      : GetScalarType<T[P], AggregateRollbackIdempotencyRequest[P]>
+  }
+
+
+
+
+  export type RollbackIdempotencyRequestGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RollbackIdempotencyRequestWhereInput
+    orderBy?: RollbackIdempotencyRequestOrderByWithAggregationInput | RollbackIdempotencyRequestOrderByWithAggregationInput[]
+    by: RollbackIdempotencyRequestScalarFieldEnum[] | RollbackIdempotencyRequestScalarFieldEnum
+    having?: RollbackIdempotencyRequestScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: RollbackIdempotencyRequestCountAggregateInputType | true
+    _avg?: RollbackIdempotencyRequestAvgAggregateInputType
+    _sum?: RollbackIdempotencyRequestSumAggregateInputType
+    _min?: RollbackIdempotencyRequestMinAggregateInputType
+    _max?: RollbackIdempotencyRequestMaxAggregateInputType
+  }
+
+  export type RollbackIdempotencyRequestGroupByOutputType = {
+    id: string
+    projectId: string
+    idempotencyKey: string
+    requestFingerprint: string
+    status: string
+    responseStatus: number | null
+    responseBody: JsonValue | null
+    deploymentId: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: RollbackIdempotencyRequestCountAggregateOutputType | null
+    _avg: RollbackIdempotencyRequestAvgAggregateOutputType | null
+    _sum: RollbackIdempotencyRequestSumAggregateOutputType | null
+    _min: RollbackIdempotencyRequestMinAggregateOutputType | null
+    _max: RollbackIdempotencyRequestMaxAggregateOutputType | null
+  }
+
+  type GetRollbackIdempotencyRequestGroupByPayload<T extends RollbackIdempotencyRequestGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<RollbackIdempotencyRequestGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof RollbackIdempotencyRequestGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], RollbackIdempotencyRequestGroupByOutputType[P]>
+            : GetScalarType<T[P], RollbackIdempotencyRequestGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type RollbackIdempotencyRequestSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    idempotencyKey?: boolean
+    requestFingerprint?: boolean
+    status?: boolean
+    responseStatus?: boolean
+    responseBody?: boolean
+    deploymentId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["rollbackIdempotencyRequest"]>
+
+  export type RollbackIdempotencyRequestSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    idempotencyKey?: boolean
+    requestFingerprint?: boolean
+    status?: boolean
+    responseStatus?: boolean
+    responseBody?: boolean
+    deploymentId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["rollbackIdempotencyRequest"]>
+
+  export type RollbackIdempotencyRequestSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    idempotencyKey?: boolean
+    requestFingerprint?: boolean
+    status?: boolean
+    responseStatus?: boolean
+    responseBody?: boolean
+    deploymentId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["rollbackIdempotencyRequest"]>
+
+  export type RollbackIdempotencyRequestSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    idempotencyKey?: boolean
+    requestFingerprint?: boolean
+    status?: boolean
+    responseStatus?: boolean
+    responseBody?: boolean
+    deploymentId?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type RollbackIdempotencyRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "idempotencyKey" | "requestFingerprint" | "status" | "responseStatus" | "responseBody" | "deploymentId" | "createdAt" | "updatedAt", ExtArgs["result"]["rollbackIdempotencyRequest"]>
+  export type RollbackIdempotencyRequestInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type RollbackIdempotencyRequestIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type RollbackIdempotencyRequestIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+
+  export type $RollbackIdempotencyRequestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "RollbackIdempotencyRequest"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      idempotencyKey: string
+      requestFingerprint: string
+      status: string
+      responseStatus: number | null
+      responseBody: Prisma.JsonValue | null
+      deploymentId: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["rollbackIdempotencyRequest"]>
+    composites: {}
+  }
+
+  type RollbackIdempotencyRequestGetPayload<S extends boolean | null | undefined | RollbackIdempotencyRequestDefaultArgs> = $Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload, S>
+
+  type RollbackIdempotencyRequestCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<RollbackIdempotencyRequestFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: RollbackIdempotencyRequestCountAggregateInputType | true
+    }
+
+  export interface RollbackIdempotencyRequestDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['RollbackIdempotencyRequest'], meta: { name: 'RollbackIdempotencyRequest' } }
+    /**
+     * Find zero or one RollbackIdempotencyRequest that matches the filter.
+     * @param {RollbackIdempotencyRequestFindUniqueArgs} args - Arguments to find a RollbackIdempotencyRequest
+     * @example
+     * // Get one RollbackIdempotencyRequest
+     * const rollbackIdempotencyRequest = await prisma.rollbackIdempotencyRequest.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends RollbackIdempotencyRequestFindUniqueArgs>(args: SelectSubset<T, RollbackIdempotencyRequestFindUniqueArgs<ExtArgs>>): Prisma__RollbackIdempotencyRequestClient<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one RollbackIdempotencyRequest that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {RollbackIdempotencyRequestFindUniqueOrThrowArgs} args - Arguments to find a RollbackIdempotencyRequest
+     * @example
+     * // Get one RollbackIdempotencyRequest
+     * const rollbackIdempotencyRequest = await prisma.rollbackIdempotencyRequest.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends RollbackIdempotencyRequestFindUniqueOrThrowArgs>(args: SelectSubset<T, RollbackIdempotencyRequestFindUniqueOrThrowArgs<ExtArgs>>): Prisma__RollbackIdempotencyRequestClient<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RollbackIdempotencyRequest that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyRequestFindFirstArgs} args - Arguments to find a RollbackIdempotencyRequest
+     * @example
+     * // Get one RollbackIdempotencyRequest
+     * const rollbackIdempotencyRequest = await prisma.rollbackIdempotencyRequest.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends RollbackIdempotencyRequestFindFirstArgs>(args?: SelectSubset<T, RollbackIdempotencyRequestFindFirstArgs<ExtArgs>>): Prisma__RollbackIdempotencyRequestClient<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RollbackIdempotencyRequest that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyRequestFindFirstOrThrowArgs} args - Arguments to find a RollbackIdempotencyRequest
+     * @example
+     * // Get one RollbackIdempotencyRequest
+     * const rollbackIdempotencyRequest = await prisma.rollbackIdempotencyRequest.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends RollbackIdempotencyRequestFindFirstOrThrowArgs>(args?: SelectSubset<T, RollbackIdempotencyRequestFindFirstOrThrowArgs<ExtArgs>>): Prisma__RollbackIdempotencyRequestClient<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more RollbackIdempotencyRequests that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyRequestFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all RollbackIdempotencyRequests
+     * const rollbackIdempotencyRequests = await prisma.rollbackIdempotencyRequest.findMany()
+     * 
+     * // Get first 10 RollbackIdempotencyRequests
+     * const rollbackIdempotencyRequests = await prisma.rollbackIdempotencyRequest.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const rollbackIdempotencyRequestWithIdOnly = await prisma.rollbackIdempotencyRequest.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends RollbackIdempotencyRequestFindManyArgs>(args?: SelectSubset<T, RollbackIdempotencyRequestFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a RollbackIdempotencyRequest.
+     * @param {RollbackIdempotencyRequestCreateArgs} args - Arguments to create a RollbackIdempotencyRequest.
+     * @example
+     * // Create one RollbackIdempotencyRequest
+     * const RollbackIdempotencyRequest = await prisma.rollbackIdempotencyRequest.create({
+     *   data: {
+     *     // ... data to create a RollbackIdempotencyRequest
+     *   }
+     * })
+     * 
+     */
+    create<T extends RollbackIdempotencyRequestCreateArgs>(args: SelectSubset<T, RollbackIdempotencyRequestCreateArgs<ExtArgs>>): Prisma__RollbackIdempotencyRequestClient<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many RollbackIdempotencyRequests.
+     * @param {RollbackIdempotencyRequestCreateManyArgs} args - Arguments to create many RollbackIdempotencyRequests.
+     * @example
+     * // Create many RollbackIdempotencyRequests
+     * const rollbackIdempotencyRequest = await prisma.rollbackIdempotencyRequest.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends RollbackIdempotencyRequestCreateManyArgs>(args?: SelectSubset<T, RollbackIdempotencyRequestCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many RollbackIdempotencyRequests and returns the data saved in the database.
+     * @param {RollbackIdempotencyRequestCreateManyAndReturnArgs} args - Arguments to create many RollbackIdempotencyRequests.
+     * @example
+     * // Create many RollbackIdempotencyRequests
+     * const rollbackIdempotencyRequest = await prisma.rollbackIdempotencyRequest.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many RollbackIdempotencyRequests and only return the `id`
+     * const rollbackIdempotencyRequestWithIdOnly = await prisma.rollbackIdempotencyRequest.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends RollbackIdempotencyRequestCreateManyAndReturnArgs>(args?: SelectSubset<T, RollbackIdempotencyRequestCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a RollbackIdempotencyRequest.
+     * @param {RollbackIdempotencyRequestDeleteArgs} args - Arguments to delete one RollbackIdempotencyRequest.
+     * @example
+     * // Delete one RollbackIdempotencyRequest
+     * const RollbackIdempotencyRequest = await prisma.rollbackIdempotencyRequest.delete({
+     *   where: {
+     *     // ... filter to delete one RollbackIdempotencyRequest
+     *   }
+     * })
+     * 
+     */
+    delete<T extends RollbackIdempotencyRequestDeleteArgs>(args: SelectSubset<T, RollbackIdempotencyRequestDeleteArgs<ExtArgs>>): Prisma__RollbackIdempotencyRequestClient<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one RollbackIdempotencyRequest.
+     * @param {RollbackIdempotencyRequestUpdateArgs} args - Arguments to update one RollbackIdempotencyRequest.
+     * @example
+     * // Update one RollbackIdempotencyRequest
+     * const rollbackIdempotencyRequest = await prisma.rollbackIdempotencyRequest.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends RollbackIdempotencyRequestUpdateArgs>(args: SelectSubset<T, RollbackIdempotencyRequestUpdateArgs<ExtArgs>>): Prisma__RollbackIdempotencyRequestClient<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more RollbackIdempotencyRequests.
+     * @param {RollbackIdempotencyRequestDeleteManyArgs} args - Arguments to filter RollbackIdempotencyRequests to delete.
+     * @example
+     * // Delete a few RollbackIdempotencyRequests
+     * const { count } = await prisma.rollbackIdempotencyRequest.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends RollbackIdempotencyRequestDeleteManyArgs>(args?: SelectSubset<T, RollbackIdempotencyRequestDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RollbackIdempotencyRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyRequestUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many RollbackIdempotencyRequests
+     * const rollbackIdempotencyRequest = await prisma.rollbackIdempotencyRequest.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends RollbackIdempotencyRequestUpdateManyArgs>(args: SelectSubset<T, RollbackIdempotencyRequestUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RollbackIdempotencyRequests and returns the data updated in the database.
+     * @param {RollbackIdempotencyRequestUpdateManyAndReturnArgs} args - Arguments to update many RollbackIdempotencyRequests.
+     * @example
+     * // Update many RollbackIdempotencyRequests
+     * const rollbackIdempotencyRequest = await prisma.rollbackIdempotencyRequest.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more RollbackIdempotencyRequests and only return the `id`
+     * const rollbackIdempotencyRequestWithIdOnly = await prisma.rollbackIdempotencyRequest.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends RollbackIdempotencyRequestUpdateManyAndReturnArgs>(args: SelectSubset<T, RollbackIdempotencyRequestUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one RollbackIdempotencyRequest.
+     * @param {RollbackIdempotencyRequestUpsertArgs} args - Arguments to update or create a RollbackIdempotencyRequest.
+     * @example
+     * // Update or create a RollbackIdempotencyRequest
+     * const rollbackIdempotencyRequest = await prisma.rollbackIdempotencyRequest.upsert({
+     *   create: {
+     *     // ... data to create a RollbackIdempotencyRequest
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the RollbackIdempotencyRequest we want to update
+     *   }
+     * })
+     */
+    upsert<T extends RollbackIdempotencyRequestUpsertArgs>(args: SelectSubset<T, RollbackIdempotencyRequestUpsertArgs<ExtArgs>>): Prisma__RollbackIdempotencyRequestClient<$Result.GetResult<Prisma.$RollbackIdempotencyRequestPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of RollbackIdempotencyRequests.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyRequestCountArgs} args - Arguments to filter RollbackIdempotencyRequests to count.
+     * @example
+     * // Count the number of RollbackIdempotencyRequests
+     * const count = await prisma.rollbackIdempotencyRequest.count({
+     *   where: {
+     *     // ... the filter for the RollbackIdempotencyRequests we want to count
+     *   }
+     * })
+    **/
+    count<T extends RollbackIdempotencyRequestCountArgs>(
+      args?: Subset<T, RollbackIdempotencyRequestCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], RollbackIdempotencyRequestCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a RollbackIdempotencyRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyRequestAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends RollbackIdempotencyRequestAggregateArgs>(args: Subset<T, RollbackIdempotencyRequestAggregateArgs>): Prisma.PrismaPromise<GetRollbackIdempotencyRequestAggregateType<T>>
+
+    /**
+     * Group by RollbackIdempotencyRequest.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RollbackIdempotencyRequestGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends RollbackIdempotencyRequestGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: RollbackIdempotencyRequestGroupByArgs['orderBy'] }
+        : { orderBy?: RollbackIdempotencyRequestGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, RollbackIdempotencyRequestGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRollbackIdempotencyRequestGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the RollbackIdempotencyRequest model
+   */
+  readonly fields: RollbackIdempotencyRequestFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for RollbackIdempotencyRequest.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__RollbackIdempotencyRequestClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the RollbackIdempotencyRequest model
+   */
+  interface RollbackIdempotencyRequestFieldRefs {
+    readonly id: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly projectId: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly idempotencyKey: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly requestFingerprint: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly status: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly responseStatus: FieldRef<"RollbackIdempotencyRequest", 'Int'>
+    readonly responseBody: FieldRef<"RollbackIdempotencyRequest", 'Json'>
+    readonly deploymentId: FieldRef<"RollbackIdempotencyRequest", 'String'>
+    readonly createdAt: FieldRef<"RollbackIdempotencyRequest", 'DateTime'>
+    readonly updatedAt: FieldRef<"RollbackIdempotencyRequest", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * RollbackIdempotencyRequest findUnique
+   */
+  export type RollbackIdempotencyRequestFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which RollbackIdempotencyRequest to fetch.
+     */
+    where: RollbackIdempotencyRequestWhereUniqueInput
+  }
+
+  /**
+   * RollbackIdempotencyRequest findUniqueOrThrow
+   */
+  export type RollbackIdempotencyRequestFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which RollbackIdempotencyRequest to fetch.
+     */
+    where: RollbackIdempotencyRequestWhereUniqueInput
+  }
+
+  /**
+   * RollbackIdempotencyRequest findFirst
+   */
+  export type RollbackIdempotencyRequestFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which RollbackIdempotencyRequest to fetch.
+     */
+    where?: RollbackIdempotencyRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RollbackIdempotencyRequests to fetch.
+     */
+    orderBy?: RollbackIdempotencyRequestOrderByWithRelationInput | RollbackIdempotencyRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RollbackIdempotencyRequests.
+     */
+    cursor?: RollbackIdempotencyRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RollbackIdempotencyRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RollbackIdempotencyRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RollbackIdempotencyRequests.
+     */
+    distinct?: RollbackIdempotencyRequestScalarFieldEnum | RollbackIdempotencyRequestScalarFieldEnum[]
+  }
+
+  /**
+   * RollbackIdempotencyRequest findFirstOrThrow
+   */
+  export type RollbackIdempotencyRequestFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which RollbackIdempotencyRequest to fetch.
+     */
+    where?: RollbackIdempotencyRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RollbackIdempotencyRequests to fetch.
+     */
+    orderBy?: RollbackIdempotencyRequestOrderByWithRelationInput | RollbackIdempotencyRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RollbackIdempotencyRequests.
+     */
+    cursor?: RollbackIdempotencyRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RollbackIdempotencyRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RollbackIdempotencyRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RollbackIdempotencyRequests.
+     */
+    distinct?: RollbackIdempotencyRequestScalarFieldEnum | RollbackIdempotencyRequestScalarFieldEnum[]
+  }
+
+  /**
+   * RollbackIdempotencyRequest findMany
+   */
+  export type RollbackIdempotencyRequestFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestInclude<ExtArgs> | null
+    /**
+     * Filter, which RollbackIdempotencyRequests to fetch.
+     */
+    where?: RollbackIdempotencyRequestWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RollbackIdempotencyRequests to fetch.
+     */
+    orderBy?: RollbackIdempotencyRequestOrderByWithRelationInput | RollbackIdempotencyRequestOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing RollbackIdempotencyRequests.
+     */
+    cursor?: RollbackIdempotencyRequestWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RollbackIdempotencyRequests from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RollbackIdempotencyRequests.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RollbackIdempotencyRequests.
+     */
+    distinct?: RollbackIdempotencyRequestScalarFieldEnum | RollbackIdempotencyRequestScalarFieldEnum[]
+  }
+
+  /**
+   * RollbackIdempotencyRequest create
+   */
+  export type RollbackIdempotencyRequestCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestInclude<ExtArgs> | null
+    /**
+     * The data needed to create a RollbackIdempotencyRequest.
+     */
+    data: XOR<RollbackIdempotencyRequestCreateInput, RollbackIdempotencyRequestUncheckedCreateInput>
+  }
+
+  /**
+   * RollbackIdempotencyRequest createMany
+   */
+  export type RollbackIdempotencyRequestCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many RollbackIdempotencyRequests.
+     */
+    data: RollbackIdempotencyRequestCreateManyInput | RollbackIdempotencyRequestCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RollbackIdempotencyRequest createManyAndReturn
+   */
+  export type RollbackIdempotencyRequestCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * The data used to create many RollbackIdempotencyRequests.
+     */
+    data: RollbackIdempotencyRequestCreateManyInput | RollbackIdempotencyRequestCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * RollbackIdempotencyRequest update
+   */
+  export type RollbackIdempotencyRequestUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestInclude<ExtArgs> | null
+    /**
+     * The data needed to update a RollbackIdempotencyRequest.
+     */
+    data: XOR<RollbackIdempotencyRequestUpdateInput, RollbackIdempotencyRequestUncheckedUpdateInput>
+    /**
+     * Choose, which RollbackIdempotencyRequest to update.
+     */
+    where: RollbackIdempotencyRequestWhereUniqueInput
+  }
+
+  /**
+   * RollbackIdempotencyRequest updateMany
+   */
+  export type RollbackIdempotencyRequestUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update RollbackIdempotencyRequests.
+     */
+    data: XOR<RollbackIdempotencyRequestUpdateManyMutationInput, RollbackIdempotencyRequestUncheckedUpdateManyInput>
+    /**
+     * Filter which RollbackIdempotencyRequests to update
+     */
+    where?: RollbackIdempotencyRequestWhereInput
+    /**
+     * Limit how many RollbackIdempotencyRequests to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * RollbackIdempotencyRequest updateManyAndReturn
+   */
+  export type RollbackIdempotencyRequestUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * The data used to update RollbackIdempotencyRequests.
+     */
+    data: XOR<RollbackIdempotencyRequestUpdateManyMutationInput, RollbackIdempotencyRequestUncheckedUpdateManyInput>
+    /**
+     * Filter which RollbackIdempotencyRequests to update
+     */
+    where?: RollbackIdempotencyRequestWhereInput
+    /**
+     * Limit how many RollbackIdempotencyRequests to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * RollbackIdempotencyRequest upsert
+   */
+  export type RollbackIdempotencyRequestUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestInclude<ExtArgs> | null
+    /**
+     * The filter to search for the RollbackIdempotencyRequest to update in case it exists.
+     */
+    where: RollbackIdempotencyRequestWhereUniqueInput
+    /**
+     * In case the RollbackIdempotencyRequest found by the `where` argument doesn't exist, create a new RollbackIdempotencyRequest with this data.
+     */
+    create: XOR<RollbackIdempotencyRequestCreateInput, RollbackIdempotencyRequestUncheckedCreateInput>
+    /**
+     * In case the RollbackIdempotencyRequest was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<RollbackIdempotencyRequestUpdateInput, RollbackIdempotencyRequestUncheckedUpdateInput>
+  }
+
+  /**
+   * RollbackIdempotencyRequest delete
+   */
+  export type RollbackIdempotencyRequestDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestInclude<ExtArgs> | null
+    /**
+     * Filter which RollbackIdempotencyRequest to delete.
+     */
+    where: RollbackIdempotencyRequestWhereUniqueInput
+  }
+
+  /**
+   * RollbackIdempotencyRequest deleteMany
+   */
+  export type RollbackIdempotencyRequestDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RollbackIdempotencyRequests to delete
+     */
+    where?: RollbackIdempotencyRequestWhereInput
+    /**
+     * Limit how many RollbackIdempotencyRequests to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * RollbackIdempotencyRequest without action
+   */
+  export type RollbackIdempotencyRequestDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RollbackIdempotencyRequest
+     */
+    select?: RollbackIdempotencyRequestSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RollbackIdempotencyRequest
+     */
+    omit?: RollbackIdempotencyRequestOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RollbackIdempotencyRequestInclude<ExtArgs> | null
   }
 
 
@@ -155285,6 +156571,22 @@ export namespace Prisma {
   export type ReleaseManifestScalarFieldEnum = (typeof ReleaseManifestScalarFieldEnum)[keyof typeof ReleaseManifestScalarFieldEnum]
 
 
+  export const RollbackIdempotencyRequestScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    idempotencyKey: 'idempotencyKey',
+    requestFingerprint: 'requestFingerprint',
+    status: 'status',
+    responseStatus: 'responseStatus',
+    responseBody: 'responseBody',
+    deploymentId: 'deploymentId',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type RollbackIdempotencyRequestScalarFieldEnum = (typeof RollbackIdempotencyRequestScalarFieldEnum)[keyof typeof RollbackIdempotencyRequestScalarFieldEnum]
+
+
   export const RateCardScalarFieldEnum: {
     id: 'id',
     version: 'version',
@@ -157865,6 +159167,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotListRelationFilter
     storageObjects?: ProjectStorageObjectListRelationFilter
     deployments?: DeploymentListRelationFilter
+    rollbackIdempotency?: RollbackIdempotencyRequestListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
     ideState?: XOR<ProjectIdeStateNullableScalarRelationFilter, ProjectIdeStateWhereInput> | null
@@ -157909,6 +159212,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotOrderByRelationAggregateInput
     storageObjects?: ProjectStorageObjectOrderByRelationAggregateInput
     deployments?: DeploymentOrderByRelationAggregateInput
+    rollbackIdempotency?: RollbackIdempotencyRequestOrderByRelationAggregateInput
     fileSnapshots?: FileSnapshotOrderByRelationAggregateInput
     conversations?: AiConversationOrderByRelationAggregateInput
     ideState?: ProjectIdeStateOrderByWithRelationInput
@@ -157957,6 +159261,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotListRelationFilter
     storageObjects?: ProjectStorageObjectListRelationFilter
     deployments?: DeploymentListRelationFilter
+    rollbackIdempotency?: RollbackIdempotencyRequestListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
     conversations?: AiConversationListRelationFilter
     ideState?: XOR<ProjectIdeStateNullableScalarRelationFilter, ProjectIdeStateWhereInput> | null
@@ -160262,6 +161567,89 @@ export namespace Prisma {
     configDigest?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     dbMigrationPoint?: StringNullableWithAggregatesFilter<"ReleaseManifest"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ReleaseManifest"> | Date | string
+  }
+
+  export type RollbackIdempotencyRequestWhereInput = {
+    AND?: RollbackIdempotencyRequestWhereInput | RollbackIdempotencyRequestWhereInput[]
+    OR?: RollbackIdempotencyRequestWhereInput[]
+    NOT?: RollbackIdempotencyRequestWhereInput | RollbackIdempotencyRequestWhereInput[]
+    id?: StringFilter<"RollbackIdempotencyRequest"> | string
+    projectId?: StringFilter<"RollbackIdempotencyRequest"> | string
+    idempotencyKey?: StringFilter<"RollbackIdempotencyRequest"> | string
+    requestFingerprint?: StringFilter<"RollbackIdempotencyRequest"> | string
+    status?: StringFilter<"RollbackIdempotencyRequest"> | string
+    responseStatus?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
+    responseBody?: JsonNullableFilter<"RollbackIdempotencyRequest">
+    deploymentId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    createdAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
+    updatedAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }
+
+  export type RollbackIdempotencyRequestOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestFingerprint?: SortOrder
+    status?: SortOrder
+    responseStatus?: SortOrderInput | SortOrder
+    responseBody?: SortOrderInput | SortOrder
+    deploymentId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+  }
+
+  export type RollbackIdempotencyRequestWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    projectId_idempotencyKey?: RollbackIdempotencyRequestProjectIdIdempotencyKeyCompoundUniqueInput
+    AND?: RollbackIdempotencyRequestWhereInput | RollbackIdempotencyRequestWhereInput[]
+    OR?: RollbackIdempotencyRequestWhereInput[]
+    NOT?: RollbackIdempotencyRequestWhereInput | RollbackIdempotencyRequestWhereInput[]
+    projectId?: StringFilter<"RollbackIdempotencyRequest"> | string
+    idempotencyKey?: StringFilter<"RollbackIdempotencyRequest"> | string
+    requestFingerprint?: StringFilter<"RollbackIdempotencyRequest"> | string
+    status?: StringFilter<"RollbackIdempotencyRequest"> | string
+    responseStatus?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
+    responseBody?: JsonNullableFilter<"RollbackIdempotencyRequest">
+    deploymentId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    createdAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
+    updatedAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }, "id" | "projectId_idempotencyKey">
+
+  export type RollbackIdempotencyRequestOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestFingerprint?: SortOrder
+    status?: SortOrder
+    responseStatus?: SortOrderInput | SortOrder
+    responseBody?: SortOrderInput | SortOrder
+    deploymentId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: RollbackIdempotencyRequestCountOrderByAggregateInput
+    _avg?: RollbackIdempotencyRequestAvgOrderByAggregateInput
+    _max?: RollbackIdempotencyRequestMaxOrderByAggregateInput
+    _min?: RollbackIdempotencyRequestMinOrderByAggregateInput
+    _sum?: RollbackIdempotencyRequestSumOrderByAggregateInput
+  }
+
+  export type RollbackIdempotencyRequestScalarWhereWithAggregatesInput = {
+    AND?: RollbackIdempotencyRequestScalarWhereWithAggregatesInput | RollbackIdempotencyRequestScalarWhereWithAggregatesInput[]
+    OR?: RollbackIdempotencyRequestScalarWhereWithAggregatesInput[]
+    NOT?: RollbackIdempotencyRequestScalarWhereWithAggregatesInput | RollbackIdempotencyRequestScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
+    projectId?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
+    idempotencyKey?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
+    requestFingerprint?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
+    status?: StringWithAggregatesFilter<"RollbackIdempotencyRequest"> | string
+    responseStatus?: IntNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | number | null
+    responseBody?: JsonNullableWithAggregatesFilter<"RollbackIdempotencyRequest">
+    deploymentId?: StringNullableWithAggregatesFilter<"RollbackIdempotencyRequest"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"RollbackIdempotencyRequest"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"RollbackIdempotencyRequest"> | Date | string
   }
 
   export type RateCardWhereInput = {
@@ -167930,6 +169318,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -167973,6 +169362,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -168016,6 +169406,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -168059,6 +169450,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -170488,6 +171880,96 @@ export namespace Prisma {
     configDigest?: NullableStringFieldUpdateOperationsInput | string | null
     dbMigrationPoint?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RollbackIdempotencyRequestCreateInput = {
+    id?: string
+    idempotencyKey: string
+    requestFingerprint: string
+    status?: string
+    responseStatus?: number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutRollbackIdempotencyInput
+  }
+
+  export type RollbackIdempotencyRequestUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    idempotencyKey: string
+    requestFingerprint: string
+    status?: string
+    responseStatus?: number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RollbackIdempotencyRequestUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestFingerprint?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutRollbackIdempotencyNestedInput
+  }
+
+  export type RollbackIdempotencyRequestUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestFingerprint?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RollbackIdempotencyRequestCreateManyInput = {
+    id?: string
+    projectId: string
+    idempotencyKey: string
+    requestFingerprint: string
+    status?: string
+    responseStatus?: number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RollbackIdempotencyRequestUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestFingerprint?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RollbackIdempotencyRequestUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestFingerprint?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type RateCardCreateInput = {
@@ -179076,6 +180558,12 @@ export namespace Prisma {
     none?: DeploymentWhereInput
   }
 
+  export type RollbackIdempotencyRequestListRelationFilter = {
+    every?: RollbackIdempotencyRequestWhereInput
+    some?: RollbackIdempotencyRequestWhereInput
+    none?: RollbackIdempotencyRequestWhereInput
+  }
+
   export type FileSnapshotListRelationFilter = {
     every?: FileSnapshotWhereInput
     some?: FileSnapshotWhereInput
@@ -179138,6 +180626,10 @@ export namespace Prisma {
   }
 
   export type DeploymentOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type RollbackIdempotencyRequestOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -180642,6 +182134,56 @@ export namespace Prisma {
 
   export type ReleaseManifestSumOrderByAggregateInput = {
     version?: SortOrder
+  }
+
+  export type RollbackIdempotencyRequestProjectIdIdempotencyKeyCompoundUniqueInput = {
+    projectId: string
+    idempotencyKey: string
+  }
+
+  export type RollbackIdempotencyRequestCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestFingerprint?: SortOrder
+    status?: SortOrder
+    responseStatus?: SortOrder
+    responseBody?: SortOrder
+    deploymentId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RollbackIdempotencyRequestAvgOrderByAggregateInput = {
+    responseStatus?: SortOrder
+  }
+
+  export type RollbackIdempotencyRequestMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestFingerprint?: SortOrder
+    status?: SortOrder
+    responseStatus?: SortOrder
+    deploymentId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RollbackIdempotencyRequestMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestFingerprint?: SortOrder
+    status?: SortOrder
+    responseStatus?: SortOrder
+    deploymentId?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type RollbackIdempotencyRequestSumOrderByAggregateInput = {
+    responseStatus?: SortOrder
   }
 
   export type RateCardCountOrderByAggregateInput = {
@@ -187976,6 +189518,13 @@ export namespace Prisma {
     connect?: DeploymentWhereUniqueInput | DeploymentWhereUniqueInput[]
   }
 
+  export type RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput = {
+    create?: XOR<RollbackIdempotencyRequestCreateWithoutProjectInput, RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput> | RollbackIdempotencyRequestCreateWithoutProjectInput[] | RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: RollbackIdempotencyRequestCreateOrConnectWithoutProjectInput | RollbackIdempotencyRequestCreateOrConnectWithoutProjectInput[]
+    createMany?: RollbackIdempotencyRequestCreateManyProjectInputEnvelope
+    connect?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+  }
+
   export type FileSnapshotCreateNestedManyWithoutProjectInput = {
     create?: XOR<FileSnapshotCreateWithoutProjectInput, FileSnapshotUncheckedCreateWithoutProjectInput> | FileSnapshotCreateWithoutProjectInput[] | FileSnapshotUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: FileSnapshotCreateOrConnectWithoutProjectInput | FileSnapshotCreateOrConnectWithoutProjectInput[]
@@ -188145,6 +189694,13 @@ export namespace Prisma {
     connectOrCreate?: DeploymentCreateOrConnectWithoutProjectInput | DeploymentCreateOrConnectWithoutProjectInput[]
     createMany?: DeploymentCreateManyProjectInputEnvelope
     connect?: DeploymentWhereUniqueInput | DeploymentWhereUniqueInput[]
+  }
+
+  export type RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<RollbackIdempotencyRequestCreateWithoutProjectInput, RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput> | RollbackIdempotencyRequestCreateWithoutProjectInput[] | RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: RollbackIdempotencyRequestCreateOrConnectWithoutProjectInput | RollbackIdempotencyRequestCreateOrConnectWithoutProjectInput[]
+    createMany?: RollbackIdempotencyRequestCreateManyProjectInputEnvelope
+    connect?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
   }
 
   export type FileSnapshotUncheckedCreateNestedManyWithoutProjectInput = {
@@ -188401,6 +189957,20 @@ export namespace Prisma {
     update?: DeploymentUpdateWithWhereUniqueWithoutProjectInput | DeploymentUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: DeploymentUpdateManyWithWhereWithoutProjectInput | DeploymentUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: DeploymentScalarWhereInput | DeploymentScalarWhereInput[]
+  }
+
+  export type RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<RollbackIdempotencyRequestCreateWithoutProjectInput, RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput> | RollbackIdempotencyRequestCreateWithoutProjectInput[] | RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: RollbackIdempotencyRequestCreateOrConnectWithoutProjectInput | RollbackIdempotencyRequestCreateOrConnectWithoutProjectInput[]
+    upsert?: RollbackIdempotencyRequestUpsertWithWhereUniqueWithoutProjectInput | RollbackIdempotencyRequestUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: RollbackIdempotencyRequestCreateManyProjectInputEnvelope
+    set?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    disconnect?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    delete?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    connect?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    update?: RollbackIdempotencyRequestUpdateWithWhereUniqueWithoutProjectInput | RollbackIdempotencyRequestUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: RollbackIdempotencyRequestUpdateManyWithWhereWithoutProjectInput | RollbackIdempotencyRequestUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: RollbackIdempotencyRequestScalarWhereInput | RollbackIdempotencyRequestScalarWhereInput[]
   }
 
   export type FileSnapshotUpdateManyWithoutProjectNestedInput = {
@@ -188743,6 +190313,20 @@ export namespace Prisma {
     update?: DeploymentUpdateWithWhereUniqueWithoutProjectInput | DeploymentUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: DeploymentUpdateManyWithWhereWithoutProjectInput | DeploymentUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: DeploymentScalarWhereInput | DeploymentScalarWhereInput[]
+  }
+
+  export type RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<RollbackIdempotencyRequestCreateWithoutProjectInput, RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput> | RollbackIdempotencyRequestCreateWithoutProjectInput[] | RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: RollbackIdempotencyRequestCreateOrConnectWithoutProjectInput | RollbackIdempotencyRequestCreateOrConnectWithoutProjectInput[]
+    upsert?: RollbackIdempotencyRequestUpsertWithWhereUniqueWithoutProjectInput | RollbackIdempotencyRequestUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: RollbackIdempotencyRequestCreateManyProjectInputEnvelope
+    set?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    disconnect?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    delete?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    connect?: RollbackIdempotencyRequestWhereUniqueInput | RollbackIdempotencyRequestWhereUniqueInput[]
+    update?: RollbackIdempotencyRequestUpdateWithWhereUniqueWithoutProjectInput | RollbackIdempotencyRequestUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: RollbackIdempotencyRequestUpdateManyWithWhereWithoutProjectInput | RollbackIdempotencyRequestUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: RollbackIdempotencyRequestScalarWhereInput | RollbackIdempotencyRequestScalarWhereInput[]
   }
 
   export type FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput = {
@@ -189835,6 +191419,20 @@ export namespace Prisma {
     update?: DeploymentUpdateWithWhereUniqueWithoutEnvironmentInput | DeploymentUpdateWithWhereUniqueWithoutEnvironmentInput[]
     updateMany?: DeploymentUpdateManyWithWhereWithoutEnvironmentInput | DeploymentUpdateManyWithWhereWithoutEnvironmentInput[]
     deleteMany?: DeploymentScalarWhereInput | DeploymentScalarWhereInput[]
+  }
+
+  export type ProjectCreateNestedOneWithoutRollbackIdempotencyInput = {
+    create?: XOR<ProjectCreateWithoutRollbackIdempotencyInput, ProjectUncheckedCreateWithoutRollbackIdempotencyInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutRollbackIdempotencyInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneRequiredWithoutRollbackIdempotencyNestedInput = {
+    create?: XOR<ProjectCreateWithoutRollbackIdempotencyInput, ProjectUncheckedCreateWithoutRollbackIdempotencyInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutRollbackIdempotencyInput
+    upsert?: ProjectUpsertWithoutRollbackIdempotencyInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutRollbackIdempotencyInput, ProjectUpdateWithoutRollbackIdempotencyInput>, ProjectUncheckedUpdateWithoutRollbackIdempotencyInput>
   }
 
   export type OrganizationCreateNestedOneWithoutAuditLogsInput = {
@@ -195158,6 +196756,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -195200,6 +196799,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -198476,6 +200076,40 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type RollbackIdempotencyRequestCreateWithoutProjectInput = {
+    id?: string
+    idempotencyKey: string
+    requestFingerprint: string
+    status?: string
+    responseStatus?: number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput = {
+    id?: string
+    idempotencyKey: string
+    requestFingerprint: string
+    status?: string
+    responseStatus?: number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type RollbackIdempotencyRequestCreateOrConnectWithoutProjectInput = {
+    where: RollbackIdempotencyRequestWhereUniqueInput
+    create: XOR<RollbackIdempotencyRequestCreateWithoutProjectInput, RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput>
+  }
+
+  export type RollbackIdempotencyRequestCreateManyProjectInputEnvelope = {
+    data: RollbackIdempotencyRequestCreateManyProjectInput | RollbackIdempotencyRequestCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type FileSnapshotCreateWithoutProjectInput = {
     id?: string
     path: string
@@ -199247,6 +200881,38 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"Deployment"> | Date | string
   }
 
+  export type RollbackIdempotencyRequestUpsertWithWhereUniqueWithoutProjectInput = {
+    where: RollbackIdempotencyRequestWhereUniqueInput
+    update: XOR<RollbackIdempotencyRequestUpdateWithoutProjectInput, RollbackIdempotencyRequestUncheckedUpdateWithoutProjectInput>
+    create: XOR<RollbackIdempotencyRequestCreateWithoutProjectInput, RollbackIdempotencyRequestUncheckedCreateWithoutProjectInput>
+  }
+
+  export type RollbackIdempotencyRequestUpdateWithWhereUniqueWithoutProjectInput = {
+    where: RollbackIdempotencyRequestWhereUniqueInput
+    data: XOR<RollbackIdempotencyRequestUpdateWithoutProjectInput, RollbackIdempotencyRequestUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type RollbackIdempotencyRequestUpdateManyWithWhereWithoutProjectInput = {
+    where: RollbackIdempotencyRequestScalarWhereInput
+    data: XOR<RollbackIdempotencyRequestUpdateManyMutationInput, RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectInput>
+  }
+
+  export type RollbackIdempotencyRequestScalarWhereInput = {
+    AND?: RollbackIdempotencyRequestScalarWhereInput | RollbackIdempotencyRequestScalarWhereInput[]
+    OR?: RollbackIdempotencyRequestScalarWhereInput[]
+    NOT?: RollbackIdempotencyRequestScalarWhereInput | RollbackIdempotencyRequestScalarWhereInput[]
+    id?: StringFilter<"RollbackIdempotencyRequest"> | string
+    projectId?: StringFilter<"RollbackIdempotencyRequest"> | string
+    idempotencyKey?: StringFilter<"RollbackIdempotencyRequest"> | string
+    requestFingerprint?: StringFilter<"RollbackIdempotencyRequest"> | string
+    status?: StringFilter<"RollbackIdempotencyRequest"> | string
+    responseStatus?: IntNullableFilter<"RollbackIdempotencyRequest"> | number | null
+    responseBody?: JsonNullableFilter<"RollbackIdempotencyRequest">
+    deploymentId?: StringNullableFilter<"RollbackIdempotencyRequest"> | string | null
+    createdAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
+    updatedAt?: DateTimeFilter<"RollbackIdempotencyRequest"> | Date | string
+  }
+
   export type FileSnapshotUpsertWithWhereUniqueWithoutProjectInput = {
     where: FileSnapshotWhereUniqueInput
     update: XOR<FileSnapshotUpdateWithoutProjectInput, FileSnapshotUncheckedUpdateWithoutProjectInput>
@@ -199595,6 +201261,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -199637,6 +201304,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -199695,6 +201363,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -199737,6 +201406,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -200175,6 +201845,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -200217,6 +201888,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -200275,6 +201947,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -200317,6 +201990,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -200551,6 +202225,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -200593,6 +202268,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -200855,6 +202531,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -200897,6 +202574,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -200939,6 +202617,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
@@ -200981,6 +202660,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
@@ -201142,6 +202822,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
@@ -201184,6 +202865,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
@@ -201335,6 +203017,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -201377,6 +203060,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -201435,6 +203119,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -201477,6 +203162,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -201519,6 +203205,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -201561,6 +203248,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -201619,6 +203307,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -201661,6 +203350,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -201703,6 +203393,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -201745,6 +203436,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -201803,6 +203495,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -201845,6 +203538,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -201886,6 +203580,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -201928,6 +203623,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -201986,6 +203682,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -202028,6 +203725,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -202070,6 +203768,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -202112,6 +203811,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -202170,6 +203870,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -202212,6 +203913,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -202254,6 +203956,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -202296,6 +203999,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -202354,6 +204058,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -202396,6 +204101,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -202438,6 +204144,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -202480,6 +204187,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -202641,6 +204349,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -202683,6 +204392,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -202834,6 +204544,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -202876,6 +204587,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -203037,6 +204749,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -203079,6 +204792,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -203231,6 +204945,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -203273,6 +204988,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -203434,6 +205150,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -203476,6 +205193,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -203627,6 +205345,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -203669,6 +205388,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -203830,6 +205550,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -203872,6 +205593,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -204023,6 +205745,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -204065,6 +205788,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -204226,6 +205950,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -204268,6 +205993,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -204418,6 +206144,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -204460,6 +206187,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -204607,6 +206335,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -204649,6 +206378,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -204786,6 +206516,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -204828,6 +206559,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -205073,6 +206805,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -205115,6 +206848,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -205620,6 +207354,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
@@ -205662,6 +207397,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
@@ -205763,6 +207499,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
@@ -205805,6 +207542,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
@@ -205895,6 +207633,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -205937,6 +207676,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -206098,6 +207838,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -206140,6 +207881,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -206291,6 +208033,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -206333,6 +208076,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -206391,6 +208135,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -206433,6 +208178,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -206475,6 +208221,7 @@ export namespace Prisma {
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -206517,6 +208264,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -206590,6 +208338,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -206632,6 +208381,7 @@ export namespace Prisma {
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -206751,6 +208501,194 @@ export namespace Prisma {
   export type DeploymentUpdateManyWithWhereWithoutEnvironmentInput = {
     where: DeploymentScalarWhereInput
     data: XOR<DeploymentUpdateManyMutationInput, DeploymentUncheckedUpdateManyWithoutEnvironmentInput>
+  }
+
+  export type ProjectCreateWithoutRollbackIdempotencyInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutRollbackIdempotencyInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutRollbackIdempotencyInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutRollbackIdempotencyInput, ProjectUncheckedCreateWithoutRollbackIdempotencyInput>
+  }
+
+  export type ProjectUpsertWithoutRollbackIdempotencyInput = {
+    update: XOR<ProjectUpdateWithoutRollbackIdempotencyInput, ProjectUncheckedUpdateWithoutRollbackIdempotencyInput>
+    create: XOR<ProjectCreateWithoutRollbackIdempotencyInput, ProjectUncheckedCreateWithoutRollbackIdempotencyInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutRollbackIdempotencyInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutRollbackIdempotencyInput, ProjectUncheckedUpdateWithoutRollbackIdempotencyInput>
+  }
+
+  export type ProjectUpdateWithoutRollbackIdempotencyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutRollbackIdempotencyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationCreateWithoutAuditLogsInput = {
@@ -208618,6 +210556,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
     collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
@@ -208660,6 +210599,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
     collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
@@ -208849,6 +210789,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
     collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
@@ -208891,6 +210832,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
     collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
@@ -214817,6 +216759,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -214859,6 +216802,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -215073,6 +217017,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -215115,6 +217060,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -218096,6 +220042,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -218138,6 +220085,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -218264,6 +220212,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -218306,6 +220255,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -218985,6 +220935,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
@@ -219027,6 +220978,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
     ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
@@ -219188,6 +221140,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -219230,6 +221183,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -221808,6 +223762,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
@@ -221850,6 +223805,7 @@ export namespace Prisma {
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    rollbackIdempotency?: RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
     ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
@@ -223068,6 +225024,18 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type RollbackIdempotencyRequestCreateManyProjectInput = {
+    id?: string
+    idempotencyKey: string
+    requestFingerprint: string
+    status?: string
+    responseStatus?: number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type FileSnapshotCreateManyProjectInput = {
     id?: string
     workspaceId?: string | null
@@ -223628,6 +225596,42 @@ export namespace Prisma {
     startedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     finishedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     canceledAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RollbackIdempotencyRequestUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestFingerprint?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RollbackIdempotencyRequestUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestFingerprint?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RollbackIdempotencyRequestUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestFingerprint?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    responseStatus?: NullableIntFieldUpdateOperationsInput | number | null
+    responseBody?: NullableJsonNullValueInput | InputJsonValue
+    deploymentId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

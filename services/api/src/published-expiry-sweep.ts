@@ -161,6 +161,13 @@ export function servingState(input: {
     return 'not-found';
   }
 
+  // Only READY is a serving state. In particular, a CAS-losing rollback is
+  // marked FAILED before its external workload cleanup starts; treating FAILED
+  // as live would keep the public d-<id> route open during a manager fault.
+  if (input.candidate.status !== 'READY') {
+    return 'not-found';
+  }
+
   return isExpiredPublication({ candidate: input.candidate, ttlDays: input.ttlDays, now: input.now })
     ? 'expired'
     : 'live';

@@ -362,6 +362,24 @@ export interface ReleaseManifestRecord {
   createdAt: string;
 }
 
+/**
+ * Durable response ledger for rollback-to-previous. `COMPLETED` is written
+ * before the HTTP response leaves Fastify, so a retry on another replica can
+ * replay exactly one committed operation.
+ */
+export interface RollbackIdempotencyRecord {
+  id: string;
+  projectId: string;
+  idempotencyKey: string;
+  requestFingerprint: string;
+  status: 'IN_PROGRESS' | 'COMPLETED';
+  responseStatus?: number;
+  responseBody?: unknown;
+  deploymentId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SupportTicketRecord {
   id: string;
   organizationId: string;
@@ -1948,6 +1966,22 @@ export interface ApiStore {
     environment: string,
     options?: { take?: number },
   ): Promise<ReleaseManifestRecord[]>;
+  /**
+   * Atomically claim a project-scoped rollback idempotency key. A uniqueness
+   * conflict returns the already-persisted request, including across API pods.
+   */
+  claimRollbackIdempotency(input: {
+    projectId: string;
+    idempotencyKey: string;
+    requestFingerprint: string;
+  }): Promise<{ claimed: boolean; record: RollbackIdempotencyRecord }>;
+  getRollbackIdempotency(projectId: string, idempotencyKey: string): Promise<RollbackIdempotencyRecord | undefined>;
+  completeRollbackIdempotency(input: {
+    id: string;
+    responseStatus: number;
+    responseBody: unknown;
+    deploymentId?: string;
+  }): Promise<RollbackIdempotencyRecord>;
   /**
    * The ACTIVE versioned Rate Card row (undefined when none is active — the
    * caller falls back to the built-in card). `data` is the serialized RateCard.
