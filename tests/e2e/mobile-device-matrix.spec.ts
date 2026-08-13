@@ -372,31 +372,44 @@ async function assertCompactShellForProfile(
     await expect(page.getByTestId('tab-agent'), `${profile.name} AI Agent tab`).toBeVisible();
     await expect(page.getByTestId('tab-deployments'), `${profile.name} Deployments tab`).toBeVisible();
 
-    const layout = await page.evaluate(() => {
-      const navElement = document.querySelector('.bolt-mobile-replit-nav');
-      const statusElement = document.querySelector('.bolt-project-statusbar-mobile');
-      const nav = navElement?.getBoundingClientRect();
-      const status = statusElement?.getBoundingClientRect();
+    const readLayout = () =>
+      page.evaluate(() => {
+        const navElement = document.querySelector('.bolt-mobile-replit-nav');
+        const statusElement = document.querySelector('.bolt-project-statusbar-mobile');
+        const nav = navElement?.getBoundingClientRect();
+        const status = statusElement?.getBoundingClientRect();
 
-      const statusVisible =
-        statusElement instanceof HTMLElement &&
-        getComputedStyle(statusElement).display !== 'none' &&
-        statusElement.offsetParent !== null;
+        const statusVisible =
+          statusElement instanceof HTMLElement &&
+          getComputedStyle(statusElement).display !== 'none' &&
+          statusElement.offsetParent !== null;
 
-      return {
-        overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
-        navVisible:
-          navElement instanceof HTMLElement &&
-          getComputedStyle(navElement).display !== 'none' &&
-          getComputedStyle(navElement).visibility !== 'hidden' &&
-          Boolean(nav && nav.width > 0 && nav.height > 0),
-        overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
-      };
-    });
+        return {
+          overflowX: document.documentElement.scrollWidth > window.innerWidth + 1,
+          navVisible:
+            navElement instanceof HTMLElement &&
+            getComputedStyle(navElement).display !== 'none' &&
+            getComputedStyle(navElement).visibility !== 'hidden' &&
+            Boolean(nav && nav.width > 0 && nav.height > 0),
+          overlaps: Boolean(nav && status && statusVisible && status.bottom > nav.top),
+        };
+      });
 
-    expect(layout.navVisible, `${profile.name} nav visible`).toBe(true);
-    expect(layout.overflowX, `${profile.name} horizontal overflow`).toBe(false);
-    expect(layout.overlaps, `${profile.name} status/nav overlap`).toBe(false);
+    /*
+     * The visibility assertions above wait on `mobile-bottom-navigation`, but
+     * the measurement below reads `.bolt-mobile-replit-nav` — a DIFFERENT
+     * element, shown by a media query once the compact shell settles. Reading
+     * it in a single snapshot meant an unsettled frame reported
+     * `navVisible: false`, which is exactly the flake that hit a different
+     * device profile on each run. Poll until the layout settles instead.
+     */
+    await expect(async () => {
+      const layout = await readLayout();
+
+      expect(layout.navVisible, `${profile.name} nav visible`).toBe(true);
+      expect(layout.overflowX, `${profile.name} horizontal overflow`).toBe(false);
+      expect(layout.overlaps, `${profile.name} status/nav overlap`).toBe(false);
+    }).toPass({ timeout: 30_000, intervals: [250, 500, 1000, 2000] });
 
     await expect(page.getByTestId('mobile-bottom-navigation').getByTestId('button-more')).toBeVisible();
 

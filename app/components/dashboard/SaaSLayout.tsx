@@ -1426,7 +1426,16 @@ function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; em
               </button>
             </div>
             <div className="border-t border-bolt-elements-borderColor pt-1">
-              <Popover.Close asChild>
+              {/*
+               * The sign-out Form is deliberately NOT wrapped in
+               * <Popover.Close asChild>. `asChild` merges Radix's close
+               * handler onto the Form itself, so clicking Submit closed the
+               * popover — unmounting the portal content, and with it the form
+               * — while the POST was still being dispatched. The result was an
+               * intermittent sign-out that left the user on /dashboard.
+               * Navigating to /login unmounts the popover anyway.
+               */}
+              <div>
                 <Form method="post" action="/logout">
                   <button
                     type="submit"
@@ -1436,7 +1445,7 @@ function SidebarFooter({ collapsed, embedded = false }: { collapsed: boolean; em
                     {t('userArea.shell.signOut')}
                   </button>
                 </Form>
-              </Popover.Close>
+              </div>
             </div>
           </Popover.Content>
         </Popover.Portal>

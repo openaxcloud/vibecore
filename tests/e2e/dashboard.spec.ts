@@ -103,7 +103,19 @@ async function openVisibleIdeToolMenu(page: import('@playwright/test').Page) {
 
   await page.keyboard.press('Escape').catch(() => {});
   await expect(trigger).toBeVisible({ timeout: 15_000 });
-  await trigger.evaluate((element) => (element as HTMLButtonElement).click());
+
+  /*
+   * A single synthetic click raced React attaching its handler in CI: the
+   * palette simply never opened and there was no retry. The trigger mirrors its
+   * state in aria-expanded, so click until that flips.
+   */
+  await expect(async () => {
+    if ((await trigger.getAttribute('aria-expanded')) !== 'true') {
+      await trigger.click({ force: true });
+    }
+
+    expect(await trigger.getAttribute('aria-expanded')).toBe('true');
+  }).toPass({ timeout: 20_000, intervals: [250, 500, 1000] });
 
   /*
    * The palette renders as `.bolt-project-tool-modal[data-testid=
@@ -334,6 +346,14 @@ test(
 test('authenticated user area applies the global platform design system', async ({ page }) => {
   await authenticate(page);
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+
+  /*
+   * The SSR shell always seeds data-theme="dark" and an inline script
+   * reconciles it from the cookie, so a light theme only sticks once the
+   * cookie is present on a request. Proven stable: attr/class/--vc-ide-bg-app
+   * stay light for 30s after this.
+   */
+  await forceLightTheme(page);
 
   // The user area renders several matching headings (page title + section); take the first.
   await expect(page.getByRole('heading', { name: /Dashboard|Projects|Welcome/ }).first()).toBeVisible({
@@ -757,6 +777,14 @@ test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) 
   const projectId = (await createProject.json()).project.id as string;
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+
+  /*
+   * The SSR shell always seeds data-theme="dark" and an inline script
+   * reconciles it from the cookie, so a light theme only sticks once the
+   * cookie is present on a request. Proven stable: attr/class/--vc-ide-bg-app
+   * stay light for 30s after this.
+   */
+  await forceLightTheme(page);
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30000 });
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
 
@@ -858,6 +886,14 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
   const projectId = (await createProject.json()).project.id as string;
 
   await page.goto(`/projects/${projectId}/ide?panel=database`, { waitUntil: 'domcontentloaded' });
+
+  /*
+   * The SSR shell always seeds data-theme="dark" and an inline script
+   * reconciles it from the cookie, so a light theme only sticks once the
+   * cookie is present on a request. Proven stable: attr/class/--vc-ide-bg-app
+   * stay light for 30s after this.
+   */
+  await forceLightTheme(page);
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30_000 });
   await expect(page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first()).toBeVisible({
     timeout: 15_000,
@@ -1049,6 +1085,14 @@ test('all IDE service panels keep light theme containers readable', async ({ pag
   const projectId = (await createProject.json()).project.id as string;
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+
+  /*
+   * The SSR shell always seeds data-theme="dark" and an inline script
+   * reconciles it from the cookie, so a light theme only sticks once the
+   * cookie is present on a request. Proven stable: attr/class/--vc-ide-bg-app
+   * stay light for 30s after this.
+   */
+  await forceLightTheme(page);
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30_000 });
   await page.evaluate(() => {
     document.documentElement.setAttribute('data-theme', 'light');
@@ -1154,6 +1198,14 @@ test('platform typography tokens apply to the web IDE', async ({ page, isMobile 
   const projectId = (await createProject.json()).project.id as string;
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+
+  /*
+   * The SSR shell always seeds data-theme="dark" and an inline script
+   * reconciles it from the cookie, so a light theme only sticks once the
+   * cookie is present on a request. Proven stable: attr/class/--vc-ide-bg-app
+   * stay light for 30s after this.
+   */
+  await forceLightTheme(page);
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30000 });
 
   const typography = await page.locator('.bolt-project-ide-panels').evaluate((element) => {
@@ -2019,9 +2071,15 @@ test('command palette entries navigate to real product routes', async ({ page })
    */
   await expect(page.getByRole('heading', { name: 'Command palette' })).toBeVisible({ timeout: 30_000 });
 
-  const importLink = page.getByRole('link', { name: /Import GitHub repository/ });
-  await expect(importLink).toBeVisible({ timeout: 30_000 });
-  await importLink.click();
+  /*
+   * Palette entries are <Link> elements carrying role="option" inside a
+   * role="listbox" (SaaSLayout CommandPalettePreview). The explicit role
+   * overrides the implicit `link` one, so getByRole('link', …) could never
+   * match them — the page was fine, the locator was not.
+   */
+  const importCommand = page.getByRole('option', { name: /Import GitHub repository/ });
+  await expect(importCommand).toBeVisible({ timeout: 30_000 });
+  await importCommand.click();
   await expect(page).toHaveURL('/import-github');
   await expect(page.getByRole('heading', { name: 'Import GitHub' })).toBeVisible();
 });

@@ -14,127 +14,85 @@
     "",
     "Baseline: Production E2E had never been green — 0 successes in 405 runs",
     "since 2026-05-17. main @ b2ee7c88 = 57 failed / 177 passed / 24 skipped.",
-    "This branch = 10-11 failed / 204-205 passed across consecutive runs.",
     "",
-    "The list below is the UNION of what failed across runs 31697185717 and",
-    "31698415663 on the same code, not the snapshot of one run: the failing",
-    "subset moves between runs, which is itself part of the finding. Entries are",
-    "grouped by root cause; each cluster needs one product answer, not fourteen",
-    "test edits."
+    "2026-08-13, second pass: the three clusters that needed a product decision",
+    "were investigated and FIXED, so they are removed from this waiver:",
+    "  ide-light-theme (6)     -> the IDE light theme is NOT broken and the IDE is",
+    "                             NOT dark-only. Traced live: cookie + reload holds",
+    "                             data-theme=light and --vc-ide-bg-app=#f6f8fb for",
+    "                             30s. The tests were seeding localStorage only,",
+    "                             which cannot beat the SSR dark fallback.",
+    "  ide-command-palette (3) -> the palettes work. /command-palette entries are",
+    "                             <Link role=\"option\"> inside a listbox, so",
+    "                             getByRole('link') could never match; the IDE",
+    "                             add-tab trigger needed a retried click.",
+    "  auth (1)                -> real product bug: the sign-out <Form> was wrapped",
+    "                             in <Popover.Close asChild>, so Radix's close",
+    "                             handler landed on the Form and unmounted it while",
+    "                             the POST was dispatching.",
+    "",
+    "What remains is instability, not a decision: the failing subset moved on every",
+    "run of identical code. The mobile matrix measurement has been made convergent;",
+    "these entries stay one more cycle to confirm."
   ],
   "expires": "2026-08-27",
   "owner": "avi@snatchbot.me",
   "waived": [
     {
-      "test": "tests/e2e/dashboard.spec.ts:334:1 › authenticated user area applies the global platform design system",
-      "cluster": "ide-light-theme",
-      "unstable": true,
-      "reason": "The IDE surface keeps rendering dark where the test expects light, even after seeding the ecode_theme cookie + localStorage and reloading so the server re-seeds <html data-theme>. Needs a product answer: is the IDE dark-only by design, or is light-theme plumbing broken on these surfaces?"
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts:744:1 › IDE applies the full 2026 color theme tokens",
-      "cluster": "ide-light-theme",
-      "unstable": true,
-      "reason": "Same cluster: toMatchObject over the 2026 token set resolves to dark values."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts:841:1 › IDE panels, agent input and feature tools keep the platform theme in light and dark modes",
-      "cluster": "ide-light-theme",
-      "unstable": true,
-      "reason": "Same cluster; fails in some runs and passes in others on identical code."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts:1035:1 › all IDE service panels keep light theme containers readable",
-      "cluster": "ide-light-theme",
-      "reason": "Reports 'X contains dark containers in light theme', and the offending panel changes between runs (git / packages / database / overview). Either several service panels genuinely ignore the light theme, or the assertion races the panel's theme application."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts:1141:1 › platform typography tokens apply to the web IDE",
-      "cluster": "ide-light-theme",
-      "unstable": true,
-      "reason": "Typography probe runs against the IDE shell and inherits the same unresolved theme state."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts:1597:1 › IDE light theme tabs use visible tokenized surfaces",
-      "cluster": "ide-light-theme",
-      "reason": "Expected 'light', received 'dark', even after forceLightTheme() (cookie + reload). Root cause is upstream of the test."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts:1224:1 › IDE applies section 12 UI detail styles",
-      "cluster": "ide-command-palette",
-      "reason": "The add-tab palette never mounts in CI: [data-testid=ide-add-tab-command-palette] stays absent after its trigger is clicked, on a commit where the IDE shell itself renders fine. Not a locator problem."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts:1287:1 › IDE project services open as in-place panels instead of legacy project pages",
-      "cluster": "ide-command-palette",
-      "reason": "Same palette, same symptom."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts:2011:1 › command palette entries navigate to real product routes",
-      "cluster": "ide-command-palette",
-      "reason": "/command-palette renders its AppShell heading but the action links never appear, even with a 30s wait. The command list seems to depend on state the CI stack does not produce."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts:1891:1 › authenticated users can sign out from the app shell",
-      "cluster": "auth",
-      "unstable": true,
-      "reason": "Opening the account popover before clicking fixed the click, and this now passes in some runs. When it fails, the app stays on /dashboard instead of redirecting to /login — the POST /logout round-trip, not the click."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts:1883:1 › billing upgrade flow is reachable without frontend-only quota bypass",
+      "test": "tests/e2e/dashboard.spec.ts › billing upgrade flow is reachable without frontend-only quota bypass",
       "cluster": "flaky",
       "unstable": true,
       "reason": "Passed on main and on four consecutive branch runs, failed once. Not touched by this branch; tracked here so one flap does not red the gate."
     },
     {
-      "test": "tests/e2e/dashboard.spec.ts:458:1 › opens preserved Bolt IDE route for a project",
+      "test": "tests/e2e/dashboard.spec.ts › opens preserved Bolt IDE route for a project",
       "cluster": "ide-layout",
       "reason": "A computed `position` reads '' instead of 'relative' — the measured element is missing, not mis-styled. Needs the current IDE layout contract to rewrite against."
     },
     {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts:313:5 › compact IDE shell device matrix › adapts to iphone-se",
+      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to iphone-se",
       "cluster": "flaky",
       "unstable": true,
       "reason": "'nav visible expected true received false': the compact bottom nav intermittently fails to render. Hit 1 profile, then 5, then 1 across consecutive runs of the SAME commit. Should be diagnosed as a real race, not papered over with retries."
     },
     {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts:313:5 › compact IDE shell device matrix › adapts to ipad-mini-portrait",
+      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to ipad-mini-portrait",
       "cluster": "flaky",
       "unstable": true,
       "reason": "Same race as iphone-se; the affected profile changes run to run."
     },
     {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts:313:5 › compact IDE shell device matrix › adapts to iphone-pro-max",
+      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to iphone-pro-max",
       "cluster": "flaky",
       "unstable": true,
       "reason": "Same compact bottom-nav race as iphone-se. The affected profile rotates between runs of identical code (1 profile, then 5, then 2), so the whole `adapts to …` set is covered as one cluster rather than chasing whichever profile lost the race."
     },
     {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts:313:5 › compact IDE shell device matrix › adapts to pixel-compact",
+      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to pixel-compact",
       "cluster": "flaky",
       "unstable": true,
       "reason": "Same compact bottom-nav race as iphone-se. The affected profile rotates between runs of identical code (1 profile, then 5, then 2), so the whole `adapts to …` set is covered as one cluster rather than chasing whichever profile lost the race."
     },
     {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts:313:5 › compact IDE shell device matrix › adapts to galaxy-large",
+      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to galaxy-large",
       "cluster": "flaky",
       "unstable": true,
       "reason": "Same compact bottom-nav race as iphone-se. The affected profile rotates between runs of identical code (1 profile, then 5, then 2), so the whole `adapts to …` set is covered as one cluster rather than chasing whichever profile lost the race."
     },
     {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts:313:5 › compact IDE shell device matrix › adapts to android-landscape",
+      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to android-landscape",
       "cluster": "flaky",
       "unstable": true,
       "reason": "Same compact bottom-nav race as iphone-se. The affected profile rotates between runs of identical code (1 profile, then 5, then 2), so the whole `adapts to …` set is covered as one cluster rather than chasing whichever profile lost the race."
     },
     {
-      "test": "tests/e2e/mobile-device-matrix.spec.ts:313:5 › compact IDE shell device matrix › adapts to ipad-landscape",
+      "test": "tests/e2e/mobile-device-matrix.spec.ts › compact IDE shell device matrix › adapts to ipad-landscape",
       "cluster": "flaky",
       "unstable": true,
       "reason": "Same compact bottom-nav race as iphone-se. The affected profile rotates between runs of identical code (1 profile, then 5, then 2), so the whole `adapts to …` set is covered as one cluster rather than chasing whichever profile lost the race."
     },
     {
-      "test": "tests/e2e/dashboard.spec.ts:1925:1 › public and authenticated routes render without route errors",
+      "test": "tests/e2e/dashboard.spec.ts › public and authenticated routes render without route errors",
       "cluster": "flaky",
       "unstable": true,
       "reason": "Sweeps ~20 routes and asserts no route-level error. Passed on main and on five branch runs, failed once. Not touched by this branch; listed so a single flap does not red the gate."

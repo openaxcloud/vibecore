@@ -91,10 +91,15 @@ function walk(suites, trail) {
        * shape regardless of which one we got.
        */
       const file = basename(spec.file ?? suite.file ?? '');
-      const line = spec.line ?? 0;
-      const column = spec.column ?? 0;
       const titlePath = [...here.slice(1), spec.title].filter(Boolean).join(' › ');
-      const key = `${file}:${line}:${column} › ${titlePath}`;
+
+      /*
+       * Key on file + title, NOT file:line:column. Line numbers shift whenever
+       * anyone edits the spec, which silently detached every waiver entry from
+       * its test the first time this file was touched. Titles are stable and
+       * unique within a spec.
+       */
+      const key = `${file} › ${titlePath}`;
 
       /*
        * `flaky` means Playwright retried and the test went green. That is not a
@@ -126,9 +131,9 @@ const waived = policy.waived ?? [];
 /** Normalise a policy entry to the same basename-keyed shape as the report. */
 function normaliseKey(key) {
   const [location, ...rest] = key.split(' › ');
-  const [path, line, column] = location.split(':');
 
-  return [`${basename(path)}:${line}:${column}`, ...rest].join(' › ');
+  // Tolerate legacy `path:line:col` entries by dropping the position.
+  return [basename(location.split(':')[0]), ...rest].join(' › ');
 }
 
 const waivedKeys = new Set(waived.map((entry) => normaliseKey(entry.test)));
