@@ -2125,6 +2125,33 @@ export class TestApiStore implements ApiStore {
     this.rollbackIdempotency.delete(this.#idemKey(input.projectId, input.environment, input.key));
   }
 
+  /**
+   * TEST SEAM — backdate a claim so the abandoned-claim takeover can be exercised without
+   * waiting 15 real minutes. Exposed deliberately rather than letting tests reach into the
+   * private map: a test that guesses the internal key format silently writes a malformed
+   * record instead of failing, which is exactly how this one first went wrong.
+   */
+  backdateRollbackIdempotency(
+    input: { projectId: string; environment: string; key: string },
+    ageMs: number,
+  ): boolean {
+    const mapKey = this.#idemKey(input.projectId, input.environment, input.key);
+    const row = this.rollbackIdempotency.get(mapKey);
+
+    if (!row) {
+      return false;
+    }
+
+    this.rollbackIdempotency.set(mapKey, { ...row, createdAt: new Date(Date.now() - ageMs).toISOString() });
+
+    return true;
+  }
+
+  /** TEST SEAM — read a claim without depending on the internal key format. */
+  peekRollbackIdempotency(input: { projectId: string; environment: string; key: string }) {
+    return this.rollbackIdempotency.get(this.#idemKey(input.projectId, input.environment, input.key));
+  }
+
   /** No DB-backed rate card in tests: callers fall back to the built-in card. */
   async getActiveRateCard(): Promise<{ version: number; data: unknown } | undefined> {
     return undefined;

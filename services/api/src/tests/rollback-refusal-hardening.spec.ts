@@ -537,6 +537,105 @@ describe('rollback refusal — what the loser leaves behind', () => {
       await app.close();
     });
 
+    it('a 5xx does NOT become the replayable answer — a retry really retries', async () => {
+      const store = new PausingSerializingStore();
+      const { app, token, projectId } = await setup(store);
+
+      globalThis.fetch = vi.fn(async (url: unknown, init?: { body?: string }) => {
+        const href = typeof url === 'string' ? url : String(url);
+
+        if (href.includes('/server-deployments/start')) {
+          const body = init?.body ? (JSON.parse(init.body) as Record<string, unknown>) : {};
+
+          return new Response(
+            JSON.stringify({ ready: true, url: `https://${String(body.host)}`, name: 'app', readyReplicas: 1 }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        if (href.includes('/stop')) {
+          return new Response('manager exploded', { status: 500 });
+        }
+
+        return new Response(JSON.stringify({ exists: true, readyReplicas: 1, replicas: 1 }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }) as unknown as typeof fetch;
+
+      await publishServer(store, projectId, 1, 'd-v1.test');
+      await publishServer(store, projectId, 2, 'd-v2.test');
+
+      let release!: () => void;
+      store.pauseAfterRollbackRowCreated = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+
+      const inFlight = app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/deployments/rollback-to-previous`,
+        headers: { authorization: `Bearer ${token}`, 'idempotency-key': 'key-5xx' },
+        payload: { environment: 'preview' },
+      });
+
+      await store.rollbackRowCreated;
+      await store.createReleaseManifest({
+        projectId,
+        deploymentId: 'other-winner',
+        environment: 'preview',
+        version: 3,
+        provider: 'server',
+        artifactKind: 'server-image',
+        artifactRef: IMAGE_REF,
+        artifactDigest: DIGEST,
+        configDigest: configDigest({}),
+      });
+      release();
+
+      const first = await inFlight;
+      expect(first.statusCode).toBe(500);
+
+      /*
+       * Pinning that 500 as the replay would make the failure permanent: every retry would
+       * be handed the same incident without ever re-attempting. The claim must be released.
+       */
+      const claim = store.peekRollbackIdempotency({ projectId, environment: 'preview', key: 'key-5xx' });
+      expect(claim, 'the claim must have been released after a 5xx').toBeUndefined();
+
+      await app.close();
+    });
+
+    it('an ABANDONED in-flight claim (process died) is taken over, not wedged forever', async () => {
+      const store = new SerializingStore();
+      const { app, token, projectId } = await setup(store);
+
+      await publishStatic(store, projectId, 1, 'V1');
+      await publishStatic(store, projectId, 2, 'V2');
+
+      // A previous process claimed the key and died before completing or releasing it.
+      await store.claimRollbackIdempotency({ projectId, environment: 'preview', key: 'key-abandoned' });
+      const backdated = store.backdateRollbackIdempotency(
+        { projectId, environment: 'preview', key: 'key-abandoned' },
+        30 * 60 * 1000,
+      );
+      expect(backdated, 'the claim to backdate must exist').toBe(true);
+      expect(store.peekRollbackIdempotency({ projectId, environment: 'preview', key: 'key-abandoned' })?.state).toBe(
+        'IN_FLIGHT',
+      );
+
+      // Fresh claims stay refused…
+      await store.claimRollbackIdempotency({ projectId, environment: 'preview', key: 'key-fresh' });
+      const refused = await rollback(app, token, projectId, 'key-fresh');
+      expect(refused.statusCode).toBe(409);
+      expect((refused.json() as Record<string, unknown>).code).toBe('ROLLBACK_IN_PROGRESS');
+
+      // …but the abandoned one is taken over instead of wedging the key for good.
+      const res = await rollback(app, token, projectId, 'key-abandoned');
+      expect(res.statusCode, 'an abandoned claim must not wedge the key forever').toBe(201);
+
+      await app.close();
+    });
+
     it('a different key is a different operation — it is NOT deduplicated', async () => {
       const store = new SerializingStore();
       const { app, token, projectId } = await setup(store);

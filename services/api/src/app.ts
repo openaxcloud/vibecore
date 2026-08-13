@@ -34730,6 +34730,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           parsed = undefined;
         }
 
+        /*
+         * A 5xx is "we do not know" — an unexpected throw, or the stale-workload incident.
+         * Pinning it as the replayable answer would make the failure PERMANENT: every retry
+         * would be handed the same 500 without ever re-attempting. Release the claim so a
+         * retry is a genuine retry. Deliberate outcomes (2xx, 4xx) are the ones to replay.
+         */
+        if (reply.statusCode >= 500) {
+          await store.releaseRollbackIdempotency(claim).catch((error) => {
+            request.log.error({ err: error, ...claim }, 'rollback idempotency: could not release claim after 5xx');
+          });
+
+          return payload;
+        }
+
         await store
           .completeRollbackIdempotency({
             ...claim,
@@ -34767,7 +34781,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const idempotencyKey = (request.headers['idempotency-key'] as string | undefined)?.trim();
 
       if (idempotencyKey) {
-        const claim = await store.claimRollbackIdempotency({ projectId: project.id, environment, key: idempotencyKey });
+        let claim = await store.claimRollbackIdempotency({ projectId: project.id, environment, key: idempotencyKey });
+
+        /*
+         * A claim left IN_FLIGHT by a process that DIED mid-handler would otherwise wedge
+         * that key forever: nothing completes it, nothing releases it, and every retry gets
+         * 409 for good. An IN_FLIGHT claim older than the longest a rollback can possibly
+         * run is therefore treated as abandoned and taken over. The window is deliberately
+         * generous — the server path is bounded by the manager's 200s start timeout plus the
+         * restore — so a live execution is never stolen. The re-claim still goes through the
+         * unique constraint, so two callers racing to take over still elect a single owner.
+         */
+        const ABANDONED_CLAIM_MS = 15 * 60 * 1000;
+
+        if (!claim.owned && claim.existing?.state === 'IN_FLIGHT') {
+          const ageMs = Date.now() - new Date(claim.existing.createdAt).getTime();
+
+          if (Number.isFinite(ageMs) && ageMs > ABANDONED_CLAIM_MS) {
+            request.log.warn(
+              { projectId: project.id, environment, key: idempotencyKey, ageMs },
+              'rollback idempotency: taking over an abandoned IN_FLIGHT claim',
+            );
+
+            await store
+              .releaseRollbackIdempotency({ projectId: project.id, environment, key: idempotencyKey })
+              .catch(() => undefined);
+
+            claim = await store.claimRollbackIdempotency({ projectId: project.id, environment, key: idempotencyKey });
+          }
+        }
 
         if (!claim.owned) {
           const existing = claim.existing;
@@ -34929,6 +34971,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           { err: error, deploymentId: rollback.id, sourceDeploymentId: previous.deploymentId },
           'static rollback restore failed',
         );
+
+        /*
+         * A restore that threw PART-WAY still leaves whatever it managed to copy. Same
+         * orphan class as the compare-and-set loser: never served (the gate is READY-only),
+         * never collected either. Sweep it here too.
+         */
+        await removeStaticDeploymentSnapshot(rollback.id).catch((cleanupError) => {
+          request.log.error(
+            { err: cleanupError, deploymentId: rollback.id },
+            'static rollback restore failed: orphan snapshot cleanup also failed',
+          );
+        });
+
         await store
           .updateDeployment(project.id, rollback.id, {
             status: 'FAILED',
@@ -34967,6 +35022,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const restoredDigest = await computeStaticSnapshotDigest(rollback.id);
 
       if (!restoredDigest) {
+        /*
+         * Here the restore SUCCEEDED — a full snapshot is on the volume — and only the
+         * digest failed. Refusing without sweeping would leak an entire release's bytes,
+         * the largest orphan of the three refusal branches.
+         */
+        await removeStaticDeploymentSnapshot(rollback.id).catch((cleanupError) => {
+          request.log.error(
+            { err: cleanupError, deploymentId: rollback.id },
+            'rollback dest-digest refusal: orphan snapshot cleanup failed',
+          );
+        });
+
         await store
           .updateDeployment(project.id, rollback.id, {
             status: 'FAILED',
