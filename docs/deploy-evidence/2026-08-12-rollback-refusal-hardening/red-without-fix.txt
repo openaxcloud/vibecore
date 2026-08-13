@@ -1,32 +1,36 @@
 
  RUN  v3.2.6 /Users/hb/dev/vibecore-wt-rollback/services/api
 
- ❯ src/tests/rollback-refusal-hardening.spec.ts (12 tests | 11 failed) 7893ms
-   × rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 500 → NOT a tidy FAILED+409: incident, 500, row flagged stale-active 770ms
+ ❯ src/tests/rollback-refusal-hardening.spec.ts (14 tests | 13 failed) 29622ms
+   × rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 500 → NOT a tidy FAILED+409: incident, 500, row flagged stale-active 2667ms
      → the strict stop must have been attempted: expected 0 to be greater than 0
-   × rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop times out → same incident treatment, never a silent success 730ms
+   × rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop times out → same incident treatment, never a silent success 3759ms
      → expected 201 to be 500 // Object.is equality
-   × rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop CRASHES mid-request (socket dies, no HTTP status) → incident, never a silent success 537ms
+   × rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop CRASHES mid-request (socket dies, no HTTP status) → incident, never a silent success 1878ms
      → expected 0 to be greater than 0
-   × rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > the STATUS probe itself is unreachable → "cannot check" is NOT "it is gone" 679ms
+   × rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > the STATUS probe itself is unreachable → "cannot check" is NOT "it is gone" 2120ms
      → expected 0 to be greater than 0
-   × rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 200 but the workload is STILL present → still an incident 614ms
+   × rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 200 but the workload is STILL present → still an incident 1351ms
      → disappearance must actually be verified: expected 0 to be greater than 0
-   × rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop succeeds AND the workload disappears → the normal 409 refusal, row FAILED 506ms
+   × rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop succeeds AND the workload disappears → the normal 409 refusal, row FAILED 2061ms
      → expected 0 to be greater than 0
-   × rollback refusal — what the loser leaves behind > P2 — a refused static rollback leaves NO orphan snapshot on the volume 482ms
+   × rollback refusal — what the loser leaves behind > P2 — a refused static rollback leaves NO orphan snapshot on the volume 1982ms
      → expected 201 to be 409 // Object.is equality
-   × rollback refusal — what the loser leaves behind > P1 — durable idempotency > a retry after a LOST response replays the original — it does not roll back again 670ms
+   × rollback refusal — what the loser leaves behind > P0 — the same fail-open on the other teardown paths > CANCEL whose teardown fails: the row is cancelled but the leak is surfaced, not hidden 2381ms
+     → the caller must be told the workload may still be up: expected undefined to be true // Object.is equality
+   × rollback refusal — what the loser leaves behind > P0 — the same fail-open on the other teardown paths > STALE-TIMEOUT teardown whose stop fails: still FAILED, but the leak is recorded 1594ms
+     → an unproven teardown must be recorded, not claimed handled: expected undefined to be true // Object.is equality
+   × rollback refusal — what the loser leaves behind > P1 — durable idempotency > a retry after a LOST response replays the original — it does not roll back again 2182ms
      → expected undefined to be 'true' // Object.is equality
-   × rollback refusal — what the loser leaves behind > P1 — durable idempotency > two CONCURRENT calls with the same key produce exactly ONE effect 1325ms
+   × rollback refusal — what the loser leaves behind > P1 — durable idempotency > two CONCURRENT calls with the same key produce exactly ONE effect 2614ms
      → exactly one rollback row may exist for one key: expected [ { …(24) }, { …(24) } ] to have a length of 1 but got 2
-   × rollback refusal — what the loser leaves behind > P1 — durable idempotency > a 5xx does NOT become the replayable answer — a retry really retries 546ms
+   × rollback refusal — what the loser leaves behind > P1 — durable idempotency > a 5xx does NOT become the replayable answer — a retry really retries 1945ms
      → expected 201 to be 500 // Object.is equality
-   × rollback refusal — what the loser leaves behind > P1 — durable idempotency > an ABANDONED in-flight claim (process died) is taken over, not wedged forever 494ms
+   × rollback refusal — what the loser leaves behind > P1 — durable idempotency > an ABANDONED in-flight claim (process died) is taken over, not wedged forever 2222ms
      → expected 201 to be 409 // Object.is equality
-   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a different key is a different operation — it is NOT deduplicated  538ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a different key is a different operation — it is NOT deduplicated  854ms
 
-⎯⎯⎯⎯⎯⎯ Failed Tests 11 ⎯⎯⎯⎯⎯⎯⎯
+⎯⎯⎯⎯⎯⎯ Failed Tests 13 ⎯⎯⎯⎯⎯⎯⎯
 
  FAIL  src/tests/rollback-refusal-hardening.spec.ts > rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 500 → NOT a tidy FAILED+409: incident, 500, row flagged stale-active
 AssertionError: the strict stop must have been attempted: expected 0 to be greater than 0
@@ -38,7 +42,7 @@ AssertionError: the strict stop must have been attempted: expected 0 to be great
     298| 
     299|       /*
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/11]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/13]⎯
 
  FAIL  src/tests/rollback-refusal-hardening.spec.ts > rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop times out → same incident treatment, never a silent success
 AssertionError: expected 201 to be 500 // Object.is equality
@@ -57,7 +61,7 @@ AssertionError: expected 201 to be 500 // Object.is equality
     327|       expect((res.json() as Record<string, unknown>).code).toBe('ROLLB…
     328| 
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/11]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/13]⎯
 
  FAIL  src/tests/rollback-refusal-hardening.spec.ts > rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop CRASHES mid-request (socket dies, no HTTP status) → incident, never a silent success
 AssertionError: expected 0 to be greater than 0
@@ -69,7 +73,7 @@ AssertionError: expected 0 to be greater than 0
     343|       expect(res.statusCode).toBe(500);
     344|       expect((res.json() as Record<string, unknown>).code).toBe('ROLLB…
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/11]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/13]⎯
 
  FAIL  src/tests/rollback-refusal-hardening.spec.ts > rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > the STATUS probe itself is unreachable → "cannot check" is NOT "it is gone"
 AssertionError: expected 0 to be greater than 0
@@ -81,7 +85,7 @@ AssertionError: expected 0 to be greater than 0
     372|       expect(calls.status, 'the probe must have been attempted').toBeG…
     373|       expect(res.statusCode).toBe(500);
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/11]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/13]⎯
 
  FAIL  src/tests/rollback-refusal-hardening.spec.ts > rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 200 but the workload is STILL present → still an incident
 AssertionError: disappearance must actually be verified: expected 0 to be greater than 0
@@ -93,7 +97,7 @@ AssertionError: disappearance must actually be verified: expected 0 to be greate
     395|       expect(res.statusCode).toBe(500);
     396|       expect((res.json() as Record<string, unknown>).code).toBe('ROLLB…
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/11]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/13]⎯
 
  FAIL  src/tests/rollback-refusal-hardening.spec.ts > rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop succeeds AND the workload disappears → the normal 409 refusal, row FAILED
 AssertionError: expected 0 to be greater than 0
@@ -105,7 +109,7 @@ AssertionError: expected 0 to be greater than 0
     412|       expect(calls.status).toBeGreaterThan(0);
     413|       expect(res.statusCode).toBe(409);
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/11]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/13]⎯
 
  FAIL  src/tests/rollback-refusal-hardening.spec.ts > rollback refusal — what the loser leaves behind > P2 — a refused static rollback leaves NO orphan snapshot on the volume
 AssertionError: expected 201 to be 409 // Object.is equality
@@ -124,7 +128,45 @@ AssertionError: expected 201 to be 409 // Object.is equality
     459|     expect((res.json() as Record<string, unknown>).code).toBe('ROLLBAC…
     460| 
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/11]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/13]⎯
+
+ FAIL  src/tests/rollback-refusal-hardening.spec.ts > rollback refusal — what the loser leaves behind > P0 — the same fail-open on the other teardown paths > CANCEL whose teardown fails: the row is cancelled but the leak is surfaced, not hidden
+AssertionError: the caller must be told the workload may still be up: expected undefined to be true // Object.is equality
+
+[32m- Expected:[39m 
+true
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ src/tests/rollback-refusal-hardening.spec.ts:539:96
+    537|        */
+    538|       const body = res.json() as Record<string, unknown>;
+    539|       expect(body.staleWorkloadActive, 'the caller must be told the wo…
+       |                                                                                                ^
+    540| 
+    541|       const row = await store.getDeployment(projectId, deployment.id);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/13]⎯
+
+ FAIL  src/tests/rollback-refusal-hardening.spec.ts > rollback refusal — what the loser leaves behind > P0 — the same fail-open on the other teardown paths > STALE-TIMEOUT teardown whose stop fails: still FAILED, but the leak is recorded
+AssertionError: an unproven teardown must be recorded, not claimed handled: expected undefined to be true // Object.is equality
+
+[32m- Expected:[39m 
+true
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ src/tests/rollback-refusal-hardening.spec.ts:575:9
+    573|         (row!.metadata as Record<string, unknown>).staleWorkloadActive,
+    574|         'an unproven teardown must be recorded, not claimed handled',
+    575|       ).toBe(true);
+       |         ^
+    576| 
+    577|       await app.close();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/13]⎯
 
  FAIL  src/tests/rollback-refusal-hardening.spec.ts > rollback refusal — what the loser leaves behind > P1 — durable idempotency > a retry after a LOST response replays the original — it does not roll back again
 AssertionError: expected undefined to be 'true' // Object.is equality
@@ -135,15 +177,15 @@ AssertionError: expected undefined to be 'true' // Object.is equality
 [31m+ Received:[39m 
 undefined
 
- ❯ src/tests/rollback-refusal-hardening.spec.ts:496:53
-    494| 
-    495|       expect(retry.statusCode).toBe(201);
-    496|       expect(retry.headers['idempotency-replayed']).toBe('true');
+ ❯ src/tests/rollback-refusal-hardening.spec.ts:602:53
+    600| 
+    601|       expect(retry.statusCode).toBe(201);
+    602|       expect(retry.headers['idempotency-replayed']).toBe('true');
        |                                                     ^
-    497| 
-    498|       const retryBody = retry.json() as { deployment: { id: string }; …
+    603| 
+    604|       const retryBody = retry.json() as { deployment: { id: string }; …
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/11]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/13]⎯
 
  FAIL  src/tests/rollback-refusal-hardening.spec.ts > rollback refusal — what the loser leaves behind > P1 — durable idempotency > two CONCURRENT calls with the same key produce exactly ONE effect
 AssertionError: exactly one rollback row may exist for one key: expected [ { …(24) }, { …(24) } ] to have a length of 1 but got 2
@@ -154,15 +196,15 @@ AssertionError: exactly one rollback row may exist for one key: expected [ { …
 [32m- 1[39m
 [31m+ 2[39m
 
- ❯ src/tests/rollback-refusal-hardening.spec.ts:532:78
-    530|         (d) => (d.metadata as Record<string, unknown>)?.rollbackToPrev…
-    531|       );
-    532|       expect(rollbackRows, 'exactly one rollback row may exist for one…
+ ❯ src/tests/rollback-refusal-hardening.spec.ts:638:78
+    636|         (d) => (d.metadata as Record<string, unknown>)?.rollbackToPrev…
+    637|       );
+    638|       expect(rollbackRows, 'exactly one rollback row may exist for one…
        |                                                                              ^
-    533| 
-    534|       const versions = (await store.listReleaseManifests(projectId, 'p…
+    639| 
+    640|       const versions = (await store.listReleaseManifests(projectId, 'p…
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/11]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/13]⎯
 
  FAIL  src/tests/rollback-refusal-hardening.spec.ts > rollback refusal — what the loser leaves behind > P1 — durable idempotency > a 5xx does NOT become the replayable answer — a retry really retries
 AssertionError: expected 201 to be 500 // Object.is equality
@@ -173,15 +215,15 @@ AssertionError: expected 201 to be 500 // Object.is equality
 [32m- 500[39m
 [31m+ 201[39m
 
- ❯ src/tests/rollback-refusal-hardening.spec.ts:596:32
-    594| 
-    595|       const first = await inFlight;
-    596|       expect(first.statusCode).toBe(500);
+ ❯ src/tests/rollback-refusal-hardening.spec.ts:702:32
+    700| 
+    701|       const first = await inFlight;
+    702|       expect(first.statusCode).toBe(500);
        |                                ^
-    597| 
-    598|       /*
+    703| 
+    704|       /*
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/11]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/13]⎯
 
  FAIL  src/tests/rollback-refusal-hardening.spec.ts > rollback refusal — what the loser leaves behind > P1 — durable idempotency > an ABANDONED in-flight claim (process died) is taken over, not wedged forever
 AssertionError: expected 201 to be 409 // Object.is equality
@@ -192,19 +234,19 @@ AssertionError: expected 201 to be 409 // Object.is equality
 [32m- 409[39m
 [31m+ 201[39m
 
- ❯ src/tests/rollback-refusal-hardening.spec.ts:629:34
-    627|       await store.claimRollbackIdempotency({ projectId, environment: '…
-    628|       const refused = await rollback(app, token, projectId, 'key-fresh…
-    629|       expect(refused.statusCode).toBe(409);
+ ❯ src/tests/rollback-refusal-hardening.spec.ts:735:34
+    733|       await store.claimRollbackIdempotency({ projectId, environment: '…
+    734|       const refused = await rollback(app, token, projectId, 'key-fresh…
+    735|       expect(refused.statusCode).toBe(409);
        |                                  ^
-    630|       expect((refused.json() as Record<string, unknown>).code).toBe('R…
-    631| 
+    736|       expect((refused.json() as Record<string, unknown>).code).toBe('R…
+    737| 
 
-⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/11]⎯
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/13]⎯
 
 
  Test Files  1 failed (1)
-      Tests  11 failed | 1 passed (12)
-   Start at  11:51:55
-   Duration  12.07s (transform 2.06s, setup 0ms, collect 3.96s, tests 7.89s, environment 0ms, prepare 71ms)
+      Tests  13 failed | 1 passed (14)
+   Start at  12:13:00
+   Duration  40.99s (transform 6.59s, setup 0ms, collect 10.37s, tests 29.62s, environment 2ms, prepare 305ms)
 

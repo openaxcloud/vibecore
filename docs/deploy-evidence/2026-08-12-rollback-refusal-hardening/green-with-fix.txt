@@ -1,22 +1,24 @@
 
  RUN  v3.2.6 /Users/hb/dev/vibecore-wt-rollback/services/api
 
- ✓ src/tests/rollback-refusal-hardening.spec.ts (12 tests) 17679ms
-   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 500 → NOT a tidy FAILED+409: incident, 500, row flagged stale-active  1933ms
-   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop times out → same incident treatment, never a silent success  1263ms
-   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop CRASHES mid-request (socket dies, no HTTP status) → incident, never a silent success  1649ms
-   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > the STATUS probe itself is unreachable → "cannot check" is NOT "it is gone"  5190ms
-   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 200 but the workload is STILL present → still an incident  4424ms
-   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop succeeds AND the workload disappears → the normal 409 refusal, row FAILED  479ms
-   ✓ rollback refusal — what the loser leaves behind > P2 — a refused static rollback leaves NO orphan snapshot on the volume  394ms
-   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a retry after a LOST response replays the original — it does not roll back again  424ms
-   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > two CONCURRENT calls with the same key produce exactly ONE effect  388ms
-   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a 5xx does NOT become the replayable answer — a retry really retries  394ms
-   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > an ABANDONED in-flight claim (process died) is taken over, not wedged forever  608ms
-   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a different key is a different operation — it is NOT deduplicated  532ms
+ ✓ src/tests/rollback-refusal-hardening.spec.ts (14 tests) 19000ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 500 → NOT a tidy FAILED+409: incident, 500, row flagged stale-active  1205ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop times out → same incident treatment, never a silent success  981ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop CRASHES mid-request (socket dies, no HTTP status) → incident, never a silent success  739ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > the STATUS probe itself is unreachable → "cannot check" is NOT "it is gone"  4669ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop returns 200 but the workload is STILL present → still an incident  4727ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — stale server workload after a refused rollback > stop succeeds AND the workload disappears → the normal 409 refusal, row FAILED  1187ms
+   ✓ rollback refusal — what the loser leaves behind > P2 — a refused static rollback leaves NO orphan snapshot on the volume  889ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — the same fail-open on the other teardown paths > CANCEL whose teardown fails: the row is cancelled but the leak is surfaced, not hidden  918ms
+   ✓ rollback refusal — what the loser leaves behind > P0 — the same fail-open on the other teardown paths > STALE-TIMEOUT teardown whose stop fails: still FAILED, but the leak is recorded  639ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a retry after a LOST response replays the original — it does not roll back again  672ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > two CONCURRENT calls with the same key produce exactly ONE effect  606ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a 5xx does NOT become the replayable answer — a retry really retries  552ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > an ABANDONED in-flight claim (process died) is taken over, not wedged forever  610ms
+   ✓ rollback refusal — what the loser leaves behind > P1 — durable idempotency > a different key is a different operation — it is NOT deduplicated  579ms
 
  Test Files  1 passed (1)
-      Tests  12 passed (12)
-   Start at  11:57:24
-   Duration  22.59s (transform 2.52s, setup 0ms, collect 4.73s, tests 17.68s, environment 0ms, prepare 40ms)
+      Tests  14 passed (14)
+   Start at  12:24:36
+   Duration  21.77s (transform 1.08s, setup 0ms, collect 2.16s, tests 19.00s, environment 0ms, prepare 54ms)
 

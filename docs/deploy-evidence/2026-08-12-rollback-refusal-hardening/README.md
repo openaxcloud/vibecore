@@ -126,9 +126,30 @@ module ESM, son `mockRestore` fuyait et cassait les deux tests suivants sous par
 test fragile qui casse ses voisins est exactement ce qui est reproché ailleurs dans ce lot. Le
 correctif de cette branche reste ; sa couverture automatisée, non — dit plutôt que masqué.
 
+## Le même fail-open P0 était encore sur DEUX autres chemins
+
+La réserve nommait le perdant du CAS. Le même helper best-effort restait utilisé ailleurs,
+avec la même conséquence — la base affirme une chose, le cluster en fait une autre :
+
+| chemin | ce que le code PROMETTAIT | ce qui se passait |
+|---|---|---|
+| **annulation** | « must tear it down so it doesn't keep serving » | un 500 du manager laissait la ligne `CANCELED` pendant que le workload **continuait de servir** |
+| **timeout stale** | « tear them down so nothing leaks » | ligne `FAILED` quoi qu'il arrive, alors que le commentaire note lui-même qu'un pod Pending relance l'autoscaler indéfiniment |
+
+La mitigation invoquée à l'annulation (« le manager GC les orphelins ») est exactement le
+« quelqu'un d'autre nettoiera » que la réserve rejette : elle n'est pas constatée ici, donc
+elle ne peut pas être affirmée ici.
+
+Dans les deux cas le verdict terminal reste juste — l'utilisateur a annulé, le build a
+vraiment expiré. Ce qui ne peut pas rester, c'est d'affirmer en silence que le workload a
+disparu : l'arrêt strict est tenté, et un démontage non prouvé est **enregistré**
+(`staleWorkloadActive` + cause + log `error`) et, pour l'annulation, **renvoyé à l'appelant**.
+
+Rouge **13/14** contre l'avant-lot, vert **14/14**.
+
 ## Régression
 
-Suite `services/api` complète : **189 fichiers, 1640 tests, 0 échec** (1 skip).
+Suite `services/api` : **188 fichiers, 1523 tests, 0 échec** (1 skip ; `api.spec.ts` exclu — modifié dans ce worktree par une autre session).
 `tsc` strict : **0 erreur**.
 
 ## Rejeu

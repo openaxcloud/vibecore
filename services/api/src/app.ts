@@ -3993,7 +3993,7 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
                 {
                   timestamp: new Date().toISOString(),
                   level: 'error' as const,
-                  message: `Build timed out, but the server workload could not be proven stopped (${staleWorkload}) — it may still be consuming resources.`,
+                  message: appPublicEnglish('DEPLOY_TIMEOUT_STALE_WORKLOAD_LOG', { reason: staleWorkload }),
                 },
               ]
             : []),

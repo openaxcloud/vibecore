@@ -2499,6 +2499,10 @@
     "en": "Rolled back to release v{version} (deployment {deploymentId}); artifact digest {artifactDigest} verified byte-identical before restore.",
     "fr": "Retour effectué vers la version v{version} (déploiement {deploymentId}) ; l’empreinte d’artefact {artifactDigest} a été vérifiée à l’identique avant la restauration."
   },
+  "DEPLOY_TIMEOUT_STALE_WORKLOAD_LOG": {
+    "en": "Build timed out, but the server workload could not be proven stopped ({reason}) — it may still be consuming resources.",
+    "fr": "La compilation a expiré, mais l’arrêt de la charge serveur n’a pas pu être prouvé ({reason}) — elle consomme peut-être encore des ressources."
+  },
   "ROLLBACK_IN_PROGRESS": {
     "en": "A rollback with this idempotency key is already running. Retry once it has finished.",
     "fr": "Un retour arrière portant cette clé d’idempotence est déjà en cours. Réessayez une fois qu’il sera terminé."
