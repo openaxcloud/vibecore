@@ -367,8 +367,19 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, ch
     if (!/environment:\s*\n\s*#[^\n]*\n?\s*name:\s*production-break-glass|name:\s*production-break-glass/.test(breakGlassWorkflow)) {
       problems.push(`${BREAK_GLASS_WORKFLOW}: must run in the production-break-glass environment`);
     }
-    if (!/required_reviewers/.test(breakGlassWorkflow)) {
-      problems.push(`${BREAK_GLASS_WORKFLOW}: must assert the environment requires reviewers`);
+    // Counting configured reviewers is not a quorum — GitHub requires ONE of N. The
+    // property that must survive is: two sequential environments, and a runtime proof
+    // that two DIFFERENT people approved.
+    for (const env of ['production-break-glass-1', 'production-break-glass-2']) {
+      if (!breakGlassWorkflow.includes(env)) {
+        problems.push(`${BREAK_GLASS_WORKFLOW}: missing sequential approval environment '${env}'`);
+      }
+    }
+    if (!/actions\/runs\/\$\{GITHUB_RUN_ID\}\/approvals/.test(breakGlassWorkflow)) {
+      problems.push(`${BREAK_GLASS_WORKFLOW}: must read this run's approvals to prove who approved`);
+    }
+    if (!/TWO DIFFERENT approvers|distinct approvers/.test(breakGlassWorkflow)) {
+      problems.push(`${BREAK_GLASS_WORKFLOW}: must reject two approvals from the same person`);
     }
     if (/gcloud builds submit/.test(breakGlassWorkflow)) {
       problems.push(`${BREAK_GLASS_WORKFLOW}: must not build images — it may only restore already-signed digests`);
@@ -420,6 +431,13 @@ function selfTest() {
     ['verification keyring drifting from the signing keyring', () => ({
       deployWorkflow: deployWorkflow.replace('KMS_KEYRING: ecode-supply-chain', 'KMS_KEYRING: vibecore-supply-chain'),
       breakGlassWorkflow,
+      policy,
+      chartValues,
+      signingBuildConfig,
+    })],
+    ['break-glass losing its second approval gate', () => ({
+      deployWorkflow,
+      breakGlassWorkflow: breakGlassWorkflow.replace(/production-break-glass-1/g, 'production-break-glass-2'),
       policy,
       chartValues,
       signingBuildConfig,

@@ -157,37 +157,65 @@ jobs:
           name: break-glass-manifest
           path: release-manifest.json
 
-  restore:
-    name: Restore last-known-good release (TWO approvals required)
+  # FIRST OF TWO SEQUENTIAL APPROVAL GATES.
+  #
+  # A GitHub environment with N required reviewers requires ONE of them to approve, not
+  # N. Configuring "two reviewers" therefore buys a second NAME, not a second APPROVAL —
+  # the previous version asserted the count and believed it had a quorum. Two sequential
+  # environments force two separate approval events, and the check in `restore` proves
+  # they came from two different people.
+  #
+  # This job holds no credentials and does nothing: it exists to be approved.
+  approval-1:
+    name: Approval 1 of 2 (break-glass)
     needs: [validate-request]
+    runs-on: ubuntu-latest
+    timeout-minutes: 4320
+    permissions:
+      contents: read
+    environment:
+      name: production-break-glass-1
+    steps:
+      - name: Record first approval
+        run: echo "first break-glass approval recorded"
+
+  restore:
+    name: Restore last-known-good release (approval 2 of 2)
+    needs: [validate-request, approval-1]
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
       contents: read
       id-token: write
     environment:
-      # This is where the double approval is enforced. GitHub holds the job here
-      # until the environment's required reviewers approve.
-      name: production-break-glass
+      # SECOND gate. Together with approval-1 this forces two distinct approval events;
+      # the step below proves they came from two distinct people.
+      name: production-break-glass-2
     steps:
       - uses: actions/checkout@v4
 
-      - name: Assert the environment really requires two approvals
+      - name: Assert TWO DIFFERENT people approved this break-glass
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          # Fail CLOSED: if the protection rule cannot be read or names fewer than two
-          # reviewers, this is a single-approval bypass wearing a double-approval label.
-          if ! ENV_JSON="$(gh api "repos/${GITHUB_REPOSITORY}/environments/production-break-glass" 2>/tmp/env.err)"; then
-            sed -n '1,10p' /tmp/env.err
-            echo "::error::cannot read the production-break-glass environment protection rules — refusing to proceed"
+          # Counting configured reviewers proves nothing: GitHub requires ONE of them.
+          # What is checked here is what actually happened — the approval events on this
+          # run — and that they came from two DISTINCT users. Approving both gates
+          # yourself is a single-person bypass, and it is the failure mode a "two
+          # reviewers" setting invites rather than prevents.
+          if ! APPROVALS="$(gh api "repos/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}/approvals" 2>/tmp/appr.err)"; then
+            sed -n '1,10p' /tmp/appr.err
+            echo "::error::cannot read this run's approvals — refusing to proceed"
             exit 1
           fi
-          COUNT="$(printf '%s' "${ENV_JSON}" | jq '[.protection_rules[]? | select(.type=="required_reviewers") | .reviewers[]?] | length')"
-          echo "required reviewers configured: ${COUNT}"
+          printf '%s' "${APPROVALS}" | jq -r '.[] | "\(.user.login): \(.state) on \([.environments[].name] | join(", "))"'
+          APPROVERS="$(printf '%s' "${APPROVALS}" | jq -r '[.[] | select(.state == "approved") | .user.login] | unique | join(" ")')"
+          COUNT="$(printf '%s' "${APPROVERS}" | wc -w | tr -d ' ')"
+          echo "distinct approvers: ${COUNT} (${APPROVERS})"
           if [ "${COUNT}" -lt 2 ]; then
-            echo "::error::production-break-glass must require at least TWO reviewers (found ${COUNT}). Configure it in Settings > Environments."
+            echo "::error::break-glass needs TWO DIFFERENT approvers; got ${COUNT} (${APPROVERS})."
+            echo "::error::Both gates were approved by the same person, which is not a quorum."
             exit 1
           fi
 

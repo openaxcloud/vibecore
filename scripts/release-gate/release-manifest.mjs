@@ -77,6 +77,18 @@ export function buildManifest(input) {
     if (s.rebuilt && s.sourceSha && s.sourceSha !== input.targetSha) {
       problems.push(`${where}: built from '${s.sourceSha}' but the release targets '${input.targetSha}'`);
     }
+    // A manifest entry is a claim about what shipped. Every field below was optional
+    // and therefore routinely absent, which made the manifest unfalsifiable:
+    //   * sourceSha null  — "built from some commit, we don't record which"
+    //   * sbom  null      — the supply-chain record the manifest advertises, missing
+    // Both are now required. A release that cannot say where an image came from, or
+    // what is inside it, is not a release that should be provable on paper.
+    if (!SHA_RE.test(String(s.sourceSha ?? ''))) {
+      problems.push(`${where}: sourceSha must be a full 40-hex commit sha (got '${s.sourceSha}')`);
+    }
+    if (!s.sbom || !s.sbom.format || !/^[0-9a-f]{64}$/.test(String(s.sbom.sha256 ?? ''))) {
+      problems.push(`${where}: an SBOM with a sha256 is required (got ${JSON.stringify(s.sbom ?? null)})`);
+    }
     if (!s.signature || s.signature.verified !== true) {
       // Cosign signatures are already mandatory at admission (Kyverno). Recording an
       // unverified image here would let the manifest claim more than we checked.
@@ -113,6 +125,28 @@ export function buildManifest(input) {
         : null,
     };
   });
+
+  // Duplicates and gaps are silent corruption: two entries for one service means the
+  // helm --set loop applies whichever jq happens to emit last, and a missing service
+  // means one is deployed with nothing recorded about it.
+  const seen = new Set();
+  for (const s of services) {
+    if (seen.has(s.service)) {
+      problems.push(`service '${s.service}' appears more than once`);
+    }
+    seen.add(s.service);
+  }
+  for (const required of input.expectedServices ?? []) {
+    if (!seen.has(required)) {
+      problems.push(`service '${required}' is missing from the manifest`);
+    }
+  }
+
+  // The verdict that authorised this release. Without it the manifest records what
+  // shipped but not what allowed it to ship, which is half the audit trail.
+  if (!/^[0-9a-f]{64}$/.test(String(input.gateVerdictSha256 ?? ''))) {
+    problems.push(`gateVerdictSha256 must be the sha256 of the gate verdict (got '${input.gateVerdictSha256}')`);
+  }
 
   if (problems.length > 0) {
     throw new Error(`refusing to emit an unverifiable release manifest:\n  - ${problems.join('\n  - ')}`);

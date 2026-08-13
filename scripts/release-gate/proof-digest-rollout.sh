@@ -73,14 +73,14 @@ cleanup() {
 trap cleanup EXIT
 
 # ---------------------------------------------------------------------------
-log "1/8  throwaway registry"
+log "1/9  throwaway registry"
 docker rm -f "${REGISTRY_CONTAINER}" >/dev/null 2>&1 || true
 docker run -d --restart=no -p "${REGISTRY_PUBLISH_PORT}:5000" --name "${REGISTRY_CONTAINER}" registry:2 >/dev/null
 for _ in $(seq 1 30); do curl -sf "http://localhost:${REGISTRY_PUBLISH_PORT}/v2/" >/dev/null && break; sleep 1; done
 echo "registry up on localhost:${REGISTRY_PUBLISH_PORT}"
 
 # ---------------------------------------------------------------------------
-log "2/8  build seven DISTINCT images, read back their real digests"
+log "2/9  build seven DISTINCT images, read back their real digests"
 : > "${WORK}/digests.txt"
 for entry in "${SERVICES[@]}"; do
   key="${entry%%:*}"; rest="${entry#*:}"; image="${rest%%:*}"; port="${rest##*:}"
@@ -117,7 +117,7 @@ fi
 echo "  ${distinct}/${#SERVICES[@]} digests are distinct"
 
 # ---------------------------------------------------------------------------
-log "3/8  kind cluster wired to that registry"
+log "3/9  kind cluster wired to that registry"
 kind delete cluster --name "${CLUSTER}" >/dev/null 2>&1 || true
 kind create cluster --name "${CLUSTER}" --wait 180s >/dev/null
 docker network connect kind "${REGISTRY_CONTAINER}" >/dev/null 2>&1 || true
@@ -144,7 +144,7 @@ docker exec "${NODE}" crictl pull "${REGISTRY_HOST}/vibecore/api:proof" >/dev/nu
 echo "  node pulls from ${REGISTRY_HOST}"
 
 # ---------------------------------------------------------------------------
-log "4/8  helm upgrade the REAL chart, every service pinned by digest"
+log "4/9  helm upgrade the REAL chart, every service pinned by digest"
 # The chart RENDERS the namespace, but the platform secret has to exist before the
 # first pod starts or `--atomic --wait` rolls the whole install back. So the
 # namespace is created up front carrying Helm's ownership metadata — without it Helm
@@ -199,7 +199,7 @@ helm --kube-context "${CTX}" upgrade --install "${RELEASE}" "${REPO_ROOT}/infra/
 echo "  helm upgrade --atomic completed"
 
 # ---------------------------------------------------------------------------
-log "5/8  the SAME post-rollout verification the deploy workflow runs"
+log "5/9  the SAME post-rollout verification the deploy workflow runs"
 jq -n --argjson services "${MANIFEST_SERVICES}" \
   '{schemaVersion:1, targetSha:"'"$(printf 'f%.0s' {1..40})"'", registry:"proof",
     services:$services}' > "${WORK}/manifest-input.json"
@@ -239,7 +239,7 @@ node "${REPO_ROOT}/scripts/release-gate/release-manifest.mjs" verify-imageids \
   --manifest "${WORK}/manifest.json" --observed "${WORK}/observed.json"
 
 # ---------------------------------------------------------------------------
-log "6/8  NEGATIVE CONTROL — a wrong digest must be caught"
+log "6/9  NEGATIVE CONTROL — a wrong digest must be caught"
 jq '.services[0].digest = "sha256:'"$(printf '0%.0s' {1..64})"'"' "${WORK}/manifest.json" > "${WORK}/manifest-tampered.json"
 if node "${REPO_ROOT}/scripts/release-gate/release-manifest.mjs" verify-imageids \
      --manifest "${WORK}/manifest-tampered.json" --observed "${WORK}/observed.json" >/dev/null 2>&1; then
@@ -249,7 +249,7 @@ fi
 echo "  a mismatched digest is rejected (verification can actually fail)"
 
 # ---------------------------------------------------------------------------
-log "7/8  --reuse-values round trip — a partial upgrade must not unpin the rest"
+log "7/9  --reuse-values round trip — a partial upgrade must not unpin the rest"
 #
 # The production deploy always runs `helm upgrade --reuse-values` and only re-asserts
 # the digests it resolved this run. The whole design rests on an assumption that has
@@ -292,7 +292,7 @@ fi
 echo "  every other service kept its pinned digest through a partial upgrade"
 
 # ---------------------------------------------------------------------------
-log "8/8  BREAK-GLASS restore — a last-known-good manifest puts the cluster back"
+log "8/9  BREAK-GLASS restore — a last-known-good manifest puts the cluster back"
 #
 # Exercises requirement 8's actual mechanism: take the manifest recorded by the earlier
 # (good) release and re-apply exactly what deploy-break-glass.yml applies — the digests
@@ -312,4 +312,40 @@ node "${REPO_ROOT}/scripts/release-gate/release-manifest.mjs" verify-imageids \
   --manifest "${WORK}/manifest.json" --observed "${WORK}/observed.json"
 echo "  the cluster is back on every digest the last-known-good manifest names"
 
-printf '\n\033[1;32mPROOF COMPLETE\033[0m — deployed by digest on a real cluster; running imageIDs match the manifest; a wrong digest is detected; a partial --reuse-values upgrade leaves the other services pinned; and a last-known-good manifest restores them.\n'
+# ---------------------------------------------------------------------------
+log "9/9  ROLLBACK is EXERCISED after a post-rollout check failure"
+#
+# `--atomic` only reverts an upgrade that failed on its own terms. Everything the
+# deploy verifies AFTERWARDS — imageIDs matching the manifest, the rollback flag
+# surviving — runs against a release that is already live. This step proves the
+# workflow's answer to that window actually works, rather than asserting it in prose:
+# deploy something that passes helm but FAILS verification, confirm the check fails,
+# run the same `helm rollback <previous revision>` the workflow runs, and confirm the
+# cluster is verified again.
+GOOD_REV="$(helm --kube-context "${CTX}" -n "${NS}" history "${RELEASE}" -o json \
+  | jq -r '[.[] | select(.status == "deployed")] | last | .revision')"
+echo "  verified revision to return to: ${GOOD_REV}"
+
+# A rollout helm is happy with, but that the manifest does not describe.
+helm --kube-context "${CTX}" upgrade "${RELEASE}" "${REPO_ROOT}/infra/helm/platform" \
+  -n "${NS}" --reuse-values --atomic --timeout 8m \
+  --set-string "services.api.imageDigest=${API_DIGEST_2}" >/dev/null
+echo "  applied a release the manifest does not describe (api on ${API_DIGEST_2})"
+
+collect_observed
+if node "${REPO_ROOT}/scripts/release-gate/release-manifest.mjs" verify-imageids \
+     --manifest "${WORK}/manifest.json" --observed "${WORK}/observed.json" >/dev/null 2>&1; then
+  echo "FAIL: post-rollout verification passed on a release it should have rejected" >&2
+  exit 1
+fi
+echo "  post-rollout verification FAILED, as it must"
+
+helm --kube-context "${CTX}" -n "${NS}" rollback "${RELEASE}" "${GOOD_REV}" --wait --timeout 10m >/dev/null
+echo "  helm rollback ${GOOD_REV} applied"
+
+collect_observed
+node "${REPO_ROOT}/scripts/release-gate/release-manifest.mjs" verify-imageids \
+  --manifest "${WORK}/manifest.json" --observed "${WORK}/observed.json"
+echo "  production state is verified again after the rollback"
+
+printf '\n\033[1;32mPROOF COMPLETE\033[0m — deployed by digest on a real cluster; running imageIDs match the manifest; a wrong digest is detected; a partial --reuse-values upgrade leaves the other services pinned; a last-known-good manifest restores them; and a post-check failure is ROLLED BACK to the last verified revision.\n'

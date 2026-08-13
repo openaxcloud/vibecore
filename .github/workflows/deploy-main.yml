@@ -517,14 +517,23 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::gcloud builds submit — runtime-tier"
-          gcloud builds submit \
+          # Capture the id of THIS submission directly. It used to be recovered
+          # afterwards by listing builds and matching on the 10-char short sha, which
+          # attributes a build by coincidence of prefix: a re-run, a concurrent
+          # submission, or another tier sharing the sha could all match, and the
+          # manifest would then name a build that did not produce the image.
+          # Logs still stream; --format only shapes the final resource line.
+          RUNTIME_BUILD_ID="$(gcloud builds submit \
+            --format='value(id)' \
             --project="${GCP_PROJECT_ID}" \
             --region="${GAR_LOCATION}" \
             --config=infra/cloudbuild/runtime-tier.yaml \
             --substitutions=_SHORT_SHA="${SHORT_SHA}" \
             --machine-type=e2-highcpu-8 \
             --timeout=3600s \
-            .
+            . )"
+          echo "RUNTIME_BUILD_ID=${RUNTIME_BUILD_ID}" >> "$GITHUB_ENV"
+          echo "runtime-tier build id: ${RUNTIME_BUILD_ID}"
           echo "::endgroup::"
 
       # ---- Build 2/2: web tier ----
@@ -554,14 +563,23 @@ jobs:
           # so the workspace never provisions ("No backend workspace" / "Failed
           # to spawn bolt shell"). The /api/runtime/* routes live on the API
           # service (services/api/src/app.ts), exposed at api.e-code.ai.
-          gcloud builds submit \
+          # Capture the id of THIS submission directly. It used to be recovered
+          # afterwards by listing builds and matching on the 10-char short sha, which
+          # attributes a build by coincidence of prefix: a re-run, a concurrent
+          # submission, or another tier sharing the sha could all match, and the
+          # manifest would then name a build that did not produce the image.
+          # Logs still stream; --format only shapes the final resource line.
+          WEB_BUILD_ID="$(gcloud builds submit \
+            --format='value(id)' \
             --project="${GCP_PROJECT_ID}" \
             --region="${GAR_LOCATION}" \
             --config=infra/cloudbuild/single-web.yaml \
             --substitutions=_DEPS_TAG="${DEPS_TAG}",_SHORT_SHA="${SHORT_SHA}",_VITE_RUNTIME_MODE=remote-kubernetes,_VITE_RUNTIME_API_BASE_URL=https://api.e-code.ai/api/runtime,_VITE_BYOK_DISABLED=true \
             --machine-type=e2-highcpu-8 \
             --timeout=1800s \
-            .
+            . )"
+          echo "WEB_BUILD_ID=${WEB_BUILD_ID}" >> "$GITHUB_ENV"
+          echo "single-web build id: ${WEB_BUILD_ID}"
           echo "::endgroup::"
 
       # ---- Build 3/3: workspace-agent runtime image ----
@@ -577,14 +595,23 @@ jobs:
         run: |
           set -euo pipefail
           echo "::group::gcloud builds submit — workspace-agent"
-          gcloud builds submit \
+          # Capture the id of THIS submission directly. It used to be recovered
+          # afterwards by listing builds and matching on the 10-char short sha, which
+          # attributes a build by coincidence of prefix: a re-run, a concurrent
+          # submission, or another tier sharing the sha could all match, and the
+          # manifest would then name a build that did not produce the image.
+          # Logs still stream; --format only shapes the final resource line.
+          WSAGENT_BUILD_ID="$(gcloud builds submit \
+            --format='value(id)' \
             --project="${GCP_PROJECT_ID}" \
             --region="${GAR_LOCATION}" \
             --config=infra/cloudbuild/workspace-agent.yaml \
             --substitutions=_SHORT_SHA="${SHORT_SHA}" \
             --machine-type=e2-highcpu-8 \
             --timeout=1800s \
-            .
+            . )"
+          echo "WSAGENT_BUILD_ID=${WSAGENT_BUILD_ID}" >> "$GITHUB_ENV"
+          echo "workspace-agent build id: ${WSAGENT_BUILD_ID}"
           echo "::endgroup::"
 
       - name: Set up Helm
@@ -607,56 +634,23 @@ jobs:
             --project="${GCP_PROJECT_ID}"
           kubectl config current-context
 
-      # Trace each built image back to the build that produced it (manifest field
-      # "Cloud Build id"). Resolved by listing builds rather than by capturing
-      # `gcloud builds submit` stdout, so the submit commands above stay byte-identical
-      # to the proven ones and their logs keep streaming to the run.
-      - name: Resolve Cloud Build ids
-        id: buildids
+      - name: Assert every rebuilt tier has a traceable build id
         run: |
           set -euo pipefail
-          BUILDS_JSON="$(gcloud builds list \
-            --project="${GCP_PROJECT_ID}" \
-            --region="${GAR_LOCATION}" \
-            --limit=40 --sort-by=~createTime \
-            --format=json)"
-
-          pick() { # $1 = substring identifying an image this build published
-            printf '%s' "${BUILDS_JSON}" | jq -r --arg needle "$1" --arg sha "${SHORT_SHA}" '
-              [ .[]
-                | select(.status == "SUCCESS")
-                | select((.substitutions._SHORT_SHA // "") == $sha)
-                | select([(.images // [])[] | select(contains($needle))] | length > 0)
-              ] | (.[0].id // "")'
-          }
-
-          # `if` rather than `[ cond ] && assign`: under `set -e` an AND-list whose
-          # left side is false returns non-zero as a whole statement and aborts the
-          # step — so a tier that simply was not rebuilt would kill the deploy.
-          RUNTIME_BUILD_ID=""; WEB_BUILD_ID=""; WSAGENT_BUILD_ID=""
-          if [ "${{ steps.tiers.outputs.runtime }}" = "true" ]; then RUNTIME_BUILD_ID="$(pick "/api:")"; fi
-          if [ "${{ steps.tiers.outputs.web }}" = "true" ]; then WEB_BUILD_ID="$(pick "/web:")"; fi
-          if [ "${{ steps.tiers.outputs.wsagent }}" = "true" ]; then WSAGENT_BUILD_ID="$(pick "/workspace-agent:")"; fi
-
-          # A rebuilt tier with no traceable build id would produce a manifest that
-          # cannot be audited; the manifest builder refuses it, so fail here with a
-          # message that says why instead of failing later with a schema error.
-          for pair in "runtime:${{ steps.tiers.outputs.runtime }}:${RUNTIME_BUILD_ID}" \
-                      "web:${{ steps.tiers.outputs.web }}:${WEB_BUILD_ID}" \
-                      "wsagent:${{ steps.tiers.outputs.wsagent }}:${WSAGENT_BUILD_ID}"; do
+          # The ids are captured directly by the submit steps above. This only checks
+          # none is empty: a rebuilt tier with no id produces a manifest that cannot be
+          # audited, and the manifest builder would reject it later with a less useful
+          # message.
+          for pair in "runtime:${{ steps.tiers.outputs.runtime }}:${RUNTIME_BUILD_ID:-}" \
+                      "web:${{ steps.tiers.outputs.web }}:${WEB_BUILD_ID:-}" \
+                      "wsagent:${{ steps.tiers.outputs.wsagent }}:${WSAGENT_BUILD_ID:-}"; do
             tier="${pair%%:*}"; rest="${pair#*:}"; built="${rest%%:*}"; id="${rest#*:}"
             if [ "${built}" = "true" ] && [ -z "${id}" ]; then
-              echo "::error::could not resolve the Cloud Build id for the ${tier} tier at _SHORT_SHA=${SHORT_SHA}"
+              echo "::error::the ${tier} tier was rebuilt but its Cloud Build id was not captured"
               exit 1
             fi
             echo "${tier} build id: ${id:-(not rebuilt)}"
           done
-
-          {
-            echo "RUNTIME_BUILD_ID=${RUNTIME_BUILD_ID}"
-            echo "WEB_BUILD_ID=${WEB_BUILD_ID}"
-            echo "WSAGENT_BUILD_ID=${WSAGENT_BUILD_ID}"
-          } >> "$GITHUB_ENV"
 
       # ---- Resolve every deployed service to an IMMUTABLE DIGEST ----
       #
@@ -726,13 +720,6 @@ jobs:
               *) rebuilt=false ;;
             esac
 
-            # An image that is neither a chart service nor rebuilt has nothing to carry
-            # forward: the workspace-agent is referenced by digest in the configmap, so
-            # when this run did not rebuild it the previous value simply stays.
-            if [ "${chart_service}" != "true" ] && [ "${rebuilt}" != "true" ]; then
-              echo "${key}: not rebuilt and not a chart service — leaving the current reference untouched"
-              continue
-            fi
 
             if [ "${rebuilt}" = "true" ]; then
               # The workspace-agent uses the `sha-<sha>` tag convention, not `<sha>`.
@@ -745,6 +732,40 @@ jobs:
               esac
             else
               BUILD_ID=""
+              # The workspace-agent is not a Deployment — its reference lives in the
+              # platform configmap, which the api hands to each workspace pod. It used
+              # to be skipped entirely when not rebuilt, which left it on a MUTABLE TAG
+              # (`workspace-agent:sha-<sha>`) while every chart service was digest-
+              # pinned: the one image running inside customer workspaces was the one
+              # image nobody pinned. Resolve it like any other.
+              if [ "${tier}" = "wsagent" ]; then
+                CM_IMAGE="$(kubectl -n "${HELM_NAMESPACE}" get configmap \
+                  "${HELM_RELEASE}-vibecore-platform-platform-env" \
+                  -o jsonpath='{.data.WORKSPACE_AGENT_IMAGE}' 2>/dev/null || echo "")"
+                if [ -z "${CM_IMAGE}" ]; then
+                  echo "::error::${key}: WORKSPACE_AGENT_IMAGE is not set in the live configmap — cannot pin it"
+                  exit 1
+                fi
+                echo "${key}: currently referenced as ${CM_IMAGE}"
+                PINNED=""; TAG=""
+                case "${CM_IMAGE}" in
+                  *@sha256:*) PINNED="${CM_IMAGE##*@}" ;;
+                  *:*)        TAG="${CM_IMAGE##*:}" ;;
+                esac
+                SOURCE_SHA=""
+                # `sha-<10hex>` is this image's tag convention.
+                CANDIDATE="${TAG#sha-}"
+                if printf '%s' "${CANDIDATE}" | grep -Eq '^[0-9a-f]{10}$'; then
+                  SOURCE_SHA="$(git rev-parse "${CANDIDATE}" 2>/dev/null || echo "")"
+                fi
+                if ! printf '%s' "${SOURCE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+                  echo "::error::${key}: cannot establish which commit produced ${CM_IMAGE}"
+                  echo "Fix: re-run this deploy with the workspace-agent tier rebuilt."
+                  exit 1
+                fi
+                echo "${key}: source commit ${SOURCE_SHA}"
+              else
+
               # What is this service RUNNING right now? Read it from the live Deployment,
               # not from `helm get values`.
               #
@@ -775,12 +796,27 @@ jobs:
                 *:*)        TAG="${DEP_IMAGE##*:}" ;;
               esac
               echo "${key}: currently running ${DEP_IMAGE}"
-              # The commit that produced the image now running — carried forward, never
-              # restamped with this run's commit (the manifest must not claim that a
-              # service was built from a commit it was not built from).
-              SOURCE_SHA=""
-              if printf '%s' "${TAG}" | grep -Eq '^[0-9a-f]{10}$'; then
+
+              # Provenance for a carried-forward image. A digest-pinned Deployment has
+              # no tag left to infer a commit from, so the deploy stamps the source sha
+              # as a pod-template annotation next to the image. Bootstrap (a release
+              # still on tags, i.e. the first gated deploy) falls back to resolving the
+              # 10-hex tag through git. If neither yields a commit we STOP: the manifest
+              # must not claim provenance it does not have.
+              SOURCE_SHA="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
+                -l "app.kubernetes.io/name=${image}" \
+                -o jsonpath='{.items[0].spec.template.metadata.annotations.vibecore\.dev/image-source-sha}' 2>/dev/null || echo "")"
+              if [ -z "${SOURCE_SHA}" ] && printf '%s' "${TAG}" | grep -Eq '^[0-9a-f]{10}$'; then
                 SOURCE_SHA="$(git rev-parse "${TAG}" 2>/dev/null || echo "")"
+              fi
+              if ! printf '%s' "${SOURCE_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
+                echo "::error::${key}: cannot establish which commit produced ${DEP_IMAGE}"
+                echo "It carries no vibecore.dev/image-source-sha annotation and its reference is not a resolvable 10-hex tag."
+                echo "Fix: re-run this deploy with the tier that owns ${key} rebuilt, which stamps provenance for future runs."
+                explain_current
+                exit 1
+              fi
+              echo "${key}: source commit ${SOURCE_SHA}"
               fi
             fi
 
@@ -851,15 +887,29 @@ jobs:
           # Keep these pinned, and verify the asset actually exists before bumping:
           # release asset names are not stable across versions, and a 404 fails the
           # gate for the wrong reason (curl -sSfL is silent about it until tar chokes).
+          # Both binaries are verified against a PINNED sha256 before they are trusted.
+          # They decide whether this release ships: trivy is the vulnerability gate and
+          # cosign is what proves the images are the ones that were signed. Downloading
+          # either without checking its bytes means a compromised or truncated release
+          # asset silently becomes the thing that says "safe".
+          # Values taken from the projects' own published checksum files:
+          #   trivy_<v>_checksums.txt  ·  cosign_checksums.txt
+          # To rotate: bump the version and copy the line for this asset from those files.
           TRIVY_VERSION=0.72.0
-          curl -sSfL "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz" \
-            | tar -xz -C /tmp trivy
+          TRIVY_SHA256=bbb64b9695866ce4a7a8f5c9592002c5961cab378577fa3f8a040df362b9b2ea
+          COSIGN_VERSION=2.4.3
+          COSIGN_SHA256=caaad125acef1cb81d58dcdc454a1e429d09a750d1e9e2b3ed1aed8964454708
+
+          curl -sSfL -o /tmp/trivy.tgz \
+            "https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz"
+          echo "${TRIVY_SHA256}  /tmp/trivy.tgz" | sha256sum -c -
+          tar -xzf /tmp/trivy.tgz -C /tmp trivy
           sudo install /tmp/trivy /usr/local/bin/trivy
           trivy --version
 
-          COSIGN_VERSION=2.4.3
           curl -sSfL -o /tmp/cosign \
             "https://github.com/sigstore/cosign/releases/download/v${COSIGN_VERSION}/cosign-linux-amd64"
+          echo "${COSIGN_SHA256}  /tmp/cosign" | sha256sum -c -
           sudo install /tmp/cosign /usr/local/bin/cosign
           cosign version
 
@@ -952,6 +1002,26 @@ jobs:
             exit 1
           fi
 
+      # RE-VERIFY THE GATE IMMEDIATELY BEFORE MUTATING PRODUCTION.
+      #
+      # The gate ran once, before the build. Building three image tiers takes tens of
+      # minutes, and a required check can go red in that window — a re-run that fails,
+      # a security scan that flips. Deploying on the strength of a verdict that old is
+      # deploying on a stale fact. This costs one API round trip and is the last moment
+      # at which refusing is free.
+      - name: Re-verify required checks are STILL green (last point before rollout)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          node scripts/release-gate/verify-required-checks.mjs \
+            --sha "${TARGET_SHA}" --repo "${GITHUB_REPOSITORY}" --no-wait \
+            --json gate-verdict-prerollout.json
+          # Bind the manifest to the verdict that actually authorised this rollout, so
+          # "which checks were green when this shipped" is answerable from the artifact
+          # rather than from run logs that expire.
+          echo "GATE_VERDICT_SHA256=$(sha256sum gate-verdict-prerollout.json | cut -d' ' -f1)" >> "$GITHUB_ENV"
+
       # THE MANIFEST (release-integrity requirement 5): service -> source sha ->
       # Cloud Build id -> digest -> signature -> SBOM. The builder REFUSES to emit a
       # manifest that would not be a proof: any missing digest, any rebuilt service
@@ -960,17 +1030,18 @@ jobs:
       - name: Build release manifest (blocking)
         run: |
           set -euo pipefail
-          GATE_VERDICT_SHA256=""
           jq -n \
             --arg targetSha "${TARGET_SHA}" \
             --arg repository "${GITHUB_REPOSITORY}" \
             --arg registry "${REG}" \
             --arg runUrl "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
             --arg key "${KMS_KEY}" \
+            --arg verdict "${GATE_VERDICT_SHA256}" \
             --slurpfile services /tmp/services.json \
             --slurpfile sums <(jq -Rn '[inputs | split("  ") | {(.[1] | sub("^sbom/"; "") | sub("\\.cdx\\.json$"; "")): .[0]}] | add' < sbom/SHA256SUMS) \
             '{targetSha:$targetSha, repository:$repository, registry:$registry,
-              workflowRunUrl:$runUrl,
+              workflowRunUrl:$runUrl, gateVerdictSha256:$verdict,
+              expectedServices: ($services[0] | map(.service)),
               services: ($services[0] | map(. + {
                 signature: {verified: true, key: $key},
                 sbom: {format: "cyclonedx-json", artifact: ("sbom/" + .service + ".cdx.json"),
@@ -993,10 +1064,23 @@ jobs:
         run: node scripts/validate-helm-rollback-flag.mjs
 
       - name: Record current release revision (for rollback)
+        id: prevrev
         run: |
           set -euo pipefail
           helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" || true
-          echo "Rollback: helm rollback ${HELM_RELEASE} <REVISION> -n ${HELM_NAMESPACE}"
+          # Captured, not merely printed: the post-rollout checks below can fail AFTER a
+          # successful upgrade (imageID mismatch, missing flag), and `--atomic` does not
+          # cover that window — it only reverts an upgrade that itself failed. Without
+          # this number there is nothing to roll back TO except a human reading history
+          # during an incident.
+          PREV="$(helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" -o json 2>/dev/null \
+            | jq -r '[.[] | select(.status == "deployed")] | last | .revision // ""')"
+          if [ -z "${PREV}" ]; then
+            PREV="$(helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" -o json 2>/dev/null \
+              | jq -r 'max_by(.revision) | .revision // ""')"
+          fi
+          echo "previous deployed revision: ${PREV:-(none — first install)}"
+          echo "revision=${PREV}" >> "$GITHUB_OUTPUT"
 
       # --reuse-values preserves every existing value (all prod config) and overrides
       # the image references. NOTE: because --reuse-values keeps the release's stored
@@ -1054,6 +1138,10 @@ jobs:
             --atomic \
             --timeout 10m \
             "${SETS[@]}"
+          # From here on, a failure means production has ALREADY been changed. The
+          # rollback step below keys off this marker so it never reverts a healthy
+          # release because something failed before the upgrade (a build, a scan).
+          echo "UPGRADE_APPLIED=1" >> "$GITHUB_ENV"
 
       - name: Verify rollout
         run: |
@@ -1191,6 +1279,35 @@ jobs:
       # The manifest and SBOMs are the audit trail for this release: what shipped,
       # from which commit and build, as which digests. Uploaded even on failure —
       # a refused or half-finished deploy is exactly when you want to see them.
+      # POST-CHECK FAILURE => ROLL BACK. `--atomic` only reverts an upgrade that failed
+      # on its own terms; everything verified afterwards (imageIDs match the manifest,
+      # the rollback flag survived) happens on a release that is already live. Leaving
+      # production on a rollout we just declared unverifiable, and merely going red, is
+      # the wrong default: the previous revision was verified, this one is not.
+      - name: Roll back to the previous revision (post-check failure)
+        if: failure() && env.UPGRADE_APPLIED == '1' && steps.prevrev.outputs.revision != ''
+        env:
+          PREV_REVISION: ${{ steps.prevrev.outputs.revision }}
+        run: |
+          set -uo pipefail
+          echo "::error::post-rollout verification failed — rolling production back to revision ${PREV_REVISION}"
+          if helm rollback "${HELM_RELEASE}" "${PREV_REVISION}" -n "${HELM_NAMESPACE}" --wait --timeout 10m; then
+            echo "rolled back to revision ${PREV_REVISION}"
+          else
+            echo "::error::ROLLBACK FAILED — production is on an unverified release. Escalate now."
+            exit 1
+          fi
+          for svc in web api workspace-manager preview-proxy ai-gateway worker; do
+            dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"
+            [ -n "${dep}" ] || continue
+            kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m || true
+          done
+          {
+            echo "## ⚠️ Rolled back"
+            echo ""
+            echo "Post-rollout verification failed; production was returned to revision \`${PREV_REVISION}\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Upload release manifest and SBOMs
         if: always()
         uses: actions/upload-artifact@v4

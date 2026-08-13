@@ -22,8 +22,16 @@ function svc(overrides = {}) {
   };
 }
 
+const VERDICT_SHA = 'd'.repeat(64);
+
 function input(services = [svc()]) {
-  return { targetSha: SHA, repository: 'openaxcloud/vibecore', registry: REGISTRY, services };
+  return {
+    targetSha: SHA,
+    repository: 'openaxcloud/vibecore',
+    registry: REGISTRY,
+    gateVerdictSha256: VERDICT_SHA,
+    services,
+  };
 }
 
 describe('release manifest — build', () => {
@@ -61,6 +69,31 @@ describe('release manifest — build', () => {
   it('refuses an image whose signature was not verified', () => {
     expect(() => buildManifest(input([svc({ signature: { verified: false } })]))).toThrow(/signature not verified/);
     expect(() => buildManifest(input([svc({ signature: undefined })]))).toThrow(/signature not verified/);
+  });
+
+  it('refuses an entry with no sourceSha — "built from some commit" is not provenance', () => {
+    expect(() => buildManifest(input([svc({ sourceSha: null })]))).toThrow(/sourceSha must be a full 40-hex/);
+  });
+
+  it('refuses an entry with no SBOM, or an SBOM without a sha256', () => {
+    expect(() => buildManifest(input([svc({ sbom: null })]))).toThrow(/an SBOM with a sha256 is required/);
+    expect(() => buildManifest(input([svc({ sbom: { format: 'cyclonedx-json' } })]))).toThrow(/SBOM with a sha256/);
+  });
+
+  it('refuses a manifest with no gate verdict — what shipped without what allowed it is half an audit trail', () => {
+    const i = input();
+    delete i.gateVerdictSha256;
+    expect(() => buildManifest(i)).toThrow(/gateVerdictSha256 must be/);
+  });
+
+  it('refuses duplicate services — the helm --set loop would silently apply the last one', () => {
+    expect(() => buildManifest(input([svc(), svc()]))).toThrow(/appears more than once/);
+  });
+
+  it('refuses a manifest missing a service the caller said it must contain', () => {
+    const i = input([svc()]);
+    i.expectedServices = ['api', 'web'];
+    expect(() => buildManifest(i)).toThrow(/service 'web' is missing/);
   });
 
   it('refuses a short or missing target sha', () => {

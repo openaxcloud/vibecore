@@ -90,6 +90,19 @@ describe('deploy gate wiring', () => {
     }
   });
 
+  it('requires two sequential approval gates and a disjoint-approver proof', () => {
+    const bg = realFiles().breakGlassWorkflow;
+    expect(bg).toContain('production-break-glass-1');
+    expect(bg).toContain('production-break-glass-2');
+    expect(bg).toMatch(/distinct approvers/);
+  });
+
+  it('catches break-glass losing its second approval gate', () => {
+    const files = realFiles();
+    files.breakGlassWorkflow = files.breakGlassWorkflow.replace(/production-break-glass-1/g, 'production-break-glass-2');
+    expect(checkGateWiring(files).join('\n')).toMatch(/missing sequential approval environment/);
+  });
+
   it('catches a break-glass path that could build and ship new code', () => {
     const files = realFiles();
     files.breakGlassWorkflow += '\n          gcloud builds submit .\n';

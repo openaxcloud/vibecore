@@ -144,6 +144,23 @@ export function evaluateRequiredChecks({ policy, targetSha, workflowRuns, jobsBy
       continue;
     }
 
+    // A verdict cannot be read while ANY run for this (workflow, commit) is still
+    // moving — not merely the one that happens to sort newest. Otherwise a re-run
+    // launched seconds ago is invisible and a stale green authorises the deploy.
+    const inFlight = candidates.filter((r) => r.status !== 'completed');
+    if (inFlight.length > 0) {
+      const r = inFlight[0];
+      workflows.push({
+        ...summaryOf(wf),
+        runId: r.id,
+        runUrl: r.html_url,
+        state: 'PENDING',
+        detail: `run ${r.id} (attempt ${r.run_attempt ?? 1}) is '${r.status}'`,
+      });
+      waiting.push(`${label}: run ${r.id} is '${r.status}'`);
+      continue;
+    }
+
     // Rule 3: newest attempt decides.
     const run = [...candidates].sort(byNewest)[0];
     const base = { ...summaryOf(wf), runId: run.id, runUrl: run.html_url, runAttempt: run.run_attempt };
@@ -280,12 +297,25 @@ function summaryOf(wf) {
   return { id: wf.id, path: wf.path, displayName: wf.displayName, requiredJobs: wf.requiredJobs ?? [] };
 }
 
-/** Newest first: prefer the later run id (monotonic per repo), then the later attempt. */
-function byNewest(a, b) {
-  if (a.id !== b.id) {
-    return b.id - a.id;
+/**
+ * Newest first, by ACTUAL ACTIVITY.
+ *
+ * Ordering by run id looked right and was wrong: re-running a run keeps its id and
+ * only bumps `run_attempt` and the attempt's start time. So a fresh, failing re-run of
+ * an older run lost to a stale, green attempt of a newer one — and the stale attempt
+ * decided the deploy. `run_started_at` moves with the current attempt, which is the
+ * thing that actually happened last.
+ */
+export function byNewest(a, b) {
+  const at = Date.parse(a.run_started_at ?? a.updated_at ?? a.created_at ?? 0) || 0;
+  const bt = Date.parse(b.run_started_at ?? b.updated_at ?? b.created_at ?? 0) || 0;
+  if (at !== bt) {
+    return bt - at;
   }
-  return (b.run_attempt ?? 1) - (a.run_attempt ?? 1);
+  if ((a.run_attempt ?? 1) !== (b.run_attempt ?? 1)) {
+    return (b.run_attempt ?? 1) - (a.run_attempt ?? 1);
+  }
+  return (b.id ?? 0) - (a.id ?? 0);
 }
 
 // ---------------------------------------------------------------------------
@@ -336,12 +366,22 @@ async function fetchJobs({ repo, runId, token }) {
 }
 
 /** One full evaluation round: fetch what the policy needs, then decide. */
+/** What identifies a run's CURRENT state — any change invalidates a job list read before it. */
+function runFingerprint(r) {
+  return `${r.id}:${r.run_attempt ?? 1}:${r.status}:${r.conclusion}`;
+}
+
+async function fetchRun({ repo, runId, token }) {
+  return ghFetch(`https://api.github.com/repos/${repo}/actions/runs/${runId}`, token);
+}
+
 async function evaluateOnce({ policy, repo, targetSha, token }) {
   const runs = await fetchRunsForSha({ repo, sha: targetSha, token });
 
   // Only fetch jobs for the runs the engine will actually consider — one request per
   // required workflow, not one per run in the repo.
   const jobsByRunId = new Map();
+  const unstable = [];
   for (const wf of policy.requiredWorkflows) {
     const candidates = runs.filter((r) => r.workflow_id === wf.id && r.head_sha === targetSha);
     if (candidates.length === 0) {
@@ -351,10 +391,31 @@ async function evaluateOnce({ policy, repo, targetSha, token }) {
     if (run.status !== 'completed' || run.conclusion !== 'success') {
       continue; // engine refuses/waits before it looks at jobs
     }
-    jobsByRunId.set(run.id, await fetchJobs({ repo, runId: run.id, token }));
+    // Read the jobs, then RE-READ the run and confirm it did not move underneath us.
+    // Listing runs and listing their jobs are two separate calls; a re-run started
+    // between them yields a job list belonging to an attempt that is no longer the
+    // deciding one — a green verdict assembled from two inconsistent snapshots.
+    // Disagreement is not resolved here, it is reported as "no verdict yet".
+    const before = runFingerprint(run);
+    const jobs = await fetchJobs({ repo, runId: run.id, token });
+    const after = runFingerprint(await fetchRun({ repo, runId: run.id, token }));
+    if (before !== after) {
+      unstable.push(`${wf.displayName}: run ${run.id} changed while its jobs were being read (${before} -> ${after})`);
+      continue;
+    }
+    jobsByRunId.set(run.id, jobs);
   }
 
-  return evaluateRequiredChecks({ policy, targetSha, workflowRuns: runs, jobsByRunId });
+  const result = evaluateRequiredChecks({ policy, targetSha, workflowRuns: runs, jobsByRunId });
+  if (unstable.length > 0 && result.verdict === 'PASS') {
+    // Never let an inconsistent read produce an authorisation.
+    return {
+      ...result,
+      verdict: 'WAIT',
+      waiting: [...result.waiting, ...unstable],
+    };
+  }
+  return result;
 }
 
 // ---------------------------------------------------------------------------

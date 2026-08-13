@@ -45,6 +45,18 @@ spec:
     metadata:
       annotations:
         checksum/platform-env: {{ include (print $.Template.BasePath "/configmap.yaml") $ | sha256sum }}
+        {{- /*
+        Provenance stamped next to the image it describes.
+
+        A digest-pinned Deployment carries no tag, so once a service is pinned there is
+        nothing left in the cluster that says WHICH COMMIT produced the image now
+        running. The release manifest requires that commit for every service, including
+        the ones a given run did not rebuild — so it has to be readable back from the
+        same authoritative place as the image itself.
+        */}}
+        {{- with (default "" $svc.imageSourceSha) }}
+        vibecore.dev/image-source-sha: {{ . | quote }}
+        {{- end }}
       labels:
         app.kubernetes.io/name: {{ kebabcase $name }}
         app.kubernetes.io/instance: {{ $.Release.Name }}
