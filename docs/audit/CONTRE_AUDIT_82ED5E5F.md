@@ -1,4 +1,21 @@
-# Contre-audit du SHA `82ed5e5fa9` — release ISOLÉE, digests vérifiés, 4 portes rejouées
+# Contre-audit — release ISOLÉE, digests vérifiés, 4 portes rejouées
+
+> **Rejoué sur la tête à jour.** `main` a avancé de six commits pendant la manche
+> (dont trois correctifs applicatifs : rédaction des jetons dans les logs, prompt
+> hors README livré, préfixe HTML des déploiements). La branche a été rebasée sur
+> `origin/main` = `1f0f39198c` — sans conflit — et **toute la chaîne a été refaite**
+> sur ce nouveau SHA : rebuild des 10 images, redéploiement de la release isolée,
+> vérification des digests, rejeu des 4 portes. Les deux P0 de l'auditeur ont été
+> re-vérifiés sur l'arbre rebasé (21/21 et 8 assertions).
+>
+> | | SHA de code | tête de PR | images |
+> |---|---|---|---|
+> | **courant** | `f2805edd03` | `a2ebbc0049` | tag `f2805edd03`, 8/8 digests conformes |
+> | précédent | `82ed5e5fa9` | `90c67aae5d` | tag `82ed5e5fa9`, 8/8 |
+>
+> Les tableaux ci-dessous portent le SHA précédent là où la mesure n'a pas été
+> refaite à l'identique ; les artefacts du SHA courant sont dans
+> [`preuves/release-isolee-f2805edd03/`](preuves/release-isolee-f2805edd03/).
 
 L'auditeur ne signalait plus **aucun défaut de code** au tour précédent (API
 fail-closed 21/21, preview-proxy 101/101, screenshotter 21/21, gardes vertes). Son
@@ -21,10 +38,10 @@ Artefacts bruts : [`preuves/release-isolee-82ed5e5fa9/`](preuves/release-isolee-
 
 | Élément | Valeur |
 |---|---|
-| SHA de code figé | `82ed5e5fa9972f6f597b8070589ee357cb12a0fe` |
-| Base | `origin/main` = `b2ee7c8844` |
+| SHA de code figé | `f2805edd03` (`82ed5e5fa9` au tour précédent) |
+| Base | `origin/main` = `1f0f39198c` |
 | Release de preuve | `vibecore-pr125`, ns `vibecore-pr125`, runtime `vibecore-pr125-workspaces` |
-| Images | les 10, tag `82ed5e5fa9`, registre du cluster d'audit |
+| Images | les 10, tag `f2805edd03`, registre du cluster d'audit |
 | Digests | 8/8 : `imageID` du pod == digest publié |
 | Portes | 4/4 vérifiées, `exit 0`, assertions et non description |
 
@@ -47,16 +64,24 @@ avant un re-push. Le script compare donc, pour chaque composant, l'`imageID` du
 conteneur au digest publié pour le tag :
 
 ```
-api  OK sha256:a7b6d9f0…   worker OK sha256:90da317d…   admin OK sha256:6487ece0…
-ai-gateway OK sha256:21e09512…   workspace-manager OK sha256:24f3a7b5…
-preview-proxy OK sha256:1a6372a3…   screenshotter OK sha256:146a6a46…
-web OK sha256:7cdbb568…
+api  OK sha256:239b462e…   worker OK sha256:24e97a91…   admin OK sha256:14b075c0…
+ai-gateway OK sha256:b02edd6b…   workspace-manager OK sha256:d4babc03…
+preview-proxy OK sha256:5ff09ba3…   screenshotter OK sha256:a9d214f8…
+web OK sha256:d1dba3c9…
 ```
 
-Détail utile à l'auditeur : entre les trois SHAs de code de ce tour, **7 des 8
-digests sont identiques**. C'est attendu et vérifiable — le seul delta de source
-était sous `scripts/audit-env/`, qui n'entre dans aucune image. Seul `web` change,
-son build n'étant pas reproductible bit à bit.
+Détail utile à l'auditeur, et qui se lit dans les deux sens :
+
+* entre les trois SHAs de code du tour précédent, **7 des 8 digests étaient
+  identiques** — attendu, le seul delta de source étant sous `scripts/audit-env/`,
+  qui n'entre dans aucune image (seul `web` changeait, son build n'étant pas
+  reproductible bit à bit) ;
+* après le rebase sur la tête à jour, **les 8 digests sont nouveaux** — attendu
+  aussi, puisque les six commits intégrés de `main` modifient du code applicatif
+  réel.
+
+Autrement dit, le digest bouge quand le code bouge et pas autrement : c'est
+exactement ce qu'on attend d'une chaîne de provenance qui dit la vérité.
 
 ---
 
@@ -100,7 +125,7 @@ un seul.
 
 ---
 
-## Les 4 portes, au SHA figé
+## Les 4 portes, au SHA figé `f2805edd03`
 
 Chaque ligne est une assertion du script : statut **et** fragment de corps attendus,
 `101+DONNEES` pour l'upgrade WebSocket, `set -euo pipefail`.
@@ -114,7 +139,7 @@ PORTE 4 (WebSocket HMR)      SANS 403 | INTRUS 502 | BIDON 403 | LEGITIME 101+DO
 ```
 
 Le workspace tourne sous `runtimeClass: gvisor`, sur l'image agent
-`workspace-agent:sha-82ed5e5fa9`, et les jetons sont forgés **dans le pod api** pour
+`workspace-agent:sha-f2805edd03`, et les jetons sont forgés **dans le pod api** pour
 que le secret ne sorte jamais du cluster.
 
 ---

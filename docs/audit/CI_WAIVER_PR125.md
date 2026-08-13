@@ -1,8 +1,12 @@
 # PR #125 — attribution des échecs CI
 
-Branche `fix/from-scratch-install-dr-clean`, **SHA figé
-`8eaa538cb3758b029c06f904535d60ea1c7fdce6`**, rebasée sur `origin/main` =
-`b2ee7c8844`.
+Branche `fix/from-scratch-install-dr-clean`, **SHA de code figé `f2805edd03`**
+(tête de PR `a2ebbc0049` ; au-delà du SHA de code, uniquement `docs/audit/**`),
+rebasée sur `origin/main` = `1f0f39198c`.
+
+Tableau au SHA courant, mesuré : **16 verts, 2 `skipped`**, et pour seuls rouges les
+**cinq jobs Playwright** des deux suites partagées — inchangé par rapport aux SHAs
+précédents, et attribué ci-dessous par mesure sur `main`.
 
 L'auditeur demande d'**isoler les rouges hérités des nouveaux, avec preuve par SHA**.
 Chaque ligne ci-dessous est établie en rejouant la vérification *exacte* du CI sur
