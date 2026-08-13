@@ -69,3 +69,14 @@ docs/instructions/Roadmap.md
 .qodo
 .git
 .claude
+
+# Preuves d'audit — captures, HAR et snapshots de rendu.
+#
+# Aucune étape de build ne lit `docs/` (ni le Dockerfile racine, ni
+# infra/docker/node-service.Dockerfile). Ces trois dossiers pesaient 210 des
+# 290 Mo envoyés à CHAQUE `gcloud builds submit` : autant de minutes d'upload
+# pour des octets que Cloud Build n'ouvre jamais. Placé en fin de fichier pour
+# passer après les négations `!docs/**/*.md` ci-dessus.
+docs/parity/
+docs/deploy-evidence/
+docs/ui-ux-evidence/
