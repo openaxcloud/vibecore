@@ -2403,10 +2403,13 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
                 <div>
                   <strong title={proposal.relativePath}>{proposal.relativePath}</strong>
                   <span>
-                    {proposal.hunks.length}
-                    {t('chat.copy.hunk_487d3241')}
-                    {proposal.hunks.length === 1 ? '' : 's'} · {selectedCount}
-                    {t('chat.copy.selected_835f3b50')}
+                    {/*
+                     * BUG-QA-I18N-COUNT-002 : compteurs collés au libellé, et
+                     * pluriel fabriqué avec un « s » ANGLAIS ajouté à une chaîne
+                     * traduite (« Segments » en français par accident).
+                     */}
+                    {t('baseChatAst.patch.hunks', { count: proposal.hunks.length })} ·{' '}
+                    {t('baseChatAst.patch.selected', { count: selectedCount })}
                   </span>
                 </div>
                 <div className="bolt-project-agent-patch-actions">
@@ -6952,7 +6955,11 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
              */}
             {progressAnnotations && (
               <div className="sticky top-0 z-10 -mt-6 -mx-2 sm:-mx-6">
-                <ProgressCompilation data={progressAnnotations} />
+                <ProgressCompilation
+                  data={progressAnnotations}
+                  streaming={isStreaming}
+                  failed={Boolean(llmErrorAlert)}
+                />
               </div>
             )}
             <ClientOnly>
@@ -12042,8 +12049,12 @@ function ProjectFilesTool({
       />
       <div className="bolt-project-files-header">
         <span className="bolt-project-files-count" title={hiddenFilesSummary}>
-          {fileCount}
-          {t('chat.copy.files_a1f13b3b')}
+          {/*
+           * BUG-QA-I18N-COUNT-001 : `{fileCount}` et `{t(...)}` étaient deux
+           * expressions JSX ADJACENTES — React les concatène sans séparateur, d'où
+           * « 8fichiers ». La clé plurielle existait déjà et porte son espace.
+           */}
+          {t('baseChatAst.files.count', { count: fileCount })}
         </span>
         <HeaderTip label={t('chat.copy.newFile_3cb7ea0f')} side="top">
           <button
@@ -17228,7 +17239,11 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
           </div>
           <small>
             {lockfiles.length
-              ? t('chat.copy.value0LockfileSDetected_e2f1f51c', { value0: lockfiles.length })
+              ? // BUG-QA-I18N-COUNT-002 : « 1 fichier(s) » -> pluriel réel par langue.
+                t('chat.copy.value0LockfileSDetected_e2f1f51c', {
+                  value0: lockfiles.length,
+                  count: lockfiles.length,
+                })
               : t('chat.copy.noLockfileDetectedYet_33076d29')}
           </small>
         </div>
@@ -18286,10 +18301,13 @@ function ProjectMonitoringPanel({
       />
       {hiddenRoutineCount > 0 ? (
         <div className="bolt-project-monitoring-routine-note" role="note">
-          {hiddenRoutineCount}
-          {t('chat.copy.routineInternalEvent_1f36f1ff')}
-          {hiddenRoutineCount === 1 ? '' : 's'}
-          {t('chat.copy.hidden_53333214')}
+          {/*
+           * BUG-QA-I18N-COUNT-002 : compteur et libellé étaient adjacents (donc
+           * collés), et le pluriel était fabriqué en ajoutant un « s » ANGLAIS à
+           * une chaîne traduite — « événement interne de routines ». Une clé
+           * plurielle par langue règle les deux.
+           */}
+          {t('baseChatAst.monitoring.hiddenRoutine', { count: hiddenRoutineCount })}
           <code>project.ide_state.*</code>
           {t('chat.copy.openTheLogsPanelToInspect_cc12758f')}
         </div>

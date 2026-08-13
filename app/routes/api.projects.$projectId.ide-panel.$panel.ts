@@ -105,6 +105,13 @@ function panelEnvelopeError(
   const copy = getApiRuntimeRoutesCopy(language);
   const status = (error as { status?: number } | undefined)?.status;
 
+  /*
+   * BUG-QA-PANEL-429-MASKED-001 : 429 n'avait pas de branche et retombait dans
+   * le fourre-tout `PANEL_REQUEST_FAILED`, donc « les données du panneau n'ont
+   * pas pu être chargées » — alors que la cause réelle est un QUOTA atteint, que
+   * l'utilisateur peut corriger. La ligne `retryable` juste en dessous
+   * reconnaissait pourtant déjà 429.
+   */
   const code =
     status === 401
       ? 'PANEL_AUTH'
@@ -112,9 +119,11 @@ function panelEnvelopeError(
         ? 'PANEL_FORBIDDEN'
         : status === 404
           ? 'PANEL_NOT_FOUND'
-          : status && status >= 500
-            ? 'PANEL_BACKEND_UNAVAILABLE'
-            : 'PANEL_REQUEST_FAILED';
+          : status === 429
+            ? 'PANEL_QUOTA_EXCEEDED'
+            : status && status >= 500
+              ? 'PANEL_BACKEND_UNAVAILABLE'
+              : 'PANEL_REQUEST_FAILED';
 
   const retryable = !status || status >= 500 || status === 408 || status === 429;
 
@@ -125,9 +134,11 @@ function panelEnvelopeError(
         ? copy['apiRuntime.panel.forbidden']
         : code === 'PANEL_NOT_FOUND'
           ? copy['apiRuntime.panel.notFound']
-          : code === 'PANEL_BACKEND_UNAVAILABLE'
-            ? copy['apiRuntime.panel.backendUnavailable']
-            : copy['apiRuntime.panel.loadFailed'];
+          : code === 'PANEL_QUOTA_EXCEEDED'
+            ? copy['apiRuntime.panel.quotaExceeded']
+            : code === 'PANEL_BACKEND_UNAVAILABLE'
+              ? copy['apiRuntime.panel.backendUnavailable']
+              : copy['apiRuntime.panel.loadFailed'];
 
   console.error('IDE panel request failed:', { panel, status, error });
 
@@ -3282,6 +3293,7 @@ async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | Enterprise
             Number((error as { status?: unknown } | undefined)?.status) <= 599
           ? Number((error as { status?: unknown }).status)
           : 500;
+    // Même masquage du 429 que dans panelEnvelopeError — voir BUG-QA-PANEL-429-MASKED-001.
     const message =
       status === 401
         ? copy['apiRuntime.panel.authenticationRequired']
@@ -3289,11 +3301,16 @@ async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | Enterprise
           ? copy['apiRuntime.panel.forbidden']
           : status === 404
             ? copy['apiRuntime.panel.notFound']
-            : status >= 500
-              ? copy['apiRuntime.panel.backendUnavailable']
-              : copy['apiRuntime.panel.loadFailed'];
+            : status === 429
+              ? copy['apiRuntime.panel.quotaExceeded']
+              : status >= 500
+                ? copy['apiRuntime.panel.backendUnavailable']
+                : copy['apiRuntime.panel.loadFailed'];
 
-    throw json({ error: message, code: 'PANEL_REQUEST_FAILED' }, { status, headers: mergeLocaleHeaders(request) });
+    throw json(
+      { error: message, code: status === 429 ? 'PANEL_QUOTA_EXCEEDED' : 'PANEL_REQUEST_FAILED' },
+      { status, headers: mergeLocaleHeaders(request) },
+    );
   }
 }
 
