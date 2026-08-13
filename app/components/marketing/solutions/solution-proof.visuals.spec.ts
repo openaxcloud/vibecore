@@ -24,6 +24,11 @@ import {
   solutionProofInterSlotPairs,
   type SolutionProofInteractionContract,
 } from '../../../../scripts/solution-proof-capture-truth';
+// eslint-disable-next-line no-restricted-imports -- capture and manifest gates share one strict runtime recovery schema.
+import {
+  SOLUTION_RUNTIME_RECOVERY_PROOF_SCHEMA_VERSION,
+  validateSolutionRuntimeRecoveryProofManifest,
+} from '../../../../scripts/solution-runtime-recovery-proof';
 
 import { CHATBOT_BUILDER_COPY } from './chatbot-builder.copy';
 import { DASHBOARD_BUILDER_COPY } from './dashboard-builder.copy';
@@ -58,6 +63,12 @@ const FILENAMES = {
 } as const;
 
 const CAPTURE_FILENAMES = SOLUTION_PROOF_VISUAL_SLOTS.map((slot) => `${FILENAMES[slot]}.png`);
+
+const OBSERVED_TERMINAL_RECOVERY_COMMANDS = [
+  'npm install --include=dev --prefer-offline --no-audit --no-fund',
+  'node_modules/.bin/vite --version',
+  'npm run dev -- --host 0.0.0.0',
+] as const;
 
 const GENERATED_FRENCH_CAPTURE_PHASES = {
   'ide-agent-files.png': 'interaction',
@@ -192,6 +203,43 @@ function asString(value: unknown, label: string): string {
   }
 
   return value;
+}
+
+function expectRuntimeRecoveryProof(value: unknown, label: string, expectedProjectFilesRevision: string) {
+  expect(validateSolutionRuntimeRecoveryProofManifest(value), label).toEqual({ valid: true });
+
+  const proof = asRecord(value, label);
+  const packagePolicy = asRecord(proof.packagePolicy, `${label}.packagePolicy`);
+  const runtimeRecovery = asRecord(proof.runtimeRecovery, `${label}.runtimeRecovery`);
+
+  expect(proof.schemaVersion, `${label}.schemaVersion`).toBe(SOLUTION_RUNTIME_RECOVERY_PROOF_SCHEMA_VERSION);
+  expect(packagePolicy.scope, `${label}.packagePolicy.scope`).toBe('final-persisted-manifest');
+  expect(packagePolicy.verified, `${label}.packagePolicy.verified`).toBe(true);
+  expect(packagePolicy.packagePath, `${label}.packagePolicy.packagePath`).toBe('package.json');
+  expect(packagePolicy.packageJsonBytes, `${label}.packagePolicy.packageJsonBytes`).toBeGreaterThan(0);
+  expect(packagePolicy.packageJsonSha256, `${label}.packagePolicy.packageJsonSha256`).toMatch(/^[a-f0-9]{64}$/u);
+  expect(
+    asString(packagePolicy.projectFilesRevision, `${label}.packagePolicy.projectFilesRevision`),
+    `${label}.packagePolicy.projectFilesRevision`,
+  ).toBe(expectedProjectFilesRevision);
+
+  for (const [eventIndex, eventValue] of asArray(runtimeRecovery.events, `${label}.runtimeRecovery.events`).entries()) {
+    const eventLabel = `${label}.runtimeRecovery.events[${eventIndex}]`;
+    const event = asRecord(eventValue, eventLabel);
+    const source = asString(event.source, `${eventLabel}.source`);
+    const commands = asArray(event.commands, `${eventLabel}.commands`);
+
+    if (source === 'terminal') {
+      expect(commands.length, `${eventLabel}.commands`).toBeGreaterThan(0);
+      expect(commands.length, `${eventLabel}.commands`).toBeLessThanOrEqual(OBSERVED_TERMINAL_RECOVERY_COMMANDS.length);
+      expect(commands, `${eventLabel}.commands`).toEqual(OBSERVED_TERMINAL_RECOVERY_COMMANDS.slice(0, commands.length));
+    } else {
+      expect(['auto', 'reinstall-ui'], `${eventLabel}.source`).toContain(source);
+      expect(commands, `${eventLabel}.commands`).toEqual([]);
+    }
+  }
+
+  return proof;
 }
 
 type GeneratedFrenchCaptureStateExpectation = Readonly<{
@@ -1438,6 +1486,112 @@ describe('theme-aware solution proof visual registry', () => {
     expect(() => expectGeneratedFrenchSurfaceProof(forgedAudit, 'forged-audit', slug, 'fr', capturedStates)).toThrow();
   });
 
+  it('requires strict runtime recovery provenance bound to the promoted persisted revision', () => {
+    const projectFilesRevision = 'b'.repeat(64);
+
+    const emptyRecoveryProof = {
+      packagePolicy: {
+        packageJsonBytes: 2,
+        packageJsonSha256: 'a'.repeat(64),
+        packagePath: 'package.json',
+        projectFilesRevision,
+        scope: 'final-persisted-manifest',
+        verified: true,
+      },
+      runtimeRecovery: {
+        attemptCount: 0,
+        commandCount: 0,
+        commands: [],
+        counts: { auto: 0, 'reinstall-ui': 0, terminal: 0 },
+        events: [],
+        mode: 'none',
+        reasons: [],
+      },
+      schemaVersion: SOLUTION_RUNTIME_RECOVERY_PROOF_SCHEMA_VERSION,
+    };
+
+    expect(() => expectRuntimeRecoveryProof(emptyRecoveryProof, 'empty-recovery', projectFilesRevision)).not.toThrow();
+    expect(() => expectRuntimeRecoveryProof(emptyRecoveryProof, 'wrong-revision', 'c'.repeat(64))).toThrow();
+
+    const recoveryProofWithCommand = (source: 'auto' | 'terminal', command: string) => ({
+      ...emptyRecoveryProof,
+      runtimeRecovery: {
+        attemptCount: 1,
+        commandCount: 1,
+        commands: [{ count: 1, sources: [source], value: command }],
+        counts: { auto: source === 'auto' ? 1 : 0, 'reinstall-ui': 0, terminal: source === 'terminal' ? 1 : 0 },
+        events: [{ commands: [command], reason: 'Preview recovery was required', sequence: 1, source }],
+        mode: source,
+        reasons: [{ count: 1, sources: [source], value: 'Preview recovery was required' }],
+      },
+    });
+
+    const inventedAutoCommand = recoveryProofWithCommand('auto', 'npm run dev');
+    const unobservedTerminalCommand = recoveryProofWithCommand('terminal', 'npm run dev');
+
+    expect(validateSolutionRuntimeRecoveryProofManifest(inventedAutoCommand)).toEqual({ valid: true });
+    expect(validateSolutionRuntimeRecoveryProofManifest(unobservedTerminalCommand)).toEqual({ valid: true });
+    expect(() =>
+      expectRuntimeRecoveryProof(inventedAutoCommand, 'invented-auto-command', projectFilesRevision),
+    ).toThrow();
+    expect(() =>
+      expectRuntimeRecoveryProof(unobservedTerminalCommand, 'unobserved-terminal-command', projectFilesRevision),
+    ).toThrow();
+  });
+
+  it('records only submitted terminal commands and validates final snapshot proof before public promotion', () => {
+    const captureSource = readFileSync(resolve(process.cwd(), 'scripts/capture-app-builder-ide-proof.ts'), 'utf8');
+    const terminalStart = captureSource.indexOf('const startPreviewFromTerminal = async () =>');
+    const terminalEnd = captureSource.indexOf('const waitForPreviewSurface = () =>', terminalStart);
+    const terminalSource = captureSource.slice(terminalStart, terminalEnd);
+
+    for (const commandName of ['dependencyInstallCommand', 'viteVersionCommand', 'devServerCommand']) {
+      const typeIndex = terminalSource.indexOf(`page.keyboard.type(${commandName})`);
+      const enterIndex = terminalSource.indexOf("page.keyboard.press('Enter')", typeIndex);
+      const recordIndex = terminalSource.indexOf(`submittedTerminalCommands.push(${commandName})`, enterIndex);
+
+      expect(typeIndex, commandName).toBeGreaterThan(0);
+      expect(enterIndex, commandName).toBeGreaterThan(typeIndex);
+      expect(recordIndex, commandName).toBeGreaterThan(enterIndex);
+    }
+
+    expect(terminalSource).toContain("source: 'terminal'");
+    expect(terminalSource).toContain('commands: submittedTerminalCommands');
+    expect(captureSource).toMatch(/source: 'auto',[\s\S]{0,180}commands: \[\]/u);
+    expect(captureSource).toMatch(/source: 'reinstall-ui',[\s\S]{0,180}commands: \[\]/u);
+
+    const proofGateStart = captureSource.indexOf('async function verifyRuntimeFilesBeforePromotion(');
+    const proofGateEnd = captureSource.indexOf('async function readRuntimePreviewPorts(', proofGateStart);
+    const proofGateSource = captureSource.slice(proofGateStart, proofGateEnd);
+
+    expect(proofGateSource).toContain('result.snapshot.files.filter');
+    expect(proofGateSource).toContain('projectFilesRevision: result.snapshot.revision');
+    expect(proofGateSource).toContain('buildFinalPersistedManifestPackagePolicyProof(finalPackagePolicyInput)');
+    expect(proofGateSource).toContain('runtimeRecoveryProofTracker.manifest(packagePolicy)');
+    expect(proofGateSource).toContain('validateSolutionRuntimeRecoveryProofManifest(');
+
+    const promotionIndex = captureSource.indexOf('const promotedAssets = await promoteVerifiedThemedAssets');
+    const finalProofGateIndex = captureSource.lastIndexOf('await verifyRuntimeFilesBeforePromotion(', promotionIndex);
+    const captureResultIndex = captureSource.indexOf('const captureResult = {', promotionIndex);
+
+    expect(finalProofGateIndex).toBeGreaterThan(0);
+    expect(finalProofGateIndex).toBeLessThan(promotionIndex);
+    expect(captureResultIndex).toBeGreaterThan(promotionIndex);
+    expect(captureSource.slice(captureResultIndex, captureResultIndex + 1_500)).toContain('runtimeRecoveryProof,');
+
+    const resumeGateIndex = captureSource.indexOf('if (resume && !repairOnly)');
+
+    const trackerIndex = captureSource.indexOf(
+      'const runtimeRecoveryProofTracker = createRuntimeRecoveryProofTracker()',
+    );
+
+    const browserLaunchIndex = captureSource.indexOf('await chromium.launch', trackerIndex);
+
+    expect(resumeGateIndex).toBeGreaterThan(0);
+    expect(trackerIndex).toBeGreaterThan(resumeGateIndex);
+    expect(browserLaunchIndex).toBeGreaterThan(trackerIndex);
+  });
+
   it('runs exact Page/Frame French audits and the complete proof gate before public promotion', () => {
     const captureSource = readFileSync(resolve(process.cwd(), 'scripts/capture-app-builder-ide-proof.ts'), 'utf8');
 
@@ -1558,16 +1712,23 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
 
         const runtimePromotionProof = asRecord(manifest.runtimePromotionProof, `${label}.runtimePromotionProof`);
 
+        const runtimePromotionRevision = asString(
+          runtimePromotionProof.projectFilesRevision,
+          `${label}.runtimePromotionProof.projectFilesRevision`,
+        );
+
         expect(
           asString(runtimePromotionProof.workspaceId, `${label}.runtimePromotionProof.workspaceId`),
           label,
         ).toMatch(/^ws-[a-z0-9]+$/);
-        expect(
-          asString(runtimePromotionProof.projectFilesRevision, `${label}.runtimePromotionProof.projectFilesRevision`),
-          label,
-        ).toMatch(/^[a-f0-9]{64}$/);
+        expect(runtimePromotionRevision, label).toMatch(/^[a-f0-9]{64}$/);
         expect(runtimePromotionProof.matchingReads, label).toBeGreaterThanOrEqual(4);
         expect(runtimePromotionProof.stableForMs, label).toBeGreaterThanOrEqual(12_000);
+        expectRuntimeRecoveryProof(
+          manifest.runtimeRecoveryProof,
+          `${label}.runtimeRecoveryProof`,
+          runtimePromotionRevision,
+        );
 
         const audits = expectThemedCaptureCoverage(
           manifest.themedCaptureAudits,

@@ -5,12 +5,16 @@ import { validateGeneratedSolutionPackageJson } from './solution-generated-packa
 export const RUNTIME_RECOVERY_MODES = ['none', 'auto', 'reinstall-ui', 'terminal'] as const;
 export const RUNTIME_RECOVERY_SOURCES = ['auto', 'reinstall-ui', 'terminal'] as const;
 export const FINAL_PERSISTED_MANIFEST_SCOPE = 'final-persisted-manifest' as const;
-export const SOLUTION_RUNTIME_RECOVERY_PROOF_SCHEMA_VERSION = 1 as const;
+export const SOLUTION_RUNTIME_RECOVERY_PROOF_SCHEMA_VERSION = 2 as const;
 
 export type RuntimeRecoveryMode = (typeof RUNTIME_RECOVERY_MODES)[number];
 export type RuntimeRecoverySource = (typeof RUNTIME_RECOVERY_SOURCES)[number];
 
 export type RuntimeRecoveryEventInput = Readonly<{
+  /**
+   * Exact shell commands observed being submitted. UI and automatic recovery
+   * events use an empty array when the underlying shell command is not visible.
+   */
   commands: readonly string[];
   reason: string;
   source: RuntimeRecoverySource;
@@ -196,9 +200,15 @@ function assertRuntimeRecoveryEventInput(value: unknown, label = 'runtime recove
 
   const reason = strictSingleLineString(value.reason, `${label}.reason`);
 
-  if (!Array.isArray(value.commands) || value.commands.length === 0) {
+  if (!Array.isArray(value.commands)) {
     throw new RuntimeRecoveryProofError('Invalid runtime recovery proof input', [
-      `${label}.commands must contain at least one exact executed command`,
+      `${label}.commands must be an array of exact observed commands`,
+    ]);
+  }
+
+  if (value.source === 'terminal' && value.commands.length === 0) {
+    throw new RuntimeRecoveryProofError('Invalid runtime recovery proof input', [
+      `${label}.commands must contain at least one exact submitted command for terminal recovery`,
     ]);
   }
 

@@ -76,6 +76,12 @@ import {
   type TrackedIdeRequestEndSource,
   type RuntimeWriteQuiescenceDiagnostic,
 } from './solution-runtime-reconciliation.js';
+import {
+  buildFinalPersistedManifestPackagePolicyProof,
+  createRuntimeRecoveryProofTracker,
+  validateSolutionRuntimeRecoveryProofManifest,
+  type RuntimeRecoveryProofTracker,
+} from './solution-runtime-recovery-proof.js';
 import { applyOfficialRuntimeCaptureTheme, pressIdeCommandPaletteShortcut } from './solution-runtime-theme-control.js';
 
 type CaptureLocale = 'en' | 'fr';
@@ -1848,7 +1854,12 @@ async function waitForRuntimeFilesToMatchPersisted(page: Page, projectId: string
   );
 }
 
-async function verifyRuntimeFilesBeforePromotion(page: Page, projectId: string, token: string) {
+async function verifyRuntimeFilesBeforePromotion(
+  page: Page,
+  projectId: string,
+  token: string,
+  runtimeRecoveryProofTracker: RuntimeRecoveryProofTracker,
+) {
   const workspace = await resolveRuntimeWorkspace(page, projectId, token);
 
   if (!workspace?.id) {
@@ -1863,16 +1874,67 @@ async function verifyRuntimeFilesBeforePromotion(page: Page, projectId: string, 
     }),
   );
 
-  const proof = {
+  const runtimePromotionProof = {
     workspaceId: workspace.id,
     projectFilesRevision: result.snapshot.revision,
     matchingReads: result.matchingReads,
     stableForMs: result.stableForMs,
   };
 
-  process.stdout.write(`${JSON.stringify({ status: 'runtime-files-stable-before-promotion', ...proof })}\n`);
+  const packageFiles = result.snapshot.files.filter((file) => /(?:^|\/)package\.json$/u.test(file.path));
+  const rootPackageFiles = packageFiles.filter((file) => file.path === 'package.json');
 
-  return proof;
+  if (rootPackageFiles.length !== 1 || packageFiles.length !== 1) {
+    const discoveredPaths = packageFiles.map((file) => file.path);
+
+    throw new Error(
+      `Runtime promotion gate requires one final persisted root package.json and no nested manifest (found ${
+        discoveredPaths.length > 0 ? discoveredPaths.join(', ') : 'none'
+      })`,
+    );
+  }
+
+  const finalPackageFile = rootPackageFiles[0];
+
+  if (finalPackageFile.encoding === 'base64') {
+    throw new Error('Runtime promotion gate requires the final persisted package.json as UTF-8 text');
+  }
+
+  const finalPackagePolicyInput = {
+    packageJsonSource: finalPackageFile.content,
+    projectFilesRevision: result.snapshot.revision,
+  };
+
+  const packagePolicy = buildFinalPersistedManifestPackagePolicyProof(finalPackagePolicyInput);
+  const runtimeRecoveryProof = runtimeRecoveryProofTracker.manifest(packagePolicy);
+
+  const runtimeRecoveryProofValidation = validateSolutionRuntimeRecoveryProofManifest(
+    runtimeRecoveryProof,
+    finalPackagePolicyInput,
+  );
+
+  if (!runtimeRecoveryProofValidation.valid) {
+    throw new Error(
+      `Runtime recovery proof is invalid before promotion:\n- ${runtimeRecoveryProofValidation.errors.join('\n- ')}`,
+    );
+  }
+
+  if (runtimeRecoveryProof.packagePolicy.projectFilesRevision !== runtimePromotionProof.projectFilesRevision) {
+    throw new Error('Runtime recovery package proof and runtime promotion proof do not share the final revision');
+  }
+
+  process.stdout.write(
+    `${JSON.stringify({
+      status: 'runtime-files-stable-before-promotion',
+      ...runtimePromotionProof,
+      runtimeRecoveryMode: runtimeRecoveryProof.runtimeRecovery.mode,
+      runtimeRecoveryAttemptCount: runtimeRecoveryProof.runtimeRecovery.attemptCount,
+      runtimeRecoveryCommandCount: runtimeRecoveryProof.runtimeRecovery.commandCount,
+      packageJsonSha256: runtimeRecoveryProof.packagePolicy.packageJsonSha256,
+    })}\n`,
+  );
+
+  return Object.freeze({ runtimePromotionProof, runtimeRecoveryProof });
 }
 
 async function readRuntimePreviewPorts(page: Page, projectId: string, token: string) {
@@ -2478,6 +2540,7 @@ async function waitForPreview(
   evidenceRoot: string,
   projectId: string,
   token: string,
+  runtimeRecoveryProofTracker: RuntimeRecoveryProofTracker,
   expectedIdentity?: string,
 ) {
   await assertGeneratedSolutionPackagePolicy(page, projectId, token);
@@ -2588,6 +2651,11 @@ async function waitForPreview(
     }
 
     await refreshPreviewButton.click({ noWaitAfter: true });
+    runtimeRecoveryProofTracker.record({
+      source: 'auto',
+      reason: 'Official runtime was ready but the native Preview iframe required a refresh',
+      commands: [],
+    });
 
     process.stdout.write(
       `${JSON.stringify({ status: 'preview-native-runtime-refresh-requested', origin: new URL(officialUrl).origin })}\n`,
@@ -2617,121 +2685,137 @@ async function waitForPreview(
 
     const dependencyInstallCommand = 'npm install --include=dev --prefer-offline --no-audit --no-fund';
     const viteVersionCommand = 'node_modules/.bin/vite --version';
-    const terminalTabs = page.getByTestId('terminal-tabs-bar');
-    const openedTerminal = !(await terminalTabs.isVisible().catch(() => false));
+    const devServerCommand = 'npm run dev -- --host 0.0.0.0';
+    const submittedTerminalCommands: string[] = [];
 
-    if (openedTerminal) {
-      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
+    try {
+      const terminalTabs = page.getByTestId('terminal-tabs-bar');
+      const openedTerminal = !(await terminalTabs.isVisible().catch(() => false));
+
+      if (openedTerminal) {
+        await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
+      }
+
+      await expect(terminalTabs).toBeVisible({ timeout: 60_000 });
+
+      const terminalScreen = page.locator('.xterm-screen:visible').last();
+      const terminalRows = page.locator('.xterm-rows:visible').last();
+
+      await expect(terminalScreen).toBeVisible({ timeout: 60_000 });
+      await expect
+        .poll(
+          async () => {
+            const rows = await terminalRows.innerText().catch(() => '');
+
+            return /[$#]\s*$/.test(rows.trimEnd());
+          },
+          {
+            message: 'The IDE Terminal must expose an interactive workspace prompt before starting Vite',
+            timeout: PREVIEW_RESTART_TIMEOUT_MS,
+          },
+        )
+        .toBe(true);
+
+      const terminalInput = page.locator('.xterm:visible').last().locator('textarea.xterm-helper-textarea');
+
+      await terminalInput.focus();
+      await expect(terminalInput).toBeFocused();
+
+      await page.keyboard.type(dependencyInstallCommand);
+      await expect
+        .poll(() => terminalRows.innerText().catch(() => ''), {
+          message: 'The IDE Terminal must echo the dependency installation command before execution',
+          timeout: 30_000,
+        })
+        .toContain(dependencyInstallCommand);
+      await page.keyboard.press('Enter');
+      submittedTerminalCommands.push(dependencyInstallCommand);
+      process.stdout.write(`${JSON.stringify({ status: 'preview-terminal-install-requested' })}\n`);
+
+      await expect
+        .poll(() => terminalRows.innerText().catch(() => ''), {
+          message: 'The real IDE Terminal must complete the project dependency installation',
+          timeout: PREVIEW_TIMEOUT_MS,
+        })
+        .toMatch(/(?:(?:added|changed|removed)\s+\d+\s+packages?|up to date)/i);
+      await expect
+        .poll(() => terminalRows.innerText().catch(() => ''), {
+          message: 'The IDE Terminal must return to an interactive prompt after installing dependencies',
+          timeout: 60_000,
+        })
+        .toMatch(/[$#]\s*$/);
+
+      await terminalInput.focus();
+      await expect(terminalInput).toBeFocused();
+      await page.keyboard.type(viteVersionCommand);
+      await page.keyboard.press('Enter');
+      submittedTerminalCommands.push(viteVersionCommand);
+      await expect
+        .poll(() => terminalRows.innerText().catch(() => ''), {
+          message: 'The installed project must expose a real Vite executable before Preview starts',
+          timeout: 60_000,
+        })
+        .toMatch(/(?:vite\/|vite\s+v)\d+\.\d+\.\d+/i);
+      await expect
+        .poll(() => terminalRows.innerText().catch(() => ''), {
+          message: 'The IDE Terminal must return after verifying Vite',
+          timeout: 60_000,
+        })
+        .toMatch(/[$#]\s*$/);
+      process.stdout.write(`${JSON.stringify({ status: 'preview-vite-executable-verified' })}\n`);
+
+      await terminalInput.focus();
+      await expect(terminalInput).toBeFocused();
+      await page.keyboard.type(devServerCommand);
+      await expect
+        .poll(() => terminalRows.innerText().catch(() => ''), {
+          message: 'The IDE Terminal must echo the requested Vite command before execution',
+          timeout: 30_000,
+        })
+        .toContain(devServerCommand);
+      await page.keyboard.press('Enter');
+      submittedTerminalCommands.push(devServerCommand);
+      process.stdout.write(`${JSON.stringify({ status: 'preview-terminal-start-requested' })}\n`);
+
+      await expect
+        .poll(
+          async () => {
+            const rows = await terminalRows.innerText().catch(() => '');
+
+            return (
+              /(?:VITE\s+v\d|Local:\s+https?:\/\/|ready in\s+\d+\s*ms|Port 5173 is already in use|\[vite\]\s+hmr update)/i.test(
+                rows,
+              ) || (await probeRuntimePreview(page, projectId, token))
+            );
+          },
+          {
+            message: 'The real IDE Terminal or runtime proxy must confirm a running Vite server',
+            timeout: PREVIEW_RESTART_TIMEOUT_MS,
+          },
+        )
+        .toBe(true);
+
+      const readyRuntimePorts = await readRuntimePreviewPorts(page, projectId, token);
+
+      process.stdout.write(
+        `${JSON.stringify({ status: 'preview-terminal-command-settled', runtimeReadyPortCount: readyRuntimePorts.length })}\n`,
+      );
+
+      if (openedTerminal) {
+        await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
+        await expect(terminalTabs).toBeHidden({ timeout: 60_000 });
+      }
+
+      await activatePreviewTab(page);
+    } finally {
+      if (submittedTerminalCommands.length > 0) {
+        runtimeRecoveryProofTracker.record({
+          source: 'terminal',
+          reason: 'Native Preview recovery escalated to commands submitted in the visible IDE Terminal',
+          commands: submittedTerminalCommands,
+        });
+      }
     }
-
-    await expect(terminalTabs).toBeVisible({ timeout: 60_000 });
-
-    const terminalScreen = page.locator('.xterm-screen:visible').last();
-    const terminalRows = page.locator('.xterm-rows:visible').last();
-
-    await expect(terminalScreen).toBeVisible({ timeout: 60_000 });
-    await expect
-      .poll(
-        async () => {
-          const rows = await terminalRows.innerText().catch(() => '');
-
-          return /[$#]\s*$/.test(rows.trimEnd());
-        },
-        {
-          message: 'The IDE Terminal must expose an interactive workspace prompt before starting Vite',
-          timeout: PREVIEW_RESTART_TIMEOUT_MS,
-        },
-      )
-      .toBe(true);
-
-    const terminalInput = page.locator('.xterm:visible').last().locator('textarea.xterm-helper-textarea');
-
-    await terminalInput.focus();
-    await expect(terminalInput).toBeFocused();
-
-    await page.keyboard.type(dependencyInstallCommand);
-    await expect
-      .poll(() => terminalRows.innerText().catch(() => ''), {
-        message: 'The IDE Terminal must echo the dependency installation command before execution',
-        timeout: 30_000,
-      })
-      .toContain(dependencyInstallCommand);
-    await page.keyboard.press('Enter');
-    process.stdout.write(`${JSON.stringify({ status: 'preview-terminal-install-requested' })}\n`);
-
-    await expect
-      .poll(() => terminalRows.innerText().catch(() => ''), {
-        message: 'The real IDE Terminal must complete the project dependency installation',
-        timeout: PREVIEW_TIMEOUT_MS,
-      })
-      .toMatch(/(?:(?:added|changed|removed)\s+\d+\s+packages?|up to date)/i);
-    await expect
-      .poll(() => terminalRows.innerText().catch(() => ''), {
-        message: 'The IDE Terminal must return to an interactive prompt after installing dependencies',
-        timeout: 60_000,
-      })
-      .toMatch(/[$#]\s*$/);
-
-    await terminalInput.focus();
-    await expect(terminalInput).toBeFocused();
-    await page.keyboard.type(viteVersionCommand);
-    await page.keyboard.press('Enter');
-    await expect
-      .poll(() => terminalRows.innerText().catch(() => ''), {
-        message: 'The installed project must expose a real Vite executable before Preview starts',
-        timeout: 60_000,
-      })
-      .toMatch(/(?:vite\/|vite\s+v)\d+\.\d+\.\d+/i);
-    await expect
-      .poll(() => terminalRows.innerText().catch(() => ''), {
-        message: 'The IDE Terminal must return after verifying Vite',
-        timeout: 60_000,
-      })
-      .toMatch(/[$#]\s*$/);
-    process.stdout.write(`${JSON.stringify({ status: 'preview-vite-executable-verified' })}\n`);
-
-    await terminalInput.focus();
-    await expect(terminalInput).toBeFocused();
-    await page.keyboard.type('npm run dev -- --host 0.0.0.0');
-    await expect
-      .poll(() => terminalRows.innerText().catch(() => ''), {
-        message: 'The IDE Terminal must echo the requested Vite command before execution',
-        timeout: 30_000,
-      })
-      .toContain('npm run dev -- --host 0.0.0.0');
-    await page.keyboard.press('Enter');
-    process.stdout.write(`${JSON.stringify({ status: 'preview-terminal-start-requested' })}\n`);
-
-    await expect
-      .poll(
-        async () => {
-          const rows = await terminalRows.innerText().catch(() => '');
-
-          return (
-            /(?:VITE\s+v\d|Local:\s+https?:\/\/|ready in\s+\d+\s*ms|Port 5173 is already in use|\[vite\]\s+hmr update)/i.test(
-              rows,
-            ) || (await probeRuntimePreview(page, projectId, token))
-          );
-        },
-        {
-          message: 'The real IDE Terminal or runtime proxy must confirm a running Vite server',
-          timeout: PREVIEW_RESTART_TIMEOUT_MS,
-        },
-      )
-      .toBe(true);
-
-    const readyRuntimePorts = await readRuntimePreviewPorts(page, projectId, token);
-
-    process.stdout.write(
-      `${JSON.stringify({ status: 'preview-terminal-command-settled', runtimeReadyPortCount: readyRuntimePorts.length })}\n`,
-    );
-
-    if (openedTerminal) {
-      await page.keyboard.press(process.platform === 'darwin' ? 'Meta+J' : 'Control+J');
-      await expect(terminalTabs).toBeHidden({ timeout: 60_000 });
-    }
-
-    await activatePreviewTab(page);
   };
 
   try {
@@ -2759,6 +2843,11 @@ async function waitForPreview(
 
       if (await previewRunButton.isVisible().catch(() => false)) {
         await previewRunButton.click({ noWaitAfter: true });
+        runtimeRecoveryProofTracker.record({
+          source: 'auto',
+          reason: 'Preview exposed its stopped state and the visible Run control was used',
+          commands: [],
+        });
         process.stdout.write(`${JSON.stringify({ status: 'preview-start-requested' })}\n`);
 
         return true;
@@ -2779,6 +2868,11 @@ async function waitForPreview(
 
       if (await reinstallDependenciesButton.isVisible().catch(() => false)) {
         await reinstallDependenciesButton.click({ noWaitAfter: true });
+        runtimeRecoveryProofTracker.record({
+          source: 'reinstall-ui',
+          reason: 'Preview iframe did not attach and the visible dependency reinstall control was used',
+          commands: [],
+        });
         process.stdout.write(`${JSON.stringify({ status: 'preview-dependencies-reinstall-requested' })}\n`);
       }
 
@@ -2840,6 +2934,11 @@ async function waitForPreview(
 
       if (await refreshPreviewButton.isVisible().catch(() => false)) {
         await refreshPreviewButton.click({ noWaitAfter: true });
+        runtimeRecoveryProofTracker.record({
+          source: 'auto',
+          reason: 'Preview did not render after attachment and the visible refresh control was used',
+          commands: [],
+        });
         process.stdout.write(`${JSON.stringify({ status: 'preview-refresh-requested' })}\n`);
       }
 
@@ -2862,6 +2961,11 @@ async function waitForPreview(
 
         if (await refreshedAfterReloadButton.isVisible().catch(() => false)) {
           await refreshedAfterReloadButton.click({ noWaitAfter: true });
+          runtimeRecoveryProofTracker.record({
+            source: 'auto',
+            reason: 'Preview remained empty and the visible refresh control was used again',
+            commands: [],
+          });
         }
 
         const renderedAfterFinalReload = await expect
@@ -5044,6 +5148,14 @@ async function main() {
   const singleGeneration = process.argv.includes('--single-generation');
   const resume = process.argv.includes('--resume');
 
+  if (resume && !repairOnly) {
+    throw new Error(
+      '--resume cannot promote Solution proof assets until runtime recovery events are persisted across capture sessions; rerun the promotable capture without --resume',
+    );
+  }
+
+  const runtimeRecoveryProofTracker = createRuntimeRecoveryProofTracker();
+
   const creationPrompt = creationPromptFor(slug, locale, copy, {
     includeInteractionAcceptance: singleGeneration,
   });
@@ -5394,7 +5506,15 @@ async function main() {
     if (repairOnly) {
       const repairPrompt = repairPromptFor(slug, locale, copy, 1);
       const repairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token, repairPrompt);
-      const { previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]);
+
+      const { previewText } = await waitForPreview(
+        page,
+        evidenceRoot,
+        projectId,
+        token,
+        runtimeRecoveryProofTracker,
+        copy.expectedTerms[0],
+      );
 
       await repairBubble.scrollIntoViewIfNeeded();
       await page.screenshot({
@@ -5430,7 +5550,14 @@ async function main() {
 
     for (let attempt = 0; attempt <= maximumPreviewRepairAttempts; attempt += 1) {
       try {
-        ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
+        ({ previewText } = await waitForPreview(
+          page,
+          evidenceRoot,
+          projectId,
+          token,
+          runtimeRecoveryProofTracker,
+          copy.expectedTerms[0],
+        ));
         break;
       } catch (previewError) {
         if (previewError instanceof GeneratedSolutionPackagePolicyError) {
@@ -5468,7 +5595,14 @@ async function main() {
       await verifyScenarioIdentity(page, copy, 60_000);
     } catch (identityError) {
       if (singleGeneration) {
-        ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
+        ({ previewText } = await waitForPreview(
+          page,
+          evidenceRoot,
+          projectId,
+          token,
+          runtimeRecoveryProofTracker,
+          copy.expectedTerms[0],
+        ));
 
         try {
           await verifyScenarioIdentity(page, copy, 60_000);
@@ -5483,7 +5617,14 @@ async function main() {
 
         iterationRepairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token, identityRepairPrompt);
         iterationRepairPrompt = identityRepairPrompt;
-        ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
+        ({ previewText } = await waitForPreview(
+          page,
+          evidenceRoot,
+          projectId,
+          token,
+          runtimeRecoveryProofTracker,
+          copy.expectedTerms[0],
+        ));
         await verifyScenarioIdentity(page, copy, 60_000);
       }
     }
@@ -5526,7 +5667,14 @@ async function main() {
 
         iterationRepairBubble = await repairGeneratedPreview(page, agentPanel, projectId, token, themeRepairPrompt);
         iterationRepairPrompt = themeRepairPrompt;
-        ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
+        ({ previewText } = await waitForPreview(
+          page,
+          evidenceRoot,
+          projectId,
+          token,
+          runtimeRecoveryProofTracker,
+          copy.expectedTerms[0],
+        ));
         await verifyScenarioAppearance(page, copy, 'dark');
         initialAccentAudit = await waitForOrangePreview(page, evidenceRoot);
       }
@@ -5659,7 +5807,14 @@ async function main() {
 
       process.stdout.write(`${JSON.stringify({ status: 'orange-iteration-settled', locale })}\n`);
 
-      ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
+      ({ previewText } = await waitForPreview(
+        page,
+        evidenceRoot,
+        projectId,
+        token,
+        runtimeRecoveryProofTracker,
+        copy.expectedTerms[0],
+      ));
       await verifyScenarioAppearance(page, copy, 'dark');
       accentAudit = await waitForOrangePreview(page, evidenceRoot);
       scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot, generatedFrenchSurfaceProof);
@@ -5706,7 +5861,14 @@ async function main() {
       verifiedCaptureFilenames.push(webviewIterationFilename);
       await selectPreviewDevice(page, 'desktop');
     } else if (singleGeneration) {
-      ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
+      ({ previewText } = await waitForPreview(
+        page,
+        evidenceRoot,
+        projectId,
+        token,
+        runtimeRecoveryProofTracker,
+        copy.expectedTerms[0],
+      ));
       scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot, generatedFrenchSurfaceProof);
       await verifyScenarioAppearance(page, copy, 'dark');
       interactionAccentAudit = await waitForOrangePreview(page, evidenceRoot, 60_000, false);
@@ -5952,7 +6114,12 @@ async function main() {
      * public-asset promotion; this gate is read-only and cannot hide a late race
      * by restarting or rewriting the runtime.
      */
-    const runtimePromotionProof = await verifyRuntimeFilesBeforePromotion(page, projectId, token);
+    const { runtimePromotionProof, runtimeRecoveryProof } = await verifyRuntimeFilesBeforePromotion(
+      page,
+      projectId,
+      token,
+      runtimeRecoveryProofTracker,
+    );
 
     const promotedAssets = await promoteVerifiedThemedAssets(stagingRoot, outputRoot, publishableCaptureFilenames);
 
@@ -5983,6 +6150,7 @@ async function main() {
       pageErrorCount: pageErrors.length,
       previewProvenance: finalPreviewSurface.provenance,
       runtimePromotionProof,
+      runtimeRecoveryProof,
       previewRuntimeErrors: finalPreviewSurface.runtimeErrors,
       previewOutput,
       promptOutput,

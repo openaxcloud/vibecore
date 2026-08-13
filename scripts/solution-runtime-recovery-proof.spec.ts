@@ -60,12 +60,12 @@ describe('Solution runtime recovery proof', () => {
       {
         source: 'auto',
         reason: 'Initial Preview boot did not expose port 5173',
-        commands: ['npm install --include=dev --prefer-offline --no-audit --no-fund', 'npm run dev'],
+        commands: [],
       },
       {
         source: 'reinstall-ui',
         reason: 'Native Webview remained detached after Run',
-        commands: ['npm install --include=dev --prefer-offline --no-audit --no-fund', 'npm run dev'],
+        commands: [],
       },
       {
         source: 'terminal',
@@ -80,18 +80,22 @@ describe('Solution runtime recovery proof', () => {
 
     expect(record.mode).toBe('terminal');
     expect(record.attemptCount).toBe(3);
-    expect(record.commandCount).toBe(7);
+    expect(record.commandCount).toBe(3);
     expect(record.counts).toEqual({ auto: 1, 'reinstall-ui': 1, terminal: 1 });
     expect(record.events.map(({ sequence, source }) => ({ sequence, source }))).toEqual([
       { sequence: 1, source: 'auto' },
       { sequence: 2, source: 'reinstall-ui' },
       { sequence: 3, source: 'terminal' },
     ]);
-    expect(record.commands).toContainEqual({
-      count: 3,
-      sources: ['auto', 'reinstall-ui', 'terminal'],
-      value: 'npm install --include=dev --prefer-offline --no-audit --no-fund',
-    });
+    expect(record.commands).toEqual([
+      {
+        count: 1,
+        sources: ['terminal'],
+        value: 'npm install --include=dev --prefer-offline --no-audit --no-fund',
+      },
+      { count: 1, sources: ['terminal'], value: 'node_modules/.bin/vite --version' },
+      { count: 1, sources: ['terminal'], value: 'npm run dev -- --host 0.0.0.0' },
+    ]);
     expect(record.reasons).toEqual([
       { count: 1, sources: ['auto'], value: 'Initial Preview boot did not expose port 5173' },
       { count: 1, sources: ['reinstall-ui'], value: 'Native Webview remained detached after Run' },
@@ -109,6 +113,18 @@ describe('Solution runtime recovery proof', () => {
         attemptCount: record.attemptCount,
       }),
     ).toEqual({ valid: true });
+  });
+
+  it('preserves UI and automatic recovery attempts without inventing hidden shell commands', () => {
+    const record = buildRuntimeRecoveryRecord([
+      { source: 'auto', reason: 'Preview was explicitly started', commands: [] },
+      { source: 'reinstall-ui', reason: 'Dependency reinstall was explicitly requested', commands: [] },
+    ]);
+
+    expect(record.commandCount).toBe(0);
+    expect(record.commands).toEqual([]);
+    expect(record.events.map(({ commands }) => commands)).toEqual([[], []]);
+    expect(validateRuntimeRecoveryRecord(record)).toEqual({ valid: true });
   });
 
   it('keeps tracker snapshots immutable and isolated from caller arrays', () => {
@@ -138,7 +154,7 @@ describe('Solution runtime recovery proof', () => {
   it.each([
     ['none is never a recordable source', { source: 'none', reason: 'No recovery', commands: ['npm run dev'] }],
     ['reason is empty', { source: 'auto', reason: '', commands: ['npm run dev'] }],
-    ['commands are empty', { source: 'auto', reason: 'Preview stopped', commands: [] }],
+    ['terminal commands are empty', { source: 'terminal', reason: 'Preview stopped', commands: [] }],
     ['command is multiline', { source: 'terminal', reason: 'Preview stopped', commands: ['npm install\nnpm run dev'] }],
     [
       'unknown fields are present',
@@ -207,7 +223,7 @@ describe('Solution runtime recovery proof', () => {
     tracker.record({
       source: 'reinstall-ui',
       reason: 'Dependency recovery was explicitly requested',
-      commands: ['npm install --include=dev --prefer-offline --no-audit --no-fund', 'npm run dev'],
+      commands: [],
     });
 
     const manifest = tracker.manifest(packagePolicy);
@@ -217,6 +233,7 @@ describe('Solution runtime recovery proof', () => {
     );
     expect(manifest.packagePolicy.scope).toBe('final-persisted-manifest');
     expect(manifest.runtimeRecovery.mode).toBe('reinstall-ui');
+    expect(manifest.schemaVersion).toBe(2);
     expect(validateSolutionRuntimeRecoveryProofManifest(manifest, finalPackageInput)).toEqual({ valid: true });
     expect(Object.isFrozen(manifest)).toBe(true);
   });
