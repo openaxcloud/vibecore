@@ -1118,6 +1118,15 @@
       "expiresOn": "2027-08-05"
     },
     {
+      "id": "rollback-manifest-reason-identifiers",
+      "path": "services/api/src/app.ts",
+      "rule": "visible-object-copy",
+      "textPattern": "^(?:not_ready|no_static_snapshot|server_no_digest|external_provider|append_failed)$",
+      "justification": "ReleaseManifestOutcome.reason — machine codes persisted verbatim into Deployment.metadata.rollbackUnavailableReason and asserted by the rollback suites. Localising them would corrupt stored data: a row written in French would stop matching a check written in English. User-facing rollback text goes through the locale-aware app-public catalogue.",
+      "owner": "deploy-rollback-and-i18n",
+      "expiresOn": "2027-08-13"
+    },
+    {
       "id": "api-audit-and-runtime-machine-reasons",
       "path": "services/api/src/app.ts",
       "rule": "visible-object-copy",
