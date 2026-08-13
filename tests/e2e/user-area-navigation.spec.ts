@@ -191,8 +191,13 @@ async function expectProjectCardLayout(page: Page, viewportWidth: 390 | 768 | 10
 
   await expect(grid).toBeVisible();
   await expect(cards).toHaveCount(2);
-  await expect(grid.getByText('Activity')).toHaveCount(2);
-  await expect(grid.getByText('Deployments')).toHaveCount(2);
+  /*
+   * `getByText` matches ancestors too, so a card whose deployments stat renders
+   * as `<div><span>Deployments</span><span>3</span></div>` counted twice (4 for
+   * two cards). Match the label node exactly.
+   */
+  await expect(grid.getByText('Activity', { exact: true })).toHaveCount(2);
+  await expect(grid.getByText('Deployments', { exact: true })).toHaveCount(2);
   await expect(grid.locator('[aria-label^="Project status:"]')).toHaveCount(2);
 
   const cardMeasurements = await cards.evaluateAll((elements) =>

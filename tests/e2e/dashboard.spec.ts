@@ -101,10 +101,16 @@ async function openVisibleIdeToolMenu(page: import('@playwright/test').Page) {
    * Prefer the stable test id and fall back to the class, so a styling change
    * to the menu wrapper does not read as "the palette never opened".
    */
-  const toolMenu = page
-    .locator('[data-testid="ide-add-tab-command-palette"] .bolt-project-tool-menu, .bolt-project-tool-menu')
-    .filter({ visible: true })
-    .last();
+  /*
+   * Wait on the palette wrapper's test id first — it is the element the click
+   * actually toggles — then hand back the inner menu. Waiting directly on
+   * `.bolt-project-tool-menu` raced the modal's mount and reported "element(s)
+   * not found" even though the palette had opened.
+   */
+  const palette = page.getByTestId('ide-add-tab-command-palette');
+  await expect(palette).toBeVisible({ timeout: 15_000 });
+
+  const toolMenu = palette.locator('.bolt-project-tool-menu').last();
   await expect(toolMenu).toBeVisible({ timeout: 15_000 });
 
   return toolMenu;
@@ -1841,7 +1847,22 @@ test('authenticated users can sign out from the app shell', async ({ page }) => 
 
   await page.goto('/dashboard');
   await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-  await page.getByRole('button', { name: 'Sign out' }).first().click();
+
+  /*
+   * "Sign out" lives inside the account Popover (SaaSLayout) and stays mounted
+   * but hidden while the popover is closed, so clicking it directly timed out.
+   * Open the account menu first when the control is not already visible.
+   */
+  const visibleSignOut = page.getByRole('button', { name: 'Sign out' }).filter({ visible: true }).first();
+
+  if (!(await visibleSignOut.isVisible().catch(() => false))) {
+    await page
+      .getByRole('button', { name: /Account menu/i })
+      .first()
+      .click();
+  }
+
+  await visibleSignOut.click({ timeout: 15_000 });
   await expect(page).toHaveURL('/login');
   await expect(page.getByRole('heading', { name: 'Welcome back' })).toBeVisible();
 
@@ -1943,7 +1964,17 @@ test('public and authenticated routes render without route errors', async ({ pag
 test('command palette entries navigate to real product routes', async ({ page }) => {
   await authenticate(page);
   await page.goto('/command-palette');
-  await page.getByRole('link', { name: /Import GitHub repository/ }).click();
+
+  /*
+   * The palette is client-rendered inside AppShell; clicking straight away
+   * raced the hydration and timed out. Wait for the page heading (and the link
+   * itself) before driving it.
+   */
+  await expect(page.getByRole('heading', { name: 'Command palette' })).toBeVisible({ timeout: 30_000 });
+
+  const importLink = page.getByRole('link', { name: /Import GitHub repository/ });
+  await expect(importLink).toBeVisible({ timeout: 30_000 });
+  await importLink.click();
   await expect(page).toHaveURL('/import-github');
   await expect(page.getByRole('heading', { name: 'Import GitHub' })).toBeVisible();
 });
