@@ -274,4 +274,169 @@ describe('runtime file reconciliation', () => {
     expect(result.writeCycles).toBe(0);
     expect(result.snapshot.revision).toBe('revision-a');
   });
+
+  it('starts a new stability window after a recovered persisted-state read gap', async () => {
+    let nowMs = 0;
+    let readCount = 0;
+
+    const stableEvents: string[] = [];
+
+    const operations: RuntimeReconciliationOperations<FakeFile> = {
+      now: () => nowMs,
+      sleep: async (durationMs) => {
+        nowMs += durationMs;
+      },
+      readSnapshot: async () => {
+        readCount += 1;
+
+        return {
+          ...snapshot('revision-a'),
+          recoveredTransientCount: readCount === 3 ? 1 : 0,
+        };
+      },
+      readStatus: async () => 'running',
+      observeRuntime: async () => ({ status: 'running', mismatches: [] }),
+      restart: async () => {
+        throw new Error('an already matching runtime must not restart');
+      },
+      waitForWriteQuiescence: async (quietForMs) => {
+        nowMs += quietForMs;
+        return quiescenceDiagnostic(quietForMs);
+      },
+      writeSnapshot: async () => {
+        throw new Error('an already matching runtime must not be rewritten');
+      },
+      onEvent: (event) => stableEvents.push(event.type),
+    };
+
+    const result = await reconcileRuntimeFileSnapshot(operations, {
+      ...options,
+      preRestartGraceMs: 40_000,
+    });
+
+    expect(stableEvents).toContain('persisted-read-recovered');
+    expect(result.stableForMs).toBe(12_000);
+    expect(result.matchingReads).toBe(4);
+
+    /*
+     * Initial snapshot + one pre-gap read + the recovered read + three reads
+     * after it: the blind interval cannot count toward the four-read window.
+     */
+    expect(readCount).toBe(6);
+    expect(nowMs).toBe(16_000);
+  });
+
+  it('rebases the graceful phase after recovery instead of forcing a matching runtime through restart/write', async () => {
+    let nowMs = 0;
+    let readCount = 0;
+
+    const actions: string[] = [];
+
+    const operations: RuntimeReconciliationOperations<FakeFile> = {
+      now: () => nowMs,
+      sleep: async (durationMs) => {
+        nowMs += durationMs;
+      },
+      readSnapshot: async () => {
+        readCount += 1;
+
+        if (readCount === 2) {
+          nowMs += 7_000;
+        }
+
+        return {
+          ...snapshot('revision-a'),
+          recoveredTransientCount: readCount === 2 ? 1 : 0,
+        };
+      },
+      readStatus: async () => 'running',
+      observeRuntime: async () => ({ status: 'running', mismatches: [] }),
+      restart: async () => {
+        actions.push('restart');
+        return 'running';
+      },
+      waitForWriteQuiescence: async (quietForMs) => {
+        actions.push('quiet');
+        nowMs += quietForMs;
+
+        return quiescenceDiagnostic(quietForMs);
+      },
+      writeSnapshot: async () => {
+        actions.push('write');
+      },
+    };
+
+    const result = await reconcileRuntimeFileSnapshot(operations, {
+      ...options,
+      budgetMs: 40_000,
+      preRestartGraceMs: 16_000,
+    });
+
+    expect(result.restartCount).toBe(0);
+    expect(result.writeCycles).toBe(0);
+    expect(result.stableForMs).toBe(12_000);
+    expect(actions).toEqual([]);
+    expect(nowMs).toBeLessThanOrEqual(40_000);
+  });
+
+  it('passes the shrinking global budget to snapshots and fails after an over-budget read', async () => {
+    let nowMs = 0;
+
+    const receivedBudgets: number[] = [];
+
+    const operations: RuntimeReconciliationOperations<FakeFile> = {
+      now: () => nowMs,
+      sleep: async (durationMs) => {
+        nowMs += durationMs;
+      },
+      readSnapshot: async (remainingBudgetMs) => {
+        receivedBudgets.push(remainingBudgetMs);
+        nowMs += remainingBudgetMs;
+
+        return snapshot('revision-a');
+      },
+      readStatus: async () => 'running',
+      observeRuntime: async () => ({ status: 'running', mismatches: [] }),
+      restart: async () => 'running',
+      waitForWriteQuiescence: async (quietForMs) => {
+        nowMs += quietForMs;
+        return quiescenceDiagnostic(quietForMs);
+      },
+      writeSnapshot: async () => undefined,
+    };
+
+    await expect(
+      reconcileRuntimeFileSnapshot(operations, {
+        ...options,
+        budgetMs: 9_000,
+      }),
+    ).rejects.toThrow('Runtime reconciliation exceeded its explicit budget during initial snapshot read');
+    expect(receivedBudgets).toEqual([9_000]);
+  });
+
+  it('fails immediately when a pollable not-ready state reaches strict reconciliation', async () => {
+    let nowMs = 0;
+
+    const operations: RuntimeReconciliationOperations<FakeFile> = {
+      now: () => nowMs,
+      sleep: async (durationMs) => {
+        nowMs += durationMs;
+      },
+      readSnapshot: async () => {
+        throw new Error('The authoritative persisted project contains no files for runtime reconciliation');
+      },
+      readStatus: async () => 'running',
+      observeRuntime: async () => ({ status: 'running', mismatches: [] }),
+      restart: async () => 'running',
+      waitForWriteQuiescence: async (quietForMs) => {
+        nowMs += quietForMs;
+        return quiescenceDiagnostic(quietForMs);
+      },
+      writeSnapshot: async () => undefined,
+    };
+
+    await expect(reconcileRuntimeFileSnapshot(operations, options)).rejects.toThrow(
+      'The authoritative persisted project contains no files for runtime reconciliation',
+    );
+  });
 });

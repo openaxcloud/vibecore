@@ -4,6 +4,9 @@ export type RuntimeFileSnapshot<TFile> = {
 
   /** Immutable copy of the exact bytes that may be written to the runtime. */
   files: readonly TFile[];
+
+  /** Transient persisted-state reads recovered inside this observation. */
+  recoveredTransientCount?: number;
 };
 
 export type RuntimeSnapshotObservation = {
@@ -96,7 +99,7 @@ export function shouldCompleteTrackedIdeRequest(kind: TrackedIdeRequestKind, end
 export type RuntimeReconciliationOperations<TFile> = {
   now: () => number;
   sleep: (durationMs: number) => Promise<void>;
-  readSnapshot: () => Promise<RuntimeFileSnapshot<TFile>>;
+  readSnapshot: (remainingBudgetMs: number) => Promise<RuntimeFileSnapshot<TFile>>;
   readStatus: () => Promise<string>;
   observeRuntime: (snapshot: RuntimeFileSnapshot<TFile>) => Promise<RuntimeSnapshotObservation>;
   restart: () => Promise<string>;
@@ -122,6 +125,7 @@ export type RuntimeReconciliationEvent =
   | ({ type: 'runtime-write-quiescent' } & RuntimeWriteQuiescenceDiagnostic)
   | { type: 'snapshot-write'; cycle: number; revision: string }
   | { type: 'runtime-mismatch'; mismatches: readonly string[]; revision: string }
+  | { type: 'persisted-read-recovered'; recoveredTransientCount: number; revision: string }
   | { type: 'runtime-stable'; matchingReads: number; revision: string; stableForMs: number };
 
 export type RuntimeReconciliationResult<TFile> = {
@@ -173,6 +177,12 @@ function ensureBudget(now: () => number, deadlineMs: number, stage: string) {
   }
 }
 
+function remainingBudgetMs(now: () => number, deadlineMs: number, stage: string) {
+  ensureBudget(now, deadlineMs, stage);
+
+  return Math.max(1, deadlineMs - now());
+}
+
 async function boundedSleep(
   operations: Pick<RuntimeReconciliationOperations<unknown>, 'now' | 'sleep'>,
   deadlineMs: number,
@@ -199,6 +209,7 @@ async function waitUntilRunning<TFile>(
     await boundedSleep(operations, deadlineMs, 1_000);
     ensureBudget(operations.now, deadlineMs, 'restart readiness');
     status = (await operations.readStatus()).toLocaleLowerCase();
+    ensureBudget(operations.now, deadlineMs, 'restart status read');
 
     if (status === 'failed' || status === 'error' || status === 'stopped') {
       throw new Error(`Runtime restart reached terminal status ${status}`);
@@ -220,15 +231,40 @@ async function observeStableSnapshot<TFile>(
   failFastOnMismatch: boolean,
 ): Promise<StabilityResult<TFile>> {
   let snapshot = initialSnapshot;
+  let observationPhaseDeadlineMs = phaseDeadlineMs;
   let matchingReads = 0;
   let matchingSinceMs: number | undefined;
   let lastMismatches: readonly string[] = [];
   let lastStatus = 'unknown';
 
-  while (operations.now() < deadlineMs && operations.now() < phaseDeadlineMs) {
+  while (operations.now() < deadlineMs && operations.now() < observationPhaseDeadlineMs) {
     ensureBudget(operations.now, deadlineMs, 'stable runtime observation');
 
-    const currentSnapshot = await operations.readSnapshot();
+    const currentSnapshot = await operations.readSnapshot(
+      remainingBudgetMs(operations.now, deadlineMs, 'persisted snapshot read'),
+    );
+    ensureBudget(operations.now, deadlineMs, 'persisted snapshot read');
+
+    if ((currentSnapshot.recoveredTransientCount ?? 0) > 0) {
+      matchingReads = 0;
+      matchingSinceMs = undefined;
+      observationPhaseDeadlineMs = Math.min(
+        deadlineMs,
+        Math.max(
+          observationPhaseDeadlineMs,
+          operations.now() +
+            Math.max(
+              options.minimumStableForMs + options.pollIntervalMs,
+              options.minimumMatchingReads * options.pollIntervalMs,
+            ),
+        ),
+      );
+      operations.onEvent?.({
+        type: 'persisted-read-recovered',
+        recoveredTransientCount: currentSnapshot.recoveredTransientCount ?? 0,
+        revision: currentSnapshot.revision,
+      });
+    }
 
     if (currentSnapshot.revision !== snapshot.revision) {
       operations.onEvent?.({
@@ -241,7 +277,10 @@ async function observeStableSnapshot<TFile>(
       matchingSinceMs = undefined;
     }
 
+    snapshot = currentSnapshot;
+
     const observation = await operations.observeRuntime(snapshot);
+    ensureBudget(operations.now, deadlineMs, 'runtime snapshot observation');
     lastStatus = observation.status.toLocaleLowerCase();
     lastMismatches = observation.mismatches;
 
@@ -279,7 +318,7 @@ async function observeStableSnapshot<TFile>(
       }
     }
 
-    await boundedSleep(operations, Math.min(deadlineMs, phaseDeadlineMs), options.pollIntervalMs);
+    await boundedSleep(operations, Math.min(deadlineMs, observationPhaseDeadlineMs), options.pollIntervalMs);
   }
 
   return { kind: 'not-stable', lastMismatches, snapshot, status: lastStatus };
@@ -305,7 +344,8 @@ export async function reconcileRuntimeFileSnapshot<TFile>(
   const startedAtMs = operations.now();
   const deadlineMs = startedAtMs + options.budgetMs;
 
-  let snapshot = await operations.readSnapshot();
+  let snapshot = await operations.readSnapshot(remainingBudgetMs(operations.now, deadlineMs, 'initial snapshot read'));
+  ensureBudget(operations.now, deadlineMs, 'initial snapshot read');
 
   const graceful = await observeStableSnapshot(
     operations,
@@ -336,9 +376,13 @@ export async function reconcileRuntimeFileSnapshot<TFile>(
    * quiet window on every call; an old last-write timestamp is insufficient.
    */
   const initialQuiescence = await operations.waitForWriteQuiescence(options.minimumWriteQuiescenceMs, deadlineMs);
+  ensureBudget(operations.now, deadlineMs, 'initial runtime write quiescence');
   operations.onEvent?.({ type: 'runtime-write-quiescent', ...initialQuiescence });
 
-  snapshot = await operations.readSnapshot();
+  snapshot = await operations.readSnapshot(
+    remainingBudgetMs(operations.now, deadlineMs, 'post-quiescence snapshot read'),
+  );
+  ensureBudget(operations.now, deadlineMs, 'post-quiescence snapshot read');
 
   const quietRuntime = await observeStableSnapshot(
     operations,
@@ -372,7 +416,9 @@ export async function reconcileRuntimeFileSnapshot<TFile>(
   operations.onEvent?.({ type: 'restart-requested', revision: snapshot.revision });
 
   const restartStatus = await operations.restart();
+  ensureBudget(operations.now, deadlineMs, 'restart request');
   await waitUntilRunning(operations, deadlineMs, restartStatus);
+  ensureBudget(operations.now, deadlineMs, 'restart readiness');
   operations.onEvent?.({ type: 'restart-running', revision: snapshot.revision });
 
   let lastMismatches = graceful.lastMismatches;
@@ -382,10 +428,13 @@ export async function reconcileRuntimeFileSnapshot<TFile>(
     ensureBudget(operations.now, deadlineMs, `authoritative write cycle ${cycle}`);
 
     const quiescence = await operations.waitForWriteQuiescence(options.minimumWriteQuiescenceMs, deadlineMs);
-    operations.onEvent?.({ type: 'runtime-write-quiescent', ...quiescence });
     ensureBudget(operations.now, deadlineMs, `authoritative write cycle ${cycle}`);
+    operations.onEvent?.({ type: 'runtime-write-quiescent', ...quiescence });
 
-    const currentSnapshot = await operations.readSnapshot();
+    const currentSnapshot = await operations.readSnapshot(
+      remainingBudgetMs(operations.now, deadlineMs, `authoritative snapshot read cycle ${cycle}`),
+    );
+    ensureBudget(operations.now, deadlineMs, `authoritative snapshot read cycle ${cycle}`);
 
     if (currentSnapshot.revision !== snapshot.revision) {
       operations.onEvent?.({
@@ -398,6 +447,7 @@ export async function reconcileRuntimeFileSnapshot<TFile>(
 
     operations.onEvent?.({ type: 'snapshot-write', cycle, revision: snapshot.revision });
     await operations.writeSnapshot(snapshot);
+    ensureBudget(operations.now, deadlineMs, `authoritative snapshot write cycle ${cycle}`);
 
     const observed = await observeStableSnapshot(operations, snapshot, options, deadlineMs, deadlineMs, true);
 
@@ -444,9 +494,14 @@ export async function verifyRuntimeFileSnapshotStable<TFile>(
   const deadlineMs = startedAtMs + options.budgetMs;
 
   const quiescence = await operations.waitForWriteQuiescence(options.minimumWriteQuiescenceMs, deadlineMs);
+  ensureBudget(operations.now, deadlineMs, 'pre-promotion runtime write quiescence');
   operations.onEvent?.({ type: 'runtime-write-quiescent', ...quiescence });
 
-  const snapshot = await operations.readSnapshot();
+  const snapshot = await operations.readSnapshot(
+    remainingBudgetMs(operations.now, deadlineMs, 'pre-promotion snapshot read'),
+  );
+  ensureBudget(operations.now, deadlineMs, 'pre-promotion snapshot read');
+
   const observed = await observeStableSnapshot(operations, snapshot, options, deadlineMs, deadlineMs, false);
 
   if (observed.kind !== 'stable') {

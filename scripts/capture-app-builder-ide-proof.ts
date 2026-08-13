@@ -22,7 +22,6 @@ import {
   observeProjectFileRevision,
   projectFilesAreStable,
   projectFilesRevisionFromEntries,
-  type PersistedPromptChatState,
   type PersistedPromptEvidence,
   type ProjectFileEntry,
 } from './solution-capture-state.js';
@@ -38,6 +37,12 @@ import {
   validateGeneratedSolutionPackageJson,
 } from './solution-generated-package-policy.js';
 import { activatePreviewTab } from './solution-preview-tab-activation.js';
+import {
+  PROJECT_IDE_STATE_BUDGET_MS,
+  readProjectIdeStateWithRetry,
+  type ProjectIdeState,
+  type ProjectIdeStateReadDiagnostic,
+} from './solution-project-ide-state.js';
 import {
   auditPromptBubbleViewport,
   auditNativeIdeWebview,
@@ -1415,10 +1420,6 @@ async function waitForGeneratedFiles(
       async () => {
         const projectState = await readProjectIdeState(page, projectId, token);
 
-        if (!projectState) {
-          return false;
-        }
-
         lastPaths = projectState.files.flatMap((file) => (file.path ? [file.path] : []));
 
         const hasPackage = lastPaths.some((path) => /(^|\/)package\.json$/.test(path));
@@ -1439,55 +1440,29 @@ async function waitForGeneratedFiles(
   return lastPaths;
 }
 
-type ProjectIdeState = {
-  chat?: PersistedPromptChatState;
-  files: ProjectFileEntry[];
-  version?: number;
-};
+function reportProjectIdeStateRead(diagnostic: ProjectIdeStateReadDiagnostic) {
+  process.stdout.write(`${JSON.stringify({ event: 'project-ide-state-read', ...diagnostic })}\n`);
+}
 
-async function readProjectIdeState(page: Page, projectId: string, token: string): Promise<ProjectIdeState | undefined> {
-  try {
-    const response = await page.request.get(`${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/ide-state`, {
-      headers: { authorization: `Bearer ${token}` },
-      timeout: 20_000,
-    });
-
-    if (!response.ok()) {
-      return undefined;
-    }
-
-    const payload = (await response.json()) as {
-      ideState?: {
-        version?: number;
-        state?: {
-          chat?: PersistedPromptChatState;
-          files?: {
-            entries?: ProjectFileEntry[];
-          };
-        };
-      } | null;
-    };
-
-    if (!payload.ideState) {
-      return undefined;
-    }
-
-    return {
-      chat: payload.ideState.state?.chat,
-      version: payload.ideState.version,
-      files: payload.ideState.state?.files?.entries ?? [],
-    };
-  } catch {
-    return undefined;
-  }
+async function readProjectIdeState(
+  page: Page,
+  projectId: string,
+  token: string,
+  budgetMs = PROJECT_IDE_STATE_BUDGET_MS,
+): Promise<ProjectIdeState> {
+  return readProjectIdeStateWithRetry({
+    budgetMs,
+    request: (timeout) =>
+      page.request.get(`${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/ide-state`, {
+        headers: { authorization: `Bearer ${token}` },
+        timeout,
+      }),
+    log: reportProjectIdeStateRead,
+  });
 }
 
 async function assertGeneratedSourcesAreUnwrapped(page: Page, projectId: string, token: string) {
   const projectState = await readProjectIdeState(page, projectId, token);
-
-  if (!projectState) {
-    throw new Error('The generated IDE state is unavailable before preview verification');
-  }
 
   const invalidPaths = projectState.files.flatMap((file) => {
     const path = file.path ?? '';
@@ -1509,12 +1484,6 @@ async function assertGeneratedSourcesAreUnwrapped(page: Page, projectId: string,
 
 async function assertGeneratedSolutionPackagePolicy(page: Page, projectId: string, token: string) {
   const projectState = await readProjectIdeState(page, projectId, token);
-
-  if (!projectState) {
-    throw new GeneratedSolutionPackagePolicyError(
-      'The persisted IDE state is unavailable for the generated package policy gate',
-    );
-  }
 
   const packageFiles = projectState.files.filter((file) => /(?:^|\/)package\.json$/u.test(file.path ?? ''));
   const rootPackageFiles = packageFiles.filter((file) => file.path === 'package.json');
@@ -1561,10 +1530,6 @@ async function assertScenarioSourceTerms(page: Page, projectId: string, token: s
   }
 
   const projectState = await readProjectIdeState(page, projectId, token);
-
-  if (!projectState) {
-    throw new Error('The generated IDE state is unavailable before source-content verification');
-  }
 
   const sourceText = projectState.files
     .filter((file) => /\.(?:css|html|jsx?|tsx?)$/i.test(file.path ?? ''))
@@ -1653,12 +1618,14 @@ async function readPersistedRuntimeSnapshot(
   page: Page,
   projectId: string,
   token: string,
+  remainingBudgetMs: number,
 ): Promise<PersistedRuntimeSnapshot> {
-  const projectState = await readProjectIdeState(page, projectId, token);
-
-  if (!projectState) {
-    throw new Error('The authoritative persisted files are unavailable for runtime reconciliation');
-  }
+  const projectState = await readProjectIdeState(
+    page,
+    projectId,
+    token,
+    Math.min(PROJECT_IDE_STATE_BUDGET_MS, remainingBudgetMs),
+  );
 
   const files = projectState.files.flatMap((file): PersistedRuntimeFile[] => {
     const entry = file as ProjectFileEntry & { encoding?: unknown };
@@ -1695,7 +1662,11 @@ async function readPersistedRuntimeSnapshot(
     throw new Error('The authoritative persisted project has no file revision');
   }
 
-  return Object.freeze({ revision, files: Object.freeze(files) });
+  return Object.freeze({
+    revision,
+    files: Object.freeze(files),
+    recoveredTransientCount: projectState.recoveredTransientCount,
+  });
 }
 
 async function runtimeStatus(page: Page, workspaceId: string, token: string) {
@@ -1813,7 +1784,7 @@ function runtimeReconciliationOperations(
   return {
     now: () => Date.now(),
     sleep: (durationMs) => new Promise((resolveDelay) => setTimeout(resolveDelay, durationMs)),
-    readSnapshot: () => readPersistedRuntimeSnapshot(page, projectId, token),
+    readSnapshot: (remainingBudgetMs) => readPersistedRuntimeSnapshot(page, projectId, token, remainingBudgetMs),
     readStatus: () => runtimeStatus(page, workspaceId, token),
     observeRuntime: async (snapshot) => {
       const status = await runtimeStatus(page, workspaceId, token);
@@ -2265,8 +2236,12 @@ async function waitForProjectToSettle(
     .poll(
       async () => {
         const projectState = await readProjectIdeState(page, projectId, token);
-        const revision = projectState ? projectFilesRevisionFromEntries(projectState.files) : undefined;
+        const revision = projectFilesRevisionFromEntries(projectState.files);
         const observedAtMs = Date.now();
+
+        if (projectState.recoveredTransientCount > 0) {
+          fileStability = EMPTY_PROJECT_FILE_STABILITY;
+        }
 
         fileStability = observeProjectFileRevision(
           fileStability,
@@ -2336,7 +2311,7 @@ async function waitForProjectToSettle(
 async function projectFilesRevision(page: Page, projectId: string, token: string) {
   const projectState = await readProjectIdeState(page, projectId, token);
 
-  if (!projectState?.files.length) {
+  if (!projectState.files.length) {
     return undefined;
   }
 
@@ -3834,13 +3809,6 @@ async function resolveResumedPromptProvenance(
   creationPrompt: string,
 ): Promise<ResumedPromptProvenance> {
   const projectState = await readProjectIdeState(page, projectId, token);
-
-  if (!projectState) {
-    throw new Error(
-      'The resumed Agent transcript is absent from the DOM and authenticated ide-state is unavailable. ' +
-        'Rerun without --resume; the harness will not invent a prompt surface.',
-    );
-  }
 
   const evidence = findPersistedPromptEvidence(projectState.chat, creationPrompt);
 
