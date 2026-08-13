@@ -260,6 +260,35 @@ aux conventions du domaine — mais c'est un vrai manque, et il reste ouvert. Il
 corrigé ici : cette table **contient des lignes en production**, donc l'ajout d'une clé
 étrangère peut échouer sur des orphelins préexistants et demande son propre inventaire.
 
+## Le rouge de CI n'appartient pas à ce lot — démontré, pas affirmé
+
+`Production CI` est rouge sur cette PR. Dire « c'est hérité » ne vaut rien sans preuve, d'autant
+que ce lot a RÉELLEMENT cassé cette même garde plus tôt (5 codes-raison non allowlistés, voir
+plus haut) — donc le soupçon est légitime.
+
+Vérifié sur le **vrai commit de merge de la PR** (`refs/pull/94/merge`, `9e28349e`), dans un
+worktree jetable, avec le scanner exact de la CI :
+
+```
+tel quel                        → residual=15 en 3 fichiers, allowlisted=771
+                                  Hardcoded-copy baseline regressions:
+                                  - services/api/src/database-provisioner.ts (baseline=0, current=1)   → exit 1
+
+database-provisioner ramené     → residual=14 en 2 fichiers, allowlisted=771
+à sa version d'avant-dette        i18n source baseline clean (5 file improvements)                     → exit 0
+```
+
+Seul ce fichier change de main ; il n'est **pas** touché par ce lot (`git diff --stat
+origin/main...HEAD -- services/api/src/database-provisioner.ts` est vide). Et `allowlisted`
+reste à **771** dans les deux cas, ce qui prouve que les 5 entrées de ce lot sont bien actives
+et comptées : le scan est le vrai, pas un scan dégradé.
+
+⚠️ **Première tentative INVALIDE, gardée ici comme avertissement.** Un `git show "$BASE:chemin"`
+mal quoté a échoué en laissant la redirection créer un fichier **VIDE** — qui n'a évidemment
+aucun résidu. Le « baseline clean » obtenu ainsi ne prouvait rien. Le signal qui trahit :
+`allowlisted` était tombé à **767**, le fichier vidé ayant emporté ses propres entrées. Refaite
+avec le fichier réel (30 922 octets), la conclusion tient.
+
 ### Aucune suite laissée non exécutée
 
 Une régression sans `DATABASE_URL` **saute 7 fichiers** — silencieusement, en affichant
