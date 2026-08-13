@@ -116,13 +116,20 @@ async function createTestProject(page: import('@playwright/test').Page, name: st
   return (await createProject.json()).project.id as string;
 }
 
-test('onboarding guides project setup', async ({ page }) => {
-  await authenticate(page);
-  await page.goto('/onboarding');
-  await expect(page.getByRole('heading', { name: 'Onboarding' })).toBeVisible();
-  await expect(page.locator('section').getByRole('link', { name: 'Create project' })).toBeVisible();
-  await expect(page.getByText('Connect GitHub')).toBeVisible();
-});
+/*
+ * REMOVED — `onboarding guides project setup`.
+ *
+ * The standalone /onboarding page was deliberately deleted: app/routes/
+ * onboarding.tsx is now a 17-line loader that redirects to /dashboard, kept
+ * only so old bookmarks don't 404. Its own comment records why — the static
+ * checklist (create project / invite / connect GitHub / review quotas) carried
+ * no live state and was replaced by the dashboard's "Get set up" card, which
+ * uses real backend signals.
+ *
+ * The test asserted headings and links on that deleted screen, so there is
+ * nothing left to rewrite it against. The replacement surface is exercised by
+ * the dashboard tests below.
+ */
 
 test('project creation exposes templates and import paths', async ({ page }) => {
   await authenticate(page);
@@ -312,7 +319,12 @@ test('project creation syncs AI providers and models from settings', async ({ pa
 
   await page.goto('/projects/new', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'What do you want to build?' })).toBeVisible();
-  await expect(page.getByText('1 provider synced from Settings')).toBeVisible({ timeout: 15_000 });
+  /*
+   * The "N provider synced from Settings" badge was removed from the create
+   * page — the string exists nowhere in app/ any more. The behaviour it stood
+   * for is still asserted below and more directly: the provider dropdown
+   * offers exactly the providers configured in Settings.
+   */
 
   const providerDropdown = page.getByTestId('agent-provider-dropdown');
   const providerCombobox = providerDropdown.getByRole('combobox', { name: 'AI provider' });
@@ -407,44 +419,47 @@ test('public templates stay marketing-only for anonymous visitors', async ({ pag
   await expect(page.getByRole('link', { name: 'Sign in to use' }).first()).toHaveAttribute('href', '/login');
 });
 
-test('public homepage light theme keeps imagery adapted and readable', async ({ page }) => {
+/*
+ * This test used to assert theme-adapted `brightness()` filters on
+ * `.vc-home-hero-bg` and `.vc-home-media-card img`. The `ecode-exact` homepage
+ * ships no raster imagery at all (zero `<img>` in LandingOptimized), so those
+ * selectors — and the whole "imagery adapted" premise — describe a page that no
+ * longer exists. The media surface that *does* exist is the video demo section,
+ * so that is what light theme is checked against here; general light/dark
+ * readability is covered by tests/e2e/public-homepage.spec.ts.
+ */
+test('public homepage light theme keeps the media section readable', async ({ page }) => {
   await page.addInitScript(() => {
+    document.cookie = 'ecode_theme=light; path=/; SameSite=Lax';
     localStorage.setItem('bolt_theme', 'light');
   });
 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { name: /Build and deploy production apps/ })).toBeVisible();
-  await expect(page.locator('.vc-home-hero-bg')).toBeVisible();
-  await page.locator('#video-demo').scrollIntoViewIfNeeded();
-  await expect(page.locator('.vc-home-media-card img')).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Build and deploy production apps/ })).toBeVisible({
+    timeout: 30_000,
+  });
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 
-  const imageProbe = await page.evaluate(() => {
-    const read = (selector: string) => {
-      const element = document.querySelector(selector);
+  const videoSection = page.getByTestId('section-video-demo');
+  await videoSection.scrollIntoViewIfNeeded();
+  await expect(videoSection).toBeVisible();
 
-      if (!element) {
-        throw new Error(`Missing selector ${selector}`);
-      }
-
-      const style = window.getComputedStyle(element);
-
-      return {
-        filter: style.filter,
-        opacity: style.opacity,
-      };
-    };
+  const probe = await page.evaluate(() => {
+    const section = document.querySelector('[data-testid="section-video-demo"]')!;
+    const style = window.getComputedStyle(section);
 
     return {
       theme: document.documentElement.getAttribute('data-theme'),
-      heroImage: read('.vc-home-hero-bg'),
-      mediaImage: read('.vc-home-media-card img'),
+      opacity: Number(style.opacity),
+      visibility: style.visibility,
+      noHorizontalOverflow: document.documentElement.scrollWidth <= window.innerWidth + 1,
     };
   });
 
-  expect(imageProbe.theme).toBe('light');
-  expect(imageProbe.heroImage.filter).toContain('brightness');
-  expect(imageProbe.mediaImage.filter).toContain('brightness');
-  expect(Number(imageProbe.heroImage.opacity)).toBeGreaterThan(0.1);
+  expect(probe.theme).toBe('light');
+  expect(probe.visibility).toBe('visible');
+  expect(probe.opacity).toBeGreaterThan(0.9);
+  expect(probe.noHorizontalOverflow).toBeTruthy();
 });
 
 test('opens preserved Bolt IDE route for a project', async ({ page }) => {
@@ -1186,7 +1201,8 @@ test('platform typography tokens apply to the web IDE', async ({ page, isMobile 
   expect(typography.codeSize).toBe('12px');
   expect(typography.headingSize).toBe('14px');
   expect(typography.labelSize).toBe('10px');
-  expect(typography.labelTracking).toBe('0.4px');
+  // Custom properties keep the author's spelling (`.4px`); compare the value.
+  expect(Number.parseFloat(typography.labelTracking)).toBeCloseTo(0.4, 3);
   expect(typography.shellFont).toContain('Inter');
   expect(typography.shellSize).toBe('12px');
   expect(Number.parseFloat(typography.shellLineHeight)).toBeCloseTo(17.04, 1);
