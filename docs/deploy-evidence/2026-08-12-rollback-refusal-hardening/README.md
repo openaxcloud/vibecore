@@ -227,6 +227,39 @@ non, et pour des raisons précises plutôt que par absence de preuve du contrair
 | **P2** (snapshot orphelin) | **sans objet.** Le rollback statique y est créé READY d'emblée en recopiant l'URL/metadata de la CIBLE, sans matérialiser de snapshot sous son propre id — il n'y a donc aucun octet à orpheliner. |
 | **P1** (idempotence) | la seule qui s'appliquait. Corrigée ci-dessus. |
 
+### Relecture de ma propre 0084 : la table échappait à la suppression de projet
+
+En relisant la migration que ce lot ajoute, `projectId` y était une simple colonne `TEXT`,
+**sans clé étrangère** — alors que toutes les tables voisines portent
+`@relation(..., onDelete: Cascade)`. À la suppression d'un projet, ces lignes **survivaient**,
+orphelines, en conservant `responseBody` : la charge utile complète du déploiement. Le dépôt
+mène par ailleurs un chantier explicite de purge/scrub ; y ajouter une table qui échappe à la
+purge irait contre celui-ci.
+
+Prouvé sur vrai Postgres, dans les deux sens :
+
+```
+AVEC la 0085  : 1 ligne avant la suppression du projet → 0 après
+SANS la 0085  : 1 ligne SURVIT, avec sa charge intacte
+                {"deployment": {"url": "https://secret.example"}}
+```
+
+Migration séparée (`0085`) plutôt que modification de la `0084` : celle-ci a déjà été
+appliquée sur des bases locales et sur le cluster de test, donc en changer le contenu
+modifierait son checksum et ferait échouer `prisma migrate deploy` sur une dérive. Sûr à
+appliquer : la table appartient à ce lot non mergé, elle est vide partout, aucune ligne
+orpheline ne peut faire échouer la création de la contrainte.
+
+`deploymentId` reste volontairement **sans** clé étrangère : la trace du rejeu doit survivre
+à la suppression du déploiement cité — sinon un retry après purge redeviendrait un **vrai**
+rollback, ce que P1 existe précisément pour empêcher.
+
+**À signaler, hors périmètre :** `ReleaseManifest` (lot antérieur, migration `0082`) a la
+même absence de cascade. Ce n'est donc pas une régression que ce lot introduit par rapport
+aux conventions du domaine — mais c'est un vrai manque, et il reste ouvert. Il n'est pas
+corrigé ici : cette table **contient des lignes en production**, donc l'ajout d'une clé
+étrangère peut échouer sur des orphelins préexistants et demande son propre inventaire.
+
 ### Aucune suite laissée non exécutée
 
 Une régression sans `DATABASE_URL` **saute 7 fichiers** — silencieusement, en affichant

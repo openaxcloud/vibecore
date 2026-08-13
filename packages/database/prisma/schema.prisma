@@ -263,6 +263,7 @@ model Project {
   snapshots              ProjectSnapshot[]
   storageObjects         ProjectStorageObject[]
   deployments            Deployment[]
+  rollbackIdempotency    RollbackIdempotency[]
   fileSnapshots          FileSnapshot[]
   conversations          AiConversation[]
   ideState               ProjectIdeState?
@@ -890,6 +891,14 @@ model RollbackIdempotency {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  /// Rattaché au projet avec CASCADE, comme toutes les tables voisines. Sans cela, la
+  /// suppression d'un projet laissait ces lignes ORPHELINES en conservant `responseBody`
+  /// — la charge utile complète du déploiement — ce qui contredit le chantier de purge.
+  /// `deploymentId` reste volontairement sans clé étrangère : la trace du rejeu doit
+  /// survivre à la suppression du déploiement cité, sinon un retry redeviendrait un vrai
+  /// rollback.
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, environment, key])
   @@index([projectId, environment])
