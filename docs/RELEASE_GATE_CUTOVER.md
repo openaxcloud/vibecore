@@ -49,40 +49,41 @@ one wrong blocks deploys rather than weakening the gate.
    (plus the break-glass workflow), so a side-branch workflow cannot mint a prod token
    even if the in-workflow guard is edited away.
 
-## Decision to make before merging: `Production E2E`
+## `Production E2E` — resolved, and it sets the merge order
 
-As of 2026-08-12 the E2E suite is red on **every** branch — 0 successes in the last 25
-runs, **265 failing tests across 19 spec files**, with heterogeneous causes (absent UI,
-count mismatches, design-token assertions, the responsive/mobile matrix). Requiring it
-as-is means refusing every deploy, permanently. Pick one:
+This lot originally shipped a **bounded waiver** on `Production E2E`, because the suite
+had never passed once: 0 successes in 405 runs since 2026-05-17, 57 failures on `main`
+@ `b2ee7c88`.
 
-- **A — fix E2E first.** Full gate, matches the requirement exactly. The numbers above
-  make this a multi-area effort, not a single fixture or missing secret; the
-  release-integrity defect stays open for its whole duration.
-- **B — waive E2E, with a date and a ticket** *(recommended)*. The gate enforces
-  CI + Security + Quality immediately. Proven against the real API: all three commits
-  above are **still refused** under the waiver, and an all-green commit passes with
-  `⚠️ WAIVERS IN EFFECT` printed on the run and in the verdict artifact. The waiver
-  expires and fails closed — it cannot become permanent by being forgotten.
-- **C — do not merge.** Status quo: `main` stays ungated.
+On 2026-08-13 `fix/e2e-production-green` made it pass — run
+[31704457154](https://github.com/openaxcloud/vibecore/actions/runs/31704457154). It does
+so with the same shape of control this lot uses: `tests/e2e/e2e-waivers.json`, enforced
+by `scripts/e2e-gate.mjs`, 30-day ceiling, hard-coded policy path, and it fails on an
+expired waiver, on any failure not on the list, **and** on a waived test that starts
+passing. Waived tests still run; nothing is skipped or deleted.
 
-For B, edit the `Production E2E` entry in
-`scripts/release-gate/required-checks.json`:
+**The gate-level waiver has therefore been removed.** All four pipelines are now
+unconditionally required. Keeping it would have suppressed precisely the signal that fix
+made available: an E2E failure that is *not* on the inner list is a real regression, and
+the outer waiver would have passed the deploy anyway. Two layers of the same waiver mean
+the outer one hides the inner one.
 
-```jsonc
-"waivedUntil": "YYYY-MM-DD",     // ≤ 30 days
-"waiverReason": "…at least 20 characters saying WHY…",
-"waiverTicket": "<ticket that removes the waiver>"
-```
+### Merge the E2E fix FIRST
 
-A waiver with no reason, no ticket, or a malformed date is a **refusal**, not an
-ignored field.
+The policy is unsatisfiable until **both** land, and they are not interchangeable:
 
-**Under B, E2E still runs on every push to `main`, and still goes red.** That is
-intended — do not "fix" it by removing the `push: [main]` trigger this lot added to
-`e2e.yml`. Removing it is what created the original hole: a required check that never
-runs is a check that is vacuously satisfied. The waiver ignores E2E's *result*; the
-run itself is how you see it go green and can then delete the waiver with evidence.
+| | on `main` today | supplied by |
+|---|---|---|
+| E2E **runs** on push to `main` | no — trigger is `[stable, product/saas-platform-production]`; **0** push-to-main runs, verified via the API | **this lot** |
+| E2E **passes** | no | **`fix/e2e-production-green`** |
+
+If this lot merges first, the first push-to-main E2E run happens on its own merge commit
+and goes red, refusing deploys until the suite fix follows. Merging the suite fix first
+costs nothing: without the trigger it simply keeps not running on main pushes, exactly as
+today.
+
+Do not "fix" a red E2E by narrowing the `push` trigger this lot added. A required check
+that never runs is a check that is vacuously satisfied — that is the original defect.
 
 ## Steps
 
@@ -101,9 +102,11 @@ run itself is how you see it go green and can then delete the waiver with eviden
 2. **Confirm `main` is green** after that merge — `Production CI`, `Security Analysis`
    and `Code Quality` on the merge commit. This is the state the gate needs.
 
-3. **Grant the two prerequisites above.**
+3. **Grant the four prerequisites above.**
 
-4. **Decide A / B / C** and, for B, commit the waiver.
+4. **Merge `fix/e2e-production-green` — before this lot.** See the section above: this
+   lot supplies the push-to-main trigger, that branch supplies a suite that passes, and
+   the gate now requires E2E with no waiver. Wrong order = a red first run.
 
 5. **Dry-run the gate against the current head of `main`, deploying nothing:**
 

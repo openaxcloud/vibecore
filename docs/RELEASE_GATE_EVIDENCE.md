@@ -80,7 +80,28 @@ P0s, all fixed here:
 | 5 | Four races: ordering by run id elected a stale attempt; no coherent re-read after fetching jobs; an in-flight run did not block a verdict; ancestry checked only on explicit dispatch. | All four fixed; a verdict is re-taken immediately before `helm upgrade`. |
 | 6 | `validateWaiver` accepted `2099-12-31` (26,804 days) and silently rolled `2026-02-31` over. | Real calendar dates only (component round-trip) and a ceiling measured against the clock. |
 | 7 | `workspace-agent` stayed on a mutable tag when not rebuilt — the one image running inside customer workspaces was the one nobody pinned. Manifest accepted null `sourceSha`, missing SBOM, missing/duplicate services, empty verdict. Build id matched by SHA prefix. Cosign/Trivy downloaded unverified. | All strict. Provenance is stamped as a pod annotation so a digest-pinned service can still name its commit. Build ids captured at submission. Binary checksums pinned from the projects' published checksum files. |
-| 8 | The **committed** policy had no waiver, so the "green" commit was refused — the PASS used a policy edited at runtime. | A real, bounded, **committed** waiver (2026-08-27, BUG-E2E-001). The committed policy now authorises the green commit and still refuses all three red ones. |
+| 8 | The **committed** policy had no waiver, so the "green" commit was refused — the PASS used a policy edited at runtime. | Fixed by committing a bounded waiver (2026-08-27, BUG-E2E-001), then **superseded on 2026-08-13**: the E2E suite went green for the first time, so the waiver was **removed entirely** rather than re-dated. See below. |
+
+## `Production E2E` — waiver committed, then removed (2026-08-13)
+
+`fix/e2e-production-green` made the suite pass ([run 31704457154](https://github.com/openaxcloud/vibecore/actions/runs/31704457154)) using its own bounded,
+committed waiver inside the suite (`tests/e2e/e2e-waivers.json`, enforced by
+`scripts/e2e-gate.mjs`: 30-day ceiling, fails on expiry, fails on an unlisted failure,
+fails on a waived test that starts passing, hard-coded policy path).
+
+The gate-level waiver is therefore **gone**: all four pipelines are unconditionally
+required, and `verify-required-checks.spec.mjs` fails if any waiver reappears in the
+committed policy. Keeping it would have swallowed the signal the fix created — an E2E
+failure not on the inner list is a real regression.
+
+**What this costs, stated plainly.** The "all-green commit is authorised" leg can no
+longer be re-run against the live API: `Production E2E` has **never** run on a push to
+`main` (0 runs — on `main` the trigger is `[stable, product/saas-platform-production]`;
+this lot adds `main`). So today every commit is refused, `2c104f24` included, with
+`Production E2E — no run for this commit`. That leg stays proven at unit level (fixtures
+where all four are green ⇒ PASS) and was proven end-to-end on run 31597733139 while the
+waiver stood. It is re-provable on the API only after both PRs land — which is why the
+cutover fixes the merge order.
 | 1b | *Found while closing #1:* `deploy-staging.yml` is a **latent third production path** — it runs `helm upgrade --install vibecore --namespace vibecore` (the production release name AND namespace) inside the production GCP project, separated from production only by `vars.STAGING_APP_CLUSTER`, which is defined **nowhere**. It fails today by accident, not by design. | A guard that fails closed on both an unset variable and on the production cluster name, asserted by the wiring validator. |
 | 1c | *Found while closing #1:* Artifact Registry retention DELETES images older than 7 days unless tagged `running-*`/`helm-active-*`, and `ar-protect-images.yml` applies those tags. Its parsing used `${pkg%%:*}` — which turns `api@sha256:…` into `api@sha256`, so **no tag is applied**. Pinning production by digest makes that EVERY running image: retention would have collected images production is actively running. Its `helm-active-*` step also derived the protected set from `helm get values -o json` (invalid JSON on the real release — broken today, silently) and selected on `imageTag` rather than the deployed digest. | Digest-safe parsing, protected set read from the live Deployments, all three asserted by the wiring validator. |
 | 9 | Rollback was printed, never captured or exercised. | Previous revision captured; rollback runs when a **post-Helm** check fails, and is exercised end-to-end in the harness. |

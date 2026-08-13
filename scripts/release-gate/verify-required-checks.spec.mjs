@@ -116,8 +116,6 @@ describe('release gate — the three commits that actually shipped red', () => {
   });
 
   it('never treats a check that simply never ran as green', () => {
-    // Uses a NON-waived check: E2E is currently waived, and a waiver is precisely the
-    // sanctioned, dated, loudly-reported way for a check to be absent.
     const runs = greenRuns().filter((r) => r.path !== '.github/workflows/ci.yml');
     const result = evaluateRequiredChecks({
       policy,
@@ -130,7 +128,11 @@ describe('release gate — the three commits that actually shipped red', () => {
     expect(result.waiting.join('\n')).toMatch(/Production CI/);
   });
 
-  it('reports a waived check as WAIVED and warns — never silently as green', () => {
+  it('holds E2E to the same bar as the rest, now that the suite can actually be green', () => {
+    // E2E was waived at THIS level while the suite had never once passed. It passes now,
+    // and carries its own bounded waiver for the tests that still flap
+    // (tests/e2e/e2e-waivers.json). An E2E failure that is not on that inner list is a
+    // real regression — a waiver here would swallow it. So: absent E2E is not a pass.
     const runs = greenRuns().filter((r) => r.path !== '.github/workflows/e2e.yml');
     const result = evaluateRequiredChecks({
       policy,
@@ -139,9 +141,8 @@ describe('release gate — the three commits that actually shipped red', () => {
       jobsByRunId: greenJobs(runs),
       nowMs: Date.parse('2026-08-13T12:00:00Z'),
     });
-    expect(result.verdict).toBe('PASS');
-    expect(result.workflows.find((w) => w.displayName === 'Production E2E').state).toBe('WAIVED');
-    expect(result.warnings.join('\n')).toMatch(/Production E2E.*WAIVED until 2026-08-27/);
+    expect(result.verdict).not.toBe('PASS');
+    expect(result.workflows.find((w) => w.displayName === 'Production E2E').state).not.toBe('WAIVED');
   });
 });
 
@@ -314,9 +315,12 @@ describe('release gate — waivers are bounded, loud, and fail closed on expiry'
     }
   });
 
-  it('only Production E2E is waived — CI, Security and Quality stay unconditionally required', () => {
+  it('ships with NO waiver at all — all four pipelines are unconditionally required', () => {
+    // The mechanism above stays tested, and stays available for a pipeline that breaks
+    // for reasons unrelated to release integrity. What must not happen quietly is a
+    // waiver riding along in the committed policy: this fails the moment one appears.
     const waived = policy.requiredWorkflows.filter((w) => w.waivedUntil).map((w) => w.displayName);
-    expect(waived).toEqual(['Production E2E']);
+    expect(waived).toEqual([]);
   });
 });
 
