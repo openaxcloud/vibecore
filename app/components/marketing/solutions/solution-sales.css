@@ -1646,7 +1646,7 @@
 }
 
 /* ------------------------------------------------------------------ */
-/* Honest "see the real build" band pointing to the App Builder proof  */
+/* Honest, solution-specific Agent iteration and Webview evidence       */
 /* ------------------------------------------------------------------ */
 .sol-proof-link {
   border-block: 1px solid var(--ecode-border);
@@ -1686,6 +1686,7 @@
   display: grid;
   min-width: 0;
   gap: 1rem;
+  scroll-margin-top: 6rem;
 }
 
 .sol-product-visual--ide-reference {

@@ -198,7 +198,7 @@ export function makeSolutionRoute(config: SolutionRouteConfig, copy: SolutionCop
     const { language } = useLoaderData<typeof loader>();
     const translator = createSolutionTranslator(copy, language);
 
-    return <SolutionSalesPage copy={translator.catalogue} language={translator.language} />;
+    return <SolutionSalesPage copy={translator.catalogue} language={translator.language} solutionSlug={config.slug} />;
   }
 
   return { loader, meta, headers, links, handle: { serverRenderedMarketing: true }, Component };
