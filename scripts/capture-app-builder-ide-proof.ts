@@ -22,6 +22,14 @@ import {
   validateGeneratedSolutionPackageJson,
 } from './solution-generated-package-policy.js';
 import {
+  auditNativeIdeWebview,
+  compareProofImages,
+  composeDirectRuntimeCapture,
+  SOLUTION_PROOF_DEVICE_VIEWPORTS,
+  type DirectCaptureCompositionAudit,
+  type NativeWebviewAudit,
+} from './solution-proof-capture-truth.js';
+import {
   buildRuntimePreviewProvenance,
   isNativeWebviewFallbackEligible,
   selectOfficialRuntimePreviewUrl,
@@ -499,14 +507,7 @@ async function previewPixels(page: Page) {
 }
 
 function directPreviewViewport(device: 'desktop' | 'tablet' | 'mobile') {
-  switch (device) {
-    case 'mobile':
-      return { height: 844, width: 390 };
-    case 'tablet':
-      return { height: 1024, width: 768 };
-    default:
-      return { height: 900, width: 1440 };
-  }
+  return SOLUTION_PROOF_DEVICE_VIEWPORTS[device];
 }
 
 async function applyDirectPreviewViewport(page: Page, device: 'desktop' | 'tablet' | 'mobile') {
@@ -877,8 +878,8 @@ function generatedAppThemeContractFor(locale: CaptureLocale, scenario: SolutionS
     : '';
 
   return locale === 'fr'
-    ? ` Implémentez deux thèmes applicatifs complets et réellement distincts, clair et sombre, sur toutes les surfaces et tous les contrôles, avec des variables ou règles CSS propres à chaque thème : fonds clairs et texte sombre en mode clair, fonds sombres et texte clair en mode sombre. Ne simulez jamais la variante en inversant, filtrant, recolorant ou modifiant l’opacité d’une capture. Au chargement, initialisez le thème depuis window.matchMedia('(prefers-color-scheme: dark)').matches. Affichez sur chaque vue un vrai élément button avec type="button" et data-testid="app-theme-toggle", visible et utilisable au clavier, dont le texte visible, aria-label et title valent exactement Passer en mode clair lorsque le thème actif est sombre, puis Passer en mode sombre lorsqu’il est clair. Son clic doit basculer le thème de cette application sans rechargement, mettre immédiatement document.documentElement.dataset.theme à exactement light ou dark, mettre à jour son libellé et aria-pressed, et conserver le contrôle visible sans troncature sur ordinateur, tablette et mobile.${gameDirection}`
-    : ` Implement two complete, genuinely distinct application themes, light and dark, across every surface and control, using theme-specific CSS variables or rules: light backgrounds with dark text in light mode, and dark backgrounds with light text in dark mode. Never fake the variant by inverting, filtering, recoloring, or changing the opacity of a capture. On load, initialize the theme from window.matchMedia('(prefers-color-scheme: dark)').matches. On every view, render a real button element with type="button" and data-testid="app-theme-toggle" that is visible and keyboard accessible, with visible text, aria-label, and title set exactly to Switch to light mode while dark theme is active, then Switch to dark mode while light theme is active. Clicking it must switch this application’s theme without a reload, immediately set document.documentElement.dataset.theme to exactly light or dark, update its label and aria-pressed, and keep the control visible without clipping on desktop, tablet, and mobile.${gameDirection}`;
+    ? ` Implémentez deux thèmes applicatifs complets et réellement distincts, clair et sombre, sur toutes les surfaces et tous les contrôles, avec des variables ou règles CSS propres à chaque thème : fonds clairs et texte sombre en mode clair, fonds sombres et texte clair en mode sombre. Ne simulez jamais la variante en inversant, filtrant, recolorant ou modifiant l’opacité d’une capture. Au chargement, initialisez le thème depuis window.matchMedia('(prefers-color-scheme: dark)').matches. Affichez sur chaque vue un vrai élément button avec type="button" et data-testid="app-theme-toggle", visible et utilisable au clavier, dont le texte visible, aria-label et title valent exactement Passer en mode clair lorsque le thème actif est sombre, puis Passer en mode sombre lorsqu’il est clair. Son clic doit basculer le thème de cette application sans rechargement, mettre immédiatement document.documentElement.dataset.theme à exactement light ou dark, mettre à jour son libellé, fixer aria-pressed à "true" lorsque le thème sombre est actif et à "false" lorsque le thème clair est actif, et conserver le contrôle visible sans troncature sur ordinateur, tablette et mobile.${gameDirection}`
+    : ` Implement two complete, genuinely distinct application themes, light and dark, across every surface and control, using theme-specific CSS variables or rules: light backgrounds with dark text in light mode, and dark backgrounds with light text in dark mode. Never fake the variant by inverting, filtering, recoloring, or changing the opacity of a capture. On load, initialize the theme from window.matchMedia('(prefers-color-scheme: dark)').matches. On every view, render a real button element with type="button" and data-testid="app-theme-toggle" that is visible and keyboard accessible, with visible text, aria-label, and title set exactly to Switch to light mode while dark theme is active, then Switch to dark mode while light theme is active. Clicking it must switch this application’s theme without a reload, immediately set document.documentElement.dataset.theme to exactly light or dark, update its label, set aria-pressed to "true" while dark theme is active and "false" while light theme is active, and keep the control visible without clipping on desktop, tablet, and mobile.${gameDirection}`;
 }
 
 function generatedOrangeActionContractFor(locale: CaptureLocale, scenario: SolutionScenario) {
@@ -3887,13 +3888,19 @@ type ThemedCaptureAudit = {
     accent: { orangeActionCount: number; orangeCount: number; purpleCount: number };
     applicationTheme: Awaited<ReturnType<typeof applyOfficialRuntimeCaptureTheme>>;
     captureSurface: 'ide-shell-native-webview' | 'ide-shell-official-runtime-verified' | 'official-runtime-direct';
+    directCaptureComposition?: DirectCaptureCompositionAudit;
     device: 'desktop' | 'tablet' | 'mobile';
+    nativeWebviewAudit?: NativeWebviewAudit;
     provenance?: RuntimePreviewProvenance;
     responsive: Awaited<ReturnType<typeof verifyPreviewResponsiveState>>;
     shell: IdeShellAudit;
     theme: CaptureTheme;
   }>;
   themeDifference: {
+    changedPixelRatio: number;
+    meanAbsoluteDifference: number;
+  };
+  nativeWebviewThemeDifference?: {
     changedPixelRatio: number;
     meanAbsoluteDifference: number;
   };
@@ -4205,15 +4212,12 @@ async function captureThemedIdeState(
   },
 ): Promise<ThemedCaptureAudit> {
   const states: ThemedCaptureAudit['states'] = [];
+  const nativeWebviewThemeScreenshots = new Map<CaptureTheme, Buffer>();
 
-  const directRuntimePreviewFilenames = new Set([
-    'ide-agent-preview.png',
-    'ide-webview-overview.png',
-    'ide-webview-iteration.png',
-  ]);
+  const directRuntimePreviewFilenames = new Set(['ide-webview-overview.png', 'ide-webview-iteration.png']);
 
   for (const theme of CAPTURE_THEMES) {
-    const applicationTheme = await applyCaptureTheme(page, theme);
+    let applicationTheme = await applyCaptureTheme(page, theme);
     await options.verifySurface?.();
 
     const shell = await waitForStableIdeCaptureShell(page);
@@ -4248,23 +4252,30 @@ async function captureThemedIdeState(
     await waitForStableIdeCaptureShell(page, 30_000);
 
     let captureSurface: ThemedCaptureAudit['states'][number]['captureSurface'];
+    let directCaptureComposition: DirectCaptureCompositionAudit | undefined;
+    let nativeWebviewAudit: NativeWebviewAudit | undefined;
 
     if (captureDirectRuntime) {
       const directPage = surfaceState.directPage!;
 
-      await directPage.setViewportSize(directPreviewViewport('desktop'));
+      await directPage.setViewportSize(directPreviewViewport(selectedDevice));
       await expect(previewBody(page)).toContainText(
         new RegExp(escapedPattern(options.scenario.expectedTerms[0]), 'i'),
         { timeout: 60_000 },
       );
       assertDirectRuntimeStayedClean(page);
 
-      const screenshot = await directPage.screenshot({
-        path: resolve(themeRoot, filename),
+      const nativeScreenshot = await directPage.screenshot({
         animations: 'disabled',
         caret: 'hide',
         type: 'png',
       });
+
+      const composedCapture = await composeDirectRuntimeCapture(nativeScreenshot, selectedDevice, theme);
+      const screenshot = composedCapture.png;
+      directCaptureComposition = composedCapture.audit;
+
+      await writeFile(resolve(themeRoot, filename), screenshot);
 
       const entropy = (await sharp(screenshot).stats()).entropy;
 
@@ -4274,9 +4285,23 @@ async function captureThemedIdeState(
         );
       }
 
-      await applyDirectPreviewViewport(page, selectedDevice);
       captureSurface = 'official-runtime-direct';
     } else {
+      const nativeIframe = page.locator('iframe[data-testid="preview-iframe"]:visible').last();
+      const nativeIframeHandle = await nativeIframe.elementHandle();
+      const nativeFrame = await nativeIframeHandle?.contentFrame();
+
+      if (!nativeFrame) {
+        throw new Error(`The native Webview iframe is unavailable before ${theme}/${filename} shell capture`);
+      }
+
+      applicationTheme = await applyOfficialRuntimeCaptureTheme(nativeFrame, theme, {
+        requireVisibleControl: true,
+      });
+
+      const nativeAuditResult = await auditNativeIdeWebview(page, options.scenario.expectedTerms[0]);
+      nativeWebviewAudit = nativeAuditResult.audit;
+      nativeWebviewThemeScreenshots.set(theme, nativeAuditResult.screenshot);
       await beginIdeScreenshotGuard(page);
       await page.screenshot({
         path: resolve(themeRoot, filename),
@@ -4303,8 +4328,10 @@ async function captureThemedIdeState(
       accent,
       applicationTheme,
       captureSurface,
+      ...(directCaptureComposition ? { directCaptureComposition } : {}),
       device: selectedDevice,
-      provenance: surfaceState.provenance,
+      ...(nativeWebviewAudit ? { nativeWebviewAudit } : {}),
+      ...(captureSurface === 'official-runtime-direct' ? { provenance: surfaceState.provenance } : {}),
       responsive,
       shell,
       theme,
@@ -4312,6 +4339,37 @@ async function captureThemedIdeState(
   }
 
   const themeDifference = await compareCaptureThemes(stagingRoot, filename);
+  const captureSurfaces = new Set(states.map(({ captureSurface }) => captureSurface));
+
+  if (captureSurfaces.size !== 1) {
+    throw new Error(
+      `Capture surface changed between light and dark for ${filename}: ${[...captureSurfaces].join(', ')}`,
+    );
+  }
+
+  const usesShellCapture = states.some(({ captureSurface }) => captureSurface !== 'official-runtime-direct');
+  const lightNativeWebview = nativeWebviewThemeScreenshots.get('light');
+  const darkNativeWebview = nativeWebviewThemeScreenshots.get('dark');
+
+  if (usesShellCapture && (!lightNativeWebview || !darkNativeWebview)) {
+    throw new Error(`Both light and dark native Webview pixel audits are required for ${filename} shell capture`);
+  }
+
+  const nativeWebviewThemeDifference =
+    lightNativeWebview && darkNativeWebview
+      ? await compareProofImages(lightNativeWebview, darkNativeWebview)
+      : undefined;
+
+  if (
+    nativeWebviewThemeDifference &&
+    (nativeWebviewThemeDifference.changedPixelRatio < 0.02 || nativeWebviewThemeDifference.meanAbsoluteDifference < 2)
+  ) {
+    throw new Error(
+      `Native Webview light and dark pixels for ${filename} are not visually distinct ` +
+        `(changed pixels=${nativeWebviewThemeDifference.changedPixelRatio.toFixed(4)}, ` +
+        `mean difference=${nativeWebviewThemeDifference.meanAbsoluteDifference.toFixed(3)})`,
+    );
+  }
 
   /*
    * The production IDE defaults to dark. Restore it so subsequent assertions
@@ -4319,7 +4377,12 @@ async function captureThemedIdeState(
    */
   await applyCaptureTheme(page, 'dark');
 
-  return { filename, states, themeDifference };
+  return {
+    filename,
+    states,
+    themeDifference,
+    ...(nativeWebviewThemeDifference ? { nativeWebviewThemeDifference } : {}),
+  };
 }
 
 async function promoteVerifiedThemedAssets(stagingRoot: string, outputRoot: string, filenames: readonly string[]) {

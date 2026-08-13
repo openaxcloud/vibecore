@@ -129,7 +129,8 @@ describe('Solutions proof capture theme control', () => {
     expect(applyCaptureThemeSource).toContain('iframeHandle?.contentFrame()');
     expect(applyCaptureThemeSource).toContain('applyOfficialRuntimeCaptureTheme(nativePreviewFrame, theme');
     expect(applyCaptureThemeSource).toContain('requireVisibleControl: true');
-    expect(captureSource).toContain('const applicationTheme = await applyCaptureTheme(page, theme)');
+    expect(captureSource).toContain('let applicationTheme = await applyCaptureTheme(page, theme)');
+    expect(captureSource).toContain('applicationTheme = await applyOfficialRuntimeCaptureTheme(nativeFrame, theme');
     expect(captureSource).toContain('applicationTheme,');
   });
 

@@ -229,6 +229,72 @@ function expectCleanShell(value: unknown, label: string) {
   );
 }
 
+function expectNativeWebviewAudit(value: unknown, label: string, expectedIdentity: string) {
+  const audit = asRecord(value, label);
+  const imageSize = asRecord(audit.imageSize, `${label}.imageSize`);
+
+  expect(audit.attached, label).toBe(true);
+  expect(audit.visible, label).toBe(true);
+  expect(audit.identityVisible, label).toBe(true);
+  expect(audit.nonBlank, label).toBe(true);
+  expect(audit.textLength, label).toBeGreaterThanOrEqual(80);
+  expect(audit.imageBytes, label).toBeGreaterThanOrEqual(6_000);
+  expect(audit.entropy, label).toBeGreaterThanOrEqual(0.15);
+  expect(audit.imageSha256, label).toMatch(/^[a-f0-9]{64}$/);
+  expect(audit.horizontalOverflow, label).toBeLessThanOrEqual(1);
+  expect(imageSize.width, label).toBeGreaterThan(0);
+  expect(imageSize.height, label).toBeGreaterThan(0);
+  expect(asString(audit.expectedIdentity, `${label}.expectedIdentity`), label).toBe(expectedIdentity);
+  expect(asArray(audit.visibleErrors, `${label}.visibleErrors`), label).toEqual([]);
+}
+
+function expectDirectCaptureComposition(
+  value: unknown,
+  label: string,
+  device: PreviewDevice,
+  theme: (typeof SOLUTION_PROOF_VISUAL_THEMES)[number],
+) {
+  const audit = asRecord(value, label);
+  const canvas = asRecord(audit.canvas, `${label}.canvas`);
+  const capturedViewport = asRecord(audit.capturedViewport, `${label}.capturedViewport`);
+  const sourceImage = asRecord(audit.sourceImage, `${label}.sourceImage`);
+  const renderedRect = asRecord(audit.renderedRect, `${label}.renderedRect`);
+
+  const expectedViewport = {
+    desktop: { height: 900, width: 1440 },
+    tablet: { height: 1024, width: 768 },
+    mobile: { height: 844, width: 390 },
+  }[device];
+  const expectedRenderedRect = {
+    desktop: { height: 900, width: 1440, x: 0, y: 0 },
+    tablet: { height: 900, width: 675, x: 382, y: 0 },
+    mobile: { height: 844, width: 390, x: 525, y: 28 },
+  }[device];
+
+  expect(canvas, label).toEqual({ height: 900, width: 1440 });
+  expect(capturedViewport, label).toEqual(expectedViewport);
+  expect(sourceImage, label).toEqual(expectedViewport);
+  expect(renderedRect, label).toEqual(expectedRenderedRect);
+  expect(audit.withoutEnlargement, label).toBe(true);
+  expect(audit.position, label).toBe('centre');
+  expect(audit.composed, label).toBe(device !== 'desktop');
+  expect(audit.fit, label).toBe(device === 'desktop' ? 'native' : 'contain');
+  expect(audit.background, label).toEqual(
+    device === 'desktop'
+      ? 'not-applicable'
+      : theme === 'dark'
+        ? { alpha: 1, b: 18, g: 15, r: 12 }
+        : { alpha: 1, b: 250, g: 248, r: 246 },
+  );
+}
+
+function expectVisualDifference(value: unknown, label: string) {
+  const difference = asRecord(value, label);
+
+  expect(difference.changedPixelRatio, label).toBeGreaterThanOrEqual(0.02);
+  expect(difference.meanAbsoluteDifference, label).toBeGreaterThanOrEqual(2);
+}
+
 function expectResponsiveAudit(value: unknown, label: string, expected?: ResponsiveAuditExpectation) {
   const responsive = asRecord(value, label);
 
@@ -552,6 +618,14 @@ describe('theme-aware solution proof visual registry', () => {
         prompt,
       ),
     ).toThrow();
+
+    expect(() =>
+      expectVisualDifference({ changedPixelRatio: 0.2, meanAbsoluteDifference: 12 }, 'native-theme-difference'),
+    ).not.toThrow();
+    expect(() => expectVisualDifference(undefined, 'missing-native-theme-difference')).toThrow();
+    expect(() =>
+      expectVisualDifference({ changedPixelRatio: 0.001, meanAbsoluteDifference: 1 }, 'weak-native-theme-difference'),
+    ).toThrow();
   });
 
   it('rejects incomplete or mislabeled top-level responsive manifest coverage', () => {
@@ -586,6 +660,55 @@ describe('theme-aware solution proof visual registry', () => {
         french.map((audit, index) => (index === 1 ? { ...audit, stage: 'overview' } : audit)),
         'wrong-french-stage',
         'fr',
+      ),
+    ).toThrow();
+  });
+
+  it('rejects missing native Webview evidence and forged direct viewport metadata', () => {
+    const nativeAudit = {
+      attached: true,
+      entropy: 0.75,
+      expectedIdentity: 'PeopleOps',
+      horizontalOverflow: 0,
+      identityVisible: true,
+      imageBytes: 12_000,
+      imageSha256: 'a'.repeat(64),
+      imageSize: { height: 600, width: 900 },
+      nonBlank: true,
+      textLength: 240,
+      visible: true,
+      visibleErrors: [],
+    };
+
+    expect(() => expectNativeWebviewAudit(nativeAudit, 'native', 'PeopleOps')).not.toThrow();
+    expect(() => expectNativeWebviewAudit(undefined, 'missing-native', 'PeopleOps')).toThrow();
+    expect(() =>
+      expectNativeWebviewAudit({ ...nativeAudit, expectedIdentity: 'Other' }, 'wrong-native', 'PeopleOps'),
+    ).toThrow();
+
+    const tabletComposition = {
+      background: { alpha: 1, b: 250, g: 248, r: 246 },
+      canvas: { height: 900, width: 1440 },
+      capturedViewport: { height: 1024, width: 768 },
+      composed: true,
+      fit: 'contain',
+      position: 'centre',
+      renderedRect: { height: 900, width: 675, x: 382, y: 0 },
+      sourceImage: { height: 1024, width: 768 },
+      withoutEnlargement: true,
+    };
+
+    expect(() => expectDirectCaptureComposition(tabletComposition, 'tablet', 'tablet', 'light')).not.toThrow();
+    expect(() =>
+      expectDirectCaptureComposition(
+        {
+          ...tabletComposition,
+          capturedViewport: { height: 900, width: 1440 },
+          sourceImage: { height: 900, width: 1440 },
+        },
+        'forged-tablet',
+        'tablet',
+        'light',
       ),
     ).toThrow();
   });
@@ -672,6 +795,7 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
         const promotedAssets = asArray(manifest.promotedAssets, `${label}.promotedAssets`);
         const expectedAssets = publicAssetPaths(slug, language);
         const prompt = asString(manifest.prompt, `${label}.prompt`);
+        const expectedIdentity = COPY[slug][language].demo.brand;
 
         expect(manifest.locale, label).toBe(language);
         expect(asString(manifest.projectId, `${label}.projectId`), label).toBeTruthy();
@@ -726,17 +850,33 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
           const audit = asRecord(value, auditLabel);
           const filename = asString(audit.filename, `${auditLabel}.filename`);
           const states = asArray(audit.states, `${auditLabel}.states`);
-          const difference = asRecord(audit.themeDifference, `${auditLabel}.themeDifference`);
+          expectVisualDifference(audit.themeDifference, `${auditLabel}.themeDifference`);
 
-          expect(difference.changedPixelRatio, auditLabel).toBeGreaterThanOrEqual(0.02);
-          expect(difference.meanAbsoluteDifference, auditLabel).toBeGreaterThanOrEqual(2);
+          const usesShellCapture = states.some(
+            (stateValue, stateIndex) =>
+              asRecord(stateValue, `${auditLabel}.states[${stateIndex}]`).captureSurface !== 'official-runtime-direct',
+          );
+          const captureSurfaces = new Set(
+            states.map((stateValue, stateIndex) =>
+              asString(
+                asRecord(stateValue, `${auditLabel}.states[${stateIndex}]`).captureSurface,
+                `${auditLabel}.states[${stateIndex}].captureSurface`,
+              ),
+            ),
+          );
+
+          expect(captureSurfaces.size, `${auditLabel} capture surface must stay stable across themes`).toBe(1);
+
+          if (usesShellCapture) {
+            expectVisualDifference(audit.nativeWebviewThemeDifference, `${auditLabel}.nativeWebviewThemeDifference`);
+          } else {
+            expect(audit.nativeWebviewThemeDifference, auditLabel).toBeUndefined();
+          }
 
           for (const [stateIndex, stateValue] of states.entries()) {
             const stateLabel = `${auditLabel}.states[${stateIndex}]`;
             const state = asRecord(stateValue, stateLabel);
             const applicationTheme = asRecord(state.applicationTheme, `${stateLabel}.applicationTheme`);
-            const provenance = expectCleanRuntimeProvenance(state.provenance, `${stateLabel}.provenance`);
-
             expectCleanShell(state.shell, `${stateLabel}.shell`);
             expect(applicationTheme.activeTheme, stateLabel).toBe(state.theme);
             expect(applicationTheme.strategy, stateLabel).toMatch(
@@ -748,19 +888,30 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
             );
 
             if (state.captureSurface === 'official-runtime-direct') {
-              expect(
-                ['ide-agent-preview.png', 'ide-webview-overview.png', 'ide-webview-iteration.png'],
-                stateLabel,
-              ).toContain(filename);
+              expect(['ide-webview-overview.png', 'ide-webview-iteration.png'], stateLabel).toContain(filename);
+
+              const provenance = expectCleanRuntimeProvenance(state.provenance, `${stateLabel}.provenance`);
+
               expect(provenance.mode, stateLabel).toBe('official-runtime-direct');
+              expectDirectCaptureComposition(
+                state.directCaptureComposition,
+                `${stateLabel}.directCaptureComposition`,
+                state.device as PreviewDevice,
+                state.theme as (typeof SOLUTION_PROOF_VISUAL_THEMES)[number],
+              );
+              expect(state.nativeWebviewAudit, stateLabel).toBeUndefined();
             }
 
             if (state.captureSurface === 'ide-shell-official-runtime-verified') {
-              expect(provenance.mode, stateLabel).toBe('official-runtime-direct');
+              expect(state.provenance, stateLabel).toBeUndefined();
+              expectNativeWebviewAudit(state.nativeWebviewAudit, `${stateLabel}.nativeWebviewAudit`, expectedIdentity);
+              expect(state.directCaptureComposition, stateLabel).toBeUndefined();
             }
 
             if (state.captureSurface === 'ide-shell-native-webview') {
-              expect(provenance.mode, stateLabel).toBe('native-webview');
+              expect(state.provenance, stateLabel).toBeUndefined();
+              expectNativeWebviewAudit(state.nativeWebviewAudit, `${stateLabel}.nativeWebviewAudit`, expectedIdentity);
+              expect(state.directCaptureComposition, stateLabel).toBeUndefined();
             }
 
             if (filename === 'ide-agent-prompt.png') {

@@ -78,6 +78,10 @@ describe('generated Solutions project theme contract', () => {
     expect(contractSource).toContain('to exactly light or dark');
     expect(contractSource).toContain('à exactement light ou dark');
     expect(contractSource).toContain('aria-pressed');
+    expect(contractSource).toContain('aria-pressed to "true" while dark theme is active');
+    expect(contractSource).toContain('"false" while light theme is active');
+    expect(contractSource).toContain('aria-pressed à "true" lorsque le thème sombre est actif');
+    expect(contractSource).toContain('"false" lorsque le thème clair est actif');
     expect(contractSource).toContain('desktop, tablet, and mobile');
     expect(contractSource).toContain('ordinateur, tablette et mobile');
   });
