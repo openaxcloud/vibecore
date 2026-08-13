@@ -365,3 +365,21 @@ Constat annexe : d'autres lignes `WorkspaceRuntime` sans enregistrement `Workspa
 **Garde-fou transverse retenu.** Plutôt qu'un correctif au cas par cas, la règle est désormais testée : ne jamais déduire un succès de l'ABSENCE d'un signal d'échec. Un statut « terminé/OK » doit être dérivé d'une preuve positive (tout est complet, la réponse porte les données attendues) ; sinon l'état affiché est « interrompu » ou « échec », nommé.
 
 **Tests** `app/components/chat/qa-status-truth.spec.ts` **16/16**, rouge→vert vérifié (**15/16 échouent** sans les correctifs). Voisinage : **152 fichiers / 963 tests** verts (chat + catalogues i18n), route ide-panel **24/24**.
+
+### 2026-08-13 — BUG-QA-I18N-COUNT-003 : le compteur collé n'était pas un cas isolé, c'était une CLASSE
+
+En posant la garde générique de `ed2b1022`, un balayage du dépôt a montré que « 8fichiers » était le symptôme visible d'un défaut **systématique** de l'IDE. Les libellés de `BaseChat.tsx` ont été extraits **mot par mot** (`'extension'`, `'shown'`, `'of'`, `'No'`, `'yet'`…) puis réassemblés en JSX à côté d'une expression nue. React concatène deux expressions adjacentes **sans séparateur** — et la traduction mot à mot perd la phrase.
+
+| ID | Bug | 📤 | 💻 | ✅ | Preuve |
+|---|---|:---:|:---:|:---:|---|
+| BUG-QA-I18N-COUNT-003 | **12 sites de l'IDE rendaient des compteurs et des phrases collés, dont 5 avec un « s » anglais ajouté à une chaîne traduite.** Rendus réels : `12rallongesmontré` (Extensions), `3donnée secrètesimporter` (Import de secrets), `5lignessera ignoré`, `8de12points de contrôle` (Historique), `9liaisons actives…` (Raccourcis), `42prod /13dev`, `Nondéploiementsencore` (états vides), `3erreurs ·5avertissements…` (Problèmes), `Ctrl+Kraccourci`, `échoué· sortir1`. | ✅ | ✅ | ✅ | 12 sites remplacés par **une clé par phrase**, pluralisée par i18next dans les deux langues. |
+| BUG-QA-I18N-COUNT-003b | **« buckets » affiché en double et non traduit** dans l'en-tête du graphe d'activité : `bucketCount` rendait déjà « 24 intervalles » et le fragment suivant rajoutait « buckets · pic » → `24 intervallesbuckets · pic 9/bucket`. | ✅ | ✅ | ✅ | Une seule clé `baseChatAst.counts.bucketsPeak`, pluriel FR/EN, unité traduite. |
+| BUG-QA-I18N-COUNT-003c | **Deux contresens de traduction** révélés par la même extraction mot à mot : `'No'` (déterminant) rendu **« Non »** (la réponse), et l'acronyme de protocole **`MCP` « traduit » en « PCM »**. | ✅ | ✅ | ✅ | Phrase entière côté catalogue (`Aucun {title} pour l'instant`) ; l'acronyme n'est plus une clé traduisible. |
+
+**Ce qui a été délibérément laissé.** Un **13ᵉ** site (compteur de raccourcis, `L9005`) porte le même défaut mais tombe **dans le bloc mobile Terminal scellé par son propriétaire** (`DO NOT MODIFY — mobile Terminal tab frozen`, empreinte SHA-256 vérifiée par `base-chat-ast.spec.ts`). Le corriger cassait ce sceau : **ce n'est pas ma décision**, le site est laissé en l'état et remonté ici. Le test le verrouille explicitement (il échoue si le bloc est descellé ou déplacé, pour que le défaut soit repris à ce moment-là).
+
+**Trois collages sont volontaires** et exclus nommément de la garde : `12x`, `87% agreement`, `99% success` — le libellé y commence par le suffixe de l'unité.
+
+**Garde-fou.** La garde n'est plus une liste de cas connus mais **le motif lui-même** : toute expression JSX seule sur sa ligne suivie d'un libellé traduit seul sur la sienne est refusée. C'est cette garde générique qui a trouvé le 13ᵉ site et les deux contresens — la lecture ne les avait pas vus.
+
+**Tests** `app/components/chat/qa-i18n-counts.spec.ts` **70/70**, dont **34 rendus réels** passés par la VRAIE instance i18next (EN + FR, singulier + pluriel) — pas de simples greps. Rouge→vert : **64/66 échouent** sur le code d'origine. `pnpm i18n:validate` **propre** (18 367 clés EN = FR, 219 familles plurielles) — il a d'ailleurs attrapé une erreur de ma part (parité d'interpolation perdue au singulier). Voisinage : **162 fichiers / 1083 tests** verts. Empreinte du bloc gelé **inchangée** (7/7).

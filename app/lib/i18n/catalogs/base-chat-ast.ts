@@ -615,6 +615,70 @@ export const baseChatAstEn = {
   'baseChatAst.activity.segment.save': 'save',
   'baseChatAst.activity.segment.share': 'share',
   'baseChatAst.activity.segment.update': 'update',
+
+  /*
+   * BUG-QA-I18N-COUNT-003 — these labels used to be extracted WORD BY WORD
+   * (`'extension'`, `'shown'`, `'of'`…) and re-assembled in JSX next to a bare
+   * `{count}` expression. React concatenates adjacent expressions with no
+   * separator, so the UI rendered « 12rallongesmontré »: no spaces, an English
+   * `'s'` glued on regardless of language, and word-level translations that lose
+   * the sentence (`extension` → `rallonge`, an extension *cord*). One key per
+   * phrase, pluralised by i18next, is the only shape that survives translation.
+   */
+  'baseChatAst.counts.hunks_one': '{count} hunk',
+  'baseChatAst.counts.hunks_other': '{count} hunks',
+  'baseChatAst.counts.checkpointsFiltered_one': '{shown} of {count} checkpoint',
+  'baseChatAst.counts.checkpointsFiltered_other': '{shown} of {count} checkpoints',
+  'baseChatAst.counts.keybindings_one': '{count} active binding in this workspace',
+  'baseChatAst.counts.keybindings_other': '{count} active bindings in this workspace',
+  'baseChatAst.counts.dependencies': '{prod} prod / {dev} dev',
+  'baseChatAst.counts.messages_one': '{count} message',
+  'baseChatAst.counts.messages_other': '{count} messages',
+  'baseChatAst.counts.extensionsShown_one': '{count} extension shown',
+  'baseChatAst.counts.extensionsShown_other': '{count} extensions shown',
+  'baseChatAst.counts.tasks_one': '{count} task',
+  'baseChatAst.counts.tasks_other': '{count} tasks',
+  'baseChatAst.counts.secretsToImport_one': '{count} secret to import',
+  'baseChatAst.counts.secretsToImport_other': '{count} secrets to import',
+  'baseChatAst.counts.linesSkipped_one': '{count} line will be skipped',
+  'baseChatAst.counts.linesSkipped_other': '{count} lines will be skipped',
+
+  /*
+   * Même défaut dans l'en-tête du graphe d'activité, avec un symptôme en plus :
+   * `bucketCount` rendait déjà « 24 buckets » et le fragment suivant rajoutait
+   * « buckets · peak », d'où « 24 bucketsbuckets · peak 9/bucket » — et en
+   * français un « buckets » resté en anglais au milieu de la phrase.
+   */
+  'baseChatAst.counts.eventsShown_one': '{shown} of {count} event',
+  'baseChatAst.counts.eventsShown_other': '{shown} of {count} events',
+  'baseChatAst.counts.bucketsPeak_one': '{count} bucket · peak {peak}/bucket',
+  'baseChatAst.counts.bucketsPeak_other': '{count} buckets · peak {peak}/bucket',
+
+  /*
+   * Même classe, sites non-compteurs. L'extraction mot à mot avait en plus
+   * produit des contresens que seule la phrase entière peut corriger : `'No'`
+   * (déterminant) traduit par « Non » (la réponse), et l'acronyme `MCP`
+   * « traduit » en « PCM ».
+   */
+  'baseChatAst.counts.occurrences_one': '{count} occurrence',
+  'baseChatAst.counts.occurrences_other': '{count} occurrences',
+  'baseChatAst.counts.problemsSummary': '{errors} errors · {warnings} warnings in the current workspace',
+  'baseChatAst.counts.presenceOnline_one': '{shown} online user with live cursor and selection sync.',
+  'baseChatAst.counts.presenceOnline_other': '{shown} online users with live cursor and selection sync.',
+
+  /*
+   * Au singulier le nombre n'apporte rien, dans AUCUNE des deux langues :
+   * « Last 1 deployment » / « Les 1 derniers déploiements » sont fautifs. Les
+   * deux formes omettent donc `{count}` ensemble, ce qu'exige d'ailleurs la
+   * parité d'interpolation vérifiée par `i18n:validate`.
+   */
+  'baseChatAst.counts.lastDeployments_one': 'Last deployment, newest on the right.',
+  'baseChatAst.counts.lastDeployments_other': 'Last {count} deployments, newest on the right.',
+  'baseChatAst.phrases.emptyYet': 'No {title} yet',
+  'baseChatAst.phrases.shortcutFor': '{label} shortcut',
+  'baseChatAst.phrases.runOutcome': '{status} · exit {code}',
+  'baseChatAst.phrases.authorVersion': '{author} · v{version}',
+  'baseChatAst.phrases.deltaVsPrevious': '{delta} vs previous',
 } as const;
 
 export type BaseChatAstKey = keyof typeof baseChatAstEn;
@@ -1252,6 +1316,41 @@ export const baseChatAstFr: BaseChatAstCopy = {
   'baseChatAst.activity.segment.save': 'enregistrement',
   'baseChatAst.activity.segment.share': 'partage',
   'baseChatAst.activity.segment.update': 'mise à jour',
+
+  /* Voir la note côté anglais (BUG-QA-I18N-COUNT-003) : phrase entière, pas mot à mot. */
+  'baseChatAst.counts.hunks_one': '{count} segment',
+  'baseChatAst.counts.hunks_other': '{count} segments',
+  'baseChatAst.counts.checkpointsFiltered_one': '{shown} sur {count} point de contrôle',
+  'baseChatAst.counts.checkpointsFiltered_other': '{shown} sur {count} points de contrôle',
+  'baseChatAst.counts.keybindings_one': '{count} raccourci actif dans cet espace de travail',
+  'baseChatAst.counts.keybindings_other': '{count} raccourcis actifs dans cet espace de travail',
+  'baseChatAst.counts.dependencies': '{prod} prod / {dev} dev',
+  'baseChatAst.counts.messages_one': '{count} message',
+  'baseChatAst.counts.messages_other': '{count} messages',
+  'baseChatAst.counts.extensionsShown_one': '{count} extension affichée',
+  'baseChatAst.counts.extensionsShown_other': '{count} extensions affichées',
+  'baseChatAst.counts.tasks_one': '{count} tâche',
+  'baseChatAst.counts.tasks_other': '{count} tâches',
+  'baseChatAst.counts.secretsToImport_one': '{count} secret à importer',
+  'baseChatAst.counts.secretsToImport_other': '{count} secrets à importer',
+  'baseChatAst.counts.linesSkipped_one': '{count} ligne sera ignorée',
+  'baseChatAst.counts.linesSkipped_other': '{count} lignes seront ignorées',
+  'baseChatAst.counts.eventsShown_one': '{shown} sur {count} événement',
+  'baseChatAst.counts.eventsShown_other': '{shown} sur {count} événements',
+  'baseChatAst.counts.bucketsPeak_one': '{count} intervalle · pic {peak}/intervalle',
+  'baseChatAst.counts.bucketsPeak_other': '{count} intervalles · pic {peak}/intervalle',
+  'baseChatAst.counts.occurrences_one': '{count} occurrence détectée',
+  'baseChatAst.counts.occurrences_other': '{count} occurrences détectées',
+  'baseChatAst.counts.problemsSummary': '{errors} erreurs · {warnings} avertissements dans l’espace de travail actuel',
+  'baseChatAst.counts.presenceOnline_one': '{shown} utilisateur en ligne, curseur et sélection synchronisés.',
+  'baseChatAst.counts.presenceOnline_other': '{shown} utilisateurs en ligne, curseurs et sélections synchronisés.',
+  'baseChatAst.counts.lastDeployments_one': 'Dernier déploiement, le plus récent à droite.',
+  'baseChatAst.counts.lastDeployments_other': 'Les {count} derniers déploiements, le plus récent à droite.',
+  'baseChatAst.phrases.emptyYet': 'Aucun {title} pour l’instant',
+  'baseChatAst.phrases.shortcutFor': 'Raccourci {label}',
+  'baseChatAst.phrases.runOutcome': '{status} · code de sortie {code}',
+  'baseChatAst.phrases.authorVersion': '{author} · v{version}',
+  'baseChatAst.phrases.deltaVsPrevious': '{delta} par rapport au précédent',
 };
 
 export function getBaseChatAstCopy(language?: string | null): BaseChatAstCopy {

@@ -2435,9 +2435,7 @@ function AgentPatchReviewQueue({ proposals, autoApplyEnabled }: { proposals: any
                   <span className="bolt-project-agent-patch-hunks-toggle-label">
                     {t('chat.copy.showDiff_78016e77')}
                     <span className="bolt-project-agent-patch-hunks-toggle-count">
-                      {proposal.hunks.length}
-                      {t('chat.copy.hunk_487d3241')}
-                      {proposal.hunks.length === 1 ? '' : 's'}
+                      {t('baseChatAst.counts.hunks', { count: proposal.hunks.length })}
                     </span>
                   </span>
                   <span className="bolt-project-agent-patch-hunks-toggle-chevron i-ph:caret-down" aria-hidden />
@@ -6825,10 +6823,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <div>
                 <strong>{t('chat.copy.agentHistory_c783eeb3')}</strong>
                 <span>
-                  {filteredProjectConversationCheckpoints.length}
-                  {t('chat.copy.of_de04fa0e')}
-                  {projectConversationCheckpoints.length}
-                  {t('chat.copy.checkpoints_abdf4ec3')}
+                  {t('baseChatAst.counts.checkpointsFiltered', {
+                    shown: filteredProjectConversationCheckpoints.length,
+                    count: projectConversationCheckpoints.length,
+                  })}
                 </span>
               </div>
               <button
@@ -8452,9 +8450,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         <div>
                           <strong>{t('chat.copy.agentHistory_c783eeb3')}</strong>
                           <span>
-                            {filteredProjectConversationCheckpoints.length}
-                            {t('chat.copy.of_de04fa0e')}
-                            {projectConversationCheckpoints.length} {t('chat.copy.checkpoints_abdf4ec3')}
+                            {t('baseChatAst.counts.checkpointsFiltered', {
+                              shown: filteredProjectConversationCheckpoints.length,
+                              count: projectConversationCheckpoints.length,
+                            })}
                           </span>
                         </div>
                         <button
@@ -10714,9 +10713,7 @@ function ProjectIdeServicePanel({
         ) : payload?.status === 'empty' && !error && !rendersEmptyStateActions ? (
           <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 text-center text-sm text-bolt-elements-textSecondary">
             <div className="mb-1 font-medium text-bolt-elements-textPrimary">
-              {t('chat.copy.no_816c52fd')}
-              {title.toLowerCase()}
-              {t('chat.copy.yet_1002ea7f')}
+              {t('baseChatAst.phrases.emptyYet', { title: title.toLowerCase() })}
             </div>
             <div className="text-[12px]">{t('chat.copy.onceYourWorkspaceProducesDataIt_1de76193')}</div>
           </div>
@@ -11110,12 +11107,7 @@ function ProjectProblemsPanel() {
       <header className="bolt-project-problems-header">
         <div>
           <h3 tabIndex={-1}>{t('chat.copy.problems_8e6b86dc')}</h3>
-          <p>
-            {errors}
-            {t('chat.copy.errors_e6ef8d02')}
-            {warnings}
-            {t('chat.copy.warningsInTheCurrentWorkspace_e8b37cee')}
-          </p>
+          <p>{t('baseChatAst.counts.problemsSummary', { errors, warnings })}</p>
         </div>
         <div
           className="bolt-project-problems-counts"
@@ -11175,10 +11167,7 @@ function ProjectProblemsPanel() {
                     </strong>
                     <span>{diagnostic.source}</span>
                     {diagnostic.occurrences && diagnostic.occurrences > 1 ? (
-                      <span>
-                        {diagnostic.occurrences}
-                        {t('chat.copy.occurrences_11e49537')}
-                      </span>
+                      <span>{t('baseChatAst.counts.occurrences', { count: diagnostic.occurrences })}</span>
                     ) : null}
                     {location && resolvedPath ? (
                       <button
@@ -13198,8 +13187,10 @@ function ProjectIdePanelContent({
             <div>
               <h3>{t('chat.copy.presence_89a8a335')}</h3>
               <p>
-                {formatBaseChatAstNumber(language, presence.length)}
-                {t('chat.copy.onlineUsersWithLiveCursorAnd_ea5daf10')}
+                {t('baseChatAst.counts.presenceOnline', {
+                  shown: formatBaseChatAstNumber(language, presence.length),
+                  count: presence.length,
+                })}
               </p>
             </div>
             <span className="bolt-project-collaboration-live">{realtimeLabel}</span>
@@ -15557,8 +15548,7 @@ function ProjectSettingsPanel({
                           </span>
                           <label>
                             <span className="sr-only">
-                              {binding.label}
-                              {t('chat.copy.shortcut_4e4c03ff')}
+                              {t('baseChatAst.phrases.shortcutFor', { label: binding.label })}
                             </span>
                             <input
                               name={`keybinding:${binding.action}`}
@@ -17393,10 +17383,10 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
                   <strong>{manifest.name}</strong>
                   <span>{manifest.path}</span>
                   <small>
-                    {manifest.dependencyCount}
-                    {t('chat.copy.prod_23dc0c60')}
-                    {manifest.devDependencyCount}
-                    {t('chat.copy.dev_34c6fcec')}
+                    {t('baseChatAst.counts.dependencies', {
+                      prod: manifest.dependencyCount,
+                      dev: manifest.devDependencyCount,
+                    })}
                   </small>
                 </article>
               ))
@@ -17415,9 +17405,10 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
                   <article key={run.id}>
                     <strong>{run.name}</strong>
                     <span className={failed ? 'text-bolt-elements-icon-error' : 'text-bolt-elements-icon-success'}>
-                      {failed ? t('chat.copy.failed_5f5f8758') : t('chat.copy.succeeded_88c2e0b3')}
-                      {t('chat.copy.exit_c4098fbe')}
-                      {run.exitCode ?? 0}
+                      {t('baseChatAst.phrases.runOutcome', {
+                        status: failed ? t('chat.copy.failed_5f5f8758') : t('chat.copy.succeeded_88c2e0b3'),
+                        code: run.exitCode ?? 0,
+                      })}
                     </span>
                     <small>{run.script}</small>
                     {outputTail ? (
@@ -18128,8 +18119,7 @@ function ProjectAgentStudioPanel({
                     {label}
                   </span>
                   <span className="ml-auto text-xs text-bolt-elements-textSecondary">
-                    {node.conversation.messages.length}
-                    {t('chat.copy.msg_19f34ee1')}
+                    {t('baseChatAst.counts.messages', { count: node.conversation.messages.length })}
                   </span>
                 </li>,
                 ...node.children.flatMap((child) => flatten(child, depth + 1)),
@@ -18339,11 +18329,7 @@ function ProjectMonitoringDeploymentTimeline({ deployments }: { deployments: any
     <section className="bolt-project-monitoring-timeline" aria-label={t('chat.copy.deploymentHistory_2312352b')}>
       <header>
         <strong>{t('chat.copy.deployments_8d458ed0')}</strong>
-        <small>
-          {t('chat.copy.last_d1c69a85')}
-          {t('baseChatAst.monitoring.deploymentCount', { count: visible.length })}
-          {t('chat.copy.newestOnTheRight_f96e7c59')}
-        </small>
+        <small>{t('baseChatAst.counts.lastDeployments', { count: visible.length })}</small>
       </header>
       <svg
         viewBox={`0 0 ${width} 20`}
@@ -18507,12 +18493,15 @@ function ProjectMonitoringActivitySparkline({
         <div>
           <strong>{t('chat.copy.activityRate_d137b2cc')}</strong>
           <small>
-            {formatBaseChatAstNumber(language, visibleEvents.length)}
-            {t('chat.copy.of_de04fa0e')}
-            {t('baseChatAst.monitoring.eventCount', { count: events.length })} ·{' '}
-            {t('baseChatAst.monitoring.bucketCount', { count: buckets })}
-            {t('chat.copy.bucketsPeak_3010e505')} {formatBaseChatAstNumber(language, max)}
-            {t('chat.copy.bucket_420c637b')}
+            {t('baseChatAst.counts.eventsShown', {
+              shown: formatBaseChatAstNumber(language, visibleEvents.length),
+              count: events.length,
+            })}{' '}
+            ·{' '}
+            {t('baseChatAst.counts.bucketsPeak', {
+              count: buckets,
+              peak: formatBaseChatAstNumber(language, max),
+            })}
           </small>
         </div>
         <div className="bolt-project-monitoring-zoom" aria-label={t('chat.copy.activityChartZoom_3789999d')}>
@@ -18635,9 +18624,11 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
                 <div>
                   <strong>{install.catalogEntry?.name ?? install.alias}</strong>
                   <span>
-                    {install.catalogEntry?.author ?? t('chat.copy.mcp_21593b80')}
-                    {t('chat.copy.v_26c12f1e')}
-                    {install.catalogEntry?.version ?? '1'}
+                    {t('baseChatAst.phrases.authorVersion', {
+                      // « MCP » est un acronyme de protocole : le catalogue le « traduisait » en « PCM ».
+                      author: install.catalogEntry?.author ?? 'MCP',
+                      version: install.catalogEntry?.version ?? '1',
+                    })}
                   </span>
                 </div>
                 <p>
@@ -18677,12 +18668,7 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
       <section aria-label={t('chat.copy.marketplaceExtensions_c006e268')}>
         <div className="bolt-project-section-heading">
           <strong>{t('chat.copy.marketplace_983095c0')}</strong>
-          <span>
-            {visibleCatalog.length}
-            {t('chat.copy.extension_f9896101')}
-            {visibleCatalog.length === 1 ? '' : 's'}
-            {t('chat.copy.shown_552a9a57')}
-          </span>
+          <span>{t('baseChatAst.counts.extensionsShown', { count: visibleCatalog.length })}</span>
         </div>
         {visibleCatalog.length ? (
           <div className="bolt-project-extension-catalog">
@@ -18846,9 +18832,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
         </header>
 
         <small>
-          {tasks.length}
-          {t('chat.copy.task_7fbb727d')}
-          {tasks.length === 1 ? '' : 's'} ·{' '}
+          {t('baseChatAst.counts.tasks', { count: tasks.length })} ·{' '}
           {workflow.executionMode === 'parallel'
             ? t('chat.copy.parallel_afc12957')
             : t('chat.copy.sequential_0edc0112')}
@@ -20836,9 +20820,9 @@ function ProjectSecurityPanel({
                       <span>{platformStateLabel(t, severity)}</span>
                       <strong>{formatBaseChatAstNumber(language, current)}</strong>
                       <small data-delta={delta > 0 ? 'up' : delta < 0 ? 'down' : 'flat'}>
-                        {delta > 0 ? '+' : ''}
-                        {formatBaseChatAstNumber(language, delta)}
-                        {t('chat.copy.vsPrevious_2eb3ee87')}
+                        {t('baseChatAst.phrases.deltaVsPrevious', {
+                          delta: `${delta > 0 ? '+' : ''}${formatBaseChatAstNumber(language, delta)}`,
+                        })}
                       </small>
                     </article>
                   );
@@ -22167,10 +22151,7 @@ function ProjectSecretsPanel({
           {importPreview.entries.length ? (
             <div className="grid gap-1">
               <span className="text-xs text-bolt-elements-textSecondary">
-                {importPreview.entries.length}
-                {t('chat.copy.secret_e5e9fa1b')}
-                {importPreview.entries.length === 1 ? '' : 's'}
-                {t('chat.copy.toImport_f2c4337d')}
+                {t('baseChatAst.counts.secretsToImport', { count: importPreview.entries.length })}
                 {overwriteCount ? ` ${t('baseChatAst.secrets.overwrite', { count: overwriteCount })}` : ''}
               </span>
               <div className="grid gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-2">
@@ -22212,10 +22193,7 @@ function ProjectSecretsPanel({
               }}
             >
               <span className="font-medium" style={{ color: 'var(--vc-ide-accent-warning)' }}>
-                {importPreview.skipped.length}
-                {t('chat.copy.line_264f39ca')}
-                {importPreview.skipped.length === 1 ? '' : 's'}
-                {t('chat.copy.willBeSkipped_dd4df254')}
+                {t('baseChatAst.counts.linesSkipped', { count: importPreview.skipped.length })}
               </span>
               {importPreview.skipped.map((skippedLine) => (
                 <span key={skippedLine.line} className="text-bolt-elements-textSecondary">
