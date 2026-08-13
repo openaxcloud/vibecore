@@ -22,6 +22,7 @@ import {
   selectOfficialRuntimePreviewUrl,
   type RuntimePreviewProvenance,
 } from './solution-runtime-preview-proof.js';
+import { applyOfficialRuntimeCaptureTheme } from './solution-runtime-theme-control.js';
 
 type CaptureLocale = 'en' | 'fr';
 type CaptureSlug =
@@ -256,7 +257,7 @@ const SOLUTION_SCENARIOS = {
   'game-builder': {
     en: {
       prompt:
-        'Create TriviaClash, a multiplayer-style quiz game demo with a lobby, timed questions, live local score updates, and a leaderboard. Use realistic fictional players and local in-memory data only; state clearly that no network multiplayer backend is connected. Build the working game flow in React and TypeScript. Use a dark arcade theme with cyan, lime, and orange actions. No purple.',
+        'Create TriviaClash, a multiplayer-style quiz game demo with a lobby, timed questions, live local score updates, and a leaderboard. Use realistic fictional players and local in-memory data only; state clearly that no network multiplayer backend is connected. Build the working game flow in React and TypeScript. Use a dark-first arcade art direction with cyan, lime, and orange actions, plus a coherent bright-arcade light palette through the required application theme control. No purple.',
       iterationPrompt:
         'Make the TriviaClash demo fully testable in Webview. Add a Start quiz button that opens Question 1, a working answer selection, countdown, score update, and final leaderboard using local state. Keep the no-network-backend disclosure visible. Make primary actions orange, remove every purple accent, run typecheck, and verify the actual Webview.',
       accountName: 'Game proof EN',
@@ -272,7 +273,7 @@ const SOLUTION_SCENARIOS = {
     },
     fr: {
       prompt:
-        'TriviaClash : créez une démo de quiz multijoueur avec salle d’attente, questions chronométrées, score local en temps réel et classement. Utilisez des joueurs fictifs réalistes et uniquement des données en mémoire ; indiquez clairement qu’aucun backend multijoueur réseau n’est connecté. Construisez le parcours fonctionnel en React et TypeScript. Thème arcade sombre cyan, vert lime et actions orange. Aucun violet.',
+        'TriviaClash : créez une démo de quiz multijoueur avec salle d’attente, questions chronométrées, score local en temps réel et classement. Utilisez des joueurs fictifs réalistes et uniquement des données en mémoire ; indiquez clairement qu’aucun backend multijoueur réseau n’est connecté. Construisez le parcours fonctionnel en React et TypeScript. Adoptez une direction artistique arcade d’abord sombre, cyan, vert lime et actions orange, avec une palette arcade claire lumineuse et cohérente via le contrôle de thème applicatif exigé. Aucun violet.',
       iterationPrompt:
         'Rendez la démo TriviaClash entièrement testable dans la Webview. Ajoutez un bouton Démarrer le quiz qui ouvre Question 1, un choix de réponse fonctionnel, un compte à rebours, la mise à jour du score et le classement final en état local. Gardez visible la mention indiquant qu’aucun backend réseau n’est connecté. Réservez l’orange aux actions principales, retirez tout violet, lancez le typecheck puis vérifiez la vraie Webview.',
       accountName: 'Preuve Game FR',
@@ -486,6 +487,18 @@ function errorStackChain(error: unknown) {
   return stacks.join('\nCaused by: ');
 }
 
+function generatedAppThemeContractFor(locale: CaptureLocale, scenario: SolutionScenario) {
+  const gameDirection = scenario.requiresDarkCanvas
+    ? locale === 'fr'
+      ? ' Pour TriviaClash, gardez la palette sombre comme direction arcade principale. Sa palette claire doit être une vraie variante arcade lumineuse, avec surfaces neutres claires, encre sombre et la même hiérarchie cyan, vert lime et orange ; ne forcez jamais la surface sombre lorsque le thème clair est actif.'
+      : ' For TriviaClash, keep the dark palette as the primary arcade art direction. Its light palette must be a deliberate bright-arcade variant with pale neutral surfaces, dark ink, and the same cyan, lime, and orange hierarchy; never force the dark canvas while light theme is active.'
+    : '';
+
+  return locale === 'fr'
+    ? ` Implémentez deux thèmes applicatifs complets et réellement distincts, clair et sombre, sur toutes les surfaces et tous les contrôles, avec des variables ou règles CSS propres à chaque thème : fonds clairs et texte sombre en mode clair, fonds sombres et texte clair en mode sombre. Ne simulez jamais la variante en inversant, filtrant, recolorant ou modifiant l’opacité d’une capture. Au chargement, initialisez le thème depuis window.matchMedia('(prefers-color-scheme: dark)').matches. Affichez sur chaque vue un vrai <button type="button" data-testid="app-theme-toggle">, visible et utilisable au clavier, dont le texte visible, aria-label et title valent exactement Passer en mode clair lorsque le thème actif est sombre, puis Passer en mode sombre lorsqu’il est clair. Son clic doit basculer le thème de cette application sans rechargement, mettre immédiatement document.documentElement.dataset.theme à exactement light ou dark, mettre à jour son libellé et aria-pressed, et conserver le contrôle visible sans troncature sur ordinateur, tablette et mobile.${gameDirection}`
+    : ` Implement two complete, genuinely distinct application themes, light and dark, across every surface and control, using theme-specific CSS variables or rules: light backgrounds with dark text in light mode, and dark backgrounds with light text in dark mode. Never fake the variant by inverting, filtering, recoloring, or changing the opacity of a capture. On load, initialize the theme from window.matchMedia('(prefers-color-scheme: dark)').matches. On every view, render a real <button type="button" data-testid="app-theme-toggle"> that is visible and keyboard accessible, with visible text, aria-label, and title set exactly to Switch to light mode while dark theme is active, then Switch to dark mode while light theme is active. Clicking it must switch this application’s theme without a reload, immediately set document.documentElement.dataset.theme to exactly light or dark, update its label and aria-pressed, and keep the control visible without clipping on desktop, tablet, and mobile.${gameDirection}`;
+}
+
 function creationPromptFor(
   slug: CaptureSlug,
   locale: CaptureLocale,
@@ -512,7 +525,9 @@ function creationPromptFor(
         ? ' Ne laissez pas de modèle de départ générique et ne réutilisez pas le contenu d’un gabarit sans rapport : le nom du produit, le contenu et les parcours visibles doivent respecter ce brief. Rédigez en français professionnel tous les textes visibles de l’interface, sauf les marques, le code et les termes techniques explicitement demandés, et vouvoyez toujours l’utilisateur. Dessinez les visuels de l’interface dans le code ou utilisez uniquement des ressources locales incluses. N’intégrez aucune image, banque d’images, police, script ou feuille de style distante.'
         : ' Do not leave a generic starter or reuse unrelated template copy; the visible product name, content, and workflows must match this brief. Write every visible interface string in professional English, except brands, code, and explicitly requested technical terms. Draw interface visuals in code or use bundled local assets only. Do not hotlink remote images, stock-photo services, fonts, scripts, or stylesheets.';
 
-  return `${scenario.prompt}${interactionContract}${authenticityContract}${runtimeContract}`;
+  const appThemeContract = generatedAppThemeContractFor(locale, scenario);
+
+  return `${scenario.prompt}${interactionContract}${authenticityContract}${appThemeContract}${runtimeContract}`;
 }
 
 function repairPromptFor(slug: CaptureSlug, locale: CaptureLocale, scenario: SolutionScenario, attempt: number) {
@@ -546,13 +561,15 @@ function identityRepairPromptFor(locale: CaptureLocale, scenario: SolutionScenar
 function themeRepairPromptFor(locale: CaptureLocale, scenario: SolutionScenario, iterationBrief: string) {
   const darkCanvasInstruction = scenario.requiresDarkCanvas
     ? locale === 'fr'
-      ? ' Affichez toute l’application sur une surface sombre intentionnelle qui couvre la Webview, avec des contrôles stylés ; ne laissez aucune interface blanche par défaut du navigateur.'
-      : ' Render the entire application on a deliberate dark full-canvas surface with styled controls; do not leave browser-default white UI.'
+      ? ' En mode sombre, affichez toute l’application sur une surface sombre intentionnelle qui couvre la Webview, avec des contrôles stylés ; ne laissez aucune interface blanche par défaut du navigateur.'
+      : ' In dark mode, render the entire application on a deliberate dark full-canvas surface with styled controls; do not leave browser-default white UI.'
     : '';
 
+  const appThemeContract = generatedAppThemeContractFor(locale, scenario);
+
   return locale === 'fr'
-    ? `${iterationBrief}La Webview réelle de ${scenario.expectedTerms[0]} ne respecte pas la palette demandée. Préservez chaque parcours existant et chaque limite locale, retirez tout accent violet, mauve ou rose et utilisez l’orange pour les actions principales visibles.${darkCanvasInstruction} Gardez toutes les images, polices, scripts et feuilles de style en local. Vérifiez la Webview rendue avant d’annoncer la réussite.`
-    : `${iterationBrief}The actual Webview for ${scenario.expectedTerms[0]} does not match the requested palette. Preserve every existing workflow and local-only limitation, remove every purple, violet, mauve, and pink accent, and use orange for visible primary actions.${darkCanvasInstruction} Keep all images, fonts, scripts, and styles local. Verify the rendered Webview before reporting success.`;
+    ? `${iterationBrief}La Webview réelle de ${scenario.expectedTerms[0]} ne respecte pas la palette demandée. Préservez chaque parcours existant et chaque limite locale, retirez tout accent violet, mauve ou rose et utilisez l’orange pour les actions principales visibles.${darkCanvasInstruction}${appThemeContract} Gardez toutes les images, polices, scripts et feuilles de style en local. Vérifiez les deux thèmes dans la Webview rendue avant d’annoncer la réussite.`
+    : `${iterationBrief}The actual Webview for ${scenario.expectedTerms[0]} does not match the requested palette. Preserve every existing workflow and local-only limitation, remove every purple, violet, mauve, and pink accent, and use orange for visible primary actions.${darkCanvasInstruction}${appThemeContract} Keep all images, fonts, scripts, and styles local. Verify both themes in the rendered Webview before reporting success.`;
 }
 
 function escapedPattern(value: string) {
@@ -3354,8 +3371,7 @@ async function applyCaptureTheme(page: Page, theme: CaptureTheme) {
   const state = previewSurfaceState(page);
 
   if (state.mode === 'official-runtime-direct' && state.directPage) {
-    await state.directPage.emulateMedia({ colorScheme: theme });
-    await state.directPage.evaluate(`document.fonts && document.fonts.ready`);
+    await applyOfficialRuntimeCaptureTheme(state.directPage, theme);
     assertDirectRuntimeStayedClean(page);
   }
 }
