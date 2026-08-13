@@ -25,14 +25,29 @@ are green, and it deploys **by image digest**, verified against what the pods re
 
 ## Prerequisites (cannot be done from CI — they need repo/GCP admin)
 
-1. **`roles/cloudkms.publicKeyViewer`** on the `cosign-images` KMS key, granted to the
-   deploy service account (`GCP_ARTIFACT_WRITER_SERVICE_ACCOUNT`).
-   Verification only needs the public key — no signing rights are granted.
-   **If this is missing, `cosign verify` fails closed and NOTHING deploys.** Check it
-   first, not after merging.
-2. **GitHub environment `production-break-glass`**: at least **two** required
-   reviewers, deployment branches limited to `main`. The break-glass job reads the
-   protection rules through the API and refuses if it cannot prove two reviewers.
+Verified against the live project and repo on 2026-08-13. Each is fail-closed: getting
+one wrong blocks deploys rather than weakening the gate.
+
+1. **`roles/cloudkms.publicKeyViewer`** on
+   `projects/vibecore-495216/locations/europe-west9/keyRings/**ecode-supply-chain**/cryptoKeys/cosign-images`,
+   granted to the deploy service account (`GCP_ARTIFACT_WRITER_SERVICE_ACCOUNT`).
+   Verification needs only the public key — grant **no** signing role.
+   *(The workflows previously named `vibecore-supply-chain`, a keyring that does not
+   exist: `gcloud kms keyrings list` returns only `ecode-supply-chain`. Fixed here.)*
+2. **Two GitHub environments**, `production-break-glass-1` and
+   `production-break-glass-2`, each with required reviewers, deployment branches
+   limited to `main`. Two environments — not one with two reviewers — because GitHub
+   requires **one** of N reviewers to approve. The restore job additionally reads the
+   run's real approvals and refuses unless **two different people** approved.
+3. **`production` environment protection.** As of 2026-08-13 it has
+   `protection_rules: []` and `deployment_branch_policy: null` — i.e. **no protection
+   at all**. Set required reviewers and restrict deployment branches to `main`. Until
+   this is done, the only thing preventing a production deploy from a side branch is
+   the in-workflow `GITHUB_WORKFLOW_REF` assertion added by this lot.
+4. **WIF subject condition.** Restrict the Workload Identity provider to
+   `assertion.workflow_ref == "openaxcloud/vibecore/.github/workflows/deploy-main.yml@refs/heads/main"`
+   (plus the break-glass workflow), so a side-branch workflow cannot mint a prod token
+   even if the in-workflow guard is edited away.
 
 ## Decision to make before merging: `Production E2E`
 
@@ -70,6 +85,13 @@ runs is a check that is vacuously satisfied. The waiver ignores E2E's *result*; 
 run itself is how you see it go green and can then delete the waiver with evidence.
 
 ## Steps
+
+0. **Note:** `deploy-prod.yml` has been **deleted** by this lot. It was a second,
+   ungated production path: a free-form `image_tag`, `helm upgrade --install` without
+   `--reuse-values`, and `--set global.imageTag` — running it would have dropped every
+   per-service digest and put the platform back on one mutable tag, from a different
+   concurrency group. The sanctioned manual path is `deploy-main.yml`'s `target_sha`
+   dispatch, which is gated exactly like a push.
 
 1. **Merge the lint fix first** (PR #133). Two `@blitz/lines-around-comment` errors in
    `app/root.tsx` and `EcodeExactShell.tsx` are what currently keep `main`'s CI red;

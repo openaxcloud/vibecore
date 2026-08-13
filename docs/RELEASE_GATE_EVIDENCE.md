@@ -66,6 +66,23 @@ node scripts/release-gate/verify-required-checks.mjs --self-test
 pnpm vitest --run scripts/release-gate      # 65 tests
 ```
 
+## Expert review round 1 (CHANGES_REQUESTED on 3320cde9) — what changed
+
+The engine was accepted as proven; the deploy PATH and its activation were not. Eight
+P0s, all fixed here:
+
+| # | Finding | Fix |
+|---|---|---|
+| 1 | `deploy-prod.yml` was a **second, ungated** production path — free `image_tag`, `--install` without `--reuse-values`, `--set global.imageTag`, different concurrency group. Running it would have unpinned every digest. | **Deleted.** `validate-ci-cd-assets.mjs` required it to exist; it now forbids it from returning. |
+| 2 | A dispatch from a side branch runs THAT branch's workflow graph — every assertion checked the code at `target_sha`, none could see which YAML was executing. | `GITHUB_WORKFLOW_REF` must equal `<repo>/.github/workflows/deploy-main.yml@refs/heads/main`. Durable controls (env branch policy, WIF subject) are admin actions — the `production` environment currently has **no protection at all**. |
+| 3 | Workflows verified against `keyRings/vibecore-supply-chain`, which **does not exist** (`gcloud kms keyrings list` → only `ecode-supply-chain`). | Corrected, and the validator now compares the verification keyring against the one that **signs** in `infra/cloudbuild`. |
+| 4 | A GitHub environment with N reviewers requires **one**. "Two reviewers" bought a second name, not a second approval. | Two sequential environments, plus a runtime check of the run's real approvals requiring **two distinct people**. |
+| 5 | Four races: ordering by run id elected a stale attempt; no coherent re-read after fetching jobs; an in-flight run did not block a verdict; ancestry checked only on explicit dispatch. | All four fixed; a verdict is re-taken immediately before `helm upgrade`. |
+| 6 | `validateWaiver` accepted `2099-12-31` (26,804 days) and silently rolled `2026-02-31` over. | Real calendar dates only (component round-trip) and a ceiling measured against the clock. |
+| 7 | `workspace-agent` stayed on a mutable tag when not rebuilt — the one image running inside customer workspaces was the one nobody pinned. Manifest accepted null `sourceSha`, missing SBOM, missing/duplicate services, empty verdict. Build id matched by SHA prefix. Cosign/Trivy downloaded unverified. | All strict. Provenance is stamped as a pod annotation so a digest-pinned service can still name its commit. Build ids captured at submission. Binary checksums pinned from the projects' published checksum files. |
+| 8 | The **committed** policy had no waiver, so the "green" commit was refused — the PASS used a policy edited at runtime. | A real, bounded, **committed** waiver (2026-08-27, BUG-E2E-001). The committed policy now authorises the green commit and still refuses all three red ones. |
+| 9 | Rollback was printed, never captured or exercised. | Previous revision captured; rollback runs when a **post-Helm** check fails, and is exercised end-to-end in the harness. |
+
 ## What is NOT proven
 
 **A real production rollout.** Everything above runs against the real GitHub API or a
