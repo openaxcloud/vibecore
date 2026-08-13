@@ -986,6 +986,52 @@ describe('rollback refusal — what the loser leaves behind', () => {
 
       await app.close();
     });
+
+    /*
+     * The SIBLING route. P1 was raised against `rollback-to-previous`, but
+     * `POST /deployments/:deploymentId/rollback` cuts a new deployment row on every call
+     * too — and carried no idempotency at all. Same defect class, same lost-201 retry.
+     *
+     * The consequence is NOT identical, and the difference is worth stating plainly:
+     * `rollback-to-previous` picks N-1 RELATIVE TO THE HEAD, so replaying it oscillates
+     * (v1 → v2 → v1). This route targets an EXPLICIT id, so a replay re-selects the same
+     * release — no oscillation. What a replay does produce is a DUPLICATE rollback row
+     * against one intent, plus the `deployments.count` quota burned for it. Lesser, but
+     * the same "a retry is not a retry" the reserve is about.
+     */
+    it('the SIBLING route (rollback-to-deployment) also replays instead of rolling back twice', async () => {
+      const store = new SerializingStore();
+      const { app, token, projectId } = await setup(store);
+
+      const v1 = await publishStatic(store, projectId, 1, 'V1');
+      await publishStatic(store, projectId, 2, 'V2');
+
+      const rollbackTo = (key?: string) =>
+        app.inject({
+          method: 'POST',
+          url: `/projects/${projectId}/deployments/${v1.id}/rollback`,
+          headers: { authorization: `Bearer ${token}`, ...(key ? { 'idempotency-key': key } : {}) },
+          payload: {},
+        });
+
+      const first = await rollbackTo('sibling-key');
+      expect(first.statusCode).toBe(201);
+
+      // The lost-201 retry: same key, same intent.
+      const retry = await rollbackTo('sibling-key');
+      expect(retry.statusCode, 'the retry must be served the original answer').toBe(201);
+      expect(retry.headers['idempotency-replayed'], 'and be marked as a replay').toBe('true');
+
+      const rows = (await store.listDeployments(projectId)).filter((d) => d.rolledBackFromId === v1.id);
+      expect(rows.length, 'exactly ONE rollback row may exist for one key').toBe(1);
+
+      // A different key is a different intent — never deduplicated.
+      const other = await rollbackTo('sibling-key-2');
+      expect(other.statusCode).toBe(201);
+      expect((await store.listDeployments(projectId)).filter((d) => d.rolledBackFromId === v1.id).length).toBe(2);
+
+      await app.close();
+    });
   });
 });
 

@@ -174,6 +174,48 @@ checkout principal, et `@vibecore/editor/install-pwa-sw` n'y résout pas — et 
 diagnostic sur la CI : le step CI correspondant n'ayant jamais tourné, on ne peut rien en
 affirmer. D'où le `tsc` exécuté **au niveau `services/api`**, seul périmètre de ce lot.
 
+## P1 manquait une route : `POST /deployments/:id/rollback`
+
+La réserve visait `rollback-to-previous`. Mais la route sœur **crée elle aussi une ligne de
+déploiement à chaque appel**, et ne portait **aucune** idempotence — le même « un retry n'est
+pas un retry ».
+
+La conséquence n'est pas identique, et il serait malhonnête de lui emprunter la gravité de
+l'autre : `rollback-to-previous` choisit le N-1 **relativement à la tête**, donc un rejeu
+**oscille** (v1 → v2 → v1). Ici la cible est un **id explicite**, donc un rejeu re-vise la
+même release — pas d'oscillation. Ce qu'il produit, c'est une **ligne de rollback dupliquée**
+pour une seule intention, et le quota `deployments.count` consommé pour elle.
+
+Rouge d'abord, correctif ensuite : `expected undefined to be 'true'` — aucun en-tête
+`idempotency-replayed`, la route n'avait rien. Vert après : rejeu verbatim, **une seule**
+ligne pour une clé, et une clé différente reste une opération différente.
+
+### Un refactor tenté, puis ANNULÉ — et pourquoi
+
+Première tentative : factoriser la revendication et le hook `onSend` en helpers partagés par
+les deux routes, pour ne pas dupliquer une règle de correction. **Elle a cassé la route
+auditée**, et le rouge était franc — deux appels concurrents de même clé :
+
+```
+DBG-CLAIM key-concurrent owned=true            ← une seule revendication possédée : OK
+DBG-CLAIM key-concurrent owned=false IN_FLIGHT
+DBG-APPEND expected=2 rollbackId=…u64          ← mais DEUX appends,
+DBG-APPEND expected=2 rollbackId=…u64             avec deux rollbackId DIFFÉRENTS
+→ 409 ROLLBACK_RELEASE_MOVED (expected head v2, found v3)
+```
+
+Le CAS refusait le rollback… déclenché par la requête elle-même. Le même relevé sur la base
+d'avant refactor donne **1 seul append** et un 201. Déterministe des deux côtés (HEAD 3/3
+vert, refactor 3/3 rouge) — donc bien causal, pas un test instable.
+
+Le correctif retenu **laisse `rollback-to-previous` intacte à l'octet près** (les trois hunks
+du diff `app.ts` sont tous après la ligne 35562 ; la route auditée occupe 34776→~35560) et
+donne à la route sœur sa propre copie. La duplication est assumée et commentée dans le code :
+déstabiliser un chemin déjà prouvé et sous audit expert pour supprimer une redondance est le
+mauvais arbitrage.
+
+Suite de durcissement : **20/20**.
+
 ### Aucune suite laissée non exécutée
 
 Une régression sans `DATABASE_URL` **saute 7 fichiers** — silencieusement, en affichant

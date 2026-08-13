@@ -35559,13 +35559,125 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
   );
 
-  app.post('/projects/:projectId/deployments/:deploymentId/rollback', async (request, reply) => {
+  /*
+   * ===================================================================================
+   * Expert reserve P1, SIBLING route — a retry here was not a retry either.
+   * ===================================================================================
+   *
+   * P1 was raised against `rollback-to-previous`, but this route cuts a new deployment row
+   * on every call too and carried no idempotency at all. The consequence differs, and the
+   * difference is worth stating exactly rather than borrowing the other route's severity:
+   * `rollback-to-previous` selects N-1 RELATIVE TO THE HEAD, so a replay OSCILLATES
+   * (v1 → v2 → v1). This route targets an EXPLICIT id, so a replay re-selects the same
+   * release — no oscillation. What it does produce is a DUPLICATE rollback row for one
+   * intent, plus the `deployments.count` quota burned for it.
+   *
+   * The claim/replay machinery below is deliberately a SEPARATE copy rather than a shared
+   * extraction with `rollback-to-previous`. Factoring the two together was tried and
+   * REVERTED: hoisting the claim into a helper made the audited route's handler body run
+   * twice under two concurrent same-key calls (proven: 1 claim owned, 2 appends, the CAS
+   * then refusing its own rollback with ROLLBACK_RELEASE_MOVED). That route is under expert
+   * audit and already proven; destabilising it to remove duplication is the wrong trade.
+   */
+  const rollbackIdempotencyClaimOf = (request: FastifyRequest) =>
+    (request as { rollbackIdempotency?: { projectId: string; environment: string; key: string } })
+      .rollbackIdempotency;
+
+  app.post(
+    '/projects/:projectId/deployments/:deploymentId/rollback',
+    {
+      /*
+       * Same durability rule as the audited route: `onSend` is awaited by Fastify, so the
+       * replay row is committed BEFORE the client can possibly receive the 201. A 5xx is
+       * "we do not know" and releases the claim, so a retry is a genuine retry.
+       */
+      onSend: async (request, reply, payload) => {
+        const claim = rollbackIdempotencyClaimOf(request);
+
+        if (!claim) {
+          return payload;
+        }
+
+        let parsed: unknown;
+
+        try {
+          parsed = typeof payload === 'string' ? JSON.parse(payload) : payload;
+        } catch {
+          parsed = undefined;
+        }
+
+        if (reply.statusCode >= 500) {
+          await store.releaseRollbackIdempotency(claim).catch((error) => {
+            request.log.error({ err: error, ...claim }, 'rollback idempotency: could not release claim after 5xx');
+          });
+
+          return payload;
+        }
+
+        await store
+          .completeRollbackIdempotency({
+            ...claim,
+            responseStatus: reply.statusCode,
+            responseBody: parsed,
+            deploymentId: (parsed as { deployment?: { id?: string } } | undefined)?.deployment?.id,
+          })
+          .catch((error) => {
+            request.log.error({ err: error, ...claim }, 'rollback idempotency: could not persist response for replay');
+          });
+
+        return payload;
+      },
+    },
+    async (request, reply) => {
     const { projectId, deploymentId } = parse(deploymentActionParams, request.params);
     const project = await requireProject(request, store, projectId, 'projects:write');
     const target = await store.getDeployment(project.id, deploymentId);
 
     if (!target) {
       return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    /*
+     * Claimed AFTER the target is resolved: the environment keyed on is the TARGET's, and a
+     * 404 for a nonexistent id must not burn the caller's key.
+     */
+    const idempotencyKey = (request.headers['idempotency-key'] as string | undefined)?.trim();
+
+    if (idempotencyKey) {
+      const ref = { projectId: project.id, environment: target.environment, key: idempotencyKey };
+      let claim = await store.claimRollbackIdempotency(ref);
+
+      // An IN_FLIGHT claim left by a dead process must not wedge the key forever.
+      const ABANDONED_CLAIM_MS = 15 * 60 * 1000;
+
+      if (!claim.owned && claim.existing?.state === 'IN_FLIGHT') {
+        const ageMs = Date.now() - new Date(claim.existing.createdAt).getTime();
+
+        if (Number.isFinite(ageMs) && ageMs > ABANDONED_CLAIM_MS) {
+          request.log.warn({ ...ref, ageMs }, 'rollback idempotency: taking over an abandoned IN_FLIGHT claim');
+          await store.releaseRollbackIdempotency(ref).catch(() => undefined);
+          claim = await store.claimRollbackIdempotency(ref);
+        }
+      }
+
+      if (!claim.owned) {
+        const existing = claim.existing;
+
+        if (existing?.state === 'COMPLETED' && existing.responseStatus) {
+          // Replay verbatim: the retry must be indistinguishable from the original.
+          reply.header('idempotency-replayed', 'true');
+
+          return reply.code(existing.responseStatus).send(existing.responseBody);
+        }
+
+        return reply.code(409).send({
+          error: appPublicCopy('ROLLBACK_IN_PROGRESS', transactionalLocaleForRequest(request)),
+          code: 'ROLLBACK_IN_PROGRESS',
+        });
+      }
+
+      (request as { rollbackIdempotency?: { projectId: string; environment: string; key: string } })
+        .rollbackIdempotency = ref;
     }
 
     if (target.status !== 'READY') {
@@ -35903,7 +36015,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply
       .code(201)
       .send({ deployment: localizeDeploymentRecord(finalDeployment, transactionalLocaleForRequest(request)) });
-  });
+    },
+  );
+
   app.get('/deployments/:projectId', async (request) => {
     const project = await requireProject(
       request,
