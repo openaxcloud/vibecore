@@ -54,6 +54,8 @@ lisible au même endroit.
 | `preview-runtime.spec.ts` | 5 | workspace running + dev server booté |
 | `mobile-device-matrix.spec.ts` | 5 (« nonblank preview ») | preview non blanche |
 | `responsive-ide.spec.ts` | 3 (desktop Run / terminal) | bouton Run + panneau terminal issus du workspace |
+| `dashboard.spec.ts` | 3 | template -> workspace running, lien de statut de déploiement |
+| étape `IDE panel live audit` | — | audite les panneaux contre de vraies données projet (« The requested panel data was not found. » sur 16 panneaux dans le stack du gate) |
 
 Ce qui **reste dans le gate** pour ces mêmes specs : toute la couverture
 responsive/layout (les 7 profils `adapts to …` de la matrice mobile, les

@@ -128,11 +128,6 @@ jobs:
       - name: E2E gate (bounded waiver)
         run: node scripts/e2e-gate.mjs playwright-results.json
 
-      - name: IDE panel live audit
-        run: |
-          PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 SAAS_API_URL=http://127.0.0.1:3001 pnpm run ide:panel-audit
-          pnpm run ide:panel-audit:validate
-
       - name: Playwright mobile viewport tests
         run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium --grep-invert @runtime
 

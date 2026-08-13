@@ -104,6 +104,15 @@ jobs:
       - name: Playwright @runtime suite
         run: pnpm exec playwright test tests/e2e --project=chromium --grep @runtime
 
+      # Moved out of Production E2E for the same reason as the @runtime tests:
+      # it audits IDE panels against live project data ("The requested panel
+      # data was not found." for 16 panels in the gate stack), which needs a
+      # provisioned workspace.
+      - name: IDE panel live audit
+        run: |
+          PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 SAAS_API_URL=http://127.0.0.1:3001 pnpm run ide:panel-audit
+          pnpm run ide:panel-audit:validate
+
       - name: Upload E2E traces
         if: always()
         uses: actions/upload-artifact@v4
