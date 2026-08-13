@@ -34802,12 +34802,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         /*
          * A 5xx is "we do not know" — an unexpected throw, or the stale-workload incident.
          * Pinning it as the replayable answer would make the failure PERMANENT: every retry
-         * would be handed the same 500 without ever re-attempting. Release the claim so a
-         * retry is a genuine retry. Deliberate outcomes (2xx, 4xx) are the ones to replay.
+         * would be handed the same 500 without ever re-attempting.
+         *
+         * A 429 is the same trap wearing a 4xx: `ensureQuota` throws QUOTA_EXCEEDED from
+         * INSIDE the serialised section, i.e. after the claim. Pinning it would mean that
+         * once a project hits its deployment quota, that key answers 429 forever — quota
+         * freed, plan upgraded, nothing changes — and this table has no key expiry to bail
+         * it out. 429 literally means "retry later", so honouring it costs nothing: a
+         * re-execution is still gated by the very quota that produced it.
+         *
+         * Everything else (2xx and the other 4xx) is a DELIBERATE outcome and is replayed.
          */
-        if (reply.statusCode >= 500) {
+        if (reply.statusCode >= 500 || reply.statusCode === 429) {
           await store.releaseRollbackIdempotency(claim).catch((error) => {
-            request.log.error({ err: error, ...claim }, 'rollback idempotency: could not release claim after 5xx');
+            request.log.error(
+              { err: error, ...claim, statusCode: reply.statusCode },
+              'rollback idempotency: could not release claim after a retryable failure',
+            );
           });
 
           return payload;
@@ -35606,9 +35617,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           parsed = undefined;
         }
 
-        if (reply.statusCode >= 500) {
+        // 5xx = "we do not know" ; 429 = "retry later" — ni l'un ni l'autre n'est un
+        // résultat délibéré, donc aucun des deux ne doit devenir la réponse rejouée.
+        // Identique à rollback-to-previous : les deux routes ne doivent pas diverger.
+        if (reply.statusCode >= 500 || reply.statusCode === 429) {
           await store.releaseRollbackIdempotency(claim).catch((error) => {
-            request.log.error({ err: error, ...claim }, 'rollback idempotency: could not release claim after 5xx');
+            request.log.error(
+              { err: error, ...claim, statusCode: reply.statusCode },
+              'rollback idempotency: could not release claim after a retryable failure',
+            );
           });
 
           return payload;

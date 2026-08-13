@@ -289,7 +289,7 @@ aucun résidu. Le « baseline clean » obtenu ainsi ne prouvait rien. Le signal 
 `allowlisted` était tombé à **767**, le fichier vidé ayant emporté ses propres entrées. Refaite
 avec le fichier réel (30 922 octets), la conclusion tient.
 
-### Question de sémantique laissée OUVERTE : le 429 de quota est figé
+### Le 429 de quota était figé — corrigé (après avoir failli le laisser)
 
 `onSend` ne relâche la revendication que sur **5xx** ; tout 2xx/4xx délibéré devient la réponse
 rejouée. Or `ensureQuota` lève `statusCode: 429 / QUOTA_EXCEEDED`, et les **deux** routes
@@ -298,18 +298,31 @@ refusé pour quota fige donc un **429 pour toujours** sur cette clé : quota lib
 relevé, le même retry ressortira le 429 d'origine, sans jamais retenter. Il n'y a par ailleurs
 **aucune expiration de clé** dans cette table.
 
-Deux lectures défendables, d'où le choix de ne pas trancher seul :
-- **figer** — c'est ce que font Stripe & co. : une clé d'idempotence épingle le résultat,
-  y compris un 4xx. Mais eux **expirent** les clés (24 h), ce qui n'est pas le cas ici ;
-- **relâcher** — un 429 signifie littéralement « réessayez plus tard » : le figer contredit
-  le code de statut lui-même. Le correctif tiendrait en une condition
-  (`reply.statusCode >= 500 || reply.statusCode === 429`).
+**J'ai d'abord décidé de ne PAS le corriger**, au motif que cela touchait le `onSend` de la
+route auditée à la veille d'une re-revue, et qu'un refactor de cette même zone avait déjà
+cassé la route une fois. Cette prudence était mal calibrée, pour deux raisons :
 
-**Non modifié dans ce lot, délibérément** : cela toucherait le `onSend` de la route auditée à
-la veille d'une re-revue, et un refactor de cette même zone a déjà cassé la route une fois
-(voir plus haut). Les deux routes se comportent identiquement — aucune divergence n'a été
-introduite ici. À arbitrer par Avi ; si « relâcher » est retenu, l'appliquer aux deux routes
-dans le même commit, avec un test par route.
+- le refactor qui avait cassé la route était un **déplacement structurel** du flot de
+  contrôle ; ici il s'agit d'**une condition**, sans rien déplacer. Les profils de risque
+  n'ont rien de comparable ;
+- l'argument « Stripe fige les 4xx » vaut pour un **résultat métier délibéré** (carte
+  refusée). Un 429 n'en est pas un : il dit explicitement « réessayez plus tard ». Et Stripe
+  **expire** ses clés à 24 h, ce que cette table ne fait pas.
+
+Relâcher est par ailleurs strictement plus sûr : une ré-exécution reste gouvernée par le
+quota même qui l'a produite, donc rien ne peut passer en force.
+
+Corrigé sur les **deux** routes (`reply.statusCode >= 500 || reply.statusCode === 429`),
+prouvé rouge→vert :
+
+```
+sans le correctif → a 429 must not become the pinned answer: expected 'true' to be undefined
+                    (le retry recevait bien `idempotency-replayed: true`, donc le 429 figé)
+avec              → 21/21
+```
+
+Le test tient le scénario complet : quota à 0 → 429, quota restauré → **le même clé exécute
+réellement** (201, sans en-tête de rejeu).
 
 ### Aucune suite laissée non exécutée
 

@@ -971,6 +971,48 @@ describe('rollback refusal — what the loser leaves behind', () => {
       await app.close();
     });
 
+    /*
+     * A 429 is the 5xx trap wearing a 4xx. `ensureQuota` throws QUOTA_EXCEEDED from INSIDE
+     * the serialised section — i.e. AFTER the claim. Pinning it as the replayable answer
+     * would mean that once a project hits its deployment quota, that key answers 429
+     * forever: quota freed, plan upgraded, nothing changes. And this table has no key
+     * expiry to bail it out. 429 literally means "retry later"; honouring that costs
+     * nothing, since a re-execution is still gated by the very quota that produced it.
+     */
+    it('a 429 quota refusal is NOT pinned — once the quota frees up, the same key retries', async () => {
+      const store = new SerializingStore();
+      const { app, token, projectId } = await setup(store);
+      const { organizationId } = (await store.getProject(projectId))!;
+
+      await publishStatic(store, projectId, 1, 'V1');
+      await publishStatic(store, projectId, 2, 'V2');
+
+      // Deployment quota at zero: the rollback is refused 429 from inside the lock.
+      await store.createQuotaOverride({
+        organizationId,
+        key: 'deployments.count',
+        limit: 0,
+        reason: 'test: quota exhausted',
+      });
+
+      const refused = await rollback(app, token, projectId, 'key-quota');
+      expect(refused.statusCode, 'the quota must actually refuse it').toBe(429);
+
+      // Quota restored — the SAME key must now be able to execute for real.
+      await store.createQuotaOverride({
+        organizationId,
+        key: 'deployments.count',
+        limit: 500,
+        reason: 'test: quota restored',
+      });
+
+      const retried = await rollback(app, token, projectId, 'key-quota');
+      expect(retried.headers['idempotency-replayed'], 'a 429 must not become the pinned answer').toBeUndefined();
+      expect(retried.statusCode, 'the retry must be a REAL retry, not a replayed 429').toBe(201);
+
+      await app.close();
+    });
+
     it('a different key is a different operation — it is NOT deduplicated', async () => {
       const store = new SerializingStore();
       const { app, token, projectId } = await setup(store);
