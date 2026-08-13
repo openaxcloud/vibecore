@@ -43,6 +43,9 @@ describe('Solutions proof capture resume provenance', () => {
     expect(captureSource).not.toContain('agentPanel.getByText(creationPrompt');
     expect(captureSource).toContain('captureThemedIdeState(page, stagingRoot, promptFilename');
     expect(captureSource).toContain('verifySurface: verifyPromptBubbleSurface');
+    expect(captureSource).toContain("surface: 'agent-user-bubble'");
+    expect(captureSource).toContain("promptSha256: createHash('sha256')");
+    expect(captureSource).toContain('visiblePromptSha256:');
   });
 
   it('never writes prompt history, project files, or synthetic DOM during resume recovery', () => {

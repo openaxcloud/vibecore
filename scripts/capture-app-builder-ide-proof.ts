@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { access, chmod, cp, mkdir, mkdtemp, readFile, rename, rm, unlink, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, resolve } from 'node:path';
 
@@ -1081,10 +1081,22 @@ async function writePersistedFilesToRuntime(page: Page, projectId: string, works
     throw new Error('The authoritative persisted files are unavailable for runtime reconciliation');
   }
 
-  const files = projectState.files.filter(
-    (file): file is { path: string; content: string } =>
-      typeof file.path === 'string' && file.path.length > 0 && typeof file.content === 'string',
-  );
+  type PersistedRuntimeFile = ProjectFileEntry & {
+    path: string;
+    content: string;
+    encoding?: 'utf8' | 'base64';
+  };
+
+  const files = projectState.files.filter((file): file is PersistedRuntimeFile => {
+    const encoding = (file as ProjectFileEntry & { encoding?: unknown }).encoding;
+
+    return (
+      typeof file.path === 'string' &&
+      file.path.length > 0 &&
+      typeof file.content === 'string' &&
+      (encoding === undefined || encoding === 'utf8' || encoding === 'base64')
+    );
+  });
 
   if (files.length === 0) {
     throw new Error('The authoritative persisted project contains no files for runtime reconciliation');
@@ -1098,7 +1110,7 @@ async function writePersistedFilesToRuntime(page: Page, projectId: string, works
     const response = await page.request.put(
       `${API_BASE_URL}/api/runtime/workspaces/${encodeURIComponent(workspaceId)}/files/write`,
       {
-        data: { path: file.path, content: file.content },
+        data: { path: file.path, content: file.content, encoding: file.encoding },
         headers: { authorization: `Bearer ${token}` },
         timeout: 60_000,
       },
@@ -1243,6 +1255,14 @@ async function waitForRuntimeFilesToMatchPersisted(page: Page, projectId: string
           },
         )
         .toBe('running');
+
+      /*
+       * A restart can reseed the pod from an older project-storage snapshot
+       * after the authoritative runtime write above. Re-apply the persisted IDE
+       * files only after the replacement pod is running, then verify those exact
+       * bytes without another restart that could overwrite them again.
+       */
+      await writePersistedFilesToRuntime(page, projectId, workspace.id, token);
 
       const reconciledAfterAuthoritativeWrite = await expect
         .poll(
@@ -4132,6 +4152,18 @@ async function main() {
     let promptBubble = initialPromptBubble ?? agentPanel.locator('.bolt-chat-message-row-user').first();
     let promptBubbleAvailable = Boolean(initialPromptBubble);
 
+    let promptSurfaceProvenance:
+      | {
+          exactMatch: true;
+          messageId: string;
+          promptSha256: string;
+          slot: 'prompt';
+          surface: 'agent-user-bubble';
+          verified: true;
+          visiblePromptSha256: string;
+        }
+      | undefined;
+
     if (!promptBubbleAvailable && !iterationOnly) {
       if (!resume) {
         const generatedPromptBubble = await waitForExactAgentUserPromptBubble(
@@ -4174,6 +4206,22 @@ async function main() {
             `(visible length=${visiblePrompt.length}, expected length=${expectedPrompt.length})`,
         );
       }
+
+      const messageId = await promptBubble.getAttribute('data-message-id');
+
+      if (!messageId?.trim()) {
+        throw new Error('The publishable Agent prompt bubble lost its persisted message id');
+      }
+
+      promptSurfaceProvenance = {
+        exactMatch: true,
+        messageId,
+        promptSha256: createHash('sha256').update(expectedPrompt).digest('hex'),
+        slot: 'prompt',
+        surface: 'agent-user-bubble',
+        verified: true,
+        visiblePromptSha256: createHash('sha256').update(visiblePrompt).digest('hex'),
+      };
 
       await promptBubble.scrollIntoViewIfNeeded();
     };
@@ -4713,6 +4761,7 @@ async function main() {
       locale,
       projectId,
       prompt: creationPrompt,
+      promptSurfaceProvenance,
       generatedFileCount: generatedFiles.length,
       previewTextSample: previewText.slice(0, 240),
       consoleErrorCount: consoleErrors.length,
