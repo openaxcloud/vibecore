@@ -14,3 +14,24 @@ Attribution :
 
 La CI d'une PR teste refs/pull/<n>/merge, donc la fusion avec le TIP de main :
 toutes les PR ouvertes heritent de ce rouge tant qu'il n'est pas repare en amont.
+
+## Correctif amont, VERIFIE localement (n'appartient pas a cette PR)
+
+La chaine en cause est `reason: 'SHARED_TENANT_UNAVAILABLE'`, ajoutee par 1348bf9f.
+C'est un CODE MACHINE : la regle visible-object-copy attrape la propriete `reason`
+d'un objet litteral. Le traduire casserait le contrat entre appelants.
+
+Correctif = une entree CIBLEE dans scripts/i18n/source-allowlist.json, calquee sur
+l'entree existante preview-port-access-fail-closed-reasons, motif ancre :
+
+    { "id": "database-provisioner-shared-tenant-reason",
+      "path": "services/api/src/database-provisioner.ts",
+      "rule": "visible-object-copy",
+      "textPattern": "^SHARED_TENANT_UNAVAILABLE$", ... }
+
+Applique dans un arbre jetable, la garde repasse :
+    i18n source scan: files=1371, residual=14 in 2 files, allowlisted=779, mode=check
+    i18n source baseline clean (5 file improvements detected)   -> exit 0
+
+L'arbre de la PR a ete restaure ensuite : 0 fichier modifie. Ce correctif doit
+atterrir sur main, pas dans une PR d'infrastructure.
