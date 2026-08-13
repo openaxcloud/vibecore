@@ -13,6 +13,7 @@ import {
   CHART_VALUES,
   DEPLOY_WORKFLOW,
   POLICY_FILE,
+  AR_RETENTION_WORKFLOW,
   STAGING_WORKFLOW,
   checkGateWiring,
   parseChartServiceKeys,
@@ -30,6 +31,7 @@ function realFiles() {
     policy: JSON.parse(fs.readFileSync(POLICY_FILE, 'utf8')),
     chartValues: fs.readFileSync(CHART_VALUES, 'utf8'),
     stagingWorkflow: fs.readFileSync(STAGING_WORKFLOW, 'utf8'),
+    arRetentionWorkflow: fs.readFileSync(AR_RETENTION_WORKFLOW, 'utf8'),
   };
 }
 
@@ -112,6 +114,20 @@ describe('deploy gate wiring', () => {
     expect(files.stagingWorkflow).toMatch(/Refuse to target the production cluster/);
     files.stagingWorkflow = files.stagingWorkflow.replace(/Refuse to target the production cluster/g, 'Deploy');
     expect(checkGateWiring(files).join('\n')).toMatch(/must refuse to run against the production cluster/);
+  });
+
+  it('keeps Artifact Registry retention protecting digest-pinned images', () => {
+    // Retention deletes images older than 7 days unless tagged running-*/helm-active-*.
+    // `${pkg%%:*}` alone turns `api@sha256:…` into `api@sha256`, so no tag is applied —
+    // and production is now pinned by digest, so that is EVERY running image.
+    const files = realFiles();
+    // Compare what the validator compares: comments EXPLAIN which command must not be
+    // used, so prose naming it would otherwise read as the command itself.
+    const code = stripComments(files.arRetentionWorkflow);
+    expect(code).toMatch(/\$\{pkg%%@\*\}/);
+    expect(code).not.toMatch(/helm .*get values .*-o json/);
+    files.arRetentionWorkflow = files.arRetentionWorkflow.replace(/pkg="\$\{pkg%%@\*\}"; /g, '');
+    expect(checkGateWiring(files).join('\n')).toMatch(/must strip the digest/);
   });
 
   it('catches a break-glass path that could build and ship new code', () => {

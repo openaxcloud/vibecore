@@ -35,6 +35,7 @@ export const POLICY_FILE = 'scripts/release-gate/required-checks.json';
 export const CHART_VALUES = 'infra/helm/platform/values.yaml';
 export const SIGNING_BUILD_CONFIG = 'infra/cloudbuild/runtime-tier.yaml';
 export const STAGING_WORKFLOW = '.github/workflows/deploy-staging.yml';
+export const AR_RETENTION_WORKFLOW = '.github/workflows/ar-protect-images.yml';
 
 /**
  * Parse the deploy workflow's `SERVICES=` line into structured entries.
@@ -184,10 +185,14 @@ export function grantsIdToken(region, indent) {
  * @param {{deployWorkflow: string, breakGlassWorkflow: string, policy: object}} files
  * @returns {string[]} problems (empty = wired correctly)
  */
-export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues, signingBuildConfig, stagingWorkflow }) {
+export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues, signingBuildConfig, stagingWorkflow, arRetentionWorkflow }) {
   const problems = [];
   const { topLevel, jobs } = parseWorkflowRegions(deployWorkflow);
   breakGlassWorkflow = breakGlassWorkflow ? stripComments(breakGlassWorkflow) : breakGlassWorkflow;
+  // Same reason as breakGlassWorkflow: this file's own comments EXPLAIN which commands
+  // must not be used, and prose naming a command would otherwise read as the command.
+  arRetentionWorkflow = arRetentionWorkflow ? stripComments(arRetentionWorkflow) : arRetentionWorkflow;
+  stagingWorkflow = stagingWorkflow ? stripComments(stagingWorkflow) : stagingWorkflow;
 
   // --- the jobs must exist at all ---
   for (const job of ['resolve-target', 'release-gate', 'preflight-gates', 'build-and-deploy']) {
@@ -361,6 +366,29 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, ch
     }
   }
 
+  // --- retention must still protect DIGEST-pinned images ---
+  //
+  // Artifact Registry deletes images older than 7 days unless they carry a
+  // `running-*` / `helm-active-*` protection tag, and ar-protect-images.yml applies
+  // those tags. Its package-name parsing used `${pkg%%:*}`, which cuts at the FIRST
+  // colon: for `api@sha256:…` that yields `api@sha256` and no tag is applied. Now that
+  // production is pinned by digest, every running image takes that path — retention
+  // would collect images production is actively running. It must also not read the
+  // protected set from `helm get values -o json`, which is invalid JSON on the real
+  // release.
+  if (arRetentionWorkflow) {
+    if (/\$\{pkg%%:\*\}/.test(arRetentionWorkflow) && !/\$\{pkg%%@\*\}/.test(arRetentionWorkflow)) {
+      problems.push(
+        `${AR_RETENTION_WORKFLOW}: package parsing must strip the digest (\${pkg%%@*}) before the tag, or digest-pinned images get no protection tag`,
+      );
+    }
+    if (/helm .*get values .*-o json/.test(arRetentionWorkflow)) {
+      problems.push(
+        `${AR_RETENTION_WORKFLOW}: must not derive the protected set from \`helm get values -o json\` (invalid JSON on the real release); read the live Deployments`,
+      );
+    }
+  }
+
   // --- the policy must still require the four pipelines ---
   const names = (policy.requiredWorkflows ?? []).map((w) => w.displayName);
   for (const required of ['Production CI', 'Production E2E', 'Security Analysis', 'Code Quality']) {
@@ -418,6 +446,7 @@ function selfTest() {
   const chartValues = fs.readFileSync(CHART_VALUES, 'utf8');
   const signingBuildConfig = fs.readFileSync(SIGNING_BUILD_CONFIG, 'utf8');
   const stagingWorkflow = fs.readFileSync(STAGING_WORKFLOW, 'utf8');
+  const arRetentionWorkflow = fs.readFileSync(AR_RETENTION_WORKFLOW, 'utf8');
 
   // Prove the validator can actually FAIL — a checker that only ever passes is
   // indistinguishable from no checker at all.
@@ -432,6 +461,7 @@ function selfTest() {
       chartValues,
       signingBuildConfig,
       stagingWorkflow,
+      arRetentionWorkflow,
     })],
     ['id-token granted workflow-wide', () => ({
       deployWorkflow: deployWorkflow.replace('permissions:\n  contents: read', 'permissions:\n  contents: read\n  id-token: write'),
@@ -440,6 +470,7 @@ function selfTest() {
       chartValues,
       signingBuildConfig,
       stagingWorkflow,
+      arRetentionWorkflow,
     })],
     ['E2E dropped from the policy', () => ({
       deployWorkflow,
@@ -448,6 +479,7 @@ function selfTest() {
       chartValues,
       signingBuildConfig,
       stagingWorkflow,
+      arRetentionWorkflow,
     })],
     ['verification keyring drifting from the signing keyring', () => ({
       deployWorkflow: deployWorkflow.replace('KMS_KEYRING: ecode-supply-chain', 'KMS_KEYRING: vibecore-supply-chain'),
@@ -456,6 +488,7 @@ function selfTest() {
       chartValues,
       signingBuildConfig,
       stagingWorkflow,
+      arRetentionWorkflow,
     })],
     ['break-glass losing its second approval gate', () => ({
       deployWorkflow,
@@ -464,6 +497,7 @@ function selfTest() {
       chartValues,
       signingBuildConfig,
       stagingWorkflow,
+      arRetentionWorkflow,
     })],
     ['staging losing its refuse-production-cluster guard', () => ({
       deployWorkflow,
@@ -473,6 +507,15 @@ function selfTest() {
       signingBuildConfig,
       stagingWorkflow: stagingWorkflow.replace(/Refuse to target the production cluster/g, 'Deploy'),
     })],
+    ['retention losing digest-safe package parsing', () => ({
+      deployWorkflow,
+      breakGlassWorkflow,
+      policy,
+      chartValues,
+      signingBuildConfig,
+      stagingWorkflow,
+      arRetentionWorkflow: arRetentionWorkflow.replace(/pkg="\$\{pkg%%@\*\}"; /g, ''),
+    })],
     ['break-glass allowed to build', () => ({
       deployWorkflow,
       breakGlassWorkflow: `${breakGlassWorkflow}\n          gcloud builds submit .\n`,
@@ -480,6 +523,7 @@ function selfTest() {
       chartValues,
       signingBuildConfig,
       stagingWorkflow,
+      arRetentionWorkflow,
     })],
     ['a chart service left out of the digest matrix', () => ({
       deployWorkflow: deployWorkflow.replace('api:api:runtime:true:true ', ''),
@@ -488,6 +532,7 @@ function selfTest() {
       chartValues,
       signingBuildConfig,
       stagingWorkflow,
+      arRetentionWorkflow,
     })],
     ['a service waited on but no longer verified', () => ({
       deployWorkflow: deployWorkflow.replace('for svc in web api', 'for svc in web admin api'),
@@ -496,6 +541,7 @@ function selfTest() {
       chartValues,
       signingBuildConfig,
       stagingWorkflow,
+      arRetentionWorkflow,
     })],
   ];
 
@@ -509,7 +555,7 @@ function selfTest() {
     }
   }
 
-  const clean = checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues, signingBuildConfig, stagingWorkflow });
+  const clean = checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues, signingBuildConfig, stagingWorkflow, arRetentionWorkflow });
   console.log(`${clean.length === 0 ? 'ok  ' : 'FAIL'}  accepts the real, unmutated workflow`);
   if (clean.length > 0) {
     clean.forEach((p) => console.log(`        ${p}`));
@@ -530,6 +576,7 @@ function main() {
     chartValues: fs.existsSync(CHART_VALUES) ? fs.readFileSync(CHART_VALUES, 'utf8') : null,
     signingBuildConfig: fs.existsSync(SIGNING_BUILD_CONFIG) ? fs.readFileSync(SIGNING_BUILD_CONFIG, 'utf8') : null,
     stagingWorkflow: fs.existsSync(STAGING_WORKFLOW) ? fs.readFileSync(STAGING_WORKFLOW, 'utf8') : null,
+    arRetentionWorkflow: fs.existsSync(AR_RETENTION_WORKFLOW) ? fs.readFileSync(AR_RETENTION_WORKFLOW, 'utf8') : null,
   });
 
   if (problems.length > 0) {

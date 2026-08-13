@@ -74,7 +74,13 @@ jobs:
           kubectl get pods -A \
             -o jsonpath='{range .items[*]}{range .spec.containers[*]}{.image}{"\n"}{end}{end}' \
             | grep "$REPO_CONTAINERS" | sort -u | while read -r img; do
-            pkg="${img#"$REPO_CONTAINERS"/}"; pkg="${pkg%%:*}"
+            # Strip the digest BEFORE the tag. `${pkg%%:*}` alone cuts at the first
+            # colon, which for `api@sha256:abcd…` yields `api@sha256` — so no protection
+            # tag was applied at all. Production is now pinned BY DIGEST, so every
+            # running image takes that path: the retention policy (DELETE after 7 days
+            # unless tagged running-*/helm-active-*) would have started collecting
+            # images production is actively running.
+            pkg="${img#"$REPO_CONTAINERS"/}"; pkg="${pkg%%@*}"; pkg="${pkg%%:*}"
             gcloud artifacts docker tags add "$img" "$REPO_CONTAINERS/$pkg:running-$pkg" --quiet
           done
 
@@ -83,12 +89,21 @@ jobs:
           set -euo pipefail
           # imageTags from the live release values; tier keys are camelCase,
           # image package names are the kebab-case `image` field next to them.
-          helm -n "$NAMESPACE" get values vibecore -a -o json \
-            | jq -r '(.services // {}) | to_entries[]
-                     | select((.value | type == "object") and .value.imageTag and .value.image)
-                     | "\(.value.image) \(.value.imageTag)"' \
-            | while read -r pkg tag; do
-            gcloud artifacts docker tags add "$REPO_CONTAINERS/$pkg:$tag" \
+          # Read what the release actually DEPLOYS, from the Deployment objects — not
+          # from `helm get values -o json`.
+          #
+          # Two reasons, both verified against the real production release:
+          #   * that command emits INVALID JSON there (a stored value contains a raw
+          #     newline), so this `jq` fails and, under `set -e`, this step dies. It is
+          #     broken today, silently, and the protection tags it owes are not applied.
+          #   * it selected on `.value.imageTag`, but the deployed reference is now a
+          #     DIGEST. Tagging `pkg:<imageTag>` would protect a different artifact from
+          #     the one running.
+          kubectl -n "$NAMESPACE" get deploy \
+            -o jsonpath='{range .items[*]}{.spec.template.spec.containers[0].image}{"\n"}{end}' \
+            | grep "$REPO_CONTAINERS" | sort -u | while read -r img; do
+            pkg="${img#"$REPO_CONTAINERS"/}"; pkg="${pkg%%@*}"; pkg="${pkg%%:*}"
+            gcloud artifacts docker tags add "$img" \
               "$REPO_CONTAINERS/$pkg:helm-active-$pkg" --quiet
           done
 
@@ -109,7 +124,10 @@ jobs:
           kubectl -n workspaces get deploy \
             -o jsonpath='{range .items[*]}{.spec.template.spec.containers[0].image}{"\n"}{end}' \
             | grep "$REPO_APPS" | sort -u | while read -r img; do
-            pkg="${img#"$REPO_APPS"/}"; pkg="${pkg%%:*}"
-            tag="${img##*:}"
-            gcloud artifacts docker tags add "$img" "$REPO_APPS/$pkg:active-$tag" --quiet
+            pkg="${img#"$REPO_APPS"/}"; pkg="${pkg%%@*}"; pkg="${pkg%%:*}"
+            # `${img##*:}` is the tag for `repo/app:tag`, but the DIGEST HEX for
+            # `repo/app@sha256:<hex>` — which is still a unique, valid tag suffix, so
+            # the protection tag stays distinct per artifact either way.
+            ref="${img##*:}"
+            gcloud artifacts docker tags add "$img" "$REPO_APPS/$pkg:active-$ref" --quiet
           done
