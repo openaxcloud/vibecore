@@ -7,7 +7,6 @@ import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
 import { workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
 import {
   hasAdoptablePreviewPort,
-  probeAdoptablePortWithRetry,
   reseedWorkspacePreservingOnFailure,
   shouldReattachWarmWorkspace,
 } from '~/lib/runtime/workspace-reattach';
@@ -195,20 +194,13 @@ export function ProjectWorkspaceProvider({
         }
 
         /*
-         * La sonde a pu résoudre AVANT que l'agent du pod n'ait rapporté le port
-         * du serveur de dev : le magasin est alors vide, et « vide » se lit comme
-         * « rien ne tourne ». On ne conclut donc qu'après une ré-sonde courte, et
-         * seulement quand elle peut changer la décision (pod chaud ET déjà semé)
-         * — les autres cas ne sont pas ralentis d'une milliseconde.
+         * Observationnel uniquement : un port vivant ne conditionne plus
+         * l'adoption (voir `shouldReattachWarmWorkspace`). Attendre qu'il
+         * apparaisse a été mesuré comme inutile — après un reseed, le serveur de
+         * dev met plusieurs SECONDES à revenir, pas quelques centaines de
+         * millisecondes.
          */
-        const canAdoptPort =
-          session.reused === true && sessionAlreadySeeded
-            ? await probeAdoptablePortWithRetry({
-                refresh: () => workbenchStore.refreshRuntimePorts(),
-                readPorts: () => workbenchStore.previews.get(),
-                wait: (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
-              })
-            : hasAdoptablePreviewPort(workbenchStore.previews.get());
+        const canAdoptPort = hasAdoptablePreviewPort(workbenchStore.previews.get());
 
         const reattachWarmWorkspace = shouldReattachWarmWorkspace({
           reused: session.reused === true,

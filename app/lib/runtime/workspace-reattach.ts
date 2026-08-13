@@ -103,78 +103,37 @@ export function hasAdoptablePreviewPort(ports?: readonly { ready?: boolean; serv
   });
 }
 
-/*
- * BUG-RUNTIME-DIVERGENCE — laisser aux ports le temps d'apparaître AVANT de
- * conclure qu'il n'y en a pas.
- *
- * La sonde de ports est lancée juste après `startWorkspace`. Sur une
- * réouverture, elle peut résoudre avant que l'agent du pod n'ait rapporté le
- * port du serveur de dev : le magasin est alors vide, et « vide » est
- * interprété comme « rien ne tourne » — donc on efface un espace de travail
- * parfaitement sain.
- *
- * Cette ré-sonde est délibérément COURTE et BORNÉE : elle ne s'exécute que
- * lorsqu'elle peut changer la décision (pod chaud ET déjà semé), et elle
- * s'arrête au premier port adoptable. Un pod réellement vide coûte donc au plus
- * `attempts × delayMs` avant d'être reseedé comme avant.
- */
-export async function probeAdoptablePortWithRetry(steps: {
-  /** Relance la sonde de ports (peut lever : l'appelant décide quoi en faire). */
-  refresh: () => Promise<void>;
-
-  /** Lit l'état courant du magasin de previews. */
-  readPorts: () => readonly { ready?: boolean; serving?: boolean }[];
-
-  /** Attente entre deux tentatives. */
-  wait: (ms: number) => Promise<void>;
-
-  attempts?: number;
-  delayMs?: number;
-}): Promise<boolean> {
-  const attempts = steps.attempts ?? 3;
-  const delayMs = steps.delayMs ?? 400;
-
-  for (let attempt = 0; attempt < attempts; attempt += 1) {
-    if (hasAdoptablePreviewPort(steps.readPorts())) {
-      return true;
-    }
-
-    // Pas de ré-sonde après la dernière lecture : elle ne servirait à rien.
-    if (attempt === attempts - 1) {
-      break;
-    }
-
-    await steps.wait(delayMs);
-
-    try {
-      await steps.refresh();
-    } catch {
-      /*
-       * Une ré-sonde en échec ne dit rien du pod : on continue avec ce que le
-       * magasin contient déjà plutôt que d'abandonner la boucle.
-       */
-    }
-  }
-
-  return hasAdoptablePreviewPort(steps.readPorts());
-}
-
 export function shouldReattachWarmWorkspace(signals: WarmReattachSignals): boolean {
   if (signals.storageNewerThanSeed === true) {
     return false;
   }
 
   /*
-   * Une sonde de ports en échec ne prouve RIEN sur le pod : elle ne peut pas
-   * valoir autorisation d'adopter. On reste sur le défaut sûr (reseed), mais le
-   * refus vient maintenant d'une condition nommée plutôt que d'un `hasLivePort`
-   * faux par accident.
+   * BUG-RUNTIME-DIVERGENCE — un port vivant n'est plus une CONDITION d'adoption.
+   *
+   * Mesuré en réel : l'exiger créait une boucle qui s'auto-entretenait. Le
+   * reseed tue le serveur de dev ; à la réouverture suivante, quelques secondes
+   * plus tard, le port n'est pas encore revenu ; `hasLivePort` est donc faux et
+   * on reseede de nouveau — indéfiniment. Attendre plus longtemps ne corrige
+   * rien : cela ne fait que payer le démarrage à froid de vite à chaque
+   * ouverture.
+   *
+   * Surtout, l'absence de port ne dit RIEN sur la validité de l'arborescence, et
+   * reseeder ne la répare pas : cela efface des fichiers puis relance le serveur
+   * — or `startPreviewServer()` le relance de toute façon juste après, sans rien
+   * effacer.
+   *
+   * Ce qui garantit que le pod est adoptable, ce sont les trois autres
+   * conditions : le pod est CHAUD (`reused`), c'est CE navigateur qui l'a semé
+   * (`seededThisSession`, marqueur durable portant la révision), et le stockage
+   * n'a pas bougé depuis (`storageNewerThanSeed !== true`). L'arborescence est
+   * alors exactement celle qu'on y a mise.
+   *
+   * Un port vivant reste un signal utile — il est journalisé et sert de
+   * raccourci de confiance — mais son absence ne peut plus détruire un espace de
+   * travail sain.
    */
-  if (signals.portProbeSucceeded !== true) {
-    return false;
-  }
-
-  return signals.reused && signals.seededThisSession && signals.hasLivePort;
+  return signals.reused && signals.seededThisSession;
 }
 
 /**

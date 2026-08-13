@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   hasAdoptablePreviewPort,
-  probeAdoptablePortWithRetry,
   reseedWorkspacePreservingOnFailure,
   shouldReattachWarmWorkspace,
 } from './workspace-reattach';
@@ -22,14 +21,24 @@ const warm = {
 };
 
 describe('shouldReattachWarmWorkspace', () => {
-  it('refuse de reattacher quand la sonde de ports a ÉCHOUÉ, même avec tous les autres signaux au vert', () => {
-    // Une sonde en échec ne prouve rien sur le pod : elle ne peut pas valoir autorisation.
-    expect(shouldReattachWarmWorkspace({ ...warm, portProbeSucceeded: false })).toBe(false);
+  /*
+   * CHANGEMENT DE CONTRAT assumé, imposé par la mesure réelle : exiger un port
+   * vivant créait une boucle qui s'auto-entretenait. Le reseed tue le serveur de
+   * dev ; à la réouverture suivante le port n'est pas encore revenu, donc on
+   * reseede encore. L'état du port ne conditionne plus l'adoption — voir le
+   * commentaire de `shouldReattachWarmWorkspace`.
+   */
+  it('une sonde de ports en échec n_empêche plus d_adopter un pod chaud et semé', () => {
+    expect(shouldReattachWarmWorkspace({ ...warm, portProbeSucceeded: false })).toBe(true);
   });
 
-  it('traite une sonde NON instrumentée comme un échec (défaut sûr)', () => {
-    const { portProbeSucceeded: _omit, ...withoutProbe } = warm;
-    expect(shouldReattachWarmWorkspace(withoutProbe)).toBe(false);
+  it('un pod chaud et semé SANS port vivant est adopté : reseeder ne ferait que détruire', () => {
+    /*
+     * L'absence de port ne dit rien sur la validité de l'arborescence, et le
+     * reseed ne la répare pas — `startPreviewServer()` relance le serveur juste
+     * après, sans rien effacer.
+     */
+    expect(shouldReattachWarmWorkspace({ ...warm, hasLivePort: false, portProbeSucceeded: false })).toBe(true);
   });
 
   it('reattaches when the pod is warm, seeded this page-session, and serving a live port', () => {
@@ -44,8 +53,11 @@ describe('shouldReattachWarmWorkspace', () => {
     expect(shouldReattachWarmWorkspace({ ...warm, seededThisSession: false })).toBe(false);
   });
 
-  it('reseeds when there is no live preview port to adopt', () => {
-    expect(shouldReattachWarmWorkspace({ ...warm, hasLivePort: false })).toBe(false);
+  it('les trois conditions qui RESTENT sont bien exigées', () => {
+    // Ce sont elles qui garantissent que l'arborescence du pod est celle qu'on y a mise.
+    expect(shouldReattachWarmWorkspace({ ...warm, reused: false })).toBe(false);
+    expect(shouldReattachWarmWorkspace({ ...warm, seededThisSession: false })).toBe(false);
+    expect(shouldReattachWarmWorkspace({ ...warm, storageNewerThanSeed: true })).toBe(false);
   });
 
   it('reseeds when project storage is known to be newer than the last seed', () => {
@@ -168,82 +180,5 @@ describe('hasAdoptablePreviewPort — `serving` prime sur `ready`', () => {
 
   it('l_absence de port reste un refus', () => {
     expect(hasAdoptablePreviewPort([])).toBe(false);
-  });
-});
-
-describe('probeAdoptablePortWithRetry — laisser aux ports le temps d_apparaître', () => {
-  function harness(sequence: Array<Array<{ ready?: boolean; serving?: boolean }>>) {
-    let call = 0;
-
-    const waits: number[] = [];
-    const refreshes: number[] = [];
-
-    return {
-      waits,
-      refreshes,
-      steps: {
-        readPorts: () => sequence[Math.min(call, sequence.length - 1)],
-        refresh: async () => {
-          call += 1;
-          refreshes.push(call);
-        },
-        wait: async (ms: number) => {
-          waits.push(ms);
-        },
-      },
-    };
-  }
-
-  it('rend vrai immédiatement quand un port sert déjà (aucune attente)', async () => {
-    const h = harness([[{ serving: true }]]);
-
-    await expect(probeAdoptablePortWithRetry(h.steps)).resolves.toBe(true);
-    expect(h.waits).toEqual([]);
-    expect(h.refreshes).toEqual([]);
-  });
-
-  it('rend vrai quand le port apparaît à la DEUXIÈME lecture', async () => {
-    // Le cas réel : la sonde a résolu avant que l'agent n'ait rapporté le port.
-    const h = harness([[], [{ serving: true }]]);
-
-    await expect(probeAdoptablePortWithRetry(h.steps)).resolves.toBe(true);
-    expect(h.waits).toHaveLength(1);
-  });
-
-  it('abandonne après le nombre de tentatives, sans boucler', async () => {
-    const h = harness([[]]);
-
-    await expect(probeAdoptablePortWithRetry({ ...h.steps, attempts: 3 })).resolves.toBe(false);
-
-    // 3 lectures ⇒ 2 attentes seulement : on ne re-sonde pas après la dernière.
-    expect(h.waits).toHaveLength(2);
-  });
-
-  it('une ré-sonde qui LÈVE n_interrompt pas la boucle', async () => {
-    let reads = 0;
-
-    const ports: Array<{ serving?: boolean }> = [];
-
-    const result = await probeAdoptablePortWithRetry({
-      readPorts: () => {
-        reads += 1;
-
-        // Le port finit par apparaître malgré l'échec de la ré-sonde.
-        return reads >= 3 ? [{ serving: true }] : ports;
-      },
-      refresh: async () => {
-        throw new Error('agent 502');
-      },
-      wait: async () => undefined,
-    });
-
-    expect(result).toBe(true);
-  });
-
-  it('respecte le délai demandé', async () => {
-    const h = harness([[]]);
-
-    await probeAdoptablePortWithRetry({ ...h.steps, attempts: 2, delayMs: 250 });
-    expect(h.waits).toEqual([250]);
   });
 });
