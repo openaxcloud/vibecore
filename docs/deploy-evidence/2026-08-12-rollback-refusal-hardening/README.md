@@ -167,6 +167,24 @@ seams du sous-classe `PausingSerializingStore`. Elles étaient masquées **deux 
 Signature corrigée en `PausingSerializingStore` ; `tsc -p tsconfig.json` repasse à **0**.
 Un « tsc strict 0 » rapporté plus tôt dans ce lot mesurait le build, pas les specs.
 
+### Aucune suite laissée non exécutée
+
+Une régression sans `DATABASE_URL` **saute 7 fichiers** — silencieusement, en affichant
+« passed ». Dont `rollback-concurrency-postgres.spec.ts`, c'est-à-dire la preuve P1 elle-même.
+Un vert obtenu ainsi ne prouve pas ce qu'il a l'air de prouver.
+
+Les 7 ont donc été rejouées sur un vrai Postgres au SHA courant :
+
+| suite | résultat |
+|---|---|
+| `rollback-concurrency-postgres` (la mienne) | **6/6** — dont (A″) contre-exemple et (D) avec trois `Unique constraint failed` |
+| `prisma-store`, `ledger-store-db`, `connector-store`, `connector-isolation`, `mcp-marketplace` | **45/45** |
+| `agent-memory-pgvector` (variable dédiée `AGENT_MEMORY_PGVECTOR_TEST_DATABASE_URL`) | **1/1** |
+
+Les six dernières sont hors lot, mais ce lot **ajoute un modèle au schéma Prisma**
+(`RollbackIdempotency`) : les exécuter est la seule façon de montrer que l'ajout ne régresse
+pas les magasins existants.
+
 ## Rejeu
 
 ```bash
