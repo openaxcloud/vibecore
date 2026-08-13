@@ -72,26 +72,57 @@ echo "==> release isolee '$RELEASE' (ns $NS, runtime $RUNTIME_NS), tag $TAG"
 # (`vibecore-vibecore-platform-api.vibecore.svc`) parce que le fullname du chart est
 # `<release>-<chart>`. Sans cette réécriture, la release isolée parlerait aux
 # services de la release partagée — et la preuve porterait sur les mauvais pods.
-LB_IP="$(audit_kubectl -n ingress-nginx get svc ingress-nginx-controller \
-  -o jsonpath='{.status.loadBalancer.ingress[0].ip}')"
 BASE_REWRITTEN="$(mktemp -t values-isolated-base-XXXXXX.yaml)"
 OVERRIDES="$(mktemp -t values-isolated-over-XXXXXX.yaml)"
 trap 'rm -f "$BASE_REWRITTEN" "$OVERRIDES"' EXIT
 
-# La réécriture ne porte QUE sur les services de la plateforme
-# (`vibecore-vibecore-platform-<x>.vibecore.svc`). Un `s|\.vibecore\.svc|…|g`
-# général — ce que faisait ce script — déplaçait aussi les doubles in-cluster
-# (`email-sink.vibecore.svc`), qui n'ont rien à voir avec le nom de la release.
-sed -E \
-  -e "s|vibecore-vibecore-platform-([a-z-]+)\.vibecore\.svc|${RELEASE}-vibecore-platform-\1.${NS}.svc|g" \
-  "$BASE_VALUES" > "$BASE_REWRITTEN"
+# DEUX RÉÉCRITURES, ET LA SECONDE EST CELLE QU'ON OUBLIE.
+#
+# (a) Les noms de service in-cluster. Uniquement ceux de la plateforme
+#     (`vibecore-vibecore-platform-<x>.vibecore.svc`) : un `s|\.vibecore\.svc|…|g`
+#     général — ce que faisait ce script — déplaçait aussi les doubles in-cluster
+#     (`email-sink.vibecore.svc`), qui ne portent pas le nom de la release.
+#
+# (b) Les NOMS DE DOMAINE PUBLICS. Surcharger `global.*Domain` ne suffit pas : le
+#     chart en dérive ses Ingress, mais plusieurs valeurs de `platformEnv` répètent
+#     ces domaines en dur, et le chart ne les recalcule pas. Constaté en exécutant :
+#       * `screenshotterAllowedHosts` gardait `preview.<ip>` alors que la release
+#         isolée sert `preview-<release>.<ip>` -> le screenshotter a REFUSÉ la
+#         capture (403 en 7 ms). C'est la garde SSRF qui a bien fonctionné, sur une
+#         configuration que j'avais laissée incohérente.
+#       * `publicApiBaseUrl` et `runtime.apiBaseUrl` gardaient l'api PARTAGÉE : les
+#         clients de la release isolée auraient appelé l'autre release. Silencieux,
+#         celui-là, parce que le rejeu passe par les Services in-cluster.
+#     On remplace donc chaque domaine partout, en le DÉRIVANT des valeurs de base
+#     (aucun domaine codé ici) : `<label>.<reste>` devient `<label>-<release>.<reste>`.
+DOMAIN_KEYS='appDomain apiDomain marketingDomain workspaceManagerDomain previewDomain'
+sed_args=(-E -e "s|vibecore-vibecore-platform-([a-z-]+)\.vibecore\.svc|${RELEASE}-vibecore-platform-\1.${NS}.svc|g")
+olds=()
+for key in $DOMAIN_KEYS; do
+  old="$(sed -n "s/^  ${key}: *//p" "$BASE_VALUES" | head -1 | tr -d "'\"")"
+  [[ -n "$old" ]] || continue
+  new="$(printf '%s' "$old" | sed -E "s|^([a-z0-9]+)\.|\1-${RELEASE}.|")"
+  olds+=("$old")
+  sed_args+=(-e "s|${old}|${new}|g")
+  printf '    %-24s %s -> %s\n' "$key" "$old" "$new"
+done
 
-# Contrôle : plus aucune URL de plateforme ne doit désigner la release partagée.
+sed "${sed_args[@]}" "$BASE_VALUES" > "$BASE_REWRITTEN"
+
+# Contrôles : plus rien ne doit désigner la release partagée, ni par service
+# in-cluster, ni par domaine public.
 if grep -qE 'vibecore-vibecore-platform-[a-z-]+\.vibecore\.svc' "$BASE_REWRITTEN"; then
   echo "REFUS: des URL in-cluster pointent encore la release PARTAGEE :" >&2
   grep -nE 'vibecore-vibecore-platform-[a-z-]+\.vibecore\.svc' "$BASE_REWRITTEN" >&2
   exit 1
 fi
+for old in "${olds[@]}"; do
+  if grep -q "$old" "$BASE_REWRITTEN"; then
+    echo "REFUS: le domaine PARTAGE '$old' subsiste dans les valeurs :" >&2
+    grep -n "$old" "$BASE_REWRITTEN" >&2
+    exit 1
+  fi
+done
 
 # Les surcharges vont dans un fichier SÉPARÉ, passé en second `-f`.
 #
@@ -110,14 +141,12 @@ fi
 # Hôtes distincts par ailleurs : deux Ingress qui revendiquent le même host se
 # marchent dessus. Le rejeu passe par les Services in-cluster, mais un Ingress en
 # conflit rendrait la release isolée visiblement cassée pour rien.
+# Les domaines ne sont PAS répétés ici : ils viennent de la réécriture (b)
+# ci-dessus, qui les traite partout à la fois. Deux sources de vérité pour la même
+# valeur, c'est précisément comment `screenshotterAllowedHosts` s'est retrouvé
+# désaccordé de `previewDomain`.
 cat > "$OVERRIDES" <<YAML
 # --- surcharges propres a la release isolee (ecrites par deploy-isolated.sh) ---
-global:
-  appDomain: '${RELEASE}.${LB_IP}.sslip.io'
-  apiDomain: 'api-${RELEASE}.${LB_IP}.sslip.io'
-  marketingDomain: ''
-  workspaceManagerDomain: 'wsm-${RELEASE}.${LB_IP}.sslip.io'
-  previewDomain: 'preview-${RELEASE}.${LB_IP}.sslip.io'
 platformEnv:
   runtime:
     # Namespace de runtime DÉDIÉE : le workspace-manager de la release partagée ne
@@ -232,7 +261,13 @@ for comp in api worker admin ai-gateway workspace-manager preview-proxy screensh
     continue
   fi
 
-  mapfile -t got < <(audit_kubectl -n "$NS" get pods \
+  # Boucle `read`, pas `mapfile` : le bash livré par macOS est en 3.2, où
+  # `mapfile` n'existe pas — le script s'y arrêtait sur « command not found »
+  # juste avant de vérifier quoi que ce soit.
+  got=()
+  while IFS= read -r line; do
+    [[ -n "$line" ]] && got+=("$line")
+  done < <(audit_kubectl -n "$NS" get pods \
     -l "app.kubernetes.io/component=$comp" \
     -o jsonpath='{range .items[*]}{.status.containerStatuses[0].imageID}{"\n"}{end}' | sed 's/.*@//' | sort -u)
 
