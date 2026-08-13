@@ -33339,6 +33339,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * ensureQuota and exceed the limit. The in-flight check inside still filters
      * by project+workspace (concurrent same-project builds share the build CWD).
      */
+    /*
+     * SEC-13: the access config of the release this publish supersedes, so
+     * protection travels with the site instead of being dropped on every
+     * re-publish (see the metadata block below). Only STATIC is considered —
+     * that is the only provider where the gate is enforced, and SEC-11 refuses
+     * to set protection anywhere else, so there is never anything to inherit.
+     * Read before the serialized mutation: it is a plain read and must not
+     * lengthen the org-wide deploy lock.
+     *
+     * Sorted by createdAt HERE rather than trusting the store's order. The two
+     * implementations disagree: prisma-store orders `createdAt: 'desc'`, the test
+     * store returns Map insertion order (oldest first). Taking `[0]` would mean
+     * "newest" in production and "oldest" in tests — inheriting a stale access
+     * config, and a test that passes only while there is exactly one prior
+     * release. Being explicit makes the semantic true under both.
+     */
+    const inheritedAccess =
+      body.provider === 'static'
+        ? (
+            (await store.listDeployments(project.id).catch(() => []))
+              .filter((d) => d.provider === 'static' && d.environment === body.environment)
+              .sort((a, b) => Date.parse(b.createdAt ?? '') - Date.parse(a.createdAt ?? ''))
+              .at(0)?.metadata as Record<string, unknown> | undefined
+          )?.access
+        : undefined;
+
     const createResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
       await ensureQuota(request, project.organizationId, 'deployments.count');
 
@@ -33369,6 +33395,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             githubIntegration: body.githubIntegration,
             envVars: sanitizeDeploymentEnvVars(body.envVars),
             injectedSecrets: body.injectSecrets,
+            /*
+             * SEC-13: publishing a new version must not silently unprotect the
+             * site. This metadata is a fresh literal and `metadata.access` has
+             * exactly one writer (the /access route), so without this every
+             * re-publish of a password-protected site produced a PUBLIC
+             * deployment while the owner still believed a password was set.
+             *
+             * The product promise is "this app is password-protected", not "this
+             * build id is" — so protection travels with the site. Inherited from
+             * the CURRENT release of the same project+environment, which is the
+             * owner's last expressed intent: if they un-protected it, there is
+             * nothing to inherit and the new release stays public.
+             */
+            ...(inheritedAccess === undefined ? {} : { access: inheritedAccess }),
           },
           startedAt: new Date().toISOString(),
         }),

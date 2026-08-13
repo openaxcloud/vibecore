@@ -716,3 +716,202 @@ describe('SEC-11 password activation is refused where it cannot be enforced', ()
     }
   });
 });
+
+/*
+ * SEC-13 — publishing a new version must not silently unprotect the site.
+ *
+ * Same family as SEC-12, on the path that runs constantly instead of rarely.
+ * `POST /projects/:p/deployments` builds its metadata from a fresh literal
+ * (previewDeployment, timeoutSeconds, envVars, …) and `metadata.access` has
+ * exactly one writer — the /access route. So every re-publish of a
+ * password-protected site produced a NEW deployment with no access config, i.e.
+ * a PUBLIC one, while the owner still believed a password was set.
+ *
+ * The product promise is "this app is password-protected", not "this build id
+ * is" — the pricing page sells it that way. Dropping the password on the next
+ * publish is therefore the dangerous direction, and silent.
+ *
+ * Asserted on the METADATA the row is created with, which is what carries the
+ * protection: driving a *successful* static build end-to-end needs a workspace
+ * with files, and the build outcome is orthogonal to whether protection travels.
+ */
+describe('SEC-13 publishing a new version preserves password protection', () => {
+  const prev = process.env.STATIC_DEPLOY_STORAGE_DIR;
+  const prevActivation = process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED;
+  let storageDir: string;
+
+  beforeEach(async () => {
+    storageDir = await mkdtemp(join(tmpdir(), 'pwd-pub-'));
+    process.env.STATIC_DEPLOY_STORAGE_DIR = storageDir;
+    process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = '1';
+  });
+
+  afterEach(async () => {
+    if (prev === undefined) delete process.env.STATIC_DEPLOY_STORAGE_DIR;
+    else process.env.STATIC_DEPLOY_STORAGE_DIR = prev;
+    if (prevActivation === undefined) delete process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED;
+    else process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = prevActivation;
+    await rm(storageDir, { recursive: true, force: true });
+  });
+
+  async function protectedProject() {
+    const store = new TestApiStore();
+    const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store });
+    const reg = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: 'pub@example.com', password: 'password123', name: 'P', organizationName: 'P Org' },
+    });
+    const auth = reg.json() as { token: string; organization: { id: string } };
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+
+    const proj = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'P Project' },
+    });
+    const projectId = (proj.json() as { project: { id: string } }).project.id;
+
+    const live = await store.createDeployment({
+      projectId,
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+      url: 'https://example.test/x',
+    });
+    const dir = staticDeploymentSnapshotDir(live.id);
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, 'index.html'), '<!doctype html><body>SECRET CONTENT</body>', 'utf8');
+
+    const set = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${live.id}/access`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { mode: 'password', password: 'letmein' },
+    });
+    expect(set.statusCode).toBe(200);
+
+    return { app, store, auth, projectId, live };
+  }
+
+  it('the newly published deployment carries the access config forward', async () => {
+    const { app, store, auth, projectId, live } = await protectedProject();
+
+    const published = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { provider: 'static', environment: 'preview' },
+    });
+    expect([200, 201, 202]).toContain(published.statusCode);
+
+    const newId = (published.json() as { deployment: { id: string } }).deployment.id;
+    expect(newId).not.toBe(live.id);
+
+    const created = await store.getDeployment(projectId, newId);
+    const access = (created?.metadata as Record<string, unknown> | undefined)?.access as
+      | { mode?: string; passwordHash?: string }
+      | undefined;
+
+    // THE POINT: protection travels with the site, not with a build id.
+    expect(access?.mode).toBe('password');
+    expect(typeof access?.passwordHash).toBe('string');
+    expect(access?.passwordHash).not.toBe('');
+  });
+
+  it('inherits the NEWEST release, not merely the first one the store returns', async () => {
+    /*
+     * Order-dependence guard. prisma-store lists `createdAt: 'desc'` while the
+     * test store returns Map insertion order, so a naive `[0]` means "newest" in
+     * production and "oldest" in tests. With two prior releases — the older one
+     * public, the newer one protected — that difference decides whether the new
+     * publish inherits protection or silently drops it.
+     */
+    const store = new TestApiStore();
+    const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store });
+    const reg = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: 'pub3@example.com', password: 'password123', name: 'P', organizationName: 'P3 Org' },
+    });
+    const auth = reg.json() as { token: string; organization: { id: string } };
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+    const proj = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'P3' },
+    });
+    const projectId = (proj.json() as { project: { id: string } }).project.id;
+
+    // Oldest: public. Newest: protected.
+    await store.createDeployment({
+      projectId,
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+      url: 'https://example.test/old',
+    });
+    const newest = await store.createDeployment({
+      projectId,
+      provider: 'static',
+      environment: 'preview',
+      status: 'READY',
+      url: 'https://example.test/new',
+    });
+    const dir = staticDeploymentSnapshotDir(newest.id);
+    await mkdir(dir, { recursive: true });
+    await writeFile(join(dir, 'index.html'), '<!doctype html><body>SECRET CONTENT</body>', 'utf8');
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: `/projects/${projectId}/deployments/${newest.id}/access`,
+          headers: { authorization: `Bearer ${auth.token}` },
+          payload: { mode: 'password', password: 'letmein' },
+        })
+      ).statusCode,
+    ).toBe(200);
+
+    const published = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { provider: 'static', environment: 'preview' },
+    });
+    const created = await store.getDeployment(projectId, (published.json() as { deployment: { id: string } }).deployment.id);
+
+    expect(((created?.metadata as Record<string, unknown> | undefined)?.access as { mode?: string })?.mode).toBe('password');
+  });
+
+  it('does NOT invent protection when the site was never protected', async () => {
+    const store = new TestApiStore();
+    const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store });
+    const reg = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: 'pub2@example.com', password: 'password123', name: 'P', organizationName: 'P2 Org' },
+    });
+    const auth = reg.json() as { token: string; organization: { id: string } };
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+    const proj = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'P2' },
+    });
+    const projectId = (proj.json() as { project: { id: string } }).project.id;
+
+    const published = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { provider: 'static', environment: 'preview' },
+    });
+    const newId = (published.json() as { deployment: { id: string } }).deployment.id;
+    const created = await store.getDeployment(projectId, newId);
+
+    expect((created?.metadata as Record<string, unknown> | undefined)?.access).toBeUndefined();
+  });
+});
