@@ -1,6 +1,23 @@
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
 
+/**
+ * Pin the surface to the light theme.
+ *
+ * Theme resolution order is cookie -> localStorage -> server-seeded attribute.
+ * Writing `document.cookie` from `addInitScript` does NOT work: that script
+ * runs before navigation, on `about:blank`, so the cookie never reaches the app
+ * origin and a stale `ecode_theme` kept winning — which is why these
+ * light-theme assertions were reading the dark palette. Set the cookie on the
+ * browser context instead, and keep the localStorage seed as the fallback.
+ */
+async function seedLightTheme(page: import('@playwright/test').Page) {
+  const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
+
+  await page.context().addCookies([{ name: 'ecode_theme', value: 'light', url: baseUrl }]);
+  await seedLightTheme(page);
+}
+
 async function waitForApiHealth(page: import('@playwright/test').Page, apiBaseUrl: string) {
   const deadline = Date.now() + 60_000;
 
@@ -165,16 +182,7 @@ test('project creation exposes templates and import paths', async ({ page }) => 
 
 test('project creation light theme uses light containers and readable image previews', async ({ page }) => {
   await authenticate(page);
-  await page.addInitScript(() => {
-    /*
-     * Theme resolution order is cookie -> localStorage -> server-seeded
-     * attribute, so seeding only localStorage let a stale `ecode_theme` cookie
-     * keep the surface dark and made these light-theme assertions read the dark
-     * palette. Seed both.
-     */
-    document.cookie = 'ecode_theme=light; path=/; SameSite=Lax';
-    localStorage.setItem('bolt_theme', 'light');
-  });
+  await seedLightTheme(page);
 
   await page.goto('/projects/new', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: 'What do you want to build?' })).toBeVisible();
@@ -229,16 +237,7 @@ test('project creation light theme uses light containers and readable image prev
 
 test('app shell form buttons stay visible in light theme', async ({ page }) => {
   await authenticate(page);
-  await page.addInitScript(() => {
-    /*
-     * Theme resolution order is cookie -> localStorage -> server-seeded
-     * attribute, so seeding only localStorage let a stale `ecode_theme` cookie
-     * keep the surface dark and made these light-theme assertions read the dark
-     * palette. Seed both.
-     */
-    document.cookie = 'ecode_theme=light; path=/; SameSite=Lax';
-    localStorage.setItem('bolt_theme', 'light');
-  });
+  await seedLightTheme(page);
 
   await page.goto('/account-settings', { waitUntil: 'domcontentloaded' });
   const saveButton = page.getByRole('button', { name: 'Save changes' });
@@ -388,10 +387,7 @@ test('public templates stay marketing-only for anonymous visitors', async ({ pag
  * readability is covered by tests/e2e/public-homepage.spec.ts.
  */
 test('public homepage light theme keeps the media section readable', async ({ page }) => {
-  await page.addInitScript(() => {
-    document.cookie = 'ecode_theme=light; path=/; SameSite=Lax';
-    localStorage.setItem('bolt_theme', 'light');
-  });
+  await seedLightTheme(page);
 
   await page.goto('/', { waitUntil: 'domcontentloaded' });
   await expect(page.getByRole('heading', { name: /Build and deploy production apps/ })).toBeVisible({
@@ -399,9 +395,15 @@ test('public homepage light theme keeps the media section readable', async ({ pa
   });
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 
+  /*
+   * The video section mounts below the fold; scroll the window rather than
+   * using scrollIntoViewIfNeeded, which hangs when the element is not attached
+   * yet, then wait for it to attach.
+   */
   const videoSection = page.getByTestId('section-video-demo');
+  await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+  await expect(videoSection).toBeVisible({ timeout: 30_000 });
   await videoSection.scrollIntoViewIfNeeded();
-  await expect(videoSection).toBeVisible();
 
   const probe = await page.evaluate(() => {
     const section = document.querySelector('[data-testid="section-video-demo"]')!;
@@ -1560,16 +1562,7 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
   test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
   test.setTimeout(90_000);
   await page.setViewportSize({ width: 1440, height: 900 });
-  await page.addInitScript(() => {
-    /*
-     * Theme resolution order is cookie -> localStorage -> server-seeded
-     * attribute, so seeding only localStorage let a stale `ecode_theme` cookie
-     * keep the surface dark and made these light-theme assertions read the dark
-     * palette. Seed both.
-     */
-    document.cookie = 'ecode_theme=light; path=/; SameSite=Lax';
-    localStorage.setItem('bolt_theme', 'light');
-  });
+  await seedLightTheme(page);
 
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
