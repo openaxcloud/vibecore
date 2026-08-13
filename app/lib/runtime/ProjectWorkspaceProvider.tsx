@@ -6,34 +6,28 @@ import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/
 import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
 import { workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
 import { reseedWorkspacePreservingOnFailure, shouldReattachWarmWorkspace } from '~/lib/runtime/workspace-reattach';
+import { readSeedMarker, writeSeedMarker } from '~/lib/runtime/workspace-seed-marker';
 import { hasLivePreviewPort } from '~/lib/runtime/workspace-status';
 import { workbenchStore } from '~/lib/stores/workbench';
 
-/**
- * Workspace ids (sessionId = workspaceId ?? projectId) this client page-session
- * has already cold-seeded. A remount (StrictMode double-mount, route-return) finds
- * its id here and reattaches to the still-running pod instead of wiping+reseeding;
- * a genuinely new page-session (fresh load, possibly with cross-device edits) has
- * no entry and cold-seeds. Module scope so it survives provider remounts within
- * the same page load, and is naturally empty on a full reload.
- */
-const seededWorkspaceSessions = new Map<string, string | undefined>();
-
-/**
- * Cheap "persisted files revision" for a project: the ETag of the persisted
- * ide-state, which is `"${ideState.version}"` and bumps on every persist —
- * including the file manifest (state.files.entries). Used to decide whether a
- * warm pod may be reattached: the pod is only adopted AS-IS when the persisted
- * revision still equals the one it was seeded from. If the persisted files
- * changed since the seed (e.g. a cross-device / another-tab edit that the warm
- * pod never received), the revision differs and we reseed so the running
- * workspace reflects the persisted files instead of serving a stale tree.
- * Returns undefined on any failure so the caller falls back to the prior
- * (marker-only) behaviour rather than forcing a spurious reseed.
+/*
+ * BUG-RUNTIME-DIVERGENCE (option A, signal 3) — révision des FICHIERS persistés.
+ *
+ * Lisait auparavant l'ETag de l'ide-state, c'est-à-dire `ideState.version`, que
+ * les écritures d'INTERFACE incrémentent : ouvrir un onglet ou déplacer le
+ * curseur la fait avancer. Mesuré en réel : 5 → 9 en une seule session, sans
+ * qu'un seul fichier ait changé. La comparaison concluait donc « le stockage a
+ * bougé » à presque chaque réouverture et forçait le reseed — le symptôme même
+ * qu'on cherche à corriger.
+ *
+ * `GET /files/revision` ne dépend que des chemins, dates et tailles (voir
+ * `projectFilesRevision` côté API). Renvoie `undefined` en cas d'échec, pour que
+ * l'appelant retombe sur le comportement antérieur plutôt que de provoquer un
+ * reseed injustifié.
  */
 export async function fetchPersistedProjectRevision(projectId: string): Promise<string | undefined> {
   try {
-    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-state`, {
+    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files/revision`, {
       credentials: 'include',
       headers: { accept: 'application/json' },
     });
@@ -42,15 +36,9 @@ export async function fetchPersistedProjectRevision(projectId: string): Promise<
       return undefined;
     }
 
-    const etag = response.headers.get('etag');
+    const body = (await response.json()) as { revision?: unknown };
 
-    if (etag) {
-      return etag;
-    }
-
-    const body = (await response.json()) as { ideState?: { version?: number | string } | null };
-
-    return body.ideState?.version != null ? String(body.ideState.version) : undefined;
+    return typeof body.revision === 'string' && body.revision.length > 0 ? body.revision : undefined;
   } catch {
     return undefined;
   }
@@ -160,9 +148,28 @@ export function ProjectWorkspaceProvider({
          * Probe the runtime's live ports first so hasLivePreviewPort sees the warm
          * pod's forwarded dev-server port (listPorts repopulates the previews store).
          */
-        const sessionAlreadySeeded = seededWorkspaceSessions.has(sessionId);
-        const seededRevision = seededWorkspaceSessions.get(sessionId);
-        await workbenchStore.refreshRuntimePorts().catch(() => undefined);
+        /*
+         * Signal 1 — marqueur DURABLE. Une `Map` de portée module est vide à
+         * chaque chargement de page, donc `seededThisSession` était toujours
+         * faux à la réouverture : la réouverture reseedait quoi qu'il arrive.
+         */
+        const seedMarker = readSeedMarker(sessionId, Date.now());
+        const sessionAlreadySeeded = seedMarker !== undefined;
+        const seededRevision = seedMarker?.revision;
+
+        /*
+         * Signal 2 — l'échec de la sonde n'est plus avalé. « La sonde a échoué »
+         * et « le pod n'écoute rien » menaient tous deux à `hasLivePort: false`
+         * et étaient donc indiscernables.
+         */
+        let portProbeSucceeded = true;
+
+        try {
+          await workbenchStore.refreshRuntimePorts();
+        } catch (error) {
+          portProbeSucceeded = false;
+          console.error('Runtime port probe failed before the reattach decision:', error);
+        }
 
         if (cancelled) {
           await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id);
@@ -187,6 +194,7 @@ export function ProjectWorkspaceProvider({
           reused: session.reused === true,
           seededThisSession: sessionAlreadySeeded,
           hasLivePort: hasLivePreviewPort(workbenchStore.previews.get()),
+          portProbeSucceeded,
 
           /*
            * The persisted files changed after this pod was seeded (another tab or
@@ -276,7 +284,7 @@ export function ProjectWorkspaceProvider({
            * above, so a retry still reseeds), so a later remount within this page-
            * session reattaches to a genuinely-seeded, warm pod.
            */
-          seededWorkspaceSessions.set(sessionId, currentRevision);
+          writeSeedMarker(sessionId, currentRevision, Date.now());
         }
 
         /*

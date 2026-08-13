@@ -31,6 +31,26 @@ export interface WarmReattachSignals {
   /** A forwarded port is actively serving (hasLivePreviewPort over the runtime ports). */
   hasLivePort: boolean;
 
+  /*
+   * BUG-RUNTIME-DIVERGENCE (option A, signal 2) — la sonde de ports a-t-elle
+   * ABOUTI ?
+   *
+   * `refreshRuntimePorts()` était appelée en `.catch(() => undefined)` juste
+   * avant la décision : « la sonde a échoué » et « le pod n'écoute rien »
+   * devenaient indiscernables, tous deux réduits à `hasLivePort: false`. Mesuré
+   * en réel : le magasin `previews` était VIDE au moment de la décision alors
+   * que l'API répondait « port 5173, ready:true » à l'instant même.
+   *
+   * Les deux cas doivent rester distincts parce qu'ils ne se valent pas : un pod
+   * qui n'écoute rien DOIT être reseedé, tandis qu'une sonde en échec ne dit
+   * rien du pod. Le second reste conservateur — on reseede aussi — mais il est
+   * désormais nommé, donc observable dans les journaux au lieu d'être avalé.
+   *
+   * `undefined` = ancienne sémantique (sonde non instrumentée), traitée comme
+   * un échec pour rester du côté sûr.
+   */
+  portProbeSucceeded?: boolean;
+
   /**
    * Project storage was modified AFTER this pod was last seeded (a cross-device /
    * out-of-band edit that the warm pod hasn't got). When KNOWN true, reattaching
@@ -51,6 +71,16 @@ export interface WarmReattachSignals {
  */
 export function shouldReattachWarmWorkspace(signals: WarmReattachSignals): boolean {
   if (signals.storageNewerThanSeed === true) {
+    return false;
+  }
+
+  /*
+   * Une sonde de ports en échec ne prouve RIEN sur le pod : elle ne peut pas
+   * valoir autorisation d'adopter. On reste sur le défaut sûr (reseed), mais le
+   * refus vient maintenant d'une condition nommée plutôt que d'un `hasLivePort`
+   * faux par accident.
+   */
+  if (signals.portProbeSucceeded !== true) {
     return false;
   }
 

@@ -1,14 +1,32 @@
 import { describe, expect, it, vi } from 'vitest';
 import { reseedWorkspacePreservingOnFailure, shouldReattachWarmWorkspace } from './workspace-reattach';
 
+/*
+ * `portProbeSucceeded` rejoint le cas nominal (option A, signal 2) : la sonde de
+ * ports doit avoir ABOUTI pour qu'un port vivant veuille dire quelque chose.
+ * Auparavant `refreshRuntimePorts()` était appelée en `.catch(() => undefined)`,
+ * si bien qu'une sonde en échec et un pod qui n'écoute rien donnaient tous deux
+ * `hasLivePort: false` — indiscernables.
+ */
 const warm = {
   reused: true,
   seededThisSession: true,
   hasLivePort: true,
+  portProbeSucceeded: true,
   storageNewerThanSeed: false,
 };
 
 describe('shouldReattachWarmWorkspace', () => {
+  it('refuse de reattacher quand la sonde de ports a ÉCHOUÉ, même avec tous les autres signaux au vert', () => {
+    // Une sonde en échec ne prouve rien sur le pod : elle ne peut pas valoir autorisation.
+    expect(shouldReattachWarmWorkspace({ ...warm, portProbeSucceeded: false })).toBe(false);
+  });
+
+  it('traite une sonde NON instrumentée comme un échec (défaut sûr)', () => {
+    const { portProbeSucceeded: _omit, ...withoutProbe } = warm;
+    expect(shouldReattachWarmWorkspace(withoutProbe)).toBe(false);
+  });
+
   it('reattaches when the pod is warm, seeded this page-session, and serving a live port', () => {
     expect(shouldReattachWarmWorkspace(warm)).toBe(true);
   });

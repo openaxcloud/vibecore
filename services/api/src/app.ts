@@ -4376,6 +4376,29 @@ async function ensureProjectStorageFromIdeState(
   return projectStorage.writeFiles(projectId, recoveredFiles);
 }
 
+/*
+ * BUG-RUNTIME-DIVERGENCE (option A, signal 3) — une révision dérivée des
+ * FICHIERS.
+ *
+ * La décision de reattach comparait jusqu'ici `ideState.version`, que les
+ * écritures d'INTERFACE incrémentent : ouvrir un onglet ou bouger le curseur la
+ * fait avancer. Mesuré en réel : 5 → 9 en une seule session, sans qu'aucun
+ * fichier ait changé. Toute comparaison bâtie dessus conclut « le stockage a
+ * bougé » à presque chaque réouverture et force le reseed — c'est-à-dire
+ * exactement le symptôme d'Avi.
+ *
+ * Cette empreinte ne dépend que de ce qui compte pour savoir si le pod chaud est
+ * périmé : l'ensemble des chemins, leur date de modification et leur taille. Le
+ * contenu n'est pas haché — inutile, et cela rendrait la route coûteuse.
+ */
+export function projectFilesRevision(files: ReadonlyArray<{ path: string; updatedAt?: string; content?: string }>) {
+  const lines = files
+    .map((file) => `${file.path} ${file.updatedAt ?? ''} ${file.content?.length ?? 0}`)
+    .sort();
+
+  return createHash('sha256').update(lines.join('\n')).digest('hex').slice(0, 32);
+}
+
 async function listProjectFilesIncludingIdeState(
   store: ApiStore,
   projectStorage: ProjectStorage,
@@ -21833,6 +21856,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       files: publicFiles(files),
       runtime: { mode: 'remote-kubernetes', autosave: true, conflictDetection: true, offlineWarning: true },
     };
+  });
+  /*
+   * Empreinte bon marché de l'arborescence persistée, pour que la réouverture
+   * puisse distinguer « le pod chaud est encore à jour » de « le stockage a
+   * changé depuis qu'il a été semé » SANS repasser par `ideState.version`, que
+   * les écritures d'interface incrémentent (voir `projectFilesRevision`).
+   * Renvoie uniquement le hachage : aucun contenu de fichier ne transite.
+   */
+  app.get('/projects/:projectId/files/revision', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+
+    return { revision: projectFilesRevision(files) };
   });
   app.post('/projects/:projectId/files/import/zip', async (request) => {
     const project = await requireProject(
