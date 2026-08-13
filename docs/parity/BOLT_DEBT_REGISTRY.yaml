@@ -275,7 +275,10 @@ items:
     source: "outputs/ETAT_FINAL_100.md:53-58 (chip task_56a3627f)"
     priority: 3
     owner: platform
-    status: NON_FAIT
+    status: FAIT_PROUVE
     nextAction: "Synchroniser côté serveur ou afficher clairement « local uniquement »"
     conditionDeCloture: "Sync prouvée cross-device OU mention explicite dans l'UI"
+    evidenceId: "docs/audit/evidence/bd-29/PROOF.md"
+    provenAt: "2026-08-13"
+    provenNote: "Mention explicite ajoutee (option nextAction) : note 'Stored on this device only / Stocke uniquement sur cet appareil' sous l'en-tete historique (Menu.client.tsx, cle sidebarMenu.history.localOnlyNote En+Fr). Deploiement verifie : les 2 chaines sont dans le bundle du pod web df1287d856 (/app/build/client/assets)."
     targetDate: "2026-11-30"

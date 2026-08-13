@@ -29,7 +29,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: APPROVAL_STATUS.json
-    sha256: "52098af28a52053f211e0d07fb86367146c4457027f8e745b11e45b16afaea63"
+    sha256: "c926ce44dff0e3103dc110ffa499b5d8edaf9c2face5f8205cd7520b1da4430a"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN
@@ -54,7 +54,7 @@ documents:
     repoCommit: 1692f981
     reviewer: UNKNOWN
   - file: BOLT_DEBT_REGISTRY.yaml
-    sha256: "9d10fde7ade29e1aab04c771331e7a39490a57c089d2ed93a28ec4cb6ed6a6b1"
+    sha256: "3d4434ee8f8ccbbf10a4f7cd00f4e7dd804b8c8696703296a08355df580f9c51"
     schemaVersion: 1
     repoCommit: 9eab2990
     reviewer: UNKNOWN
