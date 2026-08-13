@@ -250,42 +250,237 @@ async function settlePage(page, selector, timeoutMs, { loadImages = false } = {}
   return failures;
 }
 
-async function lightweightSnapshot(page, selector) {
-  return page.evaluate(
-    ({ mainSelector }) => {
-      const main = document.querySelector(mainSelector);
-      const currentLanguageLink = main?.querySelector('a[lang][aria-current="page"]');
+export function collectLightweightSnapshot({ mainSelector }) {
+  const main = document.querySelector(mainSelector);
+  const root = document.documentElement;
 
-      return {
-        url: window.location.href,
-        pathname: window.location.pathname,
-        queryLanguage: new URL(window.location.href).searchParams.get('lang'),
-        htmlLanguage: document.documentElement.lang,
-        mainLanguage: main?.getAttribute('lang') ?? null,
-        heading: main?.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim() ?? null,
-        currentLanguage: currentLanguageLink?.getAttribute('lang') ?? null,
-        theme: document.documentElement.getAttribute('data-theme'),
-        rootClasses: [...document.documentElement.classList],
-      };
-    },
-    { mainSelector: selector },
+  const visible = (element) => {
+    const style = getComputedStyle(element);
+    const rect = element.getBoundingClientRect();
+
+    return (
+      style.display !== 'none' &&
+      style.visibility !== 'hidden' &&
+      Number.parseFloat(style.opacity || '1') > 0 &&
+      rect.width > 0 &&
+      rect.height > 0
+    );
+  };
+
+  const withinViewport = (element) => {
+    const rect = element.getBoundingClientRect();
+    const viewportWidth = root.clientWidth || window.innerWidth;
+    const viewportHeight = root.clientHeight || window.innerHeight;
+    const epsilon = 0.5;
+
+    return (
+      rect.left >= -epsilon &&
+      rect.right <= viewportWidth + epsilon &&
+      rect.top >= -epsilon &&
+      rect.bottom <= viewportHeight + epsilon
+    );
+  };
+
+  const languageSwitches = [...document.querySelectorAll('[data-testid="language-switch"]')];
+
+  const switchEvidence = languageSwitches.map((languageSwitch, index) => {
+    const buttons = [...languageSwitch.querySelectorAll('button[lang]')].map((button) => ({
+      language: button.getAttribute('lang')?.toLowerCase() ?? null,
+      ariaPressed: button.getAttribute('aria-pressed'),
+      type: button.getAttribute('type'),
+      text: button.textContent?.replace(/\s+/g, ' ').trim() ?? '',
+      visible: visible(button),
+      withinViewport: withinViewport(button),
+      enabled: !button.disabled,
+    }));
+
+    return {
+      index,
+      visible: visible(languageSwitch),
+      withinViewport: withinViewport(languageSwitch),
+      inHeader: Boolean(languageSwitch.closest('header')),
+      insideMain: Boolean(main?.contains(languageSwitch)),
+      role: languageSwitch.getAttribute('role'),
+      ariaLabel: languageSwitch.getAttribute('aria-label'),
+      anchorCount: languageSwitch.querySelectorAll('a[lang]').length,
+      buttonCount: buttons.length,
+      visibleButtonCount: buttons.filter((button) => button.visible).length,
+      buttons,
+    };
+  });
+
+  const activeLanguages = switchEvidence.flatMap((languageSwitch) =>
+    languageSwitch.buttons
+      .filter((button) => button.visible && button.ariaPressed === 'true')
+      .map((button) => button.language),
   );
+
+  /*
+   * These selectors include the two removed Solutions-local controls as well
+   * as generic language links/buttons. Any match under <main> is a duplicate
+   * locale control and invalidates the live proof instead of being ignored.
+   */
+  const localControls = main
+    ? [
+        ...main.querySelectorAll(
+          '[data-testid="language-switch"], .app-builder-language-switch, .sol-language-switch, a[lang][href*="lang="], button[lang]',
+        ),
+      ].map((element) => ({
+        tagName: element.tagName.toLowerCase(),
+        testId: element.getAttribute('data-testid'),
+        className: typeof element.className === 'string' ? element.className : '',
+        language: element.getAttribute('lang')?.toLowerCase() ?? null,
+        ariaPressed: element.getAttribute('aria-pressed'),
+        visible: visible(element),
+      }))
+    : [];
+
+  return {
+    url: window.location.href,
+    pathname: window.location.pathname,
+    queryLanguage: new URL(window.location.href).searchParams.get('lang'),
+    htmlLanguage: root.lang,
+    mainLanguage: main?.getAttribute('lang') ?? null,
+    heading: main?.querySelector('h1')?.textContent?.replace(/\s+/g, ' ').trim() ?? null,
+    currentLanguage: activeLanguages.length === 1 ? activeLanguages[0] : null,
+    canonical: document.querySelector('link[rel="canonical"]')?.getAttribute('href') ?? null,
+    theme: root.getAttribute('data-theme'),
+    rootClasses: [...root.classList],
+    languageSwitch: {
+      totalCount: switchEvidence.length,
+      visibleCount: switchEvidence.filter((languageSwitch) => languageSwitch.visible).length,
+      headerCount: switchEvidence.filter((languageSwitch) => languageSwitch.inHeader).length,
+      insideMainCount: switchEvidence.filter((languageSwitch) => languageSwitch.insideMain).length,
+      activeLanguages,
+      localControlCount: localControls.length,
+      localControls,
+      switches: switchEvidence,
+    },
+  };
 }
 
-async function clickLanguage(page, selector, language, timeoutMs) {
-  const link = page.locator(`${selector} a[lang="${language}"][href*="lang=${language}"]`);
-  const count = await link.count();
+export function languageSwitchContractErrors(languageSwitch, expectedLanguage) {
+  const errors = [];
 
-  if (count !== 1) {
-    throw new Error(`Expected one visible ${language.toUpperCase()} language link; found ${count}`);
+  if (!languageSwitch) {
+    return ['Missing language-switch evidence'];
   }
+
+  if (languageSwitch.totalCount !== 1) {
+    errors.push(`Expected exactly one global LanguageSwitch; found ${languageSwitch.totalCount}`);
+  }
+
+  if (languageSwitch.visibleCount !== 1) {
+    errors.push(`Expected exactly one visible global LanguageSwitch; found ${languageSwitch.visibleCount}`);
+  }
+
+  if (languageSwitch.headerCount !== 1) {
+    errors.push(`Expected the unique LanguageSwitch inside <header>; found ${languageSwitch.headerCount}`);
+  }
+
+  if (languageSwitch.insideMainCount !== 0 || languageSwitch.localControlCount !== 0) {
+    errors.push(
+      `Expected no Solutions-local language control; found ${languageSwitch.insideMainCount} switch(es) and ${languageSwitch.localControlCount} control candidate(s) in <main>`,
+    );
+  }
+
+  const soleSwitch = languageSwitch.switches.length === 1 ? languageSwitch.switches[0] : null;
+
+  if (!soleSwitch) {
+    return errors;
+  }
+
+  if (!soleSwitch.visible || !soleSwitch.withinViewport || !soleSwitch.inHeader || soleSwitch.insideMain) {
+    errors.push('The unique LanguageSwitch must be visible within the viewport, inside <header>, and outside <main>');
+  }
+
+  if (soleSwitch.role !== 'group' || !soleSwitch.ariaLabel?.trim()) {
+    errors.push('The unique LanguageSwitch must expose a labelled role="group"');
+  }
+
+  if (soleSwitch.anchorCount !== 0) {
+    errors.push(
+      `The global LanguageSwitch must use buttons, not language links; found ${soleSwitch.anchorCount} link(s)`,
+    );
+  }
+
+  if (soleSwitch.buttonCount !== 2 || soleSwitch.visibleButtonCount !== 2) {
+    errors.push(
+      `Expected exactly two visible language buttons; found ${soleSwitch.buttonCount} total and ${soleSwitch.visibleButtonCount} visible`,
+    );
+  }
+
+  for (const language of ['en', 'fr']) {
+    const matches = soleSwitch.buttons.filter((button) => button.language === language);
+
+    if (matches.length !== 1) {
+      errors.push(`Expected exactly one ${language.toUpperCase()} button; found ${matches.length}`);
+      continue;
+    }
+
+    const [button] = matches;
+
+    if (!button.visible || !button.withinViewport || !button.enabled || button.type !== 'button') {
+      errors.push(
+        `The ${language.toUpperCase()} language button must be visible within the viewport, enabled, and type="button"`,
+      );
+    }
+
+    if (!['true', 'false'].includes(button.ariaPressed)) {
+      errors.push(`The ${language.toUpperCase()} language button must expose aria-pressed="true" or "false"`);
+    }
+  }
+
+  if (languageSwitch.activeLanguages.length !== 1 || languageSwitch.activeLanguages[0] !== expectedLanguage) {
+    errors.push(
+      `Expected only ${expectedLanguage.toUpperCase()} to expose aria-pressed="true"; received ${JSON.stringify(languageSwitch.activeLanguages)}`,
+    );
+  }
+
+  return errors;
+}
+
+async function lightweightSnapshot(page, selector) {
+  return page.evaluate(collectLightweightSnapshot, { mainSelector: selector });
+}
+
+async function clickLanguage(page, selector, currentLanguage, targetLanguage, timeoutMs) {
+  const beforeClick = await lightweightSnapshot(page, selector);
+  const contractErrors = languageSwitchContractErrors(beforeClick.languageSwitch, currentLanguage);
+
+  if (contractErrors.length > 0) {
+    throw new Error(`Invalid global LanguageSwitch before click: ${contractErrors.join('; ')}`);
+  }
+
+  const languageSwitch = page.locator('header [data-testid="language-switch"]');
+  const button = languageSwitch.locator(`button[lang="${targetLanguage}"]`);
+  const [switchCount, buttonCount] = await Promise.all([languageSwitch.count(), button.count()]);
+
+  if (switchCount !== 1 || buttonCount !== 1) {
+    throw new Error(
+      `Expected one global LanguageSwitch and one ${targetLanguage.toUpperCase()} button; found ${switchCount} and ${buttonCount}`,
+    );
+  }
+
+  if (!(await button.isVisible()) || !(await button.isEnabled())) {
+    throw new Error(`The global ${targetLanguage.toUpperCase()} language button is not visible and enabled`);
+  }
+
+  if ((await button.getAttribute('aria-pressed')) !== 'false') {
+    throw new Error(`The target ${targetLanguage.toUpperCase()} language button must have aria-pressed="false"`);
+  }
+
+  const sourceUrl = new URL(page.url());
 
   await Promise.all([
     page.waitForURL(
-      (candidate) => candidate.pathname.startsWith('/solutions/') && candidate.searchParams.get('lang') === language,
+      (candidate) =>
+        candidate.origin === sourceUrl.origin &&
+        candidate.pathname === sourceUrl.pathname &&
+        candidate.searchParams.get('lang') === targetLanguage,
       { timeout: timeoutMs },
     ),
-    link.click({ timeout: timeoutMs }),
+    button.click({ timeout: timeoutMs }),
   ]);
 }
 
@@ -300,19 +495,35 @@ async function verifyLanguageRoundTrip(page, row, selector, timeoutMs) {
     target: null,
     returned: null,
     passed: false,
+    contractErrors: {
+      initial: languageSwitchContractErrors(initial.languageSwitch, row.language),
+      target: null,
+      returned: null,
+    },
     errors: [],
   };
 
   try {
-    await clickLanguage(page, selector, oppositeLanguage, timeoutMs);
+    if (evidence.contractErrors.initial.length > 0) {
+      throw new Error(`Initial global LanguageSwitch contract failed: ${evidence.contractErrors.initial.join('; ')}`);
+    }
+
+    await clickLanguage(page, selector, row.language, oppositeLanguage, timeoutMs);
     evidence.errors.push(...(await settlePage(page, selector, timeoutMs)));
     evidence.target = await lightweightSnapshot(page, selector);
+    evidence.contractErrors.target = languageSwitchContractErrors(evidence.target.languageSwitch, oppositeLanguage);
 
-    await clickLanguage(page, selector, row.language, timeoutMs);
+    if (evidence.contractErrors.target.length > 0) {
+      throw new Error(`Target global LanguageSwitch contract failed: ${evidence.contractErrors.target.join('; ')}`);
+    }
+
+    await clickLanguage(page, selector, oppositeLanguage, row.language, timeoutMs);
     evidence.errors.push(...(await settlePage(page, selector, timeoutMs, { loadImages: true })));
     evidence.returned = await lightweightSnapshot(page, selector);
+    evidence.contractErrors.returned = languageSwitchContractErrors(evidence.returned.languageSwitch, row.language);
 
     const expectedPath = `/solutions/${row.slug}`;
+    const expectedCanonical = `https://e-code.ai${expectedPath}`;
 
     const targetThemeCorrect =
       evidence.target.theme === row.theme &&
@@ -325,11 +536,22 @@ async function verifyLanguageRoundTrip(page, row, selector, timeoutMs) {
 
     evidence.passed =
       evidence.errors.length === 0 &&
+      evidence.contractErrors.initial.length === 0 &&
+      evidence.contractErrors.target.length === 0 &&
+      evidence.contractErrors.returned.length === 0 &&
+      initial.pathname === expectedPath &&
+      initial.queryLanguage === row.language &&
+      initial.htmlLanguage === row.language &&
+      initial.mainLanguage === row.language &&
+      initial.currentLanguage === row.language &&
+      initial.canonical === expectedCanonical &&
+      Boolean(initial.heading) &&
       evidence.target.pathname === expectedPath &&
       evidence.target.queryLanguage === oppositeLanguage &&
       evidence.target.htmlLanguage === oppositeLanguage &&
       evidence.target.mainLanguage === oppositeLanguage &&
       evidence.target.currentLanguage === oppositeLanguage &&
+      evidence.target.canonical === expectedCanonical &&
       Boolean(evidence.target.heading) &&
       evidence.target.heading !== initial.heading &&
       targetThemeCorrect &&
@@ -338,6 +560,7 @@ async function verifyLanguageRoundTrip(page, row, selector, timeoutMs) {
       evidence.returned.htmlLanguage === row.language &&
       evidence.returned.mainLanguage === row.language &&
       evidence.returned.currentLanguage === row.language &&
+      evidence.returned.canonical === expectedCanonical &&
       evidence.returned.heading === initial.heading &&
       returnedThemeCorrect;
   } catch (error) {
@@ -612,10 +835,6 @@ async function auditDocument(page, row, selector) {
         href: link.getAttribute('href'),
       }));
 
-      const currentLanguageLinks = main
-        ? [...main.querySelectorAll('a[lang][aria-current="page"]')].map((link) => link.getAttribute('lang'))
-        : [];
-
       const mainMarketingPage = main?.getAttribute('data-ecode-marketing-page') ?? null;
       const mainSolutionSlug = main?.getAttribute('data-solution-slug') ?? null;
 
@@ -652,7 +871,6 @@ async function auditDocument(page, row, selector) {
             image: metaContent('meta[name="twitter:image"]'),
             imageAlt: metaContent('meta[name="twitter:image:alt"]'),
           },
-          currentLanguageLinks,
           theme: root.getAttribute('data-theme'),
           rootClasses: [...root.classList],
           colorScheme: rootStyle.colorScheme,
@@ -759,6 +977,17 @@ function applyLocalAuditIssues(result, audit, contentLanguage) {
   result.evidence.images = audit.images;
   result.evidence.assets = audit.assets;
 
+  const languageControlErrors = languageSwitchContractErrors(audit.document.languageSwitch, language);
+
+  if (languageControlErrors.length > 0) {
+    addIssue(
+      result,
+      'language_switch_contract_invalid',
+      'The deployed page does not expose exactly one valid global header LanguageSwitch',
+      languageControlErrors,
+    );
+  }
+
   if (audit.document.pathname !== expectedPath) {
     addIssue(result, 'wrong_route', `Expected ${expectedPath}; rendered ${audit.document.pathname}`);
   }
@@ -767,15 +996,14 @@ function applyLocalAuditIssues(result, audit, contentLanguage) {
     audit.document.queryLanguage !== language ||
     audit.document.htmlLanguage !== language ||
     audit.document.mainLanguage !== language ||
-    audit.document.currentLanguageLinks.length !== 1 ||
-    audit.document.currentLanguageLinks[0] !== language ||
+    audit.document.currentLanguage !== language ||
     (contentLanguage?.split(',')[0].trim().toLowerCase() ?? null) !== language
   ) {
     addIssue(result, 'wrong_language', `The rendered language does not consistently resolve to ${language}`, {
       queryLanguage: audit.document.queryLanguage,
       htmlLanguage: audit.document.htmlLanguage,
       mainLanguage: audit.document.mainLanguage,
-      currentLanguageLinks: audit.document.currentLanguageLinks,
+      currentLanguage: audit.document.currentLanguage,
       contentLanguage,
     });
   }
@@ -1188,6 +1416,11 @@ async function auditRow(browser, config, row) {
         target: null,
         returned: null,
         passed: false,
+        contractErrors: {
+          initial: ['Missing Solutions main; global LanguageSwitch could not be verified'],
+          target: null,
+          returned: null,
+        },
         errors: [{ checkpoint: 'solution-main-visible', error: `Missing ${selector}` }],
       };
     } else {
@@ -1205,7 +1438,10 @@ async function auditRow(browser, config, row) {
       );
     }
 
+    const finalLanguageSnapshot = await lightweightSnapshot(page, selector);
     const audit = await auditDocument(page, row, selector);
+    audit.document.currentLanguage = finalLanguageSnapshot.currentLanguage;
+    audit.document.languageSwitch = finalLanguageSnapshot.languageSwitch;
     applyLocalAuditIssues(result, audit, result.evidence.response?.contentLanguage ?? null);
 
     result.evidence.nonBlank = await auditNonBlankViewport(page, selector);
