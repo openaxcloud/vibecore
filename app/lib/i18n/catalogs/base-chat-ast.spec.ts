@@ -132,14 +132,24 @@ describe('BaseChat strengthened-AST catalog', () => {
     expect(result.parseErrors).toEqual([]);
 
     /*
-     * Empreinte du bloc mobile Terminal/en-tête GELÉ, re-scellée après la seule
-     * modification autorisée : l'externalisation des libellés visibles vers le
-     * catalogue FR (étape 3/3). La structure, la mise en page et le comportement
-     * sont inchangés — seul le texte affiché passe par `t()`. Toute évolution du
-     * hash sans changement de libellé signale une dérive de mise en page à
-     * refuser.
+     * Empreinte du bloc GELÉ, re-scellée deux fois seulement :
+     *
+     * 1. externalisation des libellés visibles vers le catalogue FR (étape 3/3) ;
+     * 2. RPL-IDE-001.8 — ajout de l'en-tête Spotlight dans la palette de
+     *    commandes.
+     *
+     * La plage gelée va de `const mobileHeaderTab =` jusqu'au premier
+     * `{projectIdeMode && (`, et englobe donc bien plus que l'en-tête mobile :
+     * la palette de commandes s'y trouve aussi. Le re-scellement n°2 ne
+     * concerne QUE la palette — diff vérifié, un seul hunk, le markup mobile
+     * Terminal/en-tête est identique à `origin/main` au caractère près.
+     *
+     * Toute évolution du hash hors de ces deux cas signale une dérive de mise
+     * en page à refuser. Pour vérifier ce qui a bougé plutôt que de re-sceller
+     * à l'aveugle, comparer la tranche `[frozenStartOffset, frozenEndOffset)`
+     * entre la branche et `origin/main`.
      */
-    expect(frozenHash).toBe('ea1ba7dc96f9d7bff2cf1dc948d98b4860e263c247e7d208f34f7536f85d0929');
+    expect(frozenHash).toBe('e4cd95fb85f9802fd8fe949083eacbad600655f0ceacbc0b8c77187e7f4dd01d');
     expect(outsideFrozen).toEqual([]);
 
     // The mobile header/dock labels are now localized via t(); no raw English remains.
