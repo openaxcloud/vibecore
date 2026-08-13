@@ -61,6 +61,11 @@
       "cluster": "ide-command-palette",
       "unstable": true,
       "reason": "role='option' locator is now correct and this passes in some runs. Kept one cycle to confirm."
+    },
+    {
+      "test": "tests/e2e/dashboard.spec.ts › IDE panels, agent input and feature tools keep the platform theme in light and dark modes",
+      "cluster": "ide-account-theme",
+      "reason": "Same lever problem as the rest of this cluster: BaseChat re-applies the per-account/project theme preference over the document once the settings payload lands, so forcing light via the cookie does not hold on IDE surfaces. Omitted from the previous rebuild of this file by mistake."
     }
   ]
 }
