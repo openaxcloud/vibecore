@@ -52,6 +52,7 @@ import {
   lineMargins,
   lineUserPrice,
   localizeAgentRoutingCardLabels,
+  billingEnabled,
   negativeMarginLineKeys,
   routingLine,
   switchAvailableForPlan,
@@ -126,6 +127,7 @@ import {
   type AgentMemoryScope,
   type AgentMemoryType,
 } from './agent-memory.js';
+import { classifyBillingRoute } from './billing-surface.js';
 import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
 import {
   detectPodPackageManager,
@@ -8395,8 +8397,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
   };
 
-  // `let` so an admin-saved live key can rebuild the client without a redeploy.
-  let stripeClient = buildStripeClient(process.env.STRIPE_SECRET_KEY);
+  /*
+   * KILL-SWITCH FACTURATION — résolu UNE fois au montage de l'app.
+   *
+   * Fail-closed : absent, illisible ou inattendu vaut OFF (voir
+   * `billingEnabled`). Résolu une seule fois, et non par requête, pour qu'un
+   * changement de configuration ne puisse pas basculer la caisse à chaud, au
+   * milieu d'un flux de paiement — l'activation passe par un redéploiement,
+   * délibérément.
+   */
+  const billingIsEnabled = billingEnabled();
+
+  if (!billingIsEnabled) {
+    console.warn('BILLING KILL-SWITCH ARMED — payment surfaces are 404, quotas and credit debits are no-ops');
+  }
+
+  /*
+   * `let` so an admin-saved live key can rebuild the client without a redeploy.
+   *
+   * À OFF, aucun client Stripe n'est construit : même si une route échappait à
+   * la garde, il n'y aurait pas de client pour encaisser. Défense en profondeur,
+   * pas redondance — la garde et l'absence de client tombent en panne pour des
+   * raisons différentes.
+   */
+  let stripeClient = billingIsEnabled ? buildStripeClient(process.env.STRIPE_SECRET_KEY) : undefined;
 
   const decryptStripeField = (enc: string | null | undefined): string | undefined => {
     if (!enc) {
@@ -8416,6 +8440,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * failure keeps the current (env-based) client rather than dropping Stripe.
    */
   const reloadStripeConfig = async () => {
+    /*
+     * À OFF, une clé sauvegardée en base ne doit PAS réarmer Stripe. C'était la
+     * porte dérobée du kill-switch : la garde de route et l'absence de client
+     * env auraient tenu, pendant qu'une configuration admin persistée
+     * reconstruisait un client capable d'encaisser.
+     */
+    if (!billingIsEnabled) {
+      return;
+    }
+
     try {
       const cfg = await store.getStripeConfig();
       const dbKey = decryptStripeField(cfg?.secretKeyEnc);
@@ -8638,6 +8672,47 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     reply.header('x-request-id', request.id);
     reply.header('x-correlation-id', correlationId);
   });
+
+  /*
+   * KILL-SWITCH FACTURATION — les surfaces de paiement DISPARAISSENT à OFF.
+   *
+   * Enregistré en `onRequest`, donc AVANT toute authentification, tout parsing
+   * de corps et tout handler : rien du chemin de paiement ne s'exécute, pas même
+   * la vérification de signature d'un webhook Stripe.
+   *
+   * La réponse est un 404 et non un 403 : à OFF ces routes ne doivent pas
+   * seulement refuser, elles ne doivent pas EXISTER. Un 403 confirmerait à un
+   * scanner qu'un point d'entrée de paiement est là, simplement fermé.
+   *
+   * La décision porte sur `routeOptions.url`, le motif que Fastify a réellement
+   * résolu — pas sur l'URL brute, qui se contourne par encodage.
+   */
+  app.addHook('onRequest', async (request, reply) => {
+    if (billingIsEnabled) {
+      return;
+    }
+
+    const verdict = classifyBillingRoute(request.routeOptions?.url);
+
+    if (!verdict.blocked) {
+      return;
+    }
+
+    request.log?.info?.(
+      { route: request.routeOptions?.url, reason: verdict.reason },
+      'billing surface refused: kill-switch armed',
+    );
+
+    /*
+     * Corps VIDE, et non `{ code: 'BILLING_DISABLED' }` : un code de refus dans
+     * la réponse apprendrait à un scanner que la surface de paiement existe et
+     * qu'elle est seulement éteinte. Le 404 doit être indiscernable de celui
+     * d'une route inconnue. Le motif du refus reste dans le journal serveur,
+     * pour l'exploitant.
+     */
+    await reply.code(404).send();
+  });
+
   app.addHook('preSerialization', async (request, reply, payload) => {
     if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
       return payload;
@@ -15313,6 +15388,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   const ensureQuota = async (request: any, organizationId: string, key: QuotaKey, increment = 1) => {
+    /*
+     * KILL-SWITCH FACTURATION — aucun compteur ne bloque un utilisateur gratuit.
+     *
+     * Point d'étranglement UNIQUE : les 38 appels du service passent par ici
+     * (génération, aperçu, déploiement, espaces de travail…). Le neutraliser au
+     * centre garantit qu'aucun chemin n'a été oublié, là où 38 gardes
+     * dispersées en auraient forcément manqué une.
+     *
+     * `recordUsage` n'est délibérément PAS neutralisé : compter reste utile — et
+     * ne bloque rien. Seule la barrière disparaît, pas la mesure.
+     */
+    if (!billingIsEnabled) {
+      return;
+    }
+
     const { limits } = await billingState(organizationId);
     const override = await store.getQuotaOverride(organizationId, key);
     const activeOverride = isQuotaOverrideActive(override) ? override : undefined;

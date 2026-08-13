@@ -11,6 +11,7 @@
  * in-memory store and reusable from the chat route, agent-run settle, and the
  * compute/storage metering paths.
  */
+import { billingEnabled } from '@vibecore/billing';
 import {
   computeCreditCostCents,
   creditRolloverMonths,
@@ -152,6 +153,23 @@ export async function debitCredits(
   store: ApiStore,
   input: { organizationId: string; amountCents: number; reason: string; checkpointId?: string; nowMs: number },
 ): Promise<DebitResult> {
+  /*
+   * KILL-SWITCH FACTURATION — aucun débit en mode gratuit.
+   *
+   * Gardé ICI, dans la fonction de débit elle-même, et pas chez ses appelants :
+   * `debitCredits` est le chemin comptable UNIQUE (règlement de checkpoint,
+   * métrage calcul/stockage/base/déploiement). Un no-op au centre ne peut pas
+   * être contourné par un appelant qu'on aurait oublié, ni par celui qu'on
+   * ajoutera.
+   *
+   * Le no-op rend un débit NUL plutôt que de lever : ces appels vivent sur des
+   * chemins d'usage normaux (déployer, faire tourner un espace de travail), et
+   * une exception y transformerait le kill-switch en panne de plateforme.
+   */
+  if (!billingEnabled()) {
+    return { fromPacks: 0, fromBalance: 0 };
+  }
+
   const amount = Number.isFinite(input.amountCents) ? Math.max(0, Math.ceil(input.amountCents)) : 0;
 
   if (amount <= 0) {

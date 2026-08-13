@@ -1,3 +1,4 @@
+export * from './kill-switch.js';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { toCreditPlanKey, CREDIT_PACK_VALIDITY_DAYS, type CreditPlanKey } from './credits.js';
 
