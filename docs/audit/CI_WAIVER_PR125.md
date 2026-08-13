@@ -1,12 +1,41 @@
 # PR #125 — attribution des échecs CI
 
-Branche `fix/from-scratch-install-dr-clean`, **SHA de code figé `f2805edd03`**
-(tête de PR `a2ebbc0049` ; au-delà du SHA de code, uniquement `docs/audit/**`),
-rebasée sur `origin/main` = `1f0f39198c`.
+Branche `fix/from-scratch-install-dr-clean`, **SHA de code figé `5626c7be71`**
+(tête de PR `22bf9bb170` ; au-delà du SHA de code, uniquement `docs/audit/**`),
+rebasée sur `origin/main` = `a043cb5782`.
 
-Tableau au SHA courant, mesuré : **16 verts, 2 `skipped`**, et pour seuls rouges les
-**cinq jobs Playwright** des deux suites partagées — inchangé par rapport aux SHAs
-précédents, et attribué ci-dessous par mesure sur `main`.
+## Deux SHAs, et pourquoi le tableau CI diffère entre eux
+
+| | base `main` | `Install, test, build, scan` | 5 jobs Playwright | preuves live |
+|---|---|---|---|---|
+| `f2805edd03` (tête `a2ebbc0049`) | `1f0f39198c` | **succès** | rouges | 8/8 digests, 4 portes ✅ |
+| `5626c7be71` (tête `22bf9bb170`) | `a043cb5782` | **échec, hérité** | rouges | 8/8 digests, 4 portes ✅ |
+
+Le SHA courant est rebasé sur un `main` **cassé entre-temps**. L'étape en échec est la
+garde i18n, et elle nomme le fichier :
+
+```
+i18n source scan: files=1371, residual=15 in 3 files, allowlisted=778, mode=check
+Hardcoded-copy baseline regressions:
+- services/api/src/database-provisioner.ts: new-file-debt (baseline=0, current=1)
+```
+
+Attribution, mesurée et non déduite :
+
+* `git diff --name-only origin/main...HEAD -- services/api/src/database-provisioner.ts`
+  → **0 fichier** : la PR ne touche pas ce chemin ;
+* la chaîne en dur arrive avec le commit `1348bf9f` de `main` ;
+* **`main` échoue sur son propre `Install, test, build, scan`** au commit `99015dca`.
+
+`Quality Gates` en dérive mécaniquement : sa seule étape en échec est
+`Wait for CI checks`, qui attend `Install, test, build, scan` avec
+`allowed-conclusions: success,skipped`.
+
+Corollaire pour l'auditeur : **`f2805edd03` reste le SHA au tableau CI le plus propre**
+(seuls les 5 Playwright rouges), et `5626c7be71` est le même travail rebasé sur un
+`main` cassé depuis. Les deux ont les mêmes preuves live — digests 8/8 et 4 portes.
+La réparation appartient à `main` ; l'y faire depuis cette PR d'infrastructure serait
+exactement ce que l'audit reproche.
 
 L'auditeur demande d'**isoler les rouges hérités des nouveaux, avec preuve par SHA**.
 Chaque ligne ci-dessous est établie en rejouant la vérification *exacte* du CI sur

@@ -1,0 +1,16 @@
+# Rouge herite de main : garde i18n sur database-provisioner.ts
+
+Etape en echec (workflow Production CI, job « Install, test, build, scan ») :
+  I18n catalogs and source regression guard -> pnpm run i18n:scan:source
+
+  i18n source scan: files=1370, residual=15 in 3 files, allowlisted=778, mode=check
+  Hardcoded-copy baseline regressions:
+  - services/api/src/database-provisioner.ts: new-file-debt (baseline=0, current=1)
+
+Attribution :
+  fichiers de ce chemin touches par la PR : 0
+  commit de main qui l'introduit          : 1348bf9f (fix(database): CNPG empoisonnee)
+  CI de MAIN elle-meme sur 99015dca       : « Install, test, build, scan » -> failure
+
+La CI d'une PR teste refs/pull/<n>/merge, donc la fusion avec le TIP de main :
+toutes les PR ouvertes heritent de ce rouge tant qu'il n'est pas repare en amont.
