@@ -14,6 +14,9 @@
   --vc-ide-accent-orange: #f26207;
   --vc-ide-accent-error: #f85149;
   --vc-ide-accent-warning: #d29922;
+  /* AI gradient stops — kept in sync with app/styles/index.scss. */
+  --vc-ide-accent-ai-start: #7b61ff;
+  --vc-ide-accent-ai-end: #ff6b9d;
   /* Status TEXT tokens (AA on the dark admin surface) — used by Batch-F panels. */
   --status-success-text: #4ade80;
   --status-warning-text: #fbbf24;
