@@ -1,10 +1,18 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { access, chmod, cp, mkdir, mkdtemp, readFile, rename, rm, unlink, writeFile } from 'node:fs/promises';
 import { basename, dirname, extname, resolve } from 'node:path';
 
 import { chromium, expect, type FrameLocator, type Locator, type Page } from '@playwright/test';
 import sharp from 'sharp';
 
+import {
+  EMPTY_PROJECT_FILE_STABILITY,
+  normalizeCaptureProofText,
+  observeProjectFileRevision,
+  projectFilesAreStable,
+  projectFilesRevisionFromEntries,
+  type ProjectFileEntry,
+} from './solution-capture-state.js';
 import {
   buildRuntimePreviewProvenance,
   isNativeWebviewFallbackEligible,
@@ -155,13 +163,42 @@ function assertDirectRuntimeStayedClean(page: Page) {
   );
 }
 
+function positiveDurationFromEnv(name: string, fallbackMs: number) {
+  const configuredValue = process.env[name]?.trim();
+
+  if (!configuredValue) {
+    return fallbackMs;
+  }
+
+  const duration = Number(configuredValue);
+
+  if (!Number.isSafeInteger(duration) || duration <= 0) {
+    throw new Error(`${name} must be a positive integer number of milliseconds`);
+  }
+
+  return duration;
+}
+
 const APP_BASE_URL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5173';
 const API_BASE_URL = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 const GENERATION_TIMEOUT_MS = 12 * 60 * 1000;
-const PREVIEW_TIMEOUT_MS = Number(process.env.SOLUTION_PROOF_PREVIEW_TIMEOUT_MS ?? 5 * 60 * 1000);
+const PROJECT_SETTLE_TIMEOUT_MS = positiveDurationFromEnv('SOLUTION_PROOF_SETTLE_TIMEOUT_MS', 18 * 60 * 1000);
+const PROJECT_FILES_STABLE_MS = positiveDurationFromEnv('SOLUTION_PROOF_FILES_STABLE_MS', 60_000);
+
+const PROJECT_FILES_MAX_OBSERVATION_GAP_MS = positiveDurationFromEnv(
+  'SOLUTION_PROOF_FILES_MAX_OBSERVATION_GAP_MS',
+  15_000,
+);
+
+const PROJECT_FILES_MIN_UNCHANGED_READS = 8;
+const PROJECT_UI_MIN_IDLE_READS = 2;
+const AGENT_IDLE_TIMEOUT_MS = positiveDurationFromEnv('SOLUTION_PROOF_AGENT_IDLE_TIMEOUT_MS', 3 * 60 * 1000);
+const AGENT_SUBMIT_ACTION_TIMEOUT_MS = positiveDurationFromEnv('SOLUTION_PROOF_AGENT_SUBMIT_ACTION_TIMEOUT_MS', 15_000);
+const AGENT_SUBMIT_PROOF_TIMEOUT_MS = positiveDurationFromEnv('SOLUTION_PROOF_AGENT_SUBMIT_PROOF_TIMEOUT_MS', 60_000);
+const PREVIEW_TIMEOUT_MS = positiveDurationFromEnv('SOLUTION_PROOF_PREVIEW_TIMEOUT_MS', 5 * 60 * 1000);
 const PREVIEW_RESTART_TIMEOUT_MS = 3 * 60 * 1000;
-const RUNTIME_SYNC_GRACE_MS = Number(process.env.SOLUTION_PROOF_RUNTIME_SYNC_GRACE_MS ?? 20_000);
-const RUNTIME_RESEED_GRACE_MS = Number(process.env.SOLUTION_PROOF_RUNTIME_RESEED_GRACE_MS ?? 30_000);
+const RUNTIME_SYNC_GRACE_MS = positiveDurationFromEnv('SOLUTION_PROOF_RUNTIME_SYNC_GRACE_MS', 20_000);
+const RUNTIME_RESEED_GRACE_MS = positiveDurationFromEnv('SOLUTION_PROOF_RUNTIME_RESEED_GRACE_MS', 30_000);
 
 const PREVIEW_RUNTIME_ERROR_PATTERN =
   /internal server error|failed to resolve import|cannot find module|vite error|unexpected token|uncaught typeerror|plugin:vite|preview_upstream_unreachable|dev server on port .*not reachable|starting, or it crashed/i;
@@ -528,7 +565,9 @@ async function selectCreationModel(page: Page) {
   }
 
   if (providerName) {
-    const providerCombobox = page.getByTestId('ai-provider-dropdown').getByRole('combobox', { name: 'AI provider' });
+    const providerCombobox = page
+      .getByTestId('ai-provider-dropdown')
+      .getByRole('combobox', { name: /^(?:AI provider|Fournisseur d[’']IA)$/i });
 
     const providerSelectorAvailable = await providerCombobox
       .waitFor({ state: 'visible', timeout: 15_000 })
@@ -550,7 +589,9 @@ async function selectCreationModel(page: Page) {
   }
 
   if (modelName) {
-    const modelCombobox = page.getByTestId('ai-model-dropdown').getByRole('combobox', { name: 'AI model' });
+    const modelCombobox = page
+      .getByTestId('ai-model-dropdown')
+      .getByRole('combobox', { name: /^(?:AI model|Modèle d[’']IA)$/i });
 
     await expect(modelCombobox).toBeVisible({ timeout: 30_000 });
     await modelCombobox.click();
@@ -570,28 +611,43 @@ async function appendCreationModelFormFields(page: Page) {
     return;
   }
 
-  const form = page.locator('form[aria-label="Create project form"]');
+  const form = page.getByRole('form', {
+    name: /^(?:Create project form|Formulaire de création de projet)$/i,
+  });
 
   await expect(form).toBeVisible({ timeout: 30_000 });
-  await page.evaluate(`(() => {
-    const form = document.querySelector('form[aria-label="Create project form"]');
-    if (!form) throw new Error('Create project form unavailable');
-    const values = ${JSON.stringify({
+  await form.evaluate(
+    (formElement, values) => {
+      type EvaluatedInput = { name: string; type: string; value: string };
+
+      const evaluatedForm = formElement as unknown as {
+        appendChild: (input: EvaluatedInput) => void;
+        ownerDocument: { createElement: (tagName: string) => EvaluatedInput };
+        querySelector: (selector: string) => EvaluatedInput | null;
+      };
+
+      for (const [name, value] of Object.entries(values)) {
+        if (!value) {
+          continue;
+        }
+
+        let input = evaluatedForm.querySelector(`input[name="${name}"]`);
+
+        if (!input) {
+          input = evaluatedForm.ownerDocument.createElement('input');
+          input.type = 'hidden';
+          input.name = name;
+          evaluatedForm.appendChild(input);
+        }
+
+        input.value = value;
+      }
+    },
+    {
       model: process.env.SOLUTION_PROOF_AI_MODEL?.trim(),
       provider: process.env.SOLUTION_PROOF_AI_PROVIDER?.trim(),
-    })};
-    for (const [name, value] of Object.entries(values)) {
-      if (!value) continue;
-      let input = form.querySelector('input[name="' + name + '"]');
-      if (!input) {
-        input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = name;
-        form.appendChild(input);
-      }
-      input.value = value;
-    }
-  })()`);
+    },
+  );
 
   if (providerName) {
     await expect(form.locator('input[name="provider"]')).toHaveValue(providerName);
@@ -819,7 +875,12 @@ async function waitForGeneratedFiles(
   return lastPaths;
 }
 
-async function readProjectIdeState(page: Page, projectId: string, token: string) {
+type ProjectIdeState = {
+  files: ProjectFileEntry[];
+  version?: number;
+};
+
+async function readProjectIdeState(page: Page, projectId: string, token: string): Promise<ProjectIdeState | undefined> {
   try {
     const response = await page.request.get(`${API_BASE_URL}/projects/${encodeURIComponent(projectId)}/ide-state`, {
       headers: { authorization: `Bearer ${token}` },
@@ -835,7 +896,7 @@ async function readProjectIdeState(page: Page, projectId: string, token: string)
         version?: number;
         state?: {
           files?: {
-            entries?: Array<{ path?: string; content?: string }>;
+            entries?: ProjectFileEntry[];
           };
         };
       } | null;
@@ -1560,62 +1621,77 @@ async function waitForProjectToSettle(
   token: string,
   message: string,
 ) {
-  let previousRevision: string | undefined;
-  let stableChecks = 0;
-  let lastReportedStableChecks = -1;
+  let fileStability = EMPTY_PROJECT_FILE_STABILITY;
+  let consecutiveIdleReads = 0;
+  let lastReportedStableBucket = -1;
 
   await expect
     .poll(
       async () => {
-        const revision = await projectFilesRevision(page, projectId, token);
+        const projectState = await readProjectIdeState(page, projectId, token);
+        const revision = projectState ? projectFilesRevisionFromEntries(projectState.files) : undefined;
+        const observedAtMs = Date.now();
 
-        if (revision && revision === previousRevision) {
-          stableChecks += 1;
-        } else {
-          stableChecks = 0;
-          previousRevision = revision;
-        }
+        fileStability = observeProjectFileRevision(
+          fileStability,
+          revision,
+          observedAtMs,
+          PROJECT_FILES_MAX_OBSERVATION_GAP_MS,
+        );
 
-        if (stableChecks > 0 && stableChecks % 4 === 0 && stableChecks !== lastReportedStableChecks) {
-          lastReportedStableChecks = stableChecks;
-          process.stdout.write(`${JSON.stringify({ status: 'project-files-stable', stableChecks })}\n`);
-        }
+        const composer = agentPanel.getByRole('textbox', {
+          name: /^(?:Agent prompt|Prompt de l[’']agent)$/i,
+        });
 
-        const composer = agentPanel.getByRole('textbox', { name: 'Agent prompt' });
         const composerReady = await composer.isEnabled().catch(() => false);
 
-        const completedProgress = await agentPanel
-          .locator('[aria-label*="Agent Done"][aria-label*="100%"]')
+        const stopGenerationButton = agentPanel
+          .getByRole('button', {
+            name: /^(?:Stop (?:generation|Claude|agent)|Arrêter (?:la génération|Claude|l[’']agent))$/i,
+          })
+          .first();
+
+        const generationStillRunning = await stopGenerationButton.isVisible().catch(() => false);
+
+        const activeProgressVisible = await agentPanel
+          .locator('.bolt-agent-statusline[data-active-work="true"]')
           .last()
           .isVisible()
           .catch(() => false);
 
-        const stopGenerationButton = agentPanel.getByRole('button', { name: 'Stop generation' }).first();
-        const generationStillRunning = await stopGenerationButton.isVisible().catch(() => false);
+        const uiIdle = composerReady && !generationStillRunning && !activeProgressVisible;
 
-        if (Boolean(revision) && stableChecks >= 12) {
-          /*
-           * The persisted project and the authoritative runtime are the source
-           * of truth for capture readiness. The Agent composer can remain
-           * transiently disabled after its final message while the workspace
-           * reconnects; treating that UI lag as ongoing generation caused a
-           * false 12-minute timeout even though the files were immutable and
-           * port 5173 was serving the generated app. Twelve consecutive stable
-           * revisions are sufficient here because the following source,
-           * runtime, Webview, interaction, console and Problems gates remain
-           * mandatory before a single asset can be promoted.
-           */
-          return true;
+        consecutiveIdleReads = uiIdle ? consecutiveIdleReads + 1 : 0;
+
+        const stableBucket = Math.floor(fileStability.stableForMs / 15_000);
+
+        if (stableBucket > 0 && stableBucket !== lastReportedStableBucket) {
+          lastReportedStableBucket = stableBucket;
+          process.stdout.write(
+            `${JSON.stringify({
+              status: 'project-files-stable',
+              stableForMs: fileStability.stableForMs,
+              unchangedReads: fileStability.unchangedReads,
+              uiIdleReads: consecutiveIdleReads,
+            })}\n`,
+          );
         }
 
+        /*
+         * Do not trust persisted agentExecution annotations here: `/api/chat`
+         * can mark an execution complete before the final lane writes its last
+         * files. Capture readiness requires an uninterrupted persisted-file
+         * quiet window plus repeated evidence that the real Agent UI is idle.
+         */
         return (
-          Boolean(revision) && stableChecks >= 7 && composerReady && (completedProgress || !generationStillRunning)
+          projectFilesAreStable(fileStability, PROJECT_FILES_STABLE_MS, PROJECT_FILES_MIN_UNCHANGED_READS) &&
+          consecutiveIdleReads >= PROJECT_UI_MIN_IDLE_READS
         );
       },
       {
         message,
         intervals: [2_000, 3_000, 5_000],
-        timeout: GENERATION_TIMEOUT_MS,
+        timeout: PROJECT_SETTLE_TIMEOUT_MS,
       },
     )
     .toBe(true);
@@ -1628,17 +1704,26 @@ async function projectFilesRevision(page: Page, projectId: string, token: string
     return undefined;
   }
 
-  const files = [...projectState.files]
-    .sort((left, right) => (left.path ?? '').localeCompare(right.path ?? ''))
-    .map((file) => ({ path: file.path ?? '', content: file.content ?? '' }));
-
-  return createHash('sha256').update(JSON.stringify(files)).digest('hex');
+  return projectFilesRevisionFromEntries(projectState.files);
 }
 
 async function submitAgentPrompt(agentPanel: ReturnType<Page['getByTestId']>, prompt: string) {
-  const composer = agentPanel.getByRole('textbox', { name: 'Agent prompt' });
-  const stopButton = agentPanel.getByRole('button', { name: 'Stop generation' }).first();
-  const quotaBlock = agentPanel.getByText(/quota exceeded|usage limit reached|insufficient credits/i).last();
+  const composer = agentPanel.getByRole('textbox', { name: /^(?:Agent prompt|Prompt de l[’']agent)$/i });
+
+  const stopButton = agentPanel
+    .getByRole('button', {
+      name: /^(?:Stop (?:generation|Claude|agent)|Arrêter (?:la génération|Claude|l[’']agent))$/i,
+    })
+    .first();
+
+  const sendButton = agentPanel.getByRole('button', { name: /^(?:Send message|Envoyer le message)$/i }).last();
+
+  const quotaBlock = agentPanel
+    .getByText(
+      /quota exceeded|usage limit reached|insufficient credits|quota dépassé|limite d.utilisation atteinte|crédits insuffisants/i,
+    )
+    .last();
+
   const preferredAgentMode = process.env.SOLUTION_PROOF_AGENT_MODE?.trim();
 
   await expect(composer).toBeVisible({ timeout: 60_000 });
@@ -1647,12 +1732,34 @@ async function submitAgentPrompt(agentPanel: ReturnType<Page['getByTestId']>, pr
     throw new Error('The proof account has no remaining Agent quota');
   }
 
-  if (await stopButton.isVisible().catch(() => false)) {
-    const completedProgress = agentPanel.locator('[aria-label*="Agent Done"][aria-label*="100%"]').last();
+  if (
+    (await stopButton.isVisible().catch(() => false)) ||
+    (await agentPanel
+      .locator('.bolt-agent-statusline[data-active-work="true"]')
+      .last()
+      .isVisible()
+      .catch(() => false))
+  ) {
+    await expect
+      .poll(
+        async () => {
+          const stopVisible = await stopButton.isVisible().catch(() => false);
 
-    await expect(completedProgress).toBeVisible({ timeout: 60_000 });
-    await stopButton.click();
-    await expect(stopButton).toBeHidden({ timeout: 60_000 });
+          const activeProgressVisible = await agentPanel
+            .locator('.bolt-agent-statusline[data-active-work="true"]')
+            .last()
+            .isVisible()
+            .catch(() => false);
+
+          return !stopVisible && !activeProgressVisible;
+        },
+        {
+          message: 'The previous Agent run must settle before submitting another prompt',
+          intervals: [500, 1_000, 2_000],
+          timeout: AGENT_IDLE_TIMEOUT_MS,
+        },
+      )
+      .toBe(true);
   }
 
   if (preferredAgentMode) {
@@ -1664,7 +1771,45 @@ async function submitAgentPrompt(agentPanel: ReturnType<Page['getByTestId']>, pr
 
   await composer.fill(prompt);
   await expect(composer).toHaveValue(prompt);
-  await composer.press('Enter');
+
+  /*
+   * Locator.press('Enter') can remain attached to a runtime-restart navigation
+   * waiter after React has already submitted the message. Click the real,
+   * localized Send control instead and require a new matching user bubble. A
+   * cleared textarea alone is not proof that the server accepted the prompt.
+   */
+  const bubbles = agentPanel.locator('.bolt-chat-message-row-user');
+  const previousUserBubbleCount = await bubbles.count();
+  const expectedPromptSnippet = normalizeCaptureProofText(prompt).slice(0, 80);
+
+  await expect(sendButton).toBeVisible({ timeout: 30_000 });
+  await expect(sendButton).toBeEnabled({ timeout: 30_000 });
+  await sendButton.click({ timeout: AGENT_SUBMIT_ACTION_TIMEOUT_MS });
+  await expect
+    .poll(
+      async () => {
+        const bubbleCount = await bubbles.count();
+
+        if (bubbleCount <= previousUserBubbleCount) {
+          return false;
+        }
+
+        const lastBubbleText = normalizeCaptureProofText(
+          await bubbles
+            .last()
+            .innerText()
+            .catch(() => ''),
+        );
+
+        return lastBubbleText.includes(expectedPromptSnippet);
+      },
+      {
+        message: 'The Agent must render a new user bubble containing the submitted prompt',
+        intervals: [250, 500, 1_000],
+        timeout: AGENT_SUBMIT_PROOF_TIMEOUT_MS,
+      },
+    )
+    .toBe(true);
 
   if (
     await quotaBlock
@@ -1675,7 +1820,7 @@ async function submitAgentPrompt(agentPanel: ReturnType<Page['getByTestId']>, pr
     throw new Error('The proof account exhausted its Agent quota before updating the project');
   }
 
-  return composer;
+  return bubbles.last();
 }
 
 async function repairGeneratedPreview(
@@ -1687,14 +1832,14 @@ async function repairGeneratedPreview(
 ) {
   const initialRevision = await projectFilesRevision(page, projectId, token);
 
-  await submitAgentPrompt(agentPanel, repairPrompt);
-
-  const repairBubble = agentPanel.locator('.bolt-chat-message-row-user').last();
+  const repairBubble = await submitAgentPrompt(agentPanel, repairPrompt);
 
   await expect(repairBubble).toBeVisible({ timeout: 60_000 });
-  await expect(repairBubble).toContainText(repairPrompt.slice(0, 80), { timeout: 60_000 });
+  await expect(repairBubble).toContainText(normalizeCaptureProofText(repairPrompt).slice(0, 80), {
+    timeout: 60_000,
+  });
 
-  const stopButton = agentPanel.getByRole('button', { name: /^Stop/i }).first();
+  const stopButton = agentPanel.getByRole('button', { name: /^(?:Stop|Arrêter)/i }).first();
 
   await stopButton.waitFor({ state: 'visible', timeout: 120_000 }).catch(() => undefined);
 
@@ -2851,19 +2996,94 @@ async function selectPreviewDevice(page: Page, device: 'desktop' | 'tablet' | 'm
 const CAPTURE_THEMES = ['light', 'dark'] as const satisfies readonly CaptureTheme[];
 
 async function applyCaptureTheme(page: Page, theme: CaptureTheme) {
-  await page.evaluate(`(() => {
-    const nextTheme = ${JSON.stringify(theme)};
-    localStorage.setItem('bolt_theme', nextTheme);
-    document.cookie = 'ecode_theme=' + nextTheme + '; Path=/; Max-Age=31536000; SameSite=Lax';
+  const html = page.locator('html');
 
-    const root = document.documentElement;
-    root.setAttribute('data-theme', nextTheme);
-    root.classList.toggle('dark', nextTheme === 'dark');
-    root.classList.toggle('light', nextTheme === 'light');
-    root.style.colorScheme = nextTheme;
-  })()`);
+  await expect
+    .poll(
+      async () => {
+        const value = await html.getAttribute('data-theme');
 
-  await expect.poll(() => page.locator('html').getAttribute('data-theme')).toBe(theme);
+        return value === 'light' || value === 'dark';
+      },
+      {
+        message: 'The hydrated production IDE must expose its applied light/dark theme',
+        intervals: [100, 250, 500],
+        timeout: 30_000,
+      },
+    )
+    .toBe(true);
+
+  let activeTheme = (await html.getAttribute('data-theme')) as CaptureTheme;
+
+  const persistedTheme = await page.evaluate(() => localStorage.getItem('bolt_theme'));
+  const toggleCount = activeTheme === theme ? (persistedTheme === theme ? 0 : 2) : 1;
+
+  if (toggleCount > 0) {
+    /*
+     * Use the production IDE's existing Appearance control. Mutating
+     * <html data-theme> directly is not a valid theme switch: the nanostore in
+     * App() remains authoritative and its effect immediately restores the old
+     * value. The real button calls toggleTheme(), updating the store,
+     * persistence, cookie and document through the same path a user exercises.
+     */
+    const agentPanel = page.getByTestId('ide-agent-panel');
+
+    const overflowButton = agentPanel
+      .getByRole('button', { name: /^(?:More agent actions|Plus d'actions d'agent)$/i })
+      .last();
+    const themeButton = agentPanel
+      .getByRole('button', { name: /^(?:Switch light\/dark theme|Changer de thème clair\/sombre)$/i })
+      .last();
+
+    for (let toggleIndex = 0; toggleIndex < toggleCount; toggleIndex += 1) {
+      if (!(await themeButton.isVisible().catch(() => false))) {
+        await expect(overflowButton).toBeVisible({ timeout: 60_000 });
+        await overflowButton.click();
+      }
+
+      const expectedAfterToggle: CaptureTheme = activeTheme === 'dark' ? 'light' : 'dark';
+
+      await expect(themeButton).toBeVisible({ timeout: 60_000 });
+      await themeButton.click();
+      await expect
+        .poll(() => html.getAttribute('data-theme'), {
+          message: `The production Appearance control must switch to ${expectedAfterToggle}`,
+          intervals: [100, 250, 500],
+          timeout: 30_000,
+        })
+        .toBe(expectedAfterToggle);
+      activeTheme = expectedAfterToggle;
+    }
+  }
+
+  await expect
+    .poll(() => html.getAttribute('data-theme'), {
+      message: `The production IDE must settle in ${theme} mode through its Appearance control`,
+      intervals: [100, 250, 500, 1_000],
+      timeout: 30_000,
+    })
+    .toBe(theme);
+  await expect
+    .poll(
+      () =>
+        page.evaluate(`(() => ({
+          applied: document.documentElement.getAttribute('data-theme'),
+          darkClass: document.documentElement.classList.contains('dark'),
+          lightClass: document.documentElement.classList.contains('light'),
+          persisted: localStorage.getItem('bolt_theme'),
+        }))()`),
+      {
+        message: `The real Appearance control must apply and persist ${theme} consistently`,
+        intervals: [100, 250, 500],
+        timeout: 30_000,
+      },
+    )
+    .toEqual({
+      applied: theme,
+      darkClass: theme === 'dark',
+      lightClass: theme === 'light',
+      persisted: theme,
+    });
   await page.evaluate(`document.fonts && document.fonts.ready`);
 
   const state = previewSurfaceState(page);
