@@ -160,12 +160,19 @@ seams du sous-classe `PausingSerializingStore`. Elles étaient masquées **deux 
 
 1. `pnpm build` compile depuis `src/server.ts` et suit les imports — il ne typecheck donc
    jamais les specs ;
-2. en CI, le step `Typecheck` était **`skipped`** : la garde i18n échouait avant lui. Et le
-   typecheck racine s'arrête au *web app* (2 erreurs héritées dans `app/root.tsx` et
-   `app/utils/shell.ts`, hors de ce lot), sans jamais atteindre `services/api`.
+2. en CI, le step `Typecheck` était **`skipped`** — la garde i18n échouait avant lui — donc
+   la CI n'a jamais eu l'occasion de les montrer.
 
 Signature corrigée en `PausingSerializingStore` ; `tsc -p tsconfig.json` repasse à **0**.
 Un « tsc strict 0 » rapporté plus tôt dans ce lot mesurait le build, pas les specs.
+
+Précision pour qui rejouerait : lancé ici, le typecheck **racine** s'arrête au *web app* sur
+deux erreurs de résolution (`app/root.tsx`, `app/utils/shell.ts`) et n'atteint jamais
+`services/api`. Ces deux fichiers sont hors de ce lot et inchangés par lui. Ce sont
+**vraisemblablement des artefacts de worktree** — `node_modules` y est un lien vers le
+checkout principal, et `@vibecore/editor/install-pwa-sw` n'y résout pas — et non un
+diagnostic sur la CI : le step CI correspondant n'ayant jamais tourné, on ne peut rien en
+affirmer. D'où le `tsc` exécuté **au niveau `services/api`**, seul périmètre de ce lot.
 
 ### Aucune suite laissée non exécutée
 
