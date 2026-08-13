@@ -1,5 +1,32 @@
 # READY ↔ ReleaseManifest atomicity — fix-forward for the expert refusal (2nd round)
 
+> ### Second expert, re-audit at `b0690bfe` — déjà couvert
+>
+> Un second expert a soulevé cette réserve à un SHA **antérieur** (`b0690bfe`). Elle est
+> couverte par la tête actuelle. Vérification au code, pas sur parole :
+>
+> | Exigé | À la tête |
+> |---|---|
+> | `rollbackable:false`/`manifest_pending` dans CHAQUE mutation static ET server atteignant READY | **10 sites** passent par `sealPendingRollback` |
+> | `true` seulement après manifeste durable | **2 seuls** écrivains du drapeau : le seal (`false`) et `reflectRollbackability` (après `writeReleaseManifest`). Aucun `rollbackable: true` écrit ailleurs |
+> | le site nommé `reconcileDeploymentStatus` (server BUILDING→READY) | scellé dans la même écriture que le flip |
+> | create-immédiat-READY | promote-to-production **et** rollback-to-deployment, tous deux scellés (ils héritaient `true` de la ligne source/cible — fail-open **sans crash**) |
+> | rollbacks serveur | `rollback-to-previous` et rollback-par-digest scellés ; sur ce chemin le manifeste est même écrit **avant** READY |
+> | crash sur transitions RÉELLES, pas une ligne fabriquée | `rollback-ready-transition-crash.spec.ts` pilote les vrais handlers ; `CrashAfterCommitStore` laisse l'écriture réelle **commiter** puis passe DEAD et lève |
+>
+> Rouge→vert rejoué contre la base **avant-lot** (`origin/main`) :
+> **ROUGE 10/10 échouent**, **VERT 10/10 passent**. Les deux formes de fail-open
+> apparaissent — 6× `got undefined` (drapeau ABSENT) et 4× `got true` (HÉRITÉ). Au site
+> exact nommé, l'échec lit :
+> `crashed server promotion: rollbackable must be false, got undefined` — soit la réserve
+> mot pour mot.
+>
+> ⚠️ La réserve du second expert sur le test qui « fabrique une ligne déjà marquée » visait
+> `rollback-crash-atomicity.spec.ts`, conservé du lot refusé. Elle était fondée : ce
+> fichier assertait bien une fixture. Il est resté (il couvre l'idempotence du reconciler),
+> mais ce n'est **plus** lui qui porte la preuve d'atomicité — c'est
+> `rollback-ready-transition-crash.spec.ts`.
+
 Lot Rollback / P0-V3-08. Refused SHA: `b0690bfe1a137912fa39cc1c21ba6c50740acdb3`
 (branch `fix/deploy-rollback-integrity`, PR #94, CHANGES_REQUESTED).
 

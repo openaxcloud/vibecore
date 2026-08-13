@@ -1,0 +1,228 @@
+
+ RUN  v3.2.6 /Users/hb/dev/vibecore-wt-rollback/services/api
+
+ ❯ src/tests/rollback-ready-transition-crash.spec.ts (10 tests | 10 failed) 6413ms
+   × READY↔manifest atomicity, crash injected on the REAL transitions > static publish BUILDING→READY (runDeploymentBuildFlow) > crash right after the READY commit leaves the row FAIL-CLOSED with no manifest 1136ms
+     → crashed static publish: rollbackable must be false, got undefined: expected undefined to be false // Object.is equality
+   × READY↔manifest atomicity, crash injected on the REAL transitions > static publish BUILDING→READY (runDeploymentBuildFlow) > reconciler repairs the crashed row DURABLY on the next read 425ms
+     → expected undefined to be true // Object.is equality
+   × READY↔manifest atomicity, crash injected on the REAL transitions > static publish BUILDING→READY (runDeploymentBuildFlow) > without a crash the flag is true ONLY alongside a durable manifest 456ms
+     → expected undefined to be true // Object.is equality
+   × READY↔manifest atomicity, crash injected on the REAL transitions > server BUILDING→READY (reconcileDeploymentStatus, on read) > crash right after the promotion commit leaves the row FAIL-CLOSED 460ms
+     → crashed server promotion: rollbackable must be false, got undefined: expected undefined to be false // Object.is equality
+   × READY↔manifest atomicity, crash injected on the REAL transitions > server BUILDING→READY (reconcileDeploymentStatus, on read) > with no crash the promotion is completed by the reconciler (manifest, then true) 711ms
+     → expected undefined to be true // Object.is equality
+   × READY↔manifest atomicity, crash injected on the REAL transitions > promote-to-production create-READY > crash right after the create commit leaves the production row FAIL-CLOSED 607ms
+     → promoted production row: rollbackable must be false, got true: expected true to be false // Object.is equality
+   × READY↔manifest atomicity, crash injected on the REAL transitions > promote-to-production create-READY > without a crash the production row gets its OWN production manifest 513ms
+     → expected [] to have a length of 1 but got +0
+   × READY↔manifest atomicity, crash injected on the REAL transitions > server rollback-to-previous READY > crash right after the rollback READY commit leaves the row FAIL-CLOSED 755ms
+     → crashed server rollback: rollbackable must be false, got undefined: expected undefined to be false // Object.is equality
+   × READY↔manifest atomicity, crash injected on the REAL transitions > server rollback-to-previous READY > without a crash the rollback records its manifest BEFORE claiming rollbackable 622ms
+     → expected undefined to be true // Object.is equality
+   × READY↔manifest atomicity, crash injected on the REAL transitions > rollback-to-deployment never inherits the target rollbackable:true 726ms
+     → rollback-to-deployment copy row: rollbackable must be false, got true: expected true to be false // Object.is equality
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 10 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/tests/rollback-ready-transition-crash.spec.ts > READY↔manifest atomicity, crash injected on the REAL transitions > static publish BUILDING→READY (runDeploymentBuildFlow) > crash right after the READY commit leaves the row FAIL-CLOSED with no manifest
+AssertionError: crashed static publish: rollbackable must be false, got undefined: expected undefined to be false // Object.is equality
+
+[32m- Expected:[39m 
+false
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ expectFailClosed src/tests/rollback-ready-transition-crash.spec.ts:146:110
+    144|    * inheritance bug (copied from a source/target row that had its own…
+    145|    */
+    146|   expect(meta.rollbackable, `${note}: rollbackable must be false, got …
+       |                                                                                                              ^
+    147|     false,
+    148|   );
+ ❯ src/tests/rollback-ready-transition-crash.spec.ts:263:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/10]⎯
+
+ FAIL  src/tests/rollback-ready-transition-crash.spec.ts > READY↔manifest atomicity, crash injected on the REAL transitions > static publish BUILDING→READY (runDeploymentBuildFlow) > reconciler repairs the crashed row DURABLY on the next read
+AssertionError: expected undefined to be true // Object.is equality
+
+[32m- Expected:[39m 
+true
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ src/tests/rollback-ready-transition-crash.spec.ts:284:33
+    282| 
+    283|       const meta = (res.json() as { deployment: { metadata: Record<str…
+    284|       expect(meta.rollbackable).toBe(true);
+       |                                 ^
+    285|       expect(meta.rollbackUnavailableReason).toBeUndefined();
+    286| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/10]⎯
+
+ FAIL  src/tests/rollback-ready-transition-crash.spec.ts > READY↔manifest atomicity, crash injected on the REAL transitions > static publish BUILDING→READY (runDeploymentBuildFlow) > without a crash the flag is true ONLY alongside a durable manifest
+AssertionError: expected undefined to be true // Object.is equality
+
+[32m- Expected:[39m 
+true
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ src/tests/rollback-ready-transition-crash.spec.ts:306:77
+    304|       const persisted = await store.getDeployment(projectId, queued.id…
+    305|       expect(persisted!.status).toBe('READY');
+    306|       expect((persisted!.metadata as Record<string, unknown>).rollback…
+       |                                                                             ^
+    307|       expect(await store.listReleaseManifests(projectId, 'preview')).t…
+    308| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/10]⎯
+
+ FAIL  src/tests/rollback-ready-transition-crash.spec.ts > READY↔manifest atomicity, crash injected on the REAL transitions > server BUILDING→READY (reconcileDeploymentStatus, on read) > crash right after the promotion commit leaves the row FAIL-CLOSED
+AssertionError: crashed server promotion: rollbackable must be false, got undefined: expected undefined to be false // Object.is equality
+
+[32m- Expected:[39m 
+false
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ expectFailClosed src/tests/rollback-ready-transition-crash.spec.ts:146:110
+    144|    * inheritance bug (copied from a source/target row that had its own…
+    145|    */
+    146|   expect(meta.rollbackable, `${note}: rollbackable must be false, got …
+       |                                                                                                              ^
+    147|     false,
+    148|   );
+ ❯ src/tests/rollback-ready-transition-crash.spec.ts:371:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/10]⎯
+
+ FAIL  src/tests/rollback-ready-transition-crash.spec.ts > READY↔manifest atomicity, crash injected on the REAL transitions > server BUILDING→READY (reconcileDeploymentStatus, on read) > with no crash the promotion is completed by the reconciler (manifest, then true)
+AssertionError: expected undefined to be true // Object.is equality
+
+[32m- Expected:[39m 
+true
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ src/tests/rollback-ready-transition-crash.spec.ts:387:77
+    385|       const persisted = await store.getDeployment(projectId, building.…
+    386|       expect(persisted!.status).toBe('READY');
+    387|       expect((persisted!.metadata as Record<string, unknown>).rollback…
+       |                                                                             ^
+    388| 
+    389|       const manifests = await store.listReleaseManifests(projectId, 'p…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/10]⎯
+
+ FAIL  src/tests/rollback-ready-transition-crash.spec.ts > READY↔manifest atomicity, crash injected on the REAL transitions > promote-to-production create-READY > crash right after the create commit leaves the production row FAIL-CLOSED
+AssertionError: promoted production row: rollbackable must be false, got true: expected true to be false // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- false[39m
+[31m+ true[39m
+
+ ❯ expectFailClosed src/tests/rollback-ready-transition-crash.spec.ts:146:110
+    144|    * inheritance bug (copied from a source/target row that had its own…
+    145|    */
+    146|   expect(meta.rollbackable, `${note}: rollbackable must be false, got …
+       |                                                                                                              ^
+    147|     false,
+    148|   );
+ ❯ src/tests/rollback-ready-transition-crash.spec.ts:458:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/10]⎯
+
+ FAIL  src/tests/rollback-ready-transition-crash.spec.ts > READY↔manifest atomicity, crash injected on the REAL transitions > promote-to-production create-READY > without a crash the production row gets its OWN production manifest
+AssertionError: expected [] to have a length of 1 but got +0
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- 1[39m
+[31m+ 0[39m
+
+ ❯ src/tests/rollback-ready-transition-crash.spec.ts:476:73
+    474|       // The true is BACKED: a manifest for this row exists in the pro…
+    475|       const production = await store.listReleaseManifests(projectId, '…
+    476|       expect(production.filter((m) => m.deploymentId === promoted!.id)…
+       |                                                                         ^
+    477| 
+    478|       await app.close();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/10]⎯
+
+ FAIL  src/tests/rollback-ready-transition-crash.spec.ts > READY↔manifest atomicity, crash injected on the REAL transitions > server rollback-to-previous READY > crash right after the rollback READY commit leaves the row FAIL-CLOSED
+AssertionError: crashed server rollback: rollbackable must be false, got undefined: expected undefined to be false // Object.is equality
+
+[32m- Expected:[39m 
+false
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ expectFailClosed src/tests/rollback-ready-transition-crash.spec.ts:146:110
+    144|    * inheritance bug (copied from a source/target row that had its own…
+    145|    */
+    146|   expect(meta.rollbackable, `${note}: rollbackable must be false, got …
+       |                                                                                                              ^
+    147|     false,
+    148|   );
+ ❯ src/tests/rollback-ready-transition-crash.spec.ts:563:7
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/10]⎯
+
+ FAIL  src/tests/rollback-ready-transition-crash.spec.ts > READY↔manifest atomicity, crash injected on the REAL transitions > server rollback-to-previous READY > without a crash the rollback records its manifest BEFORE claiming rollbackable
+AssertionError: expected undefined to be true // Object.is equality
+
+[32m- Expected:[39m 
+true
+
+[31m+ Received:[39m 
+undefined
+
+ ❯ src/tests/rollback-ready-transition-crash.spec.ts:596:79
+    594| 
+    595|       const rollbackRow = (await store.listDeployments(projectId)).fin…
+    596|       expect((rollbackRow!.metadata as Record<string, unknown>).rollba…
+       |                                                                               ^
+    597| 
+    598|       const manifests = await store.listReleaseManifests(projectId, 'p…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/10]⎯
+
+ FAIL  src/tests/rollback-ready-transition-crash.spec.ts > READY↔manifest atomicity, crash injected on the REAL transitions > rollback-to-deployment never inherits the target rollbackable:true
+AssertionError: rollback-to-deployment copy row: rollbackable must be false, got true: expected true to be false // Object.is equality
+
+[32m- Expected[39m
+[31m+ Received[39m
+
+[32m- false[39m
+[31m+ true[39m
+
+ ❯ expectFailClosed src/tests/rollback-ready-transition-crash.spec.ts:146:110
+    144|    * inheritance bug (copied from a source/target row that had its own…
+    145|    */
+    146|   expect(meta.rollbackable, `${note}: rollbackable must be false, got …
+       |                                                                                                              ^
+    147|     false,
+    148|   );
+ ❯ src/tests/rollback-ready-transition-crash.spec.ts:633:5
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/10]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  10 failed (10)
+   Start at  09:09:23
+   Duration  8.84s (transform 1.25s, setup 0ms, collect 2.20s, tests 6.41s, environment 0ms, prepare 61ms)
+

@@ -36,9 +36,13 @@ run_spec() {
      --pool=forks --poolOptions.forks.singleFork=true "$SPEC" 2>&1) | grep -vE '^\{"level"'
 }
 
-PARENT="$(git rev-parse HEAD^)"
+# Référence AVANT-lot. `HEAD^` ne convient pas : au fil des commits de preuve, le parent
+# immédiat contient déjà le correctif et la phase ROUGE devient muette. On prend donc la
+# base sur laquelle le lot a été rebasé (origin/main), qui ne contient rien du lot.
+# Surchargeable : BASELINE=<ref> bash scripts/prove-rollback-ready-atomicity.sh
+PARENT="$(git rev-parse "${BASELINE:-origin/main}")"
 
-echo "=== [1/2] RED — fix reverted to parent $PARENT, spec unchanged ====="
+echo "=== [1/2] RED — sources ramenées à $PARENT (avant-lot), spec inchangée ====="
 # Always put the fix back, even if the RED run explodes or the script is interrupted.
 trap 'git checkout --quiet HEAD -- "${FIXED_SOURCES[@]}"' EXIT INT TERM
 git checkout --quiet "$PARENT" -- "${FIXED_SOURCES[@]}"
