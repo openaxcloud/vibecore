@@ -38,6 +38,46 @@ export const REPORTER_SCRIPT = `(function () {
   }
 
   /*
+   * A per-document token lets the parent reject a delayed message from the
+   * previous document. iframe.contentWindow is a persistent WindowProxy and
+   * therefore cannot, on its own, prove which navigation emitted a message.
+   */
+  var previewDocumentId = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2);
+  var parentEpoch = '';
+  var currentLifecycleState = 'document';
+  function sendLifecycle(type, extra) {
+    currentLifecycleState = type === 'PREVIEW_DOCUMENT' ? currentLifecycleState : type;
+    if (type !== 'PREVIEW_DOCUMENT') {
+      send({
+        type: 'PREVIEW_DOCUMENT',
+        documentId: previewDocumentId,
+        epoch: parentEpoch,
+        url: location.href,
+        ts: Date.now(),
+      });
+    }
+    send(
+      Object.assign(
+        { type: type, documentId: previewDocumentId, epoch: parentEpoch, url: location.href, ts: Date.now() },
+        extra,
+      ),
+    );
+  }
+  sendLifecycle('PREVIEW_DOCUMENT');
+  window.addEventListener('message', function (event) {
+    if (
+      event.source !== window.parent ||
+      !event.data ||
+      event.data.type !== 'PREVIEW_EPOCH' ||
+      typeof event.data.epoch !== 'string'
+    ) {
+      return;
+    }
+    parentEpoch = event.data.epoch;
+    sendLifecycle(currentLifecycleState);
+  });
+
+  /*
    * Remember the last uncaught error message so the blank-preview overlay can
    * name the real cause (e.g. "Cannot redefine property: process") instead of a
    * generic "never rendered". Set by the error/unhandledrejection handlers.
@@ -106,12 +146,471 @@ export const REPORTER_SCRIPT = `(function () {
    * avoid false-positives on a slow-but-fine cold boot.
    */
   function mountIsEmpty() {
-    var mount = document.getElementById('root') || document.getElementById('app');
-    if (!mount) {
-      return false; // no SPA mount node → a static/multi-page doc, not our case.
+    return !mountIsSubstantial();
+  }
+
+  function transformIsCollapsed(transform) {
+    var normalized = String(transform || '').replace(/\\s/g, '').toLowerCase();
+    if (!normalized || normalized === 'none') {
+      return false;
     }
-    var bodyText = ((document.body && document.body.innerText) || '').trim();
-    return mount.children.length === 0 && bodyText.length === 0;
+    if (/^scale(?:3d|x|y)?\\(0(?:[,)]|$)/.test(normalized)) {
+      return true;
+    }
+    var matrix = normalized.match(/^matrix\\(([^)]*)\\)$/);
+    if (matrix) {
+      var values = matrix[1].split(',').map(Number);
+      return values.length === 6 && Math.abs(values[0] * values[3] - values[1] * values[2]) < 0.000001;
+    }
+    var matrix3d = normalized.match(/^matrix3d\\(([^)]*)\\)$/);
+    if (matrix3d) {
+      var entries = matrix3d[1].split(',').map(Number);
+      return entries.length === 16 && Math.abs(entries[0] * entries[5] * entries[10]) < 0.000001;
+    }
+    return false;
+  }
+
+  function transformIsOffscreen(transform) {
+    var normalized = String(transform || '').replace(/\\s/g, '').toLowerCase();
+    var translated = normalized.match(/translate(?:3d|x|y)?\\(([-+]?\\d+(?:\\.\\d+)?)px/);
+    return Boolean(translated && Math.abs(Number(translated[1])) > Math.max(window.innerWidth || 0, window.innerHeight || 0));
+  }
+
+  function elementCssIsVisible(element) {
+    try {
+      if (typeof element.checkVisibility === 'function' && !element.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) {
+        return false;
+      }
+      var current = element;
+      while (current && current.nodeType !== 9) {
+        if (window.getComputedStyle) {
+          var currentStyle = window.getComputedStyle(current);
+          if (
+            currentStyle.display === 'none' ||
+            currentStyle.visibility === 'hidden' ||
+            Number(currentStyle.opacity) === 0 ||
+            transformIsCollapsed(currentStyle.transform || '') ||
+            transformIsOffscreen(currentStyle.transform || '') ||
+            /opacity\\(\\s*(?:0(?:\\.0+)?|0%)\\s*\\)/i.test(currentStyle.filter || '') ||
+            /rect\\(\\s*0(?:px)?(?:\\s*,?\\s*0(?:px)?){3}\\s*\\)/i.test(currentStyle.clip || '') ||
+            /(?:circle|ellipse)\\(\\s*0(?:px|%|em|rem)?(?:\\s+0(?:px|%|em|rem)?)?/i.test(
+              currentStyle.clipPath || '',
+            ) ||
+            /inset\\(\\s*(?:100%|[5-9]\\d(?:\\.\\d+)?%)(?:\\s+(?:100%|[5-9]\\d(?:\\.\\d+)?%)){0,3}\\s*\\)/i.test(
+              currentStyle.clipPath || '',
+            ) ||
+            maskIsFullyTransparent(currentStyle.maskImage || currentStyle.webkitMaskImage || '')
+          ) {
+            return false;
+          }
+        }
+        current = current.parentElement || current.parentNode;
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function colorTokenIsTransparent(token) {
+    var normalized = String(token || '').replace(/\\s/g, '').toLowerCase();
+    return (
+      normalized === 'transparent' ||
+      /rgba\\([^)]*,0(?:\\.0+)?\\)$/.test(normalized) ||
+      /hsla\\([^)]*,0(?:\\.0+)?\\)$/.test(normalized) ||
+      /(?:rgb|hsl)\\([^)]*\\/0(?:\\.0+)?\\)$/.test(normalized)
+    );
+  }
+
+  function maskIsFullyTransparent(maskImage) {
+    var normalized = String(maskImage || '').trim().toLowerCase();
+    if (!normalized || normalized === 'none') {
+      return false;
+    }
+    var colors = normalized.match(/transparent|rgba?\\([^)]*\\)|hsla?\\([^)]*\\)/g) || [];
+    return colors.length > 0 && colors.every(colorTokenIsTransparent);
+  }
+
+  function rectHasPaintedArea(element, rect, includeElementClip, positionOverride) {
+    try {
+      if (!elementCssIsVisible(element) || !rect) {
+        return false;
+      }
+      var left = Number.isFinite(Number(rect.left)) ? Number(rect.left) : Number(rect.x) || 0;
+      var top = Number.isFinite(Number(rect.top)) ? Number(rect.top) : Number(rect.y) || 0;
+      var right = Number.isFinite(Number(rect.right)) ? Number(rect.right) : left + (Number(rect.width) || 0);
+      var bottom = Number.isFinite(Number(rect.bottom)) ? Number(rect.bottom) : top + (Number(rect.height) || 0);
+      var viewportWidth = typeof window.innerWidth === 'number' ? window.innerWidth : Number.POSITIVE_INFINITY;
+      var viewportHeight = typeof window.innerHeight === 'number' ? window.innerHeight : Number.POSITIVE_INFINITY;
+      left = Math.max(left, 0);
+      top = Math.max(top, 0);
+      right = Math.min(right, viewportWidth);
+      bottom = Math.min(bottom, viewportHeight);
+      if (right <= left || bottom <= top) {
+        return false;
+      }
+
+      var elementStyle = window.getComputedStyle ? window.getComputedStyle(element) : null;
+      var fixedEscapesAncestors = positionOverride === 'fixed' || Boolean(elementStyle && elementStyle.position === 'fixed');
+      var ancestor = includeElementClip ? element : element.parentElement || element.parentNode;
+      while (ancestor && ancestor.nodeType !== 9) {
+        if (window.getComputedStyle && typeof ancestor.getBoundingClientRect === 'function') {
+          var ancestorStyle = window.getComputedStyle(ancestor);
+          if (fixedEscapesAncestors) {
+            var establishesFixedContainingBlock =
+              (ancestorStyle.transform && ancestorStyle.transform !== 'none') ||
+              (ancestorStyle.perspective && ancestorStyle.perspective !== 'none') ||
+              (ancestorStyle.filter && ancestorStyle.filter !== 'none') ||
+              (ancestorStyle.backdropFilter && ancestorStyle.backdropFilter !== 'none') ||
+              /(^|\\s)(layout|paint|strict|content)(\\s|$)/.test(ancestorStyle.contain || '') ||
+              /(^|,|\\s)(transform|perspective|filter)(,|\\s|$)/.test(ancestorStyle.willChange || '');
+            if (!establishesFixedContainingBlock) {
+              ancestor = ancestor.parentElement || ancestor.parentNode;
+              continue;
+            }
+            fixedEscapesAncestors = false;
+          }
+            var overflowX = ancestorStyle.overflowX || ancestorStyle.overflow || 'visible';
+            var overflowY = ancestorStyle.overflowY || ancestorStyle.overflow || 'visible';
+            var clipsX = /^(auto|clip|hidden|scroll)$/.test(overflowX);
+            var clipsY = /^(auto|clip|hidden|scroll)$/.test(overflowY);
+            if (clipsX || clipsY) {
+              var ancestorRect = ancestor.getBoundingClientRect();
+              var ancestorLeft = Number.isFinite(Number(ancestorRect.left))
+                ? Number(ancestorRect.left)
+                : Number(ancestorRect.x) || 0;
+              var ancestorTop = Number.isFinite(Number(ancestorRect.top))
+                ? Number(ancestorRect.top)
+                : Number(ancestorRect.y) || 0;
+              var ancestorRight = Number.isFinite(Number(ancestorRect.right))
+                ? Number(ancestorRect.right)
+                : ancestorLeft + (Number(ancestorRect.width) || 0);
+              var ancestorBottom = Number.isFinite(Number(ancestorRect.bottom))
+                ? Number(ancestorRect.bottom)
+                : ancestorTop + (Number(ancestorRect.height) || 0);
+              if (clipsX) {
+                left = Math.max(left, ancestorLeft);
+                right = Math.min(right, ancestorRight);
+              }
+              if (clipsY) {
+                top = Math.max(top, ancestorTop);
+                bottom = Math.min(bottom, ancestorBottom);
+              }
+              if (right <= left || bottom <= top) {
+                return false;
+              }
+            }
+        }
+        ancestor = ancestor.parentElement || ancestor.parentNode;
+      }
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function elementHasPaintedArea(element) {
+    if (!element || typeof element.getBoundingClientRect !== 'function') {
+      return false;
+    }
+    return rectHasPaintedArea(element, element.getBoundingClientRect());
+  }
+
+  function elementHasPaintedText(element) {
+    try {
+      if (!elementCssIsVisible(element)) {
+        return false;
+      }
+      if (window.getComputedStyle) {
+        var textStyle = window.getComputedStyle(element);
+        var textColor = String(textStyle.color || '').replace(/\\s/g, '').toLowerCase();
+        var textFillColor = String(textStyle.webkitTextFillColor || '').replace(/\\s/g, '').toLowerCase();
+        var transparentColor = colorTokenIsTransparent(textColor);
+        var transparentFill = colorTokenIsTransparent(textFillColor);
+        var gradientText =
+          String(textStyle.backgroundClip || textStyle.webkitBackgroundClip || '').indexOf('text') !== -1 &&
+          textStyle.backgroundImage &&
+          textStyle.backgroundImage !== 'none';
+        var effectiveTextIsTransparent = textFillColor ? transparentFill : transparentColor;
+        if (effectiveTextIsTransparent && !gradientText) {
+          return false;
+        }
+      }
+      var childNodes = element.childNodes;
+      if (childNodes && typeof document.createRange === 'function') {
+        for (var nodeIndex = 0; nodeIndex < childNodes.length; nodeIndex += 1) {
+          var node = childNodes[nodeIndex];
+          if (node.nodeType !== 3 || !String(node.textContent || '').trim()) {
+            continue;
+          }
+          var range = document.createRange();
+          range.selectNodeContents(node);
+          var rects = range.getClientRects();
+          for (var rectIndex = 0; rectIndex < rects.length; rectIndex += 1) {
+            if (rectHasPaintedArea(element, rects[rectIndex], true)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+      return Boolean(String(element.textContent || '').trim()) && elementHasPaintedArea(element);
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function colorHasVisibleAlpha(color) {
+    return Boolean(String(color || '').trim()) && !colorTokenIsTransparent(color);
+  }
+
+  function styleHasPaint(style) {
+    if (!style) {
+      return false;
+    }
+    var backgroundImage = String(style.backgroundImage || '').trim().toLowerCase();
+    var backgroundSize = String(style.backgroundSize || '').replace(/\\s/g, '').toLowerCase();
+    var hasBackgroundImage =
+      backgroundImage &&
+      backgroundImage !== 'none' &&
+      !maskIsFullyTransparent(backgroundImage) &&
+      !/^(?:0(?:px|%)?)(?:0(?:px|%)?)?$/.test(backgroundSize);
+    var hasBackgroundColor = colorHasVisibleAlpha(style.backgroundColor);
+    var shadow = String(style.boxShadow || '').trim().toLowerCase();
+    var hasShadow = shadow !== '' && shadow !== 'none' && !maskIsFullyTransparent(shadow);
+    var sides = ['Top', 'Right', 'Bottom', 'Left'];
+    var hasBorder = sides.some(function (side) {
+      var width = parseFloat(style['border' + side + 'Width'] || '0');
+      var borderStyle = String(style['border' + side + 'Style'] || '').toLowerCase();
+      return width > 0 && borderStyle !== 'none' && borderStyle !== 'hidden' && colorHasVisibleAlpha(style['border' + side + 'Color']);
+    });
+    return Boolean(hasBackgroundImage || hasBackgroundColor || hasShadow || hasBorder);
+  }
+
+  function pseudoHasPaint(element, pseudo) {
+    try {
+      if (!window.getComputedStyle || !elementCssIsVisible(element)) {
+        return false;
+      }
+      var style = window.getComputedStyle(element, pseudo);
+      if (
+        style.display === 'none' ||
+        style.visibility === 'hidden' ||
+        Number(style.opacity) === 0 ||
+        transformIsCollapsed(style.transform || '') ||
+        transformIsOffscreen(style.transform || '') ||
+        /opacity\\(\\s*(?:0(?:\\.0+)?|0%)\\s*\\)/i.test(style.filter || '') ||
+        /rect\\(\\s*0(?:px)?(?:\\s*,?\\s*0(?:px)?){3}\\s*\\)/i.test(style.clip || '') ||
+        /(?:circle|ellipse)\\(\\s*0(?:px|%|em|rem)?(?:\\s+0(?:px|%|em|rem)?)?/i.test(style.clipPath || '') ||
+        /inset\\(\\s*(?:100%|[5-9]\\d(?:\\.\\d+)?%)(?:\\s+(?:100%|[5-9]\\d(?:\\.\\d+)?%)){0,3}\\s*\\)/i.test(
+          style.clipPath || '',
+        ) ||
+        maskIsFullyTransparent(style.maskImage || style.webkitMaskImage || '')
+      ) {
+        return false;
+      }
+      var content = String(style.content || '').trim();
+      if (!content || content === 'none' || content === 'normal') {
+        return false;
+      }
+      var gradientText =
+        String(style.backgroundClip || style.webkitBackgroundClip || '').indexOf('text') !== -1 &&
+        style.backgroundImage &&
+        style.backgroundImage !== 'none';
+      var fill = String(style.webkitTextFillColor || '').trim();
+      var visibleText = fill ? colorHasVisibleAlpha(fill) : colorHasVisibleAlpha(style.color);
+      var hasPaint = Boolean(
+        styleHasPaint(style) || ((content !== '""' && content !== "''") && (visibleText || gradientText)),
+      );
+      if (!hasPaint) {
+        return false;
+      }
+      if (style.position !== 'fixed' && style.position !== 'absolute') {
+        return elementHasPaintedArea(element);
+      }
+      var viewportWidth = typeof window.innerWidth === 'number' ? window.innerWidth : 0;
+      var viewportHeight = typeof window.innerHeight === 'number' ? window.innerHeight : 0;
+      var hostRect = typeof element.getBoundingClientRect === 'function' ? element.getBoundingClientRect() : null;
+      var originLeft = style.position === 'absolute' && hostRect ? Number(hostRect.left || hostRect.x || 0) : 0;
+      var originTop = style.position === 'absolute' && hostRect ? Number(hostRect.top || hostRect.y || 0) : 0;
+      var left = Number.parseFloat(style.left);
+      var right = Number.parseFloat(style.right);
+      var top = Number.parseFloat(style.top);
+      var bottom = Number.parseFloat(style.bottom);
+      left = originLeft + (Number.isFinite(left) ? left : 0);
+      right = Number.isFinite(right) ? right : 0;
+      top = originTop + (Number.isFinite(top) ? top : 0);
+      bottom = Number.isFinite(bottom) ? bottom : 0;
+      var width = Number.parseFloat(style.width);
+      var height = Number.parseFloat(style.height);
+      var containingWidth = style.position === 'absolute' && hostRect ? Number(hostRect.width) || viewportWidth : viewportWidth;
+      var containingHeight = style.position === 'absolute' && hostRect ? Number(hostRect.height) || viewportHeight : viewportHeight;
+      width = Number.isFinite(width) && width > 0 ? width : Math.max(0, containingWidth - (left - originLeft) - right);
+      height = Number.isFinite(height) && height > 0 ? height : Math.max(0, containingHeight - (top - originTop) - bottom);
+      return rectHasPaintedArea(
+        element,
+        { left: left, top: top, right: left + width, bottom: top + height, width: width, height: height },
+        true,
+        style.position,
+      );
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function elementHasPaintedDecoration(element) {
+    if (!window.getComputedStyle) {
+      return false;
+    }
+    var style = window.getComputedStyle(element);
+    return (
+      (elementHasPaintedArea(element) && styleHasPaint(style)) ||
+      pseudoHasPaint(element, '::before') ||
+      pseudoHasPaint(element, '::after')
+    );
+  }
+
+  function canvasHasPaintedPixels(canvas) {
+    try {
+      if (!elementHasPaintedArea(canvas)) {
+        return false;
+      }
+      var sampleCanvas = document.createElement('canvas');
+      var sampleWidth = Math.min(Math.max(1, Number(canvas.width) || 1), 64);
+      var sampleHeight = Math.min(Math.max(1, Number(canvas.height) || 1), 64);
+      sampleCanvas.width = sampleWidth;
+      sampleCanvas.height = sampleHeight;
+      var context = sampleCanvas.getContext('2d', { willReadFrequently: true });
+      if (!context || typeof context.getImageData !== 'function') {
+        return false;
+      }
+      context.drawImage(canvas, 0, 0, sampleWidth, sampleHeight);
+      var data = context.getImageData(0, 0, sampleWidth, sampleHeight).data;
+      for (var index = 3; index < data.length; index += 4) {
+        if (data[index] > 0) {
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      // Pixel opacity is unknowable after a security exception; fail closed.
+      return false;
+    }
+  }
+
+  function svgHasPaintedContent(svg) {
+    if (!elementHasPaintedArea(svg) || !svg.querySelectorAll) {
+      return false;
+    }
+    var shapes = svg.querySelectorAll('path,rect,circle,ellipse,line,polyline,polygon,text,image,use');
+    for (var index = 0; index < shapes.length; index += 1) {
+      var shape = shapes[index];
+      if (!elementHasPaintedArea(shape) || !window.getComputedStyle) {
+        continue;
+      }
+      var style = window.getComputedStyle(shape);
+      var fill = String(style.fill || shape.getAttribute && shape.getAttribute('fill') || '').trim();
+      var stroke = String(style.stroke || shape.getAttribute && shape.getAttribute('stroke') || '').trim();
+      var fillOpacity = Number(style.fillOpacity || shape.getAttribute && shape.getAttribute('fill-opacity') || '1');
+      var strokeOpacity = Number(style.strokeOpacity || shape.getAttribute && shape.getAttribute('stroke-opacity') || '1');
+      var strokeWidth = Number.parseFloat(style.strokeWidth || shape.getAttribute && shape.getAttribute('stroke-width') || '0');
+      if (
+        (fill !== 'none' && fillOpacity > 0 && colorHasVisibleAlpha(fill)) ||
+        (stroke !== 'none' && strokeOpacity > 0 && strokeWidth > 0 && colorHasVisibleAlpha(stroke))
+      ) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function imageHasPaintedPixels(image) {
+    try {
+      if (!elementHasPaintedArea(image) || !image.complete || !image.naturalWidth || !image.naturalHeight) {
+        return false;
+      }
+      var canvas = document.createElement('canvas');
+      var sampleWidth = Math.min(Number(image.naturalWidth), 64);
+      var sampleHeight = Math.min(Number(image.naturalHeight), 64);
+      canvas.width = sampleWidth;
+      canvas.height = sampleHeight;
+      var context = canvas.getContext('2d', { willReadFrequently: true });
+      if (!context) {
+        return false;
+      }
+      context.drawImage(image, 0, 0, sampleWidth, sampleHeight);
+      var data = context.getImageData(0, 0, sampleWidth, sampleHeight).data;
+      for (var index = 3; index < data.length; index += 4) {
+        if (data[index] > 0) {
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      // Pixel opacity is unknowable after a security exception; fail closed.
+      return false;
+    }
+  }
+
+  function visualHasPaintedContent(visual) {
+    var tagName = String(visual.tagName || '').toLowerCase();
+    if (tagName === 'canvas') {
+      return canvasHasPaintedPixels(visual);
+    }
+    if (tagName === 'svg') {
+      return svgHasPaintedContent(visual);
+    }
+    if (tagName === 'img') {
+      return imageHasPaintedPixels(visual);
+    }
+    return elementHasPaintedArea(visual);
+  }
+
+  function mountIsSubstantial() {
+    try {
+      var mount = document.getElementById('root') || document.getElementById('app');
+      var surface = mount || document.body;
+      if (!surface || (surface.id && surface.id === OVERLAY_ID)) {
+        return false;
+      }
+      if (!elementCssIsVisible(surface)) {
+        return false;
+      }
+      var overlay = document.getElementById(OVERLAY_ID);
+      var textContainers = surface.querySelectorAll ? surface.querySelectorAll('*') : [];
+      if (elementHasPaintedText(surface)) {
+        return true;
+      }
+      if (elementHasPaintedDecoration(surface)) {
+        return true;
+      }
+      for (var textIndex = 0; textIndex < textContainers.length; textIndex += 1) {
+        var textContainer = textContainers[textIndex];
+        if (textContainer !== overlay && !(textContainer.closest && textContainer.closest('#' + OVERLAY_ID))) {
+          if (elementHasPaintedText(textContainer)) {
+            return true;
+          }
+          if (elementHasPaintedDecoration(textContainer)) {
+            return true;
+          }
+        }
+      }
+      var visuals = surface.querySelectorAll
+        ? surface.querySelectorAll('img[src],canvas,video,svg,input,button,textarea,select,[role="img"]')
+        : [];
+      for (var i = 0; i < visuals.length; i += 1) {
+        var visual = visuals[i];
+        if (visual.id === OVERLAY_ID || (visual.closest && visual.closest('#' + OVERLAY_ID))) {
+          continue;
+        }
+        if (visualHasPaintedContent(visual)) {
+          return true;
+        }
+      }
+      return false;
+    } catch (error) {
+      return false;
+    }
   }
 
   /*
@@ -185,6 +684,100 @@ export const REPORTER_SCRIPT = `(function () {
     }
   }
 
+  var mountReported = false;
+  var previewOkReported = false;
+  var mountObservationGeneration = 0;
+  var stableMountGeneration = 0;
+  var stableMountPending = false;
+  var stableMountReadyAt = 0;
+  var reblankGeneration = 0;
+  var reblankPending = false;
+  function observeMount() {
+    mountObservationGeneration += 1;
+    if (mountIsSubstantial()) {
+      reblankGeneration += 1;
+      reblankPending = false;
+      if (!mountReported) {
+        mountReported = true;
+        sendLifecycle('PREVIEW_MOUNTED');
+      }
+      if (stableMountPending || previewOkReported) {
+        return;
+      }
+      stableMountPending = true;
+      stableMountReadyAt = Date.now() + 750;
+      var stableGeneration = stableMountGeneration;
+      function proveStableMount() {
+        var remaining = stableMountReadyAt - Date.now();
+        if (remaining > 0) {
+          setTimeout(proveStableMount, remaining);
+          return;
+        }
+        stableMountPending = false;
+        if (stableGeneration !== stableMountGeneration || !mountIsSubstantial() || previewOkReported) {
+          return;
+        }
+        previewOkReported = true;
+        blankReported = false;
+        sendLifecycle('PREVIEW_OK');
+        try {
+          var overlay = document.getElementById(OVERLAY_ID);
+          if (overlay && typeof overlay.remove === 'function') {
+            overlay.remove();
+          }
+        } catch (error) {
+          // best-effort cleanup; never break the mounted app.
+        }
+      }
+      setTimeout(proveStableMount, 750);
+      return;
+    }
+
+    mountReported = false;
+    stableMountGeneration += 1;
+    stableMountPending = false;
+    stableMountReadyAt = 0;
+    if (previewOkReported) {
+      previewOkReported = false;
+      blankReported = false;
+      if (!reblankPending) {
+        reblankPending = true;
+        var reblankToken = reblankGeneration;
+        setTimeout(function () {
+          reblankPending = false;
+          if (reblankToken === reblankGeneration && !mountIsSubstantial()) {
+            reportBlank();
+          }
+        }, 1500);
+      }
+    }
+  }
+
+  function installMountObserver() {
+    if (!document.body) {
+      window.addEventListener('DOMContentLoaded', installMountObserver, { once: true });
+      return;
+    }
+    observeMount();
+    try {
+      if (window.MutationObserver && document.body) {
+        var observer = new window.MutationObserver(observeMount);
+        observer.observe(document.body, {
+          childList: true,
+          subtree: true,
+          characterData: true,
+          attributes: true,
+          attributeFilter: ['class', 'style', 'hidden'],
+        });
+      }
+    } catch (error) {
+      // Initial/load checks below remain as a bounded fallback.
+    }
+    [250, 1000, 3000, 10000].forEach(function (delay) {
+      setTimeout(observeMount, delay);
+    });
+  }
+
   var blankReported = false;
   function reportBlank() {
     if (blankReported || !mountIsEmpty()) {
@@ -194,9 +787,9 @@ export const REPORTER_SCRIPT = `(function () {
     var message = lastErrorMessage
       ? 'Preview served but the app never mounted: ' + lastErrorMessage
       : 'Preview served but the app never mounted';
-    var payload = { type: 'PREVIEW_BLANK', message: message, url: location.href, ts: Date.now() };
-    send(payload);
-    beaconPreviewState('blank', payload.url, lastErrorMessage);
+    var payload = { message: message };
+    sendLifecycle('PREVIEW_BLANK', payload);
+    beaconPreviewState('blank', location.href, lastErrorMessage);
     renderBlankOverlay(lastErrorMessage);
   }
 
@@ -213,6 +806,7 @@ export const REPORTER_SCRIPT = `(function () {
       return;
     }
     assetErrorReported = true;
+    send({ type: 'PREVIEW_ERROR', message: detail, ts: Date.now() });
     beaconPreviewState('error', location.href, detail);
   }
 
@@ -294,10 +888,14 @@ export const REPORTER_SCRIPT = `(function () {
   }
 
   setTimeout(function () {
-    if (mountIsEmpty()) {
-      setTimeout(reportBlank, 8000);
+    if (!previewOkReported && mountIsEmpty()) {
+      reportBlank();
+    } else if (!previewOkReported) {
+      observeMount();
     }
-  }, 10000);
+  }, 18000);
+
+  installMountObserver();
 
   var levels = ['log', 'info', 'warn', 'error', 'debug'];
   levels.forEach(function (level) {

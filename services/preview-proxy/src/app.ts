@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { Readable } from 'node:stream';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
+import { parse } from 'parse5';
 
 import { INSPECTOR_SCRIPT } from './inspector-script.js';
 import { attachPreviewWebSocketProxy } from './preview-ws-proxy.js';
@@ -163,7 +164,8 @@ const INSPECTOR_MARKER = 'data-vibecore-inspector';
  * which load public/vibecore-preview-reporter.js directly. Served same-origin so
  * it loads under a `script-src 'self'` CSP on the proxied app.
  */
-const REPORTER_SCRIPT_PATH = '/__vibecore/preview-reporter.js';
+const REPORTER_SCRIPT_PATH = '/__vibecore/preview-reporter.v2.js';
+const LEGACY_REPORTER_SCRIPT_PATH = '/__vibecore/preview-reporter.js';
 const REPORTER_MARKER = 'data-vibecore-reporter';
 
 /** Beacon endpoint the reporter posts to when a served page never mounts (blank preview). */
@@ -656,12 +658,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    * load it under a `script-src 'self'` policy. Forwards runtime errors to the
    * IDE Console tab for remote previews.
    */
-  app.get(REPORTER_SCRIPT_PATH, async (_request, reply) => {
+  const serveReporterScript = async (_request: unknown, reply: FastifyReply) => {
     reply.header('content-type', 'application/javascript; charset=utf-8');
-    reply.header('cache-control', 'public, max-age=3600');
+    reply.header('cache-control', 'no-cache, no-store, must-revalidate');
 
     return reply.send(REPORTER_SCRIPT);
-  });
+  };
+  app.get(REPORTER_SCRIPT_PATH, serveReporterScript);
+  app.get(LEGACY_REPORTER_SCRIPT_PATH, serveReporterScript);
 
   /*
    * Blank-preview beacon. The injected reporter posts here (navigator.sendBeacon)
@@ -671,9 +675,12 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
    */
   app.post(BLANK_PREVIEW_PATH, async (request, reply) => {
     let url = 'unknown';
-    // Tri-state readiness signal from the reporter: 'blank' (never mounted) is the
-    // default for back-compat with older reporters that posted only { url }, and
-    // 'error' is a broken-but-rendered app (failed stylesheet/script — #5).
+
+    /*
+     * Tri-state readiness signal from the reporter: 'blank' (never mounted) is the
+     * default for back-compat with older reporters that posted only { url }, and
+     * 'error' is a broken-but-rendered app (failed stylesheet/script — #5).
+     */
     let status: 'blank' | 'error' = 'blank';
     let detail: string | undefined;
 
@@ -810,10 +817,10 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
 
     // (3) Interroger l'autorité.
     try {
-      const response = await fetchImpl(
-        `${apiBaseUrl}/deployments/${encodeURIComponent(deploymentId)}/serving-state`,
-        { method: 'GET', headers: { accept: 'application/json' } },
-      );
+      const response = await fetchImpl(`${apiBaseUrl}/deployments/${encodeURIComponent(deploymentId)}/serving-state`, {
+        method: 'GET',
+        headers: { accept: 'application/json' },
+      });
 
       if (!response.ok) {
         return 'unknown';
@@ -984,6 +991,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     }
 
     const publicHost = (request.headers.host ?? '').split(':')[0].trim().toLowerCase();
+
     const headers: Record<string, string> = {
       'x-vibecore-static-deploy': deploymentId,
       ...(publicHost ? { 'x-forwarded-host': publicHost } : {}),
@@ -1492,6 +1500,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
        */
       const upstreamCt = upstreamResponse.headers.get('content-type') ?? '';
       const upstreamLenHeader = upstreamResponse.headers.get('content-length');
+
       const isNotReadyStatus =
         upstreamResponse.status === 404 || upstreamResponse.status === 502 || upstreamResponse.status === 503;
 
@@ -1553,9 +1562,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           lower === 'transfer-encoding' ||
           lower === 'connection' ||
           lower === 'keep-alive' ||
-          // length no longer matches the decoded body
-          (upstreamWasEncoded && lower === 'content-length') ||
-          // recomputed after a possible body rewrite below
+          (upstreamWasEncoded && lower === 'content-length') || // length no longer matches the decoded body
           (isHtml && injectInspector && lower === 'content-length')
         ) {
           return;
@@ -1688,7 +1695,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
              * calls generator.return(). Without this the reader keeps its lock on
              * the upstream body and the upstream socket is never released.
              */
-            await reader.cancel().catch(() => {});
+            await reader.cancel().catch(() => undefined);
           }
         }
 
@@ -1781,6 +1788,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           path === '/health' ||
           path === INSPECTOR_SCRIPT_PATH ||
           path === REPORTER_SCRIPT_PATH ||
+          path === LEGACY_REPORTER_SCRIPT_PATH ||
           path === BLANK_PREVIEW_PATH
         ) {
           return;
@@ -1818,11 +1826,14 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
            */
           applyPreviewProxyLocale(reply, request);
           reply.header('cache-control', 'no-store');
-          await reply.code(503).header('retry-after', '5').send({
-            error: getPreviewProxyCopy(request.headers).PUBLICATION_STATE_UNAVAILABLE,
-            code: 'PUBLICATION_STATE_UNAVAILABLE',
-            retryable: true,
-          });
+          await reply
+            .code(503)
+            .header('retry-after', '5')
+            .send({
+              error: getPreviewProxyCopy(request.headers).PUBLICATION_STATE_UNAVAILABLE,
+              code: 'PUBLICATION_STATE_UNAVAILABLE',
+              retryable: true,
+            });
 
           return;
         }
@@ -1843,6 +1854,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
           path === '/health' ||
           path === INSPECTOR_SCRIPT_PATH ||
           path === REPORTER_SCRIPT_PATH ||
+          path === LEGACY_REPORTER_SCRIPT_PATH ||
           path === BLANK_PREVIEW_PATH
         ) {
           return;
@@ -1863,6 +1875,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
         path === '/health' ||
         path === INSPECTOR_SCRIPT_PATH ||
         path === REPORTER_SCRIPT_PATH ||
+        path === LEGACY_REPORTER_SCRIPT_PATH ||
         path === BLANK_PREVIEW_PATH
       ) {
         return; // proxy-served endpoints take precedence over host proxying
@@ -1908,22 +1921,129 @@ function shouldStreamBody(method: string): boolean {
  * left untouched.
  */
 function injectScriptTag(html: string, src: string, marker: string): string {
-  if (html.includes(marker)) {
+  if (hasScriptAttribute(html, marker)) {
     return html;
   }
 
   const tag = `<script src="${src}" ${marker}></script>`;
+  const location = htmlInjectionLocation(html);
 
-  if (/<\/head>/i.test(html)) {
-    return html.replace(/<\/head>/i, `${tag}</head>`);
-  }
-
-  if (/<body[^>]*>/i.test(html)) {
-    return html.replace(/(<body[^>]*>)/i, `$1${tag}`);
+  if (location !== null) {
+    return `${html.slice(0, location)}${tag}${html.slice(location)}`;
   }
 
   // No <head>/<body> (fragment or minimal doc): prepend so it still loads.
   return `${tag}${html}`;
+}
+
+function htmlInjectionLocation(html: string): number | null {
+  const document = parse(html, { scriptingEnabled: true, sourceCodeLocationInfo: true });
+
+  let bodyOpenEnd: number | null = null;
+  let headClose: number | null = null;
+  let headOpenEnd: number | null = null;
+  let htmlOpenEnd: number | null = null;
+  let doctypeEnd: number | null = null;
+
+  const visit = (node: {
+    tagName?: string;
+    nodeName?: string;
+    childNodes?: unknown[];
+    sourceCodeLocation?: {
+      startTag?: { endOffset: number };
+      endTag?: { startOffset: number };
+      endOffset?: number;
+    } | null;
+  }): void => {
+    if (node.tagName === 'head' && node.sourceCodeLocation?.endTag) {
+      headClose ??= node.sourceCodeLocation.endTag.startOffset;
+    }
+
+    if (node.tagName === 'head' && node.sourceCodeLocation?.startTag) {
+      headOpenEnd ??= node.sourceCodeLocation.startTag.endOffset;
+    }
+
+    if (node.tagName === 'html' && node.sourceCodeLocation?.startTag) {
+      htmlOpenEnd ??= node.sourceCodeLocation.startTag.endOffset;
+    }
+
+    if (node.nodeName === '#documentType' && node.sourceCodeLocation?.endOffset) {
+      doctypeEnd ??= node.sourceCodeLocation.endOffset;
+    }
+
+    if (node.tagName === 'body' && node.sourceCodeLocation?.startTag) {
+      bodyOpenEnd ??= node.sourceCodeLocation.startTag.endOffset;
+    }
+
+    for (const child of node.childNodes ?? []) {
+      visit(child as Parameters<typeof visit>[0]);
+    }
+  };
+  visit(document);
+
+  return headClose ?? bodyOpenEnd ?? headOpenEnd ?? htmlOpenEnd ?? doctypeEnd;
+}
+
+function hasScriptAttribute(html: string, attributeName: string): boolean {
+  const normalizedName = attributeName.toLowerCase();
+
+  const executableTypes = new Set([
+    '',
+    'module',
+    'application/ecmascript',
+    'application/javascript',
+    'application/x-ecmascript',
+    'application/x-javascript',
+    'text/ecmascript',
+    'text/javascript',
+    'text/javascript1.0',
+    'text/javascript1.1',
+    'text/javascript1.2',
+    'text/javascript1.3',
+    'text/javascript1.4',
+    'text/javascript1.5',
+    'text/jscript',
+    'text/livescript',
+    'text/x-ecmascript',
+    'text/x-javascript',
+  ]);
+
+  const document = parse(html, { scriptingEnabled: true });
+
+  const visit = (node: {
+    nodeName?: string;
+    tagName?: string;
+    attrs?: Array<{ name: string; value: string }>;
+    childNodes?: unknown[];
+  }): boolean => {
+    if (node.tagName === 'template') {
+      return false;
+    }
+
+    if (node.tagName === 'script') {
+      const attributes = node.attrs ?? [];
+
+      const type =
+        attributes
+          .find((attribute) => attribute.name.toLowerCase() === 'type')
+          ?.value.trim()
+          .toLowerCase() ?? '';
+      const isNoModuleClassic =
+        type !== 'module' && attributes.some((attribute) => attribute.name.toLowerCase() === 'nomodule');
+
+      if (
+        !isNoModuleClassic &&
+        executableTypes.has(type) &&
+        attributes.some((attribute) => attribute.name.toLowerCase() === normalizedName)
+      ) {
+        return true;
+      }
+    }
+
+    return (node.childNodes ?? []).some((child) => visit(child as Parameters<typeof visit>[0]));
+  };
+
+  return visit(document);
 }
 
 /*

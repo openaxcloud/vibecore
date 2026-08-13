@@ -50,8 +50,10 @@ describe('preview-proxy', () => {
   });
 
   it('serves the holding page (not a silent blank) when the dev server answers a 0-byte 404 (index.html not yet synced)', async () => {
-    // Vite serves `GET /` as a 404 with an empty body while its index.html has not
-    // yet landed on disk; the port is already LISTENING so /ports reports ready.
+    /*
+     * Vite serves `GET /` as a 404 with an empty body while its index.html has not
+     * yet landed on disk; the port is already LISTENING so /ports reports ready.
+     */
     const fetchImpl = (async () => new Response(null, { status: 404 })) as unknown as typeof fetch;
     const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
 
@@ -127,6 +129,7 @@ describe('preview-proxy', () => {
     const fetchImpl = (async () => {
       throw new Error('raw upstream detail must stay private');
     }) as unknown as typeof fetch;
+
     const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
 
     const response = await app.inject({
@@ -363,16 +366,24 @@ describe('preview-proxy', () => {
     await app.close();
   });
 
-  it('serves the preview error reporter script', async () => {
+  it('serves both the versioned and rolling-upgrade reporter paths without caching', async () => {
     const app = await buildPreviewProxyApp();
-    const response = await app.inject({ method: 'GET', url: '/__vibecore/preview-reporter.js' });
 
-    expect(response.statusCode).toBe(200);
-    expect(response.headers['content-type']).toContain('application/javascript');
-    expect(response.body).toContain('PREVIEW_ERROR');
-    expect(response.body).toContain('PREVIEW_UNHANDLED_REJECTION');
-    expect(response.body).toContain("addEventListener('error'");
-    expect(response.body).toContain("addEventListener('unhandledrejection'");
+    const responses = await Promise.all(
+      ['/__vibecore/preview-reporter.v2.js', '/__vibecore/preview-reporter.js'].map((url) =>
+        app.inject({ method: 'GET', url }),
+      ),
+    );
+
+    for (const response of responses) {
+      expect(response.statusCode).toBe(200);
+      expect(response.headers['content-type']).toContain('application/javascript');
+      expect(response.headers['cache-control']).toBe('no-cache, no-store, must-revalidate');
+      expect(response.body).toContain('PREVIEW_ERROR');
+      expect(response.body).toContain('PREVIEW_UNHANDLED_REJECTION');
+      expect(response.body).toContain("addEventListener('error'");
+      expect(response.body).toContain("addEventListener('unhandledrejection'");
+    }
     await app.close();
   });
 
@@ -389,7 +400,7 @@ describe('preview-proxy', () => {
     expect(response.statusCode).toBe(200);
 
     // Both the reporter and the inspector bridge are injected, exactly once each.
-    expect(response.body).toContain('src="/__vibecore/preview-reporter.js"');
+    expect(response.body).toContain('src="/__vibecore/preview-reporter.v2.js"');
     expect(response.body).toContain('data-vibecore-reporter');
     expect(response.body).toContain('src="/__vibecore/inspector-script.js"');
     expect((response.body.match(/data-vibecore-reporter/g) ?? []).length).toBe(1);
@@ -398,6 +409,52 @@ describe('preview-proxy', () => {
     // content-length must match the rewritten body, not the upstream length.
     expect(Number(response.headers['content-length'])).toBe(Buffer.byteLength(response.body));
     await app.close();
+  });
+
+  it('does not mistake reporter marker text for an installed reporter script', async () => {
+    const html =
+      '<html><head><!-- data-vibecore-reporter --><title><script data-vibecore-reporter></title><textarea><script data-vibecore-reporter></textarea><template><script data-vibecore-reporter></script></template><script type="application/json" data-vibecore-reporter>{}</script><script nomodule data-vibecore-reporter></script><script data-note="x data-vibecore-reporter y">const x = "<script data-vibecore-reporter>"</script><style>x{content:"<script data-vibecore-reporter>"}</style></head><body><xmp><script data-vibecore-reporter></xmp><iframe><script data-vibecore-reporter></iframe><noembed><script data-vibecore-reporter></noembed><noframes><script data-vibecore-reporter></noframes><noscript><script data-vibecore-reporter></noscript><plaintext><script data-vibecore-reporter></plaintext><pre>data-vibecore-reporter</pre></body></html>';
+    const { fn: fetchImpl } = recordingFetch(
+      async () => new Response(html, { status: 200, headers: { 'content-type': 'text/html' } }),
+    );
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+    const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
+
+    expect(response.body).toContain('src="/__vibecore/preview-reporter.v2.js"');
+    expect(response.body.match(/src="\/__vibecore\/preview-reporter\.v2\.js"/g)).toHaveLength(1);
+    await app.close();
+  });
+
+  it.each([
+    ['<html><head><script>const token = "</head>";</script></head><body>ok</body></html>', '</script>'],
+    ['<html><head><!-- </head> --></head><body>ok</body></html>', '-->'],
+    ['<html><head><title>literal </head> token</title></head><body>ok</body></html>', '</title>'],
+    ['<html><head><script>const token = "<body>";</script></head><body>ok</body></html>', '</script>'],
+  ])('injects before the real head close without corrupting raw text: %s', async (html, poisonEnd) => {
+    const { fn: fetchImpl } = recordingFetch(
+      async () => new Response(html, { status: 200, headers: { 'content-type': 'text/html' } }),
+    );
+
+    const app = await buildPreviewProxyApp({ fetchImpl, resolveAgent: async () => fakeAgent });
+    const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
+
+    expect(response.body).toContain('src="/__vibecore/preview-reporter.v2.js"');
+    expect(response.body.indexOf('src="/__vibecore/preview-reporter.v2.js"')).toBeGreaterThan(
+      response.body.indexOf(poisonEnd),
+    );
+    expect(response.body.indexOf('src="/__vibecore/preview-reporter.v2.js"')).toBeLessThan(
+      response.body.toLowerCase().lastIndexOf('</head>'),
+    );
+    await app.close();
+  });
+
+  it('keeps the doctype first when injecting into a truncated standards document', () => {
+    const html = '<!doctype html><html><head><meta charset="utf-8">';
+    const output = injectInspectorScript(html);
+
+    expect(output.startsWith('<!doctype html>')).toBe(true);
+    expect(output.indexOf('src="/__vibecore/preview-reporter.v2.js"')).toBeGreaterThan(html.indexOf('<head>'));
   });
 
   it('records a blank-preview beacon (server-side trace) and returns 204', async () => {
@@ -444,6 +501,7 @@ describe('preview-proxy', () => {
 
     const relay = calls.find((c) => c.url.pathname === '/internal/preview/beacon');
     expect(relay).toBeDefined();
+
     const relayed = JSON.parse(String(relay!.init.body));
     expect(relayed).toMatchObject({ workspaceId: 'ws-abc', port: 5173, status: 'error' });
     expect(relayed.detail).toContain('stylesheet');
@@ -481,7 +539,7 @@ describe('preview-proxy', () => {
     const out = injectInspectorScript(withEntry);
 
     // Our injections landed (before </head>)…
-    expect(out).toContain('src="/__vibecore/preview-reporter.js"');
+    expect(out).toContain('src="/__vibecore/preview-reporter.v2.js"');
     expect(out).toContain('src="/__vibecore/inspector-script.js"');
 
     // …and the app entry survives, exactly once (structurally: our tags go in <head>, the entry in <body>).
@@ -500,7 +558,7 @@ describe('preview-proxy', () => {
     const response = await app.inject({ method: 'GET', url: '/p/ws_1/4173/' });
 
     expect((response.body.match(/data-vibecore-reporter/g) ?? []).length).toBe(1);
-    expect(response.body).not.toContain('src="/__vibecore/preview-reporter.js"');
+    expect(response.body).not.toContain('src="/__vibecore/preview-reporter.v2.js"');
     await app.close();
   });
 
@@ -976,6 +1034,7 @@ describe('preview-proxy', () => {
 
     it('wakes a scaled-to-zero deploy (activate via manager) and retries the forward → 200', async () => {
       const seen: string[] = [];
+
       let upstreamHits = 0;
 
       const fetchImpl = (async (url: any, init: any) => {
@@ -1017,6 +1076,7 @@ describe('preview-proxy', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.body).toBe('awake and serving');
+
       // The manager was asked to wake it, and the upstream was hit twice (fail → retry).
       expect(seen.some((u) => u.endsWith('/server-deployments/clr8x9abc123/activate'))).toBe(true);
       expect(upstreamHits).toBe(2);
@@ -1058,6 +1118,7 @@ describe('preview-proxy', () => {
 
       expect(response.statusCode).toBe(503);
       expect(response.body).toContain('Starting your app');
+
       // Woke exactly once, hit upstream exactly twice (original + one retry) — no loop.
       expect(activateCalls).toBe(1);
       expect(upstreamHits).toBe(2);
@@ -1103,6 +1164,7 @@ describe('preview-proxy', () => {
       });
 
       const startedAt = Date.now();
+
       const response = await app.inject({
         method: 'GET',
         url: '/',

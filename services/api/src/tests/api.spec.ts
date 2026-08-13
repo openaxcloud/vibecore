@@ -254,6 +254,7 @@ async function startRuntimeServices(
     agentUnavailable?: boolean;
     managerWorkspaceEmpty?: boolean;
     managerStopNotFound?: boolean;
+    previewHtml?: string;
   } = {},
 ) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
@@ -306,7 +307,7 @@ async function startRuntimeServices(
         response.end(JSON.stringify({ ports: [{ port: 5173, processId: 'dev' }] }));
       } else if (request.method === 'GET' && url.pathname === '/preview/5173/') {
         response.setHeader('content-type', 'text/html');
-        response.end('<main>runtime preview root</main>');
+        response.end(options.previewHtml ?? '<main>runtime preview root</main>');
       } else if (request.method === 'POST' && url.pathname === '/snapshots/create') {
         response.end(
           JSON.stringify({
@@ -5929,7 +5930,101 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
 
       expect(response.statusCode).toBe(200);
       expect(response.body).toContain('runtime preview root');
+      expect(response.body).toContain('src="/vibecore-preview-reporter.js?v=2"');
+      expect(response.body.match(/data-vibecore-reporter/g)).toHaveLength(1);
       expect(runtime.calls).toContain('GET /preview/5173/');
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('injects v2 when marker text occurs only in comments, text, or another attribute value', async () => {
+    const runtime = await startRuntimeServices({
+      previewHtml:
+        '<html><head><!-- data-vibecore-reporter --><title><script data-vibecore-reporter></title><textarea><script data-vibecore-reporter></textarea><template><script data-vibecore-reporter></script></template><script type="application/json" data-vibecore-reporter>{}</script><script nomodule data-vibecore-reporter></script><script data-note="x data-vibecore-reporter y">const x = "<script data-vibecore-reporter>"</script><style>x{content:"<script data-vibecore-reporter>"}</style></head><body><xmp><script data-vibecore-reporter></xmp><iframe><script data-vibecore-reporter></iframe><noembed><script data-vibecore-reporter></noembed><noframes><script data-vibecore-reporter></noframes><noscript><script data-vibecore-reporter></noscript><plaintext><script data-vibecore-reporter></plaintext><pre>data-vibecore-reporter</pre></body></html>',
+    });
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, {
+      email: 'runtime-preview-marker@example.com',
+      organizationName: 'Runtime Preview Marker Org',
+    });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Preview Marker Project' },
+    });
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${project.json().project.id}/preview/5173/proxy`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toContain('src="/vibecore-preview-reporter.js?v=2"');
+      expect(response.body.match(/src="\/vibecore-preview-reporter\.js\?v=2"/g)).toHaveLength(1);
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('injects after a script containing a literal head close without corrupting the script', async () => {
+    const runtime = await startRuntimeServices({
+      previewHtml: '<html><head><script>const token = "</head>";</script></head><body>ok</body></html>',
+    });
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, {
+      email: 'runtime-preview-placement@example.com',
+      organizationName: 'Runtime Preview Placement Org',
+    });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Preview Placement Project' },
+    });
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${project.json().project.id}/preview/5173/proxy`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+      const marker = 'src="/vibecore-preview-reporter.js?v=2"';
+      expect(response.body).toContain(marker);
+      expect(response.body.indexOf(marker)).toBeGreaterThan(response.body.indexOf('</script>'));
+      expect(response.body.indexOf(marker)).toBeLessThan(response.body.toLowerCase().lastIndexOf('</head>'));
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('keeps the doctype first when injecting into a truncated standards preview', async () => {
+    const runtime = await startRuntimeServices({ previewHtml: '<!doctype html><html><head><meta charset="utf-8">' });
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, {
+      email: 'runtime-preview-doctype@example.com',
+      organizationName: 'Runtime Preview Doctype Org',
+    });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Preview Doctype Project' },
+    });
+
+    try {
+      const response = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${project.json().project.id}/preview/5173/proxy`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+      expect(response.body.startsWith('<!doctype html>')).toBe(true);
+      expect(response.body).toContain('src="/vibecore-preview-reporter.js?v=2"');
     } finally {
       await runtime.close();
       await app.close();

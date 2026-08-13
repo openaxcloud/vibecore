@@ -13,6 +13,7 @@ import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import websocket from '@fastify/websocket';
+import { parse as parseHtml } from 'parse5';
 import {
   createOpaqueToken,
   createRecoveryCodes,
@@ -16755,24 +16756,109 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * page that already self-hosts the reporter, or a double-proxy, is not doubled).
    */
   const PREVIEW_REPORTER_MARKER = 'data-vibecore-reporter';
-  const PREVIEW_REPORTER_TAG = `<script src="/vibecore-preview-reporter.js" ${PREVIEW_REPORTER_MARKER}></script>`;
+  const PREVIEW_REPORTER_TAG = `<script src="/vibecore-preview-reporter.js?v=2" ${PREVIEW_REPORTER_MARKER}></script>`;
 
   // Only buffer+inject a plausibly-small HTML document; larger bodies stream raw.
   const MAX_PREVIEW_REPORTER_INJECT_BYTES = 2 * 1024 * 1024;
 
   const injectPreviewReporterScript = (html: string): string => {
-    if (html.includes(PREVIEW_REPORTER_MARKER)) {
+    const executableTypes = new Set([
+      '',
+      'module',
+      'application/ecmascript',
+      'application/javascript',
+      'application/x-ecmascript',
+      'application/x-javascript',
+      'text/ecmascript',
+      'text/javascript',
+      'text/javascript1.0',
+      'text/javascript1.1',
+      'text/javascript1.2',
+      'text/javascript1.3',
+      'text/javascript1.4',
+      'text/javascript1.5',
+      'text/jscript',
+      'text/livescript',
+      'text/x-ecmascript',
+      'text/x-javascript',
+    ]);
+    const document = parseHtml(html, { scriptingEnabled: true, sourceCodeLocationInfo: true });
+    const hasReporter = (node: {
+      tagName?: string;
+      attrs?: Array<{ name: string; value: string }>;
+      childNodes?: unknown[];
+    }): boolean => {
+      if (node.tagName === 'template') {
+        return false;
+      }
+
+      if (node.tagName === 'script') {
+        const attributes = node.attrs ?? [];
+        const type =
+          attributes
+            .find((attribute) => attribute.name.toLowerCase() === 'type')
+            ?.value.trim()
+            .toLowerCase() ?? '';
+        const isNoModuleClassic =
+          type !== 'module' && attributes.some((attribute) => attribute.name.toLowerCase() === 'nomodule');
+
+        if (
+          !isNoModuleClassic &&
+          executableTypes.has(type) &&
+          attributes.some((attribute) => attribute.name.toLowerCase() === PREVIEW_REPORTER_MARKER)
+        ) {
+          return true;
+        }
+      }
+
+      return (node.childNodes ?? []).some((child) => hasReporter(child as Parameters<typeof hasReporter>[0]));
+    };
+    const reporterInstalled = hasReporter(document);
+
+    if (reporterInstalled) {
       return html;
     }
 
-    // Prefer end-of-<head> so the (classic, non-module) reporter runs before the
-    // app's deferred module scripts and can catch a load-time throw.
-    if (/<\/head>/i.test(html)) {
-      return html.replace(/<\/head>/i, `${PREVIEW_REPORTER_TAG}</head>`);
-    }
+    let headClose: number | null = null;
+    let bodyOpenEnd: number | null = null;
+    let headOpenEnd: number | null = null;
+    let htmlOpenEnd: number | null = null;
+    let doctypeEnd: number | null = null;
+    const locateInjection = (node: {
+      tagName?: string;
+      nodeName?: string;
+      childNodes?: unknown[];
+      sourceCodeLocation?: {
+        startTag?: { endOffset: number };
+        endTag?: { startOffset: number };
+        endOffset?: number;
+      } | null;
+    }): void => {
+      if (node.tagName === 'head' && node.sourceCodeLocation?.endTag) {
+        headClose ??= node.sourceCodeLocation.endTag.startOffset;
+      }
+      if (node.tagName === 'head' && node.sourceCodeLocation?.startTag) {
+        headOpenEnd ??= node.sourceCodeLocation.startTag.endOffset;
+      }
+      if (node.tagName === 'html' && node.sourceCodeLocation?.startTag) {
+        htmlOpenEnd ??= node.sourceCodeLocation.startTag.endOffset;
+      }
+      if (node.nodeName === '#documentType' && node.sourceCodeLocation?.endOffset) {
+        doctypeEnd ??= node.sourceCodeLocation.endOffset;
+      }
+      if (node.tagName === 'body' && node.sourceCodeLocation?.startTag) {
+        bodyOpenEnd ??= node.sourceCodeLocation.startTag.endOffset;
+      }
+      for (const child of node.childNodes ?? []) {
+        locateInjection(child as Parameters<typeof locateInjection>[0]);
+      }
+    };
+    locateInjection(document);
 
-    if (/<body[^>]*>/i.test(html)) {
-      return html.replace(/<body[^>]*>/i, (match) => `${match}${PREVIEW_REPORTER_TAG}`);
+    const insertionOffset = headClose ?? bodyOpenEnd ?? headOpenEnd ?? htmlOpenEnd ?? doctypeEnd;
+
+    if (insertionOffset !== null) {
+      return `${html.slice(0, insertionOffset)}${PREVIEW_REPORTER_TAG}${html.slice(insertionOffset)}`;
     }
 
     // No <head>/<body> (fragment/minimal doc): prepend so it still loads.
@@ -18774,12 +18860,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const members = await store.listMembers(orgId);
 
       if (members.some((existingMember) => (existingMember.userEmail ?? '').trim().toLowerCase() === inviteEmail)) {
-        return reply
-          .code(409)
-          .send({
-            error: appPublicCopy('ALREADY_MEMBER', transactionalLocaleForRequest(request)),
-            code: 'ALREADY_MEMBER',
-          });
+        return reply.code(409).send({
+          error: appPublicCopy('ALREADY_MEMBER', transactionalLocaleForRequest(request)),
+          code: 'ALREADY_MEMBER',
+        });
       }
 
       /*
@@ -18798,12 +18882,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       );
 
       if (hasPending) {
-        return reply
-          .code(409)
-          .send({
-            error: appPublicCopy('ALREADY_INVITED', transactionalLocaleForRequest(request)),
-            code: 'ALREADY_INVITED',
-          });
+        return reply.code(409).send({
+          error: appPublicCopy('ALREADY_INVITED', transactionalLocaleForRequest(request)),
+          code: 'ALREADY_INVITED',
+        });
       }
 
       const token = createOpaqueToken('invite');

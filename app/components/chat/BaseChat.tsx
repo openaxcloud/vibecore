@@ -29,6 +29,14 @@ import {
   updateFloatingBounds as engineUpdateFloatingBounds,
   type ProjectEditorWindowState,
 } from '~/lib/project-editor-layout';
+import {
+  collectPreviewTabIds,
+  createPreviewLifecycleInstanceId,
+  createPreviewLifecycleOwnerRegistry,
+  normalizePersistedIdeWindow,
+  previewLifecycleWindowInstancePrefix,
+  removedPreviewTabIds,
+} from '~/lib/project-editor-preview-state';
 import { ClientOnly } from 'remix-utils/client-only';
 import { toast } from 'react-toastify';
 
@@ -1778,96 +1786,10 @@ const DEFAULT_PANE_TREE: IdePaneLeaf = {
   activeTabId: 'tab-editor-default',
 };
 
+const previewLifecycleOwnerRegistry = createPreviewLifecycleOwnerRegistry();
+
 function cloneDefaultPaneTree(): IdePaneNode {
   return JSON.parse(JSON.stringify(DEFAULT_PANE_TREE));
-}
-
-function collectPaneTabs(node: any): IdePaneTab[] {
-  if (node?.type === 'leaf' && Array.isArray(node.tabs)) {
-    return node.tabs;
-  }
-
-  return [...collectPaneTabs(node?.first), ...collectPaneTabs(node?.second)];
-}
-
-function ensureCorePaneTabs(tabs: IdePaneTab[]) {
-  const nextTabs = [...tabs];
-
-  if (!nextTabs.some((tab) => tab.panel === 'editor')) {
-    nextTabs.unshift({ id: 'tab-editor-default', panel: 'editor' });
-  }
-
-  if (!nextTabs.some((tab) => tab.panel === 'preview')) {
-    nextTabs.push({ id: 'tab-preview-default', panel: 'preview', pinned: true });
-  }
-
-  return nextTabs;
-}
-
-function normalizePaneTree(node: any): IdePaneNode {
-  if (node?.type === 'split') {
-    return {
-      type: 'split',
-      id: typeof node.id === 'string' ? node.id : 'pane-split-root',
-      direction: node.direction === 'vertical' ? 'vertical' : 'horizontal',
-      ...(typeof node.ratio === 'number' && Number.isFinite(node.ratio)
-        ? { ratio: Math.min(0.9, Math.max(0.1, node.ratio)) }
-        : {}),
-      first: normalizePaneTree(node.first),
-      second: normalizePaneTree(node.second),
-    };
-  }
-
-  const tabs = ensureCorePaneTabs(collectPaneTabs(node));
-  const legacyActiveTabId = typeof node?.activeTabId === 'string' ? node.activeTabId : undefined;
-  const activeTabId = tabs.some((tab) => tab.id === legacyActiveTabId) ? legacyActiveTabId : tabs[tabs.length - 1]?.id;
-
-  return {
-    type: 'leaf',
-    id: 'pane-main',
-    tabs,
-    activeTabId,
-  };
-}
-
-function normalizeFloatingPanes(input: unknown): IdeFloatingPane[] {
-  if (!Array.isArray(input)) {
-    return [];
-  }
-
-  const result: IdeFloatingPane[] = [];
-
-  for (const entry of input) {
-    const floating = entry as Partial<IdeFloatingPane> | undefined;
-    const pane = floating?.pane as any;
-
-    if (!floating || !pane || pane.type !== 'leaf' || !Array.isArray(pane.tabs) || pane.tabs.length === 0) {
-      continue;
-    }
-
-    const normalizedPane = normalizePaneTree(pane);
-
-    if (normalizedPane.type !== 'leaf') {
-      continue;
-    }
-
-    const bounds = floating.bounds ?? { x: 72, y: 72, width: 720, height: 480 };
-
-    result.push({
-      id: typeof floating.id === 'string' ? floating.id : `floating-${pane.id ?? 'pane'}`,
-      pane: { ...normalizedPane, id: typeof pane.id === 'string' ? pane.id : normalizedPane.id },
-      bounds: {
-        x: Number.isFinite(bounds.x) ? bounds.x : 72,
-        y: Number.isFinite(bounds.y) ? bounds.y : 72,
-        width: Number.isFinite(bounds.width) ? Math.max(280, bounds.width) : 720,
-        height: Number.isFinite(bounds.height) ? Math.max(180, bounds.height) : 480,
-      },
-      zIndex: typeof floating.zIndex === 'number' ? floating.zIndex : result.length + 1,
-      ...(floating.dockOrigin ? { dockOrigin: floating.dockOrigin } : {}),
-    });
-  }
-
-  return result;
 }
 
 function isIdeRightPanel(panel: string): panel is IdeRightPanel {
@@ -3772,6 +3694,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     const setDiagnosticsForSource = useDiagnosticsStore((state) => state.setDiagnosticsForSource);
+    const clearPreviewLifecycleWindow = useDiagnosticsStore((state) => state.clearPreviewLifecycleWindow);
+    const clearPreviewLifecycleInstance = useDiagnosticsStore((state) => state.clearPreviewLifecycleInstance);
     const diagnosticErrorCount = useDiagnosticsStore((state) => state.errors);
     const diagnosticWarningCount = useDiagnosticsStore((state) => state.warnings);
 
@@ -3785,6 +3709,39 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [agentToolAction, setAgentToolAction] = useState<AgentToolAction | null>(null);
     const [projectStateReady, setProjectStateReady] = useState(!projectIdeMode || !projectId);
     const restoredProjectId = useRef<string | undefined>(undefined);
+    const previousPreviewTabsRef = useRef<{ projectId?: string; ids: Set<string> }>({ ids: new Set() });
+    useEffect(() => {
+      if (!projectId) {
+        return undefined;
+      }
+
+      const lifecycleWindowOwner = JSON.stringify([projectId, projectEditorWindowId]);
+      previewLifecycleOwnerRegistry.acquire(lifecycleWindowOwner);
+
+      return () => {
+        previewLifecycleOwnerRegistry.release(lifecycleWindowOwner, () =>
+          clearPreviewLifecycleWindow(projectId, previewLifecycleWindowInstancePrefix(projectEditorWindowId)),
+        );
+      };
+    }, [clearPreviewLifecycleWindow, projectEditorWindowId, projectId]);
+
+    useEffect(() => {
+      const currentIds = collectPreviewTabIds({
+        root: paneTree as unknown as ProjectEditorWindowState['root'],
+        floatingPanes: floatingPanes as unknown as ProjectEditorWindowState['floatingPanes'],
+      });
+
+      const previous = previousPreviewTabsRef.current;
+
+      if (projectId && previous.projectId === projectId) {
+        removedPreviewTabIds(previous.ids, currentIds).forEach((tabId) =>
+          clearPreviewLifecycleInstance(projectId, createPreviewLifecycleInstanceId(projectEditorWindowId, tabId)),
+        );
+      }
+
+      previousPreviewTabsRef.current = { projectId, ids: currentIds };
+    }, [clearPreviewLifecycleInstance, floatingPanes, paneTree, projectEditorWindowId, projectId]);
+
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
     const scrollUpdateFrame = useRef<number | null>(null);
     const agentComposerRef = useRef<HTMLDivElement | null>(null);
@@ -4786,24 +4743,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             ? ui?.projectEditorWindows?.[projectEditorWindowId]
             : { paneTree: ui?.paneTree, activePaneId: ui?.activePaneId, floatingPanes: ui?.floatingPanes };
 
-          const restoredTree =
-            windowSlice?.paneTree && typeof windowSlice.paneTree === 'object'
-              ? normalizePaneTree(windowSlice.paneTree)
-              : undefined;
+          const restoredWindow = windowSlice ? normalizePersistedIdeWindow(windowSlice) : undefined;
+          const restoredTree = restoredWindow?.root ?? undefined;
 
           if (restoredTree) {
             setPaneTree(restoredTree);
           }
 
-          const restoredFloating = normalizeFloatingPanes(windowSlice?.floatingPanes);
+          const restoredFloating = restoredWindow?.floatingPanes ?? [];
           setFloatingPanes(restoredFloating);
 
           const dockedLeafIds = new Set(restoredTree ? flattenPaneLeafIds(restoredTree) : flattenPaneLeafIds(paneTree));
           restoredFloating.forEach((floating) => dockedLeafIds.add(floating.pane.id));
 
           const restoredActivePaneId =
-            typeof windowSlice?.activePaneId === 'string' && dockedLeafIds.has(windowSlice.activePaneId)
-              ? windowSlice.activePaneId
+            restoredWindow?.activePaneId && dockedLeafIds.has(restoredWindow.activePaneId)
+              ? restoredWindow.activePaneId
               : restoredTree
                 ? (findFirstLeaf(restoredTree)?.id ?? 'pane-main')
                 : 'pane-main';
@@ -5287,15 +5242,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 floatingPanes: memory.ui?.floatingPanes,
               };
 
-          if (!slice?.paneTree || typeof slice.paneTree !== 'object') {
+          if (!slice || (slice.paneTree === undefined && slice.floatingPanes === undefined)) {
             return;
           }
 
-          const nextTree = normalizePaneTree(slice.paneTree);
-          const nextFloating = normalizeFloatingPanes(slice.floatingPanes);
-
-          const nextActive =
-            typeof slice.activePaneId === 'string' ? slice.activePaneId : (findFirstLeaf(nextTree)?.id ?? 'pane-main');
+          const normalizedWindow = normalizePersistedIdeWindow(slice);
+          const nextTree = normalizedWindow.root;
+          const nextFloating = normalizedWindow.floatingPanes;
+          const nextActive = normalizedWindow.activePaneId;
 
           const signature = projectEditorLayoutSignature(nextTree, nextFloating, nextActive);
 
@@ -7510,7 +7464,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const clearPaneDropTarget = useCallback(() => setPaneDropTarget(null), []);
 
     const renderPaneContent = useCallback(
-      (panel: IdeWorkspacePanel) => {
+      (panel: IdeWorkspacePanel, tabId?: string) => {
         if (panel === 'editor') {
           return (
             <div
@@ -7637,6 +7591,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <Preview
                     setSelectedElement={setSelectedElement}
                     projectId={projectId}
+                    previewInstanceId={createPreviewLifecycleInstanceId(projectEditorWindowId, tabId)}
                     previewDevice={previewDevice}
                     onPreviewDeviceChange={setPreviewDevice}
                     onOpenSourceFile={(filePath) => {
@@ -7839,7 +7794,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     unsavedChanges: unsavedFiles instanceof Set ? unsavedFiles.size : 0,
                   })}
                 >
-                  {renderPaneContent(activeTab.panel)}
+                  {renderPaneContent(activeTab.panel, activeTab.id)}
                 </PanelErrorBoundary>
               ) : (
                 <ProjectWelcomeState

@@ -35,6 +35,7 @@ import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/projectIdeMemory';
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
+import { useDiagnosticsStore, type PreviewLifecycleStatus } from '~/lib/stores/diagnostics';
 import type { FileMap } from '~/lib/stores/files';
 import {
   resolvePreviewBootOverlay,
@@ -243,6 +244,7 @@ interface PreviewProps {
   onPreviewDeviceChange?: (device: PreviewDevice) => void;
   onOpenLogsRight?: () => void;
   onOpenSourceFile?: (filePath: string) => void;
+  previewInstanceId?: string;
 }
 
 interface WindowSize {
@@ -331,6 +333,138 @@ export function shouldPreviewHandleInspectorMessage(messageType: unknown): boole
   }
 
   return !INSPECTOR_MESSAGE_TYPES_OWNED_BY_INSPECTOR.has(messageType);
+}
+
+interface PreviewLifecycleMessage {
+  type: 'PREVIEW_DOCUMENT' | 'PREVIEW_MOUNTED' | 'PREVIEW_OK' | 'PREVIEW_BLANK';
+  documentId: string;
+  epoch: string;
+  url: string;
+  ts: number;
+}
+
+interface LegacyPreviewBlankMessage {
+  type: 'PREVIEW_BLANK';
+  message?: string;
+  url: string;
+  ts: number;
+}
+
+export function parsePreviewLifecycleMessage(
+  event: Pick<MessageEvent, 'data' | 'origin' | 'source'>,
+  iframe: Pick<HTMLIFrameElement, 'contentWindow' | 'src'> | null,
+  expectedEpoch: string,
+): PreviewLifecycleMessage | undefined {
+  if (!iframe || event.source !== iframe.contentWindow || !event.data || typeof event.data !== 'object') {
+    return undefined;
+  }
+
+  const data = event.data as Partial<PreviewLifecycleMessage>;
+
+  if (
+    !['PREVIEW_DOCUMENT', 'PREVIEW_MOUNTED', 'PREVIEW_OK', 'PREVIEW_BLANK'].includes(data.type ?? '') ||
+    typeof data.documentId !== 'string' ||
+    data.documentId.length < 8 ||
+    data.epoch !== expectedEpoch ||
+    typeof data.url !== 'string' ||
+    typeof data.ts !== 'number' ||
+    !Number.isFinite(data.ts)
+  ) {
+    return undefined;
+  }
+
+  try {
+    const messageUrl = new URL(data.url);
+    const frameUrl = new URL(iframe.src);
+
+    if (
+      !['http:', 'https:'].includes(messageUrl.protocol) ||
+      frameUrl.href === 'about:blank' ||
+      messageUrl.origin !== frameUrl.origin ||
+      event.origin !== messageUrl.origin
+    ) {
+      return undefined;
+    }
+  } catch {
+    return undefined;
+  }
+
+  return data as PreviewLifecycleMessage;
+}
+
+export function parsePreviewDocumentHello(
+  event: Pick<MessageEvent, 'data' | 'origin' | 'source'>,
+  iframe: Pick<HTMLIFrameElement, 'contentWindow' | 'src'> | null,
+): { documentId: string; url: string } | undefined {
+  const data = event.data as Partial<PreviewLifecycleMessage> | undefined;
+
+  if (!data || data.type !== 'PREVIEW_DOCUMENT' || data.epoch !== '') {
+    return undefined;
+  }
+
+  const message = parsePreviewLifecycleMessage(
+    {
+      data: { ...data, epoch: '__preview-hello__' },
+      source: event.source,
+      origin: event.origin,
+    },
+    iframe,
+    '__preview-hello__',
+  );
+
+  return message ? { documentId: message.documentId, url: message.url } : undefined;
+}
+
+/**
+ * Rolling-deploy bridge for the pre-v2 reporter. It can only report BLANK (it
+ * cannot clear anything), and is accepted solely from the current WindowProxy
+ * and validated preview origin. The ensuing reload fetches the versioned v2
+ * reporter, so this compatibility path is intentionally one-way.
+ */
+export function parseLegacyPreviewBlankMessage(
+  event: Pick<MessageEvent, 'data' | 'origin' | 'source'>,
+  iframe: Pick<HTMLIFrameElement, 'contentWindow' | 'src'> | null,
+  now = Date.now(),
+): LegacyPreviewBlankMessage | undefined {
+  if (!iframe || event.source !== iframe.contentWindow || !event.data || typeof event.data !== 'object') {
+    return undefined;
+  }
+
+  const data = event.data as Partial<LegacyPreviewBlankMessage> & { documentId?: unknown; epoch?: unknown };
+  const keys = Object.keys(data);
+
+  if (
+    data.type !== 'PREVIEW_BLANK' ||
+    keys.some((key) => !['type', 'message', 'url', 'ts'].includes(key)) ||
+    data.documentId !== undefined ||
+    data.epoch !== undefined ||
+    typeof data.url !== 'string' ||
+    typeof data.ts !== 'number' ||
+    !Number.isFinite(data.ts) ||
+    (data.message !== undefined && typeof data.message !== 'string') ||
+    data.ts < now - 60_000 ||
+    data.ts > now + 5_000
+  ) {
+    return undefined;
+  }
+
+  try {
+    const messageUrl = new URL(data.url);
+    const frameUrl = new URL(iframe.src);
+
+    if (
+      !['http:', 'https:'].includes(messageUrl.protocol) ||
+      frameUrl.href === 'about:blank' ||
+      messageUrl.origin !== frameUrl.origin ||
+      event.origin !== messageUrl.origin
+    ) {
+      return undefined;
+    }
+  } catch {
+    return undefined;
+  }
+
+  return data as LegacyPreviewBlankMessage;
 }
 
 function resolvePreviewBootProgress(input: {
@@ -676,6 +810,7 @@ export const Preview = memo(
     onPreviewDeviceChange,
     onOpenLogsRight,
     onOpenSourceFile,
+    previewInstanceId,
   }: PreviewProps) => {
     const { t, i18n } = useTranslation();
     const activeLanguage = i18n.resolvedLanguage ?? i18n.language;
@@ -686,6 +821,14 @@ export const Preview = memo(
 
     // One-shot guard: auto-reload a blank (served-but-never-mounted) preview at most once.
     const blankRecoveredRef = useRef(false);
+    const activePreviewDocumentRef = useRef<{ id: string; ts: number }>();
+    const pendingPreviewDocumentRef = useRef<{ id: string; epoch: string }>();
+    const retiredPreviewDocumentIdsRef = useRef<string[]>([]);
+    const lastLoadedDocumentIdRef = useRef<string>();
+    const lastLegacyBlankAtRef = useRef(0);
+    const previousPreviewLifecycleScopeRef = useRef<string>();
+    const blankDocumentsRef = useRef(new Set<string>());
+    const previewEpochRef = useRef(crypto.randomUUID());
 
     /*
      * How many times the boot loop has relaunched the dev server for the current
@@ -714,6 +857,7 @@ export const Preview = memo(
         : -1;
 
     const activePreview = normalizedActivePreviewIndex >= 0 ? previews[normalizedActivePreviewIndex] : undefined;
+    const previewLifecycleScope = `${projectId ?? 'unpersisted'}:${activePreview?.port ?? 'static'}:${previewInstanceId ?? 'primary-preview'}`;
     const [displayPath, setDisplayPath] = useState('/');
     const [addressInput, setAddressInput] = useState('/');
     const [iframeUrl, setIframeUrl] = useState<string | undefined>();
@@ -1034,6 +1178,57 @@ export const Preview = memo(
     }, [projectId, normalizedActivePreviewIndex, displayPath]);
 
     useEffect(() => {
+      if (projectId) {
+        useDiagnosticsStore
+          .getState()
+          .prunePreviewLifecycleInstance(projectId, previewInstanceId ?? 'primary-preview', previewLifecycleScope);
+      }
+
+      const previousScope = previousPreviewLifecycleScopeRef.current;
+
+      if (previousScope && previousScope !== previewLifecycleScope) {
+        useDiagnosticsStore.getState().clearPreviewLifecycleScope(previousScope);
+      }
+
+      previousPreviewLifecycleScopeRef.current = previewLifecycleScope;
+
+      const activeDocumentId = activePreviewDocumentRef.current?.id;
+
+      if (activeDocumentId) {
+        retiredPreviewDocumentIdsRef.current = [
+          activeDocumentId,
+          ...retiredPreviewDocumentIdsRef.current.filter((id) => id !== activeDocumentId),
+        ].slice(0, 16);
+      }
+
+      activePreviewDocumentRef.current = undefined;
+      pendingPreviewDocumentRef.current = undefined;
+      lastLoadedDocumentIdRef.current = undefined;
+      previewEpochRef.current = crypto.randomUUID();
+      blankDocumentsRef.current.clear();
+      blankRecoveredRef.current = false;
+
+      const iframe = iframeRef.current;
+
+      if (iframe?.src && iframe.src !== 'about:blank') {
+        iframe.contentWindow?.postMessage(
+          { type: 'PREVIEW_EPOCH', epoch: previewEpochRef.current },
+          new URL(iframe.src, window.location.href).origin,
+        );
+      }
+    }, [previewLifecycleScope]);
+
+    useEffect(() => {
+      if (projectId) {
+        return undefined;
+      }
+
+      const localScope = previewLifecycleScope;
+
+      return () => useDiagnosticsStore.getState().clearPreviewLifecycleScope(localScope);
+    }, [previewLifecycleScope, projectId]);
+
+    useEffect(() => {
       if (!activePreview) {
         setIframeUrl(undefined);
         setDisplayPath('/');
@@ -1043,6 +1238,12 @@ export const Preview = memo(
       }
 
       const { baseUrl } = activePreview;
+      activePreviewDocumentRef.current = undefined;
+      pendingPreviewDocumentRef.current = undefined;
+      lastLoadedDocumentIdRef.current = undefined;
+      previewEpochRef.current = crypto.randomUUID();
+      blankDocumentsRef.current.clear();
+      blankRecoveredRef.current = false;
       setPreviewRunFailed(false);
       setPreviewFrameLoaded(false);
       setLoadedPreviewUrl(undefined);
@@ -1107,7 +1308,7 @@ export const Preview = memo(
     }, [t]);
 
     const reloadPreview = useCallback(
-      (reason = 'manual') => {
+      (reason = 'manual', targetOverride?: string) => {
         const iframe = iframeRef.current;
 
         if (!iframe) {
@@ -1116,12 +1317,20 @@ export const Preview = memo(
         }
 
         const currentSrc = iframe.src;
-        const target = iframeUrl ?? (currentSrc && currentSrc !== 'about:blank' ? currentSrc : undefined);
+
+        const target =
+          targetOverride ?? iframeUrl ?? (currentSrc && currentSrc !== 'about:blank' ? currentSrc : undefined);
 
         if (!target) {
           void refreshPorts();
           return;
         }
+
+        // Reject any late message from the document this navigation replaces.
+        activePreviewDocumentRef.current = undefined;
+        pendingPreviewDocumentRef.current = undefined;
+        lastLoadedDocumentIdRef.current = undefined;
+        previewEpochRef.current = crypto.randomUUID();
 
         try {
           iframe.contentWindow?.location.reload();
@@ -1510,7 +1719,30 @@ export const Preview = memo(
         return;
       }
 
-      setIframeUrl(resolution.iframeUrl);
+      const currentFrameUrl = iframeRef.current?.src;
+
+      const targetIsCurrent = [iframeUrl, currentFrameUrl]
+        .filter((value): value is string => Boolean(value && value !== 'about:blank'))
+        .some((value) => {
+          try {
+            return (
+              new URL(value, window.location.href).href === new URL(resolution.iframeUrl, window.location.href).href
+            );
+          } catch {
+            return value === resolution.iframeUrl;
+          }
+        });
+
+      if (targetIsCurrent) {
+        reloadPreview('address-bar:same-url', resolution.iframeUrl);
+      } else {
+        activePreviewDocumentRef.current = undefined;
+        pendingPreviewDocumentRef.current = undefined;
+        lastLoadedDocumentIdRef.current = undefined;
+        previewEpochRef.current = crypto.randomUUID();
+        setIframeUrl(resolution.iframeUrl);
+      }
+
       setAddressInput(resolution.addressInput);
 
       /*
@@ -2075,6 +2307,154 @@ export const Preview = memo(
           return;
         }
 
+        const lifecycle = parsePreviewLifecycleMessage(event, iframeRef.current, previewEpochRef.current);
+
+        if (!lifecycle) {
+          const hello = parsePreviewDocumentHello(event, iframeRef.current);
+
+          if (hello) {
+            if (retiredPreviewDocumentIdsRef.current.includes(hello.documentId)) {
+              return;
+            }
+
+            const pendingDocument = pendingPreviewDocumentRef.current;
+
+            if (pendingDocument?.id !== hello.documentId) {
+              if (activePreviewDocumentRef.current?.id !== hello.documentId) {
+                const activeDocumentId = activePreviewDocumentRef.current?.id;
+
+                if (activeDocumentId) {
+                  retiredPreviewDocumentIdsRef.current = [
+                    activeDocumentId,
+                    ...retiredPreviewDocumentIdsRef.current.filter((id) => id !== activeDocumentId),
+                  ].slice(0, 16);
+                }
+
+                previewEpochRef.current = crypto.randomUUID();
+                activePreviewDocumentRef.current = undefined;
+              }
+
+              pendingPreviewDocumentRef.current = {
+                id: hello.documentId,
+                epoch: previewEpochRef.current,
+              };
+            }
+
+            iframeRef.current?.contentWindow?.postMessage(
+              {
+                type: 'PREVIEW_EPOCH',
+                epoch: pendingPreviewDocumentRef.current?.epoch ?? previewEpochRef.current,
+              },
+              new URL(hello.url).origin,
+            );
+
+            return;
+          }
+
+          const legacyBlank = parseLegacyPreviewBlankMessage(event, iframeRef.current);
+
+          if (
+            legacyBlank &&
+            !activePreviewDocumentRef.current &&
+            !pendingPreviewDocumentRef.current &&
+            legacyBlank.ts > lastLegacyBlankAtRef.current
+          ) {
+            lastLegacyBlankAtRef.current = legacyBlank.ts;
+
+            const legacyDocumentId = `legacy-${previewEpochRef.current}`;
+            const observedAt = Date.now();
+            const diagnostics = useDiagnosticsStore.getState();
+            diagnostics.recordPreviewLifecycle({
+              scope: previewLifecycleScope,
+              status: 'document',
+              documentId: legacyDocumentId,
+              observedAt,
+            });
+            diagnostics.recordPreviewLifecycle({
+              scope: previewLifecycleScope,
+              status: 'blank',
+              documentId: legacyDocumentId,
+              observedAt: observedAt + 1,
+              message: t('idePanels.preview.blankPage'),
+            });
+
+            if (!blankRecoveredRef.current) {
+              blankRecoveredRef.current = true;
+              reloadPreview('blank-preview:legacy-reporter', legacyBlank.url);
+            }
+
+            return;
+          }
+        }
+
+        if (lifecycle) {
+          const statusByType: Record<PreviewLifecycleMessage['type'], PreviewLifecycleStatus> = {
+            PREVIEW_DOCUMENT: 'document',
+            PREVIEW_MOUNTED: 'mounted',
+            PREVIEW_OK: 'ok',
+            PREVIEW_BLANK: 'blank',
+          };
+
+          if (lifecycle.type === 'PREVIEW_DOCUMENT') {
+            const activeDocument = activePreviewDocumentRef.current;
+            const pendingDocument = pendingPreviewDocumentRef.current;
+
+            if (
+              (!activeDocument || activeDocument.id === lifecycle.documentId) &&
+              (!pendingDocument ||
+                (pendingDocument.id === lifecycle.documentId && pendingDocument.epoch === lifecycle.epoch))
+            ) {
+              activePreviewDocumentRef.current = { id: lifecycle.documentId, ts: Date.now() };
+              pendingPreviewDocumentRef.current = undefined;
+              useDiagnosticsStore.getState().recordPreviewLifecycle({
+                scope: previewLifecycleScope,
+                status: 'document',
+                documentId: lifecycle.documentId,
+                observedAt: Date.now(),
+              });
+            }
+
+            return;
+          }
+
+          if (activePreviewDocumentRef.current?.id !== lifecycle.documentId) {
+            return;
+          }
+
+          useDiagnosticsStore.getState().recordPreviewLifecycle({
+            scope: previewLifecycleScope,
+            status: statusByType[lifecycle.type],
+            documentId: lifecycle.documentId,
+            observedAt: Date.now(),
+            ...(lifecycle.type === 'PREVIEW_BLANK' ? { message: t('idePanels.preview.blankPage') } : {}),
+          });
+
+          if (lifecycle.type === 'PREVIEW_OK') {
+            blankRecoveredRef.current = false;
+            blankDocumentsRef.current.delete(lifecycle.documentId);
+
+            return;
+          }
+
+          if (lifecycle.type === 'PREVIEW_MOUNTED') {
+            return;
+          }
+
+          if (!blankDocumentsRef.current.has(lifecycle.documentId)) {
+            blankDocumentsRef.current.add(lifecycle.documentId);
+
+            const message = t('idePanels.preview.blankPage');
+            setPreviewConsoleEvents((events) => [{ level: 'warn', message }, ...events].slice(0, 120));
+
+            if (!blankRecoveredRef.current) {
+              blankRecoveredRef.current = true;
+              reloadPreview('blank-preview:auto-recover', lifecycle.url);
+            }
+          }
+
+          return;
+        }
+
         /*
          * Inspector selection/hover events (INSPECTOR_CLICK / HOVER / LEAVE) are
          * owned exclusively by the Inspector component, which offsets the rect
@@ -2158,28 +2538,13 @@ export const Preview = memo(
             );
             workbenchStore.appendWorkspaceLog(String(event.data.stack));
           }
-        } else if (event.data.type === 'PREVIEW_BLANK') {
-          /*
-           * The injected reporter detected a served page whose SPA root never
-           * mounted (blank white screen). Surface it clearly instead of leaving a
-           * silent blank, and auto-reload the frame ONCE — by then the agent's
-           * serve-time entry repair has re-injected the missing entry script.
-           */
-          const message = t('idePanels.preview.blankPage');
-          setPreviewConsoleEvents((events) => [{ level: 'warn', message }, ...events].slice(0, 120));
-          workbenchStore.appendWorkspaceLog(message);
-
-          if (!blankRecoveredRef.current) {
-            blankRecoveredRef.current = true;
-            reloadPreview('blank-preview:auto-recover');
-          }
         }
       };
 
       window.addEventListener('message', handleMessage);
 
       return () => window.removeEventListener('message', handleMessage);
-    }, [isInspectorMode, reloadPreview, t]);
+    }, [isInspectorMode, previewLifecycleScope, reloadPreview, t]);
 
     const toggleInspectorMode = () => {
       const newInspectorMode = !isInspectorMode;
@@ -2235,11 +2600,49 @@ export const Preview = memo(
 
     const recordPreviewLoad = useCallback(
       (url?: string) => {
-        const targetUrl = url ?? iframeRef.current?.src ?? visiblePreviewUrl;
+        const actualFrameUrl = iframeRef.current?.src;
 
-        if (!targetUrl || targetUrl === 'about:blank') {
+        if (actualFrameUrl === 'about:blank') {
           return;
         }
+
+        const targetUrl = actualFrameUrl || url || visiblePreviewUrl;
+
+        if (!targetUrl) {
+          return;
+        }
+
+        /*
+         * Every completed document navigation (including in-app links/forms)
+         * gets a new parent-owned epoch. A WindowProxy survives navigation, so
+         * source identity alone cannot reject delayed messages from the old doc.
+         */
+        const activeDocument = activePreviewDocumentRef.current;
+
+        const handshakeCompletedBeforeLoad = Boolean(
+          activeDocument && activeDocument.id !== lastLoadedDocumentIdRef.current,
+        );
+
+        if (handshakeCompletedBeforeLoad) {
+          lastLoadedDocumentIdRef.current = activeDocument?.id;
+        } else {
+          if (activeDocument?.id) {
+            retiredPreviewDocumentIdsRef.current = [
+              activeDocument.id,
+              ...retiredPreviewDocumentIdsRef.current.filter((id) => id !== activeDocument.id),
+            ].slice(0, 16);
+          }
+
+          activePreviewDocumentRef.current = undefined;
+          pendingPreviewDocumentRef.current = undefined;
+          lastLoadedDocumentIdRef.current = undefined;
+          previewEpochRef.current = crypto.randomUUID();
+        }
+
+        iframeRef.current?.contentWindow?.postMessage(
+          { type: 'PREVIEW_EPOCH', epoch: previewEpochRef.current },
+          new URL(targetUrl, window.location.href).origin,
+        );
 
         /*
          * The cross-origin preview iframe fires onLoad even for HTTP 5xx bodies,

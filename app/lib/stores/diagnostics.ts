@@ -17,8 +17,31 @@ interface DiagnosticsState {
   diagnostics: Diagnostic[];
   errors: number;
   warnings: number;
+  previewLifecycle: Record<string, ValidatedPreviewLifecycleState>;
+  recordPreviewLifecycle: (event: ValidatedPreviewLifecycleEvent) => void;
+  clearPreviewLifecycleScope: (scope: string) => void;
+  clearPreviewLifecycleOwner: (owner: string) => void;
+  clearPreviewLifecycleWindow: (owner: string, instancePrefix: string) => void;
+  clearPreviewLifecycleInstance: (owner: string, instanceId: string) => void;
+  prunePreviewLifecycleInstance: (owner: string, instanceId: string, keepScope: string) => void;
   setDiagnosticsForSource: (source: string, diagnostics: Diagnostic[]) => void;
   clearDiagnosticsForSource: (source: string) => void;
+}
+
+export type PreviewLifecycleStatus = 'document' | 'blank' | 'mounted' | 'ok';
+
+export interface ValidatedPreviewLifecycleEvent {
+  scope: string;
+  status: PreviewLifecycleStatus;
+  documentId: string;
+  observedAt: number;
+  message?: string;
+}
+
+interface ValidatedPreviewLifecycleState {
+  status: PreviewLifecycleStatus;
+  documentId: string;
+  observedAt: number;
 }
 
 /*
@@ -58,6 +81,166 @@ export const useDiagnosticsStore = create<DiagnosticsState>((set, get) => ({
   diagnostics: [],
   errors: 0,
   warnings: 0,
+  previewLifecycle: {},
+  recordPreviewLifecycle: (event) => {
+    const source = `preview-lifecycle:${event.scope}`;
+    const current = get();
+    const previous = current.previewLifecycle[event.scope];
+
+    if (
+      (event.status === 'document' && previous && event.observedAt < previous.observedAt) ||
+      (event.status !== 'document' &&
+        (!previous || previous.documentId !== event.documentId || event.observedAt < previous.observedAt))
+    ) {
+      return;
+    }
+
+    const withoutScope = current.diagnostics.filter((diagnostic) => diagnostic.source !== source);
+
+    const nextDiagnostics =
+      event.status === 'blank'
+        ? sortDiagnostics([
+            ...withoutScope,
+            {
+              id: `${source}:blank`,
+              severity: 'error',
+              source,
+              message: event.message ?? 'preview.blank',
+              detail: `document=${event.documentId}`,
+              occurrences: 1,
+              firstSeenAt: event.observedAt,
+              lastSeenAt: event.observedAt,
+            },
+          ]).slice(0, MAX_DIAGNOSTICS)
+        : current.diagnostics;
+
+    /* MOUNTED is evidence only; only stable OK is allowed to clear BLANK. */
+    const settledDiagnostics =
+      event.status === 'ok'
+        ? sortDiagnostics(current.diagnostics.filter((diagnostic) => diagnostic.source !== source))
+        : nextDiagnostics;
+
+    const counts = countBySeverity(settledDiagnostics);
+
+    set({
+      diagnostics: settledDiagnostics,
+      ...counts,
+      previewLifecycle: {
+        ...current.previewLifecycle,
+        [event.scope]: {
+          status: event.status,
+          documentId: event.documentId,
+          observedAt: event.observedAt,
+        },
+      },
+    });
+  },
+  clearPreviewLifecycleScope: (scope) => {
+    const source = `preview-lifecycle:${scope}`;
+    const current = get();
+    const diagnostics = sortDiagnostics(current.diagnostics.filter((diagnostic) => diagnostic.source !== source));
+    const previewLifecycle = { ...current.previewLifecycle };
+    delete previewLifecycle[scope];
+
+    set({ diagnostics, ...countBySeverity(diagnostics), previewLifecycle });
+  },
+  clearPreviewLifecycleOwner: (owner) => {
+    const sourcePrefix = `preview-lifecycle:${owner}:`;
+    const current = get();
+
+    const diagnostics = sortDiagnostics(
+      current.diagnostics.filter((diagnostic) => !diagnostic.source.startsWith(sourcePrefix)),
+    );
+    const previewLifecycle = Object.fromEntries(
+      Object.entries(current.previewLifecycle).filter(([scope]) => !scope.startsWith(`${owner}:`)),
+    );
+
+    set({ diagnostics, ...countBySeverity(diagnostics), previewLifecycle });
+  },
+  clearPreviewLifecycleWindow: (owner, instancePrefix) => {
+    const scopePrefix = `${owner}:`;
+    const sourcePrefix = 'preview-lifecycle:';
+    const current = get();
+
+    const belongsToWindow = (scope: string) => {
+      if (!scope.startsWith(scopePrefix)) {
+        return false;
+      }
+
+      const portSeparator = scope.indexOf(':', scopePrefix.length);
+      const instanceId = portSeparator === -1 ? '' : scope.slice(portSeparator + 1);
+
+      return instanceId.startsWith(instancePrefix);
+    };
+
+    const diagnostics = sortDiagnostics(
+      current.diagnostics.filter((diagnostic) =>
+        diagnostic.source.startsWith(sourcePrefix)
+          ? !belongsToWindow(diagnostic.source.slice(sourcePrefix.length))
+          : true,
+      ),
+    );
+    const previewLifecycle = Object.fromEntries(
+      Object.entries(current.previewLifecycle).filter(([scope]) => !belongsToWindow(scope)),
+    );
+
+    set({ diagnostics, ...countBySeverity(diagnostics), previewLifecycle });
+  },
+  clearPreviewLifecycleInstance: (owner, instanceId) => {
+    const scopePrefix = `${owner}:`;
+    const sourcePrefix = `preview-lifecycle:${scopePrefix}`;
+    const current = get();
+
+    const belongsToInstance = (scope: string) => {
+      if (!scope.startsWith(scopePrefix)) {
+        return false;
+      }
+
+      const portSeparator = scope.indexOf(':', scopePrefix.length);
+
+      return portSeparator !== -1 && scope.slice(portSeparator + 1) === instanceId;
+    };
+
+    const diagnostics = sortDiagnostics(
+      current.diagnostics.filter((diagnostic) => {
+        if (!diagnostic.source.startsWith(sourcePrefix)) {
+          return true;
+        }
+
+        return !belongsToInstance(diagnostic.source.slice('preview-lifecycle:'.length));
+      }),
+    );
+    const previewLifecycle = Object.fromEntries(
+      Object.entries(current.previewLifecycle).filter(([scope]) => !belongsToInstance(scope)),
+    );
+
+    set({ diagnostics, ...countBySeverity(diagnostics), previewLifecycle });
+  },
+  prunePreviewLifecycleInstance: (owner, instanceId, keepScope) => {
+    const scopePrefix = `${owner}:`;
+    const sourcePrefix = 'preview-lifecycle:';
+    const current = get();
+
+    const shouldPrune = (scope: string) => {
+      if (scope === keepScope || !scope.startsWith(scopePrefix)) {
+        return false;
+      }
+
+      const portSeparator = scope.indexOf(':', scopePrefix.length);
+
+      return portSeparator !== -1 && scope.slice(portSeparator + 1) === instanceId;
+    };
+    const diagnostics = sortDiagnostics(
+      current.diagnostics.filter((diagnostic) =>
+        diagnostic.source.startsWith(sourcePrefix) ? !shouldPrune(diagnostic.source.slice(sourcePrefix.length)) : true,
+      ),
+    );
+    const previewLifecycle = Object.fromEntries(
+      Object.entries(current.previewLifecycle).filter(([scope]) => !shouldPrune(scope)),
+    );
+
+    set({ diagnostics, ...countBySeverity(diagnostics), previewLifecycle });
+  },
   setDiagnosticsForSource: (source, diagnostics) => {
     const nextDiagnostics = sortDiagnostics([
       ...get().diagnostics.filter((diagnostic) => diagnostic.source !== source),
@@ -90,7 +273,14 @@ const RUNTIME_WARNING_PATTERN = /\b(warn|warning|deprecated)\b/i;
  * and classified as an ERROR, and never suppressed by `previewLive` — a live
  * port is exactly the condition under which this fires.
  */
-const BLANK_PREVIEW_PATTERN = /\bapp never mounted\b|\bblank page\b/i;
+const LEGACY_BLANK_PREVIEW_MESSAGES = new Set([
+  'Preview loaded but the app never mounted (blank page). Check the app entry or console. Auto-reloading once…',
+  'L’aperçu a été chargé, mais l’application ne s’est pas montée (page blanche). Vérifiez le point d’entrée ou la console. Une actualisation automatique va être tentée…',
+]);
+
+function isLegacyBlankPreviewMessage(message: string) {
+  return LEGACY_BLANK_PREVIEW_MESSAGES.has(message);
+}
 
 /*
  * Cold-start / provisioning failures that are RESOLVED the moment a forwarded port
@@ -178,7 +368,7 @@ export function buildRuntimeDiagnostics({
     const normalizedMessage = normalizeRuntimeLine(message);
 
     if (!normalizedMessage) {
-      return;
+      return undefined;
     }
 
     /*
@@ -190,10 +380,10 @@ export function buildRuntimeDiagnostics({
     if (
       previewLive &&
       severity === 'error' &&
-      !BLANK_PREVIEW_PATTERN.test(normalizedMessage) &&
+      !isLegacyBlankPreviewMessage(normalizedMessage) &&
       TRANSIENT_RUNTIME_ERROR_PATTERN.test(normalizedMessage)
     ) {
-      return;
+      return undefined;
     }
 
     const id = stableDiagnosticId('runtime', severity, normalizedMessage);
@@ -220,10 +410,13 @@ export function buildRuntimeDiagnostics({
         buildErrorIdsByModule.set(key, ids);
       }
     }
+
+    return id;
   };
 
   if (workspaceError) {
-    addDiagnostic('error', workspaceError instanceof Error ? workspaceError.message : workspaceError);
+    const message = workspaceError instanceof Error ? workspaceError.message : workspaceError;
+    addDiagnostic('error', message);
   }
 
   for (const line of workspaceLogs) {
@@ -249,9 +442,16 @@ export function buildRuntimeDiagnostics({
       }
     }
 
-    if (BLANK_PREVIEW_PATTERN.test(normalizedLine) || RUNTIME_ERROR_PATTERN.test(normalizedLine)) {
+    /*
+     * Preview lifecycle is deliberately NOT parsed from workspaceLogs: project
+     * stdout is untrusted and could forge a recovery marker. PREVIEW_BLANK/OK
+     * reach the dedicated validated store action after iframe validation instead.
+     * This is an anti-stale/navigation boundary, not authentication against code
+     * running inside the same preview realm.
+     */
+    if (RUNTIME_ERROR_PATTERN.test(normalizedLine) && !isLegacyBlankPreviewMessage(normalizedLine)) {
       addDiagnostic('error', normalizedLine);
-    } else if (RUNTIME_WARNING_PATTERN.test(normalizedLine)) {
+    } else if (RUNTIME_WARNING_PATTERN.test(normalizedLine) && !isLegacyBlankPreviewMessage(normalizedLine)) {
       addDiagnostic('warning', normalizedLine);
     }
   }
