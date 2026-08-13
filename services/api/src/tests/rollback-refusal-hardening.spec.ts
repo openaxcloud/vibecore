@@ -473,6 +473,112 @@ describe('rollback refusal — what the loser leaves behind', () => {
   });
 
   /* ==================================================================
+   * P0 (same class, other paths) — the SAME best-effort stop was still used
+   * by the stale-timeout teardown and by cancel. Both wrote a terminal row
+   * claiming the workload was gone while swallowing the failure; cancel is
+   * the worse of the two because that workload is READY and SERVING.
+   * ================================================================== */
+  describe('P0 — the same fail-open on the other teardown paths', () => {
+    function stubStopFailing() {
+      const calls = { stop: 0 };
+
+      globalThis.fetch = vi.fn(async (url: unknown) => {
+        const href = typeof url === 'string' ? url : String(url);
+
+        if (href.includes('/stop')) {
+          calls.stop += 1;
+
+          return new Response('manager exploded', { status: 500 });
+        }
+
+        if (href.includes('/status')) {
+          /*
+           * `readyReplicas: 0` matters: a non-zero value would make reconcile PROMOTE the
+           * row to READY before it ever reaches the stale-timeout branch under test.
+           * `exists: true` is what keeps the disappearance unproven.
+           */
+          return new Response(JSON.stringify({ exists: true, readyReplicas: 0, replicas: 1 }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
+        }
+
+        return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+      }) as unknown as typeof fetch;
+
+      return calls;
+    }
+
+    it('CANCEL whose teardown fails: the row is cancelled but the leak is surfaced, not hidden', async () => {
+      const store = new SerializingStore();
+      const { app, token, projectId } = await setup(store);
+      const calls = stubStopFailing();
+
+      const deployment = await store.createDeployment({
+        projectId,
+        provider: 'server',
+        environment: 'preview',
+        status: 'BUILDING',
+        metadata: { serverDeploy: { host: 'd-cancel.test', applied: true, ready: true } },
+      });
+
+      const res = await app.inject({
+        method: 'POST',
+        url: `/projects/${projectId}/deployments/${deployment.id}/cancel`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(res.statusCode).toBe(200);
+      expect(calls.stop, 'the strict stop must have been attempted').toBeGreaterThan(0);
+
+      /*
+       * PRE-FIX: a tidy 200 with the row CANCELED, and a workload still serving — the exact
+       * outcome the code comment said must not happen.
+       */
+      const body = res.json() as Record<string, unknown>;
+      expect(body.staleWorkloadActive, 'the caller must be told the workload may still be up').toBe(true);
+
+      const row = await store.getDeployment(projectId, deployment.id);
+      expect((row!.metadata as Record<string, unknown>).staleWorkloadActive).toBe(true);
+
+      await app.close();
+    });
+
+    it('STALE-TIMEOUT teardown whose stop fails: still FAILED, but the leak is recorded', async () => {
+      const store = new SerializingStore();
+      const { app, token, projectId } = await setup(store);
+      stubStopFailing();
+
+      // A server deploy that never converged, older than the stale timeout (40 min).
+      const deployment = await store.createDeployment({
+        projectId,
+        provider: 'server',
+        environment: 'preview',
+        status: 'BUILDING',
+        metadata: { serverDeploy: { host: 'd-stale.test', applied: true, ready: false } },
+      });
+      store.deployments.get(deployment.id)!.startedAt = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+
+      // Reading the deployment is what drives reconcileDeploymentStatus.
+      const res = await app.inject({
+        method: 'GET',
+        url: `/projects/${projectId}/deployments/${deployment.id}`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+      expect(res.statusCode).toBe(200);
+
+      const row = await store.getDeployment(projectId, deployment.id);
+      expect(row!.status, 'the timeout verdict itself still stands').toBe('FAILED');
+      expect(
+        (row!.metadata as Record<string, unknown>).staleWorkloadActive,
+        'an unproven teardown must be recorded, not claimed handled',
+      ).toBe(true);
+
+      await app.close();
+    });
+  });
+
+  /* ==================================================================
    * P1 — durable idempotency.
    * ================================================================== */
   describe('P1 — durable idempotency', () => {

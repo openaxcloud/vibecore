@@ -3949,12 +3949,38 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
        * applied — tear them down as we fail the row so nothing leaks (a Pending
        * pod would otherwise keep the autoscaler retrying scale-up indefinitely).
        */
+      /*
+       * Same fail-open class as the rollback reserve (P0), on the stale-timeout path: the
+       * teardown was best-effort, and the comment above CLAIMS "so nothing leaks" while a
+       * manager 500/timeout was swallowed and the row written FAILED regardless. The row
+       * then says "nothing running" while the Deployment is still applied — and, as the
+       * comment itself notes, a Pending pod keeps the autoscaler retrying scale-up.
+       *
+       * The timeout verdict is correct either way, so FAILED still stands; what must not
+       * stand is silently claiming the workload is gone. Record it instead.
+       */
+      let staleWorkload: string | undefined;
+
       if (deployment.provider === 'server') {
-        await stopServerDeploymentViaManager(deployment.id).catch(() => undefined);
+        try {
+          await retireServerWorkloadOrThrow(deployment.id);
+        } catch (error) {
+          staleWorkload =
+            error instanceof StaleWorkloadActiveError ? error.cause : ((error as Error).message ?? 'unknown');
+        }
       }
 
       return store.updateDeployment(deployment.projectId, deployment.id, {
         status: 'FAILED',
+        ...(staleWorkload
+          ? {
+              metadata: {
+                ...(deployment.metadata as Record<string, unknown>),
+                staleWorkloadActive: true,
+                staleWorkloadReason: staleWorkload,
+              },
+            }
+          : {}),
         logs: [
           ...deployment.logs,
           {
@@ -3962,6 +3988,15 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
             level: 'error' as const,
             message: appPublicEnglish('DEPLOYMENT_BUILD_TIMEOUT'),
           },
+          ...(staleWorkload
+            ? [
+                {
+                  timestamp: new Date().toISOString(),
+                  level: 'error' as const,
+                  message: `Build timed out, but the server workload could not be proven stopped (${staleWorkload}) — it may still be consuming resources.`,
+                },
+              ]
+            : []),
         ],
         finishedAt: new Date().toISOString(),
       });
@@ -34097,12 +34132,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     /*
-     * A server deployment runs a durable Deployment+Service in the runtime
-     * sandbox — cancelling must tear it down so it doesn't keep serving / consume
-     * resources. Best-effort (the manager also GC's orphans); never blocks cancel.
+     * A server deployment runs a durable Deployment+Service in the runtime sandbox —
+     * cancelling must tear it down so it doesn't keep serving.
+     *
+     * Same fail-open class as the rollback reserve (P0): this was a swallow-everything
+     * stop, so a manager 500/timeout left the row CANCELED while the workload KEPT
+     * SERVING — the one outcome the comment says must not happen. "The manager also GC's
+     * orphans" is exactly the "someone else will clean it up" the reserve rejects: it is
+     * not observed here, so it cannot be claimed here.
+     *
+     * The cancel itself still succeeds (the user asked for it, and blocking would leave
+     * them stuck), but an unproven teardown is recorded and surfaced instead of hidden.
      */
+    let staleWorkloadReason: string | undefined;
+
     if (deployment.provider === 'server') {
-      await stopServerDeploymentViaManager(deployment.id);
+      try {
+        await retireServerWorkloadOrThrow(deployment.id);
+      } catch (error) {
+        staleWorkloadReason =
+          error instanceof StaleWorkloadActiveError ? error.cause : ((error as Error).message ?? 'unknown');
+
+        request.log.error(
+          { deploymentId: deployment.id, cause: staleWorkloadReason },
+          'deployment cancelled BUT its server workload could not be proven stopped — may still be serving',
+        );
+
+        await store
+          .updateDeployment(project.id, deployment.id, {
+            metadata: {
+              ...(deployment.metadata as Record<string, unknown>),
+              staleWorkloadActive: true,
+              staleWorkloadReason,
+            },
+          })
+          .catch(() => undefined);
+      }
     }
 
     await audit(request, store, {
@@ -34112,7 +34177,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       resourceId: deployment.id,
     });
 
-    return { deployment: localizeDeploymentRecord(canceled, transactionalLocaleForRequest(request)) };
+    return {
+      deployment: localizeDeploymentRecord(canceled, transactionalLocaleForRequest(request)),
+      // Surfaced, not buried in a log: the caller must know the workload may still be up.
+      ...(staleWorkloadReason ? { staleWorkloadActive: true, staleWorkloadReason } : {}),
+    };
   });
 
   /*
