@@ -308,6 +308,15 @@
       "expiresOn": "2027-08-04"
     },
     {
+      "id": "database-provision-machine-error-codes",
+      "path": "services/api/src/database-provisioner.ts",
+      "rule": "visible-object-copy",
+      "textPattern": "^SHARED_TENANT_UNAVAILABLE$",
+      "justification": "This uppercase value is a stable machine sub-code on ProvisionResult.reason, typed as a closed literal union. The 503 that carries it (app.ts) sends the human-readable text separately in `error` via the public catalogue and a `code` discriminator; `reason` only tells the caller which failure branch was taken, so translating it would break the API contract without adding any readable copy.",
+      "owner": "database-platform-and-i18n",
+      "expiresOn": "2027-08-13"
+    },
+    {
       "id": "connector-proxy-startup-invariant",
       "path": "services/connector-proxy/src/app.ts",
       "rule": "error-message",
