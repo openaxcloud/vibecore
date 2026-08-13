@@ -8,28 +8,36 @@ type RuntimeThemeSnapshot = {
   prefersDark: boolean;
   prefersLight: boolean;
   rootClasses: string[];
-  visibleThemeControls: Array<{
+  themeControls: Array<{
     ariaLabel: string | null;
+    ariaPressed: string | null;
+    disabled: boolean;
     role: string | null;
     tag: string;
     text: string;
     title: string | null;
+    type: string | null;
+    visible: boolean;
   }>;
 };
 
 const THEME_CLASS_PATTERN = /^(?:(dark|light)|(?:theme|mode)[-_](dark|light)|(dark|light)[-_](?:theme|mode))$/i;
 
-const THEME_CONTROL_LABEL_PARTS = [
-  String.raw`(?:toggle|switch|change)(?:\s+the)?(?:\s+colou?r)?\s+(?:theme|mode)`,
-  String.raw`(?:switch|change)\s+to\s+(?:light|dark)(?:\s+(?:theme|mode))?`,
-  String.raw`(?:light|dark)\s+(?:theme|mode)`,
-  String.raw`(?:changer|basculer)\s+(?:(?:de|le)\s+)?(?:th[eè]me|mode)`,
-  String.raw`(?:activer|passer\s+(?:au|en))\s+(?:le\s+)?mode\s+(?:clair|sombre)`,
-  String.raw`mode\s+(?:clair|sombre)`,
-  String.raw`(?:th[eè]me|theme)\s+(?:clair|sombre)`,
-] as const;
+const THEME_CONTROL_LABELS = {
+  en: {
+    dark: 'Switch to light mode',
+    light: 'Switch to dark mode',
+  },
+  fr: {
+    dark: 'Passer en mode clair',
+    light: 'Passer en mode sombre',
+  },
+} as const;
 
-export const OFFICIAL_RUNTIME_THEME_CONTROL_LABEL = new RegExp(`^(?:${THEME_CONTROL_LABEL_PARTS.join('|')})$`, 'iu');
+type RuntimeThemeLocale = keyof typeof THEME_CONTROL_LABELS;
+
+export const OFFICIAL_RUNTIME_THEME_CONTROL_LABEL =
+  /^(?:Switch to light mode|Switch to dark mode|Passer en mode clair|Passer en mode sombre)$/u;
 
 const IDE_SHELL_SHORTCUT_FOCUS_SELECTOR = '.bolt-project-statusbar:visible button:visible:not([disabled])';
 const DESKTOP_IDE_SELECTOR = '.bolt-responsive-ide-desktop:visible';
@@ -101,21 +109,17 @@ async function runtimeThemeSnapshot(surface: RuntimeThemeSurface): Promise<Runti
       return bounds.width > 0 && bounds.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
     };
 
-    const visibleThemeControls = Array.from(
-      document.querySelectorAll('button, [role="button"], [role="switch"], [role="checkbox"]'),
-    )
-      .filter(isVisible)
-      .map((element) => ({
+    const themeControls = Array.from(document.querySelectorAll('[data-testid="app-theme-toggle"]')).map((element) => ({
         ariaLabel: element.getAttribute('aria-label'),
+        ariaPressed: element.getAttribute('aria-pressed'),
+        disabled: element.matches(':disabled') || element.getAttribute('aria-disabled') === 'true',
         role: element.getAttribute('role'),
         tag: element.tagName.toLowerCase(),
-        text: (element.textContent || '').replace(/\\s+/g, ' ').trim().slice(0, 160),
+        text: (element.innerText || '').replace(/\\s+/g, ' ').trim(),
         title: element.getAttribute('title'),
-      }))
-      .filter((control) => /theme|mode|th[eè]me|clair|sombre|light|dark/i.test(
-        [control.ariaLabel, control.text, control.title].filter(Boolean).join(' '),
-      ))
-      .slice(0, 12);
+        type: element.getAttribute('type'),
+        visible: isVisible(element),
+      }));
 
     return {
       computedColorScheme: window.getComputedStyle(document.documentElement).colorScheme,
@@ -123,32 +127,127 @@ async function runtimeThemeSnapshot(surface: RuntimeThemeSurface): Promise<Runti
       prefersDark: window.matchMedia('(prefers-color-scheme: dark)').matches,
       prefersLight: window.matchMedia('(prefers-color-scheme: light)').matches,
       rootClasses: Array.from(document.documentElement.classList),
-      visibleThemeControls,
+      themeControls,
     };
   })()`);
 }
 
 async function firstVisibleThemeControl(surface: RuntimeThemeSurface): Promise<Locator | undefined> {
-  const candidates = [
-    surface.getByTestId('app-theme-toggle'),
-    surface.getByRole('button', { name: OFFICIAL_RUNTIME_THEME_CONTROL_LABEL }),
-    surface.getByRole('switch', { name: OFFICIAL_RUNTIME_THEME_CONTROL_LABEL }),
-    surface.getByRole('checkbox', { name: OFFICIAL_RUNTIME_THEME_CONTROL_LABEL }),
-  ];
+  const candidates = surface.getByTestId('app-theme-toggle');
+  const count = await candidates.count();
 
-  for (const candidatesForRole of candidates) {
-    const count = await candidatesForRole.count();
+  for (let index = 0; index < count; index += 1) {
+    const candidate = candidates.nth(index);
 
-    for (let index = 0; index < count; index += 1) {
-      const candidate = candidatesForRole.nth(index);
-
-      if ((await candidate.isVisible()) && (await candidate.isEnabled())) {
-        return candidate;
-      }
+    if (await candidate.isVisible()) {
+      return candidate;
     }
   }
 
   return undefined;
+}
+
+function expectedThemeControlPressed(theme: RuntimeCaptureTheme) {
+  return theme === 'dark' ? 'true' : 'false';
+}
+
+function formatExpectedThemeControlLabels(theme: RuntimeCaptureTheme) {
+  return (Object.keys(THEME_CONTROL_LABELS) as RuntimeThemeLocale[])
+    .map((locale) => `${locale.toUpperCase()} ${JSON.stringify(THEME_CONTROL_LABELS[locale][theme])}`)
+    .join(' or ');
+}
+
+function assertRuntimeThemeControlContract(
+  snapshot: RuntimeThemeSnapshot,
+  theme: RuntimeCaptureTheme,
+  expectedLocale?: RuntimeThemeLocale,
+) {
+  const visibleControls = snapshot.themeControls.filter((control) => control.visible);
+
+  if (visibleControls.length !== 1) {
+    throw new Error(
+      `Generated theme control contract violation for ${theme}: expected exactly one visible ` +
+        `[data-testid="app-theme-toggle"], found ${visibleControls.length}. ` +
+        `Controls: ${JSON.stringify(snapshot.themeControls)}`,
+    );
+  }
+
+  const control = visibleControls[0];
+
+  const localeFromText = (Object.keys(THEME_CONTROL_LABELS) as RuntimeThemeLocale[]).find(
+    (locale) => control.text === THEME_CONTROL_LABELS[locale][theme],
+  );
+
+  const locale = expectedLocale ?? localeFromText;
+  const violations: string[] = [];
+
+  if (control.tag !== 'button') {
+    violations.push(`element must be a button, received ${JSON.stringify(control.tag)}`);
+  }
+
+  if (control.type !== 'button') {
+    violations.push(`type must equal exactly "button", received ${JSON.stringify(control.type)}`);
+  }
+
+  if (control.disabled) {
+    violations.push('control must be enabled');
+  }
+
+  if (!localeFromText) {
+    violations.push(
+      `visible text must equal exactly ${formatExpectedThemeControlLabels(theme)}, received ${JSON.stringify(control.text)}`,
+    );
+  } else if (expectedLocale && localeFromText !== expectedLocale) {
+    violations.push(
+      `visible text must remain ${expectedLocale.toUpperCase()} after the theme switch, received ${localeFromText.toUpperCase()}`,
+    );
+  }
+
+  if (locale) {
+    const label = THEME_CONTROL_LABELS[locale][theme];
+
+    if (control.ariaLabel !== label) {
+      violations.push(
+        `aria-label must equal exactly ${JSON.stringify(label)}, received ${JSON.stringify(control.ariaLabel)}`,
+      );
+    }
+
+    if (control.title !== label) {
+      violations.push(`title must equal exactly ${JSON.stringify(label)}, received ${JSON.stringify(control.title)}`);
+    }
+  } else {
+    const labels = formatExpectedThemeControlLabels(theme);
+
+    if (!Object.values(THEME_CONTROL_LABELS).some((byTheme) => byTheme[theme] === control.ariaLabel)) {
+      violations.push(`aria-label must equal exactly ${labels}, received ${JSON.stringify(control.ariaLabel)}`);
+    }
+
+    if (!Object.values(THEME_CONTROL_LABELS).some((byTheme) => byTheme[theme] === control.title)) {
+      violations.push(`title must equal exactly ${labels}, received ${JSON.stringify(control.title)}`);
+    }
+  }
+
+  const expectedPressed = expectedThemeControlPressed(theme);
+
+  if (control.ariaPressed !== expectedPressed) {
+    violations.push(
+      `aria-pressed must equal ${JSON.stringify(expectedPressed)} while ${theme} theme is active, ` +
+        `received ${JSON.stringify(control.ariaPressed)}`,
+    );
+  }
+
+  if (violations.length > 0) {
+    throw new Error(
+      `Generated theme control contract violation for ${theme}: ${violations.join('; ')}. ` +
+        `Control: ${JSON.stringify(control)}`,
+    );
+  }
+
+  if (!localeFromText) {
+    throw new Error(`Generated theme control contract violation for ${theme}: locale could not be established.`);
+  }
+
+  return { control, locale: localeFromText };
 }
 
 function runtimeThemePage(surface: RuntimeThemeSurface): Page {
@@ -184,14 +283,11 @@ export async function applyOfficialRuntimeCaptureTheme(
   const activeTheme = explicitRuntimeTheme(before);
   const control = await firstVisibleThemeControl(surface);
 
-  if (requireVisibleControl && !control) {
-    throw new Error(
-      `The generated application exposes no visible data-testid=app-theme-toggle or EN/FR theme control for ${theme}. ` +
-        `Diagnostics: ${JSON.stringify(before)}`,
-    );
-  }
-
   if (!activeTheme) {
+    if (requireVisibleControl && before.themeControls.filter((candidate) => candidate.visible).length !== 1) {
+      assertRuntimeThemeControlContract(before, theme);
+    }
+
     if (requireVisibleControl) {
       throw new Error(
         `The generated application theme is not explicit after emulating ${theme}; expected html[data-theme] or a supported root theme class. ` +
@@ -201,6 +297,11 @@ export async function applyOfficialRuntimeCaptureTheme(
 
     return { activeTheme: theme, strategy: 'prefers-color-scheme' as const };
   }
+
+  const beforeControlContract =
+    requireVisibleControl || before.themeControls.some((candidate) => candidate.visible)
+      ? assertRuntimeThemeControlContract(before, activeTheme)
+      : undefined;
 
   if (activeTheme === theme) {
     return { activeTheme: theme, strategy: 'explicit-state-already-applied' as const };
@@ -239,6 +340,10 @@ export async function applyOfficialRuntimeCaptureTheme(
   }
 
   await surface.evaluate(`document.fonts && document.fonts.ready`);
+
+  const after = await runtimeThemeSnapshot(surface);
+
+  assertRuntimeThemeControlContract(after, theme, beforeControlContract?.locale);
 
   return { activeTheme: theme, strategy: 'visible-runtime-control' as const };
 }

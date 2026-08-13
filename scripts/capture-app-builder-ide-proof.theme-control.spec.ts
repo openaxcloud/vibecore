@@ -13,6 +13,70 @@ import {
 
 const readSource = (relativePath: string): string => readFileSync(resolve(process.cwd(), relativePath), 'utf8');
 
+type FixtureLocale = 'en' | 'fr';
+
+const fixtureLabels = {
+  en: {
+    dark: 'Switch to light mode',
+    light: 'Switch to dark mode',
+  },
+  fr: {
+    dark: 'Passer en mode clair',
+    light: 'Passer en mode sombre',
+  },
+} as const;
+
+function interactiveThemeFixture(locale: FixtureLocale, { updateAfterClick = true } = {}) {
+  return `
+    <style>
+      :root[data-theme='dark'] { color-scheme: dark; background: rgb(10, 20, 30); }
+      :root[data-theme='light'] { color-scheme: light; background: rgb(240, 245, 250); }
+    </style>
+    <button type="button" data-testid="app-theme-toggle"></button>
+    <script>
+      window.themeClickCount = 0;
+      const labels = ${JSON.stringify(fixtureLabels[locale])};
+      const themeToggle = document.querySelector('[data-testid="app-theme-toggle"]');
+      const renderThemeToggle = () => {
+        const activeTheme = document.documentElement.dataset.theme;
+        const label = labels[activeTheme];
+        themeToggle.textContent = label;
+        themeToggle.setAttribute('aria-label', label);
+        themeToggle.setAttribute('title', label);
+        themeToggle.setAttribute('aria-pressed', activeTheme === 'dark' ? 'true' : 'false');
+      };
+
+      document.documentElement.dataset.theme = 'dark';
+      renderThemeToggle();
+      themeToggle.addEventListener('click', () => {
+        window.themeClickCount += 1;
+        document.documentElement.dataset.theme =
+          document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        ${updateAfterClick ? 'renderThemeToggle();' : ''}
+      });
+    </script>
+  `;
+}
+
+function staticThemeControl({
+  ariaLabel = fixtureLabels.en.dark,
+  ariaPressed = 'true',
+  text = fixtureLabels.en.dark,
+  title = fixtureLabels.en.dark,
+}: {
+  ariaLabel?: string | null;
+  ariaPressed?: string | null;
+  text?: string;
+  title?: string | null;
+} = {}) {
+  const attribute = (name: string, value: string | null) => (value === null ? '' : ` ${name}=${JSON.stringify(value)}`);
+
+  return `<button type="button" data-testid="app-theme-toggle"${attribute('aria-label', ariaLabel)}${attribute(
+    'title',
+    title,
+  )}${attribute('aria-pressed', ariaPressed)}>${text}</button>`;
+}
+
 describe('Solutions proof capture theme control', () => {
   const captureSource = readSource('scripts/capture-app-builder-ide-proof.ts');
 
@@ -102,42 +166,35 @@ describe.sequential('official runtime direct theme control', () => {
     expect(explicitRuntimeTheme({ dataTheme: null, rootClasses: ['unrelated'] })).toBeUndefined();
   });
 
-  it('accepts generic English and French visible control labels', () => {
-    expect(OFFICIAL_RUNTIME_THEME_CONTROL_LABEL.test('Toggle colour theme')).toBe(true);
-    expect(OFFICIAL_RUNTIME_THEME_CONTROL_LABEL.test('Light mode')).toBe(true);
-    expect(OFFICIAL_RUNTIME_THEME_CONTROL_LABEL.test('Changer de thème')).toBe(true);
+  it('accepts only the exact English and French action labels', () => {
+    expect(OFFICIAL_RUNTIME_THEME_CONTROL_LABEL.test('Switch to light mode')).toBe(true);
+    expect(OFFICIAL_RUNTIME_THEME_CONTROL_LABEL.test('Switch to dark mode')).toBe(true);
+    expect(OFFICIAL_RUNTIME_THEME_CONTROL_LABEL.test('Passer en mode clair')).toBe(true);
     expect(OFFICIAL_RUNTIME_THEME_CONTROL_LABEL.test('Passer en mode sombre')).toBe(true);
+    expect(OFFICIAL_RUNTIME_THEME_CONTROL_LABEL.test('Toggle colour theme')).toBe(false);
+    expect(OFFICIAL_RUNTIME_THEME_CONTROL_LABEL.test('Dark')).toBe(false);
     expect(OFFICIAL_RUNTIME_THEME_CONTROL_LABEL.test('Search')).toBe(false);
   });
 
-  it('uses the real visible control when the runtime owns explicit theme state', async () => {
-    await page.setContent(`
-      <style>
-        :root[data-theme='dark'] { color-scheme: dark; background: rgb(10, 20, 30); }
-        :root[data-theme='light'] { color-scheme: light; background: rgb(240, 245, 250); }
-      </style>
-      <button aria-label="Toggle colour theme">Light mode</button>
-      <script>
-        window.themeClickCount = 0;
-        document.documentElement.dataset.theme = 'dark';
-        document.querySelector('button').addEventListener('click', (event) => {
-          window.themeClickCount += 1;
-          const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-          document.documentElement.dataset.theme = next;
-          event.currentTarget.textContent = next === 'dark' ? 'Light mode' : 'Dark mode';
-        });
-      </script>
-    `);
+  it('validates the exact English contract before and after each direct Page toggle', async () => {
+    await page.setContent(interactiveThemeFixture('en'));
 
-    await expect(applyOfficialRuntimeCaptureTheme(page, 'light', { timeoutMs: 2_000 })).resolves.toEqual({
-      activeTheme: 'light',
-      strategy: 'visible-runtime-control',
-    });
+    await expect(
+      applyOfficialRuntimeCaptureTheme(page, 'light', { requireVisibleControl: true, timeoutMs: 2_000 }),
+    ).resolves.toEqual({ activeTheme: 'light', strategy: 'visible-runtime-control' });
     expect(await page.locator('html').getAttribute('data-theme')).toBe('light');
+    expect(await page.getByTestId('app-theme-toggle').textContent()).toBe(fixtureLabels.en.light);
+    expect(await page.getByTestId('app-theme-toggle').getAttribute('aria-label')).toBe(fixtureLabels.en.light);
+    expect(await page.getByTestId('app-theme-toggle').getAttribute('title')).toBe(fixtureLabels.en.light);
+    expect(await page.getByTestId('app-theme-toggle').getAttribute('aria-pressed')).toBe('false');
     expect(await page.evaluate(`window.themeClickCount`)).toBe(1);
 
-    await applyOfficialRuntimeCaptureTheme(page, 'dark', { timeoutMs: 2_000 });
+    await applyOfficialRuntimeCaptureTheme(page, 'dark', { requireVisibleControl: true, timeoutMs: 2_000 });
     expect(await page.locator('html').getAttribute('data-theme')).toBe('dark');
+    expect(await page.getByTestId('app-theme-toggle').textContent()).toBe(fixtureLabels.en.dark);
+    expect(await page.getByTestId('app-theme-toggle').getAttribute('aria-label')).toBe(fixtureLabels.en.dark);
+    expect(await page.getByTestId('app-theme-toggle').getAttribute('title')).toBe(fixtureLabels.en.dark);
+    expect(await page.getByTestId('app-theme-toggle').getAttribute('aria-pressed')).toBe('true');
     expect(await page.evaluate(`window.themeClickCount`)).toBe(2);
   });
 
@@ -208,7 +265,7 @@ describe.sequential('official runtime direct theme control', () => {
     );
   });
 
-  it('emulates the containing page and clicks the real data-testid control inside a native iframe', async () => {
+  it('validates the exact French contract before and after each native Frame toggle', async () => {
     await page.setContent('<iframe title="Preview"></iframe>');
 
     const frame = page.frames().find((candidate) => candidate !== page.mainFrame());
@@ -217,24 +274,7 @@ describe.sequential('official runtime direct theme control', () => {
       throw new Error('Expected the native Preview iframe');
     }
 
-    await frame.setContent(`
-      <style>
-        :root[data-theme='dark'] { color-scheme: dark; background: rgb(10, 20, 30); }
-        :root[data-theme='light'] { color-scheme: light; background: rgb(240, 245, 250); }
-      </style>
-      <button data-testid="app-theme-toggle" aria-label="Palette">Theme</button>
-      <script>
-        window.themeClickCount = 0;
-        document.documentElement.dataset.theme = window.matchMedia('(prefers-color-scheme: dark)').matches
-          ? 'dark'
-          : 'light';
-        document.querySelector('button').addEventListener('click', () => {
-          window.themeClickCount += 1;
-          document.documentElement.dataset.theme =
-            document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
-        });
-      </script>
-    `);
+    await frame.setContent(interactiveThemeFixture('fr'));
 
     await expect(
       applyOfficialRuntimeCaptureTheme(frame, 'light', { requireVisibleControl: true, timeoutMs: 2_000 }),
@@ -243,12 +283,80 @@ describe.sequential('official runtime direct theme control', () => {
       strategy: 'visible-runtime-control',
     });
     expect(await frame.locator('html').getAttribute('data-theme')).toBe('light');
+    expect(await frame.getByTestId('app-theme-toggle').textContent()).toBe(fixtureLabels.fr.light);
+    expect(await frame.getByTestId('app-theme-toggle').getAttribute('aria-label')).toBe(fixtureLabels.fr.light);
+    expect(await frame.getByTestId('app-theme-toggle').getAttribute('title')).toBe(fixtureLabels.fr.light);
+    expect(await frame.getByTestId('app-theme-toggle').getAttribute('aria-pressed')).toBe('false');
     expect(await frame.evaluate(`window.matchMedia('(prefers-color-scheme: light)').matches`)).toBe(true);
     expect(await frame.evaluate(`window.themeClickCount`)).toBe(1);
 
     await applyOfficialRuntimeCaptureTheme(frame, 'dark', { requireVisibleControl: true, timeoutMs: 2_000 });
     expect(await frame.locator('html').getAttribute('data-theme')).toBe('dark');
+    expect(await frame.getByTestId('app-theme-toggle').textContent()).toBe(fixtureLabels.fr.dark);
+    expect(await frame.getByTestId('app-theme-toggle').getAttribute('aria-label')).toBe(fixtureLabels.fr.dark);
+    expect(await frame.getByTestId('app-theme-toggle').getAttribute('title')).toBe(fixtureLabels.fr.dark);
+    expect(await frame.getByTestId('app-theme-toggle').getAttribute('aria-pressed')).toBe('true');
     expect(await frame.evaluate(`window.themeClickCount`)).toBe(2);
+  });
+
+  it('rejects a testid control whose visible text is only "Dark"', async () => {
+    await page.setContent(`<html data-theme="dark"><body>${staticThemeControl({ text: 'Dark' })}</body></html>`);
+
+    await expect(
+      applyOfficialRuntimeCaptureTheme(page, 'dark', { requireVisibleControl: true, timeoutMs: 250 }),
+    ).rejects.toThrow(
+      'visible text must equal exactly EN "Switch to light mode" or FR "Passer en mode clair", received "Dark"',
+    );
+  });
+
+  it('rejects a missing localized title even when the testid and visible text are valid', async () => {
+    await page.setContent(`<html data-theme="dark"><body>${staticThemeControl({ title: null })}</body></html>`);
+
+    await expect(
+      applyOfficialRuntimeCaptureTheme(page, 'dark', { requireVisibleControl: true, timeoutMs: 250 }),
+    ).rejects.toThrow('title must equal exactly "Switch to light mode", received null');
+  });
+
+  it('rejects a missing localized aria-label even when the testid and visible text are valid', async () => {
+    await page.setContent(`<html data-theme="dark"><body>${staticThemeControl({ ariaLabel: null })}</body></html>`);
+
+    await expect(
+      applyOfficialRuntimeCaptureTheme(page, 'dark', { requireVisibleControl: true, timeoutMs: 250 }),
+    ).rejects.toThrow('aria-label must equal exactly "Switch to light mode", received null');
+  });
+
+  it('rejects aria-pressed when it is incoherent with the active dark theme', async () => {
+    await page.setContent(
+      `<html data-theme="dark"><body>${staticThemeControl({ ariaPressed: 'false' })}</body></html>`,
+    );
+
+    await expect(
+      applyOfficialRuntimeCaptureTheme(page, 'dark', { requireVisibleControl: true, timeoutMs: 250 }),
+    ).rejects.toThrow('aria-pressed must equal "true" while dark theme is active, received "false"');
+  });
+
+  it('rejects duplicate visible app theme controls', async () => {
+    const control = staticThemeControl();
+
+    await page.setContent(`<html data-theme="dark"><body>${control}${control}</body></html>`);
+
+    await expect(
+      applyOfficialRuntimeCaptureTheme(page, 'dark', { requireVisibleControl: true, timeoutMs: 250 }),
+    ).rejects.toThrow(
+      'Generated theme control contract violation for dark: expected exactly one visible [data-testid="app-theme-toggle"], found 2',
+    );
+  });
+
+  it('rejects stale label and pressed state after a real theme click', async () => {
+    await page.setContent(interactiveThemeFixture('en', { updateAfterClick: false }));
+
+    await expect(
+      applyOfficialRuntimeCaptureTheme(page, 'light', { requireVisibleControl: true, timeoutMs: 2_000 }),
+    ).rejects.toThrow(
+      'visible text must equal exactly EN "Switch to dark mode" or FR "Passer en mode sombre", received "Switch to light mode"',
+    );
+    expect(await page.locator('html').getAttribute('data-theme')).toBe('light');
+    expect(await page.evaluate(`window.themeClickCount`)).toBe(1);
   });
 
   it('fails closed when a generated app exposes no real theme control', async () => {
@@ -256,7 +364,9 @@ describe.sequential('official runtime direct theme control', () => {
 
     await expect(
       applyOfficialRuntimeCaptureTheme(page, 'light', { requireVisibleControl: true, timeoutMs: 250 }),
-    ).rejects.toThrow(/no visible data-testid=app-theme-toggle or EN\/FR theme control/);
+    ).rejects.toThrow(
+      'Generated theme control contract violation for dark: expected exactly one visible [data-testid="app-theme-toggle"], found 0',
+    );
   });
 
   it('keeps prefers-color-scheme support when the runtime has no explicit theme state', async () => {
@@ -281,12 +391,12 @@ describe.sequential('official runtime direct theme control', () => {
   it('reports exact before/after diagnostics when the visible control misses the target', async () => {
     await page.setContent(`
       <html data-theme="dark">
-        <body><button aria-label="Changer de thème">Mode clair</button></body>
+        <body>${staticThemeControl()}</body>
       </html>
     `);
 
     await expect(applyOfficialRuntimeCaptureTheme(page, 'light', { timeoutMs: 250 })).rejects.toThrow(
-      /visible official runtime theme control "Changer de thème" did not reach light.*Before:.*After:/,
+      /visible official runtime theme control "Switch to light mode" did not reach light.*Before:.*After:/,
     );
   });
 });
