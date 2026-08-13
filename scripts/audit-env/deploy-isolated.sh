@@ -116,10 +116,26 @@ json.dump(d, sys.stdout)
 
 # --- 4. runtime des workspaces dans SA namespace ---------------------------
 echo "==> chart workspaces-runtime dans $RUNTIME_NS"
+#
+# DEUX POINTS APPRIS EN LE FAISANT, tous deux vérifiés sur le cluster :
+#
+# 1. `RuntimeClass` et `StorageClass` sont CLUSTER-SCOPED. La release partagée les
+#    possède déjà, et Helm refuse — à juste titre — de les importer dans une autre
+#    release : « invalid ownership metadata ». Ce sont des objets d'échelle cluster,
+#    légitimement partagés (comme Cloud SQL) ; les dupliquer n'aurait aucun sens.
+#    Sur GKE la RuntimeClass gvisor est de toute façon fournie par le cluster.
+#
+# 2. Le RoleBinding de cette namespace de runtime cible
+#    `workspaceManager.serviceAccountName`, dont la valeur par défaut porte le nom de
+#    la release PARTAGÉE. Laissé tel quel, il aurait donné les droits au manager
+#    partagé et pas au mien : le manager isolé n'aurait pas pu créer de pod dans sa
+#    propre namespace, et la porte n'aurait rien prouvé. Le nom suit donc la release.
 audit_helm upgrade --install "$RELEASE-workspaces" "$REPO/infra/helm/workspaces-runtime" \
   --namespace "$RUNTIME_NS" --create-namespace \
   --set namespace="$RUNTIME_NS" --set platformNamespace="$NS" \
   --set runtimeClass.enabled=false \
+  --set storageClass.enabled=false \
+  --set workspaceManager.serviceAccountName="$RELEASE-vibecore-platform-workspace-manager" \
   --wait --timeout 5m >/dev/null
 
 # --- 5. la plateforme -------------------------------------------------------
