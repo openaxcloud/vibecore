@@ -208,6 +208,42 @@ Finally, after phase 1 a **runtime probe** asks the *deployed* api to activate
 protection and requires a refusal. No static check can prove that about an image
 Cloud Build produced elsewhere.
 
+#### What "the interlock is present" actually means (SEC-9 hardening)
+
+The verifier used to accept the **text** `DEPLOYMENT_ACCESS_ACTIVATION_ENABLED`
+anywhere in a shipping file. A `// TODO: re-add the … check` left behind by a
+revert, or an audit string mentioning it, satisfied that and got certified —
+exactly the shape a careless revert leaves. Text is not a control.
+
+It now requires an **executable** guard: the token must be *read from the
+environment* (`process.env.X` or `process.env['X']`, the bracket form normalised
+first) **and compared** (`===`/`!==`/`==`/`!=`), in code with comments and
+string/template literals blanked out. A bare assignment `process.env.X = '1'` —
+what a test does to set things up — does **not** certify anything.
+
+The analysis is hermetic (no parser import): `build-and-deploy` checks out the
+repo and never runs an install, the same constraint already documented on
+`scripts/validate-image-signing-wired.py`.
+
+Counter-tests live in `scripts/verify-prod-interlock.spec.mjs`: a decoy file
+carrying the token only in a comment and a string **must fail** the verification,
+alongside unit tests for each spelling that is, and is not, a control.
+
+#### Password protection is refused where it cannot be enforced (SEC-11)
+
+The gate exists **only** on `/static-deployments/:id/*`. A `server` deployment is
+served from `d-<id>.<previewDomain>`, and vercel/netlify/pages/run/docker from
+the provider's own domain — none of those paths read `metadata.access`.
+
+The API used to accept `mode=password` for all of them: it stored a hash and
+answered 200, so the product showed the deployment as protected while the URL
+stayed world-open. **Phantom protection is worse than refusal**, because the
+owner stops looking. `POST /projects/:p/deployments/:d/access` now answers
+**409 `DEPLOYMENT_ACCESS_UNSUPPORTED_PROVIDER`** for any non-static provider,
+*before* any mutation, so no half-applied state exists. `mode=public` stays
+allowed everywhere — de-escalation must never be trapped. Real per-provider
+enforcement is separate work.
+
 #### Relation to the release-gate lot (`feat/deploy-exact-sha-gate`)
 
 That lot is the *general* exact-SHA gate for deploys; this one is the *specific*

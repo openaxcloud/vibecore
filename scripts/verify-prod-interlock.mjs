@@ -194,6 +194,139 @@ function resolveRelative(fromDir, specifier) {
 }
 
 /**
+ * Blank out comments and string/template literals, preserving offsets and line
+ * structure so what remains is only EXECUTABLE source.
+ *
+ * Hermetic on purpose — no TypeScript/parser import. The `build-and-deploy` job
+ * checks out the repo and never runs an install, so anything this script needs
+ * from node_modules simply would not be there (the repo already learned this:
+ * see the "HERMETIC — pure Python 3 stdlib" note on
+ * scripts/validate-image-signing-wired.py). A single-pass scanner is enough for
+ * the one question being asked.
+ */
+export function stripCommentsAndStrings(source) {
+  const out = source.split('');
+  const n = source.length;
+  let i = 0;
+  const blank = (from, to) => {
+    for (let k = from; k < to && k < n; k += 1) {
+      if (out[k] !== '\n') {
+        out[k] = ' ';
+      }
+    }
+  };
+
+  while (i < n) {
+    const c = source[i];
+    const next = source[i + 1];
+
+    if (c === '/' && next === '/') {
+      let j = i + 2;
+      while (j < n && source[j] !== '\n') j += 1;
+      blank(i, j);
+      i = j;
+      continue;
+    }
+
+    if (c === '/' && next === '*') {
+      let j = i + 2;
+      while (j < n && !(source[j] === '*' && source[j + 1] === '/')) j += 1;
+      blank(i, Math.min(j + 2, n));
+      i = j + 2;
+      continue;
+    }
+
+    if (c === "'" || c === '"' || c === '`') {
+      const quote = c;
+      let j = i + 1;
+      while (j < n) {
+        if (source[j] === '\\') {
+          j += 2;
+          continue;
+        }
+
+        if (source[j] === quote) break;
+
+        // `${...}` inside a template is real code — keep it, blank the rest.
+        if (quote === '`' && source[j] === '$' && source[j + 1] === '{') {
+          blank(i + 1, j);
+          let depth = 1;
+          let k = j + 2;
+          while (k < n && depth > 0) {
+            if (source[k] === '{') depth += 1;
+            else if (source[k] === '}') depth -= 1;
+            k += 1;
+          }
+          i = k;
+          j = k;
+          // Continue scanning the remainder of this template from the new cursor.
+          let m = k;
+          while (m < n) {
+            if (source[m] === '\\') { m += 2; continue; }
+            if (source[m] === '`') break;
+            m += 1;
+          }
+          blank(k, m);
+          i = m + 1;
+          j = -1;
+          break;
+        }
+
+        j += 1;
+      }
+
+      if (j === -1) continue;
+
+      blank(i + 1, j);
+      i = j + 1;
+      continue;
+    }
+
+    i += 1;
+  }
+
+  return out.join('');
+}
+
+/**
+ * True iff `token` is read from the environment in EXECUTABLE code and that read
+ * feeds a comparison — i.e. the control actually exists, rather than the name
+ * merely appearing somewhere in the file.
+ *
+ * Why this replaced a substring match: the certification claims "the control
+ * ships". A `// TODO: re-add the DEPLOYMENT_ACCESS_ACTIVATION_ENABLED check` left
+ * behind by a revert, or an audit string mentioning it, satisfied `includes()`
+ * and got certified — precisely the shape a careless revert leaves. Text is not
+ * a control.
+ *
+ * Accepts both `process.env.TOKEN` and `process.env['TOKEN']`; the bracket form
+ * is normalised first so blanking string literals cannot erase it.
+ */
+export function hasExecutableEnvGuard(source, token) {
+  const normalised = source.replace(
+    new RegExp(String.raw`process\s*\.\s*env\s*\[\s*(['"\`])${token}\1\s*\]`, 'g'),
+    `process.env.${token}`,
+  );
+  const code = stripCommentsAndStrings(normalised);
+  const readRe = new RegExp(String.raw`process\s*\.\s*env\s*\.\s*${token}`, 'g');
+
+  for (const match of code.matchAll(readRe)) {
+    /*
+     * The read must be COMPARED, not merely mentioned. Assignment
+     * (`process.env.X = '1'`, which is what a test does to set it up) is not a
+     * control and must not certify anything. Look just past the read.
+     */
+    const after = code.slice(match.index + match[0].length, match.index + match[0].length + 24);
+
+    if (/^\s*(===|!==|==|!=)/.test(after)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * @returns {{ok: boolean, failures: string[], attestation: object}}
  */
 export function verifyInterlock(
@@ -219,10 +352,10 @@ export function verifyInterlock(
     failures.push(`test file(s) reachable from the production entrypoint: ${testsInGraph.join(', ')}`);
   }
 
-  // 3. THE POINT: the interlock must appear in shipping code.
+  // 3. THE POINT: the interlock must be EXECUTABLE code in the shipping bundle.
   const carriers = files.filter((f) => {
     try {
-      return readFileSync(resolve(repoRoot, f), 'utf8').includes(token);
+      return hasExecutableEnvGuard(readFileSync(resolve(repoRoot, f), 'utf8'), token);
     } catch {
       return false;
     }

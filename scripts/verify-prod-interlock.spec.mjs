@@ -18,14 +18,20 @@
  */
 import { execFileSync } from 'node:child_process';
 import { createRequire } from 'node:module';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { INTERLOCK_TOKEN, productionModuleGraph, verifyInterlock } from './verify-prod-interlock.mjs';
+import {
+  INTERLOCK_TOKEN,
+  hasExecutableEnvGuard,
+  productionModuleGraph,
+  stripCommentsAndStrings,
+  verifyInterlock,
+} from './verify-prod-interlock.mjs';
 
 const REPO_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const SRC = 'services/api/src';
@@ -47,7 +53,7 @@ afterEach(() => {
  * @param {number}  [o.fillerModules]  extra reachable modules
  * @param {boolean} [o.specReachable]  make the spec importable from prod code
  */
-function fixture({ interlockInProd, interlockInSpec, fillerModules = 3, specReachable = false }) {
+function fixture({ interlockInProd, interlockInSpec, fillerModules = 3, specReachable = false, decoyOnly = false }) {
   const root = mkdtempSync(join(tmpdir(), 'sec9-fixture-'));
   created.push(root);
   mkdirSync(join(root, SRC, 'tests'), { recursive: true });
@@ -67,9 +73,15 @@ function fixture({ interlockInProd, interlockInSpec, fillerModules = 3, specReac
       specReachable ? "import './tests/deployment-password.spec.js';" : '',
       'export function buildApiApp() {',
       '  // the activation route',
-      interlockInProd
-        ? `  if (process.env.${INTERLOCK_TOKEN} !== '1') { return 503; }`
-        : '  // interlock DELETED from production code',
+      decoyOnly
+        ? [
+            `  // TODO: re-add the ${INTERLOCK_TOKEN} check that used to live here.`,
+            `  const auditNote = 'gated by ${INTERLOCK_TOKEN}';`,
+            '  return auditNote ? 200 : 200;',
+          ].join('\n')
+        : interlockInProd
+          ? `  if (process.env.${INTERLOCK_TOKEN} !== '1') { return 503; }`
+          : '  // interlock DELETED from production code',
       '  return 200;',
       '}',
     ]
@@ -149,6 +161,45 @@ describe('SEC-9 — cutover detection reads the production bundle', () => {
     expect(reachable.ok).toBe(false);
     expect(reachable.failures.join('\n')).toMatch(/test file\(s\) reachable from the production entrypoint/);
     expect(reachable.attestation.testFilesInGraph).toContain(`${SRC}/tests/deployment-password.spec.ts`);
+  });
+
+  it('DECOY: the token in a comment and a string, with NO executable check, must FAIL', () => {
+    /*
+     * The certification claims "the control ships", so it must look at the
+     * CONTROL, not at the characters. A file that merely mentions
+     * DEPLOYMENT_ACCESS_ACTIVATION_ENABLED in a TODO comment and in a string
+     * literal — while the `if` that enforced it has been deleted — is exactly the
+     * shape a careless revert leaves behind, and a substring match certifies it
+     * happily.
+     */
+    const root = fixture({ interlockInProd: false, interlockInSpec: false, decoyOnly: true });
+
+    // A naive substring check is fooled: the token IS in the shipping file.
+    const shipped = readFileSync(join(root, SRC, 'app.ts'), 'utf8');
+    expect(shipped).toContain(INTERLOCK_TOKEN);
+
+    // The verifier must not be.
+    const result = verify(root);
+
+    expect(result.ok).toBe(false);
+    expect(result.attestation.carriers).toEqual([]);
+    expect(result.failures.join('\n')).toMatch(/NOT present anywhere in the production module graph/);
+  });
+
+  it('accepts the bracket form process.env[\'TOKEN\'] as a real read', () => {
+    const root = fixture({ interlockInProd: false, interlockInSpec: false });
+    writeFileSync(
+      join(root, SRC, 'app.ts'),
+      [
+        "import './m0.js';",
+        'export function buildApiApp() {',
+        `  if (process.env['${INTERLOCK_TOKEN}'] !== '1') { return 503; }`,
+        '  return 200;',
+        '}',
+      ].join('\n'),
+    );
+
+    expect(verify(root).ok).toBe(true);
   });
 
   it('refuses to certify when the walker itself is broken (implausibly small graph)', () => {
@@ -261,5 +312,47 @@ describe('SEC-9 — exact-SHA gate (CLI)', () => {
 
     expect(code).toBe(1);
     expect(out).toMatch(/exact-SHA gate FAILED/);
+  });
+});
+
+describe('SEC-9 — hasExecutableEnvGuard discriminates control from text', () => {
+  const T = INTERLOCK_TOKEN;
+  const guard = (src) => hasExecutableEnvGuard(src, T);
+
+  it('accepts a real guard, in every spelling that is actually a control', () => {
+    expect(guard(`if (process.env.${T} !== '1') { return 503; }`)).toBe(true);
+    expect(guard(`if (process.env['${T}'] !== '1') { return 503; }`)).toBe(true);
+    expect(guard(`const on = process.env.${T} === '1';`)).toBe(true);
+    expect(guard(`if (process . env . ${T} !== '1') {}`)).toBe(true);
+  });
+
+  it('REJECTS every way the name can appear without being a control', () => {
+    // A revert leaves this behind.
+    expect(guard(`// TODO: re-add the ${T} check`)).toBe(false);
+    expect(guard(`/* gated by ${T} */`)).toBe(false);
+    // Strings — audit notes, error messages, docs.
+    expect(guard(`const note = '${T}';`)).toBe(false);
+    expect(guard(`throw new Error("missing ${T}");`)).toBe(false);
+    expect(guard('const msg = `see ${"' + T + '"} docs`;')).toBe(false);
+    // Named but never read from the environment.
+    expect(guard(`const ${T} = true; if (${T}) {}`)).toBe(false);
+    // Read but never compared: setting it is what a TEST does, not a control.
+    expect(guard(`process.env.${T} = '1';`)).toBe(false);
+  });
+
+  it('is not fooled by a decoy sitting next to a genuine guard elsewhere', () => {
+    const src = [`// ${T} used to be checked here`, `const label = '${T}';`, `if (process.env.${T} !== '1') return 503;`].join('\n');
+
+    expect(guard(src)).toBe(true);
+  });
+
+  it('stripCommentsAndStrings preserves offsets and line count', () => {
+    const src = "const a = 1; // x\n/* y */ const b = 'z';\n";
+    const out = stripCommentsAndStrings(src);
+
+    expect(out.length).toBe(src.length);
+    expect(out.split('\n').length).toBe(src.split('\n').length);
+    expect(out).toContain('const a = 1;');
+    expect(out).not.toContain('z');
   });
 });

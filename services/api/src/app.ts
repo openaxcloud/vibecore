@@ -34229,6 +34229,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    /*
+     * SEC-11: never CLAIM protection on a provider where it is not ENFORCED.
+     *
+     * The gate lives exclusively on the `/static-deployments/:id/*` route. A
+     * `server` deployment is served from its own host (`d-<id>.<previewDomain>`)
+     * and vercel/netlify/pages/run/docker from the provider's own domain — none of
+     * those paths ever read `metadata.access`. Accepting `mode=password` there
+     * used to store a hash and answer 200, so the product showed the deployment
+     * as protected while its URL stayed world-open.
+     *
+     * That is strictly worse than refusing: a visible padlock stops the owner
+     * looking for the real problem. Refuse loudly instead, BEFORE any mutation,
+     * so no half-applied state can exist either. Implementing per-provider
+     * enforcement is a separate piece of work; until it lands, this is the honest
+     * answer. `mode=public` is deliberately NOT restricted — de-escalation must
+     * work everywhere.
+     */
+    if (body.mode === 'password' && deployment.provider !== 'static') {
+      return reply.code(409).send({
+        error: appPublicCopy('DEPLOYMENT_ACCESS_UNSUPPORTED_PROVIDER', transactionalLocaleForRequest(request)),
+        code: 'DEPLOYMENT_ACCESS_UNSUPPORTED_PROVIDER',
+      });
+    }
+
     const metadata = { ...(deployment.metadata as Record<string, unknown>) };
 
     if (body.mode === 'password') {

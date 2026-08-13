@@ -605,3 +605,114 @@ describe('password-protected static deployments (endpoint)', () => {
     });
   });
 });
+
+/*
+ * SEC-11 — password protection must never be claimed where it is not enforced.
+ *
+ * Enforcement lives ONLY on the `/static-deployments/:id/*` route. A `server`
+ * deployment is served from its own host (`d-<id>.<previewDomain>`), and a
+ * vercel/netlify/pages/run/docker deployment from the provider's own domain —
+ * none of those paths consult `metadata.access` at all.
+ *
+ * So accepting `mode=password` for them stored a hash, returned 200 and showed
+ * the deployment as protected in the product, while the URL stayed world-open:
+ * PHANTOM PROTECTION, which is worse than refusing, because the owner stops
+ * looking. Refuse fail-closed instead; real per-provider enforcement is a
+ * separate piece of work.
+ */
+describe('SEC-11 password activation is refused where it cannot be enforced', () => {
+  const prev = process.env.STATIC_DEPLOY_STORAGE_DIR;
+  const prevActivation = process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED;
+  let storageDir: string;
+
+  beforeEach(async () => {
+    storageDir = await mkdtemp(join(tmpdir(), 'pwd-prov-'));
+    process.env.STATIC_DEPLOY_STORAGE_DIR = storageDir;
+    process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = '1';
+  });
+
+  afterEach(async () => {
+    if (prev === undefined) delete process.env.STATIC_DEPLOY_STORAGE_DIR;
+    else process.env.STATIC_DEPLOY_STORAGE_DIR = prev;
+    if (prevActivation === undefined) delete process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED;
+    else process.env.DEPLOYMENT_ACCESS_ACTIVATION_ENABLED = prevActivation;
+    await rm(storageDir, { recursive: true, force: true });
+  });
+
+  async function setupProvider(provider: string) {
+    const store = new TestApiStore();
+    const app = await buildApiApp({ emailProvider: new QuietEmailProvider(), store });
+    const reg = await app.inject({
+      method: 'POST',
+      url: '/auth/register',
+      payload: { email: `p-${provider}@example.com`, password: 'password123', name: 'P', organizationName: 'P Org' },
+    });
+    const auth = reg.json() as { token: string; organization: { id: string } };
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
+
+    const proj = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'P Project' },
+    });
+    const projectId = (proj.json() as { project: { id: string } }).project.id;
+
+    const deployment = await store.createDeployment({
+      projectId,
+      provider: provider as never,
+      environment: 'preview',
+      status: 'READY',
+      url: 'https://example.test/x',
+    });
+
+    return { app, store, auth, projectId, deploymentId: deployment.id };
+  }
+
+  const setAccessFor = (app: any, projectId: string, deploymentId: string, token: string, payload: unknown) =>
+    app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${deploymentId}/access`,
+      headers: { authorization: `Bearer ${token}` },
+      payload,
+    });
+
+  for (const provider of ['server', 'vercel', 'netlify', 'github-pages', 'cloudflare-pages', 'google-cloud-run', 'docker']) {
+    it(`refuses mode=password for provider "${provider}" and stores NOTHING`, async () => {
+      const { app, store, auth, projectId, deploymentId } = await setupProvider(provider);
+
+      const res = await setAccessFor(app, projectId, deploymentId, auth.token, {
+        mode: 'password',
+        password: 'letmein',
+      });
+
+      expect(res.statusCode).toBe(409);
+      expect((res.json() as { code: string }).code).toBe('DEPLOYMENT_ACCESS_UNSUPPORTED_PROVIDER');
+
+      /*
+       * The decisive part: no half-applied state. A stored hash with no
+       * enforcement is exactly the phantom the refusal exists to prevent.
+       */
+      const after = await store.getDeployment(projectId, deploymentId);
+      expect((after?.metadata as Record<string, unknown> | undefined)?.access).toBeUndefined();
+    });
+  }
+
+  it('still allows mode=password for static (the provider that IS enforced)', async () => {
+    const { app, auth, projectId, deploymentId } = await setupProvider('static');
+
+    const res = await setAccessFor(app, projectId, deploymentId, auth.token, { mode: 'password', password: 'letmein' });
+
+    expect(res.statusCode).toBe(200);
+    expect((res.json() as { accessMode: string }).accessMode).toBe('password');
+  });
+
+  it('still allows mode=public everywhere — un-protecting must never be trapped', async () => {
+    for (const provider of ['server', 'vercel', 'static']) {
+      const { app, auth, projectId, deploymentId } = await setupProvider(provider);
+      const res = await setAccessFor(app, projectId, deploymentId, auth.token, { mode: 'public' });
+
+      expect(res.statusCode, provider).toBe(200);
+    }
+  });
+});
