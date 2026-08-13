@@ -1505,7 +1505,14 @@ export class PrismaApiStore implements ApiStore {
         ...(patch.findings !== undefined ? { findings: patch.findings as object } : {}),
         ...(patch.consent !== undefined ? { consent: patch.consent as object } : {}),
         ...(patch.targetProjectId !== undefined ? { targetProjectId: patch.targetProjectId } : {}),
-        ...(patch.stagedFiles !== undefined ? { stagedFiles: patch.stagedFiles as object | null } : {}),
+        /*
+         * Prisma n'accepte PAS `null` pour vider une colonne Json : il faut le
+         * marqueur `Prisma.DbNull`. Passer `null` fait échouer la compilation
+         * (et signifierait « JSON null » et non « colonne vide »).
+         */
+        ...(patch.stagedFiles !== undefined
+          ? { stagedFiles: patch.stagedFiles === null ? Prisma.DbNull : (patch.stagedFiles as object) }
+          : {}),
         ...(patch.stagedFileCount !== undefined ? { stagedFileCount: patch.stagedFileCount } : {}),
         ...(patch.redactedCount !== undefined ? { redactedCount: patch.redactedCount } : {}),
         ...(patch.creditsReserved !== undefined ? { creditsReserved: patch.creditsReserved } : {}),

@@ -1502,12 +1502,63 @@ export interface ApiStore {
       findings?: unknown;
       consent?: unknown;
       targetProjectId?: string;
+
+      /** `null` dispose la copie jetable (sortie terminale). */
+      stagedFiles?: unknown;
       stagedFileCount?: number;
       redactedCount?: number;
       creditsReserved?: boolean;
       error?: string;
     },
   ): Promise<void>;
+
+  /*
+   * Copie jetable d'un import, lue SÉPARÉMENT de `getImportJob` : la route GET
+   * étale le job dans sa réponse HTTP, donc y inclure les fichiers renverrait
+   * leur CONTENU au client (BUG-IMPORT-001 / TPL-02.3).
+   */
+  getImportStagedFiles(
+    id: string,
+  ): Promise<Array<{ path: string; content: string; encoding?: string }> | undefined>;
+
+  /*
+   * Réservation de crédits d'un import, persistée pour survivre au load
+   * balancer. La clé d'idempotence vient du client : elle est unique PAR
+   * ORGANISATION, jamais globalement.
+   */
+  getImportReservationByKey(
+    organizationId: string,
+    key: string,
+  ): Promise<
+    | {
+        key: string;
+        organizationId: string;
+        importJobId: string;
+        reservedCredits: number;
+        debitedCredits: number;
+        state: 'RESERVED' | 'SETTLED' | 'COMPENSATED';
+      }
+    | undefined
+  >;
+  getImportReservationByJob(importJobId: string): Promise<
+    | {
+        key: string;
+        organizationId: string;
+        importJobId: string;
+        reservedCredits: number;
+        debitedCredits: number;
+        state: 'RESERVED' | 'SETTLED' | 'COMPENSATED';
+      }
+    | undefined
+  >;
+  saveImportReservation(reservation: {
+    key: string;
+    organizationId: string;
+    importJobId: string;
+    reservedCredits: number;
+    debitedCredits: number;
+    state: string;
+  }): Promise<void>;
   getImportJob(id: string): Promise<
     | {
         id: string;
