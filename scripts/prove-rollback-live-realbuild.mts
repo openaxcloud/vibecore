@@ -98,12 +98,16 @@ const app = await buildApiApp({
 await app.listen({ port: PORT, host: '127.0.0.1' });
 console.log(`live server listening on ${BASE}`);
 
-async function api(path: string, init: { method?: string; token?: string; body?: unknown } = {}) {
+async function api(
+  path: string,
+  init: { method?: string; token?: string; idempotencyKey?: string; body?: unknown } = {},
+) {
   const res = await fetch(`${BASE}${path}`, {
     method: init.method ?? 'GET',
     headers: {
       'content-type': 'application/json',
       ...(init.token ? { authorization: `Bearer ${init.token}` } : {}),
+      ...(init.idempotencyKey ? { 'idempotency-key': init.idempotencyKey } : {}),
     },
     ...(init.body ? { body: JSON.stringify(init.body) } : {}),
   });
@@ -185,6 +189,7 @@ try {
   const rb = await api(`/projects/${projectId}/deployments/rollback-to-previous`, {
     method: 'POST',
     token,
+    idempotencyKey: `${stamp}-rollback`,
     body: { environment: 'preview' },
   });
   const rbj = rb.json as Record<string, string>;
@@ -217,10 +222,11 @@ try {
 
   line('6. CONCURRENCY — three simultaneous rollbacks');
   const conc = await Promise.all(
-    [0, 1, 2].map(() =>
+    [0, 1, 2].map((index) =>
       api(`/projects/${projectId}/deployments/rollback-to-previous`, {
         method: 'POST',
         token,
+        idempotencyKey: `${stamp}-concurrent-${index}`,
         body: { environment: 'preview' },
       }),
     ),

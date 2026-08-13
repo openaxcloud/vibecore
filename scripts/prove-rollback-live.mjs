@@ -34,12 +34,13 @@ if (!STATIC_ROOT) {
 const sha256 = (s) => `sha256:${createHash('sha256').update(s).digest('hex')}`;
 const line = (t) => console.log(`\n===== ${t} ${'='.repeat(Math.max(0, 62 - t.length))}`);
 
-async function api(path, { method = 'GET', token, body } = {}) {
+async function api(path, { method = 'GET', token, idempotencyKey, body } = {}) {
   const res = await fetch(`${API}${path}`, {
     method,
     headers: {
       'content-type': 'application/json',
       ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...(idempotencyKey ? { 'idempotency-key': idempotencyKey } : {}),
     },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
@@ -111,6 +112,7 @@ line('3. ROLLBACK — POST /projects/:id/deployments/rollback-to-previous (real 
 const rb = await api(`/projects/${projectId}/deployments/rollback-to-previous`, {
   method: 'POST',
   token,
+  idempotencyKey: `${stamp}-rollback`,
   body: { environment: 'preview' },
 });
 console.log('  status                    =', rb.status);
@@ -144,10 +146,11 @@ console.log('  after == v2 marker absent :', !afterBody.includes('RELEASE-V2-CUR
 
 line('5. CONCURRENCY — three simultaneous rollbacks on the same release stream');
 const concurrent = await Promise.all(
-  [0, 1, 2].map(() =>
+  [0, 1, 2].map((index) =>
     api(`/projects/${projectId}/deployments/rollback-to-previous`, {
       method: 'POST',
       token,
+      idempotencyKey: `${stamp}-concurrent-${index}`,
       body: { environment: 'preview' },
     }),
   ),
