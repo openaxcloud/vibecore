@@ -43,12 +43,19 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
+import ts from 'typescript';
 
 /** The production entrypoint — the same file `pnpm --filter @vibecore/api build` compiles. */
 export const PROD_ENTRYPOINT = 'services/api/src/server.ts';
 
 /** The control that must be present in shipping code. */
 export const INTERLOCK_TOKEN = 'DEPLOYMENT_ACCESS_ACTIVATION_ENABLED';
+
+/** The owner-only mutation route whose password transition must fail closed. */
+export const INTERLOCK_ROUTE = '/projects/:projectId/deployments/:deploymentId/access';
+
+/** Stable response code emitted when the deploy-time barrier is not armed. */
+export const INTERLOCK_FAILURE_CODE = 'DEPLOYMENT_ACCESS_ACTIVATION_DISABLED';
 
 /**
  * A graph smaller than this means the walker itself broke (bad entrypoint, a
@@ -193,6 +200,242 @@ function resolveRelative(fromDir, specifier) {
   return undefined;
 }
 
+function unwrapParentheses(node) {
+  let current = node;
+
+  while (ts.isParenthesizedExpression(current)) {
+    current = current.expression;
+  }
+
+  return current;
+}
+
+function isStringValue(node, value) {
+  const current = unwrapParentheses(node);
+  return (ts.isStringLiteral(current) || ts.isNoSubstitutionTemplateLiteral(current)) && current.text === value;
+}
+
+function isProcessEnvAccess(node, token) {
+  const current = unwrapParentheses(node);
+
+  if (!ts.isPropertyAccessExpression(current) || current.name.text !== token) {
+    return false;
+  }
+
+  const env = unwrapParentheses(current.expression);
+  return (
+    ts.isPropertyAccessExpression(env) &&
+    env.name.text === 'env' &&
+    ts.isIdentifier(unwrapParentheses(env.expression)) &&
+    unwrapParentheses(env.expression).text === 'process'
+  );
+}
+
+function isBodyModeAccess(node) {
+  const current = unwrapParentheses(node);
+  const target = ts.isPropertyAccessExpression(current) ? unwrapParentheses(current.expression) : undefined;
+  return (
+    ts.isPropertyAccessExpression(current) &&
+    current.name.text === 'mode' &&
+    ts.isIdentifier(target) &&
+    target.text === 'body'
+  );
+}
+
+function isStrictComparison(node, operator, leftPredicate, rightValue) {
+  const current = unwrapParentheses(node);
+
+  if (!ts.isBinaryExpression(current) || current.operatorToken.kind !== operator) {
+    return false;
+  }
+
+  return (
+    (leftPredicate(current.left) && isStringValue(current.right, rightValue)) ||
+    (leftPredicate(current.right) && isStringValue(current.left, rightValue))
+  );
+}
+
+function conditionConjuncts(node) {
+  const current = unwrapParentheses(node);
+
+  if (ts.isBinaryExpression(current) && current.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) {
+    return [...conditionConjuncts(current.left), ...conditionConjuncts(current.right)];
+  }
+
+  return [current];
+}
+
+function hasDescendant(node, predicate) {
+  if (predicate(node)) {
+    return true;
+  }
+
+  let found = false;
+  ts.forEachChild(node, (child) => {
+    if (!found && hasDescendant(child, predicate)) {
+      found = true;
+    }
+  });
+  return found;
+}
+
+function is503ReplyCall(node) {
+  if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) {
+    return false;
+  }
+
+  return (
+    ts.isIdentifier(unwrapParentheses(node.expression.expression)) &&
+    unwrapParentheses(node.expression.expression).text === 'reply' &&
+    node.expression.name.text === 'code' &&
+    node.arguments.length === 1 &&
+    ts.isNumericLiteral(unwrapParentheses(node.arguments[0])) &&
+    Number(unwrapParentheses(node.arguments[0]).text) === 503
+  );
+}
+
+function isFailureCodeProperty(node) {
+  if (!ts.isPropertyAssignment(node) || !isStringValue(node.initializer, INTERLOCK_FAILURE_CODE)) {
+    return false;
+  }
+
+  return (ts.isIdentifier(node.name) || ts.isStringLiteral(node.name)) && node.name.text === 'code';
+}
+
+function isBlockingFailureBranch(statement) {
+  if (!ts.isBlock(statement) || statement.statements.length !== 1) {
+    return false;
+  }
+
+  const candidate = statement.statements[0];
+
+  if (!ts.isReturnStatement(candidate) || !candidate.expression) {
+    return false;
+  }
+
+  return (
+    hasDescendant(candidate.expression, is503ReplyCall) && hasDescendant(candidate.expression, isFailureCodeProperty)
+  );
+}
+
+function isExecutableInterlock(statement, token) {
+  if (!ts.isIfStatement(statement) || !isBlockingFailureBranch(statement.thenStatement)) {
+    return false;
+  }
+
+  const conjuncts = conditionConjuncts(statement.expression);
+  if (conjuncts.length !== 2) {
+    return false;
+  }
+
+  const gatesPasswordActivation = conjuncts.some((node) =>
+    isStrictComparison(node, ts.SyntaxKind.EqualsEqualsEqualsToken, isBodyModeAccess, 'password'),
+  );
+  const failsClosedUnlessArmed = conjuncts.some((node) =>
+    isStrictComparison(
+      node,
+      ts.SyntaxKind.ExclamationEqualsEqualsToken,
+      (candidate) => isProcessEnvAccess(candidate, token),
+      '1',
+    ),
+  );
+
+  return gatesPasswordActivation && failsClosedUnlessArmed;
+}
+
+function isAccessRouteRegistration(node) {
+  if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) {
+    return false;
+  }
+
+  if (
+    node.expression.name.text !== 'post' ||
+    node.arguments.length < 2 ||
+    !isStringValue(node.arguments[0], INTERLOCK_ROUTE)
+  ) {
+    return false;
+  }
+
+  const handler = unwrapParentheses(node.arguments[1]);
+  const statement = node.parent;
+  const containingBlock = ts.isExpressionStatement(statement) ? statement.parent : undefined;
+  const containingFunction = containingBlock && ts.isBlock(containingBlock) ? containingBlock.parent : undefined;
+
+  return (
+    (ts.isArrowFunction(handler) || ts.isFunctionExpression(handler)) &&
+    ts.isBlock(handler.body) &&
+    ts.isExpressionStatement(statement) &&
+    ts.isBlock(containingBlock) &&
+    ts.isFunctionDeclaration(containingFunction) &&
+    containingFunction.name?.text === 'buildApiApp'
+  );
+}
+
+/**
+ * Locate the real fail-closed control in the production AST.
+ *
+ * This deliberately certifies much more than token presence: the token must be
+ * read by the owner access route, in the same top-level condition that selects
+ * mode=password; the unarmed branch must directly return a 503 carrying the
+ * stable failure code; and that branch must precede updateDeployment. Comments,
+ * strings, simple reads and diagnostic-only conditions cannot satisfy it.
+ */
+function executableInterlockControls(repoRoot, files, token) {
+  const controls = [];
+
+  for (const file of files) {
+    const absolute = resolve(repoRoot, file);
+    let source;
+
+    try {
+      source = readFileSync(absolute, 'utf8');
+    } catch {
+      continue;
+    }
+
+    const sourceFile = ts.createSourceFile(
+      file,
+      source,
+      ts.ScriptTarget.Latest,
+      true,
+      file.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS,
+    );
+
+    const visit = (node) => {
+      if (isAccessRouteRegistration(node)) {
+        const handler = unwrapParentheses(node.arguments[1]);
+        const statements = handler.body.statements;
+        const firstMutation = statements.findIndex((statement) =>
+          hasDescendant(
+            statement,
+            (candidate) =>
+              ts.isCallExpression(candidate) &&
+              ts.isPropertyAccessExpression(candidate.expression) &&
+              candidate.expression.name.text === 'updateDeployment',
+          ),
+        );
+        const controlIndex = statements.findIndex((statement) => isExecutableInterlock(statement, token));
+
+        if (controlIndex >= 0 && firstMutation >= 0 && controlIndex < firstMutation) {
+          const location = sourceFile.getLineAndCharacterOfPosition(statements[controlIndex].getStart(sourceFile));
+          controls.push({
+            file,
+            route: INTERLOCK_ROUTE,
+            line: location.line + 1,
+            beforeMutation: true,
+          });
+        }
+      }
+
+      ts.forEachChild(node, visit);
+    };
+
+    visit(sourceFile);
+  }
+
+  return controls;
+}
+
 /**
  * @returns {{ok: boolean, failures: string[], attestation: object}}
  */
@@ -219,8 +462,8 @@ export function verifyInterlock(
     failures.push(`test file(s) reachable from the production entrypoint: ${testsInGraph.join(', ')}`);
   }
 
-  // 3. THE POINT: the interlock must appear in shipping code.
-  const carriers = files.filter((f) => {
+  // 3. Record textual carriers for diagnostics, but never treat them as proof.
+  const tokenCarriers = files.filter((f) => {
     try {
       return readFileSync(resolve(repoRoot, f), 'utf8').includes(token);
     } catch {
@@ -228,10 +471,15 @@ export function verifyInterlock(
     }
   });
 
+  // 4. THE POINT: prove an executable, fail-closed control in the real route.
+  const controls = executableInterlockControls(repoRoot, files, token);
+  const carriers = [...new Set(controls.map((control) => control.file))].sort();
+
   if (carriers.length === 0) {
     failures.push(
-      `${token} is NOT present anywhere in the production module graph (${files.length} files reachable from ${entry}). ` +
-        `It may still exist in tests — that does not ship and must never count as the control being present.`,
+      `${token} is NOT present anywhere in the production module graph as an executable fail-closed control ` +
+        `on ${INTERLOCK_ROUTE} before updateDeployment (${files.length} files reachable from ${entry}). ` +
+        `Text in tests, comments, strings or non-blocking expressions must never count as the control.`,
     );
   }
 
@@ -246,7 +494,9 @@ export function verifyInterlock(
       token,
       graphFileCount: files.length,
       graphDigest: `sha256:${digest}`,
+      tokenCarriers,
       carriers,
+      controls,
       testFilesInGraph: testsInGraph,
       unresolvedSpecifierCount: unresolved.length,
       verdict: failures.length === 0 ? 'INTERLOCK_IN_PRODUCTION_BUNDLE' : 'FAILED',

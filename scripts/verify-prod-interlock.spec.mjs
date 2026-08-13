@@ -46,8 +46,10 @@ afterEach(() => {
  * @param {boolean} o.interlockInSpec  token present in the (non-shipping) spec
  * @param {number}  [o.fillerModules]  extra reachable modules
  * @param {boolean} [o.specReachable]  make the spec importable from prod code
+ * @param {'none'|'comment'|'string'|'read'|'nonBlockingIf'} [o.prodDecoy]
+ *   place a non-enforcing token reference in the production access route
  */
-function fixture({ interlockInProd, interlockInSpec, fillerModules = 3, specReachable = false }) {
+function fixture({ interlockInProd, interlockInSpec, fillerModules = 3, specReachable = false, prodDecoy = 'none' }) {
   const root = mkdtempSync(join(tmpdir(), 'sec9-fixture-'));
   created.push(root);
   mkdirSync(join(root, SRC, 'tests'), { recursive: true });
@@ -60,17 +62,31 @@ function fixture({ interlockInProd, interlockInSpec, fillerModules = 3, specReac
 
   writeFileSync(join(root, SRC, 'server.ts'), "import { buildApiApp } from './app.js';\nbuildApiApp();\n");
 
+  const decoySource = {
+    none: '',
+    comment: `    // ${INTERLOCK_TOKEN}`,
+    string: `    const interlockLabel = '${INTERLOCK_TOKEN}';`,
+    read: `    void process.env.${INTERLOCK_TOKEN};`,
+    nonBlockingIf: `    if (body.mode === 'password' && process.env.${INTERLOCK_TOKEN} !== '1') { diagnostics.push('disabled'); }`,
+  }[prodDecoy];
+
   writeFileSync(
     join(root, SRC, 'app.ts'),
     [
       fillerImports,
       specReachable ? "import './tests/deployment-password.spec.js';" : '',
       'export function buildApiApp() {',
-      '  // the activation route',
+      `  app.post('/projects/:projectId/deployments/:deploymentId/access', async (request, reply) => {`,
+      '    const body = request.body;',
+      decoySource,
       interlockInProd
-        ? `  if (process.env.${INTERLOCK_TOKEN} !== '1') { return 503; }`
-        : '  // interlock DELETED from production code',
-      '  return 200;',
+        ? `    if (body.mode === 'password' && process.env.${INTERLOCK_TOKEN} !== '1') {`
+        : '    // interlock DELETED from production code',
+      interlockInProd ? `      return reply.code(503).send({ code: 'DEPLOYMENT_ACCESS_ACTIVATION_DISABLED' });` : '',
+      interlockInProd ? '    }' : '',
+      '    return store.updateDeployment();',
+      '  });',
+      '  return app;',
       '}',
     ]
       .filter(Boolean)
@@ -139,6 +155,25 @@ describe('SEC-9 — cutover detection reads the production bundle', () => {
 
     expect(result.ok).toBe(false);
     expect(oldGrepSaysPresent(fixture({ interlockInProd: false, interlockInSpec: false }))).toBe(false);
+  });
+
+  it.each([
+    ['comment', 'comment'],
+    ['string literal', 'string'],
+    ['simple environment read', 'read'],
+    ['non-blocking if statement', 'nonBlockingIf'],
+  ])('refuses a %s decoy in the production route', (_label, prodDecoy) => {
+    const result = verify(
+      fixture({
+        interlockInProd: false,
+        interlockInSpec: false,
+        prodDecoy,
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.attestation.carriers).toEqual([]);
+    expect(result.attestation.verdict).toBe('FAILED');
   });
 
   it('never lets a spec file into the graph — and fails loudly if one becomes reachable', () => {
