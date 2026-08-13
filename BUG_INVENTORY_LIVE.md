@@ -424,3 +424,30 @@ seededRevision: 2bf7df29…, hasLivePort: FALSE
 Trois signaux sur quatre sont donc **réparés et vrais**. Le blocage est ailleurs : **`workbenchStore.previews` est VIDE à l'instant de la décision**, alors qu'au même moment l'API répond `port 5173, ready: true, url: https://ws-02bf241a…-5173.…`. La sonde `refreshRuntimePorts()` « réussit » — elle ne lève pas — mais `listPorts()` résout **à vide**. Assouplir `ready` ne peut donc rien changer : il n'y a aucun port du tout dans le magasin, pas un port mal étiqueté.
 
 **Conclusion pour l'arbitrage.** L'option A a supprimé trois des quatre causes ; la quatrième est un défaut de l'adaptateur runtime au montage (`listPorts` rend une liste vide alors que le pod écoute), qui demande son propre diagnostic. Tant qu'il subsiste, la réouverture continue de reseeder — mais le défaut est maintenant **observable en une ligne de journal** au lieu d'exiger une instrumentation ad hoc, ce qui était le premier obstacle de l'enquête initiale.
+
+### 2026-08-13 (fin) — BUG-RUNTIME-DIVERGENCE : la réouverture ne reseede plus ✅
+
+**Preuve à l'écran, deux réouvertures consécutives.** Témoin planté dans le pod, PID du serveur de dev, `mtime` d'un fichier source :
+
+| | Avant | Après réouverture #1 | Après réouverture #2 |
+|---|---|---|---|
+| Témoin `/workspace/canary.txt` | `preuve-1786630589` | **intact** | **intact** |
+| `mtime src/App.tsx` | `1786630475` | **inchangé** | **inchangé** |
+| Marqueur de seed (`seededAt`) | `1786630476408` | **inchangé** | **inchangé** |
+
+Un reseed aurait supprimé le témoin, réécrit le `mtime` et réécrit le marqueur. Les trois sont intacts : **le pod chaud est adopté, plus effacé.**
+
+**Deux boucles auto-entretenues, trouvées par la trace permanente.** La cause n'était pas un signal isolé mais deux remèdes qui recréaient leur propre déclencheur :
+
+| ID | Boucle | 📤 | 💻 | ✅ |
+|---|---|:---:|:---:|:---:|
+| BUG-REATTACH-PORT-LOOP | Exiger un port vivant. Le reseed **tue** le serveur de dev ; à la réouverture suivante vite n'a pas fini de redémarrer, donc `hasLivePort:false`, donc on reseede — **chaque reseed garantissait le suivant**. Attendre ne corrige rien (démarrage à froid = plusieurs secondes) : la ré-sonde bornée a été mesurée insuffisante puis **retirée**. | ✅ | ✅ `e4869bc7` | ✅ |
+| BUG-REATTACH-REVISION-LOOP | Le marqueur enregistrait la révision lue **avant** le seed. Le seed et l'hydratation font bouger le stockage : le marqueur naissait déjà périmé, la réouverture suivante concluait « le stockage a changé » et reseedait, ce qui refaisait bouger le stockage. Mesuré : `022b27d2…` → `745d6429…` sans qu'un fichier soit édité. Révision désormais **relue** au moment de l'écriture. | ✅ | ✅ `f11b9266` | ✅ |
+
+**La distinction de fond — `serving` vs `ready` (`307303ce`).** `aggregatePreviewReadiness` compose **quatre** signaux pour répondre à « cet aperçu est-il sûr à afficher ». La décision de reattach consommait ce verdict alors qu'elle pose une **autre** question. Mesuré sur un pod sain servant `port 5173` : `ready:false, notReadyReason:'manager'` — le statut manager retarde à la réouverture (le code le documente lui-même), et le beacon reflète le rendu de la page **précédente**. La route runtime expose maintenant `serving` = le port répond **et** un processus vivant le détient ; `ready` et ses autres consommateurs (`isWorkspaceReallyRunning`, `preview-recovery`, l'UI d'aperçu) sont **inchangés**.
+
+**Ce qui garantit l'adoption, désormais** : le pod est chaud, **ce** navigateur l'a semé (marqueur durable portant la révision), et le stockage n'a pas bougé depuis. L'absence de port ne peut plus détruire un espace de travail sain — reseeder ne la répare pas, `startPreviewServer()` relance le serveur juste après **sans rien effacer**.
+
+**Réserve honnête.** Le prix de ce choix : si l'arborescence d'un pod chaud était corrompue par un moyen que le marqueur ne voit pas, elle serait adoptée au lieu d'être reconstruite. Le marqueur (révision + TTL 24 h) et le pod chaud sont les garde-fous ; la reconstruction reste disponible via un reseed explicite.
+
+**Tests** `workspace-reattach.spec.ts` **20/20**, dont « adopte un port qui SERT même si `ready` est faux (veto manager) » **et son inverse**. `app/lib/runtime` + `app/lib/stores` **55 fichiers / 517 tests** verts ; `services/api` **185 fichiers / 1603 tests** verts ; lint `app.ts` inchangé à 155.
