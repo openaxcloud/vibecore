@@ -6,6 +6,16 @@ import { describe, expect, it } from 'vitest';
 
 // eslint-disable-next-line no-restricted-imports -- capture and manifest gates share one exact interaction contract.
 import { matchCompleteSubmittedPrompt, SERVER_PROJECT_WEB_CONTRACT } from '../../../../scripts/solution-capture-state';
+// eslint-disable-next-line no-restricted-imports -- capture and manifest gates independently recompute one exact FR surface contract.
+import {
+  GENERATED_FR_SCENARIO_CONTRACTS,
+  inspectGeneratedFrenchSurface,
+  type GeneratedFrSolutionSlug,
+  type GeneratedFrSurfaceAudit,
+  type GeneratedFrSurfaceCollection,
+  type GeneratedFrSurfacePhase,
+  type GeneratedFrSurfaceSource,
+} from '../../../../scripts/solution-generated-fr-surface-audit';
 // eslint-disable-next-line no-restricted-imports -- capture and manifest gates share one exact interaction contract.
 import {
   SOLUTION_PROOF_INTERACTION_CONTRACTS,
@@ -48,6 +58,41 @@ const FILENAMES = {
 } as const;
 
 const CAPTURE_FILENAMES = SOLUTION_PROOF_VISUAL_SLOTS.map((slot) => `${FILENAMES[slot]}.png`);
+
+const GENERATED_FRENCH_CAPTURE_PHASES = {
+  'ide-agent-files.png': 'interaction',
+  'ide-agent-iteration.png': 'interaction',
+  'ide-agent-preview.png': 'base',
+  'ide-agent-prompt.png': 'base',
+  'ide-webview-iteration.png': 'interaction',
+  'ide-webview-overview.png': 'overview',
+} as const satisfies Record<(typeof CAPTURE_FILENAMES)[number], GeneratedFrSurfacePhase>;
+
+function generatedFrenchCapturePhase(filename: string): GeneratedFrSurfacePhase | undefined {
+  return Object.prototype.hasOwnProperty.call(GENERATED_FRENCH_CAPTURE_PHASES, filename)
+    ? GENERATED_FRENCH_CAPTURE_PHASES[filename as keyof typeof GENERATED_FRENCH_CAPTURE_PHASES]
+    : undefined;
+}
+
+const GENERATED_FRENCH_STAGE_EXPECTATIONS = [
+  { device: 'desktop', phase: 'base', stage: 'initial' },
+  { device: 'desktop', phase: 'overview', stage: 'overview' },
+  { device: 'desktop', phase: 'interaction', stage: 'interaction' },
+] as const;
+
+const GENERATED_FRENCH_SURFACE_SOURCES = [
+  'alt',
+  'aria-description',
+  'aria-describedby',
+  'aria-label',
+  'aria-labelledby',
+  'aria-valuetext',
+  'document-title',
+  'input-value',
+  'placeholder',
+  'text',
+  'title',
+] as const satisfies readonly GeneratedFrSurfaceSource[];
 
 type SolutionProofLanguage = (typeof LANGUAGES)[number];
 type PreviewDevice = 'desktop' | 'tablet' | 'mobile';
@@ -147,6 +192,150 @@ function asString(value: unknown, label: string): string {
   }
 
   return value;
+}
+
+type GeneratedFrenchCaptureStateExpectation = Readonly<{
+  captureSurface: string;
+  device: string;
+  filename: string;
+  theme: string;
+}>;
+
+function asGeneratedFrenchSurfaceCollection(value: unknown, label: string): GeneratedFrSurfaceCollection {
+  const collection = asRecord(value, label);
+
+  expect(Object.keys(collection).sort(), `${label} exact fields`).toEqual(
+    ['documentLanguage', 'entries', 'rootSelector'].sort(),
+  );
+
+  const entries = asArray(collection.entries, `${label}.entries`).map((entryValue, index) => {
+    const entryLabel = `${label}.entries[${index}]`;
+    const entry = asRecord(entryValue, entryLabel);
+    const source = asString(entry.source, `${entryLabel}.source`);
+
+    expect(Object.keys(entry).sort(), `${entryLabel} exact fields`).toEqual(['selector', 'source', 'value'].sort());
+
+    if (!(GENERATED_FRENCH_SURFACE_SOURCES as readonly string[]).includes(source)) {
+      throw new TypeError(`${entryLabel}.source has unsupported value ${JSON.stringify(source)}`);
+    }
+
+    return {
+      selector: asString(entry.selector, `${entryLabel}.selector`),
+      source: source as GeneratedFrSurfaceSource,
+      value: asString(entry.value, `${entryLabel}.value`),
+    };
+  });
+
+  return {
+    documentLanguage: asString(collection.documentLanguage, `${label}.documentLanguage`),
+    entries,
+    rootSelector: asString(collection.rootSelector, `${label}.rootSelector`),
+  };
+}
+
+function expectRecomputedGeneratedFrenchSurfaceAudit(
+  value: unknown,
+  label: string,
+  slug: GeneratedFrSolutionSlug,
+  phase: GeneratedFrSurfacePhase,
+) {
+  const storedAudit = asRecord(value, label);
+  const collection = asGeneratedFrenchSurfaceCollection(storedAudit.collection, `${label}.collection`);
+  const recomputed = inspectGeneratedFrenchSurface(collection, { phase, slug });
+
+  expect(storedAudit, `${label} must equal its independently recomputed audit`).toEqual(recomputed);
+  expect(recomputed.passed, `${label}.passed`).toBe(true);
+  expect(recomputed.documentLanguageMatched, `${label}.documentLanguageMatched`).toBe(true);
+  expect(recomputed.missingRequired, `${label}.missingRequired`).toEqual([]);
+  expect(recomputed.residuals, `${label}.residuals`).toEqual([]);
+  expect(recomputed.phase, `${label}.phase`).toBe(phase);
+  expect(recomputed.slug, `${label}.slug`).toBe(slug);
+
+  return recomputed;
+}
+
+function expectGeneratedFrenchSurfaceProof(
+  value: unknown,
+  label: string,
+  slug: SolutionProofVisualSlug,
+  language: SolutionProofLanguage,
+  capturedStates: readonly GeneratedFrenchCaptureStateExpectation[],
+) {
+  if (language === 'en') {
+    expect(value, `${label} must be absent from English capture manifests`).toBeUndefined();
+
+    return;
+  }
+
+  const proof = asRecord(value, label);
+
+  expect(Object.keys(proof).sort(), `${label} exact fields`).toEqual(
+    ['captureAudits', 'locale', 'proofSchemaVersion', 'slug', 'stageAudits'].sort(),
+  );
+  expect(proof.proofSchemaVersion, `${label}.proofSchemaVersion`).toBe(1);
+  expect(proof.locale, `${label}.locale`).toBe('fr');
+  expect(proof.slug, `${label}.slug`).toBe(slug);
+
+  const stageAudits = asArray(proof.stageAudits, `${label}.stageAudits`);
+
+  expect(stageAudits, `${label}.stageAudits`).toHaveLength(GENERATED_FRENCH_STAGE_EXPECTATIONS.length);
+
+  for (const [index, expected] of GENERATED_FRENCH_STAGE_EXPECTATIONS.entries()) {
+    const stageLabel = `${label}.stageAudits[${index}]`;
+    const stageAudit = asRecord(stageAudits[index], stageLabel);
+
+    expect(Object.keys(stageAudit).sort(), `${stageLabel} exact fields`).toEqual(
+      ['audit', 'auditedSurface', 'device', 'stage'].sort(),
+    );
+    expect(stageAudit.stage, `${stageLabel}.stage`).toBe(expected.stage);
+    expect(stageAudit.device, `${stageLabel}.device`).toBe(expected.device);
+    expect(stageAudit.auditedSurface, `${stageLabel}.auditedSurface`).toMatch(
+      /^(?:native-preview-frame|official-runtime-direct-page)$/u,
+    );
+    expectRecomputedGeneratedFrenchSurfaceAudit(stageAudit.audit, `${stageLabel}.audit`, slug, expected.phase);
+  }
+
+  const captureAudits = asArray(proof.captureAudits, `${label}.captureAudits`);
+
+  expect(capturedStates, `${label} captured state fixture`).toHaveLength(12);
+  expect(captureAudits, `${label}.captureAudits`).toHaveLength(12);
+
+  for (const [index, expectedState] of capturedStates.entries()) {
+    const captureLabel = `${label}.captureAudits[${index}]`;
+    const captureAudit = asRecord(captureAudits[index], captureLabel);
+    const expectedPhase = generatedFrenchCapturePhase(expectedState.filename);
+
+    if (!expectedPhase) {
+      throw new Error(`${captureLabel} has no declared generated French phase`);
+    }
+
+    expect(Object.keys(captureAudit).sort(), `${captureLabel} exact fields`).toEqual(
+      ['audit', 'auditedSurface', 'captureSurface', 'device', 'filename', 'phase', 'theme'].sort(),
+    );
+    expect(
+      {
+        captureSurface: captureAudit.captureSurface,
+        device: captureAudit.device,
+        filename: captureAudit.filename,
+        theme: captureAudit.theme,
+      },
+      `${captureLabel} exact photographed state`,
+    ).toEqual(expectedState);
+    expect(captureAudit.phase, `${captureLabel}.phase`).toBe(expectedPhase);
+
+    const expectedAuditedSurface =
+      captureAudit.captureSurface === 'official-runtime-direct'
+        ? 'official-runtime-direct-page'
+        : 'native-preview-frame';
+
+    expect(captureAudit.auditedSurface, `${captureLabel}.auditedSurface`).toBe(expectedAuditedSurface);
+
+    if (captureAudit.captureSurface === 'official-runtime-direct') {
+      expect(['ide-webview-overview.png', 'ide-webview-iteration.png'], captureLabel).toContain(captureAudit.filename);
+    }
+
+    expectRecomputedGeneratedFrenchSurfaceAudit(captureAudit.audit, `${captureLabel}.audit`, slug, expectedPhase);
+  }
 }
 
 function captureResultPath(slug: SolutionProofVisualSlug, language: (typeof LANGUAGES)[number]) {
@@ -1150,6 +1339,141 @@ describe('theme-aware solution proof visual registry', () => {
       ),
     ).toThrow();
   });
+
+  it('recomputes every French surface audit and rejects missing, forged, reordered, or English proof blocks', () => {
+    const slug = 'website-builder' as const;
+    const contract = GENERATED_FR_SCENARIO_CONTRACTS[slug];
+
+    const auditFixture = (phase: GeneratedFrSurfacePhase): GeneratedFrSurfaceAudit => {
+      const required = [...contract.required, ...(phase === 'base' ? [] : contract.requiredByPhase[phase])];
+
+      return inspectGeneratedFrenchSurface(
+        {
+          documentLanguage: 'fr-FR',
+          entries: required.map((value, index) => ({
+            selector: `body > main > p:nth-of-type(${index + 1})`,
+            source: 'text',
+            value,
+          })),
+          rootSelector: 'body',
+        },
+        { phase, slug },
+      );
+    };
+
+    const capturedStates: GeneratedFrenchCaptureStateExpectation[] = CAPTURE_FILENAMES.flatMap(
+      (filename, filenameIndex) => {
+        const device = THEMED_CAPTURE_DEVICE_EXPECTATIONS.fr[filenameIndex];
+
+        if (!device) {
+          throw new Error(`Missing French fixture device for ${filename}`);
+        }
+
+        return SOLUTION_PROOF_VISUAL_THEMES.map((theme) => ({
+          captureSurface: 'ide-shell-native-webview',
+          device,
+          filename,
+          theme,
+        }));
+      },
+    );
+
+    const proof = {
+      captureAudits: capturedStates.map((state) => {
+        const phase = generatedFrenchCapturePhase(state.filename);
+
+        if (!phase) {
+          throw new Error(`Missing French fixture phase for ${state.filename}`);
+        }
+
+        return {
+          audit: auditFixture(phase),
+          auditedSurface: 'native-preview-frame',
+          captureSurface: state.captureSurface,
+          device: state.device,
+          filename: state.filename,
+          phase,
+          theme: state.theme,
+        };
+      }),
+      locale: 'fr',
+      proofSchemaVersion: 1,
+      slug,
+      stageAudits: GENERATED_FRENCH_STAGE_EXPECTATIONS.map(({ device, phase, stage }) => ({
+        audit: auditFixture(phase),
+        auditedSurface: 'native-preview-frame',
+        device,
+        stage,
+      })),
+    };
+
+    expect(() => expectGeneratedFrenchSurfaceProof(proof, 'valid-fr-proof', slug, 'fr', capturedStates)).not.toThrow();
+    expect(() =>
+      expectGeneratedFrenchSurfaceProof(undefined, 'missing-fr-proof', slug, 'fr', capturedStates),
+    ).toThrow();
+    expect(() => expectGeneratedFrenchSurfaceProof(proof, 'forbidden-en-proof', slug, 'en', capturedStates)).toThrow();
+
+    const missingStage = { ...proof, stageAudits: proof.stageAudits.slice(0, -1) };
+
+    expect(() =>
+      expectGeneratedFrenchSurfaceProof(missingStage, 'missing-stage', slug, 'fr', capturedStates),
+    ).toThrow();
+
+    const reorderedCapture = {
+      ...proof,
+      captureAudits: [proof.captureAudits[1], proof.captureAudits[0], ...proof.captureAudits.slice(2)],
+    };
+
+    expect(() =>
+      expectGeneratedFrenchSurfaceProof(reorderedCapture, 'reordered-capture', slug, 'fr', capturedStates),
+    ).toThrow();
+
+    const forgedAudit = {
+      ...proof,
+      stageAudits: proof.stageAudits.map((stageAudit, index) =>
+        index === 0 ? { ...stageAudit, audit: { ...stageAudit.audit, passed: false } } : stageAudit,
+      ),
+    };
+
+    expect(() => expectGeneratedFrenchSurfaceProof(forgedAudit, 'forged-audit', slug, 'fr', capturedStates)).toThrow();
+  });
+
+  it('runs exact Page/Frame French audits and the complete proof gate before public promotion', () => {
+    const captureSource = readFileSync(resolve(process.cwd(), 'scripts/capture-app-builder-ide-proof.ts'), 'utf8');
+
+    const directAuditIndex = captureSource.indexOf(
+      'generatedFrenchSurfaceAudit = await auditGeneratedFrenchSurface(directPage',
+    );
+    const directScreenshotIndex = captureSource.indexOf(
+      'const nativeScreenshot = await directPage.screenshot',
+      directAuditIndex,
+    );
+
+    const nativeGuardIndex = captureSource.indexOf('await beginIdeScreenshotGuard(page);');
+
+    const nativeAuditIndex = captureSource.indexOf(
+      'generatedFrenchSurfaceAudit = await auditGeneratedFrenchSurface(nativeFrame',
+      nativeGuardIndex,
+    );
+
+    const nativeScreenshotIndex = captureSource.indexOf('await page.screenshot({', nativeAuditIndex);
+    const promotionIndex = captureSource.indexOf('const promotedAssets = await promoteVerifiedThemedAssets');
+
+    const completeProofGateIndex = captureSource.lastIndexOf(
+      'const verifiedGeneratedFrenchSurfaceProof = assertCompleteGeneratedFrenchSurfaceProof',
+      promotionIndex,
+    );
+
+    expect(directAuditIndex).toBeGreaterThan(0);
+    expect(directScreenshotIndex).toBeGreaterThan(directAuditIndex);
+    expect(nativeGuardIndex).toBeGreaterThan(0);
+    expect(nativeAuditIndex).toBeGreaterThan(nativeGuardIndex);
+    expect(nativeScreenshotIndex).toBeGreaterThan(nativeAuditIndex);
+    expect(completeProofGateIndex).toBeGreaterThan(0);
+    expect(completeProofGateIndex).toBeLessThan(promotionIndex);
+    expect(captureSource).toContain("locale !== 'fr' || slug === 'app-builder'");
+    expect(captureSource).toContain('fixez l’attribut lang de l’élément html à exactement "fr"');
+  });
 });
 
 describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof WebP files', () => {
@@ -1249,6 +1573,33 @@ describe.runIf(process.env.VERIFY_SOLUTION_PROOF_ASSETS === '1')('solution proof
           manifest.themedCaptureAudits,
           `${label}.themedCaptureAudits`,
           language,
+        );
+
+        const generatedFrenchCapturedStates = audits.flatMap((auditValue, auditIndex) => {
+          const auditLabel = `${label}.themedCaptureAudits[${auditIndex}]`;
+          const audit = asRecord(auditValue, auditLabel);
+          const filename = asString(audit.filename, `${auditLabel}.filename`);
+          const states = asArray(audit.states, `${auditLabel}.states`);
+
+          return states.map((stateValue, stateIndex) => {
+            const stateLabel = `${auditLabel}.states[${stateIndex}]`;
+            const state = asRecord(stateValue, stateLabel);
+
+            return {
+              captureSurface: asString(state.captureSurface, `${stateLabel}.captureSurface`),
+              device: asString(state.device, `${stateLabel}.device`),
+              filename,
+              theme: asString(state.theme, `${stateLabel}.theme`),
+            };
+          });
+        });
+
+        expectGeneratedFrenchSurfaceProof(
+          manifest.generatedFrenchSurfaceProof,
+          `${label}.generatedFrenchSurfaceProof`,
+          slug,
+          language,
+          generatedFrenchCapturedStates,
         );
 
         for (const [auditIndex, value] of audits.entries()) {

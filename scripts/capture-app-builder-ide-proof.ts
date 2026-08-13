@@ -3,7 +3,15 @@ import { access, chmod, cp, mkdir, mkdtemp, readFile, rename, rm, unlink, writeF
 import { basename, dirname, extname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { chromium, expect, type FrameLocator, type Locator, type Page, type Request } from '@playwright/test';
+import {
+  chromium,
+  expect,
+  type Frame,
+  type FrameLocator,
+  type Locator,
+  type Page,
+  type Request,
+} from '@playwright/test';
 import sharp from 'sharp';
 
 import {
@@ -18,6 +26,13 @@ import {
   type PersistedPromptEvidence,
   type ProjectFileEntry,
 } from './solution-capture-state.js';
+import {
+  auditGeneratedFrenchSurface,
+  inspectGeneratedFrenchSurface,
+  type GeneratedFrSolutionSlug,
+  type GeneratedFrSurfaceAudit,
+  type GeneratedFrSurfacePhase,
+} from './solution-generated-fr-surface-audit.js';
 import {
   generatedSolutionPackageContractFor,
   validateGeneratedSolutionPackageJson,
@@ -71,6 +86,35 @@ type CaptureSlug =
   | 'enterprise';
 
 type CaptureTheme = 'light' | 'dark';
+type CaptureSurface = 'ide-shell-native-webview' | 'ide-shell-official-runtime-verified' | 'official-runtime-direct';
+type GeneratedFrenchAuditedSurface = 'native-preview-frame' | 'official-runtime-direct-page';
+type GeneratedFrenchProofSlug = Exclude<CaptureSlug, 'app-builder'>;
+type GeneratedFrenchSurfaceStage = 'initial' | 'overview' | 'interaction';
+
+type GeneratedFrenchStageAudit = {
+  audit: GeneratedFrSurfaceAudit & { passed: true };
+  auditedSurface: GeneratedFrenchAuditedSurface;
+  device: 'desktop';
+  stage: GeneratedFrenchSurfaceStage;
+};
+
+type GeneratedFrenchCaptureAudit = {
+  audit: GeneratedFrSurfaceAudit & { passed: true };
+  auditedSurface: GeneratedFrenchAuditedSurface;
+  captureSurface: CaptureSurface;
+  device: 'desktop' | 'tablet' | 'mobile';
+  filename: string;
+  phase: GeneratedFrSurfacePhase;
+  theme: CaptureTheme;
+};
+
+type GeneratedFrenchSurfaceProof = {
+  captureAudits: GeneratedFrenchCaptureAudit[];
+  locale: 'fr';
+  proofSchemaVersion: 1;
+  slug: GeneratedFrenchProofSlug;
+  stageAudits: GeneratedFrenchStageAudit[];
+};
 
 type SolutionScenario = {
   prompt: string;
@@ -503,6 +547,115 @@ function previewBody(page: Page): Locator {
   return previewScope(page).locator('body');
 }
 
+const GENERATED_FRENCH_CAPTURE_PHASES = {
+  'ide-agent-files.png': 'interaction',
+  'ide-agent-iteration.png': 'interaction',
+  'ide-agent-preview.png': 'base',
+  'ide-agent-prompt.png': 'base',
+  'ide-webview-iteration.png': 'interaction',
+  'ide-webview-overview.png': 'overview',
+} as const satisfies Record<string, GeneratedFrSurfacePhase>;
+
+function generatedFrenchCapturePhase(filename: string): GeneratedFrSurfacePhase | undefined {
+  return Object.prototype.hasOwnProperty.call(GENERATED_FRENCH_CAPTURE_PHASES, filename)
+    ? GENERATED_FRENCH_CAPTURE_PHASES[filename as keyof typeof GENERATED_FRENCH_CAPTURE_PHASES]
+    : undefined;
+}
+
+const GENERATED_FRENCH_PROOF_SLUGS = [
+  'website-builder',
+  'game-builder',
+  'dashboard-builder',
+  'chatbot-builder',
+  'internal-ai-builder',
+  'startups',
+  'freelancers',
+  'enterprise',
+] as const satisfies readonly GeneratedFrenchProofSlug[];
+
+function createGeneratedFrenchSurfaceProof(
+  slug: CaptureSlug,
+  locale: CaptureLocale,
+): GeneratedFrenchSurfaceProof | undefined {
+  if (locale !== 'fr' || slug === 'app-builder') {
+    return undefined;
+  }
+
+  if (!(GENERATED_FRENCH_PROOF_SLUGS as readonly CaptureSlug[]).includes(slug)) {
+    throw new Error(`Generated French surface proof does not recognize Solution ${slug}`);
+  }
+
+  return {
+    captureAudits: [],
+    locale: 'fr',
+    proofSchemaVersion: 1,
+    slug,
+    stageAudits: [],
+  };
+}
+
+async function exactGeneratedFrenchAuditSurface(
+  page: Page,
+  context: string,
+): Promise<{ auditedSurface: GeneratedFrenchAuditedSurface; target: Frame | Page }> {
+  const surfaceState = previewSurfaceState(page);
+
+  if (surfaceState.mode === 'official-runtime-direct' && surfaceState.directPage) {
+    if (surfaceState.directPage.isClosed()) {
+      throw new Error(`The official runtime Page closed before the generated French ${context} audit`);
+    }
+
+    return { auditedSurface: 'official-runtime-direct-page', target: surfaceState.directPage };
+  }
+
+  const nativeIframe = page.locator('iframe[data-testid="preview-iframe"]:visible').last();
+
+  await expect(
+    nativeIframe,
+    `The native Preview iframe must exist before the generated French ${context} audit`,
+  ).toBeVisible({ timeout: 30_000 });
+
+  const nativeIframeHandle = await nativeIframe.elementHandle();
+  const nativeFrame = await nativeIframeHandle?.contentFrame();
+
+  if (!nativeFrame || nativeFrame.isDetached()) {
+    throw new Error(`The exact native Preview Frame is unavailable before the generated French ${context} audit`);
+  }
+
+  return { auditedSurface: 'native-preview-frame', target: nativeFrame };
+}
+
+async function appendGeneratedFrenchStageAudit(
+  page: Page,
+  proof: GeneratedFrenchSurfaceProof | undefined,
+  stage: GeneratedFrenchSurfaceStage,
+  phase: GeneratedFrSurfacePhase,
+) {
+  if (!proof) {
+    return;
+  }
+
+  if (proof.stageAudits.some((entry) => entry.stage === stage)) {
+    throw new Error(`Generated French surface stage ${stage} was audited more than once`);
+  }
+
+  const selectedDevice = await previewDeviceSelect(page).inputValue();
+
+  if (selectedDevice !== 'desktop') {
+    throw new Error(`Generated French surface stage ${stage} must be audited on desktop, received ${selectedDevice}`);
+  }
+
+  const surface = await exactGeneratedFrenchAuditSurface(page, `${stage} stage`);
+  const audit = await auditGeneratedFrenchSurface(surface.target, { phase, slug: proof.slug });
+
+  proof.stageAudits.push({
+    audit,
+    auditedSurface: surface.auditedSurface,
+    device: 'desktop',
+    stage,
+  });
+}
+
 async function previewPixels(page: Page) {
   const state = previewSurfaceState(page);
 
@@ -896,7 +1049,7 @@ function creationPromptFor(
 
   const runtimeContract =
     locale === 'fr'
-      ? `${packageContract} Gardez le reste du runtime généré volontairement fiable : une interface Vite, React et TypeScript avec index.html, src/main.tsx et src/styles.css. Conservez toute l’interface fonctionnelle et son état local dans src/main.tsx et src/styles.css ; ne créez ni App.tsx ni fichier de composant supplémentaire. Gardez src/main.tsx sous 350 lignes et src/styles.css sous 300 lignes, avec une source compacte et sans commentaires explicatifs. N’ajoutez ni tests, ni backend, ni package de routage, ni bibliothèque de composants. Enregistrez uniquement des fichiers source complets et valides ; si l’espace manque, simplifiez la décoration au lieu de tronquer ou poursuivre un fichier. N’insérez jamais de balises antml, boltArtifact, boltAction, XML ou Markdown dans un fichier enregistré. La première route rendue doit afficher immédiatement le produit nommé.`
+      ? `${packageContract} Gardez le reste du runtime généré volontairement fiable : une interface Vite, React et TypeScript avec index.html, src/main.tsx et src/styles.css. Dans index.html, fixez l’attribut lang de l’élément html à exactement "fr" et donnez au document un titre français contenant exactement le nom ${scenario.expectedTerms[0]}. Conservez toute l’interface fonctionnelle et son état local dans src/main.tsx et src/styles.css ; ne créez ni App.tsx ni fichier de composant supplémentaire. Gardez src/main.tsx sous 350 lignes et src/styles.css sous 300 lignes, avec une source compacte et sans commentaires explicatifs. N’ajoutez ni tests, ni backend, ni package de routage, ni bibliothèque de composants. Enregistrez uniquement des fichiers source complets et valides ; si l’espace manque, simplifiez la décoration au lieu de tronquer ou poursuivre un fichier. N’insérez jamais de balises antml, boltArtifact, boltAction, XML ou Markdown dans un fichier enregistré. La première route rendue doit afficher immédiatement le produit nommé.`
       : `${packageContract} Keep the rest of the generated runtime deliberately reliable: a Vite React TypeScript frontend with index.html, src/main.tsx, and src/styles.css. Keep the entire working UI and local state in src/main.tsx and src/styles.css; do not create App.tsx or extra component files. Keep src/main.tsx under 350 lines and src/styles.css under 300 lines, with compact source and no explanatory comments. Do not add tests, a backend, a router package, or a component library. Save only complete valid source files; if space is tight, simplify decoration rather than truncating or continuing a file. Never include antml, boltArtifact, boltAction, XML, or markdown wrappers in a saved file. Make the first rendered route immediately show the named product.`;
 
   const interactionContract = includeInteractionAcceptance
@@ -3320,7 +3473,12 @@ const TARGET_ORANGE_AUDIT_PAGE_FUNCTION = new Function(
   `return (${TARGET_ORANGE_AUDIT_EXPRESSION})(element);`,
 ) as (element: unknown) => TargetOrangeAudit;
 
-async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evidenceRoot: string) {
+async function verifyScenarioPreview(
+  page: Page,
+  scenario: SolutionScenario,
+  evidenceRoot: string,
+  generatedFrenchSurfaceProof?: GeneratedFrenchSurfaceProof,
+) {
   const frame = previewScope(page);
   const body = frame.locator('body');
   const identity = scenario.expectedTerms[0];
@@ -3434,6 +3592,8 @@ async function verifyScenarioPreview(page: Page, scenario: SolutionScenario, evi
   if (interactiveCount < 3) {
     throw new Error(`Generated Preview exposes only ${interactiveCount} interactive controls`);
   }
+
+  await appendGeneratedFrenchStageAudit(page, generatedFrenchSurfaceProof, 'interaction', 'interaction');
 
   return {
     role: scenario.interaction.role,
@@ -4382,6 +4542,7 @@ async function captureThemedIdeState(
   filename: string,
   options: {
     evidenceRoot: string;
+    generatedFrenchSurfaceProof?: GeneratedFrenchSurfaceProof;
     locale: CaptureLocale;
     promptViewport?: { bubble: Locator; expectedMessageId: string };
     scenario: SolutionScenario;
@@ -4431,6 +4592,8 @@ async function captureThemedIdeState(
 
     let captureSurface: ThemedCaptureAudit['states'][number]['captureSurface'];
     let directCaptureComposition: DirectCaptureCompositionAudit | undefined;
+    let generatedFrenchSurfaceAudit: (GeneratedFrSurfaceAudit & { passed: true }) | undefined;
+    let generatedFrenchAuditedSurface: GeneratedFrenchAuditedSurface | undefined;
     let nativeWebviewAudit: NativeWebviewAudit | undefined;
     let promptViewportAudit: PromptViewportAudit | undefined;
 
@@ -4458,6 +4621,20 @@ async function captureThemedIdeState(
         { timeout: 60_000 },
       );
       assertDirectRuntimeStayedClean(page);
+
+      if (options.generatedFrenchSurfaceProof) {
+        const phase = generatedFrenchCapturePhase(filename);
+
+        if (!phase) {
+          throw new Error(`No generated French surface phase is declared for capture ${filename}`);
+        }
+
+        generatedFrenchSurfaceAudit = await auditGeneratedFrenchSurface(directPage, {
+          phase,
+          slug: options.generatedFrenchSurfaceProof.slug,
+        });
+        generatedFrenchAuditedSurface = 'official-runtime-direct-page';
+      }
 
       const nativeScreenshot = await directPage.screenshot({
         animations: 'disabled',
@@ -4495,26 +4672,67 @@ async function captureThemedIdeState(
         requireVisibleControl: true,
       });
 
-      const nativeAuditResult = await auditNativeIdeWebview(page, options.scenario.expectedTerms[0]);
-      nativeWebviewAudit = nativeAuditResult.audit;
-      nativeWebviewThemeScreenshots.set(theme, nativeAuditResult.screenshot);
-      await beginIdeScreenshotGuard(page);
-      await page.screenshot({
-        path: resolve(themeRoot, filename),
-        animations: 'disabled',
-        caret: 'hide',
-      });
-
-      const screenshotViolations = await endIdeScreenshotGuard(page);
-
-      if (screenshotViolations.length > 0) {
-        throw new Error(`IDE shell changed during ${theme}/${filename} capture: ${screenshotViolations.join(' | ')}`);
-      }
-
       captureSurface =
         surfaceState.mode === 'official-runtime-direct'
           ? 'ide-shell-official-runtime-verified'
           : 'ide-shell-native-webview';
+
+      const nativeAuditResult = await auditNativeIdeWebview(page, options.scenario.expectedTerms[0]);
+      nativeWebviewAudit = nativeAuditResult.audit;
+      nativeWebviewThemeScreenshots.set(theme, nativeAuditResult.screenshot);
+      await beginIdeScreenshotGuard(page);
+
+      let screenshotViolations: string[] = [];
+
+      try {
+        if (options.generatedFrenchSurfaceProof) {
+          const phase = generatedFrenchCapturePhase(filename);
+
+          if (!phase) {
+            throw new Error(`No generated French surface phase is declared for capture ${filename}`);
+          }
+
+          generatedFrenchSurfaceAudit = await auditGeneratedFrenchSurface(nativeFrame, {
+            phase,
+            slug: options.generatedFrenchSurfaceProof.slug,
+          });
+          generatedFrenchAuditedSurface = 'native-preview-frame';
+        }
+
+        if (nativeFrame.isDetached()) {
+          throw new Error(`The audited native Preview Frame detached before ${theme}/${filename} shell capture`);
+        }
+
+        await page.screenshot({
+          path: resolve(themeRoot, filename),
+          animations: 'disabled',
+          caret: 'hide',
+        });
+      } finally {
+        screenshotViolations = await endIdeScreenshotGuard(page);
+      }
+
+      if (screenshotViolations.length > 0) {
+        throw new Error(`IDE shell changed during ${theme}/${filename} capture: ${screenshotViolations.join(' | ')}`);
+      }
+    }
+
+    if (options.generatedFrenchSurfaceProof) {
+      const phase = generatedFrenchCapturePhase(filename);
+
+      if (!phase || !generatedFrenchSurfaceAudit || !generatedFrenchAuditedSurface) {
+        throw new Error(`Generated French surface audit is incomplete for ${theme}/${filename}`);
+      }
+
+      options.generatedFrenchSurfaceProof.captureAudits.push({
+        audit: generatedFrenchSurfaceAudit,
+        auditedSurface: generatedFrenchAuditedSurface,
+        captureSurface,
+        device: selectedDevice,
+        filename,
+        phase,
+        theme,
+      });
     }
 
     await options.verifySurface?.();
@@ -4605,6 +4823,137 @@ async function captureThemedIdeState(
     ...(nativeWebviewThemeDifference ? { nativeWebviewThemeDifference } : {}),
     ...(directRuntimeThemeDifference ? { directRuntimeThemeDifference } : {}),
   };
+}
+
+function assertGeneratedFrenchAuditMatchesCollection(
+  audit: GeneratedFrSurfaceAudit,
+  slug: GeneratedFrSolutionSlug,
+  phase: GeneratedFrSurfacePhase,
+  label: string,
+) {
+  const recomputed = inspectGeneratedFrenchSurface(audit.collection, { phase, slug });
+
+  if (!recomputed.passed) {
+    throw new Error(`Generated French surface ${label} no longer passes when recomputed from its collection`);
+  }
+
+  if (JSON.stringify(recomputed) !== JSON.stringify(audit)) {
+    throw new Error(`Generated French surface ${label} does not match its recomputed audit`);
+  }
+}
+
+function assertCompleteGeneratedFrenchSurfaceProof(
+  proof: GeneratedFrenchSurfaceProof | undefined,
+  slug: CaptureSlug,
+  locale: CaptureLocale,
+  filenames: readonly string[],
+) {
+  const requiresProof = locale === 'fr' && slug !== 'app-builder';
+
+  if (!requiresProof) {
+    if (proof) {
+      throw new Error(`Generated French surface proof is forbidden for ${slug}/${locale}`);
+    }
+
+    return undefined;
+  }
+
+  if (!proof) {
+    throw new Error(`Generated French surface proof is required before promotion for ${slug}/${locale}`);
+  }
+
+  if (proof.proofSchemaVersion !== 1 || proof.locale !== 'fr' || proof.slug !== slug) {
+    throw new Error(`Generated French surface proof identity is invalid for ${slug}/${locale}`);
+  }
+
+  const expectedStages = [
+    { phase: 'base', stage: 'initial' },
+    { phase: 'overview', stage: 'overview' },
+    { phase: 'interaction', stage: 'interaction' },
+  ] as const;
+
+  if (proof.stageAudits.length !== expectedStages.length) {
+    throw new Error(
+      `Generated French surface proof requires exactly three stage audits; received ${proof.stageAudits.length}`,
+    );
+  }
+
+  for (const [index, expected] of expectedStages.entries()) {
+    const stageAudit = proof.stageAudits[index];
+
+    if (
+      !stageAudit ||
+      stageAudit.stage !== expected.stage ||
+      stageAudit.device !== 'desktop' ||
+      (stageAudit.auditedSurface !== 'native-preview-frame' &&
+        stageAudit.auditedSurface !== 'official-runtime-direct-page')
+    ) {
+      throw new Error(`Generated French surface stage audit ${index} is incomplete or out of order`);
+    }
+
+    assertGeneratedFrenchAuditMatchesCollection(
+      stageAudit.audit,
+      proof.slug,
+      expected.phase,
+      `stage ${stageAudit.stage}`,
+    );
+  }
+
+  const expectedCaptures = filenames.flatMap((filename) =>
+    CAPTURE_THEMES.map((theme) => ({ filename, phase: generatedFrenchCapturePhase(filename), theme })),
+  );
+
+  if (expectedCaptures.some(({ phase }) => !phase)) {
+    throw new Error('Generated French surface proof received a capture without a declared semantic phase');
+  }
+
+  if (proof.captureAudits.length !== 12 || proof.captureAudits.length !== expectedCaptures.length) {
+    throw new Error(
+      `Generated French surface proof requires exactly twelve capture audits; received ${proof.captureAudits.length}`,
+    );
+  }
+
+  for (const [index, expected] of expectedCaptures.entries()) {
+    const captureAudit = proof.captureAudits[index];
+
+    if (
+      !captureAudit ||
+      captureAudit.filename !== expected.filename ||
+      captureAudit.theme !== expected.theme ||
+      captureAudit.phase !== expected.phase
+    ) {
+      throw new Error(`Generated French surface capture audit ${index} is incomplete or out of order`);
+    }
+
+    const expectedAuditedSurface: GeneratedFrenchAuditedSurface =
+      captureAudit.captureSurface === 'official-runtime-direct'
+        ? 'official-runtime-direct-page'
+        : 'native-preview-frame';
+
+    if (captureAudit.auditedSurface !== expectedAuditedSurface) {
+      throw new Error(
+        `Generated French ${captureAudit.theme}/${captureAudit.filename} audited ${captureAudit.auditedSurface} ` +
+          `instead of ${expectedAuditedSurface}`,
+      );
+    }
+
+    if (
+      captureAudit.captureSurface === 'official-runtime-direct' &&
+      captureAudit.filename !== 'ide-webview-overview.png' &&
+      captureAudit.filename !== 'ide-webview-iteration.png'
+    ) {
+      throw new Error(`Only direct Webview slots may carry an official-runtime-direct French surface audit`);
+    }
+
+    assertGeneratedFrenchAuditMatchesCollection(
+      captureAudit.audit,
+      proof.slug,
+      captureAudit.phase,
+      `capture ${captureAudit.theme}/${captureAudit.filename}`,
+    );
+  }
+
+  return proof;
 }
 
 async function promoteVerifiedThemedAssets(stagingRoot: string, outputRoot: string, filenames: readonly string[]) {
@@ -5189,6 +5538,7 @@ async function main() {
 
     const responsiveStateAudits: Array<Awaited<ReturnType<typeof verifyPreviewResponsiveState>>> = [];
     const themedCaptureAudits: ThemedCaptureAudit[] = [];
+    const generatedFrenchSurfaceProof = createGeneratedFrenchSurfaceProof(slug, locale);
 
     if (!iterationOnly) {
       try {
@@ -5217,6 +5567,7 @@ async function main() {
 
       await selectPreviewDevice(page, 'desktop');
       responsiveStateAudits.push(await verifyPreviewResponsiveState(page, copy, evidenceRoot, 'initial', 'desktop'));
+      await appendGeneratedFrenchStageAudit(page, generatedFrenchSurfaceProof, 'initial', 'base');
       await prepareIdeCapture(page, promptBubble);
 
       const promptViewportMessageId = promptSurfaceProvenance?.messageId;
@@ -5228,6 +5579,7 @@ async function main() {
       themedCaptureAudits.push(
         await captureThemedIdeState(page, stagingRoot, promptFilename, {
           evidenceRoot,
+          generatedFrenchSurfaceProof,
           locale,
           promptViewport: { bubble: promptBubble, expectedMessageId: promptViewportMessageId },
           scenario: copy,
@@ -5258,7 +5610,12 @@ async function main() {
 
       await prepareIdeCapture(page, previewBubble);
       themedCaptureAudits.push(
-        await captureThemedIdeState(page, stagingRoot, previewFilename, { scenario: copy, evidenceRoot, locale }),
+        await captureThemedIdeState(page, stagingRoot, previewFilename, {
+          evidenceRoot,
+          generatedFrenchSurfaceProof,
+          locale,
+          scenario: copy,
+        }),
       );
       verifiedCaptureFilenames.push(previewFilename);
 
@@ -5278,12 +5635,14 @@ async function main() {
       themedCaptureAudits.push(
         await captureThemedIdeState(page, stagingRoot, webviewOverviewFilename, {
           evidenceRoot,
+          generatedFrenchSurfaceProof,
           locale,
           scenario: copy,
         }),
       );
       verifiedCaptureFilenames.push(webviewOverviewFilename);
       await selectPreviewDevice(page, 'desktop');
+      await appendGeneratedFrenchStageAudit(page, generatedFrenchSurfaceProof, 'overview', 'overview');
     }
 
     let iterationBubble: ReturnType<typeof agentPanel.locator> | undefined;
@@ -5335,7 +5694,7 @@ async function main() {
       ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
       await verifyScenarioAppearance(page, copy, 'dark');
       accentAudit = await waitForOrangePreview(page, evidenceRoot);
-      scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot);
+      scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot, generatedFrenchSurfaceProof);
       await verifyScenarioAppearance(page, copy, 'dark');
       interactionAccentAudit = await waitForOrangePreview(page, evidenceRoot, 60_000, false);
       responsiveAccentAudits.push({ stage: 'interaction', device: 'desktop', audit: interactionAccentAudit });
@@ -5347,7 +5706,12 @@ async function main() {
       const iterationFilename = 'ide-agent-iteration.png';
       iterationOutput = resolve(outputRoot, 'dark', 'ide-agent-iteration-1440.webp');
       themedCaptureAudits.push(
-        await captureThemedIdeState(page, stagingRoot, iterationFilename, { scenario: copy, evidenceRoot, locale }),
+        await captureThemedIdeState(page, stagingRoot, iterationFilename, {
+          evidenceRoot,
+          generatedFrenchSurfaceProof,
+          locale,
+          scenario: copy,
+        }),
       );
       verifiedCaptureFilenames.push(iterationFilename);
 
@@ -5366,6 +5730,7 @@ async function main() {
       themedCaptureAudits.push(
         await captureThemedIdeState(page, stagingRoot, webviewIterationFilename, {
           evidenceRoot,
+          generatedFrenchSurfaceProof,
           locale,
           scenario: copy,
         }),
@@ -5374,7 +5739,7 @@ async function main() {
       await selectPreviewDevice(page, 'desktop');
     } else if (singleGeneration) {
       ({ previewText } = await waitForPreview(page, evidenceRoot, projectId, token, copy.expectedTerms[0]));
-      scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot);
+      scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot, generatedFrenchSurfaceProof);
       await verifyScenarioAppearance(page, copy, 'dark');
       interactionAccentAudit = await waitForOrangePreview(page, evidenceRoot, 60_000, false);
       responsiveAccentAudits.push({ stage: 'interaction', device: 'desktop', audit: interactionAccentAudit });
@@ -5388,7 +5753,12 @@ async function main() {
       const interactionFilename = 'ide-agent-iteration.png';
       iterationOutput = resolve(outputRoot, 'dark', 'ide-agent-iteration-1440.webp');
       themedCaptureAudits.push(
-        await captureThemedIdeState(page, stagingRoot, interactionFilename, { scenario: copy, evidenceRoot, locale }),
+        await captureThemedIdeState(page, stagingRoot, interactionFilename, {
+          evidenceRoot,
+          generatedFrenchSurfaceProof,
+          locale,
+          scenario: copy,
+        }),
       );
       verifiedCaptureFilenames.push(interactionFilename);
 
@@ -5407,6 +5777,7 @@ async function main() {
       themedCaptureAudits.push(
         await captureThemedIdeState(page, stagingRoot, webviewInteractionFilename, {
           evidenceRoot,
+          generatedFrenchSurfaceProof,
           locale,
           scenario: copy,
         }),
@@ -5414,7 +5785,7 @@ async function main() {
       verifiedCaptureFilenames.push(webviewInteractionFilename);
       await selectPreviewDevice(page, 'desktop');
     } else {
-      scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot);
+      scenarioAudit = await verifyScenarioPreview(page, copy, evidenceRoot, generatedFrenchSurfaceProof);
       await verifyScenarioAppearance(page, copy, 'dark');
       interactionAccentAudit = await waitForOrangePreview(page, evidenceRoot, 60_000, false);
       responsiveStateAudits.push(
@@ -5487,6 +5858,7 @@ async function main() {
     themedCaptureAudits.push(
       await captureThemedIdeState(page, stagingRoot, filesFilename, {
         evidenceRoot,
+        generatedFrenchSurfaceProof,
         locale,
         scenario: copy,
         verifySurface: verifyFilesSurface,
@@ -5599,6 +5971,13 @@ async function main() {
           )
         : verifiedCaptureFilenames;
 
+    const verifiedGeneratedFrenchSurfaceProof = assertCompleteGeneratedFrenchSurfaceProof(
+      generatedFrenchSurfaceProof,
+      slug,
+      locale,
+      verifiedCaptureFilenames,
+    );
+
     /*
      * Captures can take several minutes. Prove the exact persisted file revision
      * still runs in the official E-Code workspace immediately before the atomic
@@ -5624,6 +6003,9 @@ async function main() {
       projectId,
       prompt: creationPrompt,
       promptSurfaceProvenance,
+      ...(verifiedGeneratedFrenchSurfaceProof
+        ? { generatedFrenchSurfaceProof: verifiedGeneratedFrenchSurfaceProof }
+        : {}),
       generatedFileCount: generatedFiles.length,
       previewTextSample: previewText.slice(0, 240),
       consoleErrorCount: consoleErrors.length,
