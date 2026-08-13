@@ -367,6 +367,7 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
   const findings = findFrenchAuditResidue(english, french);
 
   const languageSwitchCount = await page.locator('[data-testid="language-switch"]:visible').count();
+
   const languageSwitchInteraction = await page
     .locator('[data-testid="language-switch"]:visible')
     .evaluateAll((groups) => {
@@ -406,6 +407,7 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
       const slotRect = slot?.getBoundingClientRect();
       const headerRect = header?.getBoundingClientRect();
       const firstContentRect = firstContent?.getBoundingClientRect();
+
       const compactIde =
         slotRect &&
         headerRect &&
@@ -515,6 +517,7 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
       `${path} (${theme}) language switch buttons are unobscured and inside the viewport`,
     )
     .toBe(true);
+
   if (languageSwitchInteraction.compactIde) {
     expect
       .soft(
@@ -534,6 +537,7 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
         `${path} (${theme}) compact IDE language switch does not cover the first content card`,
       )
       .toBe(false);
+
     if (languageSwitchInteraction.compactIde.firstContentGap !== null) {
       expect
         .soft(
@@ -543,6 +547,7 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
         .toBeGreaterThanOrEqual(0);
     }
   }
+
   expect.soft(documentSeo.canonical, `${path} (${theme}) one canonical link`).toHaveLength(1);
   expect.soft(documentSeo.english, `${path} (${theme}) one English alternate`).toHaveLength(1);
   expect.soft(documentSeo.french, `${path} (${theme}) one French alternate`).toHaveLength(1);

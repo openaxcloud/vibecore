@@ -191,6 +191,7 @@ async function expectProjectCardLayout(page: Page, viewportWidth: 390 | 768 | 10
 
   await expect(grid).toBeVisible();
   await expect(cards).toHaveCount(2);
+
   /*
    * `getByText` matches ancestors too, so a card whose deployments stat renders
    * as `<div><span>Deployments</span><span>3</span></div>` counted twice (4 for
@@ -553,8 +554,10 @@ test('user-area SPA navigation shows a local skeleton while a real route respons
     await expectDashboardReady(page);
 
     const webOrigin = new URL(page.url()).origin;
+
     let releaseNavigation!: () => void;
     let intercepted = false;
+
     const navigationGate = new Promise<void>((resolve) => {
       releaseNavigation = resolve;
     });
@@ -562,6 +565,7 @@ test('user-area SPA navigation shows a local skeleton while a real route respons
     const delayApiKeysData = async (route: import('@playwright/test').Route) => {
       const request = route.request();
       const url = new URL(request.url());
+
       const isApiKeysDataRequest =
         request.resourceType() === 'fetch' && url.origin === webOrigin && url.pathname.includes('/api-keys');
 
@@ -571,6 +575,7 @@ test('user-area SPA navigation shows a local skeleton while a real route respons
       }
 
       intercepted = true;
+
       const response = await route.fetch();
       await navigationGate;
       await route.fulfill({ response });
@@ -802,6 +807,7 @@ test.describe('user-area locale consistency', () => {
 
       await expect(responsiveKeySurface).toBeVisible();
       await expect(responsiveKeySurface.getByText(localisedExpiration)).toBeVisible();
+
       // No half-formatted dates leaking through the localisation path.
       await expect(responsiveKeySurface.getByText(/Invalid Date|\d{4}-\d{2}-\d{2}T/u)).toHaveCount(0);
       await expectNoHorizontalOverflow(page);

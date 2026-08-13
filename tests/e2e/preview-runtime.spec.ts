@@ -12,6 +12,7 @@ async function authenticate(page: import('@playwright/test').Page) {
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
   const appBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
   const suffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
   let responseText = '';
   let payload: { token: string; organization: { id: string } } | undefined;
 
@@ -101,6 +102,7 @@ test('project preview boots a real app and renders inside the webview', { tag: '
 
   const auth = await authenticate(page);
   const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+
   const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
     headers: { authorization: `Bearer ${auth.token}` },
     data: { name: 'Preview runtime project' },
@@ -109,6 +111,7 @@ test('project preview boots a real app and renders inside the webview', { tag: '
   expect(createProject.ok(), await createProject.text()).toBeTruthy();
 
   const projectId = (await createProject.json()).project.id as string;
+
   const zipBase64 = await createZipBase64({
     'index.html': `<!doctype html>
 <html>
@@ -137,76 +140,88 @@ test('project preview boots a real app and renders inside the webview', { tag: '
   );
 });
 
-test('project preview boots a package-script Vite app and renders inside the webview', { tag: '@runtime' }, async ({ page }) => {
-  test.setTimeout(300_000);
+test(
+  'project preview boots a package-script Vite app and renders inside the webview',
+  { tag: '@runtime' },
+  async ({ page }) => {
+    test.setTimeout(300_000);
 
-  const auth = await authenticate(page);
-  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
-  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
-    headers: { authorization: `Bearer ${auth.token}` },
-    data: { name: 'Preview Vite runtime project' },
-  });
+    const auth = await authenticate(page);
+    const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 
-  expect(createProject.ok(), await createProject.text()).toBeTruthy();
+    const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+      headers: { authorization: `Bearer ${auth.token}` },
+      data: { name: 'Preview Vite runtime project' },
+    });
 
-  const projectId = (await createProject.json()).project.id as string;
-  const zipBase64 = await createZipBase64({
-    'package.json': JSON.stringify(
+    expect(createProject.ok(), await createProject.text()).toBeTruthy();
+
+    const projectId = (await createProject.json()).project.id as string;
+
+    const zipBase64 = await createZipBase64({
+      'package.json': JSON.stringify(
+        {
+          private: true,
+          type: 'module',
+          scripts: { dev: 'vite' },
+          devDependencies: { vite: '^5.4.19' },
+        },
+        null,
+        2,
+      ),
+      'index.html':
+        '<!doctype html><html><body><main id="app"></main><script type="module" src="/src/main.js"></script></body></html>',
+      'src/main.js': [
+        "const root = document.querySelector('#app');",
+        "root.textContent = 'VibeCore package preview runtime smoke';",
+        "root.setAttribute('data-preview-runtime', 'vite-package');",
+      ].join('\n'),
+    });
+
+    const importFiles = await page.request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
+      headers: { authorization: `Bearer ${auth.token}` },
+      data: { zipBase64, replaceExisting: true },
+    });
+
+    expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
+
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    await expectWorkspaceRunning(page, 180_000);
+    await page.getByRole('button', { name: 'Webview' }).click();
+
+    await expectPreviewIframe(page, 180_000);
+    await expect(
+      page.frameLocator('iframe[title="preview"]').locator('[data-preview-runtime="vite-package"]'),
+    ).toContainText('VibeCore package preview runtime smoke', { timeout: 180_000 });
+  },
+);
+
+test(
+  'template-created project boots and renders the generated app in preview',
+  { tag: '@runtime' },
+  async ({ page }) => {
+    test.setTimeout(240_000);
+
+    await authenticate(page);
+
+    await page.goto('/dashboard/templates', { waitUntil: 'domcontentloaded' });
+    await page.getByRole('button', { name: 'Use template' }).first().click();
+    await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 120_000 });
+    await expectWorkspaceRunning(page, 180_000);
+
+    await page.getByRole('button', { name: 'Webview' }).click();
+
+    await expectPreviewIframe(page, 120_000);
+    await expect(page.frameLocator('iframe[title="preview"]').getByRole('heading', { name: 'React SaaS' })).toBeVisible(
       {
-        private: true,
-        type: 'module',
-        scripts: { dev: 'vite' },
-        devDependencies: { vite: '^5.4.19' },
+        timeout: 180_000,
       },
-      null,
-      2,
-    ),
-    'index.html':
-      '<!doctype html><html><body><main id="app"></main><script type="module" src="/src/main.js"></script></body></html>',
-    'src/main.js': [
-      "const root = document.querySelector('#app');",
-      "root.textContent = 'VibeCore package preview runtime smoke';",
-      "root.setAttribute('data-preview-runtime', 'vite-package');",
-    ].join('\n'),
-  });
-
-  const importFiles = await page.request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
-    headers: { authorization: `Bearer ${auth.token}` },
-    data: { zipBase64, replaceExisting: true },
-  });
-
-  expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
-
-  await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expectWorkspaceRunning(page, 180_000);
-  await page.getByRole('button', { name: 'Webview' }).click();
-
-  await expectPreviewIframe(page, 180_000);
-  await expect(
-    page.frameLocator('iframe[title="preview"]').locator('[data-preview-runtime="vite-package"]'),
-  ).toContainText('VibeCore package preview runtime smoke', { timeout: 180_000 });
-});
-
-test('template-created project boots and renders the generated app in preview', { tag: '@runtime' }, async ({ page }) => {
-  test.setTimeout(240_000);
-
-  await authenticate(page);
-
-  await page.goto('/dashboard/templates', { waitUntil: 'domcontentloaded' });
-  await page.getByRole('button', { name: 'Use template' }).first().click();
-  await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 120_000 });
-  await expectWorkspaceRunning(page, 180_000);
-
-  await page.getByRole('button', { name: 'Webview' }).click();
-
-  await expectPreviewIframe(page, 120_000);
-  await expect(page.frameLocator('iframe[title="preview"]').getByRole('heading', { name: 'React SaaS' })).toBeVisible({
-    timeout: 180_000,
-  });
-  await expect(
-    page.frameLocator('iframe[title="preview"]').getByText('Created from Bolt template react-saas.'),
-  ).toBeVisible();
-});
+    );
+    await expect(
+      page.frameLocator('iframe[title="preview"]').getByText('Created from Bolt template react-saas.'),
+    ).toBeVisible();
+  },
+);
 
 test('AI-created project starts the agent with a valid default model', { tag: '@runtime' }, async ({ page }) => {
   test.setTimeout(240_000);
@@ -215,6 +230,7 @@ test('AI-created project starts the agent with a valid default model', { tag: '@
 
   const prompt = 'Build a realtime kanban board with analytics';
   await expectProjectCreationForm(page);
+
   const providerDropdown = page.getByTestId('agent-provider-dropdown');
   const modelDropdown = page.getByTestId('agent-model-dropdown');
   await expect(providerDropdown.getByRole('combobox', { name: 'AI provider' })).toContainText('Anthropic', {
@@ -232,108 +248,114 @@ test('AI-created project starts the agent with a valid default model', { tag: '@
   });
 });
 
-test('preview window options stay readable and interactive in light theme', { tag: '@runtime' }, async ({ page, isMobile }) => {
-  test.skip(isMobile, 'Preview toolbar window menu is part of the desktop/tablet IDE shell.');
-  test.setTimeout(240_000);
+test(
+  'preview window options stay readable and interactive in light theme',
+  { tag: '@runtime' },
+  async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Preview toolbar window menu is part of the desktop/tablet IDE shell.');
+    test.setTimeout(240_000);
 
-  const auth = await authenticate(page);
-  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
-  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
-    headers: { authorization: `Bearer ${auth.token}` },
-    data: { name: 'Preview window options project' },
-  });
+    const auth = await authenticate(page);
+    const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
 
-  expect(createProject.ok(), await createProject.text()).toBeTruthy();
+    const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+      headers: { authorization: `Bearer ${auth.token}` },
+      data: { name: 'Preview window options project' },
+    });
 
-  const projectId = (await createProject.json()).project.id as string;
-  const zipBase64 = await createZipBase64({
-    'index.html': '<!doctype html><html><body><main id="app">Window options smoke</main></body></html>',
-  });
+    expect(createProject.ok(), await createProject.text()).toBeTruthy();
 
-  const importFiles = await page.request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
-    headers: { authorization: `Bearer ${auth.token}` },
-    data: { zipBase64, replaceExisting: true },
-  });
+    const projectId = (await createProject.json()).project.id as string;
 
-  expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
+    const zipBase64 = await createZipBase64({
+      'index.html': '<!doctype html><html><body><main id="app">Window options smoke</main></body></html>',
+    });
 
-  await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expectWorkspaceRunning(page, 180_000);
-  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
-  await page.getByRole('button', { name: 'Webview' }).click();
-  await expectPreviewIframe(page, 180_000);
+    const importFiles = await page.request.post(`${apiBaseUrl}/projects/${projectId}/files/import/zip`, {
+      headers: { authorization: `Bearer ${auth.token}` },
+      data: { zipBase64, replaceExisting: true },
+    });
 
-  const toolbar = page.locator('.bolt-project-webview-toolbar').first();
-  await expect(toolbar.getByRole('combobox', { name: 'Preview device' })).toBeVisible();
-  await toolbar.getByRole('button', { name: 'Preview window options' }).click();
+    expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
-  const menu = page.locator('.bolt-preview-window-menu').first();
-  await expect(menu).toBeVisible();
-  await expect(menu.getByText('Responsive presets')).toBeVisible();
-  await expect(menu.getByRole('button', { name: /Show device frame/ })).toHaveAttribute('aria-pressed', 'true');
-  await expect(menu.getByRole('button', { name: /Landscape mode/ })).toHaveAttribute('aria-pressed', 'false');
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    await expectWorkspaceRunning(page, 180_000);
+    await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
+    await page.getByRole('button', { name: 'Webview' }).click();
+    await expectPreviewIframe(page, 180_000);
 
-  const metrics = await menu.evaluate((element) => {
-    const style = window.getComputedStyle(element);
-    const previewFrame = document.querySelector('.bolt-project-webview-frame') as HTMLElement;
-    const previewViewport = document.querySelector('.bolt-project-webview-viewport') as HTMLElement;
-    const frameStyle = window.getComputedStyle(previewFrame);
-    const viewportStyle = window.getComputedStyle(previewViewport);
-    const label = element.querySelector('.bolt-preview-window-menu-label') as HTMLElement;
-    const labelStyle = window.getComputedStyle(label);
-    const showFrame = element.querySelector('.bolt-preview-window-menu-toggle') as HTMLElement;
-    const showFrameText = showFrame.querySelector('span:first-child') as HTMLElement;
-    const switchElement = showFrame.querySelector('.bolt-preview-window-switch') as HTMLElement;
-    const firstPreset = element.querySelector('.bolt-preview-window-size') as HTMLElement;
-    const firstPresetStyle = window.getComputedStyle(firstPreset);
-    const presetText = firstPreset.querySelector('div')!.getBoundingClientRect();
-    const presetRect = firstPreset.getBoundingClientRect();
-    const switchRect = switchElement.getBoundingClientRect();
-    const textRect = showFrameText.getBoundingClientRect();
+    const toolbar = page.locator('.bolt-project-webview-toolbar').first();
+    await expect(toolbar.getByRole('combobox', { name: 'Preview device' })).toBeVisible();
+    await toolbar.getByRole('button', { name: 'Preview window options' }).click();
 
-    return {
-      background: style.backgroundColor,
-      color: style.color,
-      borderColor: style.borderColor,
-      labelTextAlign: labelStyle.textAlign,
-      labelPaddingLeft: labelStyle.paddingLeft,
-      labelBackground: labelStyle.backgroundColor,
-      labelColor: labelStyle.color,
-      frameBackground: frameStyle.backgroundColor,
-      viewportBackground: viewportStyle.backgroundColor,
-      viewportBorderColor: viewportStyle.borderColor,
-      switchWidth: Math.round(switchRect.width),
-      switchHeight: Math.round(switchRect.height),
-      textSwitchGap: Math.round(switchRect.left - textRect.right),
-      presetDisplay: firstPresetStyle.display,
-      presetGridColumns: firstPresetStyle.gridTemplateColumns,
-      presetTextLeft: Math.round(presetText.left - presetRect.left),
-      presetBackground: firstPresetStyle.backgroundColor,
-    };
-  });
+    const menu = page.locator('.bolt-preview-window-menu').first();
+    await expect(menu).toBeVisible();
+    await expect(menu.getByText('Responsive presets')).toBeVisible();
+    await expect(menu.getByRole('button', { name: /Show device frame/ })).toHaveAttribute('aria-pressed', 'true');
+    await expect(menu.getByRole('button', { name: /Landscape mode/ })).toHaveAttribute('aria-pressed', 'false');
 
-  expect(metrics).toMatchObject({
-    background: 'rgb(255, 255, 255)',
-    color: 'rgb(17, 24, 39)',
-    borderColor: 'rgb(154, 168, 187)',
-    labelTextAlign: 'start',
-    labelPaddingLeft: '12px',
-    labelBackground: 'rgb(255, 255, 255)',
-    labelColor: 'rgb(71, 85, 105)',
-    frameBackground: 'rgb(246, 248, 251)',
-    viewportBackground: 'rgb(255, 255, 255)',
-    viewportBorderColor: 'rgb(154, 168, 187)',
-    switchWidth: 34,
-    switchHeight: 18,
-    presetDisplay: 'grid',
-    presetBackground: 'rgba(0, 0, 0, 0)',
-  });
-  expect(metrics.textSwitchGap).toBeGreaterThanOrEqual(8);
-  expect(metrics.presetGridColumns).toContain('18px');
-  expect(metrics.presetTextLeft).toBeGreaterThanOrEqual(26);
+    const metrics = await menu.evaluate((element) => {
+      const style = window.getComputedStyle(element);
+      const previewFrame = document.querySelector('.bolt-project-webview-frame') as HTMLElement;
+      const previewViewport = document.querySelector('.bolt-project-webview-viewport') as HTMLElement;
+      const frameStyle = window.getComputedStyle(previewFrame);
+      const viewportStyle = window.getComputedStyle(previewViewport);
+      const label = element.querySelector('.bolt-preview-window-menu-label') as HTMLElement;
+      const labelStyle = window.getComputedStyle(label);
+      const showFrame = element.querySelector('.bolt-preview-window-menu-toggle') as HTMLElement;
+      const showFrameText = showFrame.querySelector('span:first-child') as HTMLElement;
+      const switchElement = showFrame.querySelector('.bolt-preview-window-switch') as HTMLElement;
+      const firstPreset = element.querySelector('.bolt-preview-window-size') as HTMLElement;
+      const firstPresetStyle = window.getComputedStyle(firstPreset);
+      const presetText = firstPreset.querySelector('div')!.getBoundingClientRect();
+      const presetRect = firstPreset.getBoundingClientRect();
+      const switchRect = switchElement.getBoundingClientRect();
+      const textRect = showFrameText.getBoundingClientRect();
 
-  await menu.getByRole('button', { name: /Show device frame/ }).click();
-  await expect(menu.getByRole('button', { name: /Show device frame/ })).toHaveAttribute('aria-pressed', 'false');
-  await menu.getByRole('button', { name: /Landscape mode/ }).click();
-  await expect(menu.getByRole('button', { name: /Landscape mode/ })).toHaveAttribute('aria-pressed', 'true');
-});
+      return {
+        background: style.backgroundColor,
+        color: style.color,
+        borderColor: style.borderColor,
+        labelTextAlign: labelStyle.textAlign,
+        labelPaddingLeft: labelStyle.paddingLeft,
+        labelBackground: labelStyle.backgroundColor,
+        labelColor: labelStyle.color,
+        frameBackground: frameStyle.backgroundColor,
+        viewportBackground: viewportStyle.backgroundColor,
+        viewportBorderColor: viewportStyle.borderColor,
+        switchWidth: Math.round(switchRect.width),
+        switchHeight: Math.round(switchRect.height),
+        textSwitchGap: Math.round(switchRect.left - textRect.right),
+        presetDisplay: firstPresetStyle.display,
+        presetGridColumns: firstPresetStyle.gridTemplateColumns,
+        presetTextLeft: Math.round(presetText.left - presetRect.left),
+        presetBackground: firstPresetStyle.backgroundColor,
+      };
+    });
+
+    expect(metrics).toMatchObject({
+      background: 'rgb(255, 255, 255)',
+      color: 'rgb(17, 24, 39)',
+      borderColor: 'rgb(154, 168, 187)',
+      labelTextAlign: 'start',
+      labelPaddingLeft: '12px',
+      labelBackground: 'rgb(255, 255, 255)',
+      labelColor: 'rgb(71, 85, 105)',
+      frameBackground: 'rgb(246, 248, 251)',
+      viewportBackground: 'rgb(255, 255, 255)',
+      viewportBorderColor: 'rgb(154, 168, 187)',
+      switchWidth: 34,
+      switchHeight: 18,
+      presetDisplay: 'grid',
+      presetBackground: 'rgba(0, 0, 0, 0)',
+    });
+    expect(metrics.textSwitchGap).toBeGreaterThanOrEqual(8);
+    expect(metrics.presetGridColumns).toContain('18px');
+    expect(metrics.presetTextLeft).toBeGreaterThanOrEqual(26);
+
+    await menu.getByRole('button', { name: /Show device frame/ }).click();
+    await expect(menu.getByRole('button', { name: /Show device frame/ })).toHaveAttribute('aria-pressed', 'false');
+    await menu.getByRole('button', { name: /Landscape mode/ }).click();
+    await expect(menu.getByRole('button', { name: /Landscape mode/ })).toHaveAttribute('aria-pressed', 'true');
+  },
+);

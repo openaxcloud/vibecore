@@ -268,16 +268,6 @@ function normalizeLeadingZeros(value: string) {
   return value.trim().replace(/(^|[^0-9a-zA-Z])\.(\d)/g, '$10.$2');
 }
 
-function toPixels(value: string) {
-  const amount = Number.parseFloat(value.trim());
-
-  if (Number.isNaN(amount)) {
-    throw new Error(`Unsupported length: ${value}`);
-  }
-
-  return amount;
-}
-
 async function injectUiDetailsFixture(page: Page) {
   await page.evaluate(() => {
     const fixture = document.createElement('section');
@@ -1056,12 +1046,7 @@ async function mountMobileAgentComposerDocument(page: Page) {
                   </section>
                 </div>
                 <div class="bolt-project-agent-suggestions" aria-label="Agent suggestions" data-testid="mobile-agent-suggestions">
-                  ${[
-                    'Get preview running',
-                    'Continue last request',
-                    'Improve responsive UI',
-                    'Run validation checks',
-                  ]
+                  ${['Get preview running', 'Continue last request', 'Improve responsive UI', 'Run validation checks']
                     .map(
                       (label) => `
                         <button type="button">
@@ -1181,6 +1166,7 @@ async function readMobileAgentComposerDetails(page: Page) {
     const toolListStyle = window.getComputedStyle(toolList);
     const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
     const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+
     const composerChildBottom = Math.max(
       ...Array.from(composer.children).map((child) => child.getBoundingClientRect().bottom),
     );
@@ -1370,6 +1356,7 @@ async function readUiDetails(page: Page) {
   return page.locator('[data-testid="ui-details-fixture"]').evaluate(() => {
     const get = (selector: string, pseudo?: string) =>
       window.getComputedStyle(document.querySelector(selector)!, pseudo);
+
     const root = window.getComputedStyle(document.documentElement);
     const body = window.getComputedStyle(document.body);
     const button = get('[data-testid="ui-details-button"]');
@@ -1479,6 +1466,7 @@ function contrastRatio(foreground: string, background: string) {
 
     return 0.2126 * r + 0.7152 * g + 0.0722 * b;
   };
+
   const foregroundLuminance = luminance(foreground);
   const backgroundLuminance = luminance(background);
   const lighter = Math.max(foregroundLuminance, backgroundLuminance);
@@ -1531,11 +1519,13 @@ async function expectAccessibilityDetails(page: Page) {
 
   const roleButton = page.getByTestId('ui-role-button');
 
-  // The fixture is appended to a real page, so walking there with a fixed
-  // number of Tab presses depends on how many focusable elements that page
-  // happens to have. Seed focus on the fixture control that immediately
-  // precedes it, then Tab once — that is a genuine keyboard move, so
-  // :focus-visible applies.
+  /*
+   * The fixture is appended to a real page, so walking there with a fixed
+   * number of Tab presses depends on how many focusable elements that page
+   * happens to have. Seed focus on the fixture control that immediately
+   * precedes it, then Tab once — that is a genuine keyboard move, so
+   * :focus-visible applies.
+   */
   await page.getByTestId('ui-run-button').evaluate((node: HTMLElement) => {
     node.focus();
   });
@@ -1559,9 +1549,11 @@ async function expectReducedMotionDetails(page: Page) {
     };
   });
 
-  // Under `prefers-reduced-motion` the web app collapses animations to ~0s
-  // while the admin console uses 50ms. Both satisfy the requirement — motion is
-  // effectively suppressed — so assert the ceiling rather than one spelling.
+  /*
+   * Under `prefers-reduced-motion` the web app collapses animations to ~0s
+   * while the admin console uses 50ms. Both satisfy the requirement — motion is
+   * effectively suppressed — so assert the ceiling rather than one spelling.
+   */
   const REDUCED_MOTION_CEILING_MS = 50;
 
   expect(toMilliseconds(details.tabAnimationDuration)).toBeLessThanOrEqual(REDUCED_MOTION_CEILING_MS);
@@ -1584,6 +1576,7 @@ async function expectAnimationDetails(page: Page) {
     const dropZone = window.getComputedStyle(document.querySelector('[data-testid="ui-drop-zone"]')!);
     const typingDot = window.getComputedStyle(document.querySelector('[data-testid="ui-typing-indicator"] span')!);
     const runButton = window.getComputedStyle(document.querySelector('[data-testid="ui-run-button"]')!);
+
     const runButtonBefore = window.getComputedStyle(
       document.querySelector('[data-testid="ui-run-button"]')!,
       '::before',
@@ -1622,8 +1615,10 @@ async function expectAnimationDetails(page: Page) {
     };
   });
 
-  // The web stylesheet writes these as `.2s` while the admin stylesheet writes
-  // `200ms`; both are the same duration, so assert the magnitude.
+  /*
+   * The web stylesheet writes these as `.2s` while the admin stylesheet writes
+   * `200ms`; both are the same duration, so assert the magnitude.
+   */
   expect(toMilliseconds(details.tokenTabOpen)).toBe(200);
   expect(toMilliseconds(details.tokenTabClose)).toBe(150);
   expect(toMilliseconds(details.tokenPopover)).toBe(150);
@@ -1663,10 +1658,12 @@ async function expectButtonStates(page: Page) {
     const solid = window.getComputedStyle(document.querySelector('[data-testid="ui-button-solid"]')!);
     const disabled = window.getComputedStyle(document.querySelector('[data-testid="ui-button-disabled"]')!);
     const loading = window.getComputedStyle(document.querySelector('[data-testid="ui-button-loading"]')!);
+
     const loadingBefore = window.getComputedStyle(
       document.querySelector('[data-testid="ui-button-loading"]')!,
       '::before',
     );
+
     const loadingIcon = window.getComputedStyle(document.querySelector('[data-testid="ui-button-loading-icon"]')!);
 
     return {
@@ -1769,6 +1766,7 @@ function expectUiDetails(details: Awaited<ReturnType<typeof readUiDetails>>) {
   expect(normalizeLeadingZeros(details.shadowMd)).toBe('0 4px 12px rgb(0 4 20 / 0.5)');
   expect(normalizeLeadingZeros(details.shadowLg)).toBe('0 12px 32px rgb(0 4 20 / 0.6)');
   expect(normalizeLeadingZeros(details.shadowXl)).toBe('0 24px 64px rgb(0 4 20 / 0.7)');
+
   // Same unit-spelling tolerance as the animation tokens: `.15s` === `150ms`.
   for (const [token, expectedMs, expectedEasing] of [
     [details.transitionHover, 150, 'ease-out'],

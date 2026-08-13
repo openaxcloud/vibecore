@@ -109,9 +109,11 @@ test.describe('public homepage', () => {
     for (const theme of ['dark', 'light'] as const) {
       await page.goto('/', { waitUntil: 'domcontentloaded' });
       await page.evaluate((nextTheme) => {
-        // Theme resolution order is cookie -> localStorage -> server-seeded
-        // attribute, so seed the cookie too or the shared `ecode_theme` cookie
-        // wins over the localStorage value we just wrote.
+        /*
+         * Theme resolution order is cookie -> localStorage -> server-seeded
+         * attribute, so seed the cookie too or the shared `ecode_theme` cookie
+         * wins over the localStorage value we just wrote.
+         */
         document.cookie = `ecode_theme=${nextTheme}; path=/; SameSite=Lax`;
         localStorage.setItem('bolt_theme', nextTheme);
         document.documentElement.setAttribute('data-theme', nextTheme);
@@ -126,10 +128,12 @@ test.describe('public homepage', () => {
       await expect(page.getByTestId('link-get-started').first()).toBeVisible();
       await expect(page.getByTestId('button-build-now')).toBeVisible();
 
-      // "Build now" stays disabled (and dimmed) until the visitor describes an
-      // app, so fill the prompt before asserting the enabled button's contrast.
-      // The enable transition fades opacity in, so wait for it to settle rather
-      // than sampling mid-animation.
+      /*
+       * "Build now" stays disabled (and dimmed) until the visitor describes an
+       * app, so fill the prompt before asserting the enabled button's contrast.
+       * The enable transition fades opacity in, so wait for it to settle rather
+       * than sampling mid-animation.
+       */
       await page.getByTestId('input-app-description').fill('A subscription billing dashboard');
 
       const buildNow = page.locator('[data-testid="button-build-now"]:visible').first();
@@ -166,8 +170,10 @@ test.describe('public homepage', () => {
           return window.getComputedStyle(document.body).backgroundColor;
         };
 
-        // The hero renders desktop and compact variants of some controls; only
-        // the currently displayed one carries the styles we assert on.
+        /*
+         * The hero renders desktop and compact variants of some controls; only
+         * the currently displayed one carries the styles we assert on.
+         */
         const visible = (selector: string) => {
           const candidates = [...document.querySelectorAll<HTMLElement>(selector)];
 

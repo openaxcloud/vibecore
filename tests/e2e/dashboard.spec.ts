@@ -181,6 +181,7 @@ test('project creation exposes templates and import paths', async ({ page }) => 
   await expect(page.getByLabel('Describe your idea')).toBeVisible();
   await expect(page.getByLabel('Artifact type')).toBeVisible();
   await expect(page.locator('.vc-new-project-chip', { hasText: 'Web' })).toBeVisible();
+
   /*
    * No provider/model dropdown here any more: 84c860b5 ("plus AUCUN sélecteur
    * de modèle — 3 modes en segmented control dans l'IDE uniquement") removed
@@ -193,6 +194,7 @@ test('project creation exposes templates and import paths', async ({ page }) => 
   );
   await expect(page.getByRole('link', { name: /Upload a zip archive/ })).toHaveAttribute('href', '/import-zip');
   await expect(page.getByRole('heading', { name: 'Start from the existing catalog' })).toBeVisible();
+
   /*
    * The "Authenticated template flow already wired to project creation."
    * blurb was removed from the create page — app/routes/projects.new.ui.spec.ts
@@ -261,6 +263,7 @@ test('app shell form buttons stay visible in light theme', async ({ page }) => {
   await seedLightTheme(page);
 
   await page.goto('/account-settings', { waitUntil: 'domcontentloaded' });
+
   const saveButton = page.getByRole('button', { name: 'Save changes' });
   await expect(saveButton).toBeVisible();
 
@@ -281,6 +284,7 @@ test('app shell form buttons stay visible in light theme', async ({ page }) => {
   expect(saveButtonProbe.height).toBeGreaterThanOrEqual(32);
 
   await page.goto('/billing', { waitUntil: 'domcontentloaded' });
+
   const portalButton = page.getByRole('button', { name: 'Open customer portal' });
   await expect(portalButton).toBeVisible();
 
@@ -313,19 +317,24 @@ test('app shell form buttons stay visible in light theme', async ({ page }) => {
  * rewrite it against here. Provider/model selection in the IDE is covered by
  * the ModelSelector tests (`agent-provider-dropdown`).
  */
-test('private templates create a project instead of opening the public gallery', { tag: '@runtime' }, async ({ page }) => {
-  await authenticate(page);
-  await page.goto('/dashboard/templates');
-  await expect(page.getByRole('heading', { name: 'Templates' })).toBeVisible();
-  await expect(page.getByText('Create production workspaces from curated starters')).toBeVisible();
-  await page.getByRole('button', { name: 'Use template' }).first().click();
-  await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 30000 });
-  await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
-});
+test(
+  'private templates create a project instead of opening the public gallery',
+  { tag: '@runtime' },
+  async ({ page }) => {
+    await authenticate(page);
+    await page.goto('/dashboard/templates');
+    await expect(page.getByRole('heading', { name: 'Templates' })).toBeVisible();
+    await expect(page.getByText('Create production workspaces from curated starters')).toBeVisible();
+    await page.getByRole('button', { name: 'Use template' }).first().click();
+    await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 30000 });
+    await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
+  },
+);
 
 test('authenticated user area applies the global platform design system', async ({ page }) => {
   await authenticate(page);
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
+
   // The user area renders several matching headings (page title + section); take the first.
   await expect(page.getByRole('heading', { name: /Dashboard|Projects|Welcome/ }).first()).toBeVisible({
     timeout: 30_000,
@@ -383,9 +392,10 @@ test('public templates stay marketing-only for anonymous visitors', async ({ pag
    * "Templates gallery", and cards link with "Sign in to use" (there is no
    * "Sign in to use templates" variant any more).
    */
-  await expect(
-    page.getByRole('heading', { name: 'Start faster with production-ready E-Code templates' }),
-  ).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole('heading', { name: 'Start faster with production-ready E-Code templates' })).toBeVisible({
+    timeout: 30_000,
+  });
+
   /*
    * Anonymous template cards now link "Use template" to a login round-trip that
    * carries the chosen template — /login?returnTo=/projects/new?template=<slug>
@@ -477,6 +487,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 60_000 });
+
   /*
    * `getByText('Agent', exact)` also matches hidden copies of the label (the
    * compact shell's tab strip is present but display:none on desktop), and
@@ -1194,6 +1205,7 @@ test('platform typography tokens apply to the web IDE', async ({ page, isMobile 
   expect(typography.codeSize).toBe('12px');
   expect(typography.headingSize).toBe('14px');
   expect(typography.labelSize).toBe('10px');
+
   // Custom properties keep the author's spelling (`.4px`); compare the value.
   expect(Number.parseFloat(typography.labelTracking)).toBeCloseTo(0.4, 3);
   expect(typography.shellFont).toContain('Inter');
@@ -1256,6 +1268,7 @@ test('IDE applies section 12 UI detail styles', async ({ page, isMobile }) => {
   expect(details.radiusButton).toBe('4px');
   expect(details.radiusModal).toBe('8px');
   expect(details.radiusPopover).toBe('12px');
+
   // Custom properties echo the author's spelling (`.7`); compare the value.
   expect(details.shadowXl.replace(/(^|[^0-9a-zA-Z])\.(\d)/g, '$10.$2')).toBe('0 24px 64px rgb(0 4 20 / 0.7)');
   expect(details.focusRing).toBe('#0099ff');
@@ -1598,6 +1611,7 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
   expect(createProject.ok(), await createProject.text()).toBeTruthy();
 
   const projectId = (await createProject.json()).project.id as string;
+
   const zipBase64 = await createZipBase64({
     'components/AppShell.tsx': 'export function AppShell() { return <main />; }\n',
   });
@@ -1610,11 +1624,15 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 60_000 });
-  // The server seeds <html data-theme> from the cookie, so force it and reload
-  // before measuring light-theme surfaces.
+
+  /*
+   * The server seeds <html data-theme> from the cookie, so force it and reload
+   * before measuring light-theme surfaces.
+   */
   await forceLightTheme(page);
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.bolt-project-tab').first()).toBeVisible({ timeout: 30_000 });
+
   const filesPanel = page.locator('[aria-label="Project library panel"]');
   await expect(filesPanel.getByText('AppShell.tsx', { exact: true })).toBeVisible({ timeout: 60_000 });
   await filesPanel.getByText('AppShell.tsx', { exact: true }).click();
@@ -1668,191 +1686,199 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
   expect(tabProbe.rightPanel.backgroundLuminance).toBeGreaterThan(0.88);
 });
 
-test('edit file workflow surfaces editor, files, terminal and preview affordances', { tag: '@runtime' }, async ({ page, isMobile }) => {
-  test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
+test(
+  'edit file workflow surfaces editor, files, terminal and preview affordances',
+  { tag: '@runtime' },
+  async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
 
-  const projectId = await createTestProject(page, 'E2E edit workflow project');
+    const projectId = await createTestProject(page, 'E2E edit workflow project');
 
-  await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
-  await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
-  await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 15000 });
-  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+T' : 'Control+T');
-  await expect(page.getByLabel('Command palette')).toBeVisible();
-  await page.keyboard.press('Escape');
-  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+P' : 'Control+P');
-  await expect(page.getByLabel('Command palette')).toBeVisible();
-  await page.keyboard.press('Escape');
-  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
+    await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 15000 });
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+T' : 'Control+T');
+    await expect(page.getByLabel('Command palette')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+P' : 'Control+P');
+    await expect(page.getByLabel('Command palette')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
 
-  const commandPalette = page.getByLabel('Command palette');
-  await expect(commandPalette).toBeVisible();
+    const commandPalette = page.getByLabel('Command palette');
+    await expect(commandPalette).toBeVisible();
 
-  const commandPaletteMetrics = await page.locator('.bolt-project-command-palette').evaluate((element) => {
-    const rect = element.getBoundingClientRect();
-    const style = window.getComputedStyle(element);
-
-    return {
-      top: rect.top,
-      width: rect.width,
-      background: style.backgroundColor,
-      borderRadius: style.borderRadius,
-    };
-  });
-  expect(commandPaletteMetrics.top).toBe(120);
-  expect(commandPaletteMetrics.width).toBe(600);
-  expect(commandPaletteMetrics.background).toBe('rgb(26, 32, 48)');
-  expect(commandPaletteMetrics.borderRadius).toBe('12px');
-  await expect(page.locator('.bolt-project-command-section', { hasText: 'Files' })).toBeVisible();
-  await expect(page.locator('.bolt-project-command-section', { hasText: 'Tools' })).toBeVisible();
-  await expect(page.locator('.bolt-project-command-section', { hasText: 'Commands' })).toBeVisible();
-  await expect(page.locator('.bolt-project-command-palette footer')).toContainText('↑↓ navigate');
-  await page.keyboard.press('Escape');
-  await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
-});
-
-test('reopens project IDE with persisted agent memory and panel state', { tag: '@runtime' }, async ({ page, isMobile }) => {
-  test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
-
-  const auth = await authenticate(page);
-  const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
-  const marker = `Persisted enterprise memory ${Date.now()}`;
-  const firstUserMessage = `${marker} first user request`;
-  const assistantMessage = `${marker} assistant response`;
-  const secondUserMessage = `${marker} second user request`;
-
-  const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
-    headers: { authorization: `Bearer ${auth.token}` },
-    data: { name: 'Memory Project' },
-  });
-
-  expect(createProject.ok(), await createProject.text()).toBeTruthy();
-
-  const projectId = (await createProject.json()).project.id as string;
-
-  const saveState = await page.request.put(`${apiBaseUrl}/projects/${projectId}/ide-state`, {
-    headers: { authorization: `Bearer ${auth.token}` },
-    data: {
-      state: {
-        chat: {
-          id: `project:${projectId}`,
-          description: 'Persistent project agent',
-          messages: [
-            { id: 'memory-user-message-1', role: 'user', content: firstUserMessage },
-            { id: 'memory-assistant-message-1', role: 'assistant', content: assistantMessage },
-            { id: 'memory-user-message-2', role: 'user', content: secondUserMessage },
-          ],
-        },
-        ui: {
-          currentView: 'preview',
-          rightPanel: 'network',
-          rightPanelOpen: true,
-          rightPanelWidth: 512,
-          showWorkbench: true,
-          agentWidth: 520,
-          terminalBottomOpen: true,
-          terminalBottomHeight: 320,
-          activePaneId: 'pane-main',
-          activeWorkspacePanel: 'snapshots',
-          paneTree: {
-            type: 'leaf',
-            id: 'pane-main',
-            tabs: [
-              { id: 'tab-files-persisted', panel: 'files' },
-              { id: 'tab-snapshots-persisted', panel: 'snapshots' },
-            ],
-            activeTabId: 'tab-snapshots-persisted',
-          },
-          cursorPositions: { '/home/project/src/App.tsx': { line: 42, column: 7, offset: 900 } },
-          scrollPositions: { 'pane-main': 88 },
-          recentTabIds: ['tab-snapshots-persisted', 'tab-files-persisted'],
-          closedTabs: [{ id: 'tab-logs-closed', panel: 'logs' }],
-        },
-      },
-    },
-  });
-
-  expect(saveState.ok(), await saveState.text()).toBeTruthy();
-  await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
-  await expect(page.getByText(firstUserMessage)).toBeVisible({ timeout: 15000 });
-  await expect(page.getByText(assistantMessage)).toBeVisible({ timeout: 15000 });
-  await expect(page.getByText(secondUserMessage)).toBeVisible({ timeout: 15000 });
-  await expect(page.getByRole('tab', { name: 'Snapshots' })).toHaveAttribute('aria-selected', 'true');
-  await expect(page.locator('[data-testid="ide-service-panel"][data-panel="snapshots"]')).toBeVisible({
-    timeout: 15000,
-  });
-
-  const renderedMessages = page.locator('.bolt-chat-message-row');
-  await expect(renderedMessages).toHaveCount(3);
-
-  let renderedOrder = await renderedMessages.evaluateAll((rows) =>
-    rows.map((row) => ({
-      id: row.getAttribute('data-message-id'),
-      text: row.textContent ?? '',
-    })),
-  );
-
-  expect(renderedOrder.map((row) => row.id)).toEqual([
-    'memory-user-message-1',
-    'memory-assistant-message-1',
-    'memory-user-message-2',
-  ]);
-  expect(renderedOrder[0].text).toContain(firstUserMessage);
-  expect(renderedOrder[1].text).toContain(assistantMessage);
-  expect(renderedOrder[2].text).toContain(secondUserMessage);
-
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.getByText(firstUserMessage)).toBeVisible({ timeout: 15000 });
-  renderedOrder = await page.locator('.bolt-chat-message-row').evaluateAll((rows) =>
-    rows.map((row) => ({
-      id: row.getAttribute('data-message-id'),
-      text: row.textContent ?? '',
-    })),
-  );
-  expect(renderedOrder.map((row) => row.id)).toEqual([
-    'memory-user-message-1',
-    'memory-assistant-message-1',
-    'memory-user-message-2',
-  ]);
-
-  const persistedLocalState = await page.evaluate((id) => {
-    const raw = localStorage.getItem(`vibecore.projectIdeMemory:${id}`);
-
-    return raw ? JSON.parse(raw) : null;
-  }, projectId);
-
-  expect(persistedLocalState?.chat?.messages?.map((message: { id: string }) => message.id)).toEqual([
-    'memory-user-message-1',
-    'memory-assistant-message-1',
-    'memory-user-message-2',
-  ]);
-  expect(persistedLocalState?.chat?.messages?.[0]?.content).toBe(firstUserMessage);
-  expect(persistedLocalState?.ui?.paneTree?.activeTabId).toBe('tab-snapshots-persisted');
-  expect(persistedLocalState?.ui?.agentWidth).toBe(520);
-  expect(persistedLocalState?.ui?.terminalBottomHeight).toBe(320);
-  expect(persistedLocalState?.ui?.cursorPositions?.['/home/project/src/App.tsx']).toEqual({
-    line: 42,
-    column: 7,
-    offset: 900,
-  });
-
-  if (!isMobile) {
-    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible();
-    await expect(page.locator('.bolt-project-bottom-terminal-shell')).toBeVisible();
-
-    const persistedMetrics = await page.locator('.bolt-project-ide-panels').evaluate((element) => {
+    const commandPaletteMetrics = await page.locator('.bolt-project-command-palette').evaluate((element) => {
+      const rect = element.getBoundingClientRect();
       const style = window.getComputedStyle(element);
 
       return {
-        agentWidth: style.getPropertyValue('--project-agent-width').trim(),
-        rightPanelWidth: style.getPropertyValue('--project-right-panel-width').trim(),
+        top: rect.top,
+        width: rect.width,
+        background: style.backgroundColor,
+        borderRadius: style.borderRadius,
       };
     });
-    expect(persistedMetrics.agentWidth).toBe('520px');
-    expect(persistedMetrics.rightPanelWidth).toBe('300px');
-  }
-});
+    expect(commandPaletteMetrics.top).toBe(120);
+    expect(commandPaletteMetrics.width).toBe(600);
+    expect(commandPaletteMetrics.background).toBe('rgb(26, 32, 48)');
+    expect(commandPaletteMetrics.borderRadius).toBe('12px');
+    await expect(page.locator('.bolt-project-command-section', { hasText: 'Files' })).toBeVisible();
+    await expect(page.locator('.bolt-project-command-section', { hasText: 'Tools' })).toBeVisible();
+    await expect(page.locator('.bolt-project-command-section', { hasText: 'Commands' })).toBeVisible();
+    await expect(page.locator('.bolt-project-command-palette footer')).toContainText('↑↓ navigate');
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
+  },
+);
+
+test(
+  'reopens project IDE with persisted agent memory and panel state',
+  { tag: '@runtime' },
+  async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
+
+    const auth = await authenticate(page);
+    const apiBaseUrl = process.env.SAAS_API_URL ?? process.env.API_BASE_URL ?? 'http://127.0.0.1:3001';
+    const marker = `Persisted enterprise memory ${Date.now()}`;
+    const firstUserMessage = `${marker} first user request`;
+    const assistantMessage = `${marker} assistant response`;
+    const secondUserMessage = `${marker} second user request`;
+
+    const createProject = await page.request.post(`${apiBaseUrl}/orgs/${auth.organization.id}/projects`, {
+      headers: { authorization: `Bearer ${auth.token}` },
+      data: { name: 'Memory Project' },
+    });
+
+    expect(createProject.ok(), await createProject.text()).toBeTruthy();
+
+    const projectId = (await createProject.json()).project.id as string;
+
+    const saveState = await page.request.put(`${apiBaseUrl}/projects/${projectId}/ide-state`, {
+      headers: { authorization: `Bearer ${auth.token}` },
+      data: {
+        state: {
+          chat: {
+            id: `project:${projectId}`,
+            description: 'Persistent project agent',
+            messages: [
+              { id: 'memory-user-message-1', role: 'user', content: firstUserMessage },
+              { id: 'memory-assistant-message-1', role: 'assistant', content: assistantMessage },
+              { id: 'memory-user-message-2', role: 'user', content: secondUserMessage },
+            ],
+          },
+          ui: {
+            currentView: 'preview',
+            rightPanel: 'network',
+            rightPanelOpen: true,
+            rightPanelWidth: 512,
+            showWorkbench: true,
+            agentWidth: 520,
+            terminalBottomOpen: true,
+            terminalBottomHeight: 320,
+            activePaneId: 'pane-main',
+            activeWorkspacePanel: 'snapshots',
+            paneTree: {
+              type: 'leaf',
+              id: 'pane-main',
+              tabs: [
+                { id: 'tab-files-persisted', panel: 'files' },
+                { id: 'tab-snapshots-persisted', panel: 'snapshots' },
+              ],
+              activeTabId: 'tab-snapshots-persisted',
+            },
+            cursorPositions: { '/home/project/src/App.tsx': { line: 42, column: 7, offset: 900 } },
+            scrollPositions: { 'pane-main': 88 },
+            recentTabIds: ['tab-snapshots-persisted', 'tab-files-persisted'],
+            closedTabs: [{ id: 'tab-logs-closed', panel: 'logs' }],
+          },
+        },
+      },
+    });
+
+    expect(saveState.ok(), await saveState.text()).toBeTruthy();
+    await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(firstUserMessage)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(assistantMessage)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByText(secondUserMessage)).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('tab', { name: 'Snapshots' })).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('[data-testid="ide-service-panel"][data-panel="snapshots"]')).toBeVisible({
+      timeout: 15000,
+    });
+
+    const renderedMessages = page.locator('.bolt-chat-message-row');
+    await expect(renderedMessages).toHaveCount(3);
+
+    let renderedOrder = await renderedMessages.evaluateAll((rows) =>
+      rows.map((row) => ({
+        id: row.getAttribute('data-message-id'),
+        text: row.textContent ?? '',
+      })),
+    );
+
+    expect(renderedOrder.map((row) => row.id)).toEqual([
+      'memory-user-message-1',
+      'memory-assistant-message-1',
+      'memory-user-message-2',
+    ]);
+    expect(renderedOrder[0].text).toContain(firstUserMessage);
+    expect(renderedOrder[1].text).toContain(assistantMessage);
+    expect(renderedOrder[2].text).toContain(secondUserMessage);
+
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await expect(page.getByText(firstUserMessage)).toBeVisible({ timeout: 15000 });
+    renderedOrder = await page.locator('.bolt-chat-message-row').evaluateAll((rows) =>
+      rows.map((row) => ({
+        id: row.getAttribute('data-message-id'),
+        text: row.textContent ?? '',
+      })),
+    );
+    expect(renderedOrder.map((row) => row.id)).toEqual([
+      'memory-user-message-1',
+      'memory-assistant-message-1',
+      'memory-user-message-2',
+    ]);
+
+    const persistedLocalState = await page.evaluate((id) => {
+      const raw = localStorage.getItem(`vibecore.projectIdeMemory:${id}`);
+
+      return raw ? JSON.parse(raw) : null;
+    }, projectId);
+
+    expect(persistedLocalState?.chat?.messages?.map((message: { id: string }) => message.id)).toEqual([
+      'memory-user-message-1',
+      'memory-assistant-message-1',
+      'memory-user-message-2',
+    ]);
+    expect(persistedLocalState?.chat?.messages?.[0]?.content).toBe(firstUserMessage);
+    expect(persistedLocalState?.ui?.paneTree?.activeTabId).toBe('tab-snapshots-persisted');
+    expect(persistedLocalState?.ui?.agentWidth).toBe(520);
+    expect(persistedLocalState?.ui?.terminalBottomHeight).toBe(320);
+    expect(persistedLocalState?.ui?.cursorPositions?.['/home/project/src/App.tsx']).toEqual({
+      line: 42,
+      column: 7,
+      offset: 900,
+    });
+
+    if (!isMobile) {
+      await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible();
+      await expect(page.locator('.bolt-project-bottom-terminal-shell')).toBeVisible();
+
+      const persistedMetrics = await page.locator('.bolt-project-ide-panels').evaluate((element) => {
+        const style = window.getComputedStyle(element);
+
+        return {
+          agentWidth: style.getPropertyValue('--project-agent-width').trim(),
+          rightPanelWidth: style.getPropertyValue('--project-right-panel-width').trim(),
+        };
+      });
+      expect(persistedMetrics.agentWidth).toBe('520px');
+      expect(persistedMetrics.rightPanelWidth).toBe('300px');
+    }
+  },
+);
 
 test('billing upgrade flow is reachable without frontend-only quota bypass', async ({ page }) => {
   await authenticate(page);

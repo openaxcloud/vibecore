@@ -319,14 +319,18 @@ test.describe('compact IDE shell device matrix', () => {
   }
 
   for (const profile of compactPanelProfiles) {
-    test(`renders every compact IDE panel full-screen on ${profile.name} with a nonblank preview`, {
-      tag: '@runtime',
-    }, async ({ browser }, testInfo) => {
-      test.skip(testInfo.project.name !== 'chromium', 'device matrix creates explicit browser contexts');
-      test.setTimeout(300_000);
+    test(
+      `renders every compact IDE panel full-screen on ${profile.name} with a nonblank preview`,
+      {
+        tag: '@runtime',
+      },
+      async ({ browser }, testInfo) => {
+        test.skip(testInfo.project.name !== 'chromium', 'device matrix creates explicit browser contexts');
+        test.setTimeout(300_000);
 
-      await assertEveryCompactPanelForProfile(browser, auth, projectId, profile, testInfo);
-    });
+        await assertEveryCompactPanelForProfile(browser, auth, projectId, profile, testInfo);
+      },
+    );
   }
 });
 
