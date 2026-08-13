@@ -271,7 +271,15 @@ audit_helm upgrade --install "$RELEASE" "$REPO/infra/helm/platform" \
 # autre contrôleur peut changer la topologie sous elle ne vaut rien. Le drapeau est
 # limité à cette release de preuve — il n'est pas ajouté au CD.
 
-for comp in api preview-proxy workspace-manager screenshotter; do
+# UNE SEULE liste pour les deux étapes qui suivent. Elle n'attendait auparavant que
+# les quatre tiers traversés par les portes, alors que la vérification des digests
+# en contrôle huit : un vieux pod `web` survivait à la mise à jour et la
+# vérification le voyait — « ECART pod=…fd2c0820 registre=…b53cd724 ». Le contrôle a
+# donc fait son travail, mais sur un écart que le script fabriquait lui-même en
+# mesurant avant la fin du déploiement. Attendre ce que l'on vérifie, exactement.
+COMPONENTS='api worker admin ai-gateway workspace-manager preview-proxy screenshotter web'
+
+for comp in $COMPONENTS; do
   audit_kubectl -n "$NS" rollout status "deploy/$RELEASE-vibecore-platform-$comp" --timeout=420s
 done
 
@@ -282,7 +290,7 @@ done
 echo
 echo "==> verification des digests (imageID du pod == digest du registre)"
 ecarts=0
-for comp in api worker admin ai-gateway workspace-manager preview-proxy screenshotter web; do
+for comp in $COMPONENTS; do
   want="$(gcloud artifacts docker images describe "$REGISTRY/$comp:$TAG" \
     --project="$AUDIT_ENV_PROJECT_ID" --format='value(image_summary.digest)' 2>/dev/null || true)"
 
