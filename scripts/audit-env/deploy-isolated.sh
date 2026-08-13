@@ -145,8 +145,24 @@ done
 # ci-dessus, qui les traite partout à la fois. Deux sources de vérité pour la même
 # valeur, c'est précisément comment `screenshotterAllowedHosts` s'est retrouvé
 # désaccordé de `previewDomain`.
+#
+# RÉPLIQUES RÉDUITES SUR LES TIERS QUE LES PORTES NE TRAVERSENT PAS. Le cluster
+# d'audit a deux nœuds applicatifs (3920m chacun) et fait tourner DEUX releases
+# complètes : ils étaient à 97-98 % de CPU demandé, et comme les Deployments sont en
+# `maxUnavailable: 0`, la mise à jour progressive ne pouvait plus créer le nouveau
+# pod du screenshotter — il restait `Pending` (`Insufficient cpu`, autoscaler au max
+# de son pool), donc l'ancien ne partait jamais et le rollout expirait.
+#
+# `preview-proxy` garde ses DEUX répliques : le rejeu lit les drapeaux dans CHAQUE
+# pod du proxy, et cette assertion perd de sa valeur avec un seul. `api` et `web`
+# passent à une seule — aucune porte ne teste leur redondance.
 cat > "$OVERRIDES" <<YAML
 # --- surcharges propres a la release isolee (ecrites par deploy-isolated.sh) ---
+services:
+  api:
+    replicas: 1
+  web:
+    replicas: 1
 platformEnv:
   runtime:
     # Namespace de runtime DÉDIÉE : le workspace-manager de la release partagée ne
@@ -238,7 +254,22 @@ audit_helm upgrade --install "$RELEASE" "$REPO/infra/helm/platform" \
   -f "$OVERRIDES" \
   --set global.imageTag="$TAG" \
   --set platformEnv.runtime.workspaceAgentImage="$REGISTRY/workspace-agent:sha-$TAG" \
+  --force-conflicts \
   --timeout 15m
+#
+# `--force-conflicts` : à la RÉ-application, l'autoscaler vertical de GKE s'est
+# approprié `.spec.replicas` du workspace-manager via le sous-ressource `scale` —
+# vérifié dans `managedFields` :
+#
+#   helm:
+#   vpa-recommender:scale        <- proprietaire de .spec.replicas
+#   kube-controller-manager:status
+#
+# Sans le drapeau, l'apply côté serveur refuse (« conflict with vpa-recommender »)
+# et l'upgrade échoue. Ici Helm doit rester propriétaire du champ : le rejeu
+# AFFIRME le nombre de répliques traversées par les portes, donc une preuve dont un
+# autre contrôleur peut changer la topologie sous elle ne vaut rien. Le drapeau est
+# limité à cette release de preuve — il n'est pas ajouté au CD.
 
 for comp in api preview-proxy workspace-manager screenshotter; do
   audit_kubectl -n "$NS" rollout status "deploy/$RELEASE-vibecore-platform-$comp" --timeout=420s
@@ -261,15 +292,39 @@ for comp in api worker admin ai-gateway workspace-manager preview-proxy screensh
     continue
   fi
 
-  # Boucle `read`, pas `mapfile` : le bash livré par macOS est en 3.2, où
-  # `mapfile` n'existe pas — le script s'y arrêtait sur « command not found »
-  # juste avant de vérifier quoi que ce soit.
+  # « Je n'ai pas pu savoir » n'est PAS « il n'y a rien ». Un `TLS handshake
+  # timeout` du plan de contrôle — observé une fois ici — rendait une sortie vide
+  # que la boucle rapportait comme « aucun pod » : refus, donc dans le bon sens,
+  # mais sur un motif faux, et le même raccourci ailleurs donnerait un vert à tort.
+  # On distingue donc les trois cas, avec deux tentatives supplémentaires avant de
+  # conclure, et un état INDETERMINE explicite qui refuse (même vocabulaire que la
+  # vérification de teardown de down.sh).
+  #
+  # Boucle `read` et pas `mapfile` : le bash livré par macOS est en 3.2, où
+  # `mapfile` n'existe pas — le script s'y arrêtait sur « command not found » juste
+  # avant de vérifier quoi que ce soit.
+  raw=''
+  rc=1
+  for essai in 1 2 3; do
+    if raw="$(audit_kubectl -n "$NS" get pods \
+      -l "app.kubernetes.io/component=$comp" \
+      -o jsonpath='{range .items[*]}{.status.containerStatuses[0].imageID}{"\n"}{end}' 2>/dev/null)"; then
+      rc=0
+      break
+    fi
+    sleep $((essai * 5))
+  done
+
+  if ((rc != 0)); then
+    printf '  %-20s INDETERMINE (interrogation du cluster en echec apres 3 tentatives)\n' "$comp"
+    ecarts=$((ecarts + 1))
+    continue
+  fi
+
   got=()
   while IFS= read -r line; do
     [[ -n "$line" ]] && got+=("$line")
-  done < <(audit_kubectl -n "$NS" get pods \
-    -l "app.kubernetes.io/component=$comp" \
-    -o jsonpath='{range .items[*]}{.status.containerStatuses[0].imageID}{"\n"}{end}' | sed 's/.*@//' | sort -u)
+  done < <(printf '%s\n' "$raw" | sed 's/.*@//' | sort -u)
 
   if ((${#got[@]} == 0)); then
     printf '  %-20s aucun pod\n' "$comp"
