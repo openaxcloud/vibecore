@@ -24,6 +24,16 @@ export type PersistedPromptEvidence = {
   expectedLength: number;
 };
 
+export type CompleteSubmittedPromptMatchForm = 'exact' | 'server-project-contract';
+
+export type CompleteSubmittedPromptMatch = {
+  candidateLength: number;
+  expectedLength: number;
+  matchForm: CompleteSubmittedPromptMatchForm;
+  normalizedCandidate: string;
+  normalizedPrompt: string;
+};
+
 export type ProjectFileStabilityState = {
   /** Latest successfully observed persisted-file revision. */
   revision?: string;
@@ -134,7 +144,64 @@ function persistedMessageText(content: unknown): string | undefined {
  * after the contract's `User prompt:` boundary. An arbitrary prefix ending in
  * the same words is not provenance.
  */
-function persistedValueContainsCompletePrompt(candidate: unknown, expectedPrompt: string) {
+export const SERVER_PROJECT_WEB_CONTRACT = normalizeCaptureProofText(
+  [
+    'Artifact type: Web',
+    'Preferred framework: React + Vite + TypeScript',
+    'Build this as a production React/Vite web application with TypeScript, modular components, realistic data, routing-ready structure, and a live preview that starts with npm run dev.',
+    '',
+    'Production quality bar:',
+    '- ZERO placeholder code: no TODO-only paths, dead buttons, hollow panels, inert tabs, or implement-later placeholders.',
+    '- Every generated feature must work immediately in preview; if preview would be blank, change the implementation before finishing.',
+    '- Use TypeScript everywhere with strict, explicit types for components, data models, API payloads, and adapters.',
+    '- For app requests, build full-stack by default: frontend, backend/API boundary, persistence or typed local adapter, auth/session model when relevant, styling, tests, and deployment config where feasible.',
+    '- Single-command runnability: the app MUST render a browsable UI in preview with ONE `npm run dev` from ONE root package.json (which MUST have a `dev` script) on a single port bound to 0.0.0.0. Do not split into separate client/server packages that each need their own process — serve any backend from the same dev server (Vite middleware/plugin, framework API routes, or one concurrent `dev` script). A backend-only server with no browsable UI on the dev port is a blank-preview failure.',
+    '- Dark mode must be the default, with a working light mode toggle when the app exposes theming.',
+    '- Build mobile-first responsive layouts that work on phones, tablets, and desktop without overlapping text or unstable dimensions.',
+    '- Add skeletons or explicit loading states for every async operation.',
+    '- Add error boundaries or recoverable error states around every panel and async surface.',
+    '- Any WebSocket or realtime client must auto-reconnect with exponential backoff and clean up timers/listeners.',
+    '- Include realistic data, meaningful copy, complete empty/loading/error/success/disabled states, and at least one complete primary workflow.',
+    '- Validate user input, avoid secret leaks, and keep client config safe.',
+    '- Never report successful external-service behavior unless a real typed local/offline adapter is executing or a clear integration-required state is shown.',
+    '- Run or define relevant tests and verification paths; do not present broken code as finished.',
+    '- Build a complete, previewable app, not a landing placeholder or static mockup.',
+    '- Target Fortune 500 / enterprise polish: credible information architecture, restrained premium visual design, precise spacing, professional typography, and real workflow density.',
+    '- Include realistic domain data, meaningful copy, charts/tables/cards where relevant, and visible states for loading, empty, error, success, and disabled controls.',
+    '- Every visible button, tab, filter, menu, toggle, form control, and navigation item must have real client-side behavior using React state; no decorative dead controls.',
+    '- Include at least one complete primary workflow with input, validation, optimistic/success feedback, error handling, empty state recovery, and disabled/submitting states.',
+    '- For dashboards and SaaS products, build an operational product UI with dense but readable information architecture, not a marketing landing page.',
+    '- Make the first screen immediately useful inside the Preview tab with no blank splash, no external setup, and no hidden critical interaction.',
+    '- Use React + Vite + TypeScript for web-style artifacts unless the selected artifact explicitly requires another framework.',
+    '- Split React code into purposeful components, typed local fixtures, derived metrics, and handlers; avoid a single static JSX mockup.',
+    '- Always create a runnable package.json with dev, build, and preview scripts; include index.html, src/main.tsx, and Vite config when using React/Vite.',
+    '- Keep runtime dependencies lean and browser-compatible; avoid native binaries, heavy assets, unnecessary frameworks, and API calls that can fail in preview.',
+    '- Optimize for performance: memoize expensive derived data, avoid layout thrash, use CSS transforms for motion, lazy-load heavy views when useful, and respect prefers-reduced-motion.',
+    '- Build responsive layouts for desktop, tablet, and mobile with stable dimensions so content does not jump or overlap.',
+    '- Meet WCAG AA basics: semantic HTML, labels, keyboard focus states, ARIA where needed, contrast, and touch targets.',
+    '- Before finishing, self-audit the generated files: there must be no visible dead buttons, no inert tabs, no nonfunctional forms, and no placeholder-only panels.',
+    '- Finish with a start action so the live preview can attach automatically.',
+  ].join('\n'),
+);
+
+function isServerProjectContract(value: string) {
+  const languagePrefix = value.match(/^\[Language: [^\]\r\n]+\]\s+/u)?.[0] ?? '';
+
+  return value.slice(languagePrefix.length) === SERVER_PROJECT_WEB_CONTRACT;
+}
+
+/**
+ * Match a submitted prompt in either publishable form produced by E-Code.
+ *
+ * A normal Agent send is the exact prompt. `/projects/new` deliberately wraps
+ * the same prompt in its server-owned generation contract. That second form is
+ * accepted only when all stable contract anchors occur in order and the text
+ * after the final `User prompt:` boundary is the complete expected prompt.
+ */
+export function matchCompleteSubmittedPrompt(
+  candidate: unknown,
+  expectedPrompt: string,
+): CompleteSubmittedPromptMatch | undefined {
   const text = persistedMessageText(candidate);
   const expected = normalizeCaptureProofText(expectedPrompt);
 
@@ -145,7 +212,13 @@ function persistedValueContainsCompletePrompt(candidate: unknown, expectedPrompt
   const normalizedCandidate = normalizeCaptureProofText(text);
 
   if (normalizedCandidate === expected) {
-    return { candidateLength: normalizedCandidate.length, expectedLength: expected.length };
+    return {
+      candidateLength: normalizedCandidate.length,
+      expectedLength: expected.length,
+      matchForm: 'exact',
+      normalizedCandidate,
+      normalizedPrompt: expected,
+    };
   }
 
   const marker = 'User prompt:';
@@ -155,15 +228,20 @@ function persistedValueContainsCompletePrompt(candidate: unknown, expectedPrompt
     return undefined;
   }
 
-  const knownContract = normalizedCandidate.slice(0, markerOffset);
+  const knownContract = normalizedCandidate.slice(0, markerOffset).trim();
   const wrappedPrompt = normalizedCandidate.slice(markerOffset + marker.length).trim();
 
-  return /^(?:\[Language: [^\]]+\]\s*)?Artifact type:\s*\S+/i.test(knownContract) &&
-    /Preferred framework:/i.test(knownContract) &&
-    /Production quality bar:/i.test(knownContract) &&
-    wrappedPrompt === expected
-    ? { candidateLength: normalizedCandidate.length, expectedLength: expected.length }
-    : undefined;
+  if (!isServerProjectContract(knownContract) || wrappedPrompt !== expected) {
+    return undefined;
+  }
+
+  return {
+    candidateLength: normalizedCandidate.length,
+    expectedLength: expected.length,
+    matchForm: 'server-project-contract',
+    normalizedCandidate,
+    normalizedPrompt: expected,
+  };
 }
 
 function asPromptMessages(value: unknown): PersistedPromptMessage[] {
@@ -208,10 +286,14 @@ export function findPersistedPromptEvidence(
         continue;
       }
 
-      const match = persistedValueContainsCompletePrompt(message.content, expectedPrompt);
+      const match = matchCompleteSubmittedPrompt(message.content, expectedPrompt);
 
       if (match) {
-        return { source, ...match };
+        return {
+          source,
+          candidateLength: match.candidateLength,
+          expectedLength: match.expectedLength,
+        };
       }
     }
   }

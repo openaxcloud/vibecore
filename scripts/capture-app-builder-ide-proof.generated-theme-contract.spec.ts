@@ -37,7 +37,9 @@ describe('generated Solutions project theme contract', () => {
 
   it('requires system preference plus a real localized accessible application control', () => {
     expect(contractSource).toContain("window.matchMedia('(prefers-color-scheme: dark)').matches");
-    expect(contractSource).toContain('<button type="button" data-testid="app-theme-toggle">');
+    expect(contractSource).toContain('button element with type="button" and data-testid="app-theme-toggle"');
+    expect(contractSource).toContain('élément button avec type="button" et data-testid="app-theme-toggle"');
+    expect(contractSource).not.toContain('<button type="button" data-testid="app-theme-toggle">');
     expect(contractSource).toContain('visible and keyboard accessible');
     expect(contractSource).toContain('visible et utilisable au clavier');
     expect(contractSource).toContain('Switch to light mode');

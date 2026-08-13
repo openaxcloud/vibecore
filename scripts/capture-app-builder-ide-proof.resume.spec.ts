@@ -39,12 +39,14 @@ describe('Solutions proof capture resume provenance', () => {
     expect(historyRestoreSource).toContain("page.getByTestId('ide-agent-panel')");
     expect(historyRestoreSource).toContain("toHaveAttribute('data-message-id'");
     expect(exactBubbleSource).toContain("agentPanel.locator('.bolt-chat-message-row-user')");
-    expect(exactBubbleSource).toContain('normalizeCaptureProofText(bubbleText) === expectedPrompt');
+    expect(exactBubbleSource).toContain('matchCompleteSubmittedPrompt(bubbleText, expectedPrompt)');
     expect(captureSource).not.toContain('agentPanel.getByText(creationPrompt');
     expect(captureSource).toContain('captureThemedIdeState(page, stagingRoot, promptFilename');
     expect(captureSource).toContain('verifySurface: verifyPromptBubbleSurface');
     expect(captureSource).toContain("surface: 'agent-user-bubble'");
     expect(captureSource).toContain("promptSha256: createHash('sha256')");
+    expect(captureSource).toContain('matchForm: promptMatch.matchForm');
+    expect(captureSource).toContain('visiblePrompt: promptMatch.normalizedCandidate');
     expect(captureSource).toContain('visiblePromptSha256:');
   });
 

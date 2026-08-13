@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
 
+// eslint-disable-next-line no-restricted-imports -- the asset gate reuses the standalone capture provenance matcher.
+import { matchCompleteSubmittedPrompt, SERVER_PROJECT_WEB_CONTRACT } from '../../../../scripts/solution-capture-state';
 import { CHATBOT_BUILDER_COPY } from './chatbot-builder.copy';
 import { DASHBOARD_BUILDER_COPY } from './dashboard-builder.copy';
 import { ENTERPRISE_COPY } from './enterprise.copy';
@@ -201,6 +203,8 @@ function expectResponsiveAudit(value: unknown, label: string) {
 function expectPromptSurfaceProvenance(value: unknown, label: string, prompt: string) {
   const provenance = asRecord(value, label);
   const normalizedPrompt = prompt.replace(/\s+/gu, ' ').trim();
+  const visiblePrompt = asString(provenance.visiblePrompt, `${label}.visiblePrompt`);
+  const promptMatch = matchCompleteSubmittedPrompt(visiblePrompt, normalizedPrompt);
 
   expect(provenance.slot, label).toBe('prompt');
   expect(provenance.surface, label).toBe('agent-user-bubble');
@@ -208,7 +212,14 @@ function expectPromptSurfaceProvenance(value: unknown, label: string, prompt: st
   expect(provenance.exactMatch, label).toBe(true);
   expect(asString(provenance.messageId, `${label}.messageId`), label).toBeTruthy();
   expect(provenance.promptSha256, label).toBe(createHash('sha256').update(normalizedPrompt).digest('hex'));
-  expect(provenance.visiblePromptSha256, label).toBe(provenance.promptSha256);
+  expect(promptMatch, label).toBeDefined();
+  expect(provenance.matchForm, label).toBe(promptMatch?.matchForm);
+  expect(provenance.visiblePromptLength, label).toBe(promptMatch?.candidateLength);
+  expect(provenance.visiblePromptSha256, label).toBe(
+    createHash('sha256')
+      .update(promptMatch?.normalizedCandidate ?? '')
+      .digest('hex'),
+  );
 }
 
 function readWebPDimensions(file: Buffer): { width: number; height: number } {
@@ -356,22 +367,63 @@ describe('theme-aware solution proof visual registry', () => {
   it('requires explicit Agent prompt provenance in every successful manifest', () => {
     const prompt = 'Build a real project in E-Code';
 
+    const wrappedPrompt = `${SERVER_PROJECT_WEB_CONTRACT}\n\nUser prompt:\n${prompt}`;
+
     expect(() => expectPromptSurfaceProvenance(undefined, 'missing-provenance', prompt)).toThrow();
     expect(() =>
       expectPromptSurfaceProvenance(
         {
           exactMatch: true,
+          matchForm: 'exact',
           messageId: 'message-1',
           slot: 'prompt',
           surface: 'agent-user-bubble',
           verified: true,
           promptSha256: createHash('sha256').update(prompt).digest('hex'),
+          visiblePrompt: prompt,
+          visiblePromptLength: prompt.length,
           visiblePromptSha256: createHash('sha256').update(prompt).digest('hex'),
         },
         'promptSurfaceProvenance',
         prompt,
       ),
     ).not.toThrow();
+    expect(() =>
+      expectPromptSurfaceProvenance(
+        {
+          exactMatch: true,
+          matchForm: 'server-project-contract',
+          messageId: 'message-2',
+          slot: 'prompt',
+          surface: 'agent-user-bubble',
+          verified: true,
+          promptSha256: createHash('sha256').update(prompt).digest('hex'),
+          visiblePrompt: wrappedPrompt,
+          visiblePromptLength: wrappedPrompt.replace(/\s+/gu, ' ').trim().length,
+          visiblePromptSha256: createHash('sha256').update(wrappedPrompt.replace(/\s+/gu, ' ').trim()).digest('hex'),
+        },
+        'wrappedPromptSurfaceProvenance',
+        prompt,
+      ),
+    ).not.toThrow();
+    expect(() =>
+      expectPromptSurfaceProvenance(
+        {
+          exactMatch: true,
+          matchForm: 'server-project-contract',
+          messageId: 'message-3',
+          slot: 'prompt',
+          surface: 'agent-user-bubble',
+          verified: true,
+          promptSha256: createHash('sha256').update(prompt).digest('hex'),
+          visiblePrompt: `Untrusted wrapper User prompt: ${prompt}`,
+          visiblePromptLength: 0,
+          visiblePromptSha256: '',
+        },
+        'invalidPromptSurfaceProvenance',
+        prompt,
+      ),
+    ).toThrow();
   });
 });
 

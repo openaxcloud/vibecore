@@ -4,10 +4,12 @@ import { describe, expect, it } from 'vitest';
 import {
   EMPTY_PROJECT_FILE_STABILITY,
   findPersistedPromptEvidence,
+  matchCompleteSubmittedPrompt,
   normalizeCaptureProofText,
   observeProjectFileRevision,
   projectFilesRevisionFromEntries,
   projectFilesAreStable,
+  SERVER_PROJECT_WEB_CONTRACT,
 } from '../../scripts/solution-capture-state';
 
 describe('Solutions capture persistence state', () => {
@@ -80,20 +82,29 @@ describe('Solutions capture persistence state', () => {
   it('accepts a complete persisted user submission after the server project contract', () => {
     const prompt = 'PeopleOps: build the HR-04 procedure search. Keep the demo local and explicit.';
 
+    const wrappedPrompt = `[Language: English]\n\n${SERVER_PROJECT_WEB_CONTRACT}\n\nUser prompt:\n${prompt}`;
+
     const chat = {
       messages: [
         { role: 'assistant', content: `Implemented ${prompt}` },
         {
           role: 'user',
-          content: `Artifact type: web\nPreferred framework: React + Vite + TypeScript\n\nProduction quality bar:\n- Build a complete app.\n\nUser prompt:\n${prompt}`,
+          content: wrappedPrompt,
         },
       ],
     };
 
     expect(findPersistedPromptEvidence(chat, prompt)).toEqual({
       source: 'ide-state-message',
-      candidateLength: normalizeCaptureProofText(chat.messages[1].content).length,
+      candidateLength: normalizeCaptureProofText(wrappedPrompt).length,
       expectedLength: normalizeCaptureProofText(prompt).length,
+    });
+
+    expect(matchCompleteSubmittedPrompt(prompt, prompt)).toMatchObject({ matchForm: 'exact' });
+    expect(matchCompleteSubmittedPrompt(wrappedPrompt, prompt)).toMatchObject({
+      matchForm: 'server-project-contract',
+      normalizedCandidate: normalizeCaptureProofText(wrappedPrompt),
+      normalizedPrompt: normalizeCaptureProofText(prompt),
     });
   });
 
@@ -136,5 +147,12 @@ describe('Solutions capture persistence state', () => {
     };
 
     expect(findPersistedPromptEvidence(chatWithPendingPromptOnly, prompt)).toBeUndefined();
+    expect(matchCompleteSubmittedPrompt(`User prompt: ${prompt}`, prompt)).toBeUndefined();
+    expect(
+      matchCompleteSubmittedPrompt(
+        `Artifact type: web Preferred framework: React Production quality bar: User prompt: ${prompt}`,
+        prompt,
+      ),
+    ).toBeUndefined();
   });
 });

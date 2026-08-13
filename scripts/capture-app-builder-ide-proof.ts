@@ -8,6 +8,7 @@ import sharp from 'sharp';
 import {
   EMPTY_PROJECT_FILE_STABILITY,
   findPersistedPromptEvidence,
+  matchCompleteSubmittedPrompt,
   normalizeCaptureProofText,
   observeProjectFileRevision,
   projectFilesAreStable,
@@ -495,8 +496,8 @@ function generatedAppThemeContractFor(locale: CaptureLocale, scenario: SolutionS
     : '';
 
   return locale === 'fr'
-    ? ` Implémentez deux thèmes applicatifs complets et réellement distincts, clair et sombre, sur toutes les surfaces et tous les contrôles, avec des variables ou règles CSS propres à chaque thème : fonds clairs et texte sombre en mode clair, fonds sombres et texte clair en mode sombre. Ne simulez jamais la variante en inversant, filtrant, recolorant ou modifiant l’opacité d’une capture. Au chargement, initialisez le thème depuis window.matchMedia('(prefers-color-scheme: dark)').matches. Affichez sur chaque vue un vrai <button type="button" data-testid="app-theme-toggle">, visible et utilisable au clavier, dont le texte visible, aria-label et title valent exactement Passer en mode clair lorsque le thème actif est sombre, puis Passer en mode sombre lorsqu’il est clair. Son clic doit basculer le thème de cette application sans rechargement, mettre immédiatement document.documentElement.dataset.theme à exactement light ou dark, mettre à jour son libellé et aria-pressed, et conserver le contrôle visible sans troncature sur ordinateur, tablette et mobile.${gameDirection}`
-    : ` Implement two complete, genuinely distinct application themes, light and dark, across every surface and control, using theme-specific CSS variables or rules: light backgrounds with dark text in light mode, and dark backgrounds with light text in dark mode. Never fake the variant by inverting, filtering, recoloring, or changing the opacity of a capture. On load, initialize the theme from window.matchMedia('(prefers-color-scheme: dark)').matches. On every view, render a real <button type="button" data-testid="app-theme-toggle"> that is visible and keyboard accessible, with visible text, aria-label, and title set exactly to Switch to light mode while dark theme is active, then Switch to dark mode while light theme is active. Clicking it must switch this application’s theme without a reload, immediately set document.documentElement.dataset.theme to exactly light or dark, update its label and aria-pressed, and keep the control visible without clipping on desktop, tablet, and mobile.${gameDirection}`;
+    ? ` Implémentez deux thèmes applicatifs complets et réellement distincts, clair et sombre, sur toutes les surfaces et tous les contrôles, avec des variables ou règles CSS propres à chaque thème : fonds clairs et texte sombre en mode clair, fonds sombres et texte clair en mode sombre. Ne simulez jamais la variante en inversant, filtrant, recolorant ou modifiant l’opacité d’une capture. Au chargement, initialisez le thème depuis window.matchMedia('(prefers-color-scheme: dark)').matches. Affichez sur chaque vue un vrai élément button avec type="button" et data-testid="app-theme-toggle", visible et utilisable au clavier, dont le texte visible, aria-label et title valent exactement Passer en mode clair lorsque le thème actif est sombre, puis Passer en mode sombre lorsqu’il est clair. Son clic doit basculer le thème de cette application sans rechargement, mettre immédiatement document.documentElement.dataset.theme à exactement light ou dark, mettre à jour son libellé et aria-pressed, et conserver le contrôle visible sans troncature sur ordinateur, tablette et mobile.${gameDirection}`
+    : ` Implement two complete, genuinely distinct application themes, light and dark, across every surface and control, using theme-specific CSS variables or rules: light backgrounds with dark text in light mode, and dark backgrounds with light text in dark mode. Never fake the variant by inverting, filtering, recoloring, or changing the opacity of a capture. On load, initialize the theme from window.matchMedia('(prefers-color-scheme: dark)').matches. On every view, render a real button element with type="button" and data-testid="app-theme-toggle" that is visible and keyboard accessible, with visible text, aria-label, and title set exactly to Switch to light mode while dark theme is active, then Switch to dark mode while light theme is active. Clicking it must switch this application’s theme without a reload, immediately set document.documentElement.dataset.theme to exactly light or dark, update its label and aria-pressed, and keep the control visible without clipping on desktop, tablet, and mobile.${gameDirection}`;
 }
 
 function creationPromptFor(
@@ -3033,8 +3034,8 @@ async function waitForExactAgentUserPromptBubble(
         async () => {
           const bubbleTexts = await userBubbles.allInnerTexts().catch(() => []);
 
-          matchingBubbleIndex = bubbleTexts.findIndex(
-            (bubbleText) => normalizeCaptureProofText(bubbleText) === expectedPrompt,
+          matchingBubbleIndex = bubbleTexts.findIndex((bubbleText) =>
+            Boolean(matchCompleteSubmittedPrompt(bubbleText, expectedPrompt)),
           );
 
           return matchingBubbleIndex >= 0;
@@ -4223,11 +4224,14 @@ async function main() {
     let promptSurfaceProvenance:
       | {
           exactMatch: true;
+          matchForm: 'exact' | 'server-project-contract';
           messageId: string;
           promptSha256: string;
           slot: 'prompt';
           surface: 'agent-user-bubble';
           verified: true;
+          visiblePrompt: string;
+          visiblePromptLength: number;
           visiblePromptSha256: string;
         }
       | undefined;
@@ -4268,7 +4272,9 @@ async function main() {
       const visiblePrompt = normalizeCaptureProofText(await promptBubble.innerText());
       const expectedPrompt = normalizeCaptureProofText(creationPrompt);
 
-      if (visiblePrompt !== expectedPrompt) {
+      const promptMatch = matchCompleteSubmittedPrompt(visiblePrompt, expectedPrompt);
+
+      if (!promptMatch) {
         throw new Error(
           `The publishable Agent prompt bubble does not contain the complete submitted prompt ` +
             `(visible length=${visiblePrompt.length}, expected length=${expectedPrompt.length})`,
@@ -4283,12 +4289,15 @@ async function main() {
 
       promptSurfaceProvenance = {
         exactMatch: true,
+        matchForm: promptMatch.matchForm,
         messageId,
         promptSha256: createHash('sha256').update(expectedPrompt).digest('hex'),
         slot: 'prompt',
         surface: 'agent-user-bubble',
         verified: true,
-        visiblePromptSha256: createHash('sha256').update(visiblePrompt).digest('hex'),
+        visiblePrompt: promptMatch.normalizedCandidate,
+        visiblePromptLength: promptMatch.candidateLength,
+        visiblePromptSha256: createHash('sha256').update(promptMatch.normalizedCandidate).digest('hex'),
       };
 
       await promptBubble.scrollIntoViewIfNeeded();
