@@ -114,7 +114,7 @@ export function evaluateRequiredChecks({ policy, targetSha, workflowRuns, jobsBy
     // is that "Production E2E" was effectively waived — by never running — with
     // nobody noticing for months.
     if (wf.waivedUntil) {
-      const problems = validateWaiver(wf);
+      const problems = validateWaiver(wf, now);
       if (problems.length > 0) {
         workflows.push({ ...summaryOf(wf), state: 'REFUSE', detail: problems.join('; ') });
         refusals.push(`${label}: ${problems.join('; ')}`);
@@ -226,27 +226,55 @@ export function evaluateRequiredChecks({ policy, targetSha, workflowRuns, jobsBy
  * A waiver must be auditable and bounded. Anything less is a permanent hole that
  * merely looks temporary, so a malformed one REFUSES rather than being ignored.
  */
-export function validateWaiver(wf, maxDays = 30) {
+export const WAIVER_MAX_DAYS = 30;
+
+export function validateWaiver(wf, nowMs = Date.now(), maxDays = WAIVER_MAX_DAYS) {
   const problems = [];
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(wf.waivedUntil)) {
+
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(wf.waivedUntil ?? ''));
+  if (!m) {
     problems.push(`waivedUntil must be YYYY-MM-DD (got '${wf.waivedUntil}')`);
     return problems;
   }
-  const expiry = Date.parse(`${wf.waivedUntil}T23:59:59Z`);
-  if (Number.isNaN(expiry)) {
-    problems.push(`waivedUntil '${wf.waivedUntil}' is not a real date`);
+
+  const [year, month, day] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const expiry = new Date(Date.UTC(year, month - 1, day, 23, 59, 59));
+  // Round-trip the components. `Date.UTC` SILENTLY ROLLS OVER out-of-range values, so
+  // `2026-02-31` becomes 2026-03-03 and `2026-13-01` becomes 2027-01-01 — a typo in a
+  // waiver date would have been accepted as some other date entirely, with nobody able
+  // to tell from the file what it meant.
+  if (
+    expiry.getUTCFullYear() !== year ||
+    expiry.getUTCMonth() !== month - 1 ||
+    expiry.getUTCDate() !== day
+  ) {
+    problems.push(
+      `waivedUntil '${wf.waivedUntil}' is not a real calendar date — it would silently mean ${expiry
+        .toISOString()
+        .slice(0, 10)}`,
+    );
+    return problems;
   }
+
+  // The ceiling is measured against NOW, not self-declared by the waiver. The previous
+  // version only honoured an optional `waiverMaxDays` field that the waiver itself
+  // supplied, so `2099-12-31` sailed through as a 26,804-day "temporary" exception —
+  // which is a permanently disabled check wearing a deadline.
+  const days = Math.ceil((expiry.getTime() - nowMs) / 86_400_000);
+  if (days > maxDays) {
+    problems.push(`waivedUntil is ${days} days away; the ceiling is ${maxDays} days — re-date it and re-review`);
+  }
+
   if (!wf.waiverReason || String(wf.waiverReason).trim().length < 20) {
     problems.push('waiverReason must say WHY, in at least 20 characters');
   }
   if (!wf.waiverTicket) {
     problems.push('waiverTicket must reference the work that removes the waiver');
   }
-  if (typeof wf.waiverMaxDays === 'number' && wf.waiverMaxDays > maxDays) {
-    problems.push(`waiverMaxDays ${wf.waiverMaxDays} exceeds the ${maxDays}-day ceiling`);
-  }
+
   return problems;
 }
+
 
 function summaryOf(wf) {
   return { id: wf.id, path: wf.path, displayName: wf.displayName, requiredJobs: wf.requiredJobs ?? [] };

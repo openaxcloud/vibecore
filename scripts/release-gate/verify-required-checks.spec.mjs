@@ -60,7 +60,9 @@ describe('release gate — shipped policy', () => {
       expect.arrayContaining(['Production CI', 'Production E2E', 'Security Analysis', 'Code Quality']),
     );
 
-    for (const wf of policy.requiredWorkflows) {
+    // A waived workflow is legitimately absent — that is what the waiver means. The
+    // property under test is that every NON-waived one is still load-bearing.
+    for (const wf of policy.requiredWorkflows.filter((w) => !w.waivedUntil)) {
       const runs = greenRuns().filter((r) => r.workflow_id !== wf.id);
       const result = evaluateRequiredChecks({
         policy,
@@ -114,15 +116,32 @@ describe('release gate — the three commits that actually shipped red', () => {
   });
 
   it('never treats a check that simply never ran as green', () => {
+    // Uses a NON-waived check: E2E is currently waived, and a waiver is precisely the
+    // sanctioned, dated, loudly-reported way for a check to be absent.
+    const runs = greenRuns().filter((r) => r.path !== '.github/workflows/ci.yml');
+    const result = evaluateRequiredChecks({
+      policy,
+      targetSha: SHA,
+      workflowRuns: runs,
+      jobsByRunId: greenJobs(runs),
+      nowMs: Date.parse('2026-08-13T12:00:00Z'),
+    });
+    expect(result.verdict).toBe('WAIT'); // and the CLI converts WAIT-at-deadline into REFUSE
+    expect(result.waiting.join('\n')).toMatch(/Production CI/);
+  });
+
+  it('reports a waived check as WAIVED and warns — never silently as green', () => {
     const runs = greenRuns().filter((r) => r.path !== '.github/workflows/e2e.yml');
     const result = evaluateRequiredChecks({
       policy,
       targetSha: SHA,
       workflowRuns: runs,
       jobsByRunId: greenJobs(runs),
+      nowMs: Date.parse('2026-08-13T12:00:00Z'),
     });
-    expect(result.verdict).toBe('WAIT'); // and the CLI converts WAIT-at-deadline into REFUSE
-    expect(result.waiting.join('\n')).toMatch(/Production E2E/);
+    expect(result.verdict).toBe('PASS');
+    expect(result.workflows.find((w) => w.displayName === 'Production E2E').state).toBe('WAIVED');
+    expect(result.warnings.join('\n')).toMatch(/Production E2E.*WAIVED until 2026-08-27/);
   });
 });
 
@@ -256,16 +275,48 @@ describe('release gate — waivers are bounded, loud, and fail closed on expiry'
     }
   });
 
-  it('rejects a waiver longer than the ceiling', () => {
-    expect(
-      validateWaiver({ waivedUntil: '2027-01-01', waiverReason: 'x'.repeat(30), waiverTicket: 'T-1', waiverMaxDays: 400 }),
-    ).toContainEqual(expect.stringMatching(/exceeds the 30-day ceiling/));
+  it('rejects a far-future waiver — a 26,804-day "temporary" exception is a disabled check', () => {
+    const p = validateWaiver({ waivedUntil: '2099-12-31', waiverReason: 'x'.repeat(30), waiverTicket: 'T-1' }, NOW);
+    expect(p.join('\n')).toMatch(/days away; the ceiling is 30 days/);
   });
 
-  it('ships with NO waiver in effect — every required check is genuinely required', () => {
-    for (const wf of policy.requiredWorkflows) {
-      expect(wf.waivedUntil, `${wf.displayName} must not ship waived`).toBeUndefined();
+  it('rejects calendar dates that do not exist instead of silently rolling them over', () => {
+    // Date.UTC turns 2026-02-31 into 2026-03-03 and 2026-13-01 into 2027-01-01, so a
+    // typo used to be accepted as a completely different date.
+    for (const bad of ['2026-02-31', '2026-02-30', '2026-13-01', '2026-04-31']) {
+      const p = validateWaiver({ waivedUntil: bad, waiverReason: 'x'.repeat(30), waiverTicket: 'T-1' }, NOW);
+      expect(p.join('\n'), bad).toMatch(/is not a real calendar date/);
     }
+  });
+
+  it('accepts a waiver inside the ceiling, and one already expired (it simply no longer applies)', () => {
+    expect(validateWaiver({ waivedUntil: '2026-08-26', waiverReason: 'x'.repeat(30), waiverTicket: 'T-1' }, NOW)).toEqual([]);
+    expect(validateWaiver({ waivedUntil: '2026-01-01', waiverReason: 'x'.repeat(30), waiverTicket: 'T-1' }, NOW)).toEqual([]);
+  });
+
+  it('measures the ceiling against NOW, not against a self-declared field', () => {
+    const p = validateWaiver(
+      { waivedUntil: '2026-09-30', waiverReason: 'x'.repeat(30), waiverTicket: 'T-1', waiverMaxDays: 9999 },
+      NOW,
+    );
+    expect(p.join('\n')).toMatch(/the ceiling is 30 days/);
+  });
+
+  it('every waiver that ships is valid and inside the ceiling — no permanent exception can be committed', () => {
+    const waived = policy.requiredWorkflows.filter((w) => w.waivedUntil);
+    for (const wf of waived) {
+      // Validated against the waiver's OWN authoring window, so this test does not start
+      // failing merely because the date passed — an expired waiver is legitimate, it just
+      // stops applying and the check becomes required again.
+      const authored = Date.parse(`${wf.waivedUntil}T00:00:00Z`) - 29 * 86_400_000;
+      expect(validateWaiver(wf, authored), `${wf.displayName} waiver`).toEqual([]);
+      expect(wf.waiverTicket, `${wf.displayName} needs a ticket`).toBeTruthy();
+    }
+  });
+
+  it('only Production E2E is waived — CI, Security and Quality stay unconditionally required', () => {
+    const waived = policy.requiredWorkflows.filter((w) => w.waivedUntil).map((w) => w.displayName);
+    expect(waived).toEqual(['Production E2E']);
   });
 });
 

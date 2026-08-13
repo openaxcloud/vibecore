@@ -105,6 +105,12 @@ env:
   FLEET_MEMBERSHIP: vibecore-prod-app
   HELM_RELEASE: vibecore
   HELM_NAMESPACE: vibecore
+  # Must match infra/cloudbuild/*.yaml `_KMS_KEYRING` / `_KMS_KEY` — those are what
+  # actually SIGN the images. These workflows previously said `vibecore-supply-chain`,
+  # a keyring that does not exist in the project (`gcloud kms keyrings list` returns
+  # only `ecode-supply-chain`), so `cosign verify` could never have succeeded.
+  KMS_KEYRING: ecode-supply-chain
+  KMS_KEY_NAME: cosign-images
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -125,6 +131,45 @@ jobs:
           # Full history: the dispatch path has to prove the requested commit is
           # actually on main, which needs main's history locally.
           fetch-depth: 0
+
+      # THE WORKFLOW GRAPH ITSELF MUST BE MAIN'S.
+      #
+      # Every other assertion in this file checks the CODE at `target_sha`. None of them
+      # can see which workflow YAML is actually executing: `workflow_dispatch` runs the
+      # graph from the ref it was dispatched on, so a feature branch could carry an
+      # edited deploy-main.yml — with the gate removed — and still reach the production
+      # environment and WIF. Production dispatches from feature branches have already
+      # succeeded in this repo, so this is observed behaviour, not a hypothetical.
+      #
+      # `GITHUB_WORKFLOW_REF` is the one value that names the file AND the ref actually
+      # loaded, e.g. `owner/repo/.github/workflows/deploy-main.yml@refs/heads/main`. It
+      # is set by the runner and is not settable from inputs.
+      #
+      # This is defence in depth, not the whole defence: the durable controls are the
+      # `production` environment's branch policy and the WIF provider's subject
+      # condition, both of which need repo/GCP admin. As of 2026-08-12 the `production`
+      # environment had `protection_rules: []` and `branch_policy: null` — i.e. no
+      # protection at all — so this check is currently the ONLY thing enforcing it.
+      - name: Assert this workflow graph is main's, not a side branch's
+        env:
+          WORKFLOW_REF: ${{ github.workflow_ref }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          EXPECTED="${GITHUB_REPOSITORY}/.github/workflows/deploy-main.yml@refs/heads/main"
+          echo "workflow_ref = ${WORKFLOW_REF}"
+          echo "expected     = ${EXPECTED}"
+          if [ "${WORKFLOW_REF}" != "${EXPECTED}" ]; then
+            echo "::error::this run is executing '${WORKFLOW_REF}', not the deploy workflow on refs/heads/main."
+            echo "::error::Production can only be deployed by main's own workflow file. Dispatch from main."
+            exit 1
+          fi
+          # Belt: on a push, the ref must also be main (paths-ignore/branches already
+          # ensure it, but a future trigger edit must not quietly widen this).
+          if [ "${EVENT}" = "push" ] && [ "${GITHUB_REF}" != "refs/heads/main" ]; then
+            echo "::error::push event on ${GITHUB_REF}, expected refs/heads/main"
+            exit 1
+          fi
 
       - name: Resolve and bind target SHA
         id: target
@@ -147,24 +192,28 @@ jobs:
             fi
             TARGET_SHA="${TARGET_SHA_INPUT}"
 
-            if ! git cat-file -e "${TARGET_SHA}^{commit}" 2>/dev/null; then
-              echo "::error::${TARGET_SHA} is not a commit in this repository"
-              exit 1
-            fi
-            # Must already be on main. Without this, a dispatch could deploy a
-            # commit that only ever existed on a side branch — reviewed by nobody,
-            # merged by nobody — while still passing a per-commit check gate.
-            git fetch --no-tags origin main
-            if ! git merge-base --is-ancestor "${TARGET_SHA}" origin/main; then
-              echo "::error::${TARGET_SHA} is not an ancestor of origin/main — refusing to deploy an off-main commit"
-              exit 1
-            fi
           else
             TARGET_SHA="${PUSH_SHA}"
           fi
 
           if ! printf '%s' "${TARGET_SHA}" | grep -Eq '^[0-9a-f]{40}$'; then
             echo "::error::resolved target sha is not 40-hex: '${TARGET_SHA}'"
+            exit 1
+          fi
+
+          # Existence and main-ancestry are checked for EVERY resolved target, not only
+          # for an explicitly dispatched one. Previously the push path skipped both on
+          # the assumption that `github.sha` is trivially on main — which stops being
+          # true the moment a trigger is widened, a workflow is re-dispatched on another
+          # ref, or the event payload is anything but a plain push. An assumption that
+          # only holds under today's triggers is not a check.
+          if ! git cat-file -e "${TARGET_SHA}^{commit}" 2>/dev/null; then
+            echo "::error::${TARGET_SHA} is not a commit in this repository"
+            exit 1
+          fi
+          git fetch --no-tags origin main
+          if ! git merge-base --is-ancestor "${TARGET_SHA}" origin/main; then
+            echo "::error::${TARGET_SHA} is not an ancestor of origin/main — refusing to deploy an off-main commit"
             exit 1
           fi
 
@@ -882,7 +931,7 @@ jobs:
       - name: Verify image signatures (cosign, blocking)
         run: |
           set -euo pipefail
-          KMS_KEY="gcpkms://projects/${GCP_PROJECT_ID}/locations/${GAR_LOCATION}/keyRings/vibecore-supply-chain/cryptoKeys/cosign-images"
+          KMS_KEY="gcpkms://projects/${GCP_PROJECT_ID}/locations/${GAR_LOCATION}/keyRings/${KMS_KEYRING}/cryptoKeys/${KMS_KEY_NAME}"
           echo "KMS_KEY=${KMS_KEY}" >> "$GITHUB_ENV"
           rc=0
           while read -r service image digest; do

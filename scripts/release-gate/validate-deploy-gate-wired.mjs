@@ -33,6 +33,7 @@ export const DEPLOY_WORKFLOW = '.github/workflows/deploy-main.yml';
 export const BREAK_GLASS_WORKFLOW = '.github/workflows/deploy-break-glass.yml';
 export const POLICY_FILE = 'scripts/release-gate/required-checks.json';
 export const CHART_VALUES = 'infra/helm/platform/values.yaml';
+export const SIGNING_BUILD_CONFIG = 'infra/cloudbuild/runtime-tier.yaml';
 
 /**
  * Parse the deploy workflow's `SERVICES=` line into structured entries.
@@ -182,7 +183,7 @@ export function grantsIdToken(region, indent) {
  * @param {{deployWorkflow: string, breakGlassWorkflow: string, policy: object}} files
  * @returns {string[]} problems (empty = wired correctly)
  */
-export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues }) {
+export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues, signingBuildConfig }) {
   const problems = [];
   const { topLevel, jobs } = parseWorkflowRegions(deployWorkflow);
   breakGlassWorkflow = breakGlassWorkflow ? stripComments(breakGlassWorkflow) : breakGlassWorkflow;
@@ -316,6 +317,33 @@ export function checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, ch
     }
   }
 
+  // --- the verification key must be the key that actually signs ---
+  //
+  // The workflows named `keyRings/vibecore-supply-chain`, which does not exist in the
+  // project (`gcloud kms keyrings list` returns only `ecode-supply-chain`). `cosign
+  // verify` could therefore never have succeeded — a gate that fails closed on a
+  // typo blocks every deploy, and one that had failed OPEN would have verified
+  // nothing. Signing and verification must name the same keyring, always.
+  if (signingBuildConfig) {
+    const ring = /_KMS_KEYRING:\s*(\S+)/.exec(signingBuildConfig)?.[1];
+    const keyName = /_KMS_KEY:\s*(\S+)/.exec(signingBuildConfig)?.[1];
+    for (const [label, text] of [['deploy', deployWorkflow], ['break-glass', breakGlassWorkflow]]) {
+      if (!text) {
+        continue;
+      }
+      const wfRing = /KMS_KEYRING:\s*(\S+)/.exec(text)?.[1];
+      const wfKey = /KMS_KEY_NAME:\s*(\S+)/.exec(text)?.[1];
+      if (ring && wfRing !== ring) {
+        problems.push(
+          `${label} workflow verifies with keyring '${wfRing}' but ${SIGNING_BUILD_CONFIG} signs with '${ring}'`,
+        );
+      }
+      if (keyName && wfKey !== keyName) {
+        problems.push(`${label} workflow verifies with key '${wfKey}' but ${SIGNING_BUILD_CONFIG} signs with '${keyName}'`);
+      }
+    }
+  }
+
   // --- the policy must still require the four pipelines ---
   const names = (policy.requiredWorkflows ?? []).map((w) => w.displayName);
   for (const required of ['Production CI', 'Production E2E', 'Security Analysis', 'Code Quality']) {
@@ -360,6 +388,7 @@ function selfTest() {
   const breakGlassWorkflow = fs.readFileSync(BREAK_GLASS_WORKFLOW, 'utf8');
   const policy = JSON.parse(fs.readFileSync(POLICY_FILE, 'utf8'));
   const chartValues = fs.readFileSync(CHART_VALUES, 'utf8');
+  const signingBuildConfig = fs.readFileSync(SIGNING_BUILD_CONFIG, 'utf8');
 
   // Prove the validator can actually FAIL — a checker that only ever passes is
   // indistinguishable from no checker at all.
@@ -372,36 +401,49 @@ function selfTest() {
       breakGlassWorkflow,
       policy,
       chartValues,
+      signingBuildConfig,
     })],
     ['id-token granted workflow-wide', () => ({
       deployWorkflow: deployWorkflow.replace('permissions:\n  contents: read', 'permissions:\n  contents: read\n  id-token: write'),
       breakGlassWorkflow,
       policy,
       chartValues,
+      signingBuildConfig,
     })],
     ['E2E dropped from the policy', () => ({
       deployWorkflow,
       breakGlassWorkflow,
       policy: { ...policy, requiredWorkflows: policy.requiredWorkflows.filter((w) => w.displayName !== 'Production E2E') },
       chartValues,
+      signingBuildConfig,
+    })],
+    ['verification keyring drifting from the signing keyring', () => ({
+      deployWorkflow: deployWorkflow.replace('KMS_KEYRING: ecode-supply-chain', 'KMS_KEYRING: vibecore-supply-chain'),
+      breakGlassWorkflow,
+      policy,
+      chartValues,
+      signingBuildConfig,
     })],
     ['break-glass allowed to build', () => ({
       deployWorkflow,
       breakGlassWorkflow: `${breakGlassWorkflow}\n          gcloud builds submit .\n`,
       policy,
       chartValues,
+      signingBuildConfig,
     })],
     ['a chart service left out of the digest matrix', () => ({
       deployWorkflow: deployWorkflow.replace('api:api:runtime:true:true ', ''),
       breakGlassWorkflow,
       policy,
       chartValues,
+      signingBuildConfig,
     })],
     ['a service waited on but no longer verified', () => ({
       deployWorkflow: deployWorkflow.replace('for svc in web api', 'for svc in web admin api'),
       breakGlassWorkflow,
       policy,
       chartValues,
+      signingBuildConfig,
     })],
   ];
 
@@ -415,7 +457,7 @@ function selfTest() {
     }
   }
 
-  const clean = checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues });
+  const clean = checkGateWiring({ deployWorkflow, breakGlassWorkflow, policy, chartValues, signingBuildConfig });
   console.log(`${clean.length === 0 ? 'ok  ' : 'FAIL'}  accepts the real, unmutated workflow`);
   if (clean.length > 0) {
     clean.forEach((p) => console.log(`        ${p}`));
@@ -434,6 +476,7 @@ function main() {
     breakGlassWorkflow: fs.existsSync(BREAK_GLASS_WORKFLOW) ? fs.readFileSync(BREAK_GLASS_WORKFLOW, 'utf8') : '',
     policy: JSON.parse(fs.readFileSync(POLICY_FILE, 'utf8')),
     chartValues: fs.existsSync(CHART_VALUES) ? fs.readFileSync(CHART_VALUES, 'utf8') : null,
+    signingBuildConfig: fs.existsSync(SIGNING_BUILD_CONFIG) ? fs.readFileSync(SIGNING_BUILD_CONFIG, 'utf8') : null,
   });
 
   if (problems.length > 0) {
