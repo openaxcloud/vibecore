@@ -319,9 +319,9 @@ test.describe('compact IDE shell device matrix', () => {
   }
 
   for (const profile of compactPanelProfiles) {
-    test(`renders every compact IDE panel full-screen on ${profile.name} with a nonblank preview`, async ({
-      browser,
-    }, testInfo) => {
+    test(`renders every compact IDE panel full-screen on ${profile.name} with a nonblank preview`, {
+      tag: '@runtime',
+    }, async ({ browser }, testInfo) => {
       test.skip(testInfo.project.name !== 'chromium', 'device matrix creates explicit browser contexts');
       test.setTimeout(300_000);
 
@@ -395,7 +395,20 @@ async function assertCompactShellForProfile(
     expect(layout.overlaps, `${profile.name} status/nav overlap`).toBe(false);
 
     await expect(page.getByTestId('mobile-bottom-navigation').getByTestId('button-more')).toBeVisible();
-    await expect(page.getByTestId('mobile-ide-header').getByTestId('button-more')).toBeVisible();
+
+    /*
+     * The compact header exposes a single overflow control whose test id (and
+     * target menu) depends on the active panel: `mobile-agent-menu-trigger`
+     * while the Agent panel is up, `button-more` otherwise. The shell lands on
+     * the Agent panel, so asserting `button-more` unconditionally never
+     * matched. Accept either — what matters is that the control is there.
+     */
+    await expect(
+      page
+        .getByTestId('mobile-ide-header')
+        .locator('[data-testid="button-more"], [data-testid="mobile-agent-menu-trigger"]'),
+      `${profile.name} header overflow control`,
+    ).toBeVisible();
     await expect(page.getByTestId('mobile-more-menu-sheet')).toHaveCount(0);
 
     await page.getByTestId('mobile-bottom-navigation').getByTestId('button-more').click({ force: true });
@@ -416,12 +429,25 @@ async function assertCompactShellForProfile(
       })),
     );
 
-    for (const item of compactToolsPaletteItems) {
+    /*
+     * Tool items prefix their label with a status and a description that depend
+     * on whether a workspace is up ("UnavailableWorkspace shell terminal" with
+     * no runtime, "Terminal …" with one). This matrix is about responsive
+     * layout, not runtime state, so match the tool name case-insensitively;
+     * running-workspace labels belong to the @runtime suite.
+     *
+     * Report every gap in one go rather than failing on the first tool.
+     */
+    const missingTools = compactToolsPaletteItems.filter((item) => {
       const renderedItem = renderedToolItems.find((candidate) => candidate.id === item.id);
 
-      expect(renderedItem, `${profile.name} tools palette ${item.label}`).toBeTruthy();
-      expect(renderedItem?.label, `${profile.name} tools palette ${item.label} label`).toContain(item.label);
-    }
+      return !renderedItem || !renderedItem.label.toLowerCase().includes(item.label.toLowerCase());
+    });
+
+    expect(
+      missingTools.map((item) => item.id),
+      `${profile.name} tools palette — rendered: ${renderedToolItems.map((item) => item.id).join(', ')}`,
+    ).toEqual([]);
 
     const renderedToolIds = renderedToolItems.map((item) => item.id);
 

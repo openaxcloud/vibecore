@@ -215,8 +215,8 @@ test('AI-created project starts the agent with a valid default model', { tag: '@
 
   const prompt = 'Build a realtime kanban board with analytics';
   await expectProjectCreationForm(page);
-  const providerDropdown = page.getByTestId('ai-provider-dropdown');
-  const modelDropdown = page.getByTestId('ai-model-dropdown');
+  const providerDropdown = page.getByTestId('agent-provider-dropdown');
+  const modelDropdown = page.getByTestId('agent-model-dropdown');
   await expect(providerDropdown.getByRole('combobox', { name: 'AI provider' })).toContainText('Anthropic', {
     timeout: 30_000,
   });

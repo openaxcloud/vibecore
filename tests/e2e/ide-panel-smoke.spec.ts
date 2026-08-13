@@ -181,7 +181,7 @@ async function assertPanelRendered(page: Page, projectId: string, panel: IdePane
   }
 
   if (panel === 'files') {
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 45_000 });
     await expect(page.locator('.bolt-project-files-tool').first()).toBeVisible({ timeout: 45_000 });
     return;
   }

@@ -203,6 +203,13 @@ export const ECODE_MOBILE_TOOLS: readonly MobileToolItem[] = [
     icon: 'i-ph:chart-line',
   },
   {
+    id: 'domains',
+    section: 'tools',
+    titleKey: 'mobileIdeTabs.domains.title',
+    descriptionKey: 'mobileIdeTabs.domains.description',
+    icon: 'i-ph:globe',
+  },
+  {
     id: 'ports',
     section: 'tools',
     titleKey: 'mobileIdeTabs.ports.title',

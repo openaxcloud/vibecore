@@ -132,8 +132,8 @@ test('project creation exposes templates and import paths', async ({ page }) => 
   await expect(page.getByLabel('Describe your idea')).toBeVisible();
   await expect(page.getByLabel('Artifact type')).toBeVisible();
   await expect(page.locator('.vc-new-project-chip', { hasText: 'Web' })).toBeVisible();
-  await expect(page.getByTestId('ai-provider-dropdown')).toBeVisible();
-  await expect(page.getByTestId('ai-model-dropdown')).toBeVisible();
+  await expect(page.getByTestId('agent-provider-dropdown')).toBeVisible();
+  await expect(page.getByTestId('agent-model-dropdown')).toBeVisible();
   await expect(page.getByRole('link', { name: /Import an existing GitHub repository/ })).toHaveAttribute(
     'href',
     '/import-github',
@@ -314,7 +314,7 @@ test('project creation syncs AI providers and models from settings', async ({ pa
   await expect(page.getByRole('heading', { name: 'What do you want to build?' })).toBeVisible();
   await expect(page.getByText('1 provider synced from Settings')).toBeVisible({ timeout: 15_000 });
 
-  const providerDropdown = page.getByTestId('ai-provider-dropdown');
+  const providerDropdown = page.getByTestId('agent-provider-dropdown');
   const providerCombobox = providerDropdown.getByRole('combobox', { name: 'AI provider' });
   await expect(providerCombobox).toContainText('OpenAI');
   await providerCombobox.click();
@@ -323,7 +323,7 @@ test('project creation syncs AI providers and models from settings', async ({ pa
 
   await page.keyboard.press('Escape');
 
-  const modelDropdown = page.getByTestId('ai-model-dropdown');
+  const modelDropdown = page.getByTestId('agent-model-dropdown');
   const modelCombobox = modelDropdown.getByRole('combobox', { name: 'AI model' });
   await expect(modelCombobox).toContainText('GPT Settings Live');
   await modelCombobox.click();
@@ -604,7 +604,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
   await expect(page.getByTestId('ide-files-panel-toggle')).toBeVisible();
 
-  const rightPanel = page.getByRole('complementary', { name: 'Project files panel' });
+  const rightPanel = page.getByRole('complementary', { name: 'Project library panel' });
   await expect(rightPanel).toBeVisible();
 
   const rightPanelMetrics = await rightPanel.evaluate((element) => {
@@ -713,7 +713,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   await expect(rightPanel).toHaveCount(0);
   await expect(page.getByTestId('ide-files-panel-toggle')).toHaveAttribute('aria-label', 'Open files panel');
   await page.getByTestId('ide-files-panel-toggle').click();
-  await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible();
+  await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible();
 });
 
 test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) => {
@@ -1593,7 +1593,7 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 60_000 });
   await expect(page.locator('.bolt-project-tab').first()).toBeVisible({ timeout: 30_000 });
-  const filesPanel = page.locator('[aria-label="Project files panel"]');
+  const filesPanel = page.locator('[aria-label="Project library panel"]');
   await expect(filesPanel.getByText('AppShell.tsx', { exact: true })).toBeVisible({ timeout: 60_000 });
   await filesPanel.getByText('AppShell.tsx', { exact: true }).click();
   await expect(page.locator('[data-testid="responsive-code-editor"]')).toBeVisible({ timeout: 30_000 });
@@ -1633,7 +1633,7 @@ test('IDE light theme tabs use visible tokenized surfaces', async ({ page, isMob
       editorActive: read('.bolt-project-tab[aria-selected="true"]'),
       editorStrip: read('.bolt-project-tabbar'),
       editorCanvas: read('[data-testid="responsive-code-editor"]'),
-      rightPanel: read('[aria-label="Project files panel"]'),
+      rightPanel: read('[aria-label="Project library panel"]'),
     };
   });
 
@@ -1816,7 +1816,7 @@ test('reopens project IDE with persisted agent memory and panel state', async ({
   });
 
   if (!isMobile) {
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible();
+    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible();
     await expect(page.locator('.bolt-project-bottom-terminal-shell')).toBeVisible();
 
     const persistedMetrics = await page.locator('.bolt-project-ide-panels').evaluate((element) => {
