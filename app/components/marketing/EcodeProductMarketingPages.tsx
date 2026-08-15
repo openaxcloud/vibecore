@@ -1592,8 +1592,16 @@ function WorkspaceMockup({ large = false }: { large?: boolean }) {
         <span className="h-3 w-3 rounded-full bg-emerald-400" />
         <span className="ml-3 text-xs text-white/50">{workspacePreviewUrl}</span>
       </div>
-      <div className="grid min-h-[inherit] grid-cols-[0.32fr_0.68fr]">
-        <aside className="border-r border-white/10 bg-white/[0.03] p-4 text-xs text-white/55">
+      {/*
+       * An `fr` track keeps an implicit `min-width: min-content`, and the code
+       * block below is `white-space: pre` — so its ~340px min-content width
+       * forced this grid WIDER than its `overflow-hidden` shell on a phone and
+       * the mockup got clipped on both edges (sidebar labels sheared to
+       * "ments", code running off-screen). Stack to one column below `sm`, and
+       * let the panes actually shrink via `min-w-0`.
+       */}
+      <div className="grid min-h-[inherit] grid-cols-1 sm:grid-cols-[0.32fr_0.68fr]">
+        <aside className="min-w-0 border-b border-white/10 bg-white/[0.03] p-4 text-xs text-white/55 sm:border-b-0 sm:border-r">
           {['app', 'components', 'routes', 'api', 'deployments'].map((item) => (
             <div key={item} className="mb-3 flex items-center gap-2">
               <Layers className="h-3.5 w-3.5" aria-hidden />
@@ -1601,8 +1609,9 @@ function WorkspaceMockup({ large = false }: { large?: boolean }) {
             </div>
           ))}
         </aside>
-        <div className="p-4">
-          <pre className="rounded-lg border border-white/10 bg-black/35 p-4 font-mono text-xs leading-6 text-emerald-200">
+        <div className="min-w-0 p-4">
+          {/* `overflow-x-auto` keeps a long line inside the panel instead of widening the grid. */}
+          <pre className="overflow-x-auto rounded-lg border border-white/10 bg-black/35 p-4 font-mono text-xs leading-6 text-emerald-200">
             <code>
               {'import { Dashboard } from "./components";\n'}
               {'export default function App() {\n'}
