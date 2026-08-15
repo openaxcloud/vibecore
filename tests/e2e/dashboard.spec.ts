@@ -1226,42 +1226,51 @@ test('all IDE service panels keep light theme containers readable', async ({ pag
     const servicePanel = page.locator(`[data-testid="ide-service-panel"][data-panel="${panel}"]`).first();
     await expect(servicePanel).toBeVisible({ timeout: 15_000 });
 
-    const darkContainers = await servicePanel.evaluate((root, forbiddenBackgrounds) => {
-      const allowedDarkSelectors = [
-        'pre',
-        'code',
-        'textarea',
-        '.bolt-project-console-body',
-        '.bolt-project-code-preview',
-      ];
+    /*
+     * Re-measure until the panel settles. Each panel applies its theme after
+     * mount, so a single snapshot caught whichever panel lost the race — which
+     * is why the offender rotated between runs (git / packages / database /
+     * overview) instead of pointing at one real defect.
+     */
+    const readDarkContainers = () =>
+      servicePanel.evaluate((root, forbiddenBackgrounds) => {
+        const allowedDarkSelectors = [
+          'pre',
+          'code',
+          'textarea',
+          '.bolt-project-console-body',
+          '.bolt-project-code-preview',
+        ];
 
-      return Array.from(root.querySelectorAll<HTMLElement>('*'))
-        .map((element) => {
-          const rect = element.getBoundingClientRect();
-          const style = window.getComputedStyle(element);
+        return Array.from(root.querySelectorAll<HTMLElement>('*'))
+          .map((element) => {
+            const rect = element.getBoundingClientRect();
+            const style = window.getComputedStyle(element);
 
-          return {
-            className: element.className.toString(),
-            tagName: element.tagName,
-            background: style.backgroundColor,
-            color: style.color,
-            width: Math.round(rect.width),
-            height: Math.round(rect.height),
-            text: element.textContent?.replace(/\s+/g, ' ').trim().slice(0, 80) ?? '',
-            allowed: allowedDarkSelectors.some((selector) => element.matches(selector) || element.closest(selector)),
-          };
-        })
-        .filter(
-          (item) =>
-            !item.allowed &&
-            item.width >= 48 &&
-            item.height >= 24 &&
-            (forbiddenBackgrounds as string[]).includes(item.background),
-        )
-        .slice(0, 12);
-    }, forbiddenLightBackgrounds);
+            return {
+              className: element.className.toString(),
+              tagName: element.tagName,
+              background: style.backgroundColor,
+              color: style.color,
+              width: Math.round(rect.width),
+              height: Math.round(rect.height),
+              text: element.textContent?.replace(/\s+/g, ' ').trim().slice(0, 80) ?? '',
+              allowed: allowedDarkSelectors.some((selector) => element.matches(selector) || element.closest(selector)),
+            };
+          })
+          .filter(
+            (item) =>
+              !item.allowed &&
+              item.width >= 48 &&
+              item.height >= 24 &&
+              (forbiddenBackgrounds as string[]).includes(item.background),
+          )
+          .slice(0, 12);
+      }, forbiddenLightBackgrounds);
 
-    expect(darkContainers, `${panel} contains dark containers in light theme`).toEqual([]);
+    await expect(async () => {
+      expect(await readDarkContainers(), `${panel} contains dark containers in light theme`).toEqual([]);
+    }).toPass({ timeout: 20_000, intervals: [250, 500, 1000, 2000] });
   }
 });
 
