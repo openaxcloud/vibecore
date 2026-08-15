@@ -18,16 +18,16 @@ mis à jour à la place.
 | | valeur |
 |---|---|
 | Branche | `fix/from-scratch-install-dr-clean` |
-| **SHA de code** | **`cb662e7b7e`** |
-| Base | `origin/main` = `93e7eaf8a8` |
+| **SHA de code** | **`8909d09541`** |
+| Base | `origin/main` = `f4f604f4ca` |
 | Tête de PR | voir `git log` — au-delà du SHA de code, **uniquement `docs/audit/**`** |
 | Release de preuve | `vibecore-pr125` (ns `vibecore-pr125`, runtime `vibecore-pr125-workspaces`) |
-| Images | les 10, tag `cb662e7b7e`, registre du cluster d'audit |
+| Images | les 10, tag `8909d09541`, registre du cluster d'audit |
 
 L'invariant « après le SHA de code, uniquement de la documentation » est vérifiable :
 
 ```bash
-git diff --name-only cb662e7b7e..HEAD    # -> docs/audit/** exclusivement
+git diff --name-only 8909d09541..HEAD    # -> docs/audit/** exclusivement
 ```
 
 ## 2. Rejouer les 4 portes
@@ -36,7 +36,7 @@ L'environnement d'audit est disponible jusqu'au **2026-08-20 03:00 UTC**.
 
 ```bash
 RELEASE=vibecore-pr125 NS=vibecore-pr125 RUNTIME_NS=vibecore-pr125-workspaces \
-  WS_ID=ws-vibecore-pr125 scripts/proofs/replay-preview-doors.sh cb662e7b7e
+  WS_ID=ws-vibecore-pr125 scripts/proofs/replay-preview-doors.sh 8909d09541
 ```
 
 Le script est assertif : il refuse (`set -euo pipefail`, sortie non nulle) si un seul
@@ -46,7 +46,7 @@ l'attendu. Il ne décrit pas, il vérifie.
 Pour remonter la release isolée depuis zéro et **vérifier les digests** :
 
 ```bash
-scripts/audit-env/deploy-isolated.sh vibecore-pr125 cb662e7b7e
+scripts/audit-env/deploy-isolated.sh vibecore-pr125 8909d09541
 ```
 
 ## 3. État des checks au SHA courant
@@ -54,11 +54,15 @@ scripts/audit-env/deploy-isolated.sh vibecore-pr125 cb662e7b7e
 | Check | État | Lecture |
 |---|---|---|
 | `Code Quality`, `Security Analysis`, `Production Terraform` (×2), `CodeQL` (×2), `Secret scan (gitleaks)`, `Secrets Detection`, `Dependency Vulnerability Scan`, `Accessibility`, `Performance`, `PR Size`, `Deploy Preview`, `Semantic Pull Request` | ✅ | 16 verts |
-| `Install, test, build, scan` | 🔴 | **hérité de `main`** — §4 |
-| `Quality Gates` | 🔴 | dérivé du précédent (`Wait for CI checks`, `allowed-conclusions: success,skipped`) |
+| `Install, test, build, scan` | ✅ | **réparé en amont** — `main` a mergé `06e50aff`, l'allow-list du code machine `SHARED_TENANT_UNAVAILABLE`, exactement la forme identifiée en §4 |
+| `Quality Gates` | ✅ | il dérivait du précédent |
 | `Production E2E` + 4 `Playwright` i18n | 🔴 | **hérités** — §5 |
 
-## 4. `Install, test, build, scan` — cassé par `main`, correctif vérifié ailleurs
+## 4. `Install, test, build, scan` — a été cassé par `main`, réparé en amont depuis
+
+> **Clos.** `main` a mergé `06e50aff fix(i18n): débloque la CI — sous-code machine
+> `SHARED_TENANT_UNAVAILABLE` allowlisté`. Le check est **vert** depuis. Ce qui suit
+> reste pour l'historique de l'attribution.
 
 La garde i18n nomme le fichier :
 
@@ -131,7 +135,7 @@ accordé au workspace-manager **partagé**, perte des annotations Workload Ident
 
 | Répertoire | Contenu |
 |---|---|
-| `preuves/release-isolee-cb662e7b7e/` | SHA courant : déploiement + digests, 4 portes, registre, checks, journal `:816`, portes après les changements de preview de `main` |
+| `preuves/release-isolee-8909d09541/`, `…-cb662e7b7e/` | SHA courant : déploiement + digests, 4 portes, registre, checks, journal `:816`, portes après les changements de preview de `main` |
 | `preuves/release-isolee-5626c7be71/` | rouge i18n hérité + correctif vérifié, 4ᵉ échantillon E2E |
 | `preuves/release-isolee-f2805edd03/`, `…-82ed5e5fa9/` | tours précédents : digests, portes, attribution CI, bissection |
 | `preuves/p0-*` , `preuves/contre-audit-*` | tours antérieurs (contexte épinglé, fuite cookie, routage screenshotter) |

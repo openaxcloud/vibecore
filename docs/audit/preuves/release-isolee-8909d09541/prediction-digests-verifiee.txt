@@ -1,0 +1,22 @@
+# Controle de provenance : une prediction posee AVANT le build, puis verifiee
+
+Le rebase de ce tour n'a absorbe que deux instantanes de parite de main
+(docs/parity/baseline/snapshots/**), donc zero ligne de code :
+  git diff --name-only 7ca4f214a0 8909d09541 -- . ':!docs/'   ->  0 fichier
+
+Prediction posee avant de lancer le build : les digests doivent etre IDENTIQUES
+a ceux du SHA precedent, sauf web dont le build n'est pas reproductible bit a bit.
+
+Verification :
+  api               IDENTIQUE
+  worker            IDENTIQUE
+  admin             IDENTIQUE
+  ai-gateway        IDENTIQUE
+  workspace-manager IDENTIQUE
+  preview-proxy     IDENTIQUE
+  screenshotter     IDENTIQUE
+  web               DIFFERENT  sha256:57ce1444fe94d… -> sha256:898ec2fee5685…
+
+7 sur 8 conformes a la prediction. La chaine de provenance dit donc la verite dans
+les deux sens : au tour ou main avait change du code applicatif reel, les 8 digests
+avaient change ; ici ou main n'a change que des instantanes, 7 sont a l'identique.
