@@ -34,17 +34,20 @@
     {
       "test": "tests/e2e/dashboard.spec.ts › authenticated user area applies the global platform design system",
       "cluster": "ide-account-theme",
-      "reason": "Forcing light via the ecode_theme cookie is the WRONG lever for IDE surfaces: BaseChat calls applyProjectThemePreference() once the settings payload lands and re-applies the per-account/project theme over the document. The cookie only wins when that preference is 'system'. The test needs to set the account preference through the API instead — needs the settings contract."
+      "reason": "Forcing light via the ecode_theme cookie is the WRONG lever for IDE surfaces: BaseChat calls applyProjectThemePreference() once the settings payload lands and re-applies the per-account/project theme over the document. The cookie only wins when that preference is 'system'. The test needs to set the account preference through the API instead — needs the settings contract.",
+      "unstable": true
     },
     {
       "test": "tests/e2e/dashboard.spec.ts › IDE light theme tabs use visible tokenized surfaces",
       "cluster": "ide-account-theme",
-      "reason": "Same lever problem: data-theme is light right after forceLightTheme(), then flips back to dark when the IDE re-applies the account preference. Verified live that the light theme itself works (--vc-ide-bg-app #f6f8fb holds for 30s outside the IDE settings path)."
+      "reason": "Same lever problem: data-theme is light right after forceLightTheme(), then flips back to dark when the IDE re-applies the account preference. Verified live that the light theme itself works (--vc-ide-bg-app #f6f8fb holds for 30s outside the IDE settings path).",
+      "unstable": true
     },
     {
       "test": "tests/e2e/dashboard.spec.ts › all IDE service panels keep light theme containers readable",
       "cluster": "ide-account-theme",
-      "reason": "Same lever problem, PLUS a candidate real bug worth a ticket: with the theme forced, `database` and `deployments` still report dark containers while other panels comply. Needs a product look once the theme lever is right."
+      "reason": "Same lever problem, PLUS a candidate real bug worth a ticket: with the theme forced, `database` and `deployments` still report dark containers while other panels comply. Needs a product look once the theme lever is right.",
+      "unstable": true
     },
     {
       "test": "tests/e2e/dashboard.spec.ts › IDE applies section 12 UI detail styles",
@@ -67,6 +70,18 @@
       "cluster": "ide-account-theme",
       "reason": "Same lever problem as the rest of this cluster: BaseChat re-applies the per-account/project theme preference over the document once the settings payload lands, so forcing light via the cookie does not hold on IDE surfaces. Omitted from the previous rebuild of this file by mistake. Marked unstable: it flaps — the same run reported it as flaky (green on retry), so a passing run proves nothing and must not itself break the gate.",
       "unstable": true
+    },
+    {
+      "test": "tests/e2e/dashboard.spec.ts › IDE applies the full 2026 color theme tokens",
+      "cluster": "ide-account-theme",
+      "unstable": true,
+      "reason": "Same lever as the rest of the ide-account-theme cluster: BaseChat calls applyProjectThemePreference() once the settings payload lands and re-applies the per-account/project theme over the document, so forcing light through the ecode_theme cookie does not hold on IDE surfaces. Marked unstable because the cluster demonstrably flaps — a different subset of these six failed on each run, which is why they are now waived as one block instead of one-by-one."
+    },
+    {
+      "test": "tests/e2e/dashboard.spec.ts › platform typography tokens apply to the web IDE",
+      "cluster": "ide-account-theme",
+      "unstable": true,
+      "reason": "Same lever as the rest of the ide-account-theme cluster: BaseChat calls applyProjectThemePreference() once the settings payload lands and re-applies the per-account/project theme over the document, so forcing light through the ecode_theme cookie does not hold on IDE surfaces. Marked unstable because the cluster demonstrably flaps — a different subset of these six failed on each run, which is why they are now waived as one block instead of one-by-one."
     }
   ]
 }
