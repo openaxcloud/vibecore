@@ -631,6 +631,9 @@ d'adressage à nettoyer, mais **ce n'est pas la cause des fichiers manquants**.
 > **Console de débogage** : saine — 1 configuration de lancement, 1 processus runtime réel
 > détecté, formulation honnête sur l'adaptateur, FR complet. **Paramètres** : sain — Projet,
 > Sécurité, IA, Utilisation, Compte, Mémoire, Préférences, métadonnées éditables.
+> **Compétences (Agent Skills)** : sain — compteurs `Projet 4 / Espace de travail 0 /
+> Communauté 12`, catalogue intégré avec bascules par projet (« Revue de code »,
+> « Génération de tests », « Débogueur » — Activé), FR complet.
 > **Découvrabilité** : `Ports`, `Stockage d'objets` et `Compétences` ne sont PAS dans le rail
 > latéral en desktop mais **sont bien atteignables via la palette de commandes**, en français
 > (`app/lib/mobile-ide-tabs.ts` les déclare comme onglets mobiles). Non consigné comme défaut.
