@@ -56,7 +56,8 @@ scripts/audit-env/deploy-isolated.sh vibecore-pr125 8909d09541
 | `Code Quality`, `Security Analysis`, `Production Terraform` (×2), `CodeQL` (×2), `Secret scan (gitleaks)`, `Secrets Detection`, `Dependency Vulnerability Scan`, `Accessibility`, `Performance`, `PR Size`, `Deploy Preview`, `Semantic Pull Request` | ✅ | 16 verts |
 | `Install, test, build, scan` | ✅ | **réparé en amont** — `main` a mergé `06e50aff`, l'allow-list du code machine `SHARED_TENANT_UNAVAILABLE`, exactement la forme identifiée en §4 |
 | `Quality Gates` | ✅ | il dérivait du précédent |
-| `Production E2E` + 4 `Playwright` i18n | 🔴 | **hérités** — §5 |
+| `Production E2E` | ✅ | **vert au SHA exact**, via la tolérance bornée et commitée de `main` — §5bis |
+| 4 `Playwright` (audit i18n live) | 🔴 | **hérités** — §5 |
 
 ## 4. `Install, test, build, scan` — a été cassé par `main`, réparé en amont depuis
 
@@ -103,6 +104,26 @@ test **échoue aussi**. Mode d'échec cohérent : les six jetons CSS reviennent 
 soit une feuille de styles pas encore appliquée, en ~2,6 s. Le journal des échantillons
 est tenu à jour dans `preuves/release-isolee-cb662e7b7e/journal-echantillons-dashboard-816.txt` —
 si le test devenait systématique d'un seul côté, l'instruction serait à rouvrir.
+
+## 5bis. `Production E2E` — vert, et comment le lire
+
+Le check est **vert au SHA exact** (run `31906123535`). Il faut le lire précisément :
+Playwright sort en échec (`playwright exit: 1` — 9 échecs, 1 flaky, 205 succès sur 239
+rapportés) et le job passe grâce à l'étape `E2E gate (bounded waiver)` ajoutée en amont.
+
+Ce n'est pas un vert de complaisance. La tolérance est **commitée** dans
+`tests/e2e/e2e-waivers.json` (owner `avi@snatchbot.me`, **expire le 2026-08-27**) et ses
+règles sont appliquées par `scripts/e2e-gate.mjs`, pas par convention : un test toléré
+**tourne toujours**, une tolérance périmée fait échouer la porte, un test toléré qui se
+remet à passer la fait échouer aussi (sauf marqué `unstable`), tout échec non listé
+échoue normalement, et la fenêtre est plafonnée à 30 jours.
+
+**La PR ne touche ni la porte, ni la liste, ni le workflow** (0 fichier), et les 10
+tolérances portent toutes sur `app/` — hors de son diff. Le test que j'avais instruit
+par bissection y figure d'ailleurs (cluster `ide-account-theme`), ce qui confirme de
+l'extérieur la conclusion « instabilité héritée ».
+
+Détail : `preuves/release-isolee-8909d09541/e2e-vert-via-tolerance-bornee.txt`.
 
 ## 6. Ce que les tours de contre-audit ont produit
 
