@@ -25,6 +25,12 @@ are green, and it deploys **by image digest**, verified against what the pods re
 
 ## Prerequisites (cannot be done from CI — they need repo/GCP admin)
 
+> **Exact commands, with the live state each one changes and a read-back for each:**
+> [`RELEASE_GATE_ADMIN_ACTIONS.md`](RELEASE_GATE_ADMIN_ACTIONS.md). Two of the five have a
+> trap the obvious one-liner falls into — notably the WIF restriction, which as usually
+> written would break `ar-protect-images`, `docker` and break-glass, all of which share
+> the deploy service account.
+
 Verified against the live project and repo on 2026-08-13. Each is fail-closed: getting
 one wrong blocks deploys rather than weakening the gate.
 
