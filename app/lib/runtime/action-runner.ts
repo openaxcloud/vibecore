@@ -424,6 +424,22 @@ export class ActionRunner {
     this.#updateAction(actionId, { status: 'complete', executed: true });
   }
 
+  /**
+   * Demote an action the caller proved did not land. Used by the workbench's
+   * post-write read-back (BUG-AGENT-002): a file action must not stay "complete"
+   * when the bytes are absent from the runtime pod, which is how a run could
+   * report "Terminé 100 %" over a workspace missing its entry point.
+   */
+  failAction(actionId: string, error: string) {
+    const action = this.actions.get()[actionId];
+
+    if (!action) {
+      return;
+    }
+
+    this.#updateAction(actionId, { status: 'failed', error });
+  }
+
   async waitForIdle() {
     await this.#currentExecutionPromise;
   }
