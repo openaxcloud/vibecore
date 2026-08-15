@@ -3118,7 +3118,7 @@ export const chatFr = {
   'chat.copy.showValue0_60e2ce8e': 'Afficher {value0}',
   'chat.copy.showWorkspaceLogs_fb555ca7': "Afficher les journaux de l'espace de travail",
   'chat.copy.splitView_329af640': 'Vue fractionnée',
-  'chat.copy.starting_9493af05': 'commencer',
+  'chat.copy.starting_9493af05': 'démarrage',
   'chat.copy.stoppedRuntime_94f5c638': 'Environnement d’exécution arrêté',
   'chat.copy.stored_ab514b9a': 'stocké',
   'chat.copy.storedInProjectMetadata_ac0072b9': 'Stocké dans les métadonnées du projet',
