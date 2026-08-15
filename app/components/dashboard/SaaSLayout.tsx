@@ -2288,7 +2288,14 @@ function TopBar({
         data-vc-tour-target="navigation"
       >
         <Menu className="h-4 w-4" aria-hidden />
-        <span className="text-xs font-medium sm:sr-only">{t('userArea.topbar.menu')}</span>
+        {/*
+         * `sm:sr-only` showed this label ONLY below 640px — precisely the width
+         * where the top bar has the least room, so it stole space from the page
+         * title beside it ("Tableau de bord" got 77px of the 119px it needs and
+         * rendered as "Tableau …"). The button already carries an aria-label, so
+         * hiding the duplicate text costs nothing and returns 21px to the title.
+         */}
+        <span className="sr-only">{t('userArea.topbar.menu')}</span>
       </button>
       {/* The title remains visible beside the tablet rail, where the sidebar only shows icons. */}
       {title ? <span className="min-w-0 flex-1 truncate text-base font-semibold xl:hidden">{title}</span> : null}
