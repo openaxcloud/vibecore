@@ -3350,7 +3350,20 @@ const SETTINGS_BYOK_SECRET_KEY_MAP: Record<string, string> = {
 function defaultIdeSettingsState() {
   return {
     preferences: {
-      theme: 'dark',
+      /*
+       * 'system', NOT 'dark'. A project with no saved IDE settings must INHERIT
+       * the theme chosen in the user area — that is exactly what
+       * resolveProjectThemePreference() in BaseChat documents ("a project with
+       * no explicit per-IDE theme override must inherit the theme chosen in the
+       * user area, so opening a template in light mode stays light").
+       *
+       * Hard-coding 'dark' here meant an unset state never reached that path:
+       * opening any fresh project forced the IDE dark AND persisted that into
+       * localStorage `bolt_theme`, flipping the whole app to dark and
+       * overriding an explicit light choice — the precise failure mode the
+       * comment over there says the code is meant to avoid.
+       */
+      theme: 'system',
       keyboardMode: false,
       creditAlertThreshold: 80,
     },
@@ -3416,7 +3429,8 @@ function normalizeIdeSettingsState(input: any) {
 
   return {
     preferences: {
-      theme: ['dark', 'light', 'system'].includes(input?.preferences?.theme) ? input.preferences.theme : 'dark',
+      // Unrecognised/absent normalises to 'system' for the same reason as above.
+      theme: ['dark', 'light', 'system'].includes(input?.preferences?.theme) ? input.preferences.theme : 'system',
       keyboardMode: Boolean(input?.preferences?.keyboardMode),
       creditAlertThreshold: Number(input?.preferences?.creditAlertThreshold) || 80,
     },

@@ -28,6 +28,20 @@ async function forceLightTheme(page: import('@playwright/test').Page) {
   await page.reload({ waitUntil: 'domcontentloaded' });
 }
 
+/**
+ * Dark counterpart of `forceLightTheme`, for the surfaces whose assertions
+ * describe the dark-first IDE design system. The user area itself is now
+ * light-first, so a test that measures those tokens has to say which theme it
+ * means instead of relying on whatever the surface defaults to.
+ */
+async function forceDarkTheme(page: import('@playwright/test').Page) {
+  await page.evaluate(() => {
+    document.cookie = 'ecode_theme=dark; path=/; SameSite=Lax';
+    localStorage.setItem('bolt_theme', 'dark');
+  });
+  await page.reload({ waitUntil: 'domcontentloaded' });
+}
+
 async function waitForApiHealth(page: import('@playwright/test').Page, apiBaseUrl: string) {
   const deadline = Date.now() + 60_000;
 
@@ -377,12 +391,11 @@ test('authenticated user area applies the global platform design system', async 
   await page.goto('/dashboard', { waitUntil: 'domcontentloaded' });
 
   /*
-   * The SSR shell always seeds data-theme="dark" and an inline script
-   * reconciles it from the cookie, so a light theme only sticks once the
-   * cookie is present on a request. Proven stable: attr/class/--vc-ide-bg-app
-   * stay light for 30s after this.
+   * These assertions describe the DARK design-system tokens, but the user area
+   * is light-first now, so the surface has to be pinned to dark or the test
+   * measures the light palette and reports a wall of hex diffs.
    */
-  await forceLightTheme(page);
+  await forceDarkTheme(page);
 
   // The user area renders several matching headings (page title + section); take the first.
   await expect(page.getByRole('heading', { name: /Dashboard|Projects|Welcome/ }).first()).toBeVisible({
@@ -425,12 +438,20 @@ test('authenticated user area applies the global platform design system', async 
     text: '#f5f9fc',
     action: '#0099ff',
     radiusButton: '4px',
-    transitionHover: '150ms ease-out',
     bodyBackground: 'rgb(10, 15, 28)',
     bodyColor: 'rgb(245, 249, 252)',
     buttonBackground: 'rgb(26, 32, 48)',
     buttonRadius: '4px',
   });
+
+  /*
+   * Asserted separately from the object above: custom properties echo the
+   * author's spelling, so this reads `.15s` where the spec says `150ms` — the
+   * same duration. Compare the magnitude, not the text.
+   */
+  const [hoverDuration, ...hoverEasing] = theme.transitionHover.trim().split(/\s+/);
+  expect(Number.parseFloat(hoverDuration) * (hoverDuration.endsWith('ms') ? 1 : 1000)).toBe(150);
+  expect(hoverEasing.join(' ')).toBe('ease-out');
 });
 
 test('public templates stay marketing-only for anonymous visitors', async ({ page }) => {
@@ -535,6 +556,13 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
   expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+
+  /*
+   * These assertions describe the dark IDE palette. Since the IDE now inherits
+   * the user-area theme (light-first), pin it to dark explicitly instead of
+   * relying on a default that no longer holds.
+   */
+  await forceDarkTheme(page);
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 60_000 });
 
   /*
@@ -586,6 +614,9 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
     expect(agentMetrics.background).toBe('rgb(14, 21, 37)');
     expect(agentMetrics.borderRight).toBe('rgb(26, 32, 48)');
   }).toPass({ timeout: 20_000, intervals: [250, 500, 1000] });
+
+  // Settled snapshot for the cross-panel comparison further down.
+  const agentMetrics = await readAgentMetrics();
 
   await expect
     .poll(
@@ -820,93 +851,102 @@ test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) 
   const projectId = (await createProject.json()).project.id as string;
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
+  await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30000 });
 
   /*
-   * The SSR shell always seeds data-theme="dark" and an inline script
-   * reconciles it from the cookie, so a light theme only sticks once the
-   * cookie is present on a request. Proven stable: attr/class/--vc-ide-bg-app
-   * stay light for 30s after this.
+   * A bare setAttribute('data-theme','dark') is not enough: the IDE re-applies
+   * the resolved account/project theme once the settings payload lands and
+   * overwrites it. Set the cookie and reload so the whole chain agrees on dark.
    */
-  await forceLightTheme(page);
+  await forceDarkTheme(page);
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30000 });
-  await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
 
-  const themeTokens = await page.locator('.bolt-project-ide-panels').evaluate((element) => {
-    const style = window.getComputedStyle(document.documentElement);
-    const panelStyle = window.getComputedStyle(element);
-    const token = (name: string) => style.getPropertyValue(name).trim().toLowerCase();
+  /*
+   * Read through a fresh locator on every attempt: a cached handle returned
+   * empty computed styles ("actualBackground": "") because the panel had
+   * remounted, which is a detached node — not a theme problem.
+   */
+  const readThemeTokens = () =>
+    page.locator('.bolt-project-ide-panels').evaluate((element) => {
+      const style = window.getComputedStyle(document.documentElement);
+      const panelStyle = window.getComputedStyle(element);
+      const token = (name: string) => style.getPropertyValue(name).trim().toLowerCase();
 
-    const requiredAliases = [
-      '--vc-ide-bg-base',
-      '--vc-ide-bg-elevated',
-      '--vc-ide-bg-subtle',
-      '--vc-ide-bg-overlay',
-      '--vc-ide-bg-panel-subtle',
-      '--vc-ide-surface-0',
-      '--vc-ide-surface-1',
-      '--vc-ide-surface-2',
-      '--vc-ide-border',
-      '--vc-ide-text-tertiary',
-      '--vc-ide-text-on-accent',
-      '--vc-ide-accent',
-      '--vc-ide-accent-primary',
-      '--vc-ide-accent-green',
-      '--vc-ide-accent-danger',
-      '--vc-success',
-      '--vc-danger',
-      '--vc-status-ok',
-      '--vc-status-error',
-      '--vc-status-warn',
-      '--vc-status-muted',
-      '--vc-status-neutral',
-      '--vc-ui-shadow-soft',
-      '--vc-ide-shadow-soft',
-    ];
+      const requiredAliases = [
+        '--vc-ide-bg-base',
+        '--vc-ide-bg-elevated',
+        '--vc-ide-bg-subtle',
+        '--vc-ide-bg-overlay',
+        '--vc-ide-bg-panel-subtle',
+        '--vc-ide-surface-0',
+        '--vc-ide-surface-1',
+        '--vc-ide-surface-2',
+        '--vc-ide-border',
+        '--vc-ide-text-tertiary',
+        '--vc-ide-text-on-accent',
+        '--vc-ide-accent',
+        '--vc-ide-accent-primary',
+        '--vc-ide-accent-green',
+        '--vc-ide-accent-danger',
+        '--vc-success',
+        '--vc-danger',
+        '--vc-status-ok',
+        '--vc-status-error',
+        '--vc-status-warn',
+        '--vc-status-muted',
+        '--vc-status-neutral',
+        '--vc-ui-shadow-soft',
+        '--vc-ide-shadow-soft',
+      ];
 
-    return {
-      app: token('--vc-ide-bg-app'),
-      panel: token('--vc-ide-bg-panel'),
-      card: token('--vc-ide-bg-card'),
-      hover: token('--vc-ide-bg-hover'),
-      borderSubtle: token('--vc-ide-border-subtle'),
-      borderVisible: token('--vc-ide-border-visible'),
-      textPrimary: token('--vc-ide-text-primary'),
-      textSecondary: token('--vc-ide-text-secondary'),
-      textMuted: token('--vc-ide-text-muted'),
-      aiStart: token('--vc-ide-accent-ai-start'),
-      aiEnd: token('--vc-ide-accent-ai-end'),
-      success: token('--vc-ide-accent-success'),
-      action: token('--vc-ide-accent-action'),
-      orange: token('--vc-ide-accent-orange'),
-      error: token('--vc-ide-accent-error'),
-      warning: token('--vc-ide-accent-warning'),
-      actualBackground: panelStyle.backgroundColor,
-      actualText: panelStyle.color,
-      missingAliases: requiredAliases.filter((name) => token(name).length === 0),
-    };
-  });
+      return {
+        app: token('--vc-ide-bg-app'),
+        panel: token('--vc-ide-bg-panel'),
+        card: token('--vc-ide-bg-card'),
+        hover: token('--vc-ide-bg-hover'),
+        borderSubtle: token('--vc-ide-border-subtle'),
+        borderVisible: token('--vc-ide-border-visible'),
+        textPrimary: token('--vc-ide-text-primary'),
+        textSecondary: token('--vc-ide-text-secondary'),
+        textMuted: token('--vc-ide-text-muted'),
+        aiStart: token('--vc-ide-accent-ai-start'),
+        aiEnd: token('--vc-ide-accent-ai-end'),
+        success: token('--vc-ide-accent-success'),
+        action: token('--vc-ide-accent-action'),
+        orange: token('--vc-ide-accent-orange'),
+        error: token('--vc-ide-accent-error'),
+        warning: token('--vc-ide-accent-warning'),
+        actualBackground: panelStyle.backgroundColor,
+        actualText: panelStyle.color,
+        missingAliases: requiredAliases.filter((name) => token(name).length === 0),
+      };
+    });
 
-  expect(themeTokens).toMatchObject({
-    app: '#0a0f1c',
-    panel: '#0e1525',
-    card: '#1a2030',
-    hover: '#2b3245',
-    borderSubtle: '#1a2030',
-    borderVisible: '#2b3245',
-    textPrimary: '#f5f9fc',
-    textSecondary: '#c2c8cc',
-    textMuted: '#6e7681',
-    aiStart: '#7b61ff',
-    aiEnd: '#ff6b9d',
-    success: '#3fb950',
-    action: '#0099ff',
-    orange: '#f26207',
-    error: '#f85149',
-    warning: '#d29922',
-    actualBackground: 'rgb(10, 15, 28)',
-    actualText: 'rgb(245, 249, 252)',
-    missingAliases: [],
-  });
+  await expect(async () => {
+    const themeTokens = await readThemeTokens();
+
+    expect(themeTokens).toMatchObject({
+      app: '#0a0f1c',
+      panel: '#0e1525',
+      card: '#1a2030',
+      hover: '#2b3245',
+      borderSubtle: '#1a2030',
+      borderVisible: '#2b3245',
+      textPrimary: '#f5f9fc',
+      textSecondary: '#c2c8cc',
+      textMuted: '#6e7681',
+      aiStart: '#7b61ff',
+      aiEnd: '#ff6b9d',
+      success: '#3fb950',
+      action: '#0099ff',
+      orange: '#f26207',
+      error: '#f85149',
+      warning: '#d29922',
+      actualBackground: 'rgb(10, 15, 28)',
+      actualText: 'rgb(245, 249, 252)',
+      missingAliases: [],
+    });
+  }).toPass({ timeout: 20_000, intervals: [250, 500, 1000] });
 });
 
 test('IDE panels, agent input and feature tools keep the platform theme in light and dark modes', async ({
@@ -1333,6 +1373,13 @@ test('IDE applies section 12 UI detail styles', async ({ page, isMobile }) => {
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30000 });
+
+  /*
+   * These assertions describe the dark IDE palette. Since the IDE now inherits
+   * the user-area theme (light-first), pin it to dark explicitly instead of
+   * relying on a default that no longer holds.
+   */
+  await forceDarkTheme(page);
 
   const toolMenu = await openVisibleIdeToolMenu(page);
 
@@ -2124,5 +2171,10 @@ test('command palette entries navigate to real product routes', async ({ page })
   await expect(importCommand).toBeVisible({ timeout: 30_000 });
   await importCommand.click();
   await expect(page).toHaveURL('/import-github');
-  await expect(page.getByRole('heading', { name: 'Import GitHub' })).toBeVisible();
+
+  /*
+   * The destination page's h1 is 'Import a Git repository'
+   * (importRoutes.git.page.title), not the command's own label.
+   */
+  await expect(page.getByRole('heading', { name: 'Import a Git repository' })).toBeVisible({ timeout: 30_000 });
 });

@@ -11,77 +11,43 @@
     "  5. Window capped at 30 days; policy path hard-coded in the script.",
     "  6. Entries are keyed on file + test title, never on line numbers.",
     "",
-    "Baseline: Production E2E had never been green — 0 successes in 405 runs since",
-    "2026-05-17. main @ b2ee7c88 = 57 failed / 177 passed. Now 7 failed / 207 passed.",
+    "History: Production E2E had never been green — 0 successes in 405 runs since",
+    "2026-05-17. main @ b2ee7c88 = 57 failed / 177 passed. First green: run",
+    "31704457154. Merged to main 2026-08-15 (9fc9f812); Production E2E green on",
+    "main at run 31904732747.",
     "",
-    "THE FLAKINESS IS SOLVED AT THE ROOT. /auth/register is capped at 10/min/IP;",
-    "every test registers a throwaway user and CI retries multiplied that, so",
-    "whichever tests landed in a saturated window died — a DIFFERENT test on every",
-    "run. AUTH_REGISTER_RATE_LIMIT_MAX=2000 in the E2E workflows removed it: the",
-    "whole mobile-device-matrix cluster and both one-off flakes are gone from this",
-    "list, and the run went from 3 flaky to 1.",
+    "2026-08-15, third pass — the two big clusters are FIXED at the root and are",
+    "gone from this list:",
+    "  ide-account-theme (6) -> REAL PRODUCT BUG. defaultIdeSettingsState() hard-",
+    "     coded `theme: 'dark'`, and a project with no saved IDE settings always",
+    "     hits that default. BaseChat then applied it over the document AND wrote",
+    "     it into localStorage `bolt_theme`, flipping the whole app to dark and",
+    "     overriding an explicit light choice — the exact failure mode the comment",
+    "     in resolveProjectThemePreference() says the code is meant to avoid.",
+    "     Defaulting to 'system' restores the documented behaviour. 6/6 green.",
+    "  ide-command-palette -> the palette entries are <Link role=\"option\"> in a",
+    "     listbox, so getByRole('link') could never match, and the destination h1",
+    "     is 'Import a Git repository'. Green.",
     "",
-    "What remains needs a product answer, not a test edit."
+    "3 left, each needing something this pass could not settle."
   ],
   "expires": "2026-08-27",
   "owner": "avi@snatchbot.me",
   "waived": [
     {
       "test": "tests/e2e/dashboard.spec.ts › opens preserved Bolt IDE route for a project",
-      "cluster": "ide-layout",
-      "reason": "A computed `position` reads '' instead of 'relative' — the measured element is missing, not mis-styled. Needs the current IDE layout contract to rewrite against."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts › authenticated user area applies the global platform design system",
-      "cluster": "ide-account-theme",
-      "reason": "Forcing light via the ecode_theme cookie is the WRONG lever for IDE surfaces: BaseChat calls applyProjectThemePreference() once the settings payload lands and re-applies the per-account/project theme over the document. The cookie only wins when that preference is 'system'. The test needs to set the account preference through the API instead — needs the settings contract.",
-      "unstable": true
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts › IDE light theme tabs use visible tokenized surfaces",
-      "cluster": "ide-account-theme",
-      "reason": "Same lever problem: data-theme is light right after forceLightTheme(), then flips back to dark when the IDE re-applies the account preference. Verified live that the light theme itself works (--vc-ide-bg-app #f6f8fb holds for 30s outside the IDE settings path).",
-      "unstable": true
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts › all IDE service panels keep light theme containers readable",
-      "cluster": "ide-account-theme",
-      "reason": "Same lever problem, PLUS a candidate real bug worth a ticket: with the theme forced, `database` and `deployments` still report dark containers while other panels comply. Needs a product look once the theme lever is right.",
-      "unstable": true
+      "cluster": "stale-ide-assertions",
+      "reason": "Theme and detached-node issues in this test are fixed; what is left is a chain of stale assertions inside the add-tab palette — it expects .bolt-project-tool-section blocks labelled 'RECENT FILES' and 'TOOLS' that the current menu does not render. Needs the present palette structure to rewrite against."
     },
     {
       "test": "tests/e2e/dashboard.spec.ts › IDE applies section 12 UI detail styles",
       "cluster": "design-token",
-      "reason": "NEW, sharper failure — the add-tab palette now opens (the retried click fixed that), so this is a genuine token divergence: a radius reads 6px where the spec says 4px. Needs design arbitration, not a test edit."
+      "reason": "Real design-token divergence, not a test problem: with the surface correctly pinned to dark, a radius still reads 6px where the spec says 4px. Needs design arbitration on which value is right before the test can be trusted either way."
     },
     {
       "test": "tests/e2e/dashboard.spec.ts › IDE project services open as in-place panels instead of legacy project pages",
       "cluster": "ide-command-palette",
-      "reason": "Still times out on a click after 120s once the palette is open. The palette mounting is fixed; what follows it is not yet diagnosed."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts › command palette entries navigate to real product routes",
-      "cluster": "ide-command-palette",
-      "unstable": true,
-      "reason": "role='option' locator is now correct and this passes in some runs. Kept one cycle to confirm."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts › IDE panels, agent input and feature tools keep the platform theme in light and dark modes",
-      "cluster": "ide-account-theme",
-      "reason": "Same lever problem as the rest of this cluster: BaseChat re-applies the per-account/project theme preference over the document once the settings payload lands, so forcing light via the cookie does not hold on IDE surfaces. Omitted from the previous rebuild of this file by mistake. Marked unstable: it flaps — the same run reported it as flaky (green on retry), so a passing run proves nothing and must not itself break the gate.",
-      "unstable": true
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts › IDE applies the full 2026 color theme tokens",
-      "cluster": "ide-account-theme",
-      "unstable": true,
-      "reason": "Same lever as the rest of the ide-account-theme cluster: BaseChat calls applyProjectThemePreference() once the settings payload lands and re-applies the per-account/project theme over the document, so forcing light through the ecode_theme cookie does not hold on IDE surfaces. Marked unstable because the cluster demonstrably flaps — a different subset of these six failed on each run, which is why they are now waived as one block instead of one-by-one."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts › platform typography tokens apply to the web IDE",
-      "cluster": "ide-account-theme",
-      "unstable": true,
-      "reason": "Same lever as the rest of the ide-account-theme cluster: BaseChat calls applyProjectThemePreference() once the settings payload lands and re-applies the per-account/project theme over the document, so forcing light through the ecode_theme cookie does not hold on IDE surfaces. Marked unstable because the cluster demonstrably flaps — a different subset of these six failed on each run, which is why they are now waived as one block instead of one-by-one."
+      "reason": "The palette now opens (retried click) and the theme is right; a click inside it still times out at 120s. Undiagnosed — the only remaining item in this cluster."
     }
   ]
 }
