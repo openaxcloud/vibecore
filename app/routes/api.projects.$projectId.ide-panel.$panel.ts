@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { billingEnabled } from '@vibecore/billing';
 import {
   classifyDatabaseRestoreError,
   foldRestoreResponse,
@@ -1078,11 +1079,12 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
       const projectOrgId = (project.project as any)?.organizationId;
       const billingOrg = orgs.find((o: any) => o?.id === projectOrgId) ?? orgs[0];
 
-      const billing = billingOrg?.id
-        ? await apiRequest(request, `/orgs/${billingOrg.id}/billing`).catch((error) => ({
-            error: panelErrorMessage(error, language),
-          }))
-        : { error: copy['apiRuntime.panel.billingOrganizationMissing'] };
+      const billing =
+        billingEnabled() && billingOrg?.id
+          ? await apiRequest(request, `/orgs/${billingOrg.id}/billing`).catch((error) => ({
+              error: panelErrorMessage(error, language),
+            }))
+          : { error: copy['apiRuntime.panel.billingOrganizationMissing'] };
 
       return json(
         panelEnvelope(panel, project.project, {

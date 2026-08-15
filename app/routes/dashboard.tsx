@@ -1,3 +1,4 @@
+import { billingEnabled } from '@vibecore/billing';
 import { Activity, Boxes, CreditCard, MailPlus, Rocket, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
@@ -47,7 +48,34 @@ const fallbackBilling: BillingState = {
   usage: [],
 };
 
+/*
+ * KILL-SWITCH FACTURATION — état de facturation d'un espace gratuit.
+ *
+ * Il n'y a pas de plan à afficher quand il n'y a pas de facturation ; la tuile
+ * « Plan » est de toute façon retirée du tableau de bord à OFF.
+ */
+const freeBilling: BillingState = {
+  plan: { name: 'Free' },
+  usage: [],
+};
+
 async function optionalBillingRequest(request: Request, organizationId: string) {
+  /*
+   * KILL-SWITCH FACTURATION — ne PAS appeler `/orgs/:id/billing` à OFF.
+   *
+   * Cette route n'existe plus (404), et le `catch` ci-dessous ne rattrape qu'un
+   * 403 : le 404 remontait donc jusqu'à casser TOUT le tableau de bord. Un
+   * utilisateur gratuit se voyait refuser sa page d'accueil — exactement le
+   * blocage que le kill-switch doit empêcher.
+   *
+   * Défaut mesuré à l'écran dans l'isolement, PAS attrapé par les tests : ceux-ci
+   * tournent drapeau armé, donc la route répondait. C'est la bascule A/B en réel
+   * qui l'a révélé.
+   */
+  if (!billingEnabled()) {
+    return { billing: freeBilling, billingAccessLimited: false };
+  }
+
   try {
     return {
       billing: await apiRequest<BillingState>(request, `/orgs/${organizationId}/billing`),

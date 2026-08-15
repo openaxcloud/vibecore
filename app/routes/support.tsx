@@ -1,3 +1,4 @@
+import { billingEnabled } from '@vibecore/billing';
 import { Clock, LifeBuoy, MessageSquare, ShieldAlert } from 'lucide-react';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation, useRevalidator } from 'react-router';
@@ -129,7 +130,11 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
      */
     const [tickets, billing] = await Promise.all([
       apiRequest<{ tickets?: Ticket[] }>(request, `/support/${organization.id}/tickets`),
-      apiRequest<{ plan?: { key?: string } }>(request, `/orgs/${organization.id}/billing`).catch(() => null),
+
+      // KILL-SWITCH FACTURATION : à OFF la route n'existe pas — inutile d'émettre la requête.
+      billingEnabled()
+        ? apiRequest<{ plan?: { key?: string } }>(request, `/orgs/${organization.id}/billing`).catch(() => null)
+        : Promise.resolve(null),
     ]);
 
     const planKey = typeof billing?.plan?.key === 'string' ? billing.plan.key : null;

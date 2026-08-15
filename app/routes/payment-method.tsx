@@ -3,6 +3,7 @@ import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton } from '~/components/enterprise/EnterpriseFormPage';
 import { FieldError, fieldErrorProps } from '~/components/ui/FieldError';
+import { requireBillingEnabled } from '~/lib/billing/require-billing-enabled.server';
 import {
   apiRequest,
   firstOrganizationOrNull,
@@ -29,6 +30,9 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  // KILL-SWITCH FACTURATION : à OFF cette surface n'existe pas (404 sec).
+  requireBillingEnabled();
+
   const orgs = await apiRequest<{ organizations: Array<{ id: string; billingEmail?: string }> }>(request, '/orgs');
   const organization = orgs.organizations[0];
 
@@ -43,6 +47,9 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
+  // KILL-SWITCH FACTURATION : à OFF cette surface n'existe pas (404 sec).
+  requireBillingEnabled();
+
   const organization = await firstOrganizationOrNull(request);
 
   if (!organization) {

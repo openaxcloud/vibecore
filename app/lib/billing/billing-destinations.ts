@@ -11,6 +11,7 @@
  */
 export const BILLING_DESTINATION_PREFIXES: readonly string[] = [
   '/billing',
+  '/downgrade',
   '/invoices',
   '/payment-method',
   '/plan-comparison',
