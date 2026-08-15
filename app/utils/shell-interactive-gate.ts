@@ -46,12 +46,16 @@ const MAX_QUEUED_INPUT_CHARS = 64 * 1024;
 export interface InteractiveInputGate {
   /** La porte est-elle ouverte (écriture directe) ? */
   readonly isOpen: boolean;
+
   /** Nombre de caractères actuellement en file (diagnostic/tests). */
   readonly queuedLength: number;
+
   /** Alimente la porte avec la SORTIE du shell ; ouvre si le marqueur est vu. */
   observeOutput(data: string): void;
+
   /** Ouvre la porte et vide la file. Idempotent. */
   open(): void;
+
   /** Alimente la porte avec l'ENTRÉE utilisateur : écrite, ou mise en file. */
   send(data: string): void;
 }
