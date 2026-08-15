@@ -638,3 +638,40 @@ d'adressage à nettoyer, mais **ce n'est pas la cause des fichiers manquants**.
 > **Découvrabilité** : `Ports`, `Stockage d'objets` et `Compétences` ne sont PAS dans le rail
 > latéral en desktop mais **sont bien atteignables via la palette de commandes**, en français
 > (`app/lib/mobile-ide-tabs.ts` les déclare comme onglets mobiles). Non consigné comme défaut.
+
+### BUG-TERM-001 — état de la vérification live (15/08, 23h15 UTC)
+
+Le correctif client est **déployé** sur l'env d'audit : image
+`web:9e8efa4f86` construite depuis un export propre du commit et poussée sur le
+tier `web` (`kubectl set image`, rollout terminé, 2/2 pods). ⚠️ Le build Cloud Build
+est marqué **FAILURE** mais **seule l'étape `sign-image` a échoué** (KMS non activé
+sur le projet de test) : `prime-cache`, `build-web`, `fetch-cosign`, `push-image` et
+`scan-image` sont **SUCCESS**, et l'image est bien publiée. Ne pas se fier au statut
+global du build sur cet environnement.
+
+**La preuve à l'écran n'est PAS encore obtenue**, pour une raison distincte du
+défaut corrigé :
+
+1. Sur le workspace saturé, le terminal était bloqué par la **dérive de sessions**
+   déjà consignée (voir BUG-TERM-001, cause distincte) : **21** processus
+   `bash -i` accumulés et **66× `429`** côté API en 8 min. Le workspace était
+   arrivé au plafond `maxSessions=8`, donc plus aucun shell ne pouvait s'ouvrir.
+2. Après suppression du pod (recréé propre, **0 shell**), les shells se recréent
+   bien (**4** processus `bash -i`) mais **aucune sortie n'atteint le client** :
+   le panneau reste indéfiniment sur « Connexion à l'espace de travail… », sans
+   invite. Aucun octet rendu, donc le garde d'entrée corrigé n'est même pas
+   sollicité.
+
+**Ce point 2 est un défaut de plus, sur le chemin SORTIE (agent → client)**, alors
+que le harnais WebSocket brut, lui, reçoit parfaitement la sortie sur ce même
+workspace (`654;interactive`, invite, sortie de commande). L'écart est donc entre
+le **client navigateur** et le socket : la console affiche d'ailleurs des
+`WebSocket is already in CLOSING or CLOSED state` répétés. **À investiguer sur la
+prochaine boucle** — probablement la reconnexion en boucle induite par la perte de
+`sessionId` (cause distincte déjà consignée), qui referme le socket avant tout
+rendu.
+
+**Ce qui reste solidement établi pour le correctif livré** : la cause racine du
+garde d'entrée est prouvée par le code et par les tests rouge→vert (3 échecs dont
+2 timeouts de 120 s avec l'ancien code, 12/12 avec le correctif). Le passage en
+✅ **Testé live** reste dû.
