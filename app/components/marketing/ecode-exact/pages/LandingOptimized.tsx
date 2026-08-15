@@ -253,7 +253,14 @@ export default function LandingOptimized() {
           <div className="space-y-8">
             <Badge
               variant="outline"
-              className="mx-auto inline-flex max-w-full flex-wrap items-center justify-center gap-2 border-ecode-accent/25 bg-ecode-accent/10 px-4 py-2 text-center text-[13px] font-semibold leading-snug text-[var(--ecode-text)] shadow-sm animate-fade-in sm:px-6"
+              /*
+               * `flex-wrap` broke the pill below ~430px: the label alone is wider
+               * than the row, so the two decorative sparkles wrapped onto lines of
+               * their own and the `rounded-full` badge became a 106px-tall slab.
+               * `flex-nowrap` + `min-w-0` on the label keeps the sparkles flanking
+               * the text and lets the text itself wrap inside the pill.
+               */
+              className="mx-auto inline-flex max-w-full flex-nowrap items-center justify-center gap-2 border-ecode-accent/25 bg-ecode-accent/10 px-4 py-2 text-center text-[13px] font-semibold leading-snug text-[var(--ecode-text)] shadow-sm animate-fade-in sm:px-6"
               style={{
                 background: 'linear-gradient(90deg, rgba(242, 98, 7, 0.06), rgba(247, 127, 0, 0.06))',
               }}
