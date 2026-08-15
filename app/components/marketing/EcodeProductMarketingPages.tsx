@@ -896,7 +896,15 @@ export function EcodePricingPage() {
                     {copy.recommended}
                   </span>
                 ) : null}
-                <div className={classNames('inline-flex rounded-xl bg-gradient-to-br p-3 text-white', plan.gradient)}>
+                {/*
+                 * `self-start` is load-bearing: this chip is a direct child of a
+                 * `flex-col` card, so its `inline-flex` blockifies to `flex` and
+                 * the default `align-items: stretch` blew the 48px icon badge up
+                 * into a full-width gradient bar across the top of every plan.
+                 */}
+                <div
+                  className={classNames('inline-flex self-start rounded-xl bg-gradient-to-br p-3 text-white', plan.gradient)}
+                >
                   {plan.icon}
                 </div>
                 <h2 className="mt-5 break-words text-2xl font-bold text-bolt-elements-textPrimary">{plan.name}</h2>
@@ -1404,9 +1412,15 @@ function Badge({ children, icon }: { children: ReactNode; icon: LucideIcon }) {
   const IconComponent = icon;
 
   return (
-    <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full bg-[var(--ecode-accent)] px-4 py-1.5 text-center text-xs font-semibold uppercase leading-5 tracking-[0.14em] text-white">
+    /*
+     * `flex-wrap` pushed the icon onto a line of its own as soon as the label
+     * outgrew the row (every uppercase eyebrow does, below ~430px), turning the
+     * `rounded-full` pill into a multi-line slab with a stranded icon. Keep the
+     * icon beside the text and let the LABEL wrap inside the pill instead.
+     */
+    <span className="inline-flex max-w-full flex-nowrap items-center justify-center gap-2 rounded-full bg-[var(--ecode-accent)] px-4 py-1.5 text-center text-xs font-semibold uppercase leading-5 tracking-[0.14em] text-white">
       <IconComponent className="h-4 w-4 shrink-0" aria-hidden />
-      {children}
+      <span className="min-w-0 break-words">{children}</span>
     </span>
   );
 }
