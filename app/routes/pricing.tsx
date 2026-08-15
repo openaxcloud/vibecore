@@ -1,6 +1,7 @@
 import { data as json, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 
 import { EcodePricingPage } from '~/components/marketing/EcodeProductMarketingPages';
+import { requireBillingEnabled } from '~/lib/billing/require-billing-enabled.server';
 import { buildMarketingPricingMeta } from '~/lib/i18n/catalogs/marketing-pricing-route';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
@@ -11,6 +12,9 @@ import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-
  * backend credit plan catalog. See docs/REPLIT_PARITY_SPEC.md §10/§16.
  */
 export function loader({ request }: LoaderFunctionArgs) {
+  // KILL-SWITCH FACTURATION : à OFF cette surface n'existe pas (404 sec).
+  requireBillingEnabled();
+
   const locale = resolveRequestLocale(request);
 
   return json({ language: locale.language }, { headers: localeResponseHeaders(request, locale) });

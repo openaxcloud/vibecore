@@ -6,6 +6,7 @@ import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/Asyn
 import { AppShell, StatGrid } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import { EmptyState } from '~/components/ui/EmptyState';
+import { requireBillingEnabled } from '~/lib/billing/require-billing-enabled.server';
 import {
   apiRequest,
   firstOrganization,
@@ -59,6 +60,9 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  // KILL-SWITCH FACTURATION : à OFF cette surface n'existe pas (404 sec).
+  requireBillingEnabled();
+
   const organization = await firstOrganizationOrNull(request);
   const { language } = resolveRequestLocale(request);
 
@@ -112,6 +116,9 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
+  // KILL-SWITCH FACTURATION : à OFF cette surface n'existe pas (404 sec).
+  requireBillingEnabled();
+
   const organization = await firstOrganization(request);
   const form = await request.formData();
   const userId = String(form.get('userId') ?? '').trim();

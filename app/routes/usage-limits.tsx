@@ -2,6 +2,7 @@ import { Gauge } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import { MarketingStaticPage, type MarketingPageDefinition } from '~/components/marketing/EcodeMarketingPages';
+import { requireBillingEnabled } from '~/lib/billing/require-billing-enabled.server';
 import { getMarketingExactUsageLimitsCopy } from '~/lib/i18n/catalogs/marketing-exact-usage-limits';
 import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { MARKETING_SITE_URL, socialMetaTags } from '~/utils/social-meta';
@@ -9,6 +10,8 @@ import { MARKETING_SITE_URL, socialMetaTags } from '~/utils/social-meta';
 const USAGE_LIMITS_ROUTES = { primary: '/pricing', secondary: '/usage' } as const;
 
 export function loader({ request }: LoaderFunctionArgs) {
+  // KILL-SWITCH FACTURATION : à OFF cette surface n'existe pas (404 sec).
+  requireBillingEnabled();
   return { language: resolveRequestLocale(request).language };
 }
 

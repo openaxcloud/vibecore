@@ -97,6 +97,8 @@ import { EmptyState } from '~/components/ui/EmptyState';
 import UiPopover from '~/components/ui/Popover';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import { SkipLink } from '~/components/ui/SkipLink';
+import { withoutBillingDestinations } from '~/lib/billing/billing-destinations';
+import { useBillingEnabled } from '~/lib/billing/use-billing-enabled';
 import { formatClientAstResidualCopy, getClientAstResidualCopy } from '~/lib/i18n/catalogs/client-ast-residual';
 import { legacyMarketingEn, legacyMarketingKeyByEnglish } from '~/lib/i18n/catalogs/legacy-marketing';
 import { userAreaEn, type UserAreaTranslationKey } from '~/lib/i18n/catalogs/user-area';
@@ -1242,6 +1244,16 @@ function SidebarToggle({ collapsed, onToggle }: { collapsed: boolean; onToggle: 
 function SidebarBody({ collapsed, mobile = false }: { collapsed: boolean; mobile?: boolean }) {
   const { t } = useTranslation();
 
+  /*
+   * KILL-SWITCH FACTURATION : à OFF, « Facturation » et « Consommation »
+   * disparaissent de la navigation. Filtré au RENDU et non dans la constante
+   * `orgNav`, parce que le drapeau vient du loader racine — donc d'un hook, donc
+   * du corps du composant.
+   */
+  const billingOn = useBillingEnabled();
+  const organizationNav = withoutBillingDestinations(orgNav, billingOn);
+  const personalNav = withoutBillingDestinations(accountNav, billingOn);
+
   return (
     <nav
       className={classNames(
@@ -1254,8 +1266,8 @@ function SidebarBody({ collapsed, mobile = false }: { collapsed: boolean; mobile
     >
       <CreateProjectCta collapsed={collapsed} />
       <NavSection items={workspaceNav} collapsed={collapsed} />
-      <NavSection label={t('userArea.navigation.organization')} items={orgNav} collapsed={collapsed} />
-      <NavSection label={t('userArea.navigation.account')} items={accountNav} collapsed={collapsed} />
+      <NavSection label={t('userArea.navigation.organization')} items={organizationNav} collapsed={collapsed} />
+      <NavSection label={t('userArea.navigation.account')} items={personalNav} collapsed={collapsed} />
     </nav>
   );
 }
@@ -2015,6 +2027,10 @@ export function ActivityList({ items }: { items: Array<{ title: string; detail: 
   );
 }
 
+/*
+ * KILL-SWITCH FACTURATION : « Voir la consommation » mène à une surface de
+ * facturation. La liste est filtrée au rendu via `withoutBillingDestinations`.
+ */
 const COMMAND_PALETTE_ACTIONS = [
   { labelKey: 'userArea.command.createProject', to: '/projects/new', hintKey: 'userArea.command.action' },
   { labelKey: 'userArea.command.openRecent', to: '/recent-projects', hintKey: 'userArea.command.action' },
@@ -2045,8 +2061,13 @@ const defaultUserAreaTranslate: UserAreaTranslate = (key, options) => {
   });
 };
 
-function localizedCommandPaletteActions(translate: UserAreaTranslate): CommandPaletteItem[] {
-  return COMMAND_PALETTE_ACTIONS.map((item) => ({
+function localizedCommandPaletteActions(translate: UserAreaTranslate, billingOn = false): CommandPaletteItem[] {
+  /*
+   * KILL-SWITCH FACTURATION — défaut `false` : un appelant qui oublierait de
+   * passer le drapeau MASQUE, il ne révèle pas. C'est le sens du fail-closed
+   * jusque dans les signatures.
+   */
+  return withoutBillingDestinations(COMMAND_PALETTE_ACTIONS, billingOn).map((item) => ({
     label: translate(item.labelKey),
     to: item.to,
     hint: translate(item.hintKey),
@@ -2061,6 +2082,7 @@ function localizedCommandPaletteActions(translate: UserAreaTranslate): CommandPa
 export function buildCommandPaletteItems(
   projects: ProjectCard[] = [],
   translate: UserAreaTranslate = defaultUserAreaTranslate,
+  billingOn = false,
 ): CommandPaletteItem[] {
   const projectItems: CommandPaletteItem[] = projects.map((project) => ({
     label: project.name,
@@ -2068,13 +2090,19 @@ export function buildCommandPaletteItems(
     hint: translate('userArea.command.project'),
   }));
 
-  return [...localizedCommandPaletteActions(translate), ...projectItems];
+  return [...localizedCommandPaletteActions(translate, billingOn), ...projectItems];
 }
 
 export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCard[] }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const allItems = useMemo(() => buildCommandPaletteItems(projects, (key, options) => t(key, options)), [projects, t]);
+  const billingOn = useBillingEnabled();
+
+  const allItems = useMemo(
+    () => buildCommandPaletteItems(projects, (key, options) => t(key, options), billingOn),
+    [projects, t, billingOn],
+  );
+
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
 

@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useNavigation } from 'react-router';
 import { EnterpriseFormPage } from '~/components/enterprise/EnterpriseFormPage';
+import { requireBillingEnabled } from '~/lib/billing/require-billing-enabled.server';
 import {
   apiRequest,
   firstOrganizationOrNull,
@@ -53,6 +54,9 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
 };
 
 export function loader({ request }: EnterpriseLoaderArgs) {
+  // KILL-SWITCH FACTURATION : à OFF cette surface n'existe pas (404 sec).
+  requireBillingEnabled();
+
   const localeResolution = resolveRequestLocale(request);
 
   return json({ language: localeResolution.language }, { headers: localeResponseHeaders(request, localeResolution) });
@@ -99,6 +103,9 @@ const ERROR_KEYS: Readonly<Record<PlanComparisonErrorCode, PlanQuotaKey>> = {
 };
 
 export async function action({ request }: EnterpriseActionArgs) {
+  // KILL-SWITCH FACTURATION : à OFF cette surface n'existe pas (404 sec).
+  requireBillingEnabled();
+
   const localeResolution = resolveRequestLocale(request);
 
   const actionError = (errorCode: PlanComparisonErrorCode, status: number) =>

@@ -4,6 +4,7 @@ import { Link, useLoaderData, useRevalidator } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { EnterpriseFormPage } from '~/components/enterprise/EnterpriseFormPage';
 import { EmptyState } from '~/components/ui/EmptyState';
+import { requireBillingEnabled } from '~/lib/billing/require-billing-enabled.server';
 import {
   apiRequest,
   firstOrganizationOrNull,
@@ -46,6 +47,9 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => [
 export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  // KILL-SWITCH FACTURATION : à OFF cette surface n'existe pas (404 sec).
+  requireBillingEnabled();
+
   const organization = await firstOrganizationOrNull(request);
   const { language } = resolveRequestLocale(request);
 

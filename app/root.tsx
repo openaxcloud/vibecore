@@ -1,4 +1,5 @@
 /* eslint-disable import/order */
+import { billingEnabled } from '@vibecore/billing';
 import { useStore } from '@nanostores/react';
 import EcodeBootMark from './components/brand/EcodeBootMark';
 import type { LinksFunction, MetaFunction } from 'react-router';
@@ -107,6 +108,17 @@ export function loader({ request }: LoaderFunctionArgs) {
     {
       language: locale.language,
       localeSource: locale.source,
+
+      /*
+       * KILL-SWITCH FACTURATION — l'état du drapeau descend au client par le
+       * loader racine, seule voie qui le rende disponible à TOUTE l'application
+       * sans que chaque surface refasse sa propre lecture (et se trompe).
+       *
+       * Résolu côté serveur : le navigateur n'a pas accès aux variables
+       * d'environnement, et un drapeau que le client déciderait lui-même serait
+       * un drapeau qu'on peut retourner depuis la console.
+       */
+      billingEnabled: billingEnabled(),
       privateCapabilityRoute,
       suppressRootSeo,
       seo: suppressRootSeo

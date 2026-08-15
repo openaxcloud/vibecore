@@ -240,6 +240,7 @@ export default defineConfig((config) => {
     test: {
       testTimeout: 120_000,
       hookTimeout: 120_000,
+      setupFiles: ['./test-setup/billing-flag.ts'],
       exclude: [
         '**/node_modules/**',
         '**/dist/**',

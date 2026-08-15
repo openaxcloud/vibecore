@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData } from 'react-router';
 import { EnterpriseFormPage } from '~/components/enterprise/EnterpriseFormPage';
+import { requireBillingEnabled } from '~/lib/billing/require-billing-enabled.server';
 import {
   apiRequest,
   firstOrganizationOrNull,
@@ -67,6 +68,9 @@ interface UpgradePlan {
 }
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  // KILL-SWITCH FACTURATION : à OFF cette surface n'existe pas (404 sec).
+  requireBillingEnabled();
+
   const language = resolveUpgradeLanguage(resolveRequestLocale(request).language);
   const url = new URL(request.url);
   const suggestedPlan = normalizePlanKey(url.searchParams.get('plan'));
@@ -145,6 +149,9 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
+  // KILL-SWITCH FACTURATION : à OFF cette surface n'existe pas (404 sec).
+  requireBillingEnabled();
+
   const copy = getUpgradeCopy(resolveRequestLocale(request).language);
   const organization = await firstOrganizationOrNull(request);
 

@@ -1,4 +1,5 @@
 import JSZip from 'jszip';
+import { requireBillingEnabled } from '~/lib/billing/require-billing-enabled.server';
 import { apiRequest, firstOrganizationOrNull, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import {
   getWebApiRoutesCopy,
@@ -24,6 +25,9 @@ const MAX_INVOICES = 24;
  * the whole archive.
  */
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  // KILL-SWITCH FACTURATION : à OFF cette surface n'existe pas (404 sec).
+  requireBillingEnabled();
+
   const copy = getWebApiRoutesCopy(resolveRequestLocale(request).language);
   const organization = await firstOrganizationOrNull(request);
 

@@ -16,6 +16,8 @@ import {
   statsFromUsage,
   type ProjectCard,
 } from '~/components/dashboard/SaaSLayout';
+import { withoutBillingDestinations } from '~/lib/billing/billing-destinations';
+import { useBillingEnabled } from '~/lib/billing/use-billing-enabled';
 import { projectStackLabel } from '~/lib/dashboard-project-stack';
 import { apiRequest, isForbiddenApiResponse, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { userAreaEn, userAreaFr } from '~/lib/i18n/catalogs/user-area';
@@ -234,6 +236,7 @@ export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashbo
 
 export default function DashboardPage() {
   const { t } = useTranslation();
+  const billingOn = useBillingEnabled();
   const { projects, usageSummary, billingAccessLimited, onboarding } = useLoaderData<typeof loader>();
   const headerActions = resolveDashboardHeaderActions(projects, (key) => t(key));
 
@@ -360,7 +363,14 @@ export default function DashboardPage() {
           <h2 id="workspace-overview-title" className="mb-4 text-lg font-semibold">
             {t('dashboard.workspaceOverview')}
           </h2>
-          <StatGrid stats={statsFromUsage(usageSummary, (key, options) => t(key, options))} />
+          {/* KILL-SWITCH FACTURATION : les tuiles « Plan » et « Coût IA » pointent vers
+              la facturation — elles disparaissent avec elle. */}
+          <StatGrid
+            stats={withoutBillingDestinations(
+              statsFromUsage(usageSummary, (key, options) => t(key, options)),
+              billingOn,
+            )}
+          />
         </section>
         <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {importOptions.map((option) => {

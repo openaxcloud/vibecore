@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Link } from 'react-router';
 import { EnterpriseFormPage } from '~/components/enterprise/EnterpriseFormPage';
+import { requireBillingEnabled } from '~/lib/billing/require-billing-enabled.server';
 import { json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
 import { getPlanQuotaCopy } from '~/lib/i18n/catalogs/plan-quota';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
@@ -44,6 +45,9 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
 };
 
 export function loader({ request }: EnterpriseLoaderArgs) {
+  // KILL-SWITCH FACTURATION : à OFF cette surface n'existe pas (404 sec).
+  requireBillingEnabled();
+
   const localeResolution = resolveRequestLocale(request);
 
   return json({ language: localeResolution.language }, { headers: localeResponseHeaders(request, localeResolution) });
