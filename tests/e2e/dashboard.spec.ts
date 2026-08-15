@@ -1291,69 +1291,87 @@ test('platform typography tokens apply to the web IDE', async ({ page, isMobile 
   await forceLightTheme(page);
   await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 30000 });
 
-  const typography = await page.locator('.bolt-project-ide-panels').evaluate((element) => {
-    const codeSample = document.createElement('code');
-    codeSample.textContent = 'const value = 1;';
-    codeSample.style.position = 'absolute';
-    codeSample.style.left = '-9999px';
-    codeSample.setAttribute('data-testid', 'typography-code-sample');
-    element.appendChild(codeSample);
+  /*
+   * Re-resolve the panel on each attempt: a cached handle returned empty
+   * computed styles ("shellFont": "") because the IDE shell had remounted
+   * between the visibility assertion and the read — a detached node, not a
+   * missing font.
+   */
+  const readTypography = () =>
+    page.locator('.bolt-project-ide-panels').evaluate((element) => {
+      const codeSample = document.createElement('code');
+      codeSample.textContent = 'const value = 1;';
+      codeSample.style.position = 'absolute';
+      codeSample.style.left = '-9999px';
+      codeSample.setAttribute('data-testid', 'typography-code-sample');
+      element.appendChild(codeSample);
 
-    const labelSample = document.createElement('div');
-    labelSample.className = 'bolt-project-command-section';
-    labelSample.textContent = 'Files';
-    labelSample.style.position = 'absolute';
-    labelSample.style.left = '-9999px';
-    element.appendChild(labelSample);
+      const labelSample = document.createElement('div');
+      labelSample.className = 'bolt-project-command-section';
+      labelSample.textContent = 'Files';
+      labelSample.style.position = 'absolute';
+      labelSample.style.left = '-9999px';
+      element.appendChild(labelSample);
 
-    const root = window.getComputedStyle(document.documentElement);
-    const shell = window.getComputedStyle(element);
-    const heading = window.getComputedStyle(element.querySelector('h2')!);
-    const label = window.getComputedStyle(labelSample);
-    const code = window.getComputedStyle(codeSample);
+      const root = window.getComputedStyle(document.documentElement);
+      const shell = window.getComputedStyle(element);
+      const heading = window.getComputedStyle(element.querySelector('h2')!);
+      const label = window.getComputedStyle(labelSample);
+      const code = window.getComputedStyle(codeSample);
 
-    return {
-      interfaceFont: root.getPropertyValue('--vc-font-interface').trim(),
-      codeFont: root.getPropertyValue('--vc-font-code').trim(),
-      interfaceSize: root.getPropertyValue('--vc-type-interface-size').trim(),
-      codeSize: root.getPropertyValue('--vc-type-code-size').trim(),
-      headingSize: root.getPropertyValue('--vc-type-heading-size').trim(),
-      labelSize: root.getPropertyValue('--vc-type-label-size').trim(),
-      labelTracking: root.getPropertyValue('--vc-type-label-letter-spacing').trim(),
-      shellFont: shell.fontFamily,
-      shellSize: shell.fontSize,
-      shellLineHeight: shell.lineHeight,
-      headingSizeActual: heading.fontSize,
-      headingWeight: heading.fontWeight,
-      labelSizeActual: label.fontSize,
-      labelWeight: label.fontWeight,
-      labelTrackingActual: label.letterSpacing,
-      codeFontActual: code.fontFamily,
-      codeSizeActual: code.fontSize,
-      codeLigaturesActual: code.fontVariantLigatures,
-    };
-  });
+      return {
+        interfaceFont: root.getPropertyValue('--vc-font-interface').trim(),
+        codeFont: root.getPropertyValue('--vc-font-code').trim(),
+        interfaceSize: root.getPropertyValue('--vc-type-interface-size').trim(),
+        codeSize: root.getPropertyValue('--vc-type-code-size').trim(),
+        headingSize: root.getPropertyValue('--vc-type-heading-size').trim(),
+        labelSize: root.getPropertyValue('--vc-type-label-size').trim(),
+        labelTracking: root.getPropertyValue('--vc-type-label-letter-spacing').trim(),
+        shellFont: shell.fontFamily,
+        shellSize: shell.fontSize,
+        shellLineHeight: shell.lineHeight,
+        headingSizeActual: heading.fontSize,
+        headingWeight: heading.fontWeight,
+        labelSizeActual: label.fontSize,
+        labelWeight: label.fontWeight,
+        labelTrackingActual: label.letterSpacing,
+        codeFontActual: code.fontFamily,
+        codeSizeActual: code.fontSize,
+        codeLigaturesActual: code.fontVariantLigatures,
+      };
+    });
 
-  expect(typography.interfaceFont).toContain('Inter');
-  expect(typography.codeFont).toContain('IBM Plex Mono');
-  expect(typography.interfaceSize).toBe('12px');
-  expect(typography.codeSize).toBe('12px');
-  expect(typography.headingSize).toBe('14px');
-  expect(typography.labelSize).toBe('10px');
+  await expect(async () => {
+    const typography = await readTypography();
 
-  // Custom properties keep the author's spelling (`.4px`); compare the value.
-  expect(Number.parseFloat(typography.labelTracking)).toBeCloseTo(0.4, 3);
-  expect(typography.shellFont).toContain('Inter');
-  expect(typography.shellSize).toBe('12px');
-  expect(Number.parseFloat(typography.shellLineHeight)).toBeCloseTo(17.04, 1);
-  expect(typography.headingSizeActual).toBe('14px');
-  expect(typography.headingWeight).toBe('600');
-  expect(typography.labelSizeActual).toBe('12px');
-  expect(typography.labelWeight).toBe('500');
-  expect(['normal', '0.4px']).toContain(typography.labelTrackingActual);
-  expect(typography.codeFontActual).toContain('IBM Plex Mono');
-  expect(typography.codeSizeActual).toBe('12px');
-  expect(typography.codeLigaturesActual).toContain('common-ligatures');
+    expect(typography.interfaceFont).toContain('Inter');
+    expect(typography.codeFont).toContain('IBM Plex Mono');
+    expect(typography.interfaceSize).toBe('12px');
+    expect(typography.codeSize).toBe('12px');
+    expect(typography.headingSize).toBe('14px');
+    expect(typography.labelSize).toBe('10px');
+
+    // Custom properties keep the author's spelling (`.4px`); compare the value.
+    expect(Number.parseFloat(typography.labelTracking)).toBeCloseTo(0.4, 3);
+
+    /*
+     * The platform interface font moved to IBM Plex Sans (Inter stays only as a
+     * fallback further down the stack), so assert the family the design system
+     * actually leads with — same change already made in platform-typography and
+     * admin-typography.
+     */
+    expect(typography.shellFont).toContain('IBM Plex Sans');
+    expect(typography.shellSize).toBe('12px');
+    expect(Number.parseFloat(typography.shellLineHeight)).toBeCloseTo(17.04, 1);
+    expect(typography.headingSizeActual).toBe('14px');
+    expect(typography.headingWeight).toBe('600');
+    expect(typography.labelSizeActual).toBe('12px');
+    expect(typography.labelWeight).toBe('500');
+    expect(['normal', '0.4px']).toContain(typography.labelTrackingActual);
+    expect(typography.codeFontActual).toContain('IBM Plex Mono');
+    expect(typography.codeSizeActual).toBe('12px');
+    expect(typography.codeLigaturesActual).toContain('common-ligatures');
+  }).toPass({ timeout: 20_000, intervals: [250, 500, 1000] });
 });
 
 test('IDE applies section 12 UI detail styles', async ({ page, isMobile }) => {
