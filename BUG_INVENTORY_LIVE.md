@@ -676,3 +676,16 @@ rendu.
 garde d'entrée est prouvée par le code et par les tests rouge→vert (3 échecs dont
 2 timeouts de 120 s avec l'ancien code, 12/12 avec le correctif). Le passage en
 ✅ **Testé live** reste dû.
+
+> **Trou de couverture assumé — édition + sauvegarde de fichier (15/08).** Le panneau
+> éditeur ouvre bien les fichiers (Monaco, `src/types.ts` rendu avec coloration, numéros
+> de ligne, minicarte) et n'est **ni en lecture seule ni désactivé** (`readOnly=false`,
+> `disabled=false`, éditeur `focused`, curseur visible). Mais **je n'ai pas réussi à y
+> injecter de frappe** depuis ce harnais : ni la saisie synthétique, ni une touche réelle
+> isolée n'insèrent de caractère, alors que la `textarea.inputarea` de Monaco a bien le
+> focus. Monaco exige un événement clavier porteur du champ `text` que ce harnais ne
+> produit pas — les mêmes actions fonctionnent pourtant sur les `textarea` simples
+> (message de commit, prompt agent) et sur xterm. **Ce point est donc NON TESTÉ, et non
+> "cassé"** : je ne le consigne pas comme défaut. `Formater` n'a rien changé non plus,
+> mais le fichier était peut-être déjà conforme — non concluant. À couvrir par un test
+> Playwright dédié (`page.keyboard.type` sur l'éditeur) plutôt que par pilotage CDP.
