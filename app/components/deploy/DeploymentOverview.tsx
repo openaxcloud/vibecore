@@ -26,7 +26,7 @@ export function DeploymentOverview({
   deployment,
   deploymentTypeId = 'static',
   databaseConnected = false,
-  usageHref = '/usage',
+  usageHref,
   onManage,
   onBuyDomain,
   onManageDatabase,
@@ -119,12 +119,20 @@ export function DeploymentOverview({
           >
             {t('idePanels.deployment.manage')}
           </button>
-          <a
-            href={usageHref}
-            className="text-[13px] text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary hover:underline"
-          >
-            {t('idePanels.deployment.seeUsage')}
-          </a>
+          {/*
+           * KILL-SWITCH FACTURATION : `usageHref` vaut `undefined` quand la
+           * facturation est eteinte, et le lien disparait. La decision est prise
+           * par la ROUTE, qui a acces au loader racine ; le composant reste pur,
+           * donc testable sans monter un routeur.
+           */}
+          {usageHref ? (
+            <a
+              href={usageHref}
+              className="text-[13px] text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary hover:underline"
+            >
+              {t('idePanels.deployment.seeUsage')}
+            </a>
+          ) : null}
         </div>
       </Row>
       <Row label={t('idePanels.deployment.database')}>

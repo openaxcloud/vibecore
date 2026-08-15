@@ -7,6 +7,7 @@ import { Form, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { useBillingEnabled } from '~/lib/billing/use-billing-enabled';
 import {
   apiRequest,
   isApiResponse,
@@ -232,6 +233,7 @@ function toLocalInputValue(iso: string): string {
 }
 
 export default function ProjectDatabaseRestorePage() {
+  const billingOn = useBillingEnabled();
   const { i18n } = useTranslation();
   const language = resolveDatabaseRestoreLanguage(i18n.resolvedLanguage ?? i18n.language);
   const copy = getDatabaseRestoreCopy(language);
@@ -288,7 +290,7 @@ export default function ProjectDatabaseRestorePage() {
       ) : null}
 
       {notAvailable ? (
-        <NotAvailablePanel enabled={enabled} retentionDays={entitlement.retentionDays} />
+        <NotAvailablePanel enabled={enabled} retentionDays={entitlement.retentionDays} billingOn={billingOn} />
       ) : (
         <div className="grid min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(320px,420px)]">
           <div className="grid min-w-0 gap-6">
@@ -303,7 +305,15 @@ export default function ProjectDatabaseRestorePage() {
   );
 }
 
-function NotAvailablePanel({ enabled, retentionDays }: { enabled: boolean; retentionDays: number }) {
+function NotAvailablePanel({
+  enabled,
+  retentionDays,
+  billingOn = false,
+}: {
+  enabled: boolean;
+  retentionDays: number;
+  billingOn?: boolean;
+}) {
   const { i18n } = useTranslation();
   const language = resolveDatabaseRestoreLanguage(i18n.resolvedLanguage ?? i18n.language);
   const copy = getDatabaseRestoreCopy(language);
@@ -333,7 +343,8 @@ function NotAvailablePanel({ enabled, retentionDays }: { enabled: boolean; reten
                   )
                 : copy['databaseRestore.notAvailable.plan']}
           </p>
-          {enabled && retentionDays === 0 ? (
+          {/* KILL-SWITCH FACTURATION : « voir les plans » mène à /usage. */}
+          {enabled && retentionDays === 0 && billingOn ? (
             <a
               href="/usage"
               className="mt-3 inline-flex text-xs font-medium text-[var(--vc-ide-accent-action)] hover:underline"

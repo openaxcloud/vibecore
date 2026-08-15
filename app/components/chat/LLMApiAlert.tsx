@@ -16,6 +16,13 @@ interface Props {
   clearAlert: () => void;
 
   /*
+   * KILL-SWITCH FACTURATION — passé par l'appelant, pas lu par un hook ici : ce
+   * composant est PUR et testé sans routeur, où un hook de loader rendrait
+   * toujours `false`. Défaut `false` : un appelant qui oublie MASQUE.
+   */
+  billingOn?: boolean;
+
+  /*
    * A short list of alternative models the user can retry with (Cursor/Replit
    * "retry with <model>"). Supplied by BaseChat from its live modelList, current
    * model excluded. When empty the control is hidden.
@@ -23,7 +30,7 @@ interface Props {
   alternativeModels?: LlmRetryModelOption[];
 }
 
-export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [] }: Props) {
+export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [], billingOn = false }: Props) {
   const { i18n } = useTranslation();
   const copy = getChatClientCopy(i18n.resolvedLanguage ?? i18n.language);
   const { provider, errorType } = alert;
@@ -195,7 +202,9 @@ export default function LlmErrorAlert({ alert, clearAlert, alternativeModels = [
                     ))}
                   </select>
                 )}
-                {(errorType === 'authentication' || errorType === 'quota') && (
+                {/* KILL-SWITCH FACTURATION : le lien « quota » mène à /billing, page
+                    inexistante à OFF — on ne rend pas un lien mort. */}
+                {(errorType === 'authentication' || (errorType === 'quota' && billingOn)) && (
                   <a
                     href={errorType === 'quota' ? '/billing' : '/settings'}
                     target="_blank"

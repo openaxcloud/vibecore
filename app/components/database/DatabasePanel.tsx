@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { DatabaseRollbackPanel } from './DatabaseRollbackPanel';
 import { SupabaseConnection } from '~/components/chat/SupabaseConnection';
+import { useBillingEnabled } from '~/lib/billing/use-billing-enabled';
 import { formatDatabaseSettingsBytes } from '~/lib/i18n/catalogs/database-studio';
 import { classNames } from '~/utils/classNames';
 
@@ -89,6 +90,7 @@ function UsageCard({
 }
 
 export function DatabasePanel({ projectId }: { projectId: string }) {
+  const billingOn = useBillingEnabled();
   const { t, i18n } = useTranslation();
   const fetcher = useFetcher<DatabasePanelData>();
   const loadUrl = `/api/projects/${encodeURIComponent(projectId)}/database`;
@@ -133,12 +135,15 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
           <h2 className="text-[14px] font-medium text-bolt-elements-textPrimary">{t('idePanels.database.title')}</h2>
         </div>
         <div className="flex items-center gap-2">
-          <a
-            href="/usage"
-            className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[13px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
-          >
-            {t('idePanels.database.all')}
-          </a>
+          {/* KILL-SWITCH FACTURATION : /usage n'existe pas à OFF. */}
+          {billingOn ? (
+            <a
+              href="/usage"
+              className="rounded-md border border-bolt-elements-borderColor px-2.5 py-1 text-[13px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
+            >
+              {t('idePanels.database.all')}
+            </a>
+          ) : null}
           <button
             type="button"
             onClick={() => fetcher.load(loadUrl)}

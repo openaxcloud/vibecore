@@ -43,6 +43,7 @@ import { DEFAULT_DEPLOYMENT_TYPE, type DeploymentTypeId } from '~/components/dep
 import { Button } from '~/components/ui/Button';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { RelativeTime } from '~/components/ui/RelativeTime';
+import { useBillingEnabled } from '~/lib/billing/use-billing-enabled';
 import {
   apiErrorMessage,
   apiRequest,
@@ -347,6 +348,8 @@ function useProjectDeploymentsLocale(): {
 }
 
 export default function ProjectDeploymentsPage() {
+  const billingOn = useBillingEnabled();
+
   /*
    * The loader is dual-purpose (the page shape, plus a `?detect=1` side-channel
    * the Publish card hits via a fetcher), so `typeof loader` is a union. The
@@ -485,7 +488,7 @@ export default function ProjectDeploymentsPage() {
               deployment={latest}
               deploymentTypeId={deployType}
               databaseConnected={false}
-              usageHref="/usage"
+              usageHref={billingOn ? '/usage' : undefined}
               onManage={() => setView('manage')}
               onBuyDomain={() => setView('domains')}
               onManageDatabase={() => setView('manage')}

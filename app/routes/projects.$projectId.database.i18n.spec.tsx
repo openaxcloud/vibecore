@@ -31,6 +31,14 @@ vi.mock('react-router', async (importOriginal) => {
     ),
     useActionData: () => routeState.actionData,
     useLoaderData: () => routeState.loaderData,
+
+    /*
+     * KILL-SWITCH FACTURATION : ce spec couvre la surface PAYANTE (le lien
+     * « voir les plans »). Le drapeau descend par le loader racine ; sans lui,
+     * `useBillingEnabled` rend `false` — le fail-closed voulu — et le lien est
+     * masqué à juste titre.
+     */
+    useRouteLoaderData: () => ({ billingEnabled: true }),
     useNavigation: () => ({ state: routeState.navigationState }),
   };
 });

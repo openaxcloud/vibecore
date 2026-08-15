@@ -23,6 +23,7 @@ describe('<LlmErrorAlert /> i18n', () => {
             provider: 'OpenAI',
             errorType: 'authentication',
           }}
+          billingOn
           clearAlert={clearAlert}
           alternativeModels={[{ name: 'gpt-5', label: 'GPT-5', provider: 'OpenAI' }]}
         />
@@ -52,6 +53,7 @@ describe('<LlmErrorAlert /> i18n', () => {
             description: '',
             errorType: 'quota',
           }}
+          billingOn
           clearAlert={vi.fn()}
         />
       </I18nextProvider>,

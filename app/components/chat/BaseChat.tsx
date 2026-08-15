@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment, import/order */
 // @ts-nocheck — Preventing TS checks. Must be a line comment, not a block, or tsc silently ignores the directive.
+import { useBillingEnabled } from '~/lib/billing/use-billing-enabled';
 import { useTranslation } from 'react-i18next';
 import * as Popover from '@radix-ui/react-popover';
 import * as Tooltip from '@radix-ui/react-tooltip';
@@ -2600,6 +2601,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
   ) => {
     const { t, i18n } = useTranslation();
     const language = resolvedBaseChatLanguage(i18n);
+
+    /*
+     * KILL-SWITCH FACTURATION : l'alerte « quota » propose un lien vers
+     * /billing, page inexistante à OFF. Le drapeau est lu ICI (BaseChat est
+     * monté sous le routeur) et passé en prop au composant d'alerte, qui reste
+     * pur et testable sans routeur.
+     */
+    const billingKillSwitchOn = useBillingEnabled();
 
     const ECODE_MOBILE_TAB_META = useMemo(
       () =>
@@ -7047,6 +7056,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     alert={llmErrorAlert}
                     clearAlert={() => clearLlmErrorAlert?.()}
                     alternativeModels={[]}
+                    billingOn={billingKillSwitchOn}
                   />
                 )}
                 {projectIdeMode && agentToolAction && (
