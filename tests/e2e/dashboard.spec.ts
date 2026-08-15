@@ -1096,35 +1096,46 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
 
   for (const theme of ['light', 'dark'] as const) {
     const expected = expectations[theme];
-    const snapshot = await readIdeTheme(theme);
-    expect(
-      Object.entries(snapshot.surfaces)
-        .filter(([, value]) => 'missing' in value)
-        .map(([key, value]) => `${key}:${value.missing}`),
-    ).toEqual([]);
-    expect(snapshot.tokens).toMatchObject(expected.tokens);
-    expect(snapshot.surfaces.root).toMatchObject(expected.root);
-    expect(snapshot.surfaces.agent.background).toBe(expected.panel);
-    expect(snapshot.surfaces.agent.borderRightColor).toBe(expected.hoverBorder);
-    expect(snapshot.surfaces.agentHeader.background).toBe(expected.panel);
-    expect(snapshot.surfaces.agentInput.background).toBe(expected.card);
-    expect(snapshot.surfaces.agentInput.borderColor).toBe(expected.visibleBorder);
-    expect(snapshot.surfaces.agentTextarea.color).not.toBe(snapshot.surfaces.agentInput.background);
-    expect(Number.parseFloat(String(snapshot.surfaces.iconButton.borderRadius))).toBeGreaterThanOrEqual(4);
-    expect(Number.parseFloat(String(snapshot.surfaces.iconButton.borderRadius))).toBeLessThanOrEqual(8);
-    expect(snapshot.surfaces.workspace.background).toBe(expected.app);
-    expect(snapshot.surfaces.tabbar.background).toBe(expected.panel);
-    expect(snapshot.surfaces.tabbar.borderBottomColor).toBe(expected.hoverBorder);
-    expect(snapshot.surfaces.databasePanel.background).toBe(expected.app);
-    expect(snapshot.surfaces.rightPanel.background).toBe(expected.panel);
-    expect(snapshot.surfaces.rightPanel.borderLeftColor).toBe(expected.hoverBorder);
-    expect(snapshot.surfaces.rightHeader.background).toBe(expected.panel);
-    expect(snapshot.surfaces.filesHeader.background).toBe(expected.panel);
-    expect(snapshot.surfaces.filesHeader.borderBottomColor).toBe(expected.hoverBorder);
-    expect(snapshot.surfaces.filesSearch.color).toBe(expected.mutedText);
-    expect(snapshot.surfaces.filesSearch.borderBottomColor).toBe(expected.hoverBorder);
-    expect(snapshot.surfaces.statusbar.background).toBe(expected.panel);
-    expect(snapshot.surfaces.statusbar.color).toBe(expected.secondaryText);
+
+    /*
+     * Themed surfaces settle a tick after the attribute flips, and a one-shot
+     * read caught whichever surface lost the race — the same measurement
+     * defect as the service-panel loop. Re-read until it agrees.
+     */
+    let snapshot = await readIdeTheme(theme);
+
+    await expect(async () => {
+      snapshot = await readIdeTheme(theme);
+
+      expect(
+        Object.entries(snapshot.surfaces)
+          .filter(([, value]) => 'missing' in value)
+          .map(([key, value]) => `${key}:${value.missing}`),
+      ).toEqual([]);
+      expect(snapshot.tokens).toMatchObject(expected.tokens);
+      expect(snapshot.surfaces.root).toMatchObject(expected.root);
+      expect(snapshot.surfaces.agent.background).toBe(expected.panel);
+      expect(snapshot.surfaces.agent.borderRightColor).toBe(expected.hoverBorder);
+      expect(snapshot.surfaces.agentHeader.background).toBe(expected.panel);
+      expect(snapshot.surfaces.agentInput.background).toBe(expected.card);
+      expect(snapshot.surfaces.agentInput.borderColor).toBe(expected.visibleBorder);
+      expect(snapshot.surfaces.agentTextarea.color).not.toBe(snapshot.surfaces.agentInput.background);
+      expect(Number.parseFloat(String(snapshot.surfaces.iconButton.borderRadius))).toBeGreaterThanOrEqual(4);
+      expect(Number.parseFloat(String(snapshot.surfaces.iconButton.borderRadius))).toBeLessThanOrEqual(8);
+      expect(snapshot.surfaces.workspace.background).toBe(expected.app);
+      expect(snapshot.surfaces.tabbar.background).toBe(expected.panel);
+      expect(snapshot.surfaces.tabbar.borderBottomColor).toBe(expected.hoverBorder);
+      expect(snapshot.surfaces.databasePanel.background).toBe(expected.app);
+      expect(snapshot.surfaces.rightPanel.background).toBe(expected.panel);
+      expect(snapshot.surfaces.rightPanel.borderLeftColor).toBe(expected.hoverBorder);
+      expect(snapshot.surfaces.rightHeader.background).toBe(expected.panel);
+      expect(snapshot.surfaces.filesHeader.background).toBe(expected.panel);
+      expect(snapshot.surfaces.filesHeader.borderBottomColor).toBe(expected.hoverBorder);
+      expect(snapshot.surfaces.filesSearch.color).toBe(expected.mutedText);
+      expect(snapshot.surfaces.filesSearch.borderBottomColor).toBe(expected.hoverBorder);
+      expect(snapshot.surfaces.statusbar.background).toBe(expected.panel);
+      expect(snapshot.surfaces.statusbar.color).toBe(expected.secondaryText);
+    }).toPass({ timeout: 20_000, intervals: [250, 500, 1000, 2000] });
 
     if (expected.forbiddenPanelBackgrounds.length > 0) {
       const darkSurfaces = await page.locator('.bolt-project-ide-shell').evaluate((root, forbiddenBackgrounds) => {
