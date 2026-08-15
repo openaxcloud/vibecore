@@ -1100,7 +1100,7 @@ export function AppShell({
         mainClassName,
       )}
     >
-      <SkipLink />
+      <SkipLink label={t('userArea.shell.skipToContent')} />
       <div
         className={classNames(
           'vc-app-shell-grid grid min-h-[100dvh]',
