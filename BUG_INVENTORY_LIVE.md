@@ -584,6 +584,26 @@ l'écriture d'un autre fichier.
 **Rejeté** · 0 % d'accord », pendant que l'en-tête affiche « **Terminé 100 %** ».
 Le défaut est **déterministe**, pas accidentel.
 
+**Localisation exacte de la perte — le trajet fautif est `store → runtime`.** À
+T+7 min, le pod s'est stabilisé à 19 fichiers et **un seul manquait encore :
+`src/main.tsx`**. Or au même instant le **store projet le contient bien** :
+`GET /api/projects/cmsuvge4n009c0ne0xvzvzwye/files` → **19 chemins dont
+`src/main.tsx`**. L'écriture agent → store a donc **réussi** ; c'est la
+réplication **store → workspace runtime** qui perd le fichier. Et c'est bien le
+fichier qui casse tout : `index.html:11` charge
+`<script type="module" src="/src/main.tsx">` — l'app est cassée par construction.
+
+**Le reconcile au montage répare instantanément.** Un simple rechargement de la
+page projet a fait apparaître `src/main.tsx` dans le pod **immédiatement**
+(ABSENT à 21:22:12 → **PRESENT à 21:23:33**, sans autre action). Le mécanisme de
+réparation existe donc et fonctionne — il n'est simplement **jamais déclenché à la
+fin du run de l'agent**, alors que c'est précisément là qu'il faudrait.
+
+**Piste de correction la plus courte** (à valider par la session qui traite le P0) :
+déclencher le même reconcile store→runtime à la fin du run, et ne passer le statut
+à « Terminé » qu'après avoir vérifié que les chemins annoncés existent réellement
+côté runtime — plutôt que de le déduire de la fin du flux.
+
 **Note annexe (sans perte de données)** — 2 écritures sur 1036 ont été adressées à
 `/api/runtime/workspaces/**cmsuvge4n009c0ne0xvzvzwye**/files/write`, c'est-à-dire
 l'**ID de projet** dans l'emplacement de l'ID de **workspace**. L'API les résout
