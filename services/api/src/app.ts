@@ -258,6 +258,7 @@ import {
 } from './deployments.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
+import { forwardedAgentQuery } from './forwarded-agent-query.js';
 import {
   resolveIntegrationOauthStateSecret,
   signIntegrationOauthState,
@@ -17260,6 +17261,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     agentPath: string,
     wrapMessages = true,
     locale: TransactionalLocale = 'en',
+    clientQuery?: unknown,
   ) => {
     const token = await agentToken(workspaceId);
     const client = normalizeRuntimeApiWebSocket(rawSocket);
@@ -17267,7 +17269,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const upstream = new WebSocket(
       `${agentBaseUrl(workspaceId)
         .replace(/^http:/, 'ws:')
-        .replace(/^https:/, 'wss:')}${agentPath}?token=${encodeURIComponent(token)}`,
+        .replace(/^https:/, 'wss:')}${agentPath}?token=${encodeURIComponent(token)}${forwardedAgentQuery(clientQuery)}`,
       { headers: { 'accept-language': locale } },
     );
 
@@ -17487,6 +17489,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       '/commands/stream',
       false,
       transactionalLocaleForRequest(request),
+      request.query,
     );
   });
 
@@ -17558,6 +17561,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       '/terminal',
       false,
       transactionalLocaleForRequest(request),
+      request.query,
     );
   });
   app.get('/api/runtime/workspaces/:workspaceId/logs', { websocket: true }, async (socket, request) => {
