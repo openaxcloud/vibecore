@@ -3,6 +3,7 @@ import { atom } from 'nanostores';
 import { withResolvers } from './promises';
 import { runSettlingReady } from './shell-init';
 import { bindTerminalInput } from './shell-input-binding';
+import { createInteractiveInputGate } from '~/utils/shell-interactive-gate';
 import { normalizeShellCommand } from './shell-normalizer';
 import { stripInternalOscMarkers } from './terminal-output';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
@@ -22,7 +23,10 @@ export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITermin
 
   const jshReady = withResolvers<void>();
 
-  let isInteractive = !useJshOsc;
+  const inputGate = createInteractiveInputGate({
+    write: (data) => session.write(data),
+    initiallyOpen: !useJshOsc,
+  });
 
   void (async () => {
     try {
@@ -33,11 +37,10 @@ export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITermin
           continue;
         }
 
-        if (useJshOsc && !isInteractive) {
-          const [, osc] = data.match(/\x1b\]654;([^\x07]+)\x07/) || [];
+        if (useJshOsc && !inputGate.isOpen) {
+          inputGate.observeOutput(data);
 
-          if (osc === 'interactive') {
-            isInteractive = true;
+          if (inputGate.isOpen) {
             jshReady.resolve();
           }
         }
@@ -95,24 +98,22 @@ export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITermin
   })();
 
   bindTerminalInput(terminal, (data) => {
-    if (isInteractive) {
-      session.write(data);
+    inputGate.send(data);
 
-      try {
-        import('~/utils/debugLogger')
-          .then(({ captureTerminalLog }) => {
-            const cleanData = data.replace(/\x1b\[[0-9;]*[A-Z]/g, '').trim();
+    try {
+      import('~/utils/debugLogger')
+        .then(({ captureTerminalLog }) => {
+          const cleanData = data.replace(/\x1b\[[0-9;]*[A-Z]/g, '').trim();
 
-            if (cleanData && cleanData !== '\r' && cleanData !== '\n') {
-              captureTerminalLog(cleanData, 'input');
-            }
-          })
-          .catch(() => {
-            // Ignore if debug logger is not available
-          });
-      } catch {
-        // Ignore errors in debug logging
-      }
+          if (cleanData && cleanData !== '\r' && cleanData !== '\n') {
+            captureTerminalLog(cleanData, 'input');
+          }
+        })
+        .catch(() => {
+          // Ignore if debug logger is not available
+        });
+    } catch {
+      // Ignore errors in debug logging
     }
   });
 
@@ -195,7 +196,7 @@ export class BoltShell {
       managed: true,
     });
 
-    let isInteractive = false;
+    const inputGate = createInteractiveInputGate({ write: (data) => session.write(data) });
 
     void (async () => {
       for await (const event of session.events) {
@@ -205,13 +206,7 @@ export class BoltShell {
           continue;
         }
 
-        if (!isInteractive) {
-          const [, osc] = data.match(/\x1b\]654;([^\x07]+)\x07/) || [];
-
-          if (osc === 'interactive') {
-            isInteractive = true;
-          }
-        }
+        inputGate.observeOutput(data);
 
         terminal.write(stripInternalOscMarkers(data));
         this.#pushOutput(data);
@@ -222,9 +217,7 @@ export class BoltShell {
     })();
 
     bindTerminalInput(terminal, (data) => {
-      if (isInteractive) {
-        session.write(data);
-      }
+      inputGate.send(data);
     });
 
     return session;
