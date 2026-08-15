@@ -534,3 +534,58 @@ l'identique — il n'est pas un artefact de l'environnement de test.
 > Google/GitHub, Resend, et `OPENAI_API_KEY` (d'où `GET /agent-memory/preferences` → **503**
 > `AGENT_MEMORY_UNCONFIGURED`, ×6 — dégradation à corriger côté UI, l'IDE affichant
 > « Impossible de charger la mémoire de l'IDE du projet »).
+
+### Diagnostic ciblé BUG-AGENT-001 — divergence d'ID ou perte d'écriture ? (15/08, 2ᵉ run)
+
+Deuxième projet créé par prompt sur l'env d'audit pour trancher la question :
+projet `cmsuvge4n009c0ne0xvzvzwye` (« Crée un convertisseur d'unités »), workspace
+`ws-4ede79018e4587c6`, prompt « Crée un convertisseur d'unités simple : longueur,
+poids et température ».
+
+**Verdict : PERTE D'ÉCRITURE, pas divergence d'ID.**
+
+| Relevé | Valeur |
+|---|---|
+| **(b)** workspace ciblé par les écritures — `PUT …/files/write` | **`ws-4ede79018e4587c6`** (1036 requêtes) |
+| **(c)** workspace lu par l'arbre — `GET …/files*` | **`ws-4ede79018e4587c6`** (176 requêtes) |
+| **(b) vs (c)** | **IDENTIQUES** → la piste « divergence d'ID » est **écartée** |
+
+**Amplification pire qu'au 1ᵉʳ run** : **1036 `PUT /files/write` pour 18 fichiers = ×57**
+(1ᵉʳ run : 750 pour 20 = ×37). **Toutes répondent `204`** — le serveur accepte donc
+l'intégralité des écritures, et les fichiers manquent quand même.
+
+**(a) `ls -R /workspace/src` au moment où l'agent affiche « Terminé 100 % »** — 14 fichiers
+présents contre **18 revendiqués « Terminé »**, soit **6 absents** :
+
+```
+/workspace/src:            components  hooks  lib  types.ts
+/workspace/src/components: CategoryTabs.tsx  ConverterCard.tsx  ErrorBoundary.tsx
+/workspace/src/hooks:      useTheme.ts
+/workspace/src/lib:        categories.ts  storage.ts
+```
+
+Manquants : `src/main.tsx`, `src/App.tsx`, `src/components/HistoryList.tsx`,
+`src/styles/index.css`, `src/test/setup.ts`, `src/lib/categories.test.ts`.
+
+**Ce n'est pas une simple troncature de fin de liste.** À T+6 min, 17 fichiers sont
+là et **`src/main.tsx` — le point d'entrée référencé par `index.html`, créé en
+**6ᵉ** position sur 18 — n'est toujours pas arrivé**, alors que `src/App.tsx`
+(**15ᵉ**) et `src/styles/index.css` (**16ᵉ**) le sont. Les écritures ne sont donc
+**ni ordonnées ni fiables** : un fichier précoce peut être définitivement perdu
+pendant que des fichiers bien plus tardifs aboutissent. Cohérent avec la cause
+racine consignée en BUG-AGENT-001 — les écritures streaming contournent la file
+d'exécution qu'emprunte l'écriture finale, et un *trailing* du sampler partagé
+(un seul slot `lastArgs` pour **toutes** les actions) peut écraser ou supplanter
+l'écriture d'un autre fichier.
+
+**Reproduction confirmée sur ce 2ᵉ run** : `BUG-AGENT-003` à l'identique — « Plan
+0/4 terminées », les 4 sous-agents (Architecte, Frontend, DevOps, QA) tous en
+« Cet agent spécialisé n'a pas pu terminer sa tâche », « Consensus · quorum ·
+**Rejeté** · 0 % d'accord », pendant que l'en-tête affiche « **Terminé 100 %** ».
+Le défaut est **déterministe**, pas accidentel.
+
+**Note annexe (sans perte de données)** — 2 écritures sur 1036 ont été adressées à
+`/api/runtime/workspaces/**cmsuvge4n009c0ne0xvzvzwye**/files/write`, c'est-à-dire
+l'**ID de projet** dans l'emplacement de l'ID de **workspace**. L'API les résout
+malgré tout (`PUT` → **204**, `GET …/files?path=.` → **200**) : incohérence
+d'adressage à nettoyer, mais **ce n'est pas la cause des fichiers manquants**.
