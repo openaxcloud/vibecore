@@ -3,7 +3,7 @@ import { atom } from 'nanostores';
 import { withResolvers } from './promises';
 import { runSettlingReady } from './shell-init';
 import { bindTerminalInput } from './shell-input-binding';
-import { createInteractiveInputGate } from '~/utils/shell-interactive-gate';
+import { createInteractiveInputGate } from './shell-interactive-gate';
 import { normalizeShellCommand } from './shell-normalizer';
 import { stripInternalOscMarkers } from './terminal-output';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
