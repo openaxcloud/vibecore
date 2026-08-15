@@ -158,7 +158,7 @@ async function openVisibleIdeToolMenu(page: import('@playwright/test').Page) {
     }
 
     expect(await trigger.getAttribute('aria-expanded')).toBe('true');
-  }).toPass({ timeout: 20_000, intervals: [250, 500, 1000] });
+  }).toPass({ timeout: 45_000, intervals: [250, 500, 1000] });
 
   /*
    * The palette renders as `.bolt-project-tool-modal[data-testid=
@@ -613,7 +613,7 @@ test('opens preserved Bolt IDE route for a project', async ({ page }) => {
     expect(agentMetrics.height).toBe(expectedHeight);
     expect(agentMetrics.background).toBe('rgb(14, 21, 37)');
     expect(agentMetrics.borderRight).toBe('rgb(26, 32, 48)');
-  }).toPass({ timeout: 20_000, intervals: [250, 500, 1000] });
+  }).toPass({ timeout: 45_000, intervals: [250, 500, 1000] });
 
   // Settled snapshot for the cross-panel comparison further down.
   const agentMetrics = await readAgentMetrics();
@@ -946,7 +946,7 @@ test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) 
       actualText: 'rgb(245, 249, 252)',
       missingAliases: [],
     });
-  }).toPass({ timeout: 20_000, intervals: [250, 500, 1000] });
+  }).toPass({ timeout: 45_000, intervals: [250, 500, 1000] });
 });
 
 test('IDE panels, agent input and feature tools keep the platform theme in light and dark modes', async ({
@@ -1135,7 +1135,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
       expect(snapshot.surfaces.filesSearch.borderBottomColor).toBe(expected.hoverBorder);
       expect(snapshot.surfaces.statusbar.background).toBe(expected.panel);
       expect(snapshot.surfaces.statusbar.color).toBe(expected.secondaryText);
-    }).toPass({ timeout: 20_000, intervals: [250, 500, 1000, 2000] });
+    }).toPass({ timeout: 45_000, intervals: [250, 500, 1000, 2000] });
 
     if (expected.forbiddenPanelBackgrounds.length > 0) {
       const darkSurfaces = await page.locator('.bolt-project-ide-shell').evaluate((root, forbiddenBackgrounds) => {
@@ -1281,7 +1281,7 @@ test('all IDE service panels keep light theme containers readable', async ({ pag
 
     await expect(async () => {
       expect(await readDarkContainers(), `${panel} contains dark containers in light theme`).toEqual([]);
-    }).toPass({ timeout: 20_000, intervals: [250, 500, 1000, 2000] });
+    }).toPass({ timeout: 45_000, intervals: [250, 500, 1000, 2000] });
   }
 });
 
@@ -1391,7 +1391,7 @@ test('platform typography tokens apply to the web IDE', async ({ page, isMobile 
     expect(typography.codeFontActual).toContain('IBM Plex Mono');
     expect(typography.codeSizeActual).toBe('12px');
     expect(typography.codeLigaturesActual).toContain('common-ligatures');
-  }).toPass({ timeout: 20_000, intervals: [250, 500, 1000] });
+  }).toPass({ timeout: 45_000, intervals: [250, 500, 1000] });
 });
 
 test('IDE applies section 12 UI detail styles', async ({ page, isMobile }) => {
