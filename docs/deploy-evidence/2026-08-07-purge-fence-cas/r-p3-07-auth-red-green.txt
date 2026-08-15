@@ -1,0 +1,19 @@
+=== R-P3-07 — PREUVE ROUGE/VERTE : /internal/reconcile-workspace-freezes ===
+
+Exploit : POST NON AUTHENTIFIÉ {"graceMs":0} sur une barrière posée 1s avant,
+dont la purge propriétaire est VIVANTE (isPurgeFenceOwnerLive → true).
+
+--- AVANT correctif (code de b8c620c0) ---
+stdout | src/redproof.tmp.spec.ts > RED PROOF — pre-fix /internal/reconcile-workspace-freezes > an UNAUTHENTICATED POST {graceMs:0} lifts a LIVE purge barrier
+[redproof] status=200 body={"scanned":1,"reconciled":1,"skippedLiveOwner":0,"failed":0}
+[redproof] purgeFrozen AFTER unauthenticated call = false
+ ✓ src/redproof.tmp.spec.ts (1 test) 113ms
+      Tests  1 passed (1)
+
+--- APRÈS correctif (code rebasé sur origin/main) ---
+[redproof] status=401 body={"error":"Unauthorized workspace manager request","code":"WORKSPACE_MANAGER_UNAUTHORIZED"}
+[redproof] purgeFrozen AFTER unauthenticated call = true
+      Tests  1 failed (1)
+
+Le test est écrit pour le comportement VULNÉRABLE (attend 200 + barrière levée) :
+il PASSE avant le correctif et ÉCHOUE après — l'échec est la preuve du blocage.

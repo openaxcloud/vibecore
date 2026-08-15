@@ -175,6 +175,14 @@ import {
   reportUsagePaygUsage,
   settleCheckpoint,
 } from './credits-service.js';
+import type { PurgeClassReport } from './account-purge.js';
+import {
+  eraseSubjectStorage,
+  type WorkspaceVolumeErasurePort,
+  type WriteBarrierPort,
+  type StorageErasureInventory,
+} from './account-storage-purge.js';
+import type { PurgeStorageInventory } from './account-purge.js';
 import {
   DELETION_GRACE_PERIOD_DAYS,
   canCancelDeletion,
@@ -309,6 +317,7 @@ import {
 import {
   ObjectStorageError,
   type ObjectStorage,
+  guardObjectStorageWrites,
   isObjectStorageEnabled,
   PROJECT_THUMBNAIL_KEY,
   resolveDefaultObjectStorage,
@@ -478,6 +487,16 @@ export interface ApiAppOptions {
 
   /** Override the per-project object storage backend (tests inject a fake). */
   objectStorage?: ObjectStorage;
+
+  /**
+   * Physical-erasure hook for account purge (§16.12). Defaults to erasing real
+   * GCS buckets + workspace PVCs via `eraseSubjectStorage`; tests inject a fake
+   * to exercise the fail-closed gate without live GCS / workspace-manager.
+   */
+  accountStoragePurger?: (
+    inventory: PurgeStorageInventory,
+    userId: string,
+  ) => Promise<{ classes: PurgeClassReport[]; verified: boolean }>;
 
   /** Injectable for tests; defaults to an env-configured (inert-unless-set) capturer. */
   thumbnailCapturer?: ThumbnailCapturer;
@@ -7008,6 +7027,134 @@ async function writeReleaseManifest(
     });
   } catch (error) {
     logger.warn({ err: error, deploymentId: deployment.id }, 'release_manifest.append_failed');
+  }
+}
+
+/*
+ * Workspace-volume eraser for account purge (§16.12 physical erasure): deletes a
+ * workspace's Pod+PVC+Service+Secret via workspace-manager and verifies it is
+ * gone. The API pod has no Kubernetes access of its own — only workspace-manager
+ * does — so PVC deletion necessarily goes through it. `workspaceExists` treats a
+ * 404 or a DELETED row as "gone" (verified erased).
+ */
+function createWorkspaceVolumeEraser(): WorkspaceVolumeErasurePort {
+  const authHeaders = () => {
+    const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+    return {
+      accept: 'application/json',
+      ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+    };
+  };
+
+  return {
+    async pvcExists(workspaceId: string) {
+      /*
+       * Reserve #2: ask workspace-manager for the REAL Kubernetes PVC state
+       * (a live `kubectl get pvc`), NOT the workspace row's `DELETED` flag — a
+       * partial k8s delete can leave a PVC while the row says deleted.
+       */
+      const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/pvc-exists`, {
+        headers: authHeaders(),
+        signal: AbortSignal.timeout(15_000),
+      });
+
+      if (response.status === 404) {
+        return false;
+      }
+
+      if (!response.ok) {
+        throw new Error(`pvc existence check failed: ${response.status}`);
+      }
+
+      const body = (await response.json().catch(() => null)) as { exists?: boolean } | null;
+
+      return Boolean(body?.exists);
+    },
+
+    async deleteWorkspace(workspaceId: string) {
+      const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+        signal: AbortSignal.timeout(60_000),
+      });
+
+      // 404 = already gone (idempotent). Anything else non-2xx is a real failure
+      // → the caller re-counts (real PVC check) and fails closed.
+      if (!response.ok && response.status !== 404) {
+        throw new Error(`workspace delete failed: ${response.status}`);
+      }
+    },
+  };
+}
+
+/*
+ * Workspace write barrier (reserve #1): freeze each of the subject's workspaces
+ * BEFORE the erasure — workspace-manager `POST /workspaces/:id/freeze` (revoke
+ * token + stop pod) — so a pod can't recreate files between erase/verify and the
+ * tombstone. The OBJECT-STORAGE freeze (and the membership freeze) is now acquired
+ * earlier, inside the store's topology guarantee (RR-09), before this runs.
+ * FAIL-CLOSED: throws on ANY failure (freeze not acquired) so the erasure aborts.
+ */
+function createWriteBarrier(
+  workspaceIdsFor: (inv: StorageErasureInventory) => string[],
+  fenceToken: string,
+): WriteBarrierPort {
+  const authHeaders = () => {
+    const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+    return {
+      accept: 'application/json',
+      'content-type': 'application/json',
+      ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+    };
+  };
+
+  return {
+    async freeze(inventory: StorageErasureInventory) {
+      // RR-CODEX-14 (P3): freeze each workspace with the owning plan's fence token, so
+      // no reprovision path can recreate it until the tombstone. Throws on any failure.
+      for (const workspaceId of workspaceIdsFor(inventory)) {
+        const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/freeze`, {
+          method: 'POST',
+          headers: authHeaders(),
+          body: JSON.stringify({ fenceToken }),
+          signal: AbortSignal.timeout(30_000),
+        });
+
+        // 404 = no workspace to freeze (idempotent); other non-2xx = real failure.
+        if (!response.ok && response.status !== 404) {
+          throw new Error(`workspace freeze failed for ${workspaceId}: ${response.status}`);
+        }
+      }
+    },
+  };
+}
+
+/*
+ * RR-CODEX-14 v5 (R-P3-04): lift the durable workspace barriers this attempt raised,
+ * fenced by the attempt's ownerToken. Called on EVERY exit (success/abandon) from the
+ * store's finally, so a runtime is never left durably frozen with no owner. Best-effort
+ * per workspace (the manager's stale-freeze reconciler self-heals any cross-replica
+ * orphan); the fence guarantees a delayed release never lifts a newer attempt's barrier.
+ */
+async function releaseWorkspaceBarriers(workspaceIds: string[], fenceToken: string): Promise<void> {
+  const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+  const headers = {
+    accept: 'application/json',
+    'content-type': 'application/json',
+    ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+  };
+
+  for (const workspaceId of workspaceIds) {
+    // Best-effort: a missed unfreeze is recoverable by the manager's stale-freeze
+    // reconciler; it must never abort the purge's release path (hence the .catch).
+    await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/unfreeze`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ fenceToken }),
+      signal: AbortSignal.timeout(30_000),
+    }).catch(() => undefined);
   }
 }
 
@@ -29457,6 +29604,220 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   /*
+   * ===== Account-purge executor (§16.12 — internal, worker-triggered) =====
+   * Consumes the ready_to_purge queue the self-serve deletion machine feeds
+   * (request → 14-day grace → ready_to_purge, ./data-deletion.ts): for each
+   * user in account.pendingDeletionUserIds whose grace window has ELAPSED, run
+   * store.purgeUserAccount — the real class-by-class erasure with fail-closed
+   * financial retention (canPurgeFinancialRecord), audit-log redaction (never
+   * deletion), ledger immutability respected (mig 0078), an anonymized
+   * tombstone carrying purgedAt, and a structured ERASURE PROOF verified
+   * "0 rows remaining" per purged class. The proof is persisted to the
+   * AdminAuditLog (action account.purge_completed) and the user leaves the
+   * pending set. Idempotent (already-purged → no-op) and concurrency-safe
+   * (per-user advisory lock in the store).
+   *
+   * DRY-RUN by default: scans + counts but only purges when
+   * ACCOUNT_PURGE_ENABLED=true (or body.enabled) — mirrors /internal/inactivity-gc.
+   */
+  app.post('/internal/account-purge', async (request) => {
+    requireInternalSecret(request);
+
+    const body = parse(
+      z.object({
+        enabled: z.boolean().optional(),
+        take: z.number().int().positive().max(1000).optional(),
+        userId: z.string().min(1).optional(),
+      }),
+      request.body ?? {},
+    );
+
+    const enabled = body.enabled ?? process.env.ACCOUNT_PURGE_ENABLED === 'true';
+    const nowMs = Date.now();
+
+    let ids: string[];
+
+    if (body.userId) {
+      ids = [body.userId];
+    } else {
+      const settings = await store.listSystemSettings();
+      const pending = settings.find((setting) => setting.key === ACCOUNT_DELETION_PENDING_KEY);
+      ids = Array.isArray(pending?.value)
+        ? (pending!.value as unknown[]).filter((id): id is string => typeof id === 'string')
+        : [];
+    }
+
+    ids = ids.slice(0, body.take ?? 500);
+
+    /*
+     * RR-09 (4): recover from a crash. Release any purge freeze left behind by a
+     * run that died between acquiring its topology guarantee and releasing it, so
+     * a legitimate org/project is never frozen forever. Users still ready_to_purge
+     * re-acquire a fresh guarantee below.
+     */
+    const reconciled = await store.reconcilePurgeFreezes();
+
+    let ready = 0;
+    let purged = 0;
+    let alreadyPurged = 0;
+    let notDue = 0;
+    let stale = 0;
+    let failed = 0;
+    let missingReceipt = 0; // RR-CODEX-14 (P6): purged-but-no-receipt → kept queued
+
+    /*
+     * RR-CODEX-14 v5 (P6): the SINGLE primitive through which a userId ever leaves
+     * the pending queue on a purge/already-purged path. It removes ONLY when the
+     * durable erasure receipt exists (written in the SAME tx as the tombstone);
+     * otherwise it increments missingReceipt and KEEPS the id queued (surfaced),
+     * so a purge can never be silently forgotten without proof. Every queue-removal
+     * that follows a "this account is purged" claim MUST go through here — no path
+     * calls mutateSystemSettingIds(remove) on its own.
+     */
+    const removePendingOnlyWithReceipt = async (uid: string): Promise<boolean> => {
+      if (await store.hasPurgeReceipt(uid)) {
+        await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: uid });
+        return true;
+      }
+      missingReceipt += 1;
+      return false;
+    };
+
+    for (const userId of ids) {
+      const user = await store.findUserById(userId);
+      const state = readAccountDeletionState(user?.preferences);
+      const status = deletionStatus({ ...state, nowMs });
+
+      if (!user || status === 'none') {
+        // Cancelled/vanished request still indexed — drop the stale id.
+        stale += 1;
+        await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+        continue;
+      }
+
+      if (status === 'grace_period') {
+        notDue += 1;
+        continue;
+      }
+
+      if (status === 'purged') {
+        alreadyPurged += 1;
+        // RR-CODEX-14 v5 (P6): removal strictly conditioned on the receipt.
+        await removePendingOnlyWithReceipt(userId);
+        continue;
+      }
+
+      // ready_to_purge
+      ready += 1;
+
+      if (!enabled) {
+        continue; // dry-run: counted, not purged
+      }
+
+      try {
+        const result = await store.purgeUserAccount(
+          { userId, nowMs },
+          {
+            /*
+             * Physical-erasure gate (§16.12): erase the account's GCS buckets +
+             * workspace PVCs and prove 0 remaining BEFORE the DB tombstone is
+             * stamped. A failure throws → the account stays queued and is retried
+             * → an account is never marked purged with storage still on disk.
+             */
+            eraseStorage: (inventory, guard, fenceToken) =>
+              options.accountStoragePurger
+                ? options.accountStoragePurger(inventory, userId)
+                : eraseSubjectStorage(
+                    {
+                      bucketProjectIds: inventory.bucketProjectIds,
+                      // Reserve #3: a per-user workspace exists in EVERY project the
+                      // subject touched (sole-org + collaborator), deterministically
+                      // named runtimeWorkspaceId(projectId, userId).
+                      workspaceIds: inventory.workspaceProjectIds.map((projectId) =>
+                        runtimeWorkspaceId(projectId, userId),
+                      ),
+                    },
+                    {
+                      // RAW (unguarded) backend: the erasure must delete the very
+                      // projects it freezes; the freeze guard would refuse them.
+                      objectStorage: resolveRawObjectStorage(),
+                      workspaceVolumes: createWorkspaceVolumeEraser(),
+                      // RR-CODEX-14 v5 (R-P3-05): the fence is the PER-ATTEMPT ownerToken
+                      // (from the store's guarantee), NOT the stable userId — so a
+                      // delayed release from a prior attempt can't lift a new barrier.
+                      writeBarrier: createWriteBarrier((inv) => inv.workspaceIds, fenceToken ?? ''),
+                      // RR-CODEX-12: revalidate the lease before each irreversible delete.
+                      guard,
+                      log: app.log as unknown as { warn(o: unknown, m?: string): void },
+                    },
+                  ),
+            // RR-CODEX-14 v5 (R-P3-04): release the durable workspace barrier on every
+            // exit, fenced by this attempt's ownerToken.
+            releaseWorkspaceBarrier: (inventory, fenceToken) =>
+              releaseWorkspaceBarriers(
+                inventory.workspaceProjectIds.map((projectId) => runtimeWorkspaceId(projectId, userId)),
+                fenceToken,
+              ),
+          },
+        );
+
+        if (result.outcome === 'purged') {
+          purged += 1;
+          /*
+           * The PROOF is persisted before the id leaves the pending set: if the
+           * audit write fails the purge stays visible in the queue and the next
+           * run resolves it as already_purged (idempotent), so an erasure can
+           * never end up both unlisted and unproven.
+           */
+          await store.recordAdminAudit({
+            actorUserId: undefined,
+            action: 'account.purge_completed',
+            metadata: { userId, proof: result.proof },
+          });
+          // RR-CODEX-14 v5 (P6): removal strictly conditioned on the receipt.
+          await removePendingOnlyWithReceipt(userId);
+        } else if (result.outcome === 'already_purged') {
+          alreadyPurged += 1;
+          // RR-CODEX-14 v5 (P6): removal strictly conditioned on the receipt.
+          await removePendingOnlyWithReceipt(userId);
+        } else if (result.outcome === 'not_due') {
+          // Store-level re-check disagreed (clock skew) — leave it queued.
+          ready -= 1;
+          notDue += 1;
+        } else {
+          ready -= 1;
+          stale += 1;
+          await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+        }
+      } catch (error) {
+        // Fail-closed: a failed purge stays in the queue and is observable.
+        failed += 1;
+        request.log?.error?.({ err: error, userId }, 'account purge failed');
+        await store
+          .recordAdminAudit({
+            actorUserId: undefined,
+            action: 'account.purge_failed',
+            metadata: { userId, error: error instanceof Error ? error.message : String(error) },
+          })
+          .catch(() => {});
+      }
+    }
+
+    return {
+      enabled,
+      scanned: ids.length,
+      ready,
+      purged,
+      alreadyPurged,
+      notDue,
+      stale,
+      failed,
+      missingReceipt,
+      reconciledFreezes: reconciled.reconciled,
+    };
+  });
+
+  /*
    * ===== Replit-parity metering ingest (P8/P4 — internal, service-to-service) =====
    * The workspace-manager GC (compute), and other producers (object storage, DB,
    * deployments), POST real usage here after an event. Dispatches to
@@ -31742,7 +32103,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   /* -------- Object Storage (GCS, per-project) — dormant unless OBJECT_STORAGE_ENABLED -------- */
   const sendObjectStorageError = (reply: FastifyReply, error: unknown) => {
     if (error instanceof ObjectStorageError) {
-      const status = error.code === 'INVALID_KEY' ? 400 : error.code === 'FEATURE_NOT_ENABLED' ? 404 : 422;
+      const status =
+        error.code === 'INVALID_KEY'
+          ? 400
+          : error.code === 'FEATURE_NOT_ENABLED'
+            ? 404
+            : error.code === 'OBJECT_STORAGE_PURGE_FROZEN'
+              ? 403
+              : 422;
 
       return reply.code(status).send({ error: error.message, code: error.code });
     }
@@ -31750,7 +32118,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     throw error;
   };
 
-  const resolveObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
+  /*
+   * Reserve #3 / RR-08 #1: is THIS project's object storage frozen by an in-flight
+   * account purge? Shared by the explicit route guard (objectStorageWriteBlocked,
+   * early 403) and the structural write wrapper below (defence in depth for the
+   * background thumbnail capturer and any future write path).
+   */
+  const isObjectStoragePurgeFrozen = async (projectId: string): Promise<boolean> =>
+    store.isObjectStorageProjectPurgeFrozen(projectId);
+
+  /*
+   * RAW backend — used ONLY by the account-purge erasure, which must be able to
+   * delete the very project it just froze (the guard below would otherwise refuse
+   * it). Erasure only ever reads/deletes, never creates, so this is safe.
+   */
+  const resolveRawObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
+
+  /*
+   * Everyone else — every request route AND the background thumbnail capturer —
+   * obtains the freeze-GUARDED wrapper, so no present or future write path can
+   * recreate a bucket/object for a project under purge (RR-08 #1).
+   */
+  const resolveObjectStorage = (): ObjectStorage =>
+    guardObjectStorageWrites(resolveRawObjectStorage(), isObjectStoragePurgeFrozen);
 
   /*
    * P11 automatic thumbnails. Inert unless SCREENSHOTTER_URL is set, so this is a
@@ -31806,12 +32196,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
   });
 
+  /*
+   * Reserve #3: refuse any object-storage WRITE for a project whose storage was
+   * frozen by an in-flight account purge, so a bucket/object can't be recreated
+   * after the zero-check and before the tombstone. Returns true (blocked) after
+   * sending the 403.
+   */
+  const objectStorageWriteBlocked = async (projectId: string, reply: FastifyReply): Promise<boolean> => {
+    if (await isObjectStoragePurgeFrozen(projectId)) {
+      /*
+       * Catalogue copy, not a literal: this 403 is sent straight to the client, and the
+       * preSerialization hook localizes a >=400 payload by looking its ENGLISH text up
+       * in app-public-copy. A hardcoded string misses that lookup, so a French client
+       * was told in English that their storage is frozen — the one user-visible message
+       * in the whole account-purge freeze path that never got translated.
+       */
+      await reply
+        .code(403)
+        .send({ error: appPublicEnglish('OBJECT_STORAGE_PURGE_FROZEN'), code: 'OBJECT_STORAGE_PURGE_FROZEN' });
+
+      return true;
+    }
+
+    return false;
+  };
+
   app.post('/projects/:projectId/object-storage/bucket', async (request, reply) => {
     if (!isObjectStorageEnabled()) {
       return reply.code(404).send({ error: appPublicEnglish('OBJECT_STORAGE_DISABLED'), code: 'FEATURE_NOT_ENABLED' });
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+
+    if (await objectStorageWriteBlocked(project.id, reply)) {
+      return reply;
+    }
 
     try {
       return reply.send(await resolveObjectStorage().ensureBucket(project.id));
@@ -31860,6 +32279,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const project = await requireObjectStorageProject(request, 'projects:write');
 
+    if (await objectStorageWriteBlocked(project.id, reply)) {
+      return reply;
+    }
+
     const body = parse(
       z.object({ key: z.string().min(1).max(1024), contentType: z.string().max(255).optional() }),
       request.body ?? {},
@@ -31893,6 +32316,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+
+    if (await objectStorageWriteBlocked(project.id, reply)) {
+      return reply;
+    }
 
     const body = parse(
       z.object({ from: z.string().min(1).max(1024), to: z.string().min(1).max(1024) }),
@@ -31947,6 +32374,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const project = await requireObjectStorageProject(request, 'projects:write');
+
+    // RR-08 #1: the thumbnail signed-upload is a storage WRITE like any other —
+    // it must refuse a project frozen for account deletion, or ensureBucket +
+    // createUploadUrl could recreate the bucket/object after the purge zero-check.
+    if (await objectStorageWriteBlocked(project.id, reply)) {
+      return reply;
+    }
 
     try {
       const storage = resolveObjectStorage();

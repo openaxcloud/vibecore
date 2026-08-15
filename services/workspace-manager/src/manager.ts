@@ -55,6 +55,15 @@ export interface WorkspaceRecord {
    */
   lastMeteredAt?: string;
   error?: string;
+
+  /*
+   * RR-CODEX-14 (P3): durable purge barrier. `purgeFrozen` blocks every reprovision
+   * path (start / restart / agent-token / PVC / Pod / Secret / Service) until the
+   * tombstone; `purgeFenceToken` identifies the owning purge plan. Released on abandon.
+   */
+  purgeFrozen?: boolean;
+  purgeFenceToken?: string;
+  purgeFrozenAt?: string;
 }
 
 export interface WorkspaceStore {
@@ -87,7 +96,61 @@ export interface WorkspaceStore {
    * each run GC on the same dead-pod row and otherwise double-bill the window.
    */
   claimMeterWindow(workspaceId: string, expected: string | undefined, next: string): Promise<boolean>;
+
+  /*
+   * RR-CODEX-14 v6 (R-P3-06): ATOMIC compare-and-set release of the purge barrier.
+   * Lifts the barrier ONLY if the row is still frozen AND still owned by exactly
+   * `fenceToken` — a single conditional UPDATE, never a read-then-write-by-id.
+   *
+   * This closes the ABA the expert reproduced on real Postgres: attempt N0 reads a
+   * barrier it owns, is delayed, attempt N1 re-freezes the runtime with its OWN
+   * token, and N0's delayed unconditional `UPDATE ... WHERE id = ?` then wiped N1's
+   * live barrier (purgeFrozen went false mid-erasure → reprovision allowed). With
+   * the token in the WHERE clause the delayed write matches 0 rows and is a no-op.
+   *
+   * Returns true only if this caller's CAS actually lifted the barrier.
+   */
+  releasePurgeFence(workspaceId: string, fenceToken: string | undefined): Promise<boolean>;
+
+  /*
+   * RR-CODEX-14 v6 (R-P3-06): the reconciler's equivalent CAS. The staleness verdict
+   * is computed on a SNAPSHOT read (list()), so the release must be conditioned on
+   * that exact snapshot version — (purgeFrozen, purgeFenceToken, purgeFrozenAt) — or
+   * the reconciler carries the same TOCTOU: a barrier re-frozen by a NEW purge between
+   * the scan and the write would be lifted on the strength of the OLD row's age.
+   * A fresh freeze always changes both the token and purgeFrozenAt, so the CAS misses.
+   */
+  releaseStalePurgeFence(
+    workspaceId: string,
+    observed: { fenceToken?: string; frozenAt?: string },
+  ): Promise<boolean>;
+
+  /*
+   * RR-CODEX-14 v7 (R-P3-07): is this fence token still owned by a purge that is
+   * ALIVE — i.e. a PurgePlan whose lease has not expired? The stale-freeze reconciler
+   * judged "orphaned" purely on the barrier's AGE, so a purge that legitimately ran
+   * longer than the grace window had its live barrier lifted out from under it, in the
+   * middle of the erasure it was protecting.
+   *
+   * A running purge heartbeats its lease, so "lease still valid" is the authoritative
+   * liveness signal, and it is what separates a slow purge from a crashed one.
+   * Implementations MUST throw rather than guess: the reconciler treats an error as
+   * "cannot prove it is ownerless" and leaves the barrier up.
+   */
+  isPurgeFenceOwnerLive(fenceToken: string): Promise<boolean>;
 }
+
+/*
+ * R-P3-07: hard floor for the stale-freeze reconciler's grace window. The purge lease
+ * TTL is 5 minutes and is heartbeated, so a barrier whose owner has been silent for an
+ * hour is genuinely abandoned — while anything shorter starts racing purges that are
+ * merely slow. Enforced in the manager AND at the route, so neither a hand-rolled
+ * caller nor a future internal caller can shrink it.
+ */
+export const MIN_RECONCILE_GRACE_MS = 60 * 60 * 1000;
+
+/** Default grace window: comfortably longer than any purge attempt + its reclaim. */
+export const DEFAULT_RECONCILE_GRACE_MS = 24 * 60 * 60 * 1000;
 
 export interface EventBus {
   publish(event: WorkspaceEvent): Promise<void>;
@@ -135,6 +198,66 @@ export class JsonWorkspaceStore implements WorkspaceStore {
     await this.write(workspaces);
 
     return true;
+  }
+
+  /*
+   * R-P3-06: conditional release. This single-file dev store cannot offer the DB's
+   * row-level atomicity (it is documented single-replica), but it MUST still refuse a
+   * release whose token/version no longer matches — otherwise a superseded attempt
+   * silently lifts a live barrier here too. Production runs PrismaWorkspaceStore,
+   * where the same condition is a single conditional UPDATE.
+   */
+  async releasePurgeFence(workspaceId: string, fenceToken: string | undefined) {
+    const workspaces = await this.read();
+    const existing = workspaces.get(workspaceId);
+
+    if (!existing?.purgeFrozen || (existing.purgeFenceToken ?? undefined) !== (fenceToken ?? undefined)) {
+      return false;
+    }
+
+    workspaces.set(workspaceId, {
+      ...existing,
+      purgeFrozen: false,
+      purgeFenceToken: undefined,
+      purgeFrozenAt: undefined,
+    });
+    await this.write(workspaces);
+
+    return true;
+  }
+
+  async releaseStalePurgeFence(workspaceId: string, observed: { fenceToken?: string; frozenAt?: string }) {
+    const workspaces = await this.read();
+    const existing = workspaces.get(workspaceId);
+
+    if (
+      !existing?.purgeFrozen ||
+      (existing.purgeFenceToken ?? undefined) !== (observed.fenceToken ?? undefined) ||
+      (existing.purgeFrozenAt ?? undefined) !== (observed.frozenAt ?? undefined)
+    ) {
+      return false;
+    }
+
+    workspaces.set(workspaceId, {
+      ...existing,
+      purgeFrozen: false,
+      purgeFenceToken: undefined,
+      purgeFrozenAt: undefined,
+    });
+    await this.write(workspaces);
+
+    return true;
+  }
+
+  /*
+   * R-P3-07: this single-file dev store has no PurgePlan table to consult — account
+   * purges (and therefore purge leases) only exist in the Postgres-backed deployment.
+   * There is consequently no live owner it could ever report, and saying so is honest
+   * rather than a guess. Production runs PrismaWorkspaceStore, which does the real
+   * lease lookup.
+   */
+  async isPurgeFenceOwnerLive(_fenceToken: string) {
+    return false;
   }
 
   async get(workspaceId: string) {
@@ -511,6 +634,10 @@ export class WorkspaceManager {
   }
 
   async startWorkspace(input: StartWorkspaceInput) {
+    // RR-CODEX-14 (P3): the durable purge barrier is checked FIRST — a start can
+    // never (re)provision a runtime an in-flight account purge is erasing.
+    await this.assertNotPurgeFrozen(input.workspaceId);
+
     const pvcName = `pvc-${input.workspaceId}`;
     const agentTokenSecretName = `agent-token-${input.workspaceId}`;
     const allowedSecrets = input.allowedSecrets ?? {};
@@ -641,16 +768,46 @@ export class WorkspaceManager {
        */
       const existingPvc = await this.k8s.get('PersistentVolumeClaim', input.namespace, pvc.metadata?.name ?? '');
 
+      /*
+       * RR-CODEX-14 v5 (R-P3-01): re-check the durable barrier LINEARISED immediately
+       * before EACH irreversible k8s create — not only at the top of startWorkspace.
+       * A freeze that committed while this start was reading/waiting is seen here, so
+       * a start suspended before its creates can never recreate PVC/Secret/Pod/Service
+       * on a runtime an in-flight purge already froze. After all creates, one FINAL
+       * check catches a freeze that raced the creates and cleans up (below).
+       */
+      await this.assertNotPurgeFrozen(input.workspaceId);
+
       if (!existingPvc) {
         await this.k8s.apply(pvc);
       }
 
+      await this.assertNotPurgeFrozen(input.workspaceId);
       await this.k8s.apply({
         ...workspaceAgentSecret(runtimeInput),
         stringData: { tokenSecret: this.tokenSecret, ...allowedSecrets },
       });
+      await this.assertNotPurgeFrozen(input.workspaceId);
       await this.#applyWorkspacePod(workspacePod(runtimeInput), input.namespace, record.podName);
+      await this.assertNotPurgeFrozen(input.workspaceId);
       await this.k8s.apply(workspaceService(runtimeInput));
+
+      /*
+       * R-P3-01 FINAL linearisation check: a freeze may have committed AND deleted
+       * Secret/Pod/Service in the window around our last create. Re-check; if frozen,
+       * revoke whatever we just (re)created and abort — no live Pod on a frozen runtime.
+       */
+      if (await this.isPurgeFrozen(input.workspaceId)) {
+        await Promise.allSettled([
+          this.k8s.delete('Pod', input.namespace, record.podName),
+          this.k8s.delete('Service', input.namespace, record.serviceName),
+          this.k8s.delete('Secret', input.namespace, record.agentTokenSecretName),
+        ]);
+        throw new Error(
+          `WORKSPACE_PURGE_FROZEN: runtime ${input.workspaceId} was frozen during provisioning — recreated objects revoked`,
+        );
+      }
+
       await this.waitForReadiness(input.namespace, record.podName);
 
       /*
@@ -731,6 +888,19 @@ export class WorkspaceManager {
       });
 
       await this.publish(failed, 'workspace.failed');
+
+      /*
+       * RR-CODEX-14 v5 (R-P3-01): a purge-barrier hit during provisioning (the
+       * linearised re-checks / final check) is NOT a generic provisioning failure to
+       * be masked as a FAILED record — it is a hard refusal that the caller (the purge
+       * write-barrier path) must observe. Propagate it as a rejection, exactly like the
+       * top-of-function check, so a frozen runtime is never quietly reported as merely
+       * "failed to start". The barrier row stays purgeFrozen (the FAILED patch above
+       * only touches status/error), and the compute objects were torn down above.
+       */
+      if (error instanceof Error && error.message.includes('WORKSPACE_PURGE_FROZEN')) {
+        throw error;
+      }
 
       return failed;
     }
@@ -1143,6 +1313,8 @@ export class WorkspaceManager {
   }
 
   async restartWorkspace(input: StartWorkspaceInput) {
+    // RR-CODEX-14 (P3): refuse a frozen runtime BEFORE the stop mutation, too.
+    await this.assertNotPurgeFrozen(input.workspaceId);
     await this.stopWorkspace(input.namespace, input.workspaceId).catch(() => undefined);
     return this.startWorkspace(input);
   }
@@ -1182,6 +1354,308 @@ export class WorkspaceManager {
     await this.publish(deleted, 'workspace.deleted');
 
     return deleted;
+  }
+
+  /**
+   * Account-purge reserve #2: whether the REAL PVC still exists in Kubernetes —
+   * a live `get pvc`, NOT the workspace row's DELETED status (a partial k8s
+   * delete can leave a PVC behind a "deleted" row). A missing row ⇒ no PVC.
+   */
+  async pvcExists(namespace: string, workspaceId: string): Promise<boolean> {
+    const workspace = await this.store.get(workspaceId).catch(() => undefined);
+    const pvcName = workspace?.pvcName ?? `pvc-${workspaceId}`;
+
+    /*
+     * Reserve #5: ONLY an authenticated NotFound counts as absence. `k8s.get`
+     * returns undefined for a REAL NotFound and RE-THROWS every other failure
+     * (network, RBAC, kubectl error) — see KubectlWorkspaceK8sClient.get. We do
+     * NOT catch: a read error must propagate (→ 5xx → the caller fails closed),
+     * never be misread as "PVC absent". Swallowing it would let a transient
+     * error certify erasure.
+     */
+    const pvc = await this.k8s.get('PersistentVolumeClaim', namespace, pvcName);
+
+    return Boolean(pvc);
+  }
+
+  /**
+   * Account-purge reserve #1 (write barrier): revoke the agent token and stop
+   * the pod so the workspace can neither write nor be reprovisioned during the
+   * erasure window. The PVC is kept — deleteWorkspace erases it immediately after.
+   *
+   * FAIL-CLOSED: it attempts EVERY delete (so partial cleanup still happens) but
+   * THROWS if ANY of them rejected — the barrier is never reported acquired while
+   * a Secret/Pod/Service delete failed, so a write path could still be live.
+   */
+  async freezeWorkspace(namespace: string, workspaceId: string, fenceToken?: string): Promise<void> {
+    /*
+     * R-P3-06: fail-CLOSED read. Swallowing a DB error here routed a workspace that
+     * DOES exist down the "no runtime row" branch, which skips the k8s revoke entirely
+     * and could report the barrier acquired while Secret/Pod/Service were still live.
+     * An unreadable row means we cannot prove what has to be revoked → refuse the freeze.
+     */
+    let workspace: WorkspaceRecord | undefined;
+
+    try {
+      workspace = await this.store.get(workspaceId);
+    } catch (error) {
+      throw new Error(
+        `WORKSPACE_FREEZE_PERSIST_FAILED: could not read runtime ${workspaceId} to freeze it: ` +
+          `${(error as Error)?.message ?? error}`,
+      );
+    }
+
+    const nowIso = new Date().toISOString();
+
+    if (!workspace) {
+      /*
+       * RR-CODEX-14 (P3): even with no runtime row yet, record a DURABLE freeze so a
+       * LATER first-time startWorkspace for this id is refused until the tombstone.
+       * R-P3-02: a persistence failure is NOT swallowed — we throw (no success) unless
+       * a concurrent create already left the row frozen.
+       */
+      try {
+        await this.store.create({
+          id: workspaceId,
+          orgId: '',
+          projectId: '',
+          plan: { cpu: 0, memoryMiB: 0 } as unknown as WorkspaceRecord['plan'],
+          status: 'STOPPED',
+          pvcName: `pvc-${workspaceId}`,
+          podName: `pod-${workspaceId}`,
+          serviceName: `svc-${workspaceId}`,
+          agentTokenSecretName: `agent-token-${workspaceId}`,
+          purgeFrozen: true,
+          purgeFenceToken: fenceToken,
+          purgeFrozenAt: nowIso,
+        });
+      } catch {
+        const row = await this.store.get(workspaceId).catch(() => undefined);
+
+        if (!row?.purgeFrozen) {
+          throw new Error(`WORKSPACE_FREEZE_PERSIST_FAILED: could not durably freeze ${workspaceId}`);
+        }
+      }
+
+      return;
+    }
+
+    const targets: Array<[string, string]> = [
+      ['Secret', workspace.agentTokenSecretName ?? `agent-token-${workspaceId}`],
+      ['Pod', workspace.podName],
+      ['Service', workspace.serviceName],
+    ];
+    const results = await Promise.allSettled(
+      targets.map(([kind, name]) => this.k8s.delete(kind, namespace, name)),
+    );
+
+    const failed = results
+      .map((result, index) => ({ result, target: targets[index] }))
+      .filter((entry) => entry.result.status === 'rejected');
+
+    if (failed.length > 0) {
+      // Do NOT mark the row stopped / claim the barrier — a live write path may remain.
+      throw new Error(
+        `WORKSPACE_FREEZE_INCOMPLETE: ${failed.length} revoke(s) failed for ${workspaceId}: ` +
+          failed.map((entry) => entry.target[0]).join(', '),
+      );
+    }
+
+    this.lastTouchAt.delete(workspaceId);
+    /*
+     * RR-CODEX-14 (P3, R-P3-02): mark the DURABLE barrier ONLY after every live write
+     * path is provably revoked — and do NOT swallow a persistence failure. The freeze
+     * only succeeds once the durable barrier is CONFIRMED (re-read purgeFrozen=true);
+     * a successful k8s revoke does NOT compensate for a failed barrier persistence.
+     */
+    const updated = await this.store.update(workspaceId, {
+      status: 'STOPPED',
+      purgeFrozen: true,
+      purgeFenceToken: fenceToken,
+      purgeFrozenAt: nowIso,
+    });
+
+    if (!updated.purgeFrozen) {
+      throw new Error(`WORKSPACE_FREEZE_PERSIST_FAILED: barrier not durable for ${workspaceId}`);
+    }
+  }
+
+  /**
+   * RR-CODEX-14 (P3, R-P3-03): release the durable purge barrier. FENCED — a barrier
+   * that OWNS a fence token requires an EXACT match; an ABSENT caller token is refused
+   * exactly like a wrong one (a token-less caller can never lift a fenced barrier).
+   */
+  async unfreezeWorkspace(workspaceId: string, fenceToken?: string): Promise<{ released: boolean }> {
+    /*
+     * R-P3-06 (expert reserve, PR #52): this was a READ of the fence token followed by
+     * an UNCONDITIONAL `update(workspaceId, …)` by id. Between the two statements a
+     * NEWER purge attempt could re-freeze the runtime with its own token, and this
+     * delayed write then cleared THAT barrier — purgeFrozen=false during an active
+     * erasure window (classic ABA). There is no application-side check that can fix a
+     * read-then-write; the ownership test has to be IN the write. Single conditional
+     * UPDATE, and 0 rows affected means we do NOT unfreeze.
+     */
+    const released = await this.store.releasePurgeFence(workspaceId, fenceToken);
+
+    return { released };
+  }
+
+  /**
+   * RR-CODEX-14 (P3, R-P3-04): recover ORPHANED workspace barriers — a barrier whose
+   * owning purge crashed before unfreeze. Lifts a barrier only when it is BOTH older
+   * than `graceMs` AND provably ownerless, so a runtime is never left durably frozen
+   * with no owner while a LIVE purge never has its barrier pulled from under it.
+   *
+   * R-P3-07 (expert reserve #2 on PR #52): age alone was the whole test, and `graceMs`
+   * came straight from the request body. `graceMs: 0` therefore made EVERY barrier
+   * "stale" — one call lifted every active fence in the fleet. Two independent guards
+   * now stand between a caller and a live barrier:
+   *
+   *   1. a hard floor on `graceMs` (below), enforced here as well as at the route, so
+   *      no caller — internal, retried, or hand-rolled — can shrink the window to 0;
+   *   2. a LIVE-OWNER check: a barrier whose fence token still belongs to a purge plan
+   *      holding an unexpired lease is NEVER lifted, whatever its age. This is what
+   *      makes a legitimately long purge safe — it heartbeats its lease, so the
+   *      reconciler keeps skipping it instead of racing it.
+   *
+   * Counts are returned (not just `reconciled`) so the job that drives this is
+   * observable: a sweep that skipped live owners or hit failures is not "success".
+   */
+  async reconcileStaleWorkspaceFreezes(graceMs: number): Promise<{
+    scanned: number;
+    reconciled: number;
+    skippedLiveOwner: number;
+    failed: number;
+  }> {
+    if (!Number.isFinite(graceMs) || graceMs < MIN_RECONCILE_GRACE_MS) {
+      throw Object.assign(
+        new Error(
+          `WORKSPACE_RECONCILE_GRACE_TOO_SMALL: graceMs must be >= ${MIN_RECONCILE_GRACE_MS}ms ` +
+            `(got ${graceMs}) — a shorter window would lift barriers of purges that are still running`,
+        ),
+        { statusCode: 400, code: 'WORKSPACE_RECONCILE_GRACE_TOO_SMALL' },
+      );
+    }
+
+    const cutoff = Date.now() - graceMs;
+
+    /*
+     * R-P3-07: NOT `.catch(() => [])`. Swallowing the scan error reported
+     * `{reconciled: 0}` — indistinguishable from a clean sweep with nothing to do, so
+     * a permanently failing reconciler looked healthy forever. Let it propagate; the
+     * job surfaces it and retries.
+     */
+    const rows = await this.store.list();
+    let reconciled = 0;
+    let skippedLiveOwner = 0;
+    let failed = 0;
+    let scanned = 0;
+
+    for (const row of rows) {
+      if (!row.purgeFrozen) {
+        continue;
+      }
+
+      scanned += 1;
+
+      const frozenAtMs = row.purgeFrozenAt ? new Date(row.purgeFrozenAt).getTime() : 0;
+
+      if (frozenAtMs >= cutoff) {
+        continue;
+      }
+
+      /*
+       * R-P3-07: the barrier is old — but "old" is not "orphaned". Ask whether its
+       * fence token still belongs to a purge holding a live lease. FAIL-CLOSED: an
+       * error here counts as failed and the barrier is LEFT UP, because we cannot
+       * prove nobody owns it.
+       */
+      try {
+        if (row.purgeFenceToken !== undefined && (await this.store.isPurgeFenceOwnerLive(row.purgeFenceToken))) {
+          skippedLiveOwner += 1;
+          continue;
+        }
+      } catch {
+        failed += 1;
+        continue;
+      }
+
+      /*
+       * R-P3-06: same TOCTOU as unfreezeWorkspace — `row` is a SNAPSHOT from the
+       * list() above, and a purge may have re-frozen this runtime since. Release
+       * with a CAS on the exact observed version (token + frozenAt), so a barrier
+       * that was refreshed after the scan is NEVER lifted on the old row's age.
+       * A CAS miss (or a DB error) leaves the runtime frozen — fail-closed.
+       */
+      try {
+        const released = await this.store.releaseStalePurgeFence(row.id, {
+          /*
+           * `!== undefined`, NOT truthiness: an EMPTY-STRING token is a real stored
+           * value and must go into the CAS verbatim. Folding '' into "absent" makes
+           * the CAS compare against NULL, match 0 rows, and leave that barrier
+           * unreclaimable forever — the opposite of what this reconciler is for.
+           */
+          ...(row.purgeFenceToken !== undefined ? { fenceToken: row.purgeFenceToken } : {}),
+          ...(row.purgeFrozenAt !== undefined ? { frozenAt: row.purgeFrozenAt } : {}),
+        });
+
+        if (released) {
+          reconciled += 1;
+        }
+      } catch {
+        failed += 1;
+      }
+    }
+
+    return { scanned, reconciled, skippedLiveOwner, failed };
+  }
+
+  /**
+   * RR-CODEX-14 (P3): the single choke-point every reprovision path calls FIRST.
+   * Refuses if this runtime is durably purge-frozen — so a start/restart/token/PVC/
+   * Pod/Secret/Service reprovision can never recreate a runtime an account purge is
+   * erasing (the reprovision-after-zero-check-before-tombstone race).
+   */
+  private async assertNotPurgeFrozen(workspaceId: string): Promise<void> {
+    /*
+     * R-P3-06 (expert reserve, PR #52): this read used to `.catch(() => undefined)`,
+     * so a DB error was indistinguishable from "no barrier" and the guard failed OPEN
+     * — a transient Postgres blip during an erasure window silently authorised the
+     * exact reprovision the barrier exists to refuse. A barrier we cannot READ is a
+     * barrier we must ASSUME is set: on error we refuse the reprovision.
+     */
+    let existing: WorkspaceRecord | undefined;
+
+    try {
+      existing = await this.store.get(workspaceId);
+    } catch (error) {
+      throw new Error(
+        `WORKSPACE_PURGE_BARRIER_UNVERIFIABLE: could not read the purge barrier for ${workspaceId} — ` +
+          `reprovision refused (fail-closed): ${(error as Error)?.message ?? error}`,
+      );
+    }
+
+    if (existing?.purgeFrozen) {
+      throw new Error(
+        `WORKSPACE_PURGE_FROZEN: runtime ${workspaceId} is frozen by an in-flight account purge — reprovision refused`,
+      );
+    }
+  }
+
+  /**
+   * RR-CODEX-14 v5 (R-P3-01): boolean form of the barrier check (no throw).
+   * R-P3-06: FAIL-CLOSED — an unreadable barrier reports FROZEN, so the caller revokes
+   * what it created and aborts rather than leaving a live Pod on a possibly-frozen
+   * runtime. Never let a DB error read as "not frozen".
+   */
+  private async isPurgeFrozen(workspaceId: string): Promise<boolean> {
+    try {
+      const existing = await this.store.get(workspaceId);
+
+      return Boolean(existing?.purgeFrozen);
+    } catch {
+      return true;
+    }
   }
 
   #gcInFlight = false;

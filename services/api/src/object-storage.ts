@@ -173,6 +173,61 @@ export interface StorageLike {
   bucket(name: string): BucketLike;
 }
 
+/*
+ * Wrap an ObjectStorage so every CREATE/MODIFY primitive REFUSES a project whose
+ * storage was frozen by an in-flight account purge (§16.12, RR-08 #1). This is
+ * the STRUCTURAL barrier: every request route and the background thumbnail
+ * capturer obtain their storage through this wrapper, so no present or future
+ * write path (signed upload-url, ensureBucket, server-side putObject, move) can
+ * recreate a bucket/object after the purge's zero-check and before the tombstone.
+ *
+ * Reads and DELETES pass through unguarded on purpose: a delete never resurrects
+ * data, and the purge's OWN erasure runs on the raw (unwrapped) adapter so it can
+ * still delete the very project it froze.
+ */
+export function guardObjectStorageWrites(
+  inner: ObjectStorage,
+  isFrozen: (projectId: string) => Promise<boolean>,
+): ObjectStorage {
+  const refuseIfFrozen = async (projectId: string) => {
+    if (await isFrozen(projectId)) {
+      throw new ObjectStorageError('Object storage is frozen for account deletion', 'OBJECT_STORAGE_PURGE_FROZEN');
+    }
+  };
+
+  return {
+    get active() {
+      return inner.active;
+    },
+    async ensureBucket(projectId) {
+      await refuseIfFrozen(projectId);
+
+      return inner.ensureBucket(projectId);
+    },
+    bucketExists: (projectId) => inner.bucketExists(projectId),
+    listObjects: (projectId, opts) => inner.listObjects(projectId, opts),
+    async createUploadUrl(projectId, input) {
+      await refuseIfFrozen(projectId);
+
+      return inner.createUploadUrl(projectId, input);
+    },
+    createDownloadUrl: (projectId, input) => inner.createDownloadUrl(projectId, input),
+    async putObject(projectId, input) {
+      await refuseIfFrozen(projectId);
+
+      return inner.putObject(projectId, input);
+    },
+    async moveObject(projectId, input) {
+      await refuseIfFrozen(projectId);
+
+      return inner.moveObject(projectId, input);
+    },
+    deleteObject: (projectId, input) => inner.deleteObject(projectId, input),
+    deletePrefix: (projectId, input) => inner.deletePrefix(projectId, input),
+    deleteBucket: (projectId) => inner.deleteBucket(projectId),
+  };
+}
+
 /** Inert object storage: the default while the feature is off and in tests. */
 export class NoopObjectStorage implements ObjectStorage {
   readonly active = false;

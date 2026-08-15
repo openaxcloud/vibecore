@@ -316,6 +316,102 @@ export async function triggerInactivityGc(jobData: Record<string, unknown> = {})
 }
 
 /**
+ * Workspace freeze-reconcile trigger (RR-CODEX-14 v7, R-P3-07) — drives the manager's
+ * `/internal/reconcile-workspace-freezes`, which reclaims purge barriers orphaned by a
+ * crashed purge. The route existed but NOTHING called it: barriers were only ever
+ * reclaimed if an operator hand-rolled a curl, which is also how it went unnoticed
+ * that the endpoint had no authentication at all.
+ *
+ * Authenticated with the manager's dedicated control-plane secret (the route now
+ * refuses an unauthenticated call outright), bounded by a timeout, and it THROWS on a
+ * network error or any non-2xx so a sweep that never ran is a failed job — not a
+ * silent success. Returns the manager's counts so the outcome is visible in BullMQ.
+ */
+export async function triggerWorkspaceFreezeReconcile(jobData: Record<string, unknown> = {}) {
+  const baseUrl = process.env.WORKSPACE_MANAGER_URL;
+
+  if (!baseUrl) {
+    throw new Error('WORKSPACE_MANAGER_URL is required to trigger workspace.freezeReconcile');
+  }
+
+  /*
+   * No `?? PREVIEW_PROXY_SHARED_SECRET` fallback: this route is gated on the dedicated
+   * manager secret, so falling back to the broader preview secret would just produce a
+   * confusing 401. A missing secret is a misconfiguration — fail loudly here rather
+   * than send an unauthenticated request and let the sweep silently never run.
+   */
+  const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+
+  if (!secret) {
+    throw new Error('WORKSPACE_MANAGER_SHARED_SECRET is required to trigger workspace.freezeReconcile');
+  }
+
+  const body = jobData.graceMs === undefined ? {} : { graceMs: jobData.graceMs as number };
+
+  const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/internal/reconcile-workspace-freezes`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${secret}` },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(60_000),
+  });
+
+  if (!response.ok) {
+    const detail = await response.text().catch(() => '');
+    throw new Error(`workspace.freezeReconcile upstream failed: ${response.status} ${detail.slice(0, 200)}`);
+  }
+
+  const result = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+
+  console.log(
+    JSON.stringify({ level: 'info', service: 'worker', event: 'workspace.freeze.reconcile', ...result }),
+  );
+
+  return result;
+}
+
+/**
+ * Account-purge trigger (§16.12) — POSTs to the api's internal
+ * /internal/account-purge which consumes the ready_to_purge deletion queue:
+ * for each user whose 14-day grace window has elapsed it executes the REAL
+ * class-by-class purge (fail-closed financial retention, audit redaction,
+ * ledger immutability respected) and persists a verified erasure proof to the
+ * AdminAuditLog. Thin trigger so the destructive logic stays in the api with
+ * the store abstraction. DRY-RUN unless ACCOUNT_PURGE_ENABLED=true on the api
+ * (or jobData.enabled). Idempotent + concurrency-safe on the api side.
+ */
+export async function triggerAccountPurge(jobData: Record<string, unknown> = {}) {
+  const baseUrl = process.env.API_INTERNAL_URL ?? process.env.API_URL;
+  if (!baseUrl) {
+    throw new Error('API_INTERNAL_URL (or API_URL) is required to trigger account.purge');
+  }
+
+  const secret = (process.env.INTERNAL_API_SHARED_SECRET ?? process.env.WORKSPACE_MANAGER_SHARED_SECRET)?.trim();
+  const body = {
+    enabled: jobData.enabled as boolean | undefined,
+    take: jobData.take as number | undefined,
+    userId: jobData.userId as string | undefined,
+  };
+
+  const response = await fetch(`${baseUrl.replace(/\/+$/, '')}/internal/account-purge`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+    },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(120_000),
+  });
+
+  if (!response.ok) {
+    await response.body?.cancel().catch(() => {});
+    throw new Error(`account.purge upstream failed: ${response.status}`);
+  }
+
+  const result = await response.json().catch(() => ({}));
+  return result as Record<string, unknown>;
+}
+
+/**
  * Object-storage metering trigger (Replit-parity $0.03/GiB-month) — POSTs to the
  * api's internal /internal/metering/object-storage which sums the REAL stored
  * bytes per org and meters one day's worth of GiB-months. Thin trigger so the
@@ -450,6 +546,11 @@ export function startWorkers() {
         return { collected: true };
       }
 
+      // R-P3-07: reclaim purge barriers orphaned by a crashed purge.
+      if (job.name === 'workspace.freezeReconcile') {
+        return await triggerWorkspaceFreezeReconcile((job.data ?? {}) as Record<string, unknown>);
+      }
+
       throw new Error(`Unsupported workspace job: ${job.name}`);
     },
     { connection },
@@ -475,6 +576,10 @@ export function startWorkers() {
 
       if (job.name === 'inactivity.gc') {
         return await triggerInactivityGc(job.data ?? {});
+      }
+
+      if (job.name === 'account.purge') {
+        return await triggerAccountPurge(job.data ?? {});
       }
 
       if (job.name === 'metering.objectStorage') {

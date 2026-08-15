@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { promises as dnsPromises } from 'node:dns';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
@@ -5,6 +6,15 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
+import {
+  anonymizedEmail,
+  anonymizedOrgSlug,
+  buildErasureProof,
+  type PurgeClassReport,
+  type PurgeStorageDeps,
+  type PurgeUserAccountResult,
+} from './account-purge.js';
+import { deletionStatus, purgeDueAtMs, FINANCIAL_RETENTION_DAYS } from './data-deletion.js';
 import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
 import type {
   AbuseEventRecord,
@@ -119,6 +129,80 @@ function parseJsonArray<T>(value: string | null | undefined): T[] {
   } catch {
     return [];
   }
+}
+
+/*
+ * A stable, order-independent signature of the storage topology an account purge
+ * depends on. The external GCS/PVC erasure runs on the PRE-transaction topology;
+ * the purge tx re-derives this same fingerprint under the advisory lock and
+ * aborts on any drift, so a membership race (shared→sole / sole→shared) can never
+ * finalize a purge on a stale inventory (RR-08 #3).
+ */
+function storageTopologyFingerprint(topology: {
+  orgIds: string[];
+  soleOrgIds: string[];
+  bucketProjectIds: string[];
+  workspaceProjectIds: string[];
+}): string {
+  const sorted = (values: string[]) => [...values].sort();
+
+  return JSON.stringify({
+    orgIds: sorted(topology.orgIds),
+    soleOrgIds: sorted(topology.soleOrgIds),
+    bucketProjectIds: sorted(topology.bucketProjectIds),
+    workspaceProjectIds: sorted(topology.workspaceProjectIds),
+  });
+}
+
+/*
+ * Account-purge topology guarantee (RR-09 + RR-1bd27929 per-plan ownership).
+ * Freezes are now DB rows OWNED by a plan, not global id-lists:
+ *   - a PurgePlan row per active purge carries a lease (leaseExpiresAt), an
+ *     ownerToken and a version for CAS reclaim;
+ *   - a PurgeFreeze row (planId, resourceType, resourceId) freezes ONE resource
+ *     for ONE plan. A resource is frozen iff >= 1 PurgeFreeze row references it.
+ * So two purges sharing an org each hold their OWN membership row: releasing one
+ * plan deletes only ITS rows and never lifts a freeze another live plan owns; and
+ * the reconciler reclaims ONLY plans whose lease expired (CAS on version) — never
+ * a live plan. resourceType values: 'membership' (orgId) | 'objectStorage'
+ * (projectId). addMember/removeMember and the object-storage routes refuse while
+ * >= 1 plan freezes the resource.
+ */
+const MEMBERSHIP_RESOURCE = 'membership';
+const OBJECT_STORAGE_RESOURCE = 'objectStorage';
+// Advisory-lock name that serialises the membership guarantee's read→freeze with
+// addMember/removeMember (see CANONICAL LOCK ORDER in acquirePurgeGuarantee).
+const MEMBERSHIP_FREEZE_LOCK = 'purge:membership-freeze';
+// RR-CODEX-12 lease timing. The lease is a LIVE lease: the owner renews it every
+// PURGE_RENEW_INTERVAL_MS (<< TTL) via CAS while erasing, so a slow erasure never
+// lets a reconciler reclaim a live plan. A reconciler only reclaims a plan whose
+// lease expired MORE than the grace ago (guards against mere clock lag).
+const PURGE_LEASE_TTL_MS = 5 * 60 * 1000;
+const PURGE_RENEW_INTERVAL_MS = 60 * 1000;
+const PURGE_RECLAIM_GRACE_MS = 60 * 1000;
+
+/** Durable reclaim states of a PurgePlan. */
+const PURGE_PLAN_ACTIVE = 'ACTIVE';
+const PURGE_PLAN_RECLAIMING = 'RECLAIMING';
+
+/** The topology-locked plan the external erasure is authorized to act on. */
+interface PurgeGuarantee {
+  planId: string;
+  ownerToken: string;
+  userId: string;
+  version: number;
+  leaseExpiresAt: Date;
+  fingerprint: string;
+  orgIds: string[];
+  bucketProjectIds: string[];
+  workspaceProjectIds: string[];
+}
+
+/** Live control handle for a purge lease's background heartbeat (RR-CODEX-12). */
+interface PurgeHeartbeat {
+  lost(): boolean;
+  markLost(): void;
+  stop(): Promise<void>;
 }
 
 type PrismaKnownRequestError = Error & { readonly code: string };
@@ -247,7 +331,26 @@ export class PrismaApiStore implements ApiStore {
      * Node resolver in production.
      */
     private readonly resolveTxt: (hostname: string) => Promise<string[][]> = dnsPromises.resolveTxt,
+
+    /**
+     * RR-CODEX-12 purge-lease timing. Injectable so real-Postgres tests can drive
+     * a short TTL / fast heartbeat on a controlled clock. Defaults are production
+     * values (renew interval << TTL; grace guards against clock lag).
+     */
+    private readonly purgeLease: { ttlMs: number; renewIntervalMs: number; reclaimGraceMs: number } = {
+      ttlMs: PURGE_LEASE_TTL_MS,
+      renewIntervalMs: PURGE_RENEW_INTERVAL_MS,
+      reclaimGraceMs: PURGE_RECLAIM_GRACE_MS,
+    },
   ) {}
+
+  /**
+   * RR-CODEX-14 (P2) deterministic-race seam — tests only. Called inside
+   * acquirePurgeGuarantee right AFTER reading an existing plan and BEFORE the
+   * single-statement conditional reclaim, so a test can renew the plan "precisely
+   * between" and prove the stale-version delete is refused. Undefined in prod.
+   */
+  purgeTestHooks?: { onExistingPlanRead?: (plan: { id: string; version: number; status: string }) => Promise<void> };
 
   async ping(): Promise<void> {
     // Trivial round-trip to confirm the database connection is live.
@@ -393,6 +496,987 @@ export class PrismaApiStore implements ApiStore {
       }
 
       throw error;
+    }
+  }
+
+  /*
+   * §16.12 purge executor — consumes ready_to_purge and REALLY erases the
+   * account, class by class, producing a persisted-shape erasure proof.
+   *
+   * Concurrency: the whole purge runs in ONE interactive transaction opened
+   * with a per-user pg_advisory_xact_lock, so two workers racing on the same
+   * user serialize; the loser re-reads the tombstone (purgedAt set) and
+   * returns already_purged without touching a row. Idempotent by the same
+   * mechanism. Fail-closed retention: financial records inside the 7-year
+   * window (canPurgeFinancialRecord) and posted ledger transactions
+   * (immutability triggers, mig 0078) are never DELETEd — they are counted
+   * and consigned as exceptions in the proof. Audit logs are redacted in
+   * place, never deleted. Any non-zero post-purge recount throws, rolling the
+   * transaction back so a half-purge can never be reported as done.
+   */
+  /**
+   * The full storage TOPOLOGY the purge depends on: the user's orgs, which are
+   * SOLE-member (bucket + DB rows are erased) vs shared (retained for the other
+   * members), and the resolved project-id sets. Computed against ANY client — the
+   * live `this.prisma` (pre-transaction, to drive the external GCS/PVC erasure)
+   * OR the purge `tx` (authoritative, under the advisory lock). The `fingerprint`
+   * lets the tx detect a membership race (shared→sole / sole→shared) that shifted
+   * the topology while the external erasure ran, and ABORT before the tombstone
+   * rather than finalize on a stale inventory (see purgeUserAccount, RR-08 #3).
+   */
+  private async resolveStorageTopology(
+    client: Prisma.TransactionClient,
+    userId: string,
+  ): Promise<{
+    orgIds: string[];
+    soleOrgIds: string[];
+    sharedOrgIds: string[];
+    bucketProjectIds: string[];
+    workspaceProjectIds: string[];
+    fingerprint: string;
+  }> {
+    const memberships = await client.organizationMember.findMany({
+      where: { userId },
+      select: { organizationId: true },
+    });
+    const orgIds = [...new Set(memberships.map((m) => m.organizationId))];
+    const soleOrgIds: string[] = [];
+    const sharedOrgIds: string[] = [];
+
+    for (const orgId of orgIds) {
+      const members = await client.organizationMember.count({ where: { organizationId: orgId } });
+      (members === 1 ? soleOrgIds : sharedOrgIds).push(orgId);
+    }
+
+    // Buckets: only the subject's SOLE-org projects (the bucket is org-owned; a
+    // shared org's bucket belongs to the other members and is retained).
+    const bucketProjects =
+      soleOrgIds.length > 0
+        ? await client.project.findMany({ where: { organizationId: { in: soleOrgIds } }, select: { id: true } })
+        : [];
+    const bucketProjectIds = bucketProjects.map((p) => p.id);
+
+    /*
+     * Workspaces (reserve #3 + #4): the subject can hold a per-user workspace in
+     * EVERY project they are AUTHORIZED to open, which follows the REAL access
+     * rules — org membership grants project access, so ANY project in ANY org the
+     * subject belongs to (sole OR shared) is reachable, WITHOUT needing an explicit
+     * ProjectCollaborator row. Enumerate all of them, plus any explicit
+     * collaborations (defence in depth), not just sole-org + collaborators.
+     */
+    const orgProjects =
+      orgIds.length > 0
+        ? await client.project.findMany({ where: { organizationId: { in: orgIds } }, select: { id: true } })
+        : [];
+    const collaborations = await client.projectCollaborator.findMany({
+      where: { userId },
+      select: { projectId: true },
+    });
+    const workspaceProjectIds = [
+      ...new Set([...orgProjects.map((p) => p.id), ...collaborations.map((c) => c.projectId)]),
+    ];
+
+    const fingerprint = storageTopologyFingerprint({ orgIds, soleOrgIds, bucketProjectIds, workspaceProjectIds });
+
+    return { orgIds, soleOrgIds, sharedOrgIds, bucketProjectIds, workspaceProjectIds, fingerprint };
+  }
+
+  /* ---------------- account-purge topology guarantee (RR-09) ---------------- */
+
+  /** Is this project's object storage frozen by >= 1 in-flight account purge? */
+  async isObjectStorageProjectPurgeFrozen(projectId: string): Promise<boolean> {
+    return (
+      (await this.prisma.purgeFreeze.count({
+        where: { resourceType: OBJECT_STORAGE_RESOURCE, resourceId: projectId },
+      })) > 0
+    );
+  }
+
+  /**
+   * RR-CODEX-14 (P6): does a durable erasure receipt exist for this user? The
+   * purge-executor requires this before removing an already-purged user from the
+   * pending queue, so a purge is never "forgotten" without a reconstructable proof.
+   */
+  async hasPurgeReceipt(userId: string): Promise<boolean> {
+    return (await this.prisma.purgeReceipt.count({ where: { userId } })) > 0;
+  }
+
+  /**
+   * RR-09 (1)(2)(3) + RR-1bd27929: acquire the topology GUARANTEE before any
+   * external deletion, as a PLAN that OWNS its freeze rows. In ONE tx:
+   *   CANONICAL LOCK ORDER — account-purge:<userId>  <  MEMBERSHIP_FREEZE_LOCK
+   * both taken BEFORE the topology read (addMember/removeMember and the purge
+   * finalize tombstone take these in the same order — no inversion, no deadlock).
+   * CODEX-10: the membership lock is held from before the read to commit, so the
+   * read and the freeze are atomic w.r.t. membership — a join that grabbed the lock
+   * first commits before ours and is reflected in the topology (a now-shared org's
+   * bucket is excluded); one arriving after blocks until commit and is refused.
+   * Creates a PurgePlan (lease + ownerToken + version for CAS reclaim) and one
+   * PurgeFreeze row per org (membership) and per sole-org bucket (objectStorage),
+   * all OWNED by this plan.
+   */
+  private async acquirePurgeGuarantee(userId: string): Promise<PurgeGuarantee> {
+    const ownerToken = randomUUID();
+    const leaseExpiresAt = new Date(Date.now() + this.purgeLease.ttlMs);
+    const graceSec = Math.max(0, Math.ceil(this.purgeLease.reclaimGraceMs / 1000));
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', MEMBERSHIP_FREEZE_LOCK);
+
+      /*
+       * RR-CODEX-14 (P2) per-user SINGLETON with a SINGLE-STATEMENT reclaim. At most
+       * ONE plan per subject (unique userId). If one already exists, we try to
+       * reclaim it as ABANDONED in ONE conditional DELETE gated on the version AND
+       * status we just read AND the POSTGRES clock (now() − grace, not the app
+       * clock). This closes the read→delete race: if the old owner's heartbeat
+       * renewed the plan between our read and here (version bumped, lease pushed to
+       * the future, or status changed), the DELETE matches 0 rows and we STOP —
+       * NEVER delete-by-id a renewed plan and start a 2nd physical erasure. Freezes
+       * cascade via the FK.
+       */
+      const existing = await tx.purgePlan.findUnique({ where: { userId } });
+
+      if (existing) {
+        // Deterministic-race seam (tests only): renew "precisely between" the read
+        // above and the conditional delete below.
+        await this.purgeTestHooks?.onExistingPlanRead?.(existing);
+
+        const reclaimed = await tx.$executeRawUnsafe(
+          `DELETE FROM "PurgePlan" WHERE id = $1 AND version = $2 AND status = $3 ` +
+            `AND "leaseExpiresAt" < (now() - make_interval(secs => $4))`,
+          existing.id,
+          existing.version,
+          existing.status,
+          graceSec,
+        );
+
+        if (reclaimed === 0) {
+          // Live or renewed between our read and here → another owner is purging.
+          throw new Error(
+            `PURGE_ALREADY_ACTIVE: a purge plan for ${userId} is live or was renewed — refusing a second physical purge`,
+          );
+        }
+      }
+
+      const topology = await this.resolveStorageTopology(tx, userId);
+
+      const plan = await tx.purgePlan.create({
+        data: { userId, ownerToken, leaseExpiresAt, status: PURGE_PLAN_ACTIVE },
+      });
+
+      const freezeRows = [
+        ...topology.orgIds.map((orgId) => ({
+          planId: plan.id,
+          resourceType: MEMBERSHIP_RESOURCE,
+          resourceId: orgId,
+        })),
+        ...topology.bucketProjectIds.map((projectId) => ({
+          planId: plan.id,
+          resourceType: OBJECT_STORAGE_RESOURCE,
+          resourceId: projectId,
+        })),
+      ];
+
+      if (freezeRows.length > 0) {
+        await tx.purgeFreeze.createMany({ data: freezeRows, skipDuplicates: true });
+      }
+
+      return {
+        planId: plan.id,
+        ownerToken,
+        userId,
+        version: plan.version,
+        leaseExpiresAt: plan.leaseExpiresAt,
+        fingerprint: topology.fingerprint,
+        orgIds: topology.orgIds,
+        bucketProjectIds: topology.bucketProjectIds,
+        workspaceProjectIds: topology.workspaceProjectIds,
+      };
+    });
+  }
+
+  /**
+   * RR-CODEX-12: renew (heartbeat) the lease via CAS on (id, ownerToken, version,
+   * status=ACTIVE). Returns the NEW version on success, or null if the CAS lost —
+   * the plan was reclaimed (status/version changed) or removed, i.e. the lease is
+   * no longer ours.
+   */
+  async renewPurgeLease(planId: string, ownerToken: string, expectedVersion: number): Promise<number | null> {
+    /*
+     * RR-CODEX-14 v8 (R-P5-01): the CAS matched on (id, ownerToken, version, status)
+     * but NOT on the lease still being alive — so an ALREADY-EXPIRED lease could be
+     * renewed back into the future. That reachable state is forbidden: once
+     * `leaseExpiresAt <= now`, workspace-manager's `isPurgeFenceOwnerLive` reports the
+     * owner dead and its stale-freeze reconciler may lift the purge barrier. A renewal
+     * landing after that resurrects the lease while the barrier is already down —
+     * "lease valid again + barrier lifted", i.e. an erasure believing it still owns a
+     * runtime that is once more reprovisionable.
+     *
+     * `leaseExpiresAt: { gt: now }` closes it INSIDE the same conditional UPDATE:
+     * Postgres evaluates it against the row under the update's lock, so there is no
+     * window between "is it alive?" and "extend it". A dead lease matches 0 rows and
+     * the caller gets null — exactly like losing the version CAS. Recovery is the
+     * reclaim path (a fresh plan), never a resurrection.
+     *
+     * ONE `now` for both the guard and the new expiry, so the boundary is a single
+     * instant rather than two clock reads: `now === leaseExpiresAt` is EXPIRED, the
+     * same strict `>` used by validatePurgeLease and by the manager's liveness lookup.
+     * All three agree, which is what makes the state machine consistent across tiers.
+     */
+    const now = new Date();
+    const nextVersion = expectedVersion + 1;
+    const won = await this.prisma.purgePlan.updateMany({
+      where: {
+        id: planId,
+        ownerToken,
+        version: expectedVersion,
+        status: PURGE_PLAN_ACTIVE,
+        leaseExpiresAt: { gt: now },
+      },
+      data: { leaseExpiresAt: new Date(now.getTime() + this.purgeLease.ttlMs), version: nextVersion },
+    });
+
+    return won.count === 1 ? nextVersion : null;
+  }
+
+  /** RR-CODEX-12: is the lease still OURS, ACTIVE, and unexpired? */
+  private async validatePurgeLease(planId: string, ownerToken: string): Promise<boolean> {
+    const plan = await this.prisma.purgePlan.findFirst({
+      where: { id: planId, ownerToken, status: PURGE_PLAN_ACTIVE },
+    });
+
+    return Boolean(plan) && plan!.leaseExpiresAt.getTime() > Date.now();
+  }
+
+  /**
+   * RR-CODEX-12: start a background heartbeat that renews the lease every
+   * renewIntervalMs (<< TTL) via CAS. On the first failed renewal (the plan was
+   * reclaimed) it marks the lease LOST — the erasure guard and the pre-finalize /
+   * pre-tombstone checks then abort, so nothing is deleted or finalized after loss.
+   */
+  private startPurgeHeartbeat(guarantee: PurgeGuarantee): PurgeHeartbeat {
+    let version = guarantee.version;
+    let lost = false;
+    let stopped = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    // Resolver of the current inter-renewal sleep, so stop() can wake the loop
+    // immediately (clearTimeout alone would leave the sleep promise pending → the
+    // loop would never observe `stopped` and `await running` would hang forever).
+    let wake: (() => void) | undefined;
+
+    const loop = async (): Promise<void> => {
+      while (!stopped && !lost) {
+        await new Promise<void>((resolve) => {
+          wake = resolve;
+          timer = setTimeout(resolve, this.purgeLease.renewIntervalMs);
+        });
+        wake = undefined;
+
+        if (stopped || lost) {
+          break;
+        }
+
+        const next = await this.renewPurgeLease(guarantee.planId, guarantee.ownerToken, version).catch(() => null);
+
+        if (next === null) {
+          lost = true;
+          break;
+        }
+
+        version = next;
+      }
+    };
+
+    const running = loop();
+
+    return {
+      lost: () => lost,
+      markLost: () => {
+        lost = true;
+      },
+      async stop() {
+        stopped = true;
+
+        if (timer) {
+          clearTimeout(timer);
+        }
+
+        if (wake) {
+          wake(); // wake the pending sleep so the loop can observe `stopped` and exit
+        }
+
+        await running.catch(() => undefined);
+      },
+    };
+  }
+
+  /**
+   * RR-CODEX-14 (P7): release the guarantee with the SAME model as the reconciler —
+   * a SINGLE atomic conditional DELETE of the plan, guarded by ownerToken so it can
+   * only ever touch OUR plan (never a reclaimed / another owner's / another user's
+   * plan). The plan's PurgeFreeze rows cascade away via the FK, so there is no
+   * multi-step "partial thaw": either the whole plan+freezes are gone atomically,
+   * or (on failure) they all remain and the reconciler recovers them via the lease.
+   */
+  private async releasePurgeGuarantee(guarantee: PurgeGuarantee): Promise<void> {
+    await this.prisma.purgePlan
+      .deleteMany({ where: { id: guarantee.planId, ownerToken: guarantee.ownerToken } })
+      .catch(() => undefined);
+  }
+
+  /**
+   * RR-CODEX-14 (P7): recover ABANDONED plans only. The MODEL — described here to
+   * match the code EXACTLY — is a SINGLE ATOMIC CONDITIONAL DELETE, not a
+   * claim-then-cleanup CAS:
+   *   - candidates = plans whose lease is already past;
+   *   - for each, ONE `DELETE ... WHERE id=? AND version=? AND leaseExpiresAt<cutoff`.
+   *     A DELETE serialises on the row, so of two concurrent reconcilers EXACTLY ONE
+   *     matches (count 1) and the other sees the row gone (count 0) — no
+   *     double-reclaim. The version guard refuses to delete a plan the owner RENEWED
+   *     (version moved) between our read and here. The plan's PurgeFreeze rows
+   *     cascade away via the FK (verified with a follow-up count before we attribute
+   *     the reclaim). `reclaimedPlanIds` gets the id ONLY on a verified count-1
+   *     delete.
+   *   - the DURABLE `RECLAIMING` status is used ONLY in the failure path: if the
+   *     delete throws, we mark the plan RECLAIMING (recoverable, NOT counted) and a
+   *     later pass re-attempts the (still-matching) delete.
+   * The grace (cutoff = now − grace) means a live plan — even one blocked in a slow
+   * erasure whose heartbeat renews — is never a candidate.
+   */
+  async reconcilePurgeFreezes(): Promise<{ reconciled: number; reclaimedPlanIds: string[] }> {
+    const cutoff = new Date(Date.now() - this.purgeLease.reclaimGraceMs);
+    const stale = await this.prisma.purgePlan.findMany({ where: { leaseExpiresAt: { lt: cutoff } } });
+    // reclaimedPlanIds lets callers/tests attribute reclaims to the SPECIFIC plan
+    // (pollution-proof: the count alone conflates unrelated expired plans).
+    const reclaimedPlanIds: string[] = [];
+
+    for (const plan of stale) {
+      try {
+        /*
+         * ATOMIC claim+cleanup: delete the plan IFF it is still at the version we
+         * read AND still expired. A DELETE serialises on the row, so of two
+         * concurrent reconcilers EXACTLY ONE matches (count 1) and the other sees
+         * the row already gone (count 0) — no double-reclaim. The version guard
+         * also refuses to delete a plan the owner RENEWED (version moved) between
+         * our read and here (lease-safety). The plan's PurgeFreeze rows cascade
+         * away via the FK.
+         */
+        const deleted = await this.prisma.purgePlan.deleteMany({
+          where: { id: plan.id, version: plan.version, leaseExpiresAt: { lt: cutoff } },
+        });
+
+        if (deleted.count !== 1) {
+          continue; // lost the race, or the owner renewed / it was already reclaimed
+        }
+
+        // VERIFIED: confirm the freezes actually cascaded away before counting it.
+        const freezesGone = (await this.prisma.purgeFreeze.count({ where: { planId: plan.id } })) === 0;
+
+        if (freezesGone) {
+          reclaimedPlanIds.push(plan.id);
+        }
+      } catch {
+        /*
+         * Cleanup FAILED → mark the plan RECLAIMING (explicit, durable, recoverable
+         * state) WITHOUT counting it. A later pass re-attempts the delete (the
+         * version is unchanged, so its WHERE still matches). Never a false success.
+         */
+        await this.prisma.purgePlan
+          .updateMany({ where: { id: plan.id, version: plan.version }, data: { status: PURGE_PLAN_RECLAIMING } })
+          .catch(() => undefined);
+      }
+    }
+
+    return { reconciled: reclaimedPlanIds.length, reclaimedPlanIds };
+  }
+
+  /**
+   * RR-09 (2) + RR-1bd27929: refuse a membership mutation while >= 1 plan freezes
+   * this org. Takes the MEMBERSHIP_FREEZE_LOCK the guarantee holds, so a mutation
+   * either serialises BEFORE the guarantee's read (and is reflected in its
+   * topology) or sees the freeze row and is refused — never interleaving to flip
+   * sole↔shared mid-erasure. The org stays refused while ANY plan freezes it (so
+   * releasing one of two sharing plans does not re-open it). Call inside the
+   * caller's tx.
+   */
+  private async assertOrgMembershipNotPurgeFrozen(tx: Prisma.TransactionClient, organizationId: string): Promise<void> {
+    await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', MEMBERSHIP_FREEZE_LOCK);
+    const frozen = await tx.purgeFreeze.count({
+      where: { resourceType: MEMBERSHIP_RESOURCE, resourceId: organizationId },
+    });
+
+    if (frozen > 0) {
+      throw new Error(
+        `MEMBERSHIP_FROZEN_FOR_PURGE: organization ${organizationId} membership is frozen during an account purge`,
+      );
+    }
+  }
+
+  /**
+   * RR-CODEX-14 (P5): refuse a project TOPOLOGY mutation (transfer / org change /
+   * hard delete) that would change the purge inventory while the project's storage
+   * is frozen by an in-flight purge. Takes the SAME MEMBERSHIP_FREEZE_LOCK so it
+   * serialises with the guarantee's atomic read→freeze section. Call inside the tx.
+   */
+  private async assertProjectNotPurgeFrozen(tx: Prisma.TransactionClient, projectId: string): Promise<void> {
+    await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', MEMBERSHIP_FREEZE_LOCK);
+    const frozen = await tx.purgeFreeze.count({
+      where: { resourceType: OBJECT_STORAGE_RESOURCE, resourceId: projectId },
+    });
+
+    if (frozen > 0) {
+      throw new Error(`PROJECT_FROZEN_FOR_PURGE: project ${projectId} storage is frozen during an account purge`);
+    }
+  }
+
+  async purgeUserAccount(
+    input: { userId: string; nowMs?: number },
+    deps?: PurgeStorageDeps,
+  ): Promise<PurgeUserAccountResult> {
+    const { userId } = input;
+    const nowMs = Number.isFinite(input.nowMs) ? (input.nowMs as number) : Date.now();
+    const nowIso = new Date(nowMs).toISOString();
+
+    /*
+     * PHYSICAL ERASURE GATE (§16.12 + RR-09) — GCS/PVC deletes are external,
+     * non-transactional I/O, so they run before the DB tx. RR-09 order:
+     *   (1) ACQUIRE a topology GUARANTEE — freeze membership + object storage and
+     *       record the authoritative sole/shared topology, atomically under the
+     *       advisory lock — BEFORE any deletion;
+     *   (2) ERASE only the guaranteed-sole buckets/PVCs (idempotent, fail-closed);
+     *   (3) FINALIZE (DB tx): deletes + tombstone, with a drift backstop;
+     *   (4) RELEASE the guarantee in `finally` — ALWAYS, so no freeze is stranded.
+     * Only runs when the account is actually ready_to_purge.
+     */
+    let physicalClasses: PurgeClassReport[] = [];
+    // The topology guarantee the external erasure acted under (RR-09). Null when
+    // no physical erasure ran (dry-run / no storage deps): nothing external was
+    // touched, so there is no guarantee to acquire, drift to guard, or freeze to
+    // release.
+    let guarantee: PurgeGuarantee | null = null;
+    // RR-CODEX-12: the live-lease heartbeat + the lease-revalidation guard. The
+    // guard throws (aborting) if the lease is lost; it is called before each
+    // irreversible delete, before the finalize tx, and immediately before the
+    // tombstone. The heartbeat renews the lease in the background while erasing.
+    let heartbeat: PurgeHeartbeat | null = null;
+    let guard: (() => Promise<void>) | null = null;
+
+    if (deps?.eraseStorage) {
+      const pre = await this.prisma.user.findUnique({ where: { id: userId }, select: { preferences: true } });
+      const preDeletion = ((pre?.preferences ?? {}) as Record<string, unknown>).accountDeletion as
+        | { requestedAt?: string; purgedAt?: string }
+        | undefined;
+      const toMsPre = (value?: string) => {
+        const ms = value ? new Date(value).getTime() : NaN;
+
+        return Number.isFinite(ms) ? ms : null;
+      };
+      const preStatus = deletionStatus({
+        requestedAtMs: toMsPre(preDeletion?.requestedAt),
+        purgedAtMs: toMsPre(preDeletion?.purgedAt),
+        nowMs,
+      });
+
+      if (preStatus === 'ready_to_purge') {
+        // (1) acquire the guarantee BEFORE deleting anything external.
+        guarantee = await this.acquirePurgeGuarantee(userId);
+      }
+    }
+
+    try {
+      // (2) erase ONLY under an acquired guarantee, on its locked inventory.
+      if (guarantee && deps?.eraseStorage) {
+        // RR-CODEX-12: a LIVE lease. Renew it in the background every
+        // renewIntervalMs (<< TTL) so a slow erasure never lets a reconciler
+        // reclaim a live plan; `guard` FAILS the purge the moment the lease is lost.
+        const g = guarantee;
+        heartbeat = this.startPurgeHeartbeat(g);
+        const hb = heartbeat;
+        guard = async () => {
+          if (hb.lost()) {
+            throw new Error(`ACCOUNT_PURGE_LEASE_LOST: lease lost during purge for ${userId} — aborting`);
+          }
+
+          if (!(await this.validatePurgeLease(g.planId, g.ownerToken))) {
+            hb.markLost();
+
+            throw new Error(`ACCOUNT_PURGE_LEASE_LOST: lease no longer owned for ${userId} — aborting`);
+          }
+        };
+
+        await guard(); // revalidate before starting any deletion
+
+        const erasure = await deps.eraseStorage(
+          {
+            bucketProjectIds: guarantee.bucketProjectIds,
+            workspaceProjectIds: guarantee.workspaceProjectIds,
+          },
+          guard,
+          // RR-CODEX-14 v5 (R-P3-05): per-attempt fence = this plan's ownerToken.
+          guarantee.ownerToken,
+        );
+
+        if (!erasure.verified) {
+          throw new Error(
+            `ACCOUNT_PURGE_PHYSICAL_INCOMPLETE: physical storage not fully erased for ${userId} ` +
+              `(${erasure.classes.map((c) => `${c.dataClass}=${c.remainingAfterPurge ?? 0}`).join(', ')})`,
+          );
+        }
+
+        physicalClasses = erasure.classes;
+
+        await guard(); // revalidate after the (possibly long) erasure, before finalize
+      }
+
+      const erasedTopologyFingerprint = guarantee?.fingerprint ?? null;
+
+      // (3) finalize.
+      return await this.prisma.$transaction(
+        async (tx) => {
+        // CANONICAL LOCK ORDER (see acquirePurgeGuarantee): account-purge < membership.
+        await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
+
+        /*
+         * RR-20260804-CODEX-10 A.1: this finalize tx reads the topology (drift
+         * backstop) AND deletes the subject's OrganizationMember rows (the tombstone
+         * below) — a direct write that changes existing orgs' member counts. It MUST
+         * take the SAME membership freeze-set lock addMember/removeMember/the
+         * guarantee take, so it cannot interleave DURING another purge's atomic
+         * read→freeze section and flip an org sole↔shared under that purge's snapshot.
+         */
+        await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', MEMBERSHIP_FREEZE_LOCK);
+
+        const user = await tx.user.findUnique({ where: { id: userId } });
+
+        if (!user) {
+          return { outcome: 'not_requested' as const };
+        }
+
+        const preferences = (user.preferences ?? {}) as Record<string, unknown>;
+        const deletion = (preferences.accountDeletion ?? null) as { requestedAt?: string; purgedAt?: string } | null;
+        const toMs = (value?: string) => {
+          if (!value) {
+            return null;
+          }
+
+          const ms = new Date(value).getTime();
+
+          return Number.isFinite(ms) ? ms : null;
+        };
+        const requestedAtMs = toMs(deletion?.requestedAt);
+        const purgedAtMs = toMs(deletion?.purgedAt);
+        const status = deletionStatus({ requestedAtMs, purgedAtMs, nowMs });
+
+        if (status === 'purged') {
+          return { outcome: 'already_purged' as const, purgedAt: deletion!.purgedAt! };
+        }
+
+        if (status === 'none') {
+          return { outcome: 'not_requested' as const };
+        }
+
+        if (status === 'grace_period') {
+          return { outcome: 'not_due' as const, purgeDueAt: new Date(purgeDueAtMs(requestedAtMs!)).toISOString() };
+        }
+
+        /*
+         * ready_to_purge: resolve the org topology (sole-member vs shared)
+         * AUTHORITATIVELY under the advisory lock. This is the same computation
+         * the pre-transaction step used to drive the external GCS/PVC erasure.
+         */
+        const topology = await this.resolveStorageTopology(tx, userId);
+        const { orgIds, soleOrgIds, sharedOrgIds } = topology;
+
+        /*
+         * TOPOLOGY DRIFT BACKSTOP (RR-08 #3 / RR-09). The guarantee froze
+         * membership before the erasure, so the topology CANNOT have shifted while
+         * we erased — this re-verify should never fire. It remains as defence in
+         * depth against the razor-thin window between the guarantee's topology read
+         * and its freeze commit: if anything drifted, ABORT before any delete or the
+         * tombstone. The tx rolls back, purgedAt is never stamped, the freeze is
+         * released (finally), and the next run re-acquires a fresh guarantee.
+         */
+        if (erasedTopologyFingerprint !== null && topology.fingerprint !== erasedTopologyFingerprint) {
+          throw new Error(
+            `ACCOUNT_PURGE_TOPOLOGY_DRIFT: storage topology changed during physical erasure for ${userId} ` +
+              `— refusing to finalize on a stale inventory (account re-queued)`,
+          );
+        }
+
+        const classes: PurgeClassReport[] = [];
+
+        // ---- deleted classes ----
+        const sessions = await tx.session.deleteMany({ where: { userId } });
+        classes.push({ dataClass: 'sessions', action: 'deleted', models: { Session: sessions.count } });
+
+        const emailTokens = await tx.emailVerificationToken.deleteMany({ where: { userId } });
+        const resetTokens = await tx.passwordResetToken.deleteMany({ where: { userId } });
+        const recoveryCodes = await tx.mfaRecoveryCode.deleteMany({ where: { userId } });
+        classes.push({
+          dataClass: 'auth_tokens',
+          action: 'deleted',
+          models: {
+            EmailVerificationToken: emailTokens.count,
+            PasswordResetToken: resetTokens.count,
+            MfaRecoveryCode: recoveryCodes.count,
+          },
+        });
+
+        const apiKeys = await tx.apiKey.deleteMany({ where: { userId } });
+        classes.push({ dataClass: 'api_keys', action: 'deleted', models: { ApiKey: apiKeys.count } });
+
+        const accounts = await tx.account.deleteMany({ where: { userId } });
+        const oauthConnections = await tx.oAuthConnection.deleteMany({ where: { userId } });
+        const userConnections = await tx.userConnection.deleteMany({ where: { userId } });
+        classes.push({
+          dataClass: 'connected_accounts',
+          action: 'deleted',
+          models: {
+            Account: accounts.count,
+            OAuthConnection: oauthConnections.count,
+            UserConnection: userConnections.count,
+          },
+        });
+
+        // AI history. AiMessage / AiToolCall / AiTokenUsage cascade off the
+        // conversation delete — count them FIRST so the proof carries real
+        // per-model numbers, not just the parent count. AiTokenUsage rows ride
+        // this cascade by schema design; the canonical billing truth
+        // (AiCostLedger / UsageEvent / Ledger*) is org-scoped and RETAINED below.
+        const aiMessages = await tx.aiMessage.count({ where: { conversation: { userId } } });
+        const aiToolCalls = await tx.aiToolCall.count({ where: { message: { conversation: { userId } } } });
+        const aiTokenUsages = await tx.aiTokenUsage.count({ where: { message: { conversation: { userId } } } });
+        const aiConversations = await tx.aiConversation.deleteMany({ where: { userId } });
+        const agentRuns = await tx.agentRun.deleteMany({ where: { userId } });
+        const agentMemories = await tx.agentMemory.deleteMany({ where: { userId } });
+        const agentMemoryPreferences = await tx.agentMemoryPreference.deleteMany({ where: { userId } });
+        const mcpInstalls = await tx.mcpInstall.deleteMany({ where: { userId } });
+        const mcpUserConfigs = await tx.mcpUserConfig.deleteMany({ where: { userId } });
+        const aiFeedback = await tx.aiMessageFeedback.deleteMany({ where: { userId } });
+        const notifications = await tx.notification.deleteMany({ where: { userId } });
+        const soleOrgCheckpoints =
+          soleOrgIds.length > 0
+            ? await tx.agentCheckpoint.deleteMany({ where: { organizationId: { in: soleOrgIds } } })
+            : { count: 0 };
+        classes.push({
+          dataClass: 'ai_history',
+          action: 'deleted',
+          models: {
+            AiConversation: aiConversations.count,
+            AiMessage: aiMessages,
+            AiToolCall: aiToolCalls,
+            AiTokenUsage: aiTokenUsages,
+            AgentRun: agentRuns.count,
+            AgentMemory: agentMemories.count,
+            AgentMemoryPreference: agentMemoryPreferences.count,
+            McpInstall: mcpInstalls.count,
+            McpUserConfig: mcpUserConfigs.count,
+            AiMessageFeedback: aiFeedback.count,
+            Notification: notifications.count,
+            AgentCheckpoint: soleOrgCheckpoints.count,
+          },
+        });
+
+        const collaborators = await tx.projectCollaborator.deleteMany({ where: { userId } });
+        const presence = await tx.collaborationPresence.deleteMany({ where: { userId } });
+        const comments = await tx.collaborationComment.deleteMany({ where: { userId } });
+        const shareLinks = await tx.projectShareLink.deleteMany({ where: { createdByUserId: userId } });
+        const spendLimits = await tx.userSpendLimit.deleteMany({ where: { userId } });
+        classes.push({
+          dataClass: 'collaboration',
+          action: 'deleted',
+          models: {
+            ProjectCollaborator: collaborators.count,
+            CollaborationPresence: presence.count,
+            CollaborationComment: comments.count,
+            ProjectShareLink: shareLinks.count,
+            UserSpendLimit: spendLimits.count,
+          },
+        });
+
+        // Projects & workspaces of sole-member orgs (files, snapshots,
+        // deployments, workspaces, gallery listings... cascade off Project).
+        const projects =
+          soleOrgIds.length > 0
+            ? await tx.project.deleteMany({ where: { organizationId: { in: soleOrgIds } } })
+            : { count: 0 };
+        classes.push({ dataClass: 'projects', action: 'deleted', models: { Project: projects.count } });
+
+        const importJobs =
+          soleOrgIds.length > 0
+            ? await tx.importJob.deleteMany({ where: { organizationId: { in: soleOrgIds } } })
+            : { count: 0 };
+        classes.push({ dataClass: 'imports', action: 'deleted', models: { ImportJob: importJobs.count } });
+
+        const orgMemberships = await tx.organizationMember.deleteMany({ where: { userId } });
+        classes.push({
+          dataClass: 'memberships',
+          action: 'deleted',
+          models: { OrganizationMember: orgMemberships.count },
+        });
+
+        // Marketing: unsubscribe by e-mail BEFORE the tombstone rewrites it.
+        const newsletter = await tx.newsletterSubscriber.deleteMany({ where: { email: user.email } });
+        classes.push({ dataClass: 'marketing', action: 'deleted', models: { NewsletterSubscriber: newsletter.count } });
+
+        // ---- anonymized classes (redacted in place, never deleted) ----
+        const auditRedacted = await tx.auditLog.updateMany({
+          where: { actorUserId: userId },
+          data: { ipAddress: null, metadata: { redacted: true, redactedAt: nowIso } as Prisma.InputJsonValue },
+        });
+        const adminAuditRedacted = await tx.adminAuditLog.updateMany({
+          where: { actorUserId: userId },
+          data: { ipAddress: null },
+        });
+        classes.push({
+          dataClass: 'audit_logs',
+          action: 'anonymized',
+          reason: 'append_only_redacted_never_deleted',
+          models: { AuditLog: auditRedacted.count, AdminAuditLog: adminAuditRedacted.count },
+        });
+
+        const usageEventRefs = await tx.usageEvent.updateMany({ where: { userId }, data: { userId: null } });
+        const agentCallLogRefs = await tx.agentCallLog.updateMany({ where: { userId }, data: { userId: null } });
+        const reservationRefs = await tx.ledgerReservation.updateMany({ where: { userId }, data: { userId: null } });
+        const checkpointRefs = await tx.agentCheckpoint.updateMany({ where: { userId }, data: { userId: null } });
+        const activityRefs = await tx.projectActivity.updateMany({
+          where: { actorUserId: userId },
+          data: { actorUserId: null },
+        });
+        const importRefs = await tx.importJob.updateMany({ where: { actorUserId: userId }, data: { actorUserId: null } });
+        const galleryRefs = await tx.galleryListing.updateMany({
+          where: { authorUserId: userId },
+          data: { authorUserId: null, authorName: 'Deleted account' },
+        });
+        const ticketRefs = await tx.supportTicket.updateMany({ where: { userId }, data: { userId: null } });
+        classes.push({
+          dataClass: 'user_references',
+          action: 'anonymized',
+          reason: 'retained_rows_detached_from_user',
+          models: {
+            UsageEvent: usageEventRefs.count,
+            AgentCallLog: agentCallLogRefs.count,
+            LedgerReservation: reservationRefs.count,
+            AgentCheckpoint: checkpointRefs.count,
+            ProjectActivity: activityRefs.count,
+            ImportJob: importRefs.count,
+            GalleryListing: galleryRefs.count,
+            SupportTicket: ticketRefs.count,
+          },
+        });
+
+        // Sole-member org shells: anonymize the name/slug (may carry PII), keep
+        // the row as the anchor of the retained financial records.
+        let orgsAnonymized = 0;
+
+        for (const orgId of soleOrgIds) {
+          await tx.organization.update({
+            where: { id: orgId },
+            data: { name: 'Purged account', slug: anonymizedOrgSlug(orgId), billingEmail: null },
+          });
+          orgsAnonymized += 1;
+        }
+
+        classes.push({
+          dataClass: 'organizations',
+          action: 'anonymized',
+          reason: 'retained_as_anchor_for_financial_records',
+          models: { Organization: orgsAnonymized },
+        });
+
+        // ---- retained classes (fail-closed retention, consigned) ----
+        // Financial rows past the 7-year window MAY be erased
+        // (canPurgeFinancialRecord); everything inside the window is retained.
+        const financialCutoff = new Date(nowMs - FINANCIAL_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+        const soleOrgWhere = { organizationId: { in: soleOrgIds } };
+        let financialExpiredDeleted = 0;
+
+        if (soleOrgIds.length > 0) {
+          const expiredUsage = await tx.usageEvent.deleteMany({
+            where: { ...soleOrgWhere, createdAt: { lt: financialCutoff } },
+          });
+          const expiredAiCost = await tx.aiCostLedger.deleteMany({
+            where: { ...soleOrgWhere, createdAt: { lt: financialCutoff } },
+          });
+          const expiredCredits = await tx.creditLedger.deleteMany({
+            where: { ...soleOrgWhere, createdAt: { lt: financialCutoff } },
+          });
+          financialExpiredDeleted = expiredUsage.count + expiredAiCost.count + expiredCredits.count;
+        }
+
+        const retainedFinancial = {
+          UsageEvent: soleOrgIds.length > 0 ? await tx.usageEvent.count({ where: soleOrgWhere }) : 0,
+          AiCostLedger: soleOrgIds.length > 0 ? await tx.aiCostLedger.count({ where: soleOrgWhere }) : 0,
+          CreditLedger: soleOrgIds.length > 0 ? await tx.creditLedger.count({ where: soleOrgWhere }) : 0,
+          StripeEvent: soleOrgIds.length > 0 ? await tx.stripeEvent.count({ where: soleOrgWhere }) : 0,
+          Subscription: soleOrgIds.length > 0 ? await tx.subscription.count({ where: soleOrgWhere }) : 0,
+        };
+        classes.push({
+          dataClass: 'financial_records',
+          action: 'retained',
+          reason: 'financial_retention_7y_fail_closed',
+          models: { ...retainedFinancial, ExpiredRowsErased: financialExpiredDeleted },
+        });
+
+        const ledgerTransactions =
+          soleOrgIds.length > 0 ? await tx.ledgerTransaction.count({ where: soleOrgWhere }) : 0;
+        classes.push({
+          dataClass: 'ledger',
+          action: 'retained',
+          reason: 'ledger_immutable_posted_entries_mig0078',
+          models: { LedgerTransaction: ledgerTransactions },
+        });
+
+        const sharedProjects =
+          sharedOrgIds.length > 0 ? await tx.project.count({ where: { organizationId: { in: sharedOrgIds } } }) : 0;
+        classes.push({
+          dataClass: 'shared_org_content',
+          action: 'retained',
+          reason: 'shared_organization_belongs_to_other_members',
+          models: { Project: sharedProjects },
+        });
+
+        // RR-CODEX-12: revalidate the lease IMMEDIATELY before the tombstone. If a
+        // reconciler reclaimed us mid-finalize (lease lost), abort — the tx rolls
+        // back, purgedAt is never stamped, and the account is re-queued.
+        if (guard) {
+          await guard();
+        }
+
+        // ---- tombstone: anonymize the user row, stamp purgedAt ----
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            email: anonymizedEmail(userId),
+            name: null,
+            passwordHash: null,
+            emailVerifiedAt: null,
+            mfaEnabled: false,
+            mfaSecretCiphertext: null,
+            platformAdmin: false,
+            language: null,
+            timezone: null,
+            lastActiveAt: null,
+            preferences: {
+              accountDeletion: { requestedAt: deletion!.requestedAt, purgedAt: nowIso },
+            } as Prisma.InputJsonValue,
+          },
+        });
+        classes.push({
+          dataClass: 'profile',
+          action: 'anonymized',
+          reason: 'tombstone_carries_purgedAt',
+          models: { User: 1 },
+        });
+
+        // ---- post-purge verification: recount every deleted class ----
+        const verify: Record<string, number> = {
+          sessions: await tx.session.count({ where: { userId } }),
+          auth_tokens:
+            (await tx.emailVerificationToken.count({ where: { userId } })) +
+            (await tx.passwordResetToken.count({ where: { userId } })) +
+            (await tx.mfaRecoveryCode.count({ where: { userId } })),
+          api_keys: await tx.apiKey.count({ where: { userId } }),
+          connected_accounts:
+            (await tx.account.count({ where: { userId } })) +
+            (await tx.oAuthConnection.count({ where: { userId } })) +
+            (await tx.userConnection.count({ where: { userId } })),
+          ai_history:
+            (await tx.aiConversation.count({ where: { userId } })) +
+            (await tx.agentRun.count({ where: { userId } })) +
+            (await tx.agentMemory.count({ where: { userId } })) +
+            (await tx.agentMemoryPreference.count({ where: { userId } })) +
+            (await tx.mcpInstall.count({ where: { userId } })) +
+            (await tx.mcpUserConfig.count({ where: { userId } })) +
+            (await tx.aiMessageFeedback.count({ where: { userId } })) +
+            (await tx.notification.count({ where: { userId } })),
+          collaboration:
+            (await tx.projectCollaborator.count({ where: { userId } })) +
+            (await tx.collaborationPresence.count({ where: { userId } })) +
+            (await tx.collaborationComment.count({ where: { userId } })) +
+            (await tx.projectShareLink.count({ where: { createdByUserId: userId } })) +
+            (await tx.userSpendLimit.count({ where: { userId } })),
+          projects: soleOrgIds.length > 0 ? await tx.project.count({ where: soleOrgWhere }) : 0,
+          imports: soleOrgIds.length > 0 ? await tx.importJob.count({ where: soleOrgWhere }) : 0,
+          memberships: await tx.organizationMember.count({ where: { userId } }),
+          marketing: await tx.newsletterSubscriber.count({ where: { email: user.email } }),
+        };
+
+        for (const entry of classes) {
+          if (entry.action === 'deleted') {
+            entry.remainingAfterPurge = verify[entry.dataClass] ?? 0;
+          }
+        }
+
+        const leftovers = Object.entries(verify).filter(([, remaining]) => remaining > 0);
+
+        if (leftovers.length > 0) {
+          // Roll the whole purge back: a partial erasure must never be
+          // reported (and stamped purgedAt) as complete.
+          throw new Error(
+            `ACCOUNT_PURGE_VERIFICATION_FAILED: rows remaining after purge for ${userId}: ${leftovers
+              .map(([k, v]) => `${k}=${v}`)
+              .join(', ')}`,
+          );
+        }
+
+        /*
+         * Fold the physical-erasure evidence (object_storage, workspace_volumes)
+         * into the proof. It was already verified (remainingAfterPurge === 0)
+         * before this tx started; appending it here makes buildErasureProof's
+         * verifiedZeroRemaining cover physical storage too.
+         */
+        classes.push(...physicalClasses);
+
+        const proof = buildErasureProof({
+          userId,
+          requestedAt: deletion!.requestedAt!,
+          purgedAt: nowIso,
+          classes,
+        });
+
+        /*
+         * RR-CODEX-14 (P6): persist the erasure RECEIPT in the SAME transaction as
+         * the tombstone. The purge-executor removes the user from the pending queue
+         * ONLY once this receipt exists, so a failed out-of-band AdminAuditLog write
+         * can never leave a purged account without a reconstructable proof. Unique
+         * per user (idempotent on a retried tx).
+         */
+        await tx.purgeReceipt.upsert({
+          where: { userId },
+          create: { userId, purgedAt: new Date(nowIso), proof: proof as unknown as Prisma.InputJsonValue },
+          update: { purgedAt: new Date(nowIso), proof: proof as unknown as Prisma.InputJsonValue },
+        });
+
+        return { outcome: 'purged' as const, proof };
+      },
+        { timeout: 120_000, maxWait: 20_000 },
+      );
+    } finally {
+      // RR-CODEX-12: stop the heartbeat FIRST (no renewal races the release).
+      if (heartbeat) {
+        await heartbeat.stop();
+      }
+
+      // (4) RR-09 — RELEASE the guarantee on EVERY exit (purged / drift / any
+      // throw), so membership + object-storage freezes are never left behind. If
+      // the lease was lost (reclaimed), the ownerToken-scoped delete is a no-op —
+      // it never touches the reconciler's / another owner's plan.
+      if (guarantee) {
+        await this.releasePurgeGuarantee(guarantee);
+
+        /*
+         * RR-CODEX-14 v5 (R-P3-04): also release the durable WORKSPACE barrier on
+         * every exit, fenced by this attempt's ownerToken — so an abandon never
+         * leaves a runtime durably frozen with no owner. (Cross-replica orphans are
+         * additionally self-healed by the manager's stale-freeze reconciler.)
+         */
+        await deps?.releaseWorkspaceBarrier?.(
+          { bucketProjectIds: guarantee.bucketProjectIds, workspaceProjectIds: guarantee.workspaceProjectIds },
+          guarantee.ownerToken,
+        ).catch(() => undefined);
+      }
     }
   }
 
@@ -672,11 +1756,19 @@ export class PrismaApiStore implements ApiStore {
   async addMember(input: { organizationId: string; userId: string; roleKey: string }) {
     const role = await this.ensureRole(input.roleKey);
 
-    const membership = await this.prisma.organizationMember.upsert({
-      where: { organizationId_userId: { organizationId: input.organizationId, userId: input.userId } },
-      create: { organizationId: input.organizationId, userId: input.userId, roleId: role.id },
-      update: { roleId: role.id },
-      include: { role: true },
+    // RR-09 (2): refuse a join while this org's membership is frozen by an
+    // in-flight account purge, so the sole→shared flip can't happen mid-erasure.
+    // The assertion + the upsert share one tx (and the freeze-set advisory lock)
+    // so the check and the write cannot straddle a concurrent guarantee.
+    const membership = await this.prisma.$transaction(async (tx) => {
+      await this.assertOrgMembershipNotPurgeFrozen(tx, input.organizationId);
+
+      return tx.organizationMember.upsert({
+        where: { organizationId_userId: { organizationId: input.organizationId, userId: input.userId } },
+        create: { organizationId: input.organizationId, userId: input.userId, roleId: role.id },
+        update: { roleId: role.id },
+        include: { role: true },
+      });
     });
 
     return mapMembership(membership);
@@ -700,24 +1792,35 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async removeMember(organizationId: string, userId: string) {
-    const membership = await this.prisma.organizationMember.findUnique({
-      where: { organizationId_userId: { organizationId, userId } },
-      include: { role: true },
+    /*
+     * RR-09 (2): refuse a leave while this org's membership is frozen by an
+     * in-flight account purge, so a co-member leaving can't flip the subject's
+     * org shared→sole mid-erasure and strand its bucket. The freeze check and the
+     * delete share one tx (and the freeze-set advisory lock).
+     *
+     * Delete via deleteMany gated on count rather than delete({ where: { id } }):
+     * between the lookup and this write a concurrent removeMember() can delete the
+     * same row, and delete() would then throw an unhandled P2025. deleteMany
+     * returns count 0 in that case, which we surface as "already gone".
+     */
+    const membership = await this.prisma.$transaction(async (tx) => {
+      await this.assertOrgMembershipNotPurgeFrozen(tx, organizationId);
+
+      const found = await tx.organizationMember.findUnique({
+        where: { organizationId_userId: { organizationId, userId } },
+        include: { role: true },
+      });
+
+      if (!found) {
+        return undefined;
+      }
+
+      const deleted = await tx.organizationMember.deleteMany({ where: { id: found.id } });
+
+      return deleted.count === 0 ? undefined : found;
     });
 
     if (!membership) {
-      return undefined;
-    }
-
-    /*
-     * Delete via deleteMany gated on count rather than delete({ where: { id } }):
-     * between the lookup above and this write a concurrent removeMember() can
-     * delete the same row, and delete() would then throw an unhandled P2025.
-     * deleteMany returns count 0 in that case, which we surface as "already gone".
-     */
-    const deleted = await this.prisma.organizationMember.deleteMany({ where: { id: membership.id } });
-
-    if (deleted.count === 0) {
       return undefined;
     }
 
@@ -1016,7 +2119,10 @@ export class PrismaApiStore implements ApiStore {
 
   async transferProject(input: { projectId: string; targetOrganizationId: string }) {
     const current = assertFound(
-      await this.prisma.project.findUnique({ where: { id: input.projectId }, select: { slug: true } }),
+      await this.prisma.project.findUnique({
+        where: { id: input.projectId },
+        select: { slug: true, organizationId: true },
+      }),
       'Project not found',
       'PROJECT_NOT_FOUND',
     );
@@ -1035,6 +2141,17 @@ export class PrismaApiStore implements ApiStore {
 
       try {
         return await this.prisma.$transaction(async (tx) => {
+          /*
+           * RR-CODEX-14 (P5): refuse the transfer if this project's storage is frozen
+           * by an in-flight purge, or if either the SOURCE or TARGET org membership is
+           * frozen. Taken FIRST, under the shared MEMBERSHIP_FREEZE_LOCK, so a transfer
+           * can never move a sole-org bucket into a shared org DURING the erasure
+           * (which would destroy a bucket that now belongs to others).
+           */
+          await this.assertProjectNotPurgeFrozen(tx, input.projectId);
+          await this.assertOrgMembershipNotPurgeFrozen(tx, current.organizationId);
+          await this.assertOrgMembershipNotPurgeFrozen(tx, input.targetOrganizationId);
+
           /*
            * Revoke all explicit ProjectCollaborator grants on transfer. They were
            * issued to the SOURCE org's users; leaving them in place after the

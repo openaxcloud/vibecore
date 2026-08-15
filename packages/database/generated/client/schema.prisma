@@ -1692,6 +1692,16 @@ model WorkspaceRuntime {
   // createdAt) to lastActiveAt on stop, then advances this marker — idempotent
   // across manager restarts. Null until first metered.
   lastMeteredAt        DateTime?
+  // RR-CODEX-14 (P3): durable purge barrier. Once an account purge freezes this
+  // runtime, NO reprovision (start / restart / agent-token / PVC / Pod / Secret /
+  // Service) may recreate it until the tombstone. purgeFenceToken identifies the
+  // owning purge plan; the barrier is released on abandon and recoverable.
+  purgeFrozen          Boolean   @default(false)
+  purgeFenceToken      String?
+  // RR-CODEX-14 v5 (R-P3-04): when the barrier was set, so an ORPHANED barrier
+  // (owning purge crashed before unfreeze) is recoverable by age via the manager's
+  // reconcileStaleWorkspaceFreezes — never left durably frozen with no owner.
+  purgeFrozenAt        DateTime?
   updatedAt            DateTime  @updatedAt
 
   @@index([orgId])
@@ -2749,4 +2759,54 @@ model WorkspacePostMortem {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, capturedAt])
+}
+
+// RR-1bd27929 — PER-PLAN ownership of account-purge freezes (§16.12). The old
+// model used GLOBAL id-lists, so two concurrent purges sharing an org/project could
+// not tell whose freeze was whose: releasing plan A lifted a freeze plan B still
+// needed. Now each active purge holds a PurgePlan (lease + ownerToken + version for
+// CAS reclaim) and each frozen resource is a PurgeFreeze row OWNED by exactly one
+// plan. A resource is frozen iff >= 1 PurgeFreeze row references it, so releasing
+// one plan only deletes ITS rows and never lifts a freeze another live plan owns.
+// The reconciler reclaims ONLY plans whose lease has expired, via CAS on version —
+// it never touches a live plan.
+model PurgePlan {
+  id             String        @id @default(cuid())
+  // RR-CODEX-12: at most ONE plan per subject — the per-user singleton that stops
+  // two workers running two physical purges of the same account.
+  userId         String        @unique
+  ownerToken     String
+  leaseExpiresAt DateTime
+  version        Int           @default(0)
+  // 'ACTIVE' while an owner holds it; 'RECLAIMING' once a reconciler CAS-claims an
+  // abandoned plan for cleanup (durable, so the old owner cannot continue).
+  status         String        @default("ACTIVE")
+  createdAt      DateTime      @default(now())
+  freezes        PurgeFreeze[]
+
+  @@index([leaseExpiresAt])
+}
+
+model PurgeFreeze {
+  id           String    @id @default(cuid())
+  planId       String
+  resourceType String
+  resourceId   String
+  createdAt    DateTime  @default(now())
+  plan         PurgePlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@unique([resourceType, resourceId, planId])
+  @@index([resourceType, resourceId])
+  @@index([planId])
+}
+
+// RR-CODEX-14 (P6): the erasure PROOF written in the SAME transaction as the
+// tombstone. The purge-executor removes a user from the pending queue ONLY once a
+// PurgeReceipt exists — so a failed AdminAuditLog write can never leave a purged
+// account without a reconstructable proof. Unique per user (idempotent).
+model PurgeReceipt {
+  userId    String   @id
+  purgedAt  DateTime
+  proof     Json
+  createdAt DateTime @default(now())
 }
