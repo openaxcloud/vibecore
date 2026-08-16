@@ -107,7 +107,16 @@ export function createInteractiveInputGate({
       let sawInteractive = false;
 
       while ((match = OSC_MARKER_PATTERN.exec(haystack)) !== null) {
-        if (match[1] === 'interactive') {
+        /*
+         * `interactive` n'est émis qu'à la NAISSANCE du shell. Sur un reattach
+         * (le client se rebranche sur une session existante), l'agent repeint le
+         * scrollback et l'invite, mais ne rejoue jamais ce marqueur : une porte
+         * qui n'attendrait que lui resterait close pour toujours, et le terminal
+         * afficherait son invite en avalant chaque frappe. `prompt` est repeint,
+         * lui, et signale précisément un shell posé à son invite, prêt à lire —
+         * c'est donc un signal de disponibilité au moins aussi fort.
+         */
+        if (match[1] === 'interactive' || match[1] === 'prompt') {
           sawInteractive = true;
         }
       }

@@ -103,6 +103,22 @@ describe('createInteractiveInputGate', () => {
     expect(writes).toEqual(['secours\n']);
   });
 
+  /**
+   * Cas du REATTACH : `interactive` n'est émis qu'à la naissance du shell et
+   * n'est jamais rejoué. Seul `prompt` est repeint — la porte doit s'ouvrir
+   * dessus, sinon un terminal rattaché affiche son invite en avalant tout.
+   */
+  it('s’ouvre sur prompt seul, sans jamais voir interactive (reattach)', () => {
+    const writes: string[] = [];
+    const gate = createInteractiveInputGate({ write: (d) => writes.push(d) });
+
+    gate.send('ls\n');
+    gate.observeOutput(`\u001b${PROMPT}\u0007/workspace $ `);
+
+    expect(gate.isOpen).toBe(true);
+    expect(writes).toEqual(['ls\n']);
+  });
+
   it('initiallyOpen écrit sans attendre de marqueur (shell non-jsh)', () => {
     const writes: string[] = [];
     const gate = createInteractiveInputGate({ write: (d) => writes.push(d), initiallyOpen: true });
