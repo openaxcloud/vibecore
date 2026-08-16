@@ -9,7 +9,12 @@ import { stripInternalOscMarkers } from './terminal-output';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
 import type { ITerminal } from '~/types/terminal';
 
-export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITerminal, command = '/bin/jsh') {
+export async function newShellProcess(
+  runtime: RuntimeAdapter,
+  terminal: ITerminal,
+  command = '/bin/jsh',
+  sessionKey?: string,
+) {
   const useJshOsc = command === '/bin/jsh';
 
   const session = await runtime.openTerminal({
@@ -19,6 +24,7 @@ export async function newShellProcess(runtime: RuntimeAdapter, terminal: ITermin
       cols: terminal.cols ?? 80,
       rows: terminal.rows ?? 15,
     },
+    ...(sessionKey ? { sessionKey } : {}),
   });
 
   const jshReady = withResolvers<void>();
@@ -182,6 +188,13 @@ export class BoltShell {
     const session = await runtime.openTerminal({
       command: '/bin/jsh',
       args: ['--osc'],
+
+      /*
+       * There is exactly ONE managed shell per workspace, so a constant key is
+       * the right stable identity: reopening the IDE reattaches to the running
+       * dev server instead of spawning a rival shell on the same port.
+       */
+      sessionKey: 'managed',
       terminal: {
         cols: terminal.cols ?? 80,
         rows: terminal.rows ?? 15,
