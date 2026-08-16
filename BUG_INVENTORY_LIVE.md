@@ -774,3 +774,33 @@ l'IDE ne l'est pas.
 l'env de test pour dégager le créneau bloqué par BUG-QUOTA-001 (`delete from
 "UsageEvent" where type='terminals.concurrent'`, 1 → 0). Action sur l'**env de test
 jetable uniquement**, sans effet sur la prod.
+
+### Passe 2 — flux hors workspace non encore exercés (16/08)
+
+Env de test **observé sans y toucher** (`web:2565e5edc3`, `api:59818de207`, 2/2 chacun) :
+le déploiement de la session quota n'a pas été écrasé — aucun `set image`, aucune
+suppression de pod. Flux choisis délibérément **hors workspace** pour ne pas perturber
+son environnement de mesure.
+
+| Flux | Verdict | Preuve |
+|---|---|---|
+| **Modèles** (`/dashboard/templates`) | **Sain** | FR complet, catalogue rendu (React/Vite/TypeScript, React SaaS…), « Projet vide » et « Importer » exposés, zéro débordement horizontal en 1440. |
+| **Hub d'import** (`/import`) | **Sain** | 7 sources en FR : GitHub, Bitbucket, archive ZIP, Bolt, Lovable, Base44, export d'Agent précédent ; mention explicite de l'analyse de secrets avant commit. 43 contrôles, zéro débordement. |
+| **Import d'un dépôt public par URL** (`/import-github`) | **Sain — exercé de bout en bout** | Import réel de `github.com/octocat/Hello-World` : `POST` → **202**, projet `cmsvaok37003m0nh2w2lfeg7g` créé, IDE ouvert sur `/@org-2h3n3zrk/qa-import-public`, **le `README` du dépôt est présent** dans la Bibliothèque (1 fichier — le dépôt n'en contient qu'un). Ce chemin **ne dépend pas d'OAuth** : il reste exerçable malgré les connecteurs BLOCKED de cet env. |
+| **Lien d'évitement** | **✅ Correctif confirmé LIVE** | La zone connectée affiche « **Aller au contenu** » et non plus « Skip to content » — **BUG-I18N-002 vérifié à l'écran** sur `web:2565e5edc3`. |
+
+**Faux positif écarté** — `POST /api/runtime/**runtime**/boot`, au segment dupliqué,
+ressemblait à une erreur de construction d'URL. Le serveur **déclare explicitement**
+cette route (`services/api/src/app.ts:15770`) et le client demande `/runtime/boot` sur
+une base déjà suffixée `/api/runtime` (`packages/runtime-remote/src/index.ts:134`).
+Contrôle : chemin doublé → **200**, chemin simple → **404**. Délibéré et cohérent :
+inélégant, mais **pas un défaut**.
+
+> ⚠️ **Note de coordination (16/08).** Un `git rebase` sur `origin/main` a été **abandonné**
+> volontairement : `main` a divergé sur `BUG_INVENTORY_LIVE.md` (autres sessions) et le
+> conflit portait sur l'inventaire lui-même. Plutôt que de risquer d'en corrompre le
+> contenu, la branche reste basée sur un `origin/main` antérieur — le fichier est intact
+> (132 entrées, zéro marqueur de conflit). **La fusion de l'inventaire est à faire par une
+> passe dédiée**, en connaissance des entrées des autres sessions.
+> À noter : `main` porte **déjà** le correctif `cross-env` (BUG-CI-006), avec en plus un
+> passage de `rm -rf` à `rimraf` — meilleur que ma version, donc conservé tel quel.
