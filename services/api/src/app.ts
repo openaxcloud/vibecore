@@ -168,6 +168,7 @@ import {
 } from './app-public-copy.js';
 import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
+import { slugifyRouteSegment } from './slugify.js';
 import {
   checkServiceShutdown,
   openCheckpoint,
@@ -4038,14 +4039,6 @@ function normalizeProjectPath(path?: string) {
   return normalized;
 }
 
-function slugifyRouteSegment(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/^@+/, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
 
 /*
  * Accepts either ProjectIdeStateRecord or WorkspaceIdeStateRecord — both
