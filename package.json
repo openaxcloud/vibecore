@@ -332,6 +332,7 @@
       "fast-jwt": "^6.2.4",
       "immutable": "^5.1.5",
       "@xmldom/xmldom": "^0.9.10",
+      "plist>@xmldom/xmldom": "^0.8.14",
       "electron": "^42.0.0",
       "wrangler": "^4.90.0",
       "body-parser": "^2.2.2",
