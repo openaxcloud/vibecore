@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { slugify, slugifyRouteSegment } from './slugify';
+import { slugify, slugifyRouteSegment } from './slugify.js';
 
 /*
  * The project slug is generated from the project NAME, and the name is whatever
