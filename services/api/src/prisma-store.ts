@@ -5405,6 +5405,34 @@ export class PrismaApiStore implements ApiStore {
     return result._sum.quantity ?? 0;
   }
 
+  async sumUsageForSession(
+    organizationId: string,
+    type: string,
+    session: { workspaceId: string; sessionId: string },
+    since?: Date,
+  ) {
+    /*
+     * Two separate JSON-path predicates rather than one `equals` on the whole
+     * object: metadata carries other keys, so an object-equality match would
+     * never fire. The (organizationId, type) index bounds the scan; the JSON
+     * filters are applied on top of it.
+     */
+    const result = await this.prisma.usageEvent.aggregate({
+      where: {
+        organizationId,
+        type,
+        ...(since ? { createdAt: { gte: since } } : {}),
+        AND: [
+          { metadata: { path: ['sessionId'], equals: session.sessionId } },
+          { metadata: { path: ['workspaceId'], equals: session.workspaceId } },
+        ],
+      },
+      _sum: { quantity: true },
+    });
+
+    return result._sum.quantity ?? 0;
+  }
+
   async createQuotaOverride(input: {
     organizationId: string;
     key: QuotaKey;

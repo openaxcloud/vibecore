@@ -2580,6 +2580,21 @@ export interface ApiStore {
   /** True if a usage event of `type` was recorded for the org at/after `sinceMs` — used to dedup the daily storage meter. */
   hasUsageEventSince(organizationId: string, type: string, sinceMs: number): Promise<boolean>;
   sumUsage(organizationId: string, type: string, since?: Date): Promise<number>;
+  /**
+   * Net sum of `quantity` over the org's `type` events whose metadata carries
+   * BOTH this `workspaceId` and this `sessionId`. Used by the terminal quota to
+   * tell a re-attach to an already-metered session (net > 0 — a slot is held for
+   * it) from a genuinely new one, from PERSISTED state rather than from the id
+   * the client announced. Matching the workspace too is required: session ids
+   * are minted per pane (`terminal-user-0`), so two different workspaces in the
+   * same org routinely present the same id and must still hold one slot each.
+   */
+  sumUsageForSession(
+    organizationId: string,
+    type: string,
+    session: { workspaceId: string; sessionId: string },
+    since?: Date,
+  ): Promise<number>;
   createQuotaOverride(input: {
     organizationId: string;
     key: QuotaKey;

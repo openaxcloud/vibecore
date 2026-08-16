@@ -17512,18 +17512,74 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const isManagedTerminal = (request.query as { managed?: unknown } | undefined)?.managed === '1';
 
+    /*
+     * The pane's stable shell identity (`?sessionId=terminal-user-0`), the same id
+     * the workspace agent keys its persistent shell on. Empty when absent or not a
+     * plain string — and an ABSENT id must fall back to "count it", never to "skip
+     * the quota": the exemption below is an exception carved out of metering, so
+     * anything we cannot positively identify has to stay metered.
+     */
+    const rawTerminalSessionId = (request.query as { sessionId?: unknown } | undefined)?.sessionId;
+    const terminalSessionId = typeof rawTerminalSessionId === 'string' ? rawTerminalSessionId.trim() : '';
+
     if (authorized.organizationId && !isManagedTerminal) {
       const organizationId = authorized.organizationId;
 
       /*
+       * True only when THIS socket actually posted the +1. The -1 on close is
+       * conditioned on it: a socket that re-attached to a session another socket
+       * already paid for must not post a compensating -1, or the gauge goes
+       * negative and hands out free slots for the rest of the window.
+       */
+      let countedThisSocket = false;
+
+      /*
        * Serialize the concurrency check + the +1 so two concurrent terminal opens
        * can't both pass ensureQuota via TOCTOU and exceed terminals.concurrent.
+       * The re-attach lookup runs INSIDE the same lock, so two sockets racing on
+       * one sessionId can never both conclude "already counted" — the first one
+       * through posts the +1, the second one sees it and re-attaches.
        */
       await store.withSerializedMutation(`terminals:${organizationId}`, async () => {
+        /*
+         * The gauge counted CONNECTIONS, not shells. Since terminal re-attach
+         * works (a pane reconnects with its stable sessionId and lands back on the
+         * same agent-side shell), every reload asked for a second slot for a
+         * terminal that already exists — on the free plan (limit 1) the reconnect
+         * of the org's only terminal 429'd itself, and the pane could never come
+         * back. Key the meter on the SESSION: if a net-positive entry already
+         * exists for this (workspace, session), the slot is held, so this socket
+         * neither checks the quota nor posts a +1.
+         *
+         * The decision is taken from persisted usage events — never from the mere
+         * presence of a sessionId on the query string — so replaying someone
+         * else's (or an unknown) id buys nothing: with no net-positive entry the
+         * socket falls through to the normal ensureQuota + (+1) path.
+         *
+         * Scoped to the SAME rolling window as the gauge itself
+         * (computeUsageForQuota): a +1 whose close was lost ages out of both at
+         * once, so a leaked event can never pin a session in "already counted"
+         * forever while the gauge has already forgotten it.
+         */
+        if (terminalSessionId) {
+          const heldForSession = await store.sumUsageForSession(
+            organizationId,
+            'terminals.concurrent',
+            { workspaceId: authorized.workspaceId, sessionId: terminalSessionId },
+            new Date(Date.now() - TERMINAL_CONCURRENCY_WINDOW_MS),
+          );
+
+          if (heldForSession > 0) {
+            return;
+          }
+        }
+
         await ensureQuota(request, organizationId, 'terminals.concurrent');
         await recordUsage(request, organizationId, 'terminals.concurrent', 1, {
           workspaceId: authorized.workspaceId,
+          ...(terminalSessionId ? { sessionId: terminalSessionId } : {}),
         });
+        countedThisSocket = true;
       });
 
       /*
@@ -17536,13 +17592,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        */
       let released = false;
       normalizeRuntimeApiWebSocket(socket).onClose(() => {
-        if (released) {
+        if (released || !countedThisSocket) {
           return;
         }
 
         released = true;
         void recordUsage(request, organizationId, 'terminals.concurrent', -1, {
           workspaceId: authorized.workspaceId,
+          ...(terminalSessionId ? { sessionId: terminalSessionId } : {}),
         }).catch(() => {
           // Releasing the quota gauge must never crash socket teardown.
         });

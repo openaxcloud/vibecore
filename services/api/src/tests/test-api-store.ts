@@ -4357,6 +4357,30 @@ export class TestApiStore implements ApiStore {
       .reduce((sum, event) => sum + event.quantity, 0);
   }
 
+  async sumUsageForSession(
+    organizationId: string,
+    type: string,
+    session: { workspaceId: string; sessionId: string },
+    since?: Date,
+  ) {
+    return [...this.usageEvents.values()]
+      .filter((event) => {
+        const metadata =
+          event.metadata && typeof event.metadata === 'object' && !Array.isArray(event.metadata)
+            ? (event.metadata as Record<string, unknown>)
+            : {};
+
+        return (
+          event.organizationId === organizationId &&
+          event.type === type &&
+          metadata.sessionId === session.sessionId &&
+          metadata.workspaceId === session.workspaceId &&
+          (!since || new Date(event.createdAt).getTime() >= since.getTime())
+        );
+      })
+      .reduce((sum, event) => sum + event.quantity, 0);
+  }
+
   async createQuotaOverride(input: {
     organizationId: string;
     key: QuotaKey;
