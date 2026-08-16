@@ -338,7 +338,7 @@ export function EcodeExactPublicNavbar({
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <Badge
                 variant="secondary"
-                className="border-border bg-surface-solid text-[var(--status-info-text)] dark:border-border dark:bg-surface-solid uppercase tracking-[0.2em]"
+                className="border-border bg-surface-solid text-[var(--ecode-accent-text)] dark:border-border dark:bg-surface-solid uppercase tracking-[0.2em]"
               >
                 {copy.announcement.badge}
               </Badge>
@@ -758,7 +758,7 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
       <div className="relative container-responsive py-16">
         <div className="grid gap-12 lg:grid-cols-[1.2fr_2fr]">
           <div className="space-y-6">
-            <Badge className="border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] text-[var(--status-info-text)] dark:border-border dark:bg-surface-solid">
+            <Badge className="vc-marketing-eyebrow border-[var(--ecode-border)] bg-[var(--ecode-surface-secondary)] dark:border-border dark:bg-surface-solid">
               <Sparkles className="mr-2 h-3 w-3" aria-hidden />
               {copy.footer.eyebrow}
             </Badge>
@@ -864,7 +864,7 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
                 className="flex items-center gap-3 text-[13px] text-[var(--ecode-text-secondary)] dark:text-slate-300"
                 key={assurance}
               >
-                <AssuranceIcon className="h-5 w-5 text-[var(--status-info-text)]" aria-hidden />
+                <AssuranceIcon className="h-5 w-5 text-[var(--ecode-accent-text)]" aria-hidden />
                 {assurance}
               </div>
             );

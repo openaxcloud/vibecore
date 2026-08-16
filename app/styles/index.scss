@@ -24788,6 +24788,22 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   gap: 12px;
 }
 
+/*
+ * Accroche du pied de page marketing. Elle est posée sur
+ * `--ecode-surface-secondary` (#f0f1f2 en clair), pas sur du blanc : l'orange
+ * AA du design system (#c74e00) n'y donne que 4,11:1, sous le plancher de 4,5
+ * — donc MOINS bien que le bleu « info » qu'il remplace (4,57). On l'assombrit
+ * de 10 % sur le thème clair, comme sur les pages /solutions. Le thème sombre
+ * garde le token tel quel.
+ */
+.vc-marketing-eyebrow {
+  color: var(--ecode-accent-text);
+}
+
+:root[data-theme='light'] .vc-marketing-eyebrow {
+  color: color-mix(in srgb, var(--ecode-accent-text), #000 10%);
+}
+
 .vc-new-project-meta-row {
   display: flex;
 
