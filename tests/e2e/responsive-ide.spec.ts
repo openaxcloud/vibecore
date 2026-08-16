@@ -945,25 +945,25 @@ test.describe('responsive IDE shell', () => {
 
     const filesPanelToggle = page.getByTestId('ide-files-panel-toggle');
     await expect(filesPanelToggle).toBeVisible();
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close files panel');
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close the files panel');
 
     await filesPanelToggle.click();
     await expect(page.getByRole('complementary', { name: 'Project library panel' })).toHaveCount(0);
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open files panel');
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open the files panel');
 
     await filesPanelToggle.click();
     await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close files panel');
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close the files panel');
 
     await page.getByRole('button', { name: 'Close right panel' }).click();
     await expect(page.getByRole('complementary', { name: 'Project library panel' })).toHaveCount(0);
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open files panel');
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open the files panel');
     await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
     await expect(page.getByRole('region', { name: 'Editor and preview' })).toBeVisible();
 
     await page.locator('.bolt-project-ide-rail-item[aria-label^="Files"]').click();
     await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close files panel');
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close the files panel');
   });
 
   test(
