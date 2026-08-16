@@ -38,11 +38,6 @@
       "test": "tests/e2e/dashboard.spec.ts › IDE applies section 12 UI detail styles",
       "cluster": "design-token",
       "reason": "Real design-token divergence, not a test problem: with the surface correctly pinned to dark, a radius still reads 6px where the spec says 4px. Needs design arbitration on which value is right before the test can be trusted either way."
-    },
-    {
-      "test": "tests/e2e/dashboard.spec.ts › IDE project services open as in-place panels instead of legacy project pages",
-      "cluster": "stale-ide-assertions",
-      "reason": "Long chain of stale assertions, being worked through one by one: palette labels (Files -> Library, 'Env vars' -> 'Environment variables', 'Terminal' -> 'Shell (Terminal)'), the files-panel toggle ('Open the files panel'), and the checkpoint flow (no 'Create snapshot' submit any more — '+ New checkpoint' creates it directly). Currently stops at the deployments panel's 'Deployment wizard' heading."
     }
   ]
 }
