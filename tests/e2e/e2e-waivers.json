@@ -1,8 +1,11 @@
 {
   "$comment": [
-    "Bounded, committed waiver for the Production E2E gate.",
+    "Bounded waiver for the Production E2E gate — CURRENTLY EMPTY.",
     "",
-    "RULES ENFORCED BY scripts/e2e-gate.mjs (not by convention):",
+    "The gate is green at the root: every failure has been fixed, rewritten, or",
+    "moved to the non-blocking @runtime suite. Nothing is waived.",
+    "",
+    "RULES ENFORCED BY scripts/e2e-gate.mjs (kept live for the next time):",
     "  1. A waived test still RUNS. Nothing is skipped or deleted.",
     "  2. Past `expires`, the gate FAILS on the waiver itself. It cannot rot.",
     "  3. A waived test that starts PASSING fails the gate until it is removed",
@@ -13,31 +16,21 @@
     "",
     "History: Production E2E had never been green — 0 successes in 405 runs since",
     "2026-05-17. main @ b2ee7c88 = 57 failed / 177 passed. First green: run",
-    "31704457154. Merged to main 2026-08-15 (9fc9f812); Production E2E green on",
-    "main at run 31904732747.",
-    "",
-    "2026-08-15, third pass — the two big clusters are FIXED at the root and are",
-    "gone from this list:",
-    "  ide-account-theme (6) -> REAL PRODUCT BUG. defaultIdeSettingsState() hard-",
-    "     coded `theme: 'dark'`, and a project with no saved IDE settings always",
-    "     hits that default. BaseChat then applied it over the document AND wrote",
-    "     it into localStorage `bolt_theme`, flipping the whole app to dark and",
-    "     overriding an explicit light choice — the exact failure mode the comment",
-    "     in resolveProjectThemePreference() says the code is meant to avoid.",
-    "     Defaulting to 'system' restores the documented behaviour. 6/6 green.",
-    "  ide-command-palette -> the palette entries are <Link role=\"option\"> in a",
-    "     listbox, so getByRole('link') could never match, and the destination h1",
-    "     is 'Import a Git repository'. Green.",
-    "",
-    "3 left, each needing something this pass could not settle."
+    "31704457154. The waiver peaked at 20 entries and was worked down to 0 by",
+    "fixing root causes, notably:",
+    "  - defaultIdeSettingsState() hard-coded theme:'dark', so any project without",
+    "    saved IDE settings forced the IDE dark and persisted it to bolt_theme.",
+    "  - AUTH_REGISTER_RATE_LIMIT_MAX (10/min/IP) saturated by per-test signups,",
+    "    which made a DIFFERENT test fail on every run.",
+    "  - getComputedStyle returns \"\" on detached nodes: theme/layout measurements",
+    "    now re-resolve their locator inside toPass().",
+    "  - a long tail of labels that drifted (Files -> Library, 'Env vars' ->",
+    "    'Environment variables', 'Open the files panel', deployments panel, the",
+    "    checkpoint flow, statusbar metrics).",
+    "  - section 12 measured the add-tab '+' button, which a dedicated rule rounds",
+    "    to 6px, instead of a regular tab action carrying the 4px button token."
   ],
   "expires": "2026-08-27",
   "owner": "avi@snatchbot.me",
-  "waived": [
-    {
-      "test": "tests/e2e/dashboard.spec.ts › IDE applies section 12 UI detail styles",
-      "cluster": "design-token",
-      "reason": "Real design-token divergence, not a test problem: with the surface correctly pinned to dark, a radius still reads 6px where the spec says 4px. Needs design arbitration on which value is right before the test can be trusted either way."
-    }
-  ]
+  "waived": []
 }

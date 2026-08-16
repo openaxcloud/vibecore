@@ -1451,7 +1451,18 @@ test('IDE applies section 12 UI detail styles', async ({ page, isMobile }) => {
   const details = await toolMenu.evaluate((menu) => {
     const root = window.getComputedStyle(document.documentElement);
     const toolMenuStyle = window.getComputedStyle(menu);
-    const tabActionElement = document.querySelector('.bolt-project-tab-action');
+
+    /*
+     * NOT plain querySelector: the first `.bolt-project-tab-action` in the DOM
+     * is the add-tab "+" button inside `.bolt-project-tool-popover`, which a
+     * dedicated rule deliberately rounds to 6px. Section 12 is about the shared
+     * button token (--vc-ui-radius-button: 4px), so measure a regular tab
+     * action instead of the popover-scoped variant.
+     */
+    const tabActionElement =
+      document.querySelector('.bolt-project-tab-action:not(.bolt-project-add-tab-action)') ??
+      document.querySelector('.bolt-project-tab-action');
+
     const tabAction = tabActionElement ? window.getComputedStyle(tabActionElement) : null;
     const terminalHandleElement = document.querySelector('.bolt-project-terminal-resize-handle');
     const terminalHandle = terminalHandleElement ? window.getComputedStyle(terminalHandleElement) : null;
