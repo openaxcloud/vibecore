@@ -1774,7 +1774,7 @@ export function TemplateGallery({
       {templates.map((template) => (
         <Card
           key={template.name}
-          className="group overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3"
+          className="group flex h-full flex-col overflow-hidden border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-sm transition-colors hover:bg-bolt-elements-background-depth-3"
         >
           <div className="vc-template-preview relative m-3 mb-0 overflow-hidden p-3">
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_25%_20%,color-mix(in_srgb,var(--vc-ide-accent-action)_18%,transparent),transparent_34%),radial-gradient(circle_at_85%_10%,color-mix(in_srgb,var(--vc-ide-accent-success)_16%,transparent),transparent_32%)]" />
@@ -1813,7 +1813,13 @@ export function TemplateGallery({
             </div>
             <CardDescription>{t(template.stackKey)}</CardDescription>
           </CardHeader>
-          <CardContent className="flex items-center justify-between">
+          {/*
+            `mt-auto` pins this footer to the bottom of the (grid-stretched) card.
+            The card was `display: block`, so content flowed from the top and a
+            two-line title pushed its CTA 64px below its neighbours' — the
+            "Use template" buttons did not line up across a row.
+          */}
+          <CardContent className="mt-auto flex items-center justify-between">
             <span className="text-sm text-bolt-elements-textSecondary">{t('userArea.template.productionStarter')}</span>
             {/*
               Authenticated "Use template" creates the project from this template and goes
@@ -2288,7 +2294,14 @@ function TopBar({
         data-vc-tour-target="navigation"
       >
         <Menu className="h-4 w-4" aria-hidden />
-        <span className="text-xs font-medium sm:sr-only">{t('userArea.topbar.menu')}</span>
+        {/*
+         * `sm:sr-only` showed this label ONLY below 640px — precisely the width
+         * where the top bar has the least room, so it stole space from the page
+         * title beside it ("Tableau de bord" got 77px of the 119px it needs and
+         * rendered as "Tableau …"). The button already carries an aria-label, so
+         * hiding the duplicate text costs nothing and returns 21px to the title.
+         */}
+        <span className="sr-only">{t('userArea.topbar.menu')}</span>
       </button>
       {/* The title remains visible beside the tablet rail, where the sidebar only shows icons. */}
       {title ? <span className="min-w-0 flex-1 truncate text-base font-semibold xl:hidden">{title}</span> : null}

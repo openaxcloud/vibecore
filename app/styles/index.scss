@@ -24778,8 +24778,18 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 .vc-new-project-meta-row {
   display: flex;
-  align-items: center;
+
+  /*
+   * The chip group wraps above 640px, so the label anchors to the first chip
+   * row instead of floating at the vertical centre of a 3-line block.
+   */
+  align-items: flex-start;
   gap: 12px;
+}
+
+.vc-new-project-meta-row > .vc-new-project-meta-label {
+  /* Optically centre the 10px label on the 44px first chip. */
+  padding-top: 15px;
 }
 
 .vc-new-project-meta-row--models {
@@ -24810,8 +24820,15 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 .vc-new-project-chip-group {
   display: flex;
-  flex-wrap: nowrap;
-  overflow-x: auto;
+
+  /*
+   * Wrap rather than scroll on tablet/desktop: the prompt column is ~620px
+   * wide while the chip row needs ~1140px, so `nowrap` clipped the last chip
+   * mid-word with no scroll affordance. The <=640px block below restores the
+   * horizontal-scroll pattern, which is the right one on a phone.
+   */
+  flex-wrap: wrap;
+  overflow-x: visible;
   gap: 6px;
   padding: 0;
   border: 0;
@@ -25081,9 +25098,16 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   .vc-new-project-chip-group {
+    flex-wrap: nowrap;
+    overflow-x: auto;
     width: calc(100% + 16px);
     margin-right: -16px;
     padding-right: 56px;
+  }
+
+  .vc-new-project-meta-row > .vc-new-project-meta-label {
+    /* Stacked layout below 640px — the label sits on its own line. */
+    padding-top: 0;
   }
 
   .vc-new-project-templates {
