@@ -502,7 +502,17 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async openTerminal(request: Partial<CommandRequest> = {}): Promise<TerminalSession> {
-    const terminalId = `terminal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    /*
+     * A caller-supplied `sessionKey` makes the id DETERMINISTIC, which is what
+     * makes reattach possible: the agent keys its shell on `?sessionId`, so the
+     * same pane must present the same id on every reconnect and remount. The
+     * random fallback stays for callers that have no stable pane identity —
+     * it works, but it can never reattach.
+     */
+    const terminalId = request.sessionKey
+      ? `terminal-${request.sessionKey}`
+      : `terminal-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
     const cols = request.terminal?.cols ?? 80;
     const rows = request.terminal?.rows ?? 24;
 
@@ -997,8 +1007,10 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
           throw error;
         }
 
-        // Exponential-ish backoff (~250/500/750ms) to ride a brief restart window
-        // (or the window before POST /workspaces has created the workspace record).
+        /*
+         * Exponential-ish backoff (~250/500/750ms) to ride a brief restart window
+         * (or the window before POST /workspaces has created the workspace record).
+         */
         await new Promise<void>((resolve) => setTimeout(resolve, 250 * attempt));
       }
     }

@@ -89,6 +89,20 @@ export interface CommandRequest {
    * already occupies the single slot and the user shell can never connect.
    */
   managed?: boolean;
+
+  /*
+   * Stable identity of the terminal PANE, reused across every reconnect and
+   * remount. The workspace agent keys its persistent shell on `?sessionId`, so a
+   * caller that supplies the same `sessionKey` reattaches to its existing shell
+   * (scrollback intact) instead of spawning a new one and burning a slot of the
+   * per-workspace session budget.
+   *
+   * Omit it and the adapter falls back to a random per-call id — correct but
+   * non-reattachable, which is what BUG-TERM-002 was: every `openTerminal()`
+   * minted a fresh identity, so the IDE piled up orphan shells until the budget
+   * ran out and every further terminal was rejected with 429.
+   */
+  sessionKey?: string;
 }
 
 export interface CommandEvent {

@@ -92,7 +92,13 @@ export class TerminalStore {
     const runtimeAtStart = this.#runtime;
 
     try {
-      const shellProcess = await newShellProcess(runtimeAtStart, terminal, command);
+      /*
+       * Pane-stable key: the panes array is rebuilt from index 0 on every mount,
+       * so pane N always presents the same id and reattaches to its own shell
+       * across reloads — instead of leaving the previous one orphaned.
+       */
+      const sessionKey = `user-${this.#terminals.length}`;
+      const shellProcess = await newShellProcess(runtimeAtStart, terminal, command, sessionKey);
 
       if (this.#runtime !== runtimeAtStart) {
         try {
