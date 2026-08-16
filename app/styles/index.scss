@@ -13334,8 +13334,21 @@ body :where(.lucide, svg[data-lucide]) {
     justify-content: stretch !important;
   }
 
+  /*
+   * `.bolt-project-panel-toolbar` est volontairement EXCLU de cet empilement.
+   * Cette règle vit dans un @container, pas un @media : le panneau latéral de
+   * l'IDE mesure ~735px, donc sous le seuil de 760px — elle s'appliquait même
+   * sur un écran de 1440px. Le sélecteur de plage de Supervision
+   * (15m / 1h / 24h) devenait alors trois boutons pleine largeur EMPILÉS, qui
+   * mangeaient toute la hauteur visible du panneau et repoussaient les
+   * métriques hors écran.
+   *
+   * Le toolbar garde son `display: flex; flex-wrap: wrap` de base, qui fait
+   * exactement ce qu'il faut : il reste en ligne tant qu'il y a la place, et
+   * ne passe à la ligne que lorsqu'il n'y en a plus.
+   */
   .bolt-project-service-panel
-    :where(.bolt-project-panel-toolbar, .bolt-project-security-scan-form, .bolt-project-deploy-actions) {
+    :where(.bolt-project-security-scan-form, .bolt-project-deploy-actions) {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) !important;
     align-items: stretch !important;
@@ -13343,7 +13356,6 @@ body :where(.lucide, svg[data-lucide]) {
 
   .bolt-project-service-panel
     :where(
-      .bolt-project-panel-toolbar button,
       .bolt-project-managed-form button,
       .bolt-project-package-command-row button,
       .bolt-project-package-install-form button,
