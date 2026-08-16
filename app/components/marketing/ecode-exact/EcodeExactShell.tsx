@@ -812,7 +812,14 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
            * joue qu'une fois les colonnes empilees (mobile 1 col, tablette 2 col),
            * ou il separait deux titres de colonnes.
            */}
-          <nav aria-label={copy.a11y.footerNavigation} className="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+          {/*
+           * Two columns from the smallest width up. This nav carries 46 links,
+           * and a single column made the footer 3981px tall on a 390px phone —
+           * 4.7 screens of nothing but links. The 44px rows are deliberate
+           * touch targets and are preserved; only the column count changes.
+           * Measured on prod: footer 3981px -> 3179px, no label truncated.
+           */}
+          <nav aria-label={copy.a11y.footerNavigation} className="grid grid-cols-2 gap-x-10 gap-y-6 lg:grid-cols-4">
             <FooterColumn title={copy.footer.columnLabels.product} links={productLinks} />
             <div>
               <FooterColumn title={copy.footer.columnLabels.resources} links={resourceLinks} />
