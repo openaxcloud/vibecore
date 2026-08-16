@@ -739,3 +739,38 @@ WebSocket. Le défaut restant est donc sur le **rendu client**, en aval des deux
 corrigées. Console : `WebSocket is already in CLOSING or CLOSED state` répétés. **La
 case ✅ « Testé live » n'est donc PAS cochée pour le parcours navigateur complet** ; elle
 l'est pour la cause serveur, prouvée ci-dessus.
+
+### BUG-TERM-002 — effets mesurés en live (16/08, 02h40 UTC)
+
+Images déployées sur le **cluster d'audit uniquement** : `web:2565e5edc3` (2/2) et
+`api:59818de207` (2/2). Rollback conservé : `web:9e8efa4f86`, `api:1c68880b39`.
+
+**Ce qui est PROUVÉ à l'écran :**
+
+| Avant | Après |
+|---|---|
+| `sessionId` aléatoire à chaque connexion (**12 distincts en 6 min**, six dans la même seconde) | **`terminal-user-0` et `terminal-managed`** — identifiants stables, plus aucun `terminal-<timestamp>-<random>` |
+| **21 shells** accumulés, **7/8 en 6 min** sur un pod neuf | **1 à 2 shells**, stables |
+| — | **Le scrollback survit à un rechargement de page** : le texte tapé avant reload est repeint après — le rattachement fonctionne bout en bout |
+| Port affiché « commencer » | Port affiché « **démarrage** » (BUG-I18N-004 confirmé live) |
+
+Le rattachement est aussi prouvé au niveau WebSocket (session précédente) : C1 crée
+1 shell, **C2 et C3 au même `sessionId` en créent 0**, et `echo hi` renvoie `hi`.
+
+**Ce qui reste OUVERT — la frappe s'affiche mais Entrée ne soumet pas.** Les
+caractères apparaissent désormais à l'invite (`/workspace $ echo hi`), ce qui n'était
+pas le cas avant le correctif de la porte d'entrée — mais Entrée ne déclenche aucune
+exécution. **Hypothèse à vérifier, non prouvée** : le panneau affiché rend la sortie
+du shell **managé** (exempté de quota) tout en écrivant dans la session **`user-0`**,
+elle rejetée en `429` (**BUG-QUOTA-001**) — entrée et sortie porteraient alors sur
+deux sessions différentes. À instrumenter côté client (quel `sessionId` reçoit le
+`write`) avant de conclure.
+
+⚠️ **Le ✅ « Testé live » n'est donc TOUJOURS PAS coché** pour `echo hi` + Entrée dans
+le navigateur. Les gains ci-dessus sont réels et mesurés ; l'exécution complète depuis
+l'IDE ne l'est pas.
+
+**Note d'environnement** : la jauge `terminals.concurrent` a été remise à 0 en base sur
+l'env de test pour dégager le créneau bloqué par BUG-QUOTA-001 (`delete from
+"UsageEvent" where type='terminals.concurrent'`, 1 → 0). Action sur l'**env de test
+jetable uniquement**, sans effet sur la prod.
