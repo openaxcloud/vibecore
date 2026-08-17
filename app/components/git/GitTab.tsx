@@ -1185,6 +1185,13 @@ export function GitTab({ projectId }: GitTabProps) {
               onCheckout={(nextBranch) => void runIntent('checkout-branch', { branch: nextBranch })}
               onCreate={(newBranch) => void runIntent('create-branch', { branch: newBranch })}
             />
+            {/*
+              44×44 minimum, comme le bouton de rafraîchissement jumeau de
+              GitBranchSyncControls : à `h-8 w-8` la cible tombait à 28×42 sur
+              iPhone, sous le seuil WCAG 2.5.5, alors que son frère le respectait
+              déjà. Deux boutons de la même fonctionnalité ne peuvent pas avoir
+              deux tailles de cible.
+            */}
             <button
               type="button"
               data-testid="git-branch-refresh"
@@ -1192,7 +1199,7 @@ export function GitTab({ projectId }: GitTabProps) {
               onClick={() => void loadPanel()}
               title={t('idePanels.git.refreshStatus')}
               aria-label={t('idePanels.git.refreshStatus')}
-              className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary disabled:opacity-50"
+              className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[6px] text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary disabled:opacity-50"
             >
               <span className="i-ph:arrows-clockwise text-base" aria-hidden />
             </button>
@@ -1204,7 +1211,7 @@ export function GitTab({ projectId }: GitTabProps) {
               title={t('idePanels.git.settings')}
               aria-label={t('idePanels.git.settings')}
               className={classNames(
-                'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
+                'inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[6px] hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
                 showSettings ? 'text-bolt-elements-item-contentAccent' : 'text-bolt-elements-textSecondary',
               )}
             >

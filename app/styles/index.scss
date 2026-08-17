@@ -13091,6 +13091,13 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-package-install-form .bolt-project-package-checkbox {
   display: flex;
+
+  /*
+   * La case elle-même reste au format natif (13 px) : c'est le LABEL qui porte
+   * la cible cliquable. Sans hauteur minimale, cette cible mesurait 20 px sur
+   * iPhone — sous le seuil WCAG 2.5.5 (44 px), donc pénible à viser au doigt.
+   */
+  min-block-size: 44px;
   min-width: min(150px, 100%);
   flex: 0 0 auto;
   align-items: center;

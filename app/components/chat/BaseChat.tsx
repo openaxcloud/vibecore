@@ -21425,7 +21425,7 @@ function ProjectDebuggerPanel({
             <PanelInput name="program" placeholder={t('chat.copy.srcServerTs_bcc09dcb')} />
             <PanelInput name="args" placeholder={t('chat.copy.port3000_ec45ac33')} />
             <PanelInput name="env" placeholder={t('chat.copy.debugApp_61e65435')} />
-            <label className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
+            <label className="flex min-h-11 items-center gap-2 text-xs text-bolt-elements-textSecondary">
               <input name="stopOnEntry" value="true" type="checkbox" />
               {t('chat.copy.stopOnEntry_36fd986b')}
             </label>
