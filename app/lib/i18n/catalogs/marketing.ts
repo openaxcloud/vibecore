@@ -1023,8 +1023,328 @@ export function formatMarketingDocumentTitle(pageTitle: string): string {
   return `${pageTitle} - E-Code`;
 }
 
+/**
+ * Copie FR des CARTES de /solutions.
+ *
+ * BUG-I18N-001 : en locale FR, 8 des 9 cartes de /solutions s'affichaient en
+ * anglais ; seule `enterprise` était traduite. Les cartes viennent de
+ * `solutionPages` (EcodeMarketingPages), que `localizeMarketingPage` fait passer
+ * par `getMarketingPageCopy` — laquelle ne trouvait rien pour ces 8 slugs et
+ * renvoyait donc la définition anglaise telle quelle.
+ *
+ * Pourquoi un catalogue SÉPARÉ plutôt que 8 entrées dans `marketingPageCopyFr` :
+ * ce dernier est `satisfies Record<keyof typeof marketingPageCopyEn, ...>`, donc
+ * y ajouter une clé absente de la version anglaise est une erreur de type. Et
+ * ajouter ces 8 slugs à `marketingPageCopyEn` obligerait à créer autant
+ * d'entrées dans le `marketingPageChrome` d'`EcodeMarketingPages`
+ * (`Record<Exclude<keyof typeof marketingPageCopyEn, 'enterprise'>, ...>`) — une
+ * cascade hors sujet, pour un texte anglais qui existe déjà dans `solutionPages`.
+ *
+ * Ce catalogue est donc FR-seulement et consulté en premier quand la locale est
+ * `fr` : l'anglais continue de retomber sur `solutionPages`, inchangé.
+ *
+ * La copie n'est PAS une retraduction : elle est reprise des pages de détail
+ * `app/components/marketing/solutions/<slug>.copy.ts`, déjà 100 % FR et en
+ * production — `description` vient de `fr.seo.description`, `highlights` des
+ * titres de `fr.features.items`. Les titres de carte reprennent la terminologie
+ * FR de ces mêmes pages (`fr.hero.eyebrow` : « Générateur de site », « Générateur
+ * de jeu »…), `app-builder` gardant son nom tel quel comme le fait déjà la page.
+ * Les deux sections reprennent le gabarit de `makeSolution`, dans la forme FR
+ * déjà employée par `enterprise`.
+ */
+export const marketingSolutionCardCopyFr = {
+  'app-builder': {
+    title: 'App Builder',
+    eyebrow: 'Solutions',
+    description:
+      'Décrivez votre processus, vos utilisateurs, vos données et vos règles. E-Code les transforme en fichiers source modifiables, écrans reliés, aperçu actif, export et publication des builds statiques pris en charge.',
+    highlights: [
+      'Écrans et routes reliés',
+      'Modèles de données inspectables',
+      'Secrets de projet protégés',
+      'Import, versionnement et export',
+    ],
+    sections: [
+      {
+        title: 'Ce que vous pouvez créer',
+        body: 'App Builder offre aux équipes un chemin plus rapide de l’idée à un projet typé et vérifiable, avec un aperçu en cours d’exécution.',
+        items: [
+          'Écrans et routes reliés',
+          'Modèles de données inspectables',
+          'Secrets de projet protégés',
+          'Import, versionnement et export',
+        ],
+      },
+      {
+        title: 'Flux de production',
+        body: 'Chaque projet généré doit pouvoir être inspecté et testé, et prêt pour la planification du déploiement.',
+        items: [
+          'Du prompt au projet',
+          'Revue du code',
+          'Aperçu de l’environnement d’exécution',
+          'Parcours de déploiement',
+        ],
+      },
+    ],
+    primaryActionLabel: 'Commencer à créer',
+    secondaryActionLabel: 'Contacter l’équipe commerciale',
+  },
+  'website-builder': {
+    title: 'Générateur de site',
+    eyebrow: 'Solutions',
+    description:
+      'Décrivez les pages, les sections et le contenu de votre site. E-Code les transforme en un site responsive dans des fichiers source modifiables, avec un aperçu actif, l’export du projet et la publication des builds statiques pris en charge.',
+    highlights: [
+      'Portfolio et études de cas',
+      'Un contenu modifiable',
+      'Formulaires et demandes',
+      'SEO et métadonnées sociales',
+    ],
+    sections: [
+      {
+        title: 'Ce que vous pouvez créer',
+        body: 'Générateur de site offre aux équipes un chemin plus rapide de l’idée à un projet typé et vérifiable, avec un aperçu en cours d’exécution.',
+        items: [
+          'Portfolio et études de cas',
+          'Un contenu modifiable',
+          'Formulaires et demandes',
+          'SEO et métadonnées sociales',
+        ],
+      },
+      {
+        title: 'Flux de production',
+        body: 'Chaque projet généré doit pouvoir être inspecté et testé, et prêt pour la planification du déploiement.',
+        items: [
+          'Du prompt au projet',
+          'Revue du code',
+          'Aperçu de l’environnement d’exécution',
+          'Parcours de déploiement',
+        ],
+      },
+    ],
+    primaryActionLabel: 'Commencer à créer',
+    secondaryActionLabel: 'Contacter l’équipe commerciale',
+  },
+  'game-builder': {
+    title: 'Générateur de jeu',
+    eyebrow: 'Solutions',
+    description:
+      'Décrivez le jeu web que vous voulez tester. E-Code le transforme en boucle de jeu, interface multijoueur et modèle d’état modifiables, avec un aperçu actif, l’export du projet et des points de branchement clairs pour un service temps réel.',
+    highlights: [
+      'Canvas et boucle de jeu',
+      'Multijoueur prêt à connecter',
+      'Score et manches',
+      'Test en jeu dans l’aperçu',
+    ],
+    sections: [
+      {
+        title: 'Ce que vous pouvez créer',
+        body: 'Générateur de jeu offre aux équipes un chemin plus rapide de l’idée à un projet typé et vérifiable, avec un aperçu en cours d’exécution.',
+        items: [
+          'Canvas et boucle de jeu',
+          'Multijoueur prêt à connecter',
+          'Score et manches',
+          'Test en jeu dans l’aperçu',
+        ],
+      },
+      {
+        title: 'Flux de production',
+        body: 'Chaque projet généré doit pouvoir être inspecté et testé, et prêt pour la planification du déploiement.',
+        items: [
+          'Du prompt au projet',
+          'Revue du code',
+          'Aperçu de l’environnement d’exécution',
+          'Parcours de déploiement',
+        ],
+      },
+    ],
+    primaryActionLabel: 'Commencer à créer',
+    secondaryActionLabel: 'Contacter l’équipe commerciale',
+  },
+  'dashboard-builder': {
+    title: 'Générateur de tableau de bord',
+    eyebrow: 'Solutions',
+    description:
+      'Décrivez les indicateurs, tableaux et filtres dont votre équipe a besoin. E-Code les transforme en un tableau de bord riche en données dans des fichiers source modifiables, avec un aperçu actif, l’export du projet et du code que vous étendez pour connecter vos propres données et l’authentification.',
+    highlights: [
+      'Indicateurs et graphiques',
+      'Filtres et segments',
+      'Tableaux de pipeline et d’enregistrements',
+      'Authentification et rôles',
+    ],
+    sections: [
+      {
+        title: 'Ce que vous pouvez créer',
+        body: 'Générateur de tableau de bord offre aux équipes un chemin plus rapide de l’idée à un projet typé et vérifiable, avec un aperçu en cours d’exécution.',
+        items: [
+          'Indicateurs et graphiques',
+          'Filtres et segments',
+          'Tableaux de pipeline et d’enregistrements',
+          'Authentification et rôles',
+        ],
+      },
+      {
+        title: 'Flux de production',
+        body: 'Chaque projet généré doit pouvoir être inspecté et testé, et prêt pour la planification du déploiement.',
+        items: [
+          'Du prompt au projet',
+          'Revue du code',
+          'Aperçu de l’environnement d’exécution',
+          'Parcours de déploiement',
+        ],
+      },
+    ],
+    primaryActionLabel: 'Commencer à créer',
+    secondaryActionLabel: 'Contacter l’équipe commerciale',
+  },
+  'chatbot-builder': {
+    title: 'Générateur de chatbot et d’agent IA',
+    eyebrow: 'Solutions',
+    description:
+      'Décrivez l’assistant de support recherché. E-Code crée un projet d’agent modifiable avec prompts, limites d’outils, adaptateurs de sources et logique de transfert relisibles. Connectez puis testez votre modèle, votre documentation et votre destination de support avant le lancement.',
+    highlights: ['Réponses depuis vos docs', 'Prompts relisibles', 'Outils déclarés', 'Mémoire inspectable'],
+    sections: [
+      {
+        title: 'Ce que vous pouvez créer',
+        body: 'Générateur de chatbot et d’agent IA offre aux équipes un chemin plus rapide de l’idée à un projet typé et vérifiable, avec un aperçu en cours d’exécution.',
+        items: ['Réponses depuis vos docs', 'Prompts relisibles', 'Outils déclarés', 'Mémoire inspectable'],
+      },
+      {
+        title: 'Flux de production',
+        body: 'Chaque projet généré doit pouvoir être inspecté et testé, et prêt pour la planification du déploiement.',
+        items: [
+          'Du prompt au projet',
+          'Revue du code',
+          'Aperçu de l’environnement d’exécution',
+          'Parcours de déploiement',
+        ],
+      },
+    ],
+    primaryActionLabel: 'Commencer à créer',
+    secondaryActionLabel: 'Contacter l’équipe commerciale',
+  },
+  'internal-ai-builder': {
+    title: 'Générateur d’IA interne',
+    eyebrow: 'Solutions',
+    description:
+      'Décrivez l’assistant interne attendu. E-Code crée un projet modifiable qui modélise les sources de procédures, les états d’approbation, les règles d’accès et les événements d’audit. Connectez l’identité et les données privées, puis terminez les tests de sécurité avant déploiement.',
+    highlights: [
+      'Réponses ancrées aux procédures',
+      'Acheminement des approbations',
+      'Structure des règles d’accès',
+      'Structure des événements d’audit',
+    ],
+    sections: [
+      {
+        title: 'Ce que vous pouvez créer',
+        body: 'Générateur d’IA interne offre aux équipes un chemin plus rapide de l’idée à un projet typé et vérifiable, avec un aperçu en cours d’exécution.',
+        items: [
+          'Réponses ancrées aux procédures',
+          'Acheminement des approbations',
+          'Structure des règles d’accès',
+          'Structure des événements d’audit',
+        ],
+      },
+      {
+        title: 'Flux de production',
+        body: 'Chaque projet généré doit pouvoir être inspecté et testé, et prêt pour la planification du déploiement.',
+        items: [
+          'Du prompt au projet',
+          'Revue du code',
+          'Aperçu de l’environnement d’exécution',
+          'Parcours de déploiement',
+        ],
+      },
+    ],
+    primaryActionLabel: 'Commencer à créer',
+    secondaryActionLabel: 'Contacter l’équipe commerciale',
+  },
+  startups: {
+    title: 'Startups',
+    eyebrow: 'Solutions',
+    description:
+      'Décrivez le MVP que votre startup doit démontrer. E-Code le transforme en fichiers source modifiables avec un aperçu hébergé, un lien de revue partageable, l’export du projet et la publication guidée pour les builds pris en charge.',
+    highlights: [
+      'Templates et génération IA',
+      'Aperçus hébergés',
+      'Démos investisseurs partageables',
+      'Authentification et tableaux de bord',
+    ],
+    sections: [
+      {
+        title: 'Ce que vous pouvez créer',
+        body: 'Startups offre aux équipes un chemin plus rapide de l’idée à un projet typé et vérifiable, avec un aperçu en cours d’exécution.',
+        items: [
+          'Templates et génération IA',
+          'Aperçus hébergés',
+          'Démos investisseurs partageables',
+          'Authentification et tableaux de bord',
+        ],
+      },
+      {
+        title: 'Flux de production',
+        body: 'Chaque projet généré doit pouvoir être inspecté et testé, et prêt pour la planification du déploiement.',
+        items: [
+          'Du prompt au projet',
+          'Revue du code',
+          'Aperçu de l’environnement d’exécution',
+          'Parcours de déploiement',
+        ],
+      },
+    ],
+    primaryActionLabel: 'Commencer à créer',
+    secondaryActionLabel: 'Contacter l’équipe commerciale',
+  },
+  freelancers: {
+    title: 'Freelances',
+    eyebrow: 'Solutions',
+    description:
+      'Démarrez chaque projet client depuis des modèles réutilisables, partagez des liens d’aperçu pour la revue et transmettez un code source modifiable. E-Code transforme un brief en une application fonctionnelle dans de vrais fichiers, avec un aperçu actif, l’export du projet et la publication des builds pris en charge.',
+    highlights: [
+      'Modèles réutilisables',
+      'Liens d’aperçu pour la revue',
+      'Transfert du code source',
+      'Itérer avec l’Agent',
+    ],
+    sections: [
+      {
+        title: 'Ce que vous pouvez créer',
+        body: 'Freelances offre aux équipes un chemin plus rapide de l’idée à un projet typé et vérifiable, avec un aperçu en cours d’exécution.',
+        items: [
+          'Modèles réutilisables',
+          'Liens d’aperçu pour la revue',
+          'Transfert du code source',
+          'Itérer avec l’Agent',
+        ],
+      },
+      {
+        title: 'Flux de production',
+        body: 'Chaque projet généré doit pouvoir être inspecté et testé, et prêt pour la planification du déploiement.',
+        items: [
+          'Du prompt au projet',
+          'Revue du code',
+          'Aperçu de l’environnement d’exécution',
+          'Parcours de déploiement',
+        ],
+      },
+    ],
+    primaryActionLabel: 'Commencer à créer',
+    secondaryActionLabel: 'Contacter l’équipe commerciale',
+  },
+} as const satisfies Record<string, MarketingPageCopy>;
+
 export function getMarketingPageCopy(slug: string, language?: string | null): MarketingPageCopy | null {
   const locale = resolveMarketingLanguage(language);
+
+  /*
+   * Les cartes de /solutions n'existent que côté anglais dans `solutionPages` ;
+   * leur traduction vit dans un catalogue FR dédié (voir plus haut). On le
+   * consulte AVANT les catalogues bilingues, sans quoi ces slugs n'entreraient
+   * dans aucune branche et repartiraient en anglais.
+   */
+  if (locale === 'fr' && slug in marketingSolutionCardCopyFr) {
+    return marketingSolutionCardCopyFr[slug as keyof typeof marketingSolutionCardCopyFr];
+  }
 
   if (slug in marketingPageCopyEn) {
     const key = slug as keyof typeof marketingPageCopyEn;
