@@ -823,3 +823,32 @@ laissé strictement intact (aucun `set image`, aucune suppression de pod).
 > bloc ajouté a été retiré (vérifié : 0 occurrence, `HEAD` inchangé). **Règle retenue :
 > vérifier l'existence du worktree AVANT tout `cd`, et ne jamais enchaîner un `git commit`
 > derrière un `cd` non vérifié.**
+
+### Passe 4 — faux positif majeur écarté : « fuite inter-tenant » (16/08)
+
+**Symptôme observé.** Sur `/projets`, une seule fiche s'affichait — « **Quota Green
+Proof** » — alors que la base compte **8 projets** dans l'organisation `org-2h3n3zrk`
+(dont les miens : « Crée un convertisseur d unites », « Crée une page de suivi »,
+« QA import public », …). Vérification en base : ce projet appartient à
+**`quota-green-org`**, dont l'**unique** membre est `quota-green-1786956600@local.test`,
+tandis que mon compte `qa-loop-…@local.test` n'appartient **qu'à** `org-2h3n3zrk`.
+Sur ces seuls éléments, cela ressemblait à une **fuite inter-tenant de niveau P0**.
+
+**Ce n'en est pas une.** Contrôle décisif — lire l'identité que l'interface elle-même
+considère comme connectée : `/account-settings` affiche
+`quota-green-1786956600@local.test`. **J'étais authentifié avec le compte de la session
+quota**, pas le mien : le profil navigateur est **partagé** entre les sessions sur cette
+machine, et son cookie de session avait écrasé le mien. La page listait donc correctement
+l'organisation de l'utilisateur réellement connecté. **Aucun défaut d'isolation.**
+
+> ⚠️ **Risque de coordination à connaître.** Le volet navigateur est **mutualisé** entre
+> sessions : une autre session qui se connecte y remplace votre identité **sans aucun
+> signe visible**, et toute observation faite ensuite porte sur SON tenant. C'est un
+> piège à faux positifs de sécurité particulièrement dangereux — le symptôme (« je vois
+> les données d'une autre organisation ») est exactement celui d'une fuite réelle.
+> **Règle : avant tout constat touchant à l'isolation ou au périmètre de données,
+> vérifier l'identité connectée via `/account-settings`**, jamais la supposer.
+
+C'est le **cinquième faux positif** écarté de la campagne, et de loin le plus coûteux
+s'il avait été consigné tel quel : il aurait déclenché une alerte sécurité P0 infondée
+à la veille d'une démo investisseurs.
