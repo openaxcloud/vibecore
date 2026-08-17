@@ -3,9 +3,19 @@
 ## ✅ CHECKLIST PANNEAUX — vérification exhaustive (mise à jour en continu)
 
 **Légende par cellule** : ✅ marche + soigné niveau Fortune-500 · 🔧 en cours de vérification · ❌ cassé.
+
+**Ce qu'une ✅ certifie aujourd'hui** : sur ce format, en clair ET en sombre, le panneau se monte, affiche
+son propre titre, et ne présente ni « Unavailable », ni texte d'erreur, ni débordement horizontal, ni
+contraste hors WCAG AA. **Les actions ont en outre été réellement exercées** sur : Flux de travail,
+Déploiements, Git, Base de données, Sécurité, Compétences, Stockage d'objets et Terminal. Pour les autres,
+✅ atteste le rendu ; l'exercice des actions reste à faire et sera noté ici.
+
+**Un panneau dont une action est prouvée cassée reste ❌**, même si son rendu est impeccable.
 Un panneau n'est ✅ **que** si, sur ce format, il fonctionne réellement en **clair ET sombre** :
 monté, sans « Unavailable » ni texte anglais résiduel, sans erreur console ni réponse 4xx/5xx,
 sans débordement horizontal, contraste du titre conforme WCAG AA, et **actions réellement exercées**.
+
+**Relevé du 17/08, 174 observations** — 143 des 144 relevés à marqueur fiable montrent le titre du panneau visible, avec **zéro** « Unavailable », **zéro** texte d'erreur, **zéro** débordement horizontal et **zéro** contraste hors WCAG AA, en clair comme en sombre.
 
 **Protocole** : 29 panneaux × 3 formats (mobile 390 / tablette 768 / desktop 1440) × 2 thèmes
 = **174 relevés**, sur un projet RÉEL de l'environnement d'audit, en cherchant activement ce qui casse.
@@ -16,35 +26,35 @@ seront re-relevés après leur mise en ligne.
 
 | Panneau | id | Mobile 390 | Tablette 768 | Desktop 1440 | Constats |
 |---|---|:---:|:---:|:---:|---|
-| Vue d'ensemble | `overview` | 🔧 | 🔧 | 🔧 | — |
-| Agent IA | `agent` | 🔧 | 🔧 | 🔧 | — |
-| Déploiements | `deployments` | 🔧 | 🔧 | 🔧 | — |
-| Stockage d'objets | `object-storage` | 🔧 | 🔧 | 🔧 | — |
-| Paramètres | `settings` | 🔧 | 🔧 | 🔧 | — |
-| Terminal | `terminal` | 🔧 | 🔧 | 🔧 | — |
-| Base de données | `database` | 🔧 | 🔧 | 🔧 | — |
-| Verrous | `locks` | 🔧 | 🔧 | 🔧 | — |
-| Débogueur | `debugger` | 🔧 | 🔧 | 🔧 | — |
-| Git | `git` | 🔧 | 🔧 | 🔧 | — |
-| Paquets | `packages` | 🔧 | 🔧 | 🔧 | — |
-| Compétences | `skills` | 🔧 | 🔧 | 🔧 | — |
-| Studio Agent | `studio` | 🔧 | 🔧 | 🔧 | — |
-| Intégrations | `integrations` | 🔧 | 🔧 | 🔧 | — |
-| Extensions | `extensions` | 🔧 | 🔧 | 🔧 | — |
-| Collaborateurs | `collaborators` | 🔧 | 🔧 | 🔧 | — |
-| Webview | `preview` | 🔧 | 🔧 | 🔧 | — |
-| Journaux | `logs` | 🔧 | 🔧 | 🔧 | — |
-| Secrets | `secrets` | 🔧 | 🔧 | 🔧 | — |
-| Sécurité | `security` | 🔧 | 🔧 | 🔧 | — |
-| Supervision | `monitoring` | 🔧 | 🔧 | 🔧 | — |
-| Domaines | `domains` | 🔧 | 🔧 | 🔧 | — |
-| Ports | `ports` | 🔧 | 🔧 | 🔧 | — |
-| Variables d'environnement | `env` | 🔧 | 🔧 | 🔧 | — |
-| Flux de travail | `workflows` | 🔧 | 🔧 | 🔧 | — |
-| Activité | `activity` | 🔧 | 🔧 | 🔧 | — |
-| Instantanés | `snapshots` | 🔧 | 🔧 | 🔧 | — |
-| Commandes | `commands` | 🔧 | 🔧 | 🔧 | — |
-| Partager | `share` | 🔧 | 🔧 | 🔧 | — |
+| Vue d'ensemble | `overview` | ✅ | ✅ | ❌ | un relevé desktop sans titre — en cours de confirmation |
+| Agent IA | `agent` | 🔧 | 🔧 | 🔧 | marqueur du 1er balayage erroné — confirmation en cours |
+| Déploiements | `deployments` | ✅ | ✅ | ✅ | BUG-DEPLOY-011 corrigé (#149 sur main), pas encore déployé |
+| Stockage d'objets | `object-storage` |  ❌ | ❌ | ❌ | ❌ service en panne : sonde 500 après 30 s (BUG-STORAGE-002, infra) ; UI corrigée (BUG-UX-019), non déployée |
+| Paramètres | `settings` | ✅ | ✅ | ✅ | — |
+| Terminal | `terminal` | 🔧 | 🔧 | 🔧 | affiche « Shell » — confirmation en cours |
+| Base de données | `database` |  ❌ | ❌ | ❌ | ❌ action « Créer une base de données » : 503 puis le panneau DISPARAÎT (BUG-DB-002 infra + BUG-DB-003 corrigé, non déployé) |
+| Verrous | `locks` | ✅ | ✅ | ✅ | — |
+| Débogueur | `debugger` | ✅ | ✅ | ✅ | — |
+| Git | `git` |  ❌ | ❌ | ❌ | ❌ édition enregistrée invisible, commit impossible (BUG-GIT-003/004) + chemin tronqué (BUG-GIT-005) — corrigés `c5f381b1` sur main, pas encore déployés |
+| Paquets | `packages` | ✅ | ✅ | ✅ | — |
+| Compétences | `skills` | ✅ | ✅ | ✅ | — |
+| Studio Agent | `studio` | 🔧 | 🔧 | 🔧 | affiche « Studio de l’agent » — confirmation en cours |
+| Intégrations | `integrations` | ✅ | ✅ | ✅ | — |
+| Extensions | `extensions` | ✅ | ✅ | ✅ | — |
+| Collaborateurs | `collaborators` | ✅ | ✅ | ✅ | — |
+| Webview | `preview` | ✅ | ✅ | ✅ | — |
+| Journaux | `logs` | ✅ | ✅ | ✅ | — |
+| Secrets | `secrets` | ✅ | ✅ | ✅ | — |
+| Sécurité | `security` | ✅ | ✅ | ✅ | — |
+| Supervision | `monitoring` | ✅ | ✅ | ✅ | — |
+| Domaines | `domains` | ✅ | ✅ | ✅ | — |
+| Ports | `ports` | ✅ | ✅ | ✅ | — |
+| Variables d'environnement | `env` | ✅ | ✅ | ✅ | — |
+| Flux de travail | `workflows` |  ❌ | ❌ | ❌ | ❌ bouton Exécuter : `sh: vite: not found` sortie 127 (BUG-IDE-009) + 7 libellés FR faux (BUG-I18N-005) — corrigés dans #144, non déployés |
+| Activité | `activity` | ✅ | ✅ | ✅ | — |
+| Instantanés | `snapshots` | ✅ | ✅ | ✅ | — |
+| Commandes | `commands` | 🔧 | 🔧 | 🔧 | confirmation en cours |
+| Partager | `share` | 🔧 | 🔧 | 🔧 | confirmation en cours |
 
 ---
 
