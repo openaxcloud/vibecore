@@ -15,7 +15,14 @@ Un panneau n'est ✅ **que** si, sur ce format, il fonctionne réellement en **c
 monté, sans « Unavailable » ni texte anglais résiduel, sans erreur console ni réponse 4xx/5xx,
 sans débordement horizontal, contraste du titre conforme WCAG AA, et **actions réellement exercées**.
 
-**Déploiement en prod au 18/08** : le tier **api/runtime est passé à `c5f381b186`** — le correctif Git (#147) est **LIVE**. Le tier **web reste `5d60450821`** : le correctif du terminal (#144) n'est **pas encore déployé**, son run porte `82e27ce9` et il est en cours.
+**Déploiement en prod au 18/08 — TERMINÉ** : `web = 82e27ce9db`, `api/ai-gateway/preview-proxy/worker/workspace-manager = c5f381b186`. Bascule confirmée par `kubectl rollout status` : *deployment "vibecore-vibecore-platform-web" successfully rolled out*, 2/2 pods neufs. Run CD `32065821895` : `completed/success`.
+
+**Le code corrigé est bien SERVI**, vérifié dans les bundles téléchargés depuis `app.e-code.ai` (sans créer la moindre donnée en prod) :
+- `mobileIdeTabs.terminal.title` **présent** et `Shell (Terminal)` **présent** → le titre du terminal ne peut plus retomber sur « Unavailable » ;
+- `onPointerDown` **présent** dans le chunk portant xterm → le correctif de mise au point au toucher est livré ;
+- `Exécuter maintenant`, `Exécutions récentes`, `code de sortie` **présents** ; `Courez maintenant`, `Courses récentes`, `Courir dans l'ordre` → **zéro occurrence**, les fautes de traduction ont disparu de la production.
+
+⚠️ **Ce que cela ne prouve pas** : que la frappe atteint le PTY et que le bouton Exécuter aboutit. Ces trois cases (Terminal, Flux de travail, Base de données) ne passeront ✅ qu'après une validation d'USAGE sur le build déployé. Mon compte et mon projet de test vivent sur l'environnement d'audit, qui tourne encore l'ancien build — la validation en prod suppose d'y créer un projet de test, **en attente d'accord d'Avi**.
 
 **Relevé du 17/08, 174 observations** — 143 des 144 relevés à marqueur fiable montrent le titre du panneau visible, avec **zéro** « Unavailable », **zéro** texte d'erreur, **zéro** débordement horizontal et **zéro** contraste hors WCAG AA, en clair comme en sombre.
 
