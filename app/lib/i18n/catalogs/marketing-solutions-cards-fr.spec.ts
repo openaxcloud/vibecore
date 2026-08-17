@@ -65,7 +65,8 @@ describe('cartes /solutions en locale FR', () => {
       'app-builder': async () => (await import('~/components/marketing/solutions/app-builder.copy')).APP_BUILDER_COPY,
       'website-builder': async () =>
         (await import('~/components/marketing/solutions/website-builder.copy')).WEBSITE_BUILDER_COPY,
-      'game-builder': async () => (await import('~/components/marketing/solutions/game-builder.copy')).GAME_BUILDER_COPY,
+      'game-builder': async () =>
+        (await import('~/components/marketing/solutions/game-builder.copy')).GAME_BUILDER_COPY,
       'dashboard-builder': async () =>
         (await import('~/components/marketing/solutions/dashboard-builder.copy')).DASHBOARD_BUILDER_COPY,
       'chatbot-builder': async () =>
