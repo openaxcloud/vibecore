@@ -1,0 +1,88 @@
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/components/chat/SupabaseConnection.helpers.spec.ts
+  43:72  warning  Unexpected empty method 'logError'  @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/components/chat/qa-status-truth.spec.ts
+  15:1   error  Expected blank line before this statement                                                                                                                                      padding-line-between-statements
+  15:33  error  Replace `⏎··join(APP,·'routes',·'api.projects.$projectId.ide-panel.$panel.ts'),⏎··'utf8',⏎` with `join(APP,·'routes',·'api.projects.$projectId.ide-panel.$panel.ts'),·'utf8'`  prettier/prettier
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/components/database/DatabaseStudio.tsx
+  198:24  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/components/database/DatabaseWorkbench.refetch-loop.spec.tsx
+    5:29  error  'useState' is defined but never used                             @typescript-eslint/no-unused-vars
+   68:9   error  Definition for rule 'react-hooks/exhaustive-deps' was not found  react-hooks/exhaustive-deps
+   97:9   error  Definition for rule 'react-hooks/exhaustive-deps' was not found  react-hooks/exhaustive-deps
+  153:9   error  Definition for rule 'react-hooks/exhaustive-deps' was not found  react-hooks/exhaustive-deps
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/components/database/DatabaseWorkbench.tsx
+  182:5  error  Definition for rule 'react-hooks/exhaustive-deps' was not found  react-hooks/exhaustive-deps
+  198:5  error  Definition for rule 'react-hooks/exhaustive-deps' was not found  react-hooks/exhaustive-deps
+  223:5  error  Expected line before comment                                     @blitz/lines-around-comment
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/components/database/qa-panel-regressions.spec.ts
+  28:5  error  Expected a block comment instead of consecutive line comments                                                                                               multiline-comment-style
+  55:6  error  Replace `"une·réponse·portant·une·erreur·reste·affichée·dès·le·premier·rendu"` with `'une·réponse·portant·une·erreur·reste·affichée·dès·le·premier·rendu'`  prettier/prettier
+  84:5  error  Expected a block comment instead of consecutive line comments                                                                                               multiline-comment-style
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/components/ui/CodeBlock.tsx
+  40:55  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/components/ui/GlowingEffect.spec.tsx
+   75:71  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  119:71  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/lib/hooks/useFeatures.spec.tsx
+  24:57  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/lib/i18n/catalogs/api-runtime-routes.ts
+   78:36  error  Insert `⏎···`  prettier/prettier
+  250:36  error  Insert `⏎···`  prettier/prettier
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/lib/services/importExportService.spec.ts
+  25:28  warning  Unexpected empty async method 'setSnapshot'     @typescript-eslint/no-empty-function
+  26:31  warning  Unexpected empty async method 'deleteSnapshot'  @typescript-eslint/no-empty-function
+  30:27  warning  Unexpected empty async method 'deleteChat'      @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/lib/stores/files.reload-content.spec.ts
+  21:41  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  22:41  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/lib/stores/files.watch-process.spec.ts
+  32:20  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  34:41  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/lib/stores/theme.toggle.spec.ts
+  35:57  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+  67:57  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/lib/stores/workbench.reloaded-actions.spec.ts
+  789:37  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/routes/api.projects.$projectId.ide-panel.$panel.ts
+  3296:5  error  Expected line before comment  @blitz/lines-around-comment
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/routes/auth.oauth.$provider.callback.spec.ts
+  100:57  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/utils/logger.spec.ts
+  8:68  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/utils/shell.spec.ts
+  31:12  warning  Unexpected empty method 'resize'   @typescript-eslint/no-empty-function
+  32:10  warning  Unexpected empty method 'kill'     @typescript-eslint/no-empty-function
+  80:13  warning  Unexpected empty method 'reset'    @typescript-eslint/no-empty-function
+  81:13  warning  Unexpected empty method 'write'    @typescript-eslint/no-empty-function
+  85:26  warning  Unexpected empty method 'dispose'  @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/utils/toast-batcher.spec.ts
+  119:33  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+  129:34  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+  135:38  warning  Unexpected empty async arrow function  @typescript-eslint/no-empty-function
+
+/private/tmp/claude-501/-Users-hb-dev-vibecore/3d889db4-9892-4dbb-ad47-3a71b7f6bd96/scratchpad/main-lint/app/utils/url.ts
+  104:47  warning  Unexpected empty arrow function  @typescript-eslint/no-empty-function
+
+✖ 42 problems (15 errors, 27 warnings)
+  9 errors and 0 warnings potentially fixable with the `--fix` option.
+

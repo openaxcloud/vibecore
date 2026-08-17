@@ -1,0 +1,33 @@
+# Namespace of the ingress controller, carrying the labels the platform chart's
+# `allow-ingress-controller` NetworkPolicy selects on.
+#
+# WHY THIS FILE EXISTS. That policy matches the ingress-nginx namespace on TWO
+# labels (`networkPolicy.ingressControllerNamespaceSelector` in
+# infra/helm/platform/values.yaml). The apiserver adds
+# `kubernetes.io/metadata.name` by itself, but nothing adds
+# `app.kubernetes.io/name` — the upstream ingress-nginx chart labels its
+# workloads, not the namespace it is installed into, and `helm --create-namespace`
+# creates a bare namespace. With the label missing, the selector matches nothing,
+# `deny-all-default` wins, and EVERY public URL answers 504 while no ACME
+# challenge can be solved. Invisible on a long-lived cluster where somebody set
+# the label by hand years ago; fatal on any rebuild.
+#
+# It lived as a `kubectl label` inside scripts/audit-env/addons.sh, i.e. a manual
+# step outside IaC that a production disaster recovery would simply not perform.
+# Declaring it here makes it the single source of truth, applied by both paths:
+#   - production: .github/workflows/deploy-main.yml, before `helm upgrade`
+#   - audit env:  scripts/audit-env/addons.sh, before installing ingress-nginx
+# `kubectl apply` of this file is idempotent and safe on an existing namespace:
+# it only adds/refreshes labels, and touches nothing else in it.
+#
+# infra/scripts/validate.mjs asserts that the labels here stay in sync with the
+# chart's selector, so the two cannot drift apart silently again.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+  labels:
+    # Both labels required by allow-ingress-controller. Keep in sync with
+    # networkPolicy.ingressControllerNamespaceSelector.
+    kubernetes.io/metadata.name: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx

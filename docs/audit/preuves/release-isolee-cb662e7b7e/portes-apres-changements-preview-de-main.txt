@@ -1,0 +1,17 @@
+# Ce que ce tour ajoute : les portes rejouees APRES les changements de preview de main
+
+main a modifie la semantique des previews juste avant ce SHA :
+  307303ce fix(runtime): distinguer « ce port SERT » de « cet apercu est sur a afficher »
+  e4869bc7 fix(runtime): un port vivant n'est plus une CONDITION d'adoption du pod chaud
+  f11b9266 fix(runtime): relire la revision APRES le seed
+
+Consequence mesurable : le digest de l'image AGENT change, alors qu'il etait stable
+depuis plusieurs tours.
+  avant : workspace-agent sha256:4b39237e2c9ee149…
+  ici   : workspace-agent sha256:119941c0fc89ab35…
+
+Les 4 portes sont donc rejouees contre un agent runtime DIFFERENT, avec la nouvelle
+logique d'adoption de pod chaud. Resultat inchange : 200 / 404 / 403 / 403 en porte 1,
+403 / 403 / 503 en porte 2, 200 / 404 / 403 / 403 en porte 3, capture PNG reelle en
+porte 3bis (200x1 et 403x1 vus par le proxy), et 101+DONNEES au seul cookie legitime
+en porte 4. La nouvelle sémantique de preview n'affaiblit pas la porte tenant.

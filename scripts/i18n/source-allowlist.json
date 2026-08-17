@@ -1404,6 +1404,24 @@
       "justification": "This is the canonical persisted PAYG_CHARGE reason. Both credit-ledger HTTP boundaries recognize the kind/value pair and return locale catalogue copy; it is never rendered raw in French.",
       "owner": "billing-and-i18n",
       "expiresOn": "2027-08-05"
+    },
+    {
+      "id": "preview-port-access-fail-closed-reasons",
+      "path": "services/api/src/app.ts",
+      "rule": "visible-object-copy",
+      "textPattern": "^(?:feature-disabled|workspace-lookup-failed|workspace-unknown|env-lookup-failed|no-ports-state|ports-state-unparseable|ports-state-malformed|ports-state-read)$",
+      "justification": "Motifs machine du verdict fail-closed de /internal/preview/port-access, consommes par le preview-proxy et les logs. Jamais affiches a un utilisateur : les traduire casserait le contrat entre les deux services.",
+      "owner": "platform-security",
+      "expiresOn": "2027-08-12"
+    },
+    {
+      "id": "screenshotter-startup-refusals",
+      "path": "services/screenshotter/src/server.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:SCREENSHOTTER_SHARED_SECRET est requis|alors que cette route rend|SCREENSHOTTER_ALLOWED_HOSTS est requis|ce qui fait de /capture)",
+      "justification": "Refus au DEMARRAGE dans un point d'entree de service : ces messages partent dans les logs du pod, a destination de l'operateur qui doit comprendre pourquoi le conteneur ne monte pas. Aucun utilisateur ne les voit ; les traduire nuirait au diagnostic.",
+      "owner": "platform-security",
+      "expiresOn": "2027-08-12"
     }
   ]
 }

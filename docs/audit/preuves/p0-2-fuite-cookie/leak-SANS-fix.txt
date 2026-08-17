@@ -1,0 +1,26 @@
+
+ FAIL  src/server-deploy-header-leak.spec.ts > d-<id> — aucune fuite de credential vers le workload utilisateur > ne transmet ni l un ni l autre quand les deux sont presents
+AssertionError: expected 'vc_preview=secret-cookie' to be undefined
+
+[32m- Expected:[39m 
+undefined
+
+[31m+ Received:[39m 
+"vc_preview=secret-cookie"
+
+ ❯ src/server-deploy-header-leak.spec.ts:101:36
+     99|     });
+    100| 
+    101|     expect(upstreamHeaders.cookie).toBeUndefined();
+       |                                    ^
+    102|     expect(upstreamHeaders.authorization).toBeUndefined();
+    103|     const seen = JSON.stringify(upstreamHeaders);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 2 passed (5)
+   Start at  15:58:53
+   Duration  610ms (transform 107ms, setup 0ms, collect 201ms, tests 111ms, environment 0ms, prepare 96ms)
+

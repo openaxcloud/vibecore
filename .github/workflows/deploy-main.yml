@@ -402,18 +402,59 @@ jobs:
       # IP-restricted, so direct `get-gke-credentials` won't reach it from a
       # GitHub-hosted runner. Connect Gateway routes kubectl through a
       # Google-managed proxy authenticated by the WIF identity (IAM), no VPN.
+      # Le contexte obtenu ici est EPINGLE dans PROD_KUBE_CONTEXT et passe
+      # explicitement a chaque helm/kubectl des etapes suivantes.
+      #
+      # Meme classe de defaut que celle trouvee dans scripts/audit-env : Helm ne
+      # resout pas sa cible via le contexte courant, il consulte d'abord ses
+      # variables d'environnement (HELM_KUBECONTEXT, et meme HELM_KUBEAPISERVER +
+      # HELM_KUBETOKEN qui contournent le kubeconfig entierement). Un appel nu
+      # frappe donc ce que l'environnement decide, pas ce que l'etape precedente a
+      # authentifie.
+      #
+      # ATTENTION a la PORTEE : un `unset` dans un `run:` ne vaut que pour CE
+      # shell. Chaque etape suivante repart d'un shell neuf, re-alimente par le
+      # bloc `env:` du workflow et par l'environnement du runner — le `unset`
+      # ci-dessous ne protege donc que cette etape-ci. C'est pourquoi tout appel
+      # helm/kubectl des etapes suivantes passe par scripts/ci/cluster.sh,
+      # qui neutralise l'environnement DANS LE PROCESSUS qui execute l'outil,
+      # nomme la cible et verifie son identite. Regle tenue par la CI :
+      # scripts/ci/check-workflow-pinned-context.mjs.
       - name: Get cluster credentials via Connect Gateway
         run: |
           set -euo pipefail
+          # Aucune variable ambiante ne choisit la cible.
+          unset HELM_KUBECONTEXT HELM_KUBEAPISERVER HELM_KUBETOKEN HELM_KUBECAFILE \
+                HELM_KUBEASUSER HELM_KUBEASGROUPS HELM_KUBEINSECURE_SKIP_TLS_VERIFY \
+                HELM_KUBETLS_SERVER_NAME HELM_NAMESPACE || true
           gcloud components install gke-gcloud-auth-plugin --quiet
           gcloud container fleet memberships get-credentials "${FLEET_MEMBERSHIP}" \
             --project="${GCP_PROJECT_ID}"
-          kubectl config current-context
+          CTX="$(kubectl config current-context)"
+          echo "contexte epingle: ${CTX}"
+          echo "PROD_KUBE_CONTEXT=${CTX}" >> "${GITHUB_ENV}"
+
+      # The chart's `allow-ingress-controller` NetworkPolicy selects the
+      # ingress-nginx namespace on TWO labels, and nothing creates the second one
+      # (`app.kubernetes.io/name`): the apiserver adds only
+      # `kubernetes.io/metadata.name`, and the upstream ingress-nginx chart labels
+      # its workloads, not its namespace. It was set by hand on this cluster long
+      # ago, so prod looks fine — but a rebuild or DR would come up with every
+      # public URL on 504 and no issuable certificate. Applying the manifest here
+      # puts it inside the automated deploy path, on every run, idempotently.
+      # Deliberately BEFORE `helm upgrade`: the policy is useless if the label
+      # lands after the rules that select on it.
+      - name: Ensure ingress-nginx namespace labels (NetworkPolicy selector)
+        run: |
+          set -euo pipefail
+          scripts/ci/cluster.sh prod-gateway kubectl apply -f infra/kubernetes/ingress-nginx/namespace.yaml
+          scripts/ci/cluster.sh prod-gateway kubectl get namespace ingress-nginx \
+            -o jsonpath='{.metadata.labels}{"\n"}'
 
       - name: Record current release revision (for rollback)
         run: |
           set -euo pipefail
-          helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" || true
+          scripts/ci/cluster.sh prod-gateway helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" || true
           echo "Rollback: helm rollback ${HELM_RELEASE} <REVISION> -n ${HELM_NAMESPACE}"
 
       # --reuse-values preserves every existing value (admin imageTag + all prod
@@ -460,7 +501,7 @@ jobs:
             SETS+=( --set "platformEnv.runtime.workspaceAgentImage=${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPO}/workspace-agent:sha-${SHORT_SHA}" )
           fi
           echo "helm --set args: ${SETS[*]}"
-          helm upgrade "${HELM_RELEASE}" infra/helm/platform \
+          scripts/ci/cluster.sh prod-gateway helm upgrade "${HELM_RELEASE}" infra/helm/platform \
             --namespace "${HELM_NAMESPACE}" \
             --reuse-values \
             --atomic \
@@ -471,14 +512,14 @@ jobs:
         run: |
           set -euo pipefail
           for svc in web api workspace-manager preview-proxy ai-gateway worker; do
-            dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
+            dep="$(scripts/ci/cluster.sh prod-gateway kubectl -n "${HELM_NAMESPACE}" get deploy \
               -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"
             if [ -z "${dep}" ]; then
               # Fall back to the released chart's naming if the label selector misses.
               dep="deploy/${HELM_RELEASE}-vibecore-platform-${svc}"
             fi
             echo "::group::rollout status ${dep}"
-            kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m
+            scripts/ci/cluster.sh prod-gateway kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m
             echo "::endgroup::"
           done
 
@@ -493,7 +534,7 @@ jobs:
       - name: Verify rollback flag survived the upgrade (D2)
         run: |
           set -euo pipefail
-          CM_VALUE="$(kubectl -n "${HELM_NAMESPACE}" get configmap "${HELM_RELEASE}-vibecore-platform-platform-env" \
+          CM_VALUE="$(scripts/ci/cluster.sh prod-gateway kubectl -n "${HELM_NAMESPACE}" get configmap "${HELM_RELEASE}-vibecore-platform-platform-env" \
             -o jsonpath='{.data.SERVER_DEPLOY_ROLLBACK_FROM_DIGEST}')"
           echo "configmap SERVER_DEPLOY_ROLLBACK_FROM_DIGEST='${CM_VALUE}'"
           if [ "${CM_VALUE}" != "1" ]; then
@@ -508,7 +549,7 @@ jobs:
           # '1') or envFrom on the platform-env configmap whose live value was
           # asserted above. Every pod the Deployment creates then starts with
           # the flag; there is no per-pod drift channel left to check.
-          TEMPLATE_JSON="$(kubectl -n "${HELM_NAMESPACE}" get deploy "${HELM_RELEASE}-vibecore-platform-api" \
+          TEMPLATE_JSON="$(scripts/ci/cluster.sh prod-gateway kubectl -n "${HELM_NAMESPACE}" get deploy "${HELM_RELEASE}-vibecore-platform-api" \
             -o jsonpath='{.spec.template.spec.containers[0]}')"
           EXPLICIT="$(printf '%s' "${TEMPLATE_JSON}" | jq -r '[.env // [] | .[] | select(.name=="SERVER_DEPLOY_ROLLBACK_FROM_DIGEST")][0].value // "ABSENT"')"
           CONSUMES_CM="$(printf '%s' "${TEMPLATE_JSON}" | jq -r --arg cm "${HELM_RELEASE}-vibecore-platform-platform-env" '[.envFrom // [] | .[] | select(.configMapRef.name==$cm)] | length')"

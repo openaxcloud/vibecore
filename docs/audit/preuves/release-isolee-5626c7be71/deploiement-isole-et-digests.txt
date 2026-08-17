@@ -1,0 +1,53 @@
+==> cible epinglee: contexte 'gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster' (KUBECONFIG=/Users/hb/.kube/config)
+==> garde-fou projet OK: vibecore-audit-test-20260807 [env=audit-test;ephemeral=true;owner=platform-audit;ttl-days=7]
+==> garde-fou cluster OK: contexte 'gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster' -> https://34.155.33.130
+    projet(nœuds)=vibecore-audit-test-20260807  cluster=vibecore-audit-cluster  labels=[env=audit-test;ephemeral=true;goog-terraform-provisioned=true;managed_by=terraform;owner=platform-audit]
+==> release isolee 'vibecore-pr125' (ns vibecore-pr125, runtime vibecore-pr125-workspaces), tag 5626c7be71
+    appDomain                app.34.163.208.161.sslip.io -> app-vibecore-pr125.34.163.208.161.sslip.io
+    apiDomain                api.34.163.208.161.sslip.io -> api-vibecore-pr125.34.163.208.161.sslip.io
+    marketingDomain          www.34.163.208.161.sslip.io -> www-vibecore-pr125.34.163.208.161.sslip.io
+    workspaceManagerDomain   wsm.34.163.208.161.sslip.io -> wsm-vibecore-pr125.34.163.208.161.sslip.io
+    previewDomain            preview.34.163.208.161.sslip.io -> preview-vibecore-pr125.34.163.208.161.sslip.io
+namespace/vibecore-pr125 unchanged
+==> doubles in-cluster (Redis + puits e-mail) dans vibecore-pr125
+deployment "vibecore-redis" successfully rolled out
+deployment "email-sink" successfully rolled out
+==> copie du Secret vibecore-platform-secrets vers vibecore-pr125 (REDIS_URL redirige vers le double local)
+==> chart workspaces-runtime dans vibecore-pr125-workspaces
+==> helm upgrade --install vibecore-pr125 (ns vibecore-pr125)
+Release "vibecore-pr125" has been upgraded. Happy Helming!
+NAME: vibecore-pr125
+LAST DEPLOYED: Thu Aug 13 16:13:35 2026
+NAMESPACE: vibecore-pr125
+STATUS: deployed
+REVISION: 11
+DESCRIPTION: Upgrade complete
+TEST SUITE: None
+Waiting for deployment "vibecore-pr125-vibecore-platform-api" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "vibecore-pr125-vibecore-platform-api" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "vibecore-pr125-vibecore-platform-api" rollout to finish: 1 old replicas are pending termination...
+deployment "vibecore-pr125-vibecore-platform-api" successfully rolled out
+deployment "vibecore-pr125-vibecore-platform-worker" successfully rolled out
+deployment "vibecore-pr125-vibecore-platform-admin" successfully rolled out
+deployment "vibecore-pr125-vibecore-platform-ai-gateway" successfully rolled out
+Waiting for deployment "vibecore-pr125-vibecore-platform-workspace-manager" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "vibecore-pr125-vibecore-platform-workspace-manager" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "vibecore-pr125-vibecore-platform-workspace-manager" rollout to finish: 1 old replicas are pending termination...
+deployment "vibecore-pr125-vibecore-platform-workspace-manager" successfully rolled out
+deployment "vibecore-pr125-vibecore-platform-preview-proxy" successfully rolled out
+deployment "vibecore-pr125-vibecore-platform-screenshotter" successfully rolled out
+deployment "vibecore-pr125-vibecore-platform-web" successfully rolled out
+
+==> verification des digests (imageID du pod == digest du registre)
+  api                  OK   sha256:198ea3da76dc5d0d…
+  worker               OK   sha256:7850cb54474dd87a…
+  admin                OK   sha256:803dc33563bac9c5…
+  ai-gateway           OK   sha256:e4467165bd6963e9…
+  workspace-manager    OK   sha256:63b375fe78449c67…
+  preview-proxy        OK   sha256:98ebfb83e978c1b2…
+  screenshotter        OK   sha256:076b81731932711a…
+  web                  OK   sha256:841998d88039ec8e…
+
+==> release isolee prete: vibecore-pr125 / ns vibecore-pr125 / runtime vibecore-pr125-workspaces / tag 5626c7be71
+==> rejeu:  RELEASE=vibecore-pr125 NS=vibecore-pr125 RUNTIME_NS=vibecore-pr125-workspaces WS_ID=ws-vibecore-pr125 \
+              scripts/proofs/replay-preview-doors.sh 5626c7be71

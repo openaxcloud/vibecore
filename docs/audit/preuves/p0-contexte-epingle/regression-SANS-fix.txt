@@ -1,0 +1,29 @@
+=== Test de regression : cible validee == cible utilisee ===
+
+  environnement hostile: HELM_KUBECONTEXT=<prod>, HELM_NAMESPACE=vibecore
+      --- cibles enregistrees ---
+      kubectl|AMBIANT|get nodes -o jsonpath={.items[0].spec.providerID}
+      kubectl|AMBIANT|apply -f /var/folders/8w/yc9wlx9j12n4v06d_4lvdsn40000gn/T/tmp.adUf98opSA/infra/kubernetes/ingress-nginx/namespace.yaml
+      helm|connectgateway_vibecore-495216_europe-west9_vibecore-prod-app|upgrade --install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --set controller.replicaCount=1 --set controller.resources.requests.cpu=100m --set controller.resources.requests.memory=180Mi --wait --timeout 10m
+      helm|connectgateway_vibecore-495216_europe-west9_vibecore-prod-app|upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=true --set resources.requests.cpu=50m --wait --timeout 10m
+      helm|connectgateway_vibecore-495216_europe-west9_vibecore-prod-app|upgrade --install nfs-provisioner nfs-ganesha-server-and-external-provisioner/nfs-server-provisioner --namespace nfs --create-namespace --set persistence.enabled=true --set persistence.size=50Gi --set storageClass.name=nfs --set storageClass.defaultClass=false --set storageClass.accessModes[0]=ReadWriteMany --wait --timeout 10m
+      kubectl|AMBIANT|apply -f -
+      kubectl|AMBIANT|-n vibecore apply -f -
+      kubectl|AMBIANT|-n ingress-nginx get svc ingress-nginx-controller -o jsonpath={.status.loadBalancer.ingress[0].ip}
+      kubectl|AMBIANT|apply -f -
+      kubectl|AMBIANT|-n vibecore apply -f -
+      --- fin ---
+      appels vers l'audit : 0
+      appels AMBIANTS (cible choisie par l'environnement) : 7
+      appels vers la PROD : 3
+      ECHEC: un appel laisse l'environnement choisir la cible
+      kubectl|AMBIANT|get nodes -o jsonpath={.items[0].spec.providerID}
+      kubectl|AMBIANT|apply -f /var/folders/8w/yc9wlx9j12n4v06d_4lvdsn40000gn/T/tmp.adUf98opSA/infra/kubernetes/ingress-nginx/namespace.yaml
+      kubectl|AMBIANT|apply -f -
+      ECHEC: un appel vise la PRODUCTION
+      helm|connectgateway_vibecore-495216_europe-west9_vibecore-prod-app|upgrade --install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --set controller.replicaCount=1 --set controller.resources.requests.cpu=100m --set controller.resources.requests.memory=180Mi --wait --timeout 10m
+      helm|connectgateway_vibecore-495216_europe-west9_vibecore-prod-app|upgrade --install cert-manager jetstack/cert-manager --namespace cert-manager --create-namespace --set crds.enabled=true --set resources.requests.cpu=50m --wait --timeout 10m
+      helm|connectgateway_vibecore-495216_europe-west9_vibecore-prod-app|upgrade --install nfs-provisioner nfs-ganesha-server-and-external-provisioner/nfs-server-provisioner --namespace nfs --create-namespace --set persistence.enabled=true --set persistence.size=50Gi --set storageClass.name=nfs --set storageClass.defaultClass=false --set storageClass.accessModes[0]=ReadWriteMany --wait --timeout 10m
+      ECHEC: aucun appel vers l'audit (le script n'a rien fait ?)
+
+ECHEC: la cible utilisee ne suit pas la cible validee.

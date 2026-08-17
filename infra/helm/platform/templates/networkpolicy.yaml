@@ -46,6 +46,85 @@ spec:
       ports:
         - protocol: TCP
           port: 5432
+{{- $np := .Values.networkPolicy | default dict }}
+{{- $dnsIp := $np.dnsServiceIp | default "" }}
+{{- /* `| default true` would turn an explicit `false` back into true. */}}
+{{- $acmeSolver := true }}
+{{- if hasKey $np "acmeHttp01Solver" }}{{ $acmeSolver = $np.acmeHttp01Solver }}{{ end }}
+{{- if $dnsIp }}
+---
+# DNS, allowed by ClusterIP and not by namespaceSelector.
+#
+# `allow-platform-required-egress` above authorises :53 towards the kube-system
+# NAMESPACE, which is how everyone writes this rule — and on some dataplanes it
+# is enough. It is NOT enough on a dataplane that evaluates egress policy BEFORE
+# service DNAT: there the packet's destination is kube-dns's ClusterIP
+# (a Service address, in the SERVICES range), which belongs to no pod, so no
+# podSelector/namespaceSelector rule can ever match it. Result on a fresh
+# install: every name lookup fails with EAI_AGAIN, the api can reach neither
+# Redis nor its own siblings, /ready answers 503 — and the cause is invisible
+# because the "allow DNS" rule is right there in the chart.
+#
+# Reproduced on the audit test cluster (Calico, classic datapath), 2026-08-07:
+# kube-dns ClusterIP 10.30.0.10.
+#
+# Scoped to the kube-dns ClusterIP as a /32, NOT to the whole Service range: the
+# earlier version allowed :53 to every Service address in the cluster, which
+# would also reach any tenant- or third-party Service that happens to listen on
+# 53 — a needlessly wide hole for a rule whose only job is to reach one address.
+# Empty by default, so this renders only for the environments that need it.
+# NetworkPolicies are a union, so this only ever ADDS an allow.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-clusterip
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  podSelector: {}
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: {{ printf "%s/32" $dnsIp | quote }}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+{{- end }}
+{{- if $acmeSolver }}
+---
+# ACME HTTP-01 solver pods must be reachable, or no certificate is ever issued.
+#
+# cert-manager creates its HTTP-01 solver Pods in the namespace of the Ingress
+# being solved — this one. They carry cert-manager's own labels and none of the
+# platform's, so `deny-all-default` blackholes them and
+# `allow-ingress-controller` (which selects nothing in particular, but is an
+# Ingress-type policy) does not save them either: the solver Pod is not selected
+# by any policy that allows ingress, so it is unreachable. ingress-nginx returns
+# 504 for /.well-known/acme-challenge/..., Let's Encrypt marks the challenge
+# failed, no cert is issued, and every public URL stays broken. Reproduced on
+# the audit test cluster, 2026-08-07.
+#
+# Scoped to the label cert-manager stamps on solver Pods, and to ingress only.
+# Inert where HTTP-01 is not used (prod solves DNS-01, so no solver Pod ever
+# matches) — kept default-on so a from-scratch install works without a values
+# change, and so `--reuse-values` cannot drop it.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-acme-solver-ingress
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  podSelector:
+    matchLabels:
+      acme.cert-manager.io/http01-solver: "true"
+  policyTypes: ["Ingress"]
+  ingress:
+    - {}
+{{- end }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

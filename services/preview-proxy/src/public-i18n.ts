@@ -16,6 +16,12 @@ export const previewProxyEn = {
   PUBLICATION_STATE_UNAVAILABLE: 'This publication’s state could not be verified. Please try again in a moment.',
   PREVIEW_PORT_INVALID: 'The preview port is invalid.',
   PREVIEW_TENANT_FORBIDDEN: 'You do not have access to this preview.',
+  /*
+   * Path routing of PUBLICATIONS (`/d/<id>`, `/s/<id>`) is internal-only: serving
+   * two publications from one origin would destroy the origin isolation that the
+   * `d-`/`s-` hosts exist to provide. Visit the publication's own address instead.
+   */
+  PREVIEW_INTERNAL_ONLY: 'This address is reserved for internal callers.',
   PREVIEW_AGENT_NOT_FOUND: 'The workspace preview is not reachable yet. Please try again.',
   PREVIEW_PATH_INVALID: 'The preview path is invalid.',
   PREVIEW_UPSTREAM_TIMEOUT: 'The preview service timed out.',
@@ -58,6 +64,7 @@ export const previewProxyFr: PreviewProxyCopy = {
     'Impossible de vérifier l’état de cette publication. Réessayez dans un instant.',
   PREVIEW_PORT_INVALID: 'Le port d’aperçu est invalide.',
   PREVIEW_TENANT_FORBIDDEN: 'Vous n’avez pas accès à cet aperçu.',
+  PREVIEW_INTERNAL_ONLY: 'Cette adresse est réservée aux appels internes.',
   PREVIEW_AGENT_NOT_FOUND: 'L’aperçu de l’espace de travail est encore inaccessible. Veuillez réessayer.',
   PREVIEW_PATH_INVALID: 'Le chemin d’aperçu est invalide.',
   PREVIEW_UPSTREAM_TIMEOUT: 'Le délai du service d’aperçu a expiré.',

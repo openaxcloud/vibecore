@@ -103,6 +103,16 @@ platformEnv:
     # reviving the silent URL-copy row this replaced. Required by
     # values.schema.json so an upgrade can never drop it unnoticed.
     serverDeployRollbackFromDigest: '1'
+  # Preview isolation enforcement (services/preview-proxy). Empty = OFF.
+  # 'true' on enforceTenant makes a preview request without a valid `vc_preview`
+  # cookie a hard 403; 'true' on enforcePrivatePorts makes a port marked private
+  # require a preview session, and the lookup behind it is fail-closed. Both
+  # require PREVIEW_TENANT_SECRET in the platform Secret — the proxy refuses to
+  # boot without it. See templates/configmap.yaml for what to verify before
+  # enabling these in production.
+  preview:
+    enforceTenant: ''
+    enforcePrivatePorts: ''
   email:
     httpEndpoint: ''
     from: ''
@@ -134,6 +144,11 @@ platformEnv:
 ingress:
   className: nginx
   issuerName: letsencrypt-dns01
+  # ClusterIssuer for the WILDCARD preview certificate. Empty = same as
+  # issuerName, which is right whenever that issuer solves DNS-01. An
+  # environment on HTTP-01 must point this elsewhere: ACME cannot issue a
+  # wildcard over HTTP-01, so the Certificate would never become Ready.
+  previewIssuerName: ''
   tlsSecretName: vibecore-platform-tls
   previewTlsSecretName: vibecore-preview-wildcard-tls
   proxyReadTimeoutSeconds: 180
@@ -302,9 +317,26 @@ podSecurity:
   enforce: restricted
 
 networkPolicy:
+  # NOTE (from-scratch installs): this selector needs BOTH labels on the
+  # ingress-nginx namespace, and the upstream ingress-nginx chart only poses
+  # `kubernetes.io/metadata.name` (which the apiserver adds automatically).
+  # Without `app.kubernetes.io/name=ingress-nginx` on that namespace nothing
+  # matches, deny-all-default wins, and every public URL answers 504 —
+  # invisible on an established cluster where the label was set by hand long ago.
+  # scripts/audit-env/addons.sh applies it; do the same for any new cluster.
   ingressControllerNamespaceSelector:
     kubernetes.io/metadata.name: ingress-nginx
     app.kubernetes.io/name: ingress-nginx
+  # kube-dns's ClusterIP (`kubectl -n kube-system get svc kube-dns -o
+  # jsonpath='{.spec.clusterIP}'`). Renders `allow-dns-clusterip` as a /32: on a
+  # dataplane that evaluates egress BEFORE service DNAT, :53 to the kube-system
+  # NAMESPACE never matches, because the destination is this address. Empty =
+  # rule not rendered. See templates/networkpolicy.yaml for the full story.
+  dnsServiceIp: ''
+  # Renders `allow-acme-solver-ingress`, without which cert-manager's HTTP-01
+  # solver Pods are unreachable and no certificate is ever issued. Inert when
+  # HTTP-01 is unused (no solver Pod matches), hence default-on.
+  acmeHttp01Solver: true
   # Egress allow-list for the private-VPC Cloud SQL (Postgres) and Memorystore
   # (Redis) endpoints. deny-all-default blocks these otherwise. Override the
   # CIDRs to match your VPC's private-service-access ranges.

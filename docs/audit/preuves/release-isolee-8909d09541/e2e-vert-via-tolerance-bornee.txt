@@ -1,0 +1,32 @@
+# Production E2E — VERT au SHA exact, via une tolerance bornee de main
+
+Run 31906123535, tete c1dfa15bef. Conclusion du workflow : success.
+
+Lecture honnete du vert : Playwright lui-meme sort en echec
+  playwright exit: 1      9 failed, 1 flaky, 24 skipped, 205 passed (239 rapportes)
+et le job est vert grace a une etape ajoutee en amont, « E2E gate (bounded waiver) » :
+  E2E gate — waiver expires 2026-08-27 (13 day(s) left)
+    tests reported : 239
+    failing        : 9
+    waived         : 10
+    flaky (passed on retry): 1
+
+La tolerance est COMMITEE et bornee (tests/e2e/e2e-waivers.json, owner avi@,
+expires 2026-08-27), et ses regles sont appliquees par scripts/e2e-gate.mjs :
+  1. un test tolere TOURNE toujours — rien n'est skippe ni supprime ;
+  2. passee la date, la porte echoue SUR la tolerance elle-meme ;
+  3. un test tolere qui se remet a passer fait echouer la porte (sauf « unstable ») ;
+  4. tout echec non liste fait echouer la porte normalement ;
+  5. fenetre plafonnee a 30 jours.
+
+Perimetre : la PR ne touche NI la porte NI la liste NI le workflow —
+  git diff --name-only origin/main...HEAD -- scripts/e2e-gate.mjs tests/e2e/e2e-waivers.json .github/workflows/e2e.yml  ->  0 fichier
+
+Les 10 tolerances portent toutes sur tests/e2e/dashboard.spec.ts et
+mobile-device-matrix.spec.ts, donc sur app/ — zero fichier du diff de cette PR.
+
+A noter : dashboard.spec.ts « IDE panels, agent input and feature tools keep the
+platform theme in light and dark modes » — le test que j'avais instruit par
+bissection sur plusieurs tours — figure dans cette liste (cluster ide-account-theme).
+Les proprietaires de main l'ont donc classe comme echec connu, ce qui confirme la
+conclusion : instabilite heritee, pas regression de cette PR.

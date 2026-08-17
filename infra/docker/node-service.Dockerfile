@@ -29,6 +29,21 @@ ARG PACKAGE_FILTER
 COPY apps ./apps
 COPY packages ./packages
 COPY services ./services
+# `apps/admin` maps `~/*` to the REPO-ROOT `app/*` (apps/admin/tsconfig.json), and
+# since 2026-08-05 (b4aa6df0, the French localisation) it imports
+# `~/lib/i18n/catalogs/admin` + `~/lib/i18n/language` from there. This stage never
+# copied `app/`, so `pnpm --filter @vibecore/admin build` has failed ever since
+# with `TS2307: Cannot find module '~/lib/i18n/…'` — in the monolithic
+# cloudbuild.yaml as much as in the per-service one. It went unnoticed because CD
+# rebuilds admin only when its tier changes and otherwise keeps the deployed tag
+# via `helm upgrade --reuse-values`.
+#
+# Scoped to `app/lib/i18n` rather than all of `app/`: those two modules are the
+# only `~/` imports in the entire set of packages this Dockerfile builds
+# (verified by grep across apps/* and services/*), and `app/lib/i18n` imports
+# nothing outside itself. Copying the whole Remix app would inflate the context
+# and the layer for the six backend services that need none of it.
+COPY app/lib/i18n ./app/lib/i18n
 
 RUN pnpm --filter "${PACKAGE_FILTER}" build
 RUN pnpm deploy --filter "${PACKAGE_FILTER}" --prod --prefer-offline /runtime

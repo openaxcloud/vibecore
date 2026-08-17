@@ -1,0 +1,33 @@
+=== A. TEMOIN — ancien appel: --kube-context, sans enveloppe ===
+  OK: redirection reproduite (cible recue = APISERVER:https://apiserver-hostile.example.com)
+
+=== A2. AVEC l'enveloppe, meme environnement hostile ===
+  ECHEC: la cible n'est pas le contexte de prod epingle.
+
+=== B1. prod-gateway : AUTRE projet Connect Gateway, meme nom de membership ===
+  OK    B1 autre projet, membership homonyme -> REFUS (fail-closed): l'apiserver de 'connectgateway_vibecore-495216_europe-west9_vibecore-prod-app' n'est pas le Conne
+
+=== B2. prod-direct : apiserver arbitraire, nom de contexte contenant l'id prod ===
+  ECHEC B2 nom de contexte trompeur -> exit=0, appels a l'outil=1 (attendu: exit!=0 et 0 appel)
+        helm|gke_vibecore-495216_europe-west9_cluster-de-l-attaquant|--kube-context=gke_vibecore-495216_europe-west9_cluster-de-l-attaquant upgrade --install vibecore infra/helm/platform
+
+=== B2b. prod-direct : bon nom de contexte, mais apiserver != endpoint autoritatif ===
+  ECHEC B2b apiserver substitue -> exit=0, appels a l'outil=1 (attendu: exit!=0 et 0 appel)
+        helm|gke_vibecore-495216_europe-west9_vibecore-prod-app|--kube-context=gke_vibecore-495216_europe-west9_vibecore-prod-app upgrade --install vibecore infra/helm/platform
+
+=== B3. staging : apiserver arbitraire echappant a l'ancienne deny-list ===
+  ECHEC B3 staging non epingle -> exit=0, appels a l'outil=1 (attendu: exit!=0 et 0 appel)
+        helm|gke_projet-quelconque_europe-west1_grappe-anodine|--kube-context=gke_projet-quelconque_europe-west1_grappe-anodine upgrade --install vibecore infra/helm/platform
+
+=== C. prod-gateway : membership homonyme dans un autre projet (vu par Fleet) ===
+  OK    C identite de membership d'un autre projet -> REFUS (fail-closed): l'apiserver de 'connectgateway_vibecore-495216_europe-west9_vibecore-prod-app' n'est pas le Conne
+
+=== D. numero de projet qui ne correspond pas a l'id ===
+  OK    D numero de projet different -> REFUS (fail-closed): l'apiserver de 'connectgateway_vibecore-495216_europe-west9_vibecore-prod-app' n'est pas le Conne
+
+=== E. cas LEGITIMES — ce n'est pas un « tout refuser » ===
+  ECHEC: l'appel legitime prod-gateway ne passe plus.
+        REFUS (fail-closed): l'apiserver de 'connectgateway_vibecore-495216_europe-west9_vibecore-prod-app' n'est pas le Connect Gateway attendu.
+  OK    prod-direct legitime  -> helm|gke_vibecore-495216_europe-west9_vibecore-prod-app|--kube-context=gke_vibecore-495216
+
+ECHEC: l'enveloppe ne tient pas ses proprietes.

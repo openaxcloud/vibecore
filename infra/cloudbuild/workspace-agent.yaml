@@ -27,6 +27,10 @@ substitutions:
   # Cosign signing key (B7) — see infra/cloudbuild/runtime-tier.yaml.
   _KMS_KEYRING: ecode-supply-chain
   _KMS_KEY: cosign-images
+  # '1' = signer (defaut, prod, etape FATALE). '0' = sauter, pour un projet sans
+  # le keyring KMS ci-dessus. Jamais '0' pour la prod : Kyverno y refuse une
+  # image non signee.
+  _SIGN_IMAGES: '1'
 
 options:
   machineType: E2_HIGHCPU_8
@@ -124,6 +128,16 @@ steps:
       - -c
       - |
         set -euo pipefail
+        # Meme raison que dans single-web.yaml : la cle KMS visee est celle de
+        # ${_PROJECT}, et seul le projet de prod possede le keyring
+        # `ecode-supply-chain`. Ailleurs l'etape echoue en SERVICE_DISABLED APRES
+        # le push, donc build rouge sur une image publiee et bonne. '1' par
+        # defaut : la prod ne change pas et la signature y reste fatale.
+        if [ "${_SIGN_IMAGES}" != "1" ]; then
+          echo "::: signature SAUTEE (_SIGN_IMAGES=${_SIGN_IMAGES})"
+          echo "::: image poussee mais NON signee — interdit pour la prod (Kyverno)."
+          exit 0
+        fi
         export PATH="/workspace:$$PATH"
         ref="${_REGION}-docker.pkg.dev/${_PROJECT}/${_REPO}/workspace-agent:sha-${_SHORT_SHA}"
         digest_ref="$(docker inspect --format='{{index .RepoDigests 0}}' "$ref")"

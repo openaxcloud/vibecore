@@ -1,0 +1,34 @@
+# Bissection de l'echec E2E dashboard.spec.ts:816
+
+Runs (workflow_dispatch, donc meme type d'evenement que les echantillons de main) :
+  31690148236  tmp/e2e-bisect-no-services   1ea94d3985  arbre PR sans mes services
+  31690150293  tmp/e2e-bisect-services-only 420ec02361  main + mes services seuls
+  31687206716  fix/from-scratch-install-dr-clean 4faba16e3a
+  31676668326 / 31682658922  main b2ee7c8844 (2 echantillons)
+
+## A : arbre PR SANS mes services
+  ########## A : arbre PR SANS mes services (1ea94d3985) ##########
+  58 failed
+  176 passed
+    dashboard.spec.ts:816 en echec ? 1
+  ########## B : main + UNIQUEMENT mes services (420ec02361) ##########
+## B : main + mes services seuls
+  ########## B : main + UNIQUEMENT mes services (420ec02361) ##########
+  58 failed
+  176 passed
+    dashboard.spec.ts:816 en echec ? 1
+
+## Ce qui subsiste sur A par rapport a la base b2ee7c8844 (tous des AJOUTS)
+  A	services/api/src/preview-tenant-token.ts
+  A	services/api/src/tests/preview-port-access-failclosed.spec.ts
+  A	services/preview-proxy/src/deploy-path-routing.spec.ts
+  A	services/preview-proxy/src/server-deploy-header-leak.spec.ts
+  A	services/screenshotter/src/preview-proxy-path.spec.ts
+  A	services/screenshotter/src/preview-proxy-path.ts
+
+Les deux modules non-test y sont importes par 0 fichier hors tests (git grep).
+Le comportement execute par la stack Playwright est donc celui de main.
+
+## Decompte
+  echoue 5 fois : PR x2, dispatch branche, bissection A, bissection B
+  passe  2 fois : main x2

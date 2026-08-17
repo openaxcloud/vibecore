@@ -32,6 +32,44 @@ data:
   PUBLIC_API_BASE_URL: {{ .Values.platformEnv.publicApiBaseUrl | quote }}
   {{- end }}
 
+{{- /*
+  API_CORS_ORIGINS — the api is FAIL-CLOSED on it: with environment=production
+  it refuses to boot unless this lists explicit https:// origins
+  (services/api/src/app.ts, "Production startup blocked: API_CORS_ORIGINS must
+  list explicit HTTPS origins"). Until now the key existed NOWHERE in this
+  chart; on prod it was provisioned out of band, straight into
+  vibecore-platform-secrets. So a from-scratch install of this chart — a
+  disaster recovery included — produced an api in CrashLoopBackOff, and the
+  chart alone could not bring the platform up. Reproduced on the audit test
+  cluster, 2026-08-07.
+
+  The DEFAULT is derived from the chart's own public hostnames — app domain,
+  marketing domain, and the `www.` form of the marketing domain when it is
+  apex — so any new environment is self-sufficient with no out-of-band step.
+  The derivation is not a guess: on values-prod.yaml it renders
+  "https://app.e-code.ai,https://e-code.ai,https://www.e-code.ai", byte-identical
+  to what prod serves today. The api's own hostname is deliberately NOT in the
+  list: an Origin header only ever arrives from the app or marketing front ends.
+
+  Derived rather than a `platformEnv.apiCorsOrigins` value BECAUSE CD deploys
+  with `helm upgrade --reuse-values`, which DROPS newly-added values keys — a
+  values-only default would silently vanish on the next prod deploy. The
+  override key still exists for an environment whose origins the chart cannot
+  know; it just isn't load-bearing for prod.
+
+  Precedence note: the Deployments mount `envFrom: secretRef` BEFORE
+  `configMapRef`, and the Kubelet lets the later source win, so this key
+  OVERRIDES any API_CORS_ORIGINS still sitting in the platform secret. That is
+  the intent — the chart becomes the single source of truth.
+*/}}
+  {{- $cors := list }}
+  {{- with .Values.global.appDomain }}{{ $cors = append $cors (printf "https://%s" .) }}{{ end }}
+  {{- with .Values.global.marketingDomain }}
+  {{-   $cors = append $cors (printf "https://%s" .) }}
+  {{-   if not (hasPrefix "www." .) }}{{ $cors = append $cors (printf "https://www.%s" .) }}{{ end }}
+  {{- end }}
+  API_CORS_ORIGINS: {{ .Values.platformEnv.apiCorsOrigins | default (join "," $cors) | quote }}
+
   # Google OAuth — well-known endpoints, redirect URI derived from the chart.
   GOOGLE_AUTHORIZATION_URL: {{ .Values.platformEnv.google.authorizationUrl | quote }}
   GOOGLE_TOKEN_URL: {{ .Values.platformEnv.google.tokenUrl | quote }}
@@ -123,8 +161,20 @@ data:
   # DB_ROLLBACK_ENABLED is "true"; setting it "false" fully disables the feature.
   # Bucket/GSA/shared-cluster are this prod cluster's CNPG coordinates (Phase 1).
   DB_ROLLBACK_ENABLED: "true"
-  DB_BACKUP_BUCKET: "vibecore-495216-vibecore-prod-backups"
-  DB_BACKUP_GSA: "cnpg-backups@vibecore-495216.iam.gserviceaccount.com"
+{{- /*
+  Overridable, but DEFAULTING to the prod literals so the `--reuse-values` CD
+  path renders byte-identically to before (a dropped values key falls back to
+  the literal). The override exists so a NON-prod install of this chart — the
+  ephemeral audit environment — cannot point its database backups at the
+  production bucket and production service account. Nil-safe: `platformEnv.
+  dbBackup` is absent under --reuse-values.
+
+  Deliberately a Helm comment, not a YAML `#` comment: anything rendered into
+  this ConfigMap changes `checksum/platform-env` and would roll all seven
+  production Deployments on the next deploy.
+*/}}
+  DB_BACKUP_BUCKET: {{ (.Values.platformEnv.dbBackup | default dict).bucket | default "vibecore-495216-vibecore-prod-backups" | quote }}
+  DB_BACKUP_GSA: {{ (.Values.platformEnv.dbBackup | default dict).gsa | default "cnpg-backups@vibecore-495216.iam.gserviceaccount.com" | quote }}
   DB_SHARED_CLUSTER: "shared-pg-0"
   # Per-project GCS object storage (services/api/src/object-storage.ts). Same
   # hardcoded-literal rule as DB_ROLLBACK_ENABLED above: a manual `kubectl set
@@ -145,9 +195,14 @@ data:
   AUTH_SCAFFOLD_ENABLED: "true"
   # Preview private-port gate (services/preview-proxy). The api side reads the
   # per-port flag from VIBECORE_PORTS_STATE; turning this on just lets the
-  # /internal/preview/port-access endpoint return real data. The preview-proxy
-  # ENFORCEMENT (PREVIEW_ENFORCE_PRIVATE_PORTS) stays OFF — a dark-launch that
-  # needs the vc_preview session cookie rollout first.
+  # /internal/preview/port-access endpoint return real data.
+  #
+  # ENFORCEMENT is now a values switch (see below) instead of a hardcoded OFF.
+  # The lookup itself is fail-CLOSED as of this change: it no longer answers
+  # "public" when the api is unreachable / answers non-2xx / returns a body
+  # without the field. That was a control whose failure mode was "allow", which
+  # is no control at all — and it is precisely why the duplicate API_BASE_URL
+  # (:80 vs 3001) went unnoticed: every lookup failed, so every port read public.
   #
   # API_BASE_URL is defined ONCE, above, from platformEnv.apiBaseUrl. A second
   # literal used to be re-declared HERE with port :80 — the api Service listens
@@ -156,6 +211,29 @@ data:
   # private-port lookup) fails OPEN on error; the static-deploy proxy added
   # 2026-08-01 surfaced it as STATIC_DEPLOY_UPSTREAM_FAILED.
   PREVIEW_PRIVATE_PORTS_ENABLED: "true"
+{{- /*
+  Preview isolation enforcement, per environment.
+
+  Both default to OFF, and that default is deliberate rather than lazy: with
+  PREVIEW_PROXY_ENFORCE_TENANT on, a preview request without a valid `vc_preview`
+  cookie is a hard 403. The cookie is minted only by the IDE project loader
+  (app/lib/project-ide-loader.server.ts), so before flipping it in production
+  every OTHER consumer of a preview host has to be shown to carry it — a preview
+  URL opened directly, the server-deploy hosts (`d-<id>`), and the screenshotter,
+  which fetches previews in-cluster and would otherwise lose every thumbnail.
+  That verification cannot be done from the audit environment (it runs with
+  screenshotterUrl empty), so this PR wires the switch and proves it on the audit
+  env, and does NOT flip production. Flipping prod is a separate, verifiable step:
+  set platformEnv.preview.enforceTenant/enforcePrivatePorts to 'true' AND re-`--set`
+  them (CD deploys with --reuse-values, which drops new values keys).
+
+  PREVIEW_TENANT_SECRET must be provisioned in the platform Secret before either
+  flag goes on — the proxy refuses to boot otherwise, which is the correct
+  fail-closed behaviour for a missing key (services/preview-proxy/src/app.ts).
+*/}}
+{{- $preview := .Values.platformEnv.preview | default dict }}
+  PREVIEW_PROXY_ENFORCE_TENANT: {{ $preview.enforceTenant | default "" | quote }}
+  PREVIEW_ENFORCE_PRIVATE_PORTS: {{ $preview.enforcePrivatePorts | default "" | quote }}
   {{- if .Values.platformEnv.runtime.aiGatewayUrl }}
   # In-cluster URL the api pod uses to reach the ai-gateway service. Without
   # this the api falls back to http://127.0.0.1:3030 (app.ts aiGatewayUrl

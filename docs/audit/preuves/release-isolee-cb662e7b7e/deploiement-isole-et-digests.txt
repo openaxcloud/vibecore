@@ -1,0 +1,56 @@
+==> cible epinglee: contexte 'gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster' (KUBECONFIG=/Users/hb/.kube/config)
+==> garde-fou projet OK: vibecore-audit-test-20260807 [env=audit-test;ephemeral=true;owner=platform-audit;ttl-days=7]
+==> garde-fou cluster OK: contexte 'gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster' -> https://34.155.33.130
+    projet(nœuds)=vibecore-audit-test-20260807  cluster=vibecore-audit-cluster  labels=[env=audit-test;ephemeral=true;goog-terraform-provisioned=true;managed_by=terraform;owner=platform-audit]
+==> release isolee 'vibecore-pr125' (ns vibecore-pr125, runtime vibecore-pr125-workspaces), tag cb662e7b7e
+    appDomain                app.34.163.208.161.sslip.io -> app-vibecore-pr125.34.163.208.161.sslip.io
+    apiDomain                api.34.163.208.161.sslip.io -> api-vibecore-pr125.34.163.208.161.sslip.io
+    marketingDomain          www.34.163.208.161.sslip.io -> www-vibecore-pr125.34.163.208.161.sslip.io
+    workspaceManagerDomain   wsm.34.163.208.161.sslip.io -> wsm-vibecore-pr125.34.163.208.161.sslip.io
+    previewDomain            preview.34.163.208.161.sslip.io -> preview-vibecore-pr125.34.163.208.161.sslip.io
+namespace/vibecore-pr125 unchanged
+==> doubles in-cluster (Redis + puits e-mail) dans vibecore-pr125
+deployment "vibecore-redis" successfully rolled out
+deployment "email-sink" successfully rolled out
+==> copie du Secret vibecore-platform-secrets vers vibecore-pr125 (REDIS_URL redirige vers le double local)
+==> chart workspaces-runtime dans vibecore-pr125-workspaces
+==> helm upgrade --install vibecore-pr125 (ns vibecore-pr125)
+Release "vibecore-pr125" has been upgraded. Happy Helming!
+NAME: vibecore-pr125
+LAST DEPLOYED: Thu Aug 13 18:58:09 2026
+NAMESPACE: vibecore-pr125
+STATUS: deployed
+REVISION: 12
+DESCRIPTION: Upgrade complete
+TEST SUITE: None
+Waiting for deployment "vibecore-pr125-vibecore-platform-api" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "vibecore-pr125-vibecore-platform-api" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "vibecore-pr125-vibecore-platform-api" rollout to finish: 1 old replicas are pending termination...
+deployment "vibecore-pr125-vibecore-platform-api" successfully rolled out
+Waiting for deployment "vibecore-pr125-vibecore-platform-worker" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "vibecore-pr125-vibecore-platform-worker" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "vibecore-pr125-vibecore-platform-worker" rollout to finish: 1 old replicas are pending termination...
+deployment "vibecore-pr125-vibecore-platform-worker" successfully rolled out
+deployment "vibecore-pr125-vibecore-platform-admin" successfully rolled out
+deployment "vibecore-pr125-vibecore-platform-ai-gateway" successfully rolled out
+Waiting for deployment "vibecore-pr125-vibecore-platform-workspace-manager" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "vibecore-pr125-vibecore-platform-workspace-manager" rollout to finish: 1 old replicas are pending termination...
+Waiting for deployment "vibecore-pr125-vibecore-platform-workspace-manager" rollout to finish: 1 old replicas are pending termination...
+deployment "vibecore-pr125-vibecore-platform-workspace-manager" successfully rolled out
+deployment "vibecore-pr125-vibecore-platform-preview-proxy" successfully rolled out
+deployment "vibecore-pr125-vibecore-platform-screenshotter" successfully rolled out
+deployment "vibecore-pr125-vibecore-platform-web" successfully rolled out
+
+==> verification des digests (imageID du pod == digest du registre)
+  api                  OK   sha256:b83df0ceb31f05ba…
+  worker               OK   sha256:b76903ffb93500ea…
+  admin                OK   sha256:600cef5a45ae7d2c…
+  ai-gateway           OK   sha256:7dd40f32dbe3dc21…
+  workspace-manager    OK   sha256:03ba8dfb4a17d702…
+  preview-proxy        OK   sha256:85260dfc12cff150…
+  screenshotter        OK   sha256:2a12da0c36da26e5…
+  web                  OK   sha256:3c2b2703c1640838…
+
+==> release isolee prete: vibecore-pr125 / ns vibecore-pr125 / runtime vibecore-pr125-workspaces / tag cb662e7b7e
+==> rejeu:  RELEASE=vibecore-pr125 NS=vibecore-pr125 RUNTIME_NS=vibecore-pr125-workspaces WS_ID=ws-vibecore-pr125 \
+              scripts/proofs/replay-preview-doors.sh cb662e7b7e

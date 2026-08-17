@@ -107,7 +107,12 @@ metadata:
   name: {{ include "vibecore-platform.fullname" . }}-preview
   annotations:
     kubernetes.io/ingress.class: {{ .Values.ingress.className | quote }}
-    cert-manager.io/cluster-issuer: {{ .Values.ingress.issuerName | quote }}
+    # The preview host is a WILDCARD, which ACME can only issue over DNS-01 —
+    # so an environment whose main issuer is HTTP-01 needs a DIFFERENT issuer
+    # here, or this Certificate stays `READY=False` forever and cert-manager
+    # retries an impossible order for the life of the cluster. Defaults to the
+    # main issuer, which is correct for prod (DNS-01 for everything).
+    cert-manager.io/cluster-issuer: {{ .Values.ingress.previewIssuerName | default .Values.ingress.issuerName | quote }}
     # Match the -app limit so uploads to a running preview app aren't 413'd at 1 MB.
     nginx.ingress.kubernetes.io/proxy-body-size: {{ .Values.ingress.proxyBodySize | default "26m" | quote }}
     # The proxy answers a sleeping / booting / wedged app with its own branded

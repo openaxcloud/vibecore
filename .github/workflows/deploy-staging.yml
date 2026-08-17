@@ -89,7 +89,7 @@ jobs:
 
       - name: Deploy platform chart
         run: |
-          helm upgrade --install vibecore infra/helm/platform \
+          scripts/ci/cluster.sh staging helm upgrade --install vibecore infra/helm/platform \
             --namespace vibecore \
             --create-namespace \
             --set global.environment=staging \

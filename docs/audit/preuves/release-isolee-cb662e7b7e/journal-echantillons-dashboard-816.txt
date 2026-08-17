@@ -1,0 +1,14 @@
+# dashboard.spec.ts:816 — journal des echantillons
+
+  cote PR   : echec, echec, echec (dispatch branche), PASSE (e52f5c7f92), echec (8431430c67)
+  cote main : passe, passe  (deux dispatch, ensembles identiques entre eux)
+  bissection: echec sur l'arbre PR SANS mes services (contenu executable = main)
+              echec sur main + mes services seuls
+
+Le test a donc bascule dans les DEUX sens cote PR sans qu'aucune ligne ne change
+entre-temps, et il echoue sur un arbre dont le contenu executable est celui de main.
+Instabilite, pas regression. Le mode d'echec le confirme : les six jetons CSS
+reviennent vides, donc une feuille de styles pas encore appliquee, en ~2,6 s.
+
+Ce journal est tenu a jour a chaque tour plutot que de figer une conclusion :
+si le test devenait systematique d'un seul cote, il faudrait rouvrir l'instruction.

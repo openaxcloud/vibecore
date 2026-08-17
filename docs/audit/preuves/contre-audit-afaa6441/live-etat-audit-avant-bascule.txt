@@ -1,0 +1,14 @@
+# Etat de l'env audit AVANT ma bascule (une autre session l'avait modifie a la main)
+2026-08-12T06:49:49Z
+NOM                                            IMAGE
+email-sink                                     mendhak/http-https-echo:31
+vibecore-redis                                 redis:7-alpine
+vibecore-vibecore-platform-admin               europe-west9-docker.pkg.dev/vibecore-audit-test-20260807/vibecore-audit-containers/admin:3a537e9a7e
+vibecore-vibecore-platform-ai-gateway          europe-west9-docker.pkg.dev/vibecore-audit-test-20260807/vibecore-audit-containers/ai-gateway:3a537e9a7e
+vibecore-vibecore-platform-api                 europe-west9-docker.pkg.dev/vibecore-audit-test-20260807/vibecore-audit-containers/api:3a537e9a7e
+vibecore-vibecore-platform-preview-proxy       europe-west9-docker.pkg.dev/vibecore-audit-test-20260807/vibecore-audit-containers/preview-proxy:3a537e9a7e
+vibecore-vibecore-platform-web                 europe-west9-docker.pkg.dev/vibecore-audit-test-20260807/vibecore-audit-containers/web:seedfix001
+vibecore-vibecore-platform-worker              europe-west9-docker.pkg.dev/vibecore-audit-test-20260807/vibecore-audit-containers/worker:3a537e9a7e
+vibecore-vibecore-platform-workspace-manager   europe-west9-docker.pkg.dev/vibecore-audit-test-20260807/vibecore-audit-containers/workspace-manager:3a537e9a7e
+NAME    	NAMESPACE	REVISION	UPDATED                             	STATUS	CHART                  	APP VERSION
+vibecore	vibecore 	6       	2026-08-12 09:48:18.336567 +0300 IDT	failed	vibecore-platform-0.1.0	0.1.0      

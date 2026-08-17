@@ -1,0 +1,28 @@
+############ LIVE NEGATIF — le scenario de l'expert ############
+date: 2026-08-11T07:30:02Z
+env hostile injectee :
+  HELM_KUBECONTEXT=connectgateway_vibecore-495216_europe-west9_vibecore-prod-app
+  HELM_NAMESPACE=vibecore
+  KUBECONFIG=/tmp/kubeconfig-pieges (contexte courant = PROD)
+
+  contexte courant du kubeconfig detourne : connectgateway_vibecore-495216_europe-west9_vibecore-prod-app
+
+--- execution de addons.sh avec cet environnement ---
+==> variables de redirection IGNOREES (l'environnement ne choisit pas la cible) :
+      HELM_KUBECONTEXT=connectgateway_vibecore-495216_europe-west9_vibecore-prod-app
+      HELM_NAMESPACE=vibecore
+      KUBECONFIG=/var/folders/8w/yc9wlx9j12n4v06d_4lvdsn40000gn/T/tmp.Sr3IXBEyRJ/kc
+==> cible epinglee: contexte 'gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster' (KUBECONFIG=/Users/hb/.kube/config)
+==> garde-fou projet OK: vibecore-audit-test-20260807 [env=audit-test;ephemeral=true;owner=platform-audit;ttl-days=7]
+==> garde-fou cluster OK: contexte 'gke_vibecore-audit-test-20260807_europe-west9-a_vibecore-audit-cluster' -> https://34.155.33.130
+==> namespace ingress-nginx (labels de la NetworkPolicy)
+==> ingress-nginx
+==> cert-manager
+==> NFS provisioner (StorageClass 'nfs', RWX)
+==> Redis (in-cluster, remplace Memorystore)
+==> attente de l'IP externe du load balancer
+==> LB_IP=34.163.208.161  (domaines: app.34.163.208.161.sslip.io, etc.)
+==> ClusterIssuers (HTTP-01 reel + self-signed pour le wildcard preview)
+==> puits e-mail (remplace Resend)
+==> add-ons installes. LB_IP=34.163.208.161
+--- fin ---
