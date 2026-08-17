@@ -87,7 +87,7 @@ export const ECODE_MOBILE_TOOLS: readonly MobileToolItem[] = [
   {
     id: 'terminal',
     section: 'tools',
-    titleKey: SHELL_TERMINAL_LABEL,
+    titleKey: 'mobileIdeTabs.terminal.title',
     descriptionKey: 'mobileIdeTabs.terminal.description',
     icon: 'i-ph:terminal-window',
   },
