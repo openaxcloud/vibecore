@@ -33,6 +33,13 @@ Deux signaux ont été **écartés après re-mesure à froid** plutôt que consi
 débordent » du Débogueur (zéro à la reprise — état de rendu intermédiaire) et l'élément de 13×13 px pris
 isolément (ce n'est pas la cible : c'est la rangée qui l'est).
 
+**Passe TABLETTE 768 dédiée, à froid (18/08)** — les 23 panneaux repris un par un avec **16 s de
+stabilisation** avant toute mesure, pour éliminer les états de rendu intermédiaires qui avaient produit
+plusieurs faux signaux : **22 panneaux sur 23 sains**. Aucun scroll interne parasite, aucun rognage,
+aucun débordement de texte, aucun débordement de page ; le panneau occupe bien les 768 px. Le seul écart
+est celui de Git, déjà corrigé par la PR #150 (l'environnement d'audit tourne encore l'ancien build).
+Le constat « Journaux : rogné + texte débordant » de la première passe **ne se reproduit pas** à froid.
+
 **Protocole** : 29 panneaux × 3 formats (mobile 390 / tablette 768 / desktop 1440) × 2 thèmes
 = **174 relevés**, sur un projet RÉEL de l'environnement d'audit, en cherchant activement ce qui casse.
 
