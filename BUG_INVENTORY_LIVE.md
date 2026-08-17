@@ -1,5 +1,53 @@
 # BUG INVENTORY LIVE
 
+## ✅ CHECKLIST PANNEAUX — vérification exhaustive (mise à jour en continu)
+
+**Légende par cellule** : ✅ marche + soigné niveau Fortune-500 · 🔧 en cours de vérification · ❌ cassé.
+Un panneau n'est ✅ **que** si, sur ce format, il fonctionne réellement en **clair ET sombre** :
+monté, sans « Unavailable » ni texte anglais résiduel, sans erreur console ni réponse 4xx/5xx,
+sans débordement horizontal, contraste du titre conforme WCAG AA, et **actions réellement exercées**.
+
+**Protocole** : 29 panneaux × 3 formats (mobile 390 / tablette 768 / desktop 1440) × 2 thèmes
+= **174 relevés**, sur un projet RÉEL de l'environnement d'audit, en cherchant activement ce qui casse.
+
+⚠️ Les correctifs des PR #144 (terminal + workflow), #145 (Database), #147 (Git) et #149 (journaux de
+déploiement) **ne sont pas encore déployés** sur l'environnement d'audit : les panneaux concernés
+seront re-relevés après leur mise en ligne.
+
+| Panneau | id | Mobile 390 | Tablette 768 | Desktop 1440 | Constats |
+|---|---|:---:|:---:|:---:|---|
+| Vue d'ensemble | `overview` | 🔧 | 🔧 | 🔧 | — |
+| Agent IA | `agent` | 🔧 | 🔧 | 🔧 | — |
+| Déploiements | `deployments` | 🔧 | 🔧 | 🔧 | — |
+| Stockage d'objets | `object-storage` | 🔧 | 🔧 | 🔧 | — |
+| Paramètres | `settings` | 🔧 | 🔧 | 🔧 | — |
+| Terminal | `terminal` | 🔧 | 🔧 | 🔧 | — |
+| Base de données | `database` | 🔧 | 🔧 | 🔧 | — |
+| Verrous | `locks` | 🔧 | 🔧 | 🔧 | — |
+| Débogueur | `debugger` | 🔧 | 🔧 | 🔧 | — |
+| Git | `git` | 🔧 | 🔧 | 🔧 | — |
+| Paquets | `packages` | 🔧 | 🔧 | 🔧 | — |
+| Compétences | `skills` | 🔧 | 🔧 | 🔧 | — |
+| Studio Agent | `studio` | 🔧 | 🔧 | 🔧 | — |
+| Intégrations | `integrations` | 🔧 | 🔧 | 🔧 | — |
+| Extensions | `extensions` | 🔧 | 🔧 | 🔧 | — |
+| Collaborateurs | `collaborators` | 🔧 | 🔧 | 🔧 | — |
+| Webview | `preview` | 🔧 | 🔧 | 🔧 | — |
+| Journaux | `logs` | 🔧 | 🔧 | 🔧 | — |
+| Secrets | `secrets` | 🔧 | 🔧 | 🔧 | — |
+| Sécurité | `security` | 🔧 | 🔧 | 🔧 | — |
+| Supervision | `monitoring` | 🔧 | 🔧 | 🔧 | — |
+| Domaines | `domains` | 🔧 | 🔧 | 🔧 | — |
+| Ports | `ports` | 🔧 | 🔧 | 🔧 | — |
+| Variables d'environnement | `env` | 🔧 | 🔧 | 🔧 | — |
+| Flux de travail | `workflows` | 🔧 | 🔧 | 🔧 | — |
+| Activité | `activity` | 🔧 | 🔧 | 🔧 | — |
+| Instantanés | `snapshots` | 🔧 | 🔧 | 🔧 | — |
+| Commandes | `commands` | 🔧 | 🔧 | 🔧 | — |
+| Partager | `share` | 🔧 | 🔧 | 🔧 | — |
+
+---
+
 | ID | Bug | 📤 Dispatché | 💻 Codé | ✅ Testé live | Preuve |
 |---|---|:---:|:---:|:---:|---|
 | BUG-GIT-005 | **P1 — le premier fichier modifié est rapporté avec son PREMIER CARACTÈRE EN MOINS.** `GitCliProvider.git()` appliquait `trim()` à toute la sortie de git ; or `git status --porcelain=v1` signale une modification non indexée par une **espace de tête** (`" M chemin"`). Le `trim()` la mangeait sur la première ligne, donc le `slice(3)` de l'analyseur coupait un caractère de trop : **`App.tsx` devenait `pp.tsx`**. Toute action Git par fichier sur ce chemin (indexer, diff, annuler) visait alors un fichier inexistant. | ✅ | ✅ | ☐ *(corrigé + rouge→vert ; à revalider live après déploiement)* | **Trouvé en écrivant le test de BUG-GIT-004**, sur un vrai dépôt Git en répertoire temporaire : `expected [ 'pp.tsx' ] to deeply equal [ 'App.tsx' ]`. Sortie brute de git vérifiée indépendamment : `" M App.tsx\n"` — l'espace de tête est bien émise, c'est le `trim()` applicatif qui la supprimait. **Correctif** : les commandes à valeur unique (`rev-parse`, `symbolic-ref`…) gardent leur `trim()` ; seuls les appels dont la sortie est **alignée en colonnes** demandent le texte brut. Test de non-régression dédié (`reports the first changed path in full, not missing its first character`). |
