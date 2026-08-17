@@ -18871,8 +18871,8 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                           <code>{step.command || t('chat.copy.noCommand_96ba3230')}</code>
                           {step.exitCode !== null && step.exitCode !== undefined ? (
                             <small>
-                              {t('chat.copy.exit_de3ac217')}
-                              {step.exitCode}
+                              {/* Without the separator this renders as "exit127" / "code de sortie127". */}
+                              {t('chat.copy.exit_de3ac217')} {step.exitCode}
                             </small>
                           ) : null}
                         </div>

@@ -4826,7 +4826,17 @@ function normalizeSeverity(value: unknown) {
   return ['critical', 'high', 'moderate', 'low', 'info'].includes(severity) ? severity : 'info';
 }
 
-function defaultWorkflowsState(language?: string | null) {
+/*
+ * A freshly provisioned workspace has the project's SOURCE but no
+ * `node_modules`, so the Run button's `npm run dev` died on every brand-new
+ * project with `sh: vite: not found` (exit 127) — the workflow panel simply
+ * never worked out of the box. Install first, and only when the directory is
+ * actually missing so re-runs stay fast and work offline.
+ */
+const RUN_BUTTON_DEV_COMMAND = 'npm run dev';
+const RUN_BUTTON_INSTALL_COMMAND = '[ -d node_modules ] || npm install --no-audit --no-fund';
+
+export function defaultWorkflowsState(language?: string | null) {
   const copy = getApiRuntimeRoutesCopy(language);
 
   return {
@@ -4846,7 +4856,14 @@ function defaultWorkflowsState(language?: string | null) {
             id: 1002,
             orderIndex: 0,
             taskType: 'shell',
-            command: 'npm run dev',
+            command: RUN_BUTTON_INSTALL_COMMAND,
+            targetWorkflowId: null,
+          },
+          {
+            id: 1003,
+            orderIndex: 1,
+            taskType: 'shell',
+            command: RUN_BUTTON_DEV_COMMAND,
             targetWorkflowId: null,
           },
         ],
@@ -4856,7 +4873,37 @@ function defaultWorkflowsState(language?: string | null) {
   };
 }
 
-function readWorkflowsState(envVarsResponse: unknown, language?: string | null) {
+/**
+ * Repair the seeded Run-button workflow of projects created BEFORE the install
+ * step existed. Their `VIBECORE_WORKFLOWS_STATE` is already persisted, so the
+ * new default alone would never reach them and their Run button would keep
+ * failing forever.
+ *
+ * Deliberately narrow: only the system-owned Run-button workflow, and only when
+ * its steps are still exactly the single bare `npm run dev`. A workflow the user
+ * has edited — even by adding one step — is left untouched.
+ */
+export function withRunButtonInstallStep(workflow: any) {
+  if (!workflow?.isSystem || !workflow?.isRunButton) {
+    return workflow;
+  }
+
+  const tasks = Array.isArray(workflow.tasks) ? workflow.tasks : [];
+
+  if (tasks.length !== 1 || String(tasks[0]?.command ?? '').trim() !== RUN_BUTTON_DEV_COMMAND) {
+    return workflow;
+  }
+
+  return {
+    ...workflow,
+    tasks: [
+      { id: 1002, orderIndex: 0, taskType: 'shell', command: RUN_BUTTON_INSTALL_COMMAND, targetWorkflowId: null },
+      { ...tasks[0], orderIndex: 1 },
+    ],
+  };
+}
+
+export function readWorkflowsState(envVarsResponse: unknown, language?: string | null) {
   const envVars = (envVarsResponse as any)?.envVars ?? [];
   const raw = envVars.find((item: any) => item.key === WORKFLOWS_STATE_ENV_KEY)?.value;
 
@@ -4877,7 +4924,7 @@ function normalizeWorkflowsState(input: any, language?: string | null) {
   const workflows = Array.isArray(input?.workflows) ? input.workflows : fallback.workflows;
 
   return {
-    workflows: workflows.map((workflow: any, index: number) => ({
+    workflows: workflows.map(withRunButtonInstallStep).map((workflow: any, index: number) => ({
       id: Number(workflow.id) || Date.now() + index,
       projectId: workflow.projectId ?? null,
       name: String(
