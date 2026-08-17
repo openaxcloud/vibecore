@@ -6,22 +6,24 @@ import { describe, expect, it } from 'vitest';
  * BUG-AGENT-UI-001 — le transcript de l'agent réservait deux fois la place du
  * composeur, sur mobile.
  *
- * Le composeur est `position: sticky` : il reste DANS le flux et occupe déjà sa
- * hauteur en tant que frère du conteneur défilant, dans la même colonne flex.
- * Lui réserver en plus sa hauteur au bas du transcript comptait l'espace deux
- * fois — et comme le transcript se recale en bas à chaque nouveau morceau
- * pendant un stream, l'utilisateur regardait surtout du vide réservé.
+ * Il existe DEUX mises en page, et la réserve n'est juste que dans l'une :
  *
- * Mesuré en réel (mobile 390, env de test, projet généré) :
+ *   - composeur DANS la même boîte de défilement que le transcript : il est
+ *     `sticky`, il se pose donc par-dessus les derniers messages, et la réserve
+ *     est nécessaire ;
+ *   - composeur FRÈRE du conteneur défilant que `StickToBottom` intercale autour
+ *     du transcript — c'est le rendu réel : il ne recouvre jamais rien, et la
+ *     réserve compte l'espace deux fois.
  *
- *   avant : padding-bottom 288px → dernier texte à y = 181 px dans une fenêtre
- *           de lecture de 400 px (plus de la moitié en vide)
- *   après : padding-bottom 12px  → dernier texte à y = 468 px
+ * Mesuré en réel (mobile 390, env de test, sur une génération) : boîte
+ * `.bolt-project-agent-scroll` de 796 px qui NE défile pas, conteneur interne de
+ * 400 px qui défile avec 3510 px de contenu, `padding-bottom: 288px` — le
+ * dernier texte s'arrêtait à y = 181 px, soit plus de la moitié de la fenêtre de
+ * lecture en vide réservé. Réserve retirée : y = 468 px.
  *
  * Ce test lit la feuille : c'est une règle de mise en page, il n'y a rien à
- * appeler. Il fige l'invariant « la réserve du composeur ne se cumule pas avec
- * sa hauteur réelle », pour qu'un retour de `--vc-agent-composer-reserved-space`
- * dans ce `padding-bottom` soit rattrapé au commit.
+ * appeler. Il fige les deux moitiés de l'invariant, pour qu'on ne « simplifie »
+ * pas l'une en cassant l'autre.
  */
 
 const FEUILLE = new URL('./index.scss', import.meta.url).pathname;
@@ -39,29 +41,32 @@ function bloc(source: string, selecteur: string): string {
 
 describe('transcript de l’agent en mobile', () => {
   const source = readFileSync(FEUILLE, 'utf8');
-  const regle = bloc(source, '.bolt-responsive-ide-mobile .bolt-project-agent-transcript');
 
-  it('ne réserve pas la hauteur du composeur dans son padding-bottom', () => {
-    expect(regle).toContain('padding-bottom');
-    expect(regle).not.toContain('--vc-agent-composer-reserved-space');
+  it('garde la réserve quand le composeur recouvre le transcript', () => {
+    const base = bloc(source, '.bolt-responsive-ide-mobile .bolt-project-agent-transcript {');
+
+    expect(base).toContain('--vc-agent-composer-reserved-space');
   });
 
-  it('garde une respiration sous le dernier message, sans la surdimensionner', () => {
-    const valeur = /padding-bottom:\s*([0-9]+)px/.exec(regle)?.[1];
+  it('retire la réserve quand le transcript est imbriqué dans son propre conteneur défilant', () => {
+    const imbrique = bloc(source, '> div:not(.bolt-project-agent-transcript)');
 
-    expect(valeur, 'padding-bottom doit rester une valeur fixe en px').toBeDefined();
+    expect(imbrique).not.toContain('--vc-agent-composer-reserved-space');
+
+    const valeur = /padding-bottom:\s*([0-9]+)px/.exec(imbrique)?.[1];
+
+    expect(valeur, 'une respiration fixe doit rester sous le dernier message').toBeDefined();
     expect(Number(valeur)).toBeGreaterThan(0);
     expect(Number(valeur)).toBeLessThanOrEqual(24);
   });
 
   it('laisse `scroll-padding-bottom` faire l’ancrage du défilement', () => {
     /*
-     * Distinction volontaire : `scroll-padding-bottom` ne décale que la cible
-     * du défilement, il n'ajoute pas de boîte vide dans la mise en page. Le
-     * retirer ferait coller le dernier message au composeur quand on saute en
-     * bas ; c'est bien le `padding-bottom` qui devait partir, pas lui.
+     * Distinction volontaire : `scroll-padding-bottom` ne décale que la cible du
+     * défilement, il n'ajoute pas de boîte vide dans la mise en page. C'est bien
+     * le `padding-bottom` qui devait partir, pas lui.
      */
-    const scroll = bloc(source, '.bolt-responsive-ide-mobile .bolt-project-agent-scroll');
+    const scroll = bloc(source, '.bolt-responsive-ide-mobile .bolt-project-agent-scroll {');
 
     expect(scroll).toContain('scroll-padding-bottom');
   });

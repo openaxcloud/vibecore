@@ -19623,29 +19623,47 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     scroll-padding-bottom: var(--vc-agent-composer-reserved-space);
   }
 
-  /*
-   * Le composeur est `position: sticky` — il reste donc DANS le flux et occupe
-   * déjà sa hauteur en tant que frère du conteneur défilant, à l'intérieur de la
-   * même colonne flex. Lui réserver EN PLUS sa hauteur au bas du transcript
-   * comptait l'espace deux fois.
-   *
-   * Mesuré en réel (mobile 390, env de test, projet généré) : fenêtre de lecture
-   * de 400 px, transcript défilé en bas, et `padding-bottom: 288px` — le dernier
-   * texte s'arrêtait à y = 181 px, soit plus de la moitié de la fenêtre occupée
-   * par du vide réservé. En retirant la réserve, le même texte descend à
-   * y = 468 px. C'est ce vide que l'on voyait sous les messages, et pendant un
-   * stream chaque ajout recadrait cette bande étroite : le « ça saute » signalé.
-   *
-   * On garde une respiration fixe pour que le dernier message ne soit pas collé
-   * au composeur, et `scroll-padding-bottom` reste défini plus haut : il ne
-   * concerne que l'ancrage du défilement, pas la mise en page.
-   */
   .bolt-responsive-ide-mobile .bolt-project-agent-transcript {
     width: min(100%, calc(100vw - 20px));
     max-width: var(--chat-max-width);
     min-width: 0;
     flex: 1 0 auto;
     margin-inline: auto;
+
+    /*
+     * Réserve la hauteur du composeur QUAND celui-ci recouvre le transcript,
+     * c'est-à-dire quand les deux partagent la même boîte de défilement : le
+     * composeur est `sticky`, il vient alors se poser par-dessus les derniers
+     * messages, et sans cette réserve ils passent dessous.
+     */
+    padding-bottom: var(--vc-agent-composer-reserved-space);
+  }
+
+  /*
+   * …mais dans le rendu réel, `StickToBottom` intercale son PROPRE conteneur
+   * défilant autour du transcript, et le composeur est un FRÈRE de ce conteneur
+   * dans la colonne flex — donc il ne le recouvre jamais. La réserve comptait
+   * alors l'espace deux fois : une fois par la hauteur réelle du composeur, une
+   * fois par ce `padding-bottom`.
+   *
+   * Mesuré en réel (mobile 390, env de test, sur une génération) : boîte de
+   * défilement `.bolt-project-agent-scroll` de 796 px qui NE défile pas
+   * (`scrollHeight === clientHeight`), conteneur interne de 400 px qui défile
+   * (3510 px de contenu), `padding-bottom: 288px` — le dernier texte s'arrêtait
+   * à y = 181 px, soit plus de la moitié de la fenêtre de lecture occupée par du
+   * vide réservé. Réserve retirée, le même texte descend à y = 468 px.
+   *
+   * C'est ce vide que l'on voyait sous les messages ; et comme le transcript se
+   * recale en bas à chaque morceau reçu, c'est cette bande étroite qui se
+   * déplaçait sans cesse pendant un stream — le « ça saute » signalé.
+   *
+   * Le sélecteur ne cible QUE le cas imbriqué, pour que la mise en page où le
+   * composeur recouvre vraiment le transcript garde sa réserve.
+   */
+  .bolt-responsive-ide-mobile
+    .bolt-project-agent-scroll
+    > div:not(.bolt-project-agent-transcript)
+    .bolt-project-agent-transcript {
     padding-bottom: 12px;
   }
 
