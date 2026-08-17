@@ -1,0 +1,4 @@
+  A  ADMIS   terminal-ctl-vert   socket ouvert, pas de 429
+  B  ADMIS   terminal-ctl-vert   socket ouvert, pas de 429   <-- LE CAS DU BUG
+  C  REFUSE  terminal-ctl-vert-autre   fermé code 1006   <-- contrôle positif (limite 1)
+{"label":"vert","reattachAdmitted":true,"distinctRefused":true}
