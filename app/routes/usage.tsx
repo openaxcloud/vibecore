@@ -341,8 +341,16 @@ export default function UsagePage() {
             ]}
           />
           <div className="mt-6 overflow-x-auto rounded-lg border border-bolt-elements-borderColor">
-            <div className="min-w-[420px]">
-              <div className="grid grid-cols-[1fr_120px_120px] border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-4 py-2 text-xs font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
+            {/*
+             * Le plancher de 420px ne s'applique qu'à partir de `sm`. En dessous
+             * il forçait un défilement horizontal dans un écran de 390px, et le
+             * message d'alerte de quota comme son bouton « Augmenter les limites »
+             * sortaient du cadre visible : on ne voyait plus QUE la partie gauche
+             * du tableau. Les deux colonnes de chiffres se resserrent au lieu de
+             * pousser le contenu hors de l'écran.
+             */}
+            <div className="min-w-0 sm:min-w-[420px]">
+              <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-4 py-2 text-xs font-medium uppercase tracking-wide text-bolt-elements-textTertiary sm:grid-cols-[1fr_120px_120px]">
                 <span>{t('usage.table.quota')}</span>
                 <span className="text-right">{t('usage.table.used')}</span>
                 <span className="text-right">{t('usage.table.limit')}</span>
@@ -360,7 +368,7 @@ export default function UsagePage() {
                     key={quota}
                     className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3 text-sm last:border-b-0"
                   >
-                    <div className="grid grid-cols-[1fr_120px_120px]">
+                    <div className="grid grid-cols-[minmax(0,1fr)_4.5rem_4.5rem] sm:grid-cols-[1fr_120px_120px]">
                       <span className="min-w-0 break-words">
                         {quotaLabel}
                         {override ? (
