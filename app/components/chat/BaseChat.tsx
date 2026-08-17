@@ -9759,7 +9759,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   className="bolt-project-statusbar-error-count"
                   data-empty={statusbarDiagnostics.errors === 0 ? 'true' : undefined}
                   aria-label={t('baseChatAst.diagnostics.count', {
-                    count: formatBaseChatAstNumber(language, statusbarDiagnostics.errors),
+                    /*
+                     * `count` doit rester un NOMBRE : i18next s'en sert pour
+                     * choisir entre `_one` et `_other`, et une chaîne déjà
+                     * formatée faisait échouer la résolution — l'étiquette lue
+                     * par un lecteur d'écran tombait sur « Unavailable », en
+                     * anglais, dans une interface française. Le nombre mis en
+                     * forme passe à part.
+                     */
+                    count: statusbarDiagnostics.errors,
+                    formatted: formatBaseChatAstNumber(language, statusbarDiagnostics.errors),
                     label:
                       statusbarDiagnostics.errors === 1
                         ? t('chat.copy.error_11f9578d')
@@ -9773,7 +9782,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   className="bolt-project-statusbar-warning-count"
                   data-empty={statusbarDiagnostics.warnings === 0 ? 'true' : undefined}
                   aria-label={t('baseChatAst.diagnostics.count', {
-                    count: formatBaseChatAstNumber(language, statusbarDiagnostics.warnings),
+                    /*
+                     * `count` doit rester un NOMBRE : i18next s'en sert pour
+                     * choisir entre `_one` et `_other`, et une chaîne déjà
+                     * formatée faisait échouer la résolution — l'étiquette lue
+                     * par un lecteur d'écran tombait sur « Unavailable », en
+                     * anglais, dans une interface française. Le nombre mis en
+                     * forme passe à part.
+                     */
+                    count: statusbarDiagnostics.warnings,
+                    formatted: formatBaseChatAstNumber(language, statusbarDiagnostics.warnings),
                     label:
                       statusbarDiagnostics.warnings === 1
                         ? t('chat.copy.warning_383fd7bf')
