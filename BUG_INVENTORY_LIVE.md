@@ -804,3 +804,22 @@ inélégant, mais **pas un défaut**.
 > passe dédiée**, en connaissance des entrées des autres sessions.
 > À noter : `main` porte **déjà** le correctif `cross-env` (BUG-CI-006), avec en plus un
 > passage de `rm -rf` à `rimraf` — meilleur que ma version, donc conservé tel quel.
+
+### Passe 3 — zone compte, mutations réelles (16/08)
+
+Env de test **observé sans y toucher**. ⚠️ L'API y est désormais déployée **par digest**
+(`api@sha256:ab42cc36…`) et non plus par tag : c'est le déploiement de la session quota,
+laissé strictement intact (aucun `set image`, aucune suppression de pod).
+
+| Flux | Verdict | Preuve |
+|---|---|---|
+| **Notifications** (`/notifications`) | **Sain — mutation ET persistance prouvées** | FR complet, état vide honnête (« Vous êtes à jour »), 10 bascules sur 5 catégories × 2 canaux. Bascule de « Actualités des déploiements via E-mail » : `PATCH /api/user/preferences` → **200**, commutateur `true` → `false`. **Persistance vérifiée par rechargement** : la préférence modifiée reste à `false` pendant que les 4 témoins restent à `true` — c'est le test qui compte, une bascule purement visuelle serait un défaut classique. |
+| **Données et confidentialité** (`/account-settings/data`) | **Sain** | FR complet, statut du compte « Actif », parcours de suppression exposé avec **délai avant caractère définitif**. Bouton « Supprimer le compte… » **délibérément non déclenché** (action destructrice irréversible). Zéro débordement en 1440. |
+
+> ⚠️ **Incident de méthode (16/08), consigné pour la suite.** Le worktree de travail ayant
+> été nettoyé entre deux sessions, un `cd` échoué a fait exécuter les commandes suivantes
+> dans le **checkout principal** : le texte de cette passe y a été ajouté et un `git commit`
+> s'y est lancé. **Aucun dégât** — le typecheck du hook a expiré avant tout commit, et le
+> bloc ajouté a été retiré (vérifié : 0 occurrence, `HEAD` inchangé). **Règle retenue :
+> vérifier l'existence du worktree AVANT tout `cd`, et ne jamais enchaîner un `git commit`
+> derrière un `cd` non vérifié.**
