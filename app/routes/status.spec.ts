@@ -41,11 +41,15 @@ describe('status public route', () => {
       },
       { name: 'twitter:image', content: 'https://e-code.ai/social_preview_index.jpg' },
       { name: 'twitter:image:alt', content: 'E-Code system status and service availability' },
-      { name: 'twitter:title', content: 'System Status — E-Code' },
-      {
-        name: 'twitter:description',
-        content: 'Check the live status, uptime and recent incidents for E-Code services.',
-      },
+
+      /*
+       * `twitter:title` et `twitter:description` figuraient ICI une SECONDE fois
+       * (BUG-CI-010) : la route les redéclarait après avoir étalé
+       * `socialMetaTags`, qui les émet déjà — et cette attente verrouillait le
+       * doublon comme s'il était voulu. Le `<head>` rendu portait donc deux
+       * balises identiques, ce que l'audit i18n live refuse (`toHaveLength(1)`).
+       * Chaque balise n'apparaît plus qu'une fois, juste au-dessus.
+       */
     ]);
   });
 });

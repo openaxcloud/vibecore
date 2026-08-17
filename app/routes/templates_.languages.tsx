@@ -103,12 +103,9 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
     { title: seo.title },
     { name: 'description', content: seo.description },
     ...social,
-    { property: 'og:type', content: 'website' },
     { property: 'og:url', content: TEMPLATES_LANGUAGES_CANONICAL_URL },
     { property: 'og:locale', content: language === 'fr' ? 'fr_FR' : 'en_US' },
     { property: 'og:locale:alternate', content: language === 'fr' ? 'en_US' : 'fr_FR' },
-    { name: 'twitter:title', content: seo.title },
-    { name: 'twitter:description', content: seo.description },
     { tagName: 'link', rel: 'canonical', href: TEMPLATES_LANGUAGES_CANONICAL_URL },
     {
       tagName: 'link',
