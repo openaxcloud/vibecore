@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { signAgentToken } from '@vibecore/workspace-sdk';
@@ -19,6 +19,32 @@ describe('workspace-agent fix batch', () => {
 
   afterEach(async () => {
     await rm(root, { recursive: true, force: true });
+  });
+
+  /*
+   * BUG-IDE-008: ext4 creates `lost+found` at the root of every formatted
+   * volume, so it surfaced at the top of the file tree on every PVC-backed
+   * workspace — and reading it then returned 400 (root-owned). An entry the
+   * user can neither use nor open must not be listed at all.
+   */
+  it('/files/tree does not list the ext4 lost+found directory', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const headers = { authorization: `Bearer ${token}` };
+
+    await mkdir(join(root, 'lost+found'), { recursive: true });
+    await mkdir(join(root, 'src'), { recursive: true });
+    await writeFile(join(root, 'src', 'index.ts'), 'export const ok = true;\n');
+
+    const response = await app.inject({ method: 'GET', url: '/files/tree?path=.', headers });
+
+    expect(response.statusCode).toBe(200);
+
+    const names = (JSON.parse(response.body) as Array<{ path: string }>).map((node) => node.path);
+
+    expect(names).not.toContain('lost+found');
+    expect(names).toContain('src');
+
+    await app.close();
   });
 
   // Bug 1: /files/create must decode base64 binary content, not write the literal base64 text.

@@ -333,15 +333,29 @@ export function shouldPreviewHandleInspectorMessage(messageType: unknown): boole
   return !INSPECTOR_MESSAGE_TYPES_OWNED_BY_INSPECTOR.has(messageType);
 }
 
-function resolvePreviewBootProgress(input: {
+export function resolvePreviewBootProgress(input: {
   workspaceReady: boolean;
   previewsLength: number;
   isStartingPreview: boolean;
   isRefreshingPorts: boolean;
   previewRunFailed: boolean;
   previewStatus?: string;
+  upstreamNotReady?: boolean;
 }) {
   const status = input.previewStatus?.toLowerCase() ?? '';
+
+  /*
+   * A registered preview entry is NOT proof the dev server answers. When the
+   * iframe reports the upstream is not up yet, the panel already tells the user
+   * "Preview server is still starting; retrying…" — claiming step `ready` at
+   * 100% at the same time put two contradictory statements in the same panel
+   * (and the state could stay frozen there when no server ever came up).
+   * Whatever the panel says in its task line wins over the mere existence of a
+   * preview entry.
+   */
+  if (input.upstreamNotReady) {
+    return { activeStep: 'server' as PreviewBootStepId, progress: 76 };
+  }
 
   if (input.previewsLength > 0) {
     return { activeStep: 'ready' as PreviewBootStepId, progress: 100 };
@@ -801,8 +815,16 @@ export const Preview = memo(
           isRefreshingPorts,
           previewRunFailed,
           previewStatus,
+
+          /*
+           * Compared against the same translations the panel renders, so this
+           * stays correct in every locale without a second source of truth.
+           */
+          upstreamNotReady:
+            previewStatus === t('idePanels.preview.serverStartingRetry') ||
+            previewStatus === t('idePanels.preview.serverUnreachableRetry'),
         }),
-      [isRefreshingPorts, isStartingPreview, previews.length, previewRunFailed, previewStatus, workspaceReady],
+      [isRefreshingPorts, isStartingPreview, previews.length, previewRunFailed, previewStatus, t, workspaceReady],
     );
     const recentPreviewLogs = useMemo(
       () =>
@@ -1408,7 +1430,7 @@ export const Preview = memo(
          * relaunching), so this cap is what terminates it.
          */
         if (bootAttemptsRef.current >= MAX_PREVIEW_BOOT_ATTEMPTS) {
-          setPreviewStatus('The dev server did not come up after several attempts. Try Run / Reinstall.');
+          setPreviewStatus(t('idePanels.preview.startExhausted'));
           setPreviewRunFailed(true);
           setIsStartingPreview(false);
           window.clearInterval(interval);
