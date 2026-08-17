@@ -329,6 +329,15 @@ describe('app.ts i18n source guard', () => {
       // Security audit/SIEM framing and internal-secret maintenance response.
       '{…} (trigger={…})',
       'DB_ROLLBACK_ENABLED is off',
+      /*
+       * Workspace-manager port failures. These are `throw new Error(...)` inside
+       * the erasure port: the orchestration catches them and reports a
+       * STRUCTURED result (pvcRemaining/bucketStillExists), so the text never
+       * reaches a response body — it only ever lands in a log line.
+       */
+      'pvc existence check failed: {…}',
+      'workspace delete failed: {…}',
+      'workspace freeze failed for {…}: {…}',
     ]);
 
     expect(result.parseErrors).toEqual([]);
@@ -369,7 +378,39 @@ describe('credit-ledger persistence source guard', () => {
     {
       file: 'services/api/src/prisma-store.ts',
       path: prismaStorePath,
-      expected: ['PAYG overage (billed to Stripe metered usage)'],
+      expected: [
+        // Stable persisted system reason, localized at the HTTP boundary.
+        'PAYG overage (billed to Stripe metered usage)',
+        /*
+         * Account-purge INTERNAL failure codes. Every one of these is thrown to
+         * ABORT the purge; the route maps the failure to a coded response and
+         * never echoes the message, so they are machine contracts, not copy.
+         */
+        'ACCOUNT_PURGE_LEASE_LOST: lease lost during purge for {…} — aborting',
+        'ACCOUNT_PURGE_LEASE_LOST: lease no longer owned for {…} — aborting',
+        'ACCOUNT_PURGE_LEASE_LOST: plan {…} is no longer ours under lock —',
+        'refusing to tombstone {…} (account re-queued)',
+        'ACCOUNT_PURGE_PHYSICAL_INCOMPLETE: physical storage not fully erased for {…}',
+        'ACCOUNT_PURGE_TOPOLOGY_DRIFT: storage topology changed during physical erasure for {…}',
+        'ACCOUNT_PURGE_VERIFICATION_FAILED: rows remaining after purge for {…}: {…}',
+        '— refusing to finalize on a stale inventory (account re-queued)',
+        'PURGE_ALREADY_ACTIVE: a purge plan for {…} is live or was renewed — refusing a second physical purge',
+        // Freeze-barrier refusals: coded guards read by the caller, not shown.
+        'MEMBERSHIP_FROZEN_FOR_PURGE: organization {…} membership is frozen during an account purge',
+        'PROJECT_FROZEN_FOR_PURGE: project {…} storage is frozen during an account purge',
+        /*
+         * Erasure-proof machine contracts: dataClass / action / reason values
+         * written into the audit record and rendered through the i18n layer by
+         * their KEY, never as these literals.
+         */
+        'append_only_redacted_never_deleted',
+        'financial_retention_7y_fail_closed',
+        'ledger_immutable_posted_entries_mig0078',
+        'retained_as_anchor_for_financial_records',
+        'retained_rows_detached_from_user',
+        'shared_organization_belongs_to_other_members',
+        'tombstone_carries_purgedAt',
+      ],
     },
   ])(
     'classifies every scanner finding in $file as internal or localized persisted data',
