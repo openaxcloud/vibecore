@@ -167,6 +167,7 @@ import {
   type AppPublicCopyKey,
 } from './app-public-copy.js';
 import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
+import { boltFileActionsFromContent } from './bolt-file-actions.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
 import { slugifyRouteSegment } from './slugify.js';
 import {
@@ -4136,7 +4137,7 @@ function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ pa
       continue;
     }
 
-    for (const file of boltFileActionsFromContent(content)) {
+    for (const file of boltFileActionsFromContent(content, normalizeProjectPath)) {
       files.set(file.path, file.content);
     }
   }
@@ -4300,54 +4301,6 @@ function persistedIdeMessageContent(message: unknown) {
     .join('\n');
 }
 
-function boltFileActionsFromContent(content: string) {
-  const files: Array<{ path: string; content: string }> = [];
-  const actionPattern = /<boltAction\b([^>]*)>([\s\S]*?)<\/boltAction>/gi;
-
-  let match: RegExpExecArray | null;
-
-  while ((match = actionPattern.exec(content))) {
-    const attributes = boltActionAttributes(match[1]);
-
-    if (attributes.type !== 'file' || !attributes.filePath) {
-      continue;
-    }
-
-    const normalizedPath = normalizeProjectPath(attributes.filePath);
-
-    if (!normalizedPath) {
-      continue;
-    }
-
-    files.push({ path: normalizedPath, content: match[2].replace(/^\n/, '').replace(/\n$/, '') });
-  }
-
-  return files;
-}
-
-function boltActionAttributes(source: string) {
-  const attributes: Record<string, string> = {};
-  const attributePattern = /([A-Za-z_:][\w:.-]*)\s*=\s*(["'])(.*?)\2/g;
-
-  let match: RegExpExecArray | null;
-
-  while ((match = attributePattern.exec(source))) {
-    attributes[match[1]] = decodeHtmlAttribute(match[3]);
-  }
-
-  return attributes;
-}
-
-function decodeHtmlAttribute(value: string) {
-  return value
-    .replaceAll('&quot;', '"')
-    .replaceAll('&#34;', '"')
-    .replaceAll('&apos;', "'")
-    .replaceAll('&#39;', "'")
-    .replaceAll('&amp;', '&')
-    .replaceAll('&lt;', '<')
-    .replaceAll('&gt;', '>');
-}
 
 async function ensureProjectStorageFromIdeState(
   store: ApiStore,
