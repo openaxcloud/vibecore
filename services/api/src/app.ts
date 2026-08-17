@@ -426,6 +426,7 @@ import {
   permissionsForAction,
 } from './strike-system.js';
 import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline } from './storage-deadline.js';
+import { decideWorkspaceSlot } from './workspace-slot.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
 import {
@@ -15725,6 +15726,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * for the free tier that is at most one extra manager call, and only on the
    * paths that would otherwise 429.
    */
+  /*
+   * Au-delà de ce délai sans changement d'état côté manager, un espace de
+   * travail PENDING/STARTING n'est plus en train de démarrer : il a échoué. La
+   * valeur est large devant un démarrage à froid mesuré (~17 s pod chaud, une
+   * poignée de minutes dans le pire cas observé) pour ne jamais libérer le
+   * créneau d'un provisionnement encore légitime.
+   */
+  const WORKSPACE_PROVISION_DEADLINE_MS = 10 * 60_000;
+
   const reconcileOrphanedActiveWorkspaces = async (organizationId: string, skipWorkspaceId: string): Promise<void> => {
     const active = await store.listActiveWorkspaces(organizationId).catch(() => []);
     const stale = active.filter((workspace) => workspace.id !== skipWorkspaceId);
@@ -15738,7 +15748,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         let shouldStop = false;
 
         try {
-          const managerWorkspace = await managerRequest<{ status?: string }>(
+          const managerWorkspace = await managerRequest<{ status?: string; updatedAt?: string }>(
             `/workspaces/${encodeURIComponent(workspace.id)}`,
           );
 
@@ -15747,9 +15757,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * slot. An absent status is ambiguous — leave the record untouched
            * rather than guess it's dead.
            */
-          if (managerWorkspace?.status) {
-            shouldStop = !['RUNNING', 'STARTING', 'PENDING'].includes(String(managerWorkspace.status));
-          }
+          shouldStop =
+            decideWorkspaceSlot(managerWorkspace, {
+              now: Date.now(),
+              deadlineMs: WORKSPACE_PROVISION_DEADLINE_MS,
+            }) === 'free';
         } catch (error) {
           /*
            * Only a genuine "gone" (manager 404) frees the slot. A TRANSIENT
