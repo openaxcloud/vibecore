@@ -54,6 +54,25 @@ instrument, identifiés un par un avant toute correction :
 Détecteur assaini (exclusion des `sr-only`, des largeurs ≤ 1 px et du décoratif positionné derrière le
 contenu), re-mesure complète : **58/64 sains**, les 6 restants étant ces mêmes décoratifs.
 
+**Durcissement visuel (18/08)** — 23 panneaux × 3 formats = **69 relevés** sur les états de chargement,
+les marges effectives et l'alignement des titres, chaque signal étant **vérifié à l'écran** avant conclusion.
+
+- **États de chargement** : **1 relevé sur 69** montre un panneau quasi vide à 3 s sans squelette
+  (`overview`, 1 format sur 3). Aucun défaut systémique.
+- **Marges** : la métrique « contenu collé à 0 px » signalait `overview` et `deployments` en mobile.
+  **Capture d'écran à l'appui : le rembourrage est correct** (16 px sur les textes) — la mesure portait sur
+  des conteneurs pleine largeur qui appliquent leur propre rembourrage interne.
+- **Alignement des titres** : 39 relevés « désalignés », puis 8 après exclusion du titre de panneau.
+  **Capture d'écran à l'appui : la grille est à deux colonnes**, titres à 410 px et à 785 px, alignés dans
+  chaque colonne. La métrique comparait des titres de colonnes différentes.
+- **Occlusion par la barre flottante** : sonde initiale fausse (elle prenait le conteneur d'atelier pour la
+  barre). Reprise en défilant réellement puis en regardant : le contenu défile et reste atteignable.
+
+**Observation soumise à arbitrage, non corrigée** : sur mobile, le titre du panneau apparaît **deux fois**
+en ~100 px de hauteur (barre d'application puis en-tête de panneau), plus la bande EN/FR entre les deux,
+sur un écran utile de 664 px. La barre mobile étant **gelée sur la référence d'Avi**, supprimer un titre
+relève de sa décision et non d'une correction mécanique.
+
 **Protocole** : 29 panneaux × 3 formats (mobile 390 / tablette 768 / desktop 1440) × 2 thèmes
 = **174 relevés**, sur un projet RÉEL de l'environnement d'audit, en cherchant activement ce qui casse.
 
