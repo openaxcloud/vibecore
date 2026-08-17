@@ -2318,7 +2318,19 @@ function TopBar({
         </kbd>
       </Link>
       <TopBarHelp onStartTour={onStartTour} />
-      <LanguageSwitch />
+      {/*
+       * Masquée sous 640px. À 390px les contrôles fixes de cette barre
+       * (hamburger 44 + aide 44 + langue ~90 + notifications 44 + gaps 36 +
+       * padding 32 = 290px) ne laissaient que 98px au titre, alors que les
+       * pages de réglages en demandent 117 à 168 : « Usage overview »,
+       * « Organization members », « Workspace settings »… étaient toutes
+       * tronquées. La bascule reste accessible dans le panneau Réglages, et
+       * la langue est de toute façon une préférence de compte persistée —
+       * contrairement au titre, qui indique où l'on se trouve.
+       */}
+      <span className="hidden shrink-0 items-center sm:inline-flex">
+        <LanguageSwitch />
+      </span>
       <TopBarNotifications />
     </header>
   );
