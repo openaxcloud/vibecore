@@ -4064,6 +4064,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               workspaceLogs,
 
               /*
+               * Un refus de quota (429) n'était visible que dans une infobulle :
+               * Problèmes annonçait « Aucun problème détecté » alors que l'espace
+               * de travail ne pouvait pas démarrer. Il remonte ici comme les
+               * autres conditions bloquantes.
+               */
+              quotaWarning,
+              quotaUpgrade: billingUpgradePrompt,
+
+              /*
                * Once a forwarded port is serving, drop the stale cold-start 500/502
                * provisioning errors (workspaceError AND log-derived) from Problems.
                */
@@ -4071,7 +4080,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             })
           : [],
       );
-    }, [projectIdeMode, setDiagnosticsForSource, workspaceError, workspaceLogs, previewPortLive]);
+    }, [
+      projectIdeMode,
+      setDiagnosticsForSource,
+      workspaceError,
+      workspaceLogs,
+      previewPortLive,
+      quotaWarning,
+      billingUpgradePrompt,
+    ]);
 
     const statusbarDiagnostics = useMemo(
       () => ({
@@ -9742,7 +9759,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   className="bolt-project-statusbar-error-count"
                   data-empty={statusbarDiagnostics.errors === 0 ? 'true' : undefined}
                   aria-label={t('baseChatAst.diagnostics.count', {
-                    count: formatBaseChatAstNumber(language, statusbarDiagnostics.errors),
+                    /*
+                     * `count` doit rester un NOMBRE : i18next s'en sert pour
+                     * choisir entre `_one` et `_other`, et une chaîne déjà
+                     * formatée faisait échouer la résolution — l'étiquette lue
+                     * par un lecteur d'écran tombait sur « Unavailable », en
+                     * anglais, dans une interface française. Le nombre mis en
+                     * forme passe à part.
+                     */
+                    count: statusbarDiagnostics.errors,
+                    formatted: formatBaseChatAstNumber(language, statusbarDiagnostics.errors),
                     label:
                       statusbarDiagnostics.errors === 1
                         ? t('chat.copy.error_11f9578d')
@@ -9756,7 +9782,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   className="bolt-project-statusbar-warning-count"
                   data-empty={statusbarDiagnostics.warnings === 0 ? 'true' : undefined}
                   aria-label={t('baseChatAst.diagnostics.count', {
-                    count: formatBaseChatAstNumber(language, statusbarDiagnostics.warnings),
+                    /*
+                     * `count` doit rester un NOMBRE : i18next s'en sert pour
+                     * choisir entre `_one` et `_other`, et une chaîne déjà
+                     * formatée faisait échouer la résolution — l'étiquette lue
+                     * par un lecteur d'écran tombait sur « Unavailable », en
+                     * anglais, dans une interface française. Le nombre mis en
+                     * forme passe à part.
+                     */
+                    count: statusbarDiagnostics.warnings,
+                    formatted: formatBaseChatAstNumber(language, statusbarDiagnostics.warnings),
                     label:
                       statusbarDiagnostics.warnings === 1
                         ? t('chat.copy.warning_383fd7bf')

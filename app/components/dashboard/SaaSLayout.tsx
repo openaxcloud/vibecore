@@ -50,7 +50,7 @@ import {
   SlidersHorizontal,
   type LucideIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { IconType } from 'react-icons';
@@ -1712,17 +1712,52 @@ function ProjectPreviewFallback({ project }: { project: ProjectCard }) {
   );
 }
 
+/*
+ * Au-delà de ce délai, une vignette qui n'est toujours pas arrivée est traitée
+ * comme absente. `onError` ne suffit pas : une réponse qui traîne n'est ni un
+ * chargement ni une erreur, et la carte restait alors un rectangle vide — c'est
+ * exactement ce qu'on voyait quand la lecture de vignette côté API attendait un
+ * stockage objet injoignable.
+ */
+const PREVIEW_IMAGE_DEADLINE_MS = 6_000;
+
 export function ProjectPreviewMedia({ project, className }: { project: ProjectCard; className?: string }) {
   const { t } = useTranslation();
   const [failed, setFailed] = useState(false);
+  const [timedOut, setTimedOut] = useState(false);
+  const imageRef = useRef<HTMLImageElement | null>(null);
 
-  if (!project.previewImageUrl || failed) {
+  const url = project.previewImageUrl;
+
+  useEffect(() => {
+    setFailed(false);
+    setTimedOut(false);
+
+    if (!url) {
+      return undefined;
+    }
+
+    const minuterie = setTimeout(() => {
+      /*
+       * `complete` couvre l'image déjà servie par le cache entre le rendu et
+       * l'échéance, cas où aucun `onLoad` ne se déclenche.
+       */
+      if (!imageRef.current?.complete) {
+        setTimedOut(true);
+      }
+    }, PREVIEW_IMAGE_DEADLINE_MS);
+
+    return () => clearTimeout(minuterie);
+  }, [url]);
+
+  if (!url || failed || timedOut) {
     return <ProjectPreviewFallback project={project} />;
   }
 
   return (
     <img
-      src={project.previewImageUrl}
+      ref={imageRef}
+      src={url}
       alt={t('userArea.project.latestPreview', { name: project.name })}
       className={className}
       loading="lazy"
@@ -2318,7 +2353,19 @@ function TopBar({
         </kbd>
       </Link>
       <TopBarHelp onStartTour={onStartTour} />
-      <LanguageSwitch />
+      {/*
+       * Masquée sous 640px. À 390px les contrôles fixes de cette barre
+       * (hamburger 44 + aide 44 + langue ~90 + notifications 44 + gaps 36 +
+       * padding 32 = 290px) ne laissaient que 98px au titre, alors que les
+       * pages de réglages en demandent 117 à 168 : « Usage overview »,
+       * « Organization members », « Workspace settings »… étaient toutes
+       * tronquées. La bascule reste accessible dans le panneau Réglages, et
+       * la langue est de toute façon une préférence de compte persistée —
+       * contrairement au titre, qui indique où l'on se trouve.
+       */}
+      <span className="hidden shrink-0 items-center sm:inline-flex">
+        <LanguageSwitch />
+      </span>
       <TopBarNotifications />
     </header>
   );

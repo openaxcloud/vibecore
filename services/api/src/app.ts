@@ -167,7 +167,9 @@ import {
   type AppPublicCopyKey,
 } from './app-public-copy.js';
 import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
+import { boltFileActionsFromContent } from './bolt-file-actions.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
+import { slugifyRouteSegment } from './slugify.js';
 import {
   checkServiceShutdown,
   openCheckpoint,
@@ -423,6 +425,8 @@ import {
   higherConsequence,
   permissionsForAction,
 } from './strike-system.js';
+import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline } from './storage-deadline.js';
+import { decideWorkspaceSlot } from './workspace-slot.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
 import {
@@ -4038,14 +4042,6 @@ function normalizeProjectPath(path?: string) {
   return normalized;
 }
 
-function slugifyRouteSegment(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/^@+/, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
 
 /*
  * Accepts either ProjectIdeStateRecord or WorkspaceIdeStateRecord — both
@@ -4143,7 +4139,7 @@ function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ pa
       continue;
     }
 
-    for (const file of boltFileActionsFromContent(content)) {
+    for (const file of boltFileActionsFromContent(content, normalizeProjectPath)) {
       files.set(file.path, file.content);
     }
   }
@@ -4307,54 +4303,6 @@ function persistedIdeMessageContent(message: unknown) {
     .join('\n');
 }
 
-function boltFileActionsFromContent(content: string) {
-  const files: Array<{ path: string; content: string }> = [];
-  const actionPattern = /<boltAction\b([^>]*)>([\s\S]*?)<\/boltAction>/gi;
-
-  let match: RegExpExecArray | null;
-
-  while ((match = actionPattern.exec(content))) {
-    const attributes = boltActionAttributes(match[1]);
-
-    if (attributes.type !== 'file' || !attributes.filePath) {
-      continue;
-    }
-
-    const normalizedPath = normalizeProjectPath(attributes.filePath);
-
-    if (!normalizedPath) {
-      continue;
-    }
-
-    files.push({ path: normalizedPath, content: match[2].replace(/^\n/, '').replace(/\n$/, '') });
-  }
-
-  return files;
-}
-
-function boltActionAttributes(source: string) {
-  const attributes: Record<string, string> = {};
-  const attributePattern = /([A-Za-z_:][\w:.-]*)\s*=\s*(["'])(.*?)\2/g;
-
-  let match: RegExpExecArray | null;
-
-  while ((match = attributePattern.exec(source))) {
-    attributes[match[1]] = decodeHtmlAttribute(match[3]);
-  }
-
-  return attributes;
-}
-
-function decodeHtmlAttribute(value: string) {
-  return value
-    .replaceAll('&quot;', '"')
-    .replaceAll('&#34;', '"')
-    .replaceAll('&apos;', "'")
-    .replaceAll('&#39;', "'")
-    .replaceAll('&amp;', '&')
-    .replaceAll('&lt;', '<')
-    .replaceAll('&gt;', '>');
-}
 
 async function ensureProjectStorageFromIdeState(
   store: ApiStore,
@@ -15778,6 +15726,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * for the free tier that is at most one extra manager call, and only on the
    * paths that would otherwise 429.
    */
+  /*
+   * Au-delà de ce délai sans changement d'état côté manager, un espace de
+   * travail PENDING/STARTING n'est plus en train de démarrer : il a échoué. La
+   * valeur est large devant un démarrage à froid mesuré (~17 s pod chaud, une
+   * poignée de minutes dans le pire cas observé) pour ne jamais libérer le
+   * créneau d'un provisionnement encore légitime.
+   */
+  const WORKSPACE_PROVISION_DEADLINE_MS = 10 * 60_000;
+
   const reconcileOrphanedActiveWorkspaces = async (organizationId: string, skipWorkspaceId: string): Promise<void> => {
     const active = await store.listActiveWorkspaces(organizationId).catch(() => []);
     const stale = active.filter((workspace) => workspace.id !== skipWorkspaceId);
@@ -15791,7 +15748,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         let shouldStop = false;
 
         try {
-          const managerWorkspace = await managerRequest<{ status?: string }>(
+          const managerWorkspace = await managerRequest<{ status?: string; updatedAt?: string }>(
             `/workspaces/${encodeURIComponent(workspace.id)}`,
           );
 
@@ -15800,9 +15757,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * slot. An absent status is ambiguous — leave the record untouched
            * rather than guess it's dead.
            */
-          if (managerWorkspace?.status) {
-            shouldStop = !['RUNNING', 'STARTING', 'PENDING'].includes(String(managerWorkspace.status));
-          }
+          shouldStop =
+            decideWorkspaceSlot(managerWorkspace, {
+              now: Date.now(),
+              deadlineMs: WORKSPACE_PROVISION_DEADLINE_MS,
+            }) === 'free';
         } catch (error) {
           /*
            * Only a genuine "gone" (manager 404) frees the slot. A TRANSIENT
@@ -32046,15 +32005,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * Only sign a URL when a screenshot has actually been captured, so a
        * project with none 404s and the card keeps its "No preview yet" state
        * instead of pointing <img> at a would-be-broken signed URL.
+       *
+       * Borné dans le temps : le client GCS réessaie sans plafond, si bien
+       * qu'un bucket injoignable faisait tenir la requête 30 s avant que le
+       * loader Remix n'abandonne (502). Pendant ce temps la carte de projet
+       * restait un rectangle vide — l'`<img>` ne charge pas et n'échoue pas
+       * non plus, donc l'état de repli « Aucun aperçu » n'apparaissait jamais.
+       * Une vignette est décorative : elle ne doit jamais retenir une requête.
        */
-      const { objects } = await storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY });
+      const { objects } = await withStorageDeadline(
+        storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }),
+        THUMBNAIL_LOOKUP_DEADLINE_MS,
+      );
 
       if (!objects.some((object) => object.key === PROJECT_THUMBNAIL_KEY)) {
         return reply.code(404).send({ error: appPublicEnglish('THUMBNAIL_NOT_FOUND'), code: 'THUMBNAIL_NOT_FOUND' });
       }
 
-      return reply.send(await storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }));
+      return reply.send(
+        await withStorageDeadline(
+          storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }),
+          THUMBNAIL_LOOKUP_DEADLINE_MS,
+        ),
+      );
     } catch (error) {
+      /*
+       * Un dépassement de délai se lit comme « pas de vignette pour l'instant » :
+       * le web mappe ce 404 sur un 204, l'`<img>` bascule sur son état de repli
+       * et la carte reste présentable. On le journalise pour ne pas transformer
+       * une panne de stockage en silence.
+       */
+      if (error instanceof StorageDeadlineError) {
+        request.log.warn({ projectId: project.id }, 'thumbnail lookup timed out');
+
+        return reply.code(404).send({ error: appPublicEnglish('THUMBNAIL_NOT_FOUND'), code: 'THUMBNAIL_UNAVAILABLE' });
+      }
+
       return sendObjectStorageError(reply, error);
     }
   });

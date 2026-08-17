@@ -511,20 +511,27 @@ export function PreferencesMatrixSection({ initial }: { initial: NotificationPre
             <tr className="border-b border-bolt-elements-borderColor">
               <th
                 scope="col"
-                className="p-4 text-left text-xs font-semibold uppercase tracking-normal text-bolt-elements-textTertiary sm:pl-6"
+                className="p-3 text-left text-xs font-semibold uppercase tracking-normal text-bolt-elements-textTertiary sm:p-4 sm:pl-6"
               >
                 {t('notifications.preferences.category')}
               </th>
               {channels.map((channel) => {
                 const Icon = channel.icon;
 
+                /*
+                 * Colonnes resserrées en dessous de `sm` : à 128px chacune, la
+                 * table dépassait à 617px dans un écran de 390 et les
+                 * interrupteurs se retrouvaient hors du cadre visible — sur une
+                 * page dont c'est justement l'unique commande. Le détail de
+                 * canal, secondaire, ne s'affiche qu'à partir de `sm`.
+                 */
                 return (
-                  <th scope="col" key={channel.key} className="w-32 p-4 text-center align-top">
-                    <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-bolt-elements-textTertiary">
+                  <th scope="col" key={channel.key} className="w-20 p-2 text-center align-top sm:w-32 sm:p-4">
+                    <span className="inline-flex flex-col items-center gap-1 text-xs font-semibold uppercase tracking-normal text-bolt-elements-textTertiary sm:flex-row sm:gap-2">
                       <Icon className="h-4 w-4" aria-hidden />
                       {t(channel.labelKey)}
                     </span>
-                    <span className="mt-1 block text-[11px] font-normal normal-case text-bolt-elements-textTertiary">
+                    <span className="mt-1 hidden text-[11px] font-normal normal-case text-bolt-elements-textTertiary sm:block">
                       {t(channel.detailKey)}
                     </span>
                   </th>
@@ -540,7 +547,7 @@ export function PreferencesMatrixSection({ initial }: { initial: NotificationPre
 
               return (
                 <tr key={category.key}>
-                  <th scope="row" className="p-4 text-left font-normal sm:pl-6">
+                  <th scope="row" className="p-3 text-left font-normal sm:p-4 sm:pl-6">
                     <span className="flex items-start gap-3">
                       <span
                         className={classNames(
@@ -573,7 +580,7 @@ export function PreferencesMatrixSection({ initial }: { initial: NotificationPre
                     );
 
                     return (
-                      <td key={channel.key} className="p-4 text-center align-middle">
+                      <td key={channel.key} className="p-2 text-center align-middle sm:p-4">
                         <span className="inline-flex" title={locked ? securityEmailLockReason : undefined}>
                           <Switch
                             checked={checked}

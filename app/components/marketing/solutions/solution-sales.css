@@ -31,7 +31,7 @@
   overflow: hidden;
   border-bottom: 1px solid var(--ecode-border);
   background:
-    radial-gradient(circle at 84% 14%, color-mix(in srgb, var(--status-info-text) 12%, transparent), transparent 34%),
+    radial-gradient(circle at 84% 14%, color-mix(in srgb, var(--ecode-accent) 12%, transparent), transparent 34%),
     linear-gradient(
       180deg,
       var(--ecode-background),
@@ -105,17 +105,40 @@
   box-shadow: 0 6px 16px color-mix(in srgb, var(--ecode-accent) 22%, transparent);
 }
 
+/*
+ * Accent de MARQUE, pas statut « info ». Ces surfaces utilisaient
+ * `--status-info-text` (#2563eb) : l'accroche et ses icônes ressortaient en
+ * bleu sur des pages dont tout le reste — CTA, logo — est orange #f26207.
+ * `--ecode-accent-text` est la variante prévue pour du TEXTE accentué : #c74e00
+ * en thème clair (~5,9:1 sur blanc, AA sur petit texte, là où l'orange brut
+ * plafonne vers 3:1) et #ff8a3d en sombre.
+ *
+ * Les maquettes de démo (`.sol-mini-*`, `.sol-icon-tile`) gardent volontairement
+ * le bleu : elles figurent l'application d'un client, pas l'interface E-Code.
+ */
 .sol-eyebrow {
   display: inline-flex;
   min-height: 2rem;
   align-items: center;
   gap: 0.55rem;
-  color: var(--status-info-text);
+  color: var(--ecode-accent-text);
   font-size: 0.75rem;
   font-weight: 700;
   letter-spacing: 0.13em;
   line-height: 1.4;
   text-transform: uppercase;
+}
+
+/*
+ * `--ecode-accent-text` (#c74e00) est l'orange AA du design system sur du BLANC
+ * (~4,6:1). Le héros Solutions est sur #f7f8f9, ce qui le fait retomber à
+ * 4,37:1 — juste SOUS le plancher AA de 4,5 pour cette accroche de 14px gras.
+ * On l'assombrit donc de 10 % sur le thème clair uniquement (5,2:1), en le
+ * dérivant du token pour qu'il suive toute évolution de la charte. Le thème
+ * sombre garde #ff8a3d, qui n'a pas ce problème sur fond foncé.
+ */
+:root[data-theme='light'] :where(.sol-eyebrow, .sol-product-visual figcaption > span, .sol-icon-tile) {
+  color: color-mix(in srgb, var(--ecode-accent-text), #000 10%);
 }
 
 .sol-eyebrow svg {
@@ -227,7 +250,7 @@
   height: 1rem;
   flex: none;
   margin-top: 0.1rem;
-  color: var(--status-info-text);
+  color: var(--ecode-accent-text);
 }
 
 .sol-product-visual {
@@ -263,7 +286,7 @@
 }
 
 .sol-product-visual figcaption > span {
-  color: var(--status-info-text);
+  color: var(--ecode-accent-text);
   font-size: 0.65rem;
   font-weight: 700;
   letter-spacing: 0.11em;
@@ -468,10 +491,12 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  border: 1px solid var(--status-info-border);
+  /* Tuiles d'icônes du CONTENU (cartes problème/atouts) : accent de marque.
+     Mêmes opacités que les anciens tokens info (38 % bordure, 10 % fond). */
+  border: 1px solid color-mix(in srgb, var(--ecode-accent) 38%, transparent);
   border-radius: 0.65rem;
-  background: var(--status-info-bg);
-  color: var(--status-info-text);
+  background: color-mix(in srgb, var(--ecode-accent) 10%, transparent);
+  color: var(--ecode-accent-text);
 }
 
 .sol-icon-tile svg {
@@ -612,7 +637,7 @@
 .sol-section--proof {
   isolation: isolate;
   background:
-    radial-gradient(circle at 92% 4%, color-mix(in srgb, var(--status-info-text) 9%, transparent), transparent 29rem),
+    radial-gradient(circle at 92% 4%, color-mix(in srgb, var(--ecode-accent) 9%, transparent), transparent 29rem),
     var(--ecode-background);
 }
 
@@ -665,7 +690,9 @@
   display: grid;
   align-content: start;
   gap: 1rem;
-  border-top-color: var(--status-info-border);
+
+  /* Même opacité que l'ancien `--status-info-border` (38 %), teinte de marque. */
+  border-top-color: color-mix(in srgb, var(--ecode-accent) 38%, transparent);
 }
 
 .sol-problem-card h3,

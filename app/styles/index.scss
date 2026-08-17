@@ -13334,8 +13334,21 @@ body :where(.lucide, svg[data-lucide]) {
     justify-content: stretch !important;
   }
 
+  /*
+   * `.bolt-project-panel-toolbar` est volontairement EXCLU de cet empilement.
+   * Cette règle vit dans un @container, pas un @media : le panneau latéral de
+   * l'IDE mesure ~735px, donc sous le seuil de 760px — elle s'appliquait même
+   * sur un écran de 1440px. Le sélecteur de plage de Supervision
+   * (15m / 1h / 24h) devenait alors trois boutons pleine largeur EMPILÉS, qui
+   * mangeaient toute la hauteur visible du panneau et repoussaient les
+   * métriques hors écran.
+   *
+   * Le toolbar garde son `display: flex; flex-wrap: wrap` de base, qui fait
+   * exactement ce qu'il faut : il reste en ligne tant qu'il y a la place, et
+   * ne passe à la ligne que lorsqu'il n'y en a plus.
+   */
   .bolt-project-service-panel
-    :where(.bolt-project-panel-toolbar, .bolt-project-security-scan-form, .bolt-project-deploy-actions) {
+    :where(.bolt-project-security-scan-form, .bolt-project-deploy-actions) {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) !important;
     align-items: stretch !important;
@@ -13343,7 +13356,6 @@ body :where(.lucide, svg[data-lucide]) {
 
   .bolt-project-service-panel
     :where(
-      .bolt-project-panel-toolbar button,
       .bolt-project-managed-form button,
       .bolt-project-package-command-row button,
       .bolt-project-package-install-form button,
@@ -16140,14 +16152,27 @@ button.bolt-project-statusbar-pill:focus-visible,
   min-width: 0;
 }
 
+/*
+ * Ces deux pastilles sont bornées pour ne pas monopoliser la barre — intention
+ * saine, mais les bornes étaient plus étroites que leur contenu réel, et comme
+ * elles portent `min-width: 0`, le texte se coupait au lieu de s'adapter. Sur
+ * une barre de 1391px (IDE en 1440, aucune règle @container active) on lisait
+ * « Workspace Star… » et « Preview D.. D… » : des moignons illisibles, affichés
+ * précisément pendant les premières secondes de démarrage — donc au pire moment.
+ *
+ * Largeurs naturelles mesurées en réel : workspace 136px (pour 124 alloués),
+ * runtime 203px (pour 112). Les bornes montent juste au-dessus. Les règles
+ * @container à 780 / 760 / 620px continuent de les resserrer quand la barre
+ * manque vraiment de place : le dévoilement progressif reste intact.
+ */
 .bolt-project-statusbar .bolt-project-statusbar-runtime {
-  flex: 0 1 112px;
-  max-width: min(18vw, 150px);
+  flex: 0 1 208px;
+  max-width: min(26vw, 232px);
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-workspace {
-  flex: 0 1 124px;
-  max-width: min(18vw, 158px);
+  flex: 0 1 140px;
+  max-width: min(20vw, 172px);
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-logs {
@@ -19604,7 +19629,42 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     min-width: 0;
     flex: 1 0 auto;
     margin-inline: auto;
+
+    /*
+     * Réserve la hauteur du composeur QUAND celui-ci recouvre le transcript,
+     * c'est-à-dire quand les deux partagent la même boîte de défilement : le
+     * composeur est `sticky`, il vient alors se poser par-dessus les derniers
+     * messages, et sans cette réserve ils passent dessous.
+     */
     padding-bottom: var(--vc-agent-composer-reserved-space);
+  }
+
+  /*
+   * …mais dans le rendu réel, `StickToBottom` intercale son PROPRE conteneur
+   * défilant autour du transcript, et le composeur est un FRÈRE de ce conteneur
+   * dans la colonne flex — donc il ne le recouvre jamais. La réserve comptait
+   * alors l'espace deux fois : une fois par la hauteur réelle du composeur, une
+   * fois par ce `padding-bottom`.
+   *
+   * Mesuré en réel (mobile 390, env de test, sur une génération) : boîte de
+   * défilement `.bolt-project-agent-scroll` de 796 px qui NE défile pas
+   * (`scrollHeight === clientHeight`), conteneur interne de 400 px qui défile
+   * (3510 px de contenu), `padding-bottom: 288px` — le dernier texte s'arrêtait
+   * à y = 181 px, soit plus de la moitié de la fenêtre de lecture occupée par du
+   * vide réservé. Réserve retirée, le même texte descend à y = 468 px.
+   *
+   * C'est ce vide que l'on voyait sous les messages ; et comme le transcript se
+   * recale en bas à chaque morceau reçu, c'est cette bande étroite qui se
+   * déplaçait sans cesse pendant un stream — le « ça saute » signalé.
+   *
+   * Le sélecteur ne cible QUE le cas imbriqué, pour que la mise en page où le
+   * composeur recouvre vraiment le transcript garde sa réserve.
+   */
+  .bolt-responsive-ide-mobile
+    .bolt-project-agent-scroll
+    > div:not(.bolt-project-agent-transcript)
+    .bolt-project-agent-transcript {
+    padding-bottom: 12px;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-panel .max-w-chat {
@@ -24774,6 +24834,22 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+/*
+ * Accroche du pied de page marketing. Elle est posée sur
+ * `--ecode-surface-secondary` (#f0f1f2 en clair), pas sur du blanc : l'orange
+ * AA du design system (#c74e00) n'y donne que 4,11:1, sous le plancher de 4,5
+ * — donc MOINS bien que le bleu « info » qu'il remplace (4,57). On l'assombrit
+ * de 10 % sur le thème clair, comme sur les pages /solutions. Le thème sombre
+ * garde le token tel quel.
+ */
+.vc-marketing-eyebrow {
+  color: var(--ecode-accent-text);
+}
+
+:root[data-theme='light'] .vc-marketing-eyebrow {
+  color: color-mix(in srgb, var(--ecode-accent-text), #000 10%);
 }
 
 .vc-new-project-meta-row {
