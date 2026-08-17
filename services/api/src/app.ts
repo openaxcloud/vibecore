@@ -425,6 +425,7 @@ import {
   higherConsequence,
   permissionsForAction,
 } from './strike-system.js';
+import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline } from './storage-deadline.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
 import { redactUrlCredentials } from './log-redaction.js';
 import {
@@ -31984,15 +31985,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * Only sign a URL when a screenshot has actually been captured, so a
        * project with none 404s and the card keeps its "No preview yet" state
        * instead of pointing <img> at a would-be-broken signed URL.
+       *
+       * Borné dans le temps : le client GCS réessaie sans plafond, si bien
+       * qu'un bucket injoignable faisait tenir la requête 30 s avant que le
+       * loader Remix n'abandonne (502). Pendant ce temps la carte de projet
+       * restait un rectangle vide — l'`<img>` ne charge pas et n'échoue pas
+       * non plus, donc l'état de repli « Aucun aperçu » n'apparaissait jamais.
+       * Une vignette est décorative : elle ne doit jamais retenir une requête.
        */
-      const { objects } = await storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY });
+      const { objects } = await withStorageDeadline(
+        storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }),
+        THUMBNAIL_LOOKUP_DEADLINE_MS,
+      );
 
       if (!objects.some((object) => object.key === PROJECT_THUMBNAIL_KEY)) {
         return reply.code(404).send({ error: appPublicEnglish('THUMBNAIL_NOT_FOUND'), code: 'THUMBNAIL_NOT_FOUND' });
       }
 
-      return reply.send(await storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }));
+      return reply.send(
+        await withStorageDeadline(
+          storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }),
+          THUMBNAIL_LOOKUP_DEADLINE_MS,
+        ),
+      );
     } catch (error) {
+      /*
+       * Un dépassement de délai se lit comme « pas de vignette pour l'instant » :
+       * le web mappe ce 404 sur un 204, l'`<img>` bascule sur son état de repli
+       * et la carte reste présentable. On le journalise pour ne pas transformer
+       * une panne de stockage en silence.
+       */
+      if (error instanceof StorageDeadlineError) {
+        request.log.warn({ projectId: project.id }, 'thumbnail lookup timed out');
+
+        return reply.code(404).send({ error: appPublicEnglish('THUMBNAIL_NOT_FOUND'), code: 'THUMBNAIL_UNAVAILABLE' });
+      }
+
       return sendObjectStorageError(reply, error);
     }
   });
