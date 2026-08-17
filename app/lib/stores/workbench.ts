@@ -1865,8 +1865,8 @@ export class WorkbenchStore {
     this.#terminalStore.toggleTerminal(value);
   }
 
-  attachTerminal(terminal: ITerminal, command?: string) {
-    this.#terminalStore.attachTerminal(terminal, command);
+  attachTerminal(terminal: ITerminal, command?: string, paneKey?: number) {
+    this.#terminalStore.attachTerminal(terminal, command, paneKey);
   }
   attachBoltTerminal(terminal: ITerminal) {
     this.#terminalStore.attachBoltTerminal(terminal);
