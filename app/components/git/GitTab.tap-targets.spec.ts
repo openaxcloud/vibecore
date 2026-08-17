@@ -51,3 +51,25 @@ describe('Git panel icon buttons meet the WCAG 2.5.5 target size', () => {
     expect(classNamesOf(SYNC_CONTROLS, 'git-refresh')).toContain('min-h-11 min-w-11');
   });
 });
+
+/*
+ * Same measurement, other panels: the checkbox ROWS are the real tap targets
+ * (clicking the label toggles the box), and they came in at 13px tall in the
+ * Debugger and 20px in Packages — the native 13px checkbox sets the row height
+ * when nothing else does. Both are far under the 44px minimum on a phone.
+ */
+describe('checkbox rows are tappable, not just the 13px native box', () => {
+  it('gives the debugger stop-on-entry row a 44px minimum', () => {
+    const baseChat = readFileSync(join(__dirname, '..', 'chat', 'BaseChat.tsx'), 'utf8');
+    const row = baseChat.slice(baseChat.indexOf('name="stopOnEntry"') - 220, baseChat.indexOf('name="stopOnEntry"'));
+
+    expect(row).toContain('min-h-11');
+  });
+
+  it('gives the packages dev-dependency row a 44px minimum', () => {
+    const styles = readFileSync(join(__dirname, '..', '..', 'styles', 'index.scss'), 'utf8');
+    const rule = styles.slice(styles.indexOf('.bolt-project-package-install-form .bolt-project-package-checkbox'));
+
+    expect(rule.slice(0, rule.indexOf('}'))).toMatch(/min-block-size:\s*44px/);
+  });
+});
