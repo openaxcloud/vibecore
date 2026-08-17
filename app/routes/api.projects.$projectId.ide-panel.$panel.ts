@@ -3286,6 +3286,36 @@ async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | Enterprise
 
     console.error('IDE panel route failed:', error);
 
+    /*
+     * Upstream codes the USER can act on. Two things used to go wrong at once
+     * when provisioning a project database failed:
+     *
+     *  - the API answered `503 DATABASE_PROVISION_UNAVAILABLE` with a `reason`,
+     *    and this handler flattened it into "the panel service is temporarily
+     *    unavailable, please retry" — advice that is simply false, because no
+     *    retry can ever succeed while the platform is missing its shared-tenant
+     *    configuration;
+     *  - and because the failure was THROWN as a Response, the whole panel
+     *    unmounted, leaving a blank IDE with no error and no way back.
+     *
+     * So for these codes: keep the real code and message, and RETURN the
+     * payload instead of throwing. The panels already render `ok === false`
+     * (DatabasePanel has a `role="alert"` failure state) — they simply never
+     * received it. Every other failure keeps the existing masked behaviour.
+     */
+    if (error instanceof Response) {
+      const upstream = await error
+        .clone()
+        .json()
+        .catch(() => undefined);
+
+      const passthrough = actionablePanelFailure(upstream);
+
+      if (passthrough) {
+        return json(passthrough, { status: error.status, headers: mergeLocaleHeaders(request) });
+      }
+    }
+
     const status =
       error instanceof Response
         ? error.status
@@ -3313,6 +3343,39 @@ async function runLocalizedRoute<TArgs extends EnterpriseLoaderArgs | Enterprise
       { status, headers: mergeLocaleHeaders(request) },
     );
   }
+}
+
+/**
+ * Upstream failures a USER can act on, which must keep their identity instead of
+ * being flattened into the catch-all "panel service temporarily unavailable —
+ * please retry". Provisioning a project database is the case that exposed this:
+ * the API answers `503 DATABASE_PROVISION_UNAVAILABLE` with a `reason`, and the
+ * generic message told users to retry something that can never succeed until the
+ * platform is configured.
+ *
+ * Returning a payload (rather than throwing) also keeps the panel mounted: the
+ * panels already render `ok === false` — DatabasePanel has a `role="alert"`
+ * failure block — they simply never received it, so an action failure tore the
+ * whole panel out of the DOM and left a blank IDE.
+ */
+export const ACTIONABLE_PANEL_CODES = new Set(['DATABASE_PROVISION_UNAVAILABLE', 'FEATURE_NOT_ENABLED']);
+
+export function actionablePanelFailure(upstream: unknown) {
+  const code = (upstream as { code?: unknown } | undefined)?.code;
+
+  if (typeof code !== 'string' || !ACTIONABLE_PANEL_CODES.has(code)) {
+    return undefined;
+  }
+
+  const error = (upstream as { error?: unknown }).error;
+  const reason = (upstream as { reason?: unknown }).reason;
+
+  return {
+    ok: false as const,
+    code,
+    error: typeof error === 'string' && error.trim() ? error : code,
+    ...(typeof reason === 'string' && reason ? { reason } : {}),
+  };
 }
 
 export async function loader(args: EnterpriseLoaderArgs) {
