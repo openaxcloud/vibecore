@@ -223,7 +223,7 @@ test(
   },
 );
 
-test('AI-created project starts the agent with a valid default model', { tag: '@runtime' }, async ({ page }) => {
+test('AI-created project starts the agent with a valid default model', async ({ page }) => {
   test.setTimeout(240_000);
 
   await authenticate(page);

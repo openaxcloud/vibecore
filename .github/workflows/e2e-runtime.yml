@@ -1,34 +1,30 @@
 name: E2E Runtime
 
-# Tests tagged `@runtime` need a *live workspace runtime*: a provisioned
-# workspace pod, a booted dev server and a rendered preview iframe. The
-# Production E2E stack only brings up postgres/redis/mailpit + the API + the
-# built web app, so those tests can never pass there — they were a permanent
-# red in a blocking gate, which is why Production E2E had never been green.
-#
-# They are split out here rather than deleted: the coverage is real and we want
-# it back in a blocking position once the runtime is provisioned in CI (see
-# docs/audit/E2E_SUITE_SPLIT.md). Until then this workflow is deliberately
-# NON-BLOCKING — nightly + on demand — so it reports the gap without pretending
-# the gap is fixed.
-
+# This is the blocking counterpart to Production E2E. It provisions a real,
+# throwaway kind cluster and runs every @runtime flow against workspace-agent
+# pods, not WebContainer or a mocked manager. No production/cloud credential is
+# available to the job. Teardown is exact-name guarded and absence is checked.
 on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
   workflow_dispatch:
   schedule:
-    # 04:20 UTC daily — after the nightly parity collector, before EU morning.
     - cron: '20 4 * * *'
 
+permissions:
+  contents: read
+
 concurrency:
-  group: e2e-runtime-${{ github.ref }}
+  group: e2e-runtime-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   e2e-runtime:
-    name: Playwright @runtime (non-blocking)
+    name: Playwright @runtime (blocking)
     runs-on: ubuntu-latest
-    timeout-minutes: 90
-    # Reporting-only until a workspace runtime is available in CI.
-    continue-on-error: true
+    timeout-minutes: 150
 
     env:
       CI: true
@@ -37,51 +33,97 @@ jobs:
       REDIS_URL: redis://127.0.0.1:56379
       POSTGRES_PORT: 55432
       REDIS_PORT: 56379
+      COMPOSE_PROJECT_NAME: vibecore-e2e-runtime-${{ github.run_id }}-${{ github.run_attempt }}
       API_HOST: 127.0.0.1
       API_PORT: 3001
       API_BASE_URL: http://127.0.0.1:3001
       SAAS_API_URL: http://127.0.0.1:3001
+      API_CORS_ORIGINS: http://127.0.0.1:5173,http://127.0.0.1:5174,http://127.0.0.1:3020
+      PLAYWRIGHT_API_URL: http://127.0.0.1:3001
       PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
       PLAYWRIGHT_SKIP_WEB_SERVER: '1'
       PLATFORM_ADMIN_EMAILS: e2e-platform-admin@local.test
       ADMIN_MFA_REQUIRED: 'false'
-      # Every test registers a throwaway user, and CI retries multiply that.
-      # The default ceiling (10/min/IP) made the limiter the single biggest
-      # source of run-to-run instability: whichever tests landed in a saturated
-      # window died with `Rate limit exceeded, retry in N seconds`, so a
-      # DIFFERENT test failed on every run of identical code. The limiter exists
-      # to protect production, not a throwaway CI stack — services/api's own
-      # comment says operators may lift it via this variable.
       AUTH_REGISTER_RATE_LIMIT_MAX: '2000'
       AUTH_LOGIN_RATE_LIMIT_MAX: '2000'
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+
+      # Browser bundle: these are build-time Vite inputs. Without them the
+      # production build silently selects WebContainer and never reaches kind.
+      VITE_RUNTIME_MODE: remote-kubernetes
+      VITE_RUNTIME_API_BASE_URL: http://127.0.0.1:3001/api/runtime
+      VITE_SAAS_COMMERCIAL: 'true'
+
+      # Exact, ephemeral cluster identity. Scripts reject any name outside this
+      # prefix and every kubectl call is pinned through this kubeconfig/context.
+      E2E_RUNTIME_CLUSTER_NAME: vibecore-e2e-runtime-${{ github.run_id }}-${{ github.run_attempt }}
+      E2E_RUNTIME_KUBECONFIG: ${{ runner.temp }}/vibecore-e2e-runtime.kubeconfig
+      E2E_RUNTIME_NAMESPACE: vibecore-e2e-runtime
+      E2E_RUNTIME_AGENT_IMAGE: vibecore/workspace-agent:e2e-${{ github.sha }}
+      RUNTIME_E2E_BRIDGE_PORT: 18080
+      KUBECONFIG: ${{ runner.temp }}/vibecore-e2e-runtime.kubeconfig
+
+      # Host control plane -> real kind Services. The bridge creates one scoped
+      # kubectl port-forward per workspace and supports both HTTP and WebSocket.
+      WORKSPACE_AGENT_URL_TEMPLATE: http://127.0.0.1:18080/{workspaceId}
+      WORKSPACE_MANAGER_URL: http://127.0.0.1:3010
+      WORKSPACE_MANAGER_PORT: 3010
+      WORKSPACE_MANAGER_STORE: prisma
+      WORKSPACE_MANAGER_SHARED_SECRET: e2e-only-manager-secret-e2e-only-manager-secret
+      WORKSPACE_AGENT_TOKEN_SECRET: e2e-only-agent-secret-e2e-only-agent-secret
+      WORKSPACE_RUNTIME_NAMESPACE: vibecore-e2e-runtime
+      WORKSPACE_AGENT_IMAGE: vibecore/workspace-agent:e2e-${{ github.sha }}
+      WORKSPACE_STORAGE_CLASS: standard
+      WORKSPACE_DISABLE_SANDBOX_SCHEDULING: '1'
+      WORKSPACE_AGENT_REACHABLE_TIMEOUT_MS: '45000'
+      PREVIEW_PROXY_PORT: 3020
+      PREVIEW_PROXY_SHARED_SECRET: e2e-only-preview-secret-e2e-only-preview-secret
+      PREVIEW_URL_TEMPLATE: http://127.0.0.1:3020/p/{workspaceId}/{port}/
+      PREVIEW_PROXY_ENFORCE_TENANT: 'false'
+      PREVIEW_ENFORCE_PRIVATE_PORTS: 'false'
+      INTERNAL_API_SHARED_SECRET: e2e-only-internal-secret-e2e-only-internal-secret
+      JWT_SECRET: e2e-only-jwt-secret-e2e-only-jwt-secret
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout exact SHA
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
-      - uses: actions/setup-node@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
 
-      - uses: pnpm/action-setup@v4
+      - name: Set up pnpm
+        uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           version: 9.14.4
           run_install: false
 
-      - name: Install
+      - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright browsers
+      - name: Install pinned kind and kubectl clients
+        run: |
+          mkdir -p "${RUNNER_TEMP}/runtime-e2e-bin"
+          curl -fsSLo "${RUNNER_TEMP}/runtime-e2e-bin/kind" https://github.com/kubernetes-sigs/kind/releases/download/v0.31.0/kind-linux-amd64
+          echo 'eb244cbafcc157dff60cf68693c14c9a75c4e6e6fedaf9cd71c58117cb93e3fa  '"${RUNNER_TEMP}/runtime-e2e-bin/kind" | sha256sum -c -
+          curl -fsSLo "${RUNNER_TEMP}/runtime-e2e-bin/kubectl" https://dl.k8s.io/release/v1.34.0/bin/linux/amd64/kubectl
+          echo 'cfda68cba5848bc3b6c6135ae2f20ba2c78de20059f68789c090166d6abc3e2c  '"${RUNNER_TEMP}/runtime-e2e-bin/kubectl" | sha256sum -c -
+          chmod 0755 "${RUNNER_TEMP}/runtime-e2e-bin/kind" "${RUNNER_TEMP}/runtime-e2e-bin/kubectl"
+          echo "${RUNNER_TEMP}/runtime-e2e-bin" >> "${GITHUB_PATH}"
+
+      - name: Validate runtime gate wiring
+        run: |
+          pnpm run runtime:e2e:workflow:validate
+          pnpm exec vitest --run scripts/validate-e2e-runtime-workflow.spec.mjs scripts/runtime-e2e-agent-bridge.spec.ts
+          scripts/e2e-runtime-cluster.spec.sh
+
+      - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Start local dependencies
+      - name: Start local state services
         run: |
-          trap 'docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=120 postgres redis mailpit' ERR
-          touch .env
-          docker compose --env-file .env -f docker-compose.dev.yml up -d postgres redis mailpit
+          trap 'docker compose --env-file /dev/null -f docker-compose.dev.yml ps; docker compose --env-file /dev/null -f docker-compose.dev.yml logs --tail=120 postgres redis mailpit' ERR
+          docker compose --env-file /dev/null -f docker-compose.dev.yml up -d postgres redis mailpit
           npx wait-on --timeout 180000 --interval 1000 tcp:127.0.0.1:55432 tcp:127.0.0.1:56379 tcp:127.0.0.1:8025
 
       - name: Prepare database
@@ -89,13 +131,39 @@ jobs:
           pnpm --filter @vibecore/database db:deploy
           pnpm --filter @vibecore/database db:seed
 
+      - name: Provision exact-SHA kind runtime
+        run: scripts/e2e-runtime-cluster.sh up
+
+      - name: Start Kubernetes agent bridge
+        run: |
+          pnpm exec tsx scripts/runtime-e2e-agent-bridge.ts > /tmp/vibecore-runtime-bridge.log 2>&1 &
+          echo $! > /tmp/vibecore-runtime-bridge.pid
+          npx wait-on --timeout 60000 --interval 500 http://127.0.0.1:18080/healthz
+
+      - name: Start workspace manager
+        run: |
+          pnpm exec tsx services/workspace-manager/src/server.ts > /tmp/vibecore-workspace-manager.log 2>&1 &
+          echo $! > /tmp/vibecore-workspace-manager.pid
+          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:3010/health
+
       - name: Start API
         run: |
-          pnpm --filter @vibecore/api dev > /tmp/vibecore-api.log 2>&1 &
+          pnpm exec tsx services/api/src/server.ts > /tmp/vibecore-api.log 2>&1 &
           echo $! > /tmp/vibecore-api.pid
-          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:3001/health
+          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:3001/ready
 
-      - name: Build web app
+      - name: Start preview proxy
+        run: |
+          pnpm exec tsx services/preview-proxy/src/server.ts > /tmp/vibecore-preview-proxy.log 2>&1 &
+          echo $! > /tmp/vibecore-preview-proxy.pid
+          npx wait-on --timeout 60000 --interval 500 http://127.0.0.1:3020/health
+
+      - name: Validate API through a real Kubernetes workspace
+        env:
+          RUNTIME_API_E2E_NAMESPACE: vibecore-e2e-runtime
+        run: pnpm run runtime:validate:api-kubernetes
+
+      - name: Build web app for remote Kubernetes
         run: pnpm run build
 
       - name: Start web app
@@ -111,25 +179,49 @@ jobs:
           npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5174
 
       - name: Playwright @runtime suite
-        run: pnpm exec playwright test tests/e2e --project=chromium --grep @runtime
+        run: scripts/run-e2e-runtime-playwright.sh
 
-      # Moved out of Production E2E for the same reason as the @runtime tests:
-      # it audits IDE panels against live project data ("The requested panel
-      # data was not found." for 16 panels in the gate stack), which needs a
-      # provisioned workspace.
       - name: IDE panel live audit
         run: |
-          PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 SAAS_API_URL=http://127.0.0.1:3001 pnpm run ide:panel-audit
+          pnpm run ide:panel-audit
           pnpm run ide:panel-audit:validate
 
-      - name: Upload E2E traces
+      - name: Collect exact-SHA runtime evidence
         if: always()
-        uses: actions/upload-artifact@v4
+        run: |
+          mkdir -p runtime-e2e-artifacts
+          scripts/e2e-runtime-cluster.sh evidence runtime-e2e-artifacts/runtime-e2e-evidence.json
+
+      - name: Capture diagnostics
+        if: always()
+        run: |
+          mkdir -p runtime-e2e-artifacts
+          cp /tmp/vibecore-*.log runtime-e2e-artifacts/ 2>/dev/null || true
+          kubectl --kubeconfig "${E2E_RUNTIME_KUBECONFIG}" --context "kind-${E2E_RUNTIME_CLUSTER_NAME}" --namespace "${E2E_RUNTIME_NAMESPACE}" get pods,services,pvc -o wide > runtime-e2e-artifacts/kubernetes-resources.txt 2>&1 || true
+          kubectl --kubeconfig "${E2E_RUNTIME_KUBECONFIG}" --context "kind-${E2E_RUNTIME_CLUSTER_NAME}" --namespace "${E2E_RUNTIME_NAMESPACE}" get events --sort-by=.lastTimestamp > runtime-e2e-artifacts/kubernetes-events.txt 2>&1 || true
+
+      - name: Teardown and verify disappearance
+        if: always()
+        run: |
+          mkdir -p runtime-e2e-artifacts
+          for pid_file in /tmp/vibecore-{admin,web,preview-proxy,api,workspace-manager,runtime-bridge}.pid; do
+            if [[ -f "${pid_file}" ]]; then
+              kill "$(cat "${pid_file}")" 2>/dev/null || true
+            fi
+          done
+          scripts/e2e-runtime-cluster.sh down | tee runtime-e2e-artifacts/teardown.json
+          scripts/e2e-runtime-cluster.sh assert-down | tee -a runtime-e2e-artifacts/teardown.json
+          docker compose --env-file /dev/null -f docker-compose.dev.yml down --volumes
+
+      - name: Upload E2E runtime evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: playwright-report-runtime
+          name: e2e-runtime-${{ github.sha }}-${{ github.run_attempt }}
           path: |
+            runtime-e2e-artifacts
             playwright-report
             test-results
-            /tmp/vibecore-api.log
-            /tmp/vibecore-web.log
-          if-no-files-found: ignore
+            tmp/ide-panel-audit.json
+          if-no-files-found: warn
+          retention-days: 14
