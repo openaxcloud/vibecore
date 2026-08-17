@@ -350,7 +350,16 @@ export class PrismaApiStore implements ApiStore {
    * single-statement conditional reclaim, so a test can renew the plan "precisely
    * between" and prove the stale-version delete is refused. Undefined in prod.
    */
-  purgeTestHooks?: { onExistingPlanRead?: (plan: { id: string; version: number; status: string }) => Promise<void> };
+  purgeTestHooks?: {
+    onExistingPlanRead?: (plan: { id: string; version: number; status: string }) => Promise<void>;
+    /*
+     * Deterministic-race seam (tests only) for reserve #3b: fires INSIDE the
+     * finalize transaction, after the last lease guard and BEFORE the locked
+     * re-check, i.e. exactly in the window where a reconciler could steal the
+     * plan between "checked" and "tombstoned".
+     */
+    onFinalizePreTombstone?: () => Promise<void>;
+  };
 
   async ping(): Promise<void> {
     // Trivial round-trip to confirm the database connection is live.
@@ -1342,6 +1351,42 @@ export class PrismaApiStore implements ApiStore {
         // back, purgedAt is never stamped, and the account is re-queued.
         if (guard) {
           await guard();
+        }
+
+        await this.purgeTestHooks?.onFinalizePreTombstone?.();
+
+        /*
+         * Reserve #3b: the guard above runs on the POOLED client, OUTSIDE this
+         * transaction, so between "the lease is ours" and the tombstone below
+         * nothing held the PurgePlan row. A reconciler (or any path that does
+         * not take the per-user advisory lock) could steal the plan in that
+         * window and the tombstone would still be stamped — an irreversible
+         * anonymisation performed without owning the lease.
+         *
+         * Re-verify INSIDE the tx under `FOR UPDATE`: the row lock is held to
+         * COMMIT, so once this check passes no concurrent statement can change
+         * ownership, status or expiry before the tombstone lands. The predicate
+         * is evaluated by Postgres against the locked row (`now()`, not the app
+         * clock), so there is no check→act window left at all.
+         *
+         * A failure throws: the whole tx rolls back, purgedAt is never stamped,
+         * no erasure proof is written, and the account stays queued.
+         */
+        if (guarantee) {
+          const locked = await tx.$queryRawUnsafe<Array<{ alive: boolean }>>(
+            `SELECT ("ownerToken" = $2 AND status = $3 AND "leaseExpiresAt" > now()) AS alive ` +
+              `FROM "PurgePlan" WHERE id = $1 FOR UPDATE`,
+            guarantee.planId,
+            guarantee.ownerToken,
+            PURGE_PLAN_ACTIVE,
+          );
+
+          if (locked.length !== 1 || locked[0]?.alive !== true) {
+            throw new Error(
+              `ACCOUNT_PURGE_LEASE_LOST: plan ${guarantee.planId} is no longer ours under lock — ` +
+                `refusing to tombstone ${userId} (account re-queued)`,
+            );
+          }
         }
 
         // ---- tombstone: anonymize the user row, stamp purgedAt ----
