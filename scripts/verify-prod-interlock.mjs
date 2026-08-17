@@ -279,18 +279,20 @@ function hasDescendant(node, predicate) {
   return found;
 }
 
-function is503ReplyCall(node) {
-  if (!ts.isCallExpression(node) || !ts.isPropertyAccessExpression(node.expression)) {
+function isReplyCodeCall(node, statusCode) {
+  const current = unwrapParentheses(node);
+
+  if (!ts.isCallExpression(current) || !ts.isPropertyAccessExpression(current.expression)) {
     return false;
   }
 
   return (
-    ts.isIdentifier(unwrapParentheses(node.expression.expression)) &&
-    unwrapParentheses(node.expression.expression).text === 'reply' &&
-    node.expression.name.text === 'code' &&
-    node.arguments.length === 1 &&
-    ts.isNumericLiteral(unwrapParentheses(node.arguments[0])) &&
-    Number(unwrapParentheses(node.arguments[0]).text) === 503
+    ts.isIdentifier(unwrapParentheses(current.expression.expression)) &&
+    unwrapParentheses(current.expression.expression).text === 'reply' &&
+    current.expression.name.text === 'code' &&
+    current.arguments.length === 1 &&
+    ts.isNumericLiteral(unwrapParentheses(current.arguments[0])) &&
+    Number(unwrapParentheses(current.arguments[0]).text) === statusCode
   );
 }
 
@@ -313,9 +315,20 @@ function isBlockingFailureBranch(statement) {
     return false;
   }
 
-  return (
-    hasDescendant(candidate.expression, is503ReplyCall) && hasDescendant(candidate.expression, isFailureCodeProperty)
-  );
+  const returned = unwrapParentheses(candidate.expression);
+
+  if (
+    !ts.isCallExpression(returned) ||
+    !ts.isPropertyAccessExpression(returned.expression) ||
+    returned.expression.name.text !== 'send' ||
+    returned.arguments.length !== 1 ||
+    !isReplyCodeCall(returned.expression.expression, 503)
+  ) {
+    return false;
+  }
+
+  const payload = unwrapParentheses(returned.arguments[0]);
+  return ts.isObjectLiteralExpression(payload) && payload.properties.some(isFailureCodeProperty);
 }
 
 function isExecutableInterlock(statement, token) {
@@ -349,6 +362,8 @@ function isAccessRouteRegistration(node) {
   }
 
   if (
+    !ts.isIdentifier(unwrapParentheses(node.expression.expression)) ||
+    unwrapParentheses(node.expression.expression).text !== 'app' ||
     node.expression.name.text !== 'post' ||
     node.arguments.length < 2 ||
     !isStringValue(node.arguments[0], INTERLOCK_ROUTE)

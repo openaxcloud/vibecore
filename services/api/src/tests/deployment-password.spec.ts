@@ -1,7 +1,7 @@
 import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApiApp } from '../app.js';
 import { staticDeploymentSnapshotDir } from '../deployments.js';
 import { accessCookieName, computeAccessToken } from '../deployment-access.js';
@@ -193,7 +193,8 @@ describe('password-protected static deployments (endpoint)', () => {
       url: 'https://server.example.test',
     });
     const before = await store.getDeployment(projectId, deployment.id);
-    const successAuditCountBefore = store.auditLogs.filter((event) => event.action === 'deployment.access.set').length;
+    const updateDeployment = vi.spyOn(store, 'updateDeployment');
+    const recordAudit = vi.spyOn(store, 'recordAudit');
 
     const response = await setAccess(app, projectId, deployment.id, auth.token, {
       mode: 'password',
@@ -206,12 +207,10 @@ describe('password-protected static deployments (endpoint)', () => {
     });
 
     const after = await store.getDeployment(projectId, deployment.id);
-    expect(after?.metadata).toEqual(before?.metadata);
-    expect(after?.url).toBe(before?.url);
+    expect(after).toEqual(before);
     expect(JSON.stringify(after?.metadata ?? {})).not.toContain('passwordHash');
-    expect(store.auditLogs.filter((event) => event.action === 'deployment.access.set')).toHaveLength(
-      successAuditCountBefore,
-    );
+    expect(updateDeployment).not.toHaveBeenCalled();
+    expect(recordAudit).not.toHaveBeenCalled();
   });
 
   // ---- expert P0 security counter-audit (SEC-1..6) --------------------------

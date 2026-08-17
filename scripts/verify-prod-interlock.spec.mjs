@@ -46,10 +46,18 @@ afterEach(() => {
  * @param {boolean} o.interlockInSpec  token present in the (non-shipping) spec
  * @param {number}  [o.fillerModules]  extra reachable modules
  * @param {boolean} [o.specReachable]  make the spec importable from prod code
- * @param {'none'|'comment'|'string'|'read'|'nonBlockingIf'} [o.prodDecoy]
+ * @param {'none'|'comment'|'string'|'read'|'nonBlockingIf'|'detachedFailureResponse'} [o.prodDecoy]
  *   place a non-enforcing token reference in the production access route
+ * @param {'app'|'decoyRouter'} [o.routeReceiver] object receiving `.post`
  */
-function fixture({ interlockInProd, interlockInSpec, fillerModules = 3, specReachable = false, prodDecoy = 'none' }) {
+function fixture({
+  interlockInProd,
+  interlockInSpec,
+  fillerModules = 3,
+  specReachable = false,
+  prodDecoy = 'none',
+  routeReceiver = 'app',
+}) {
   const root = mkdtempSync(join(tmpdir(), 'sec9-fixture-'));
   created.push(root);
   mkdirSync(join(root, SRC, 'tests'), { recursive: true });
@@ -68,6 +76,11 @@ function fixture({ interlockInProd, interlockInSpec, fillerModules = 3, specReac
     string: `    const interlockLabel = '${INTERLOCK_TOKEN}';`,
     read: `    void process.env.${INTERLOCK_TOKEN};`,
     nonBlockingIf: `    if (body.mode === 'password' && process.env.${INTERLOCK_TOKEN} !== '1') { diagnostics.push('disabled'); }`,
+    detachedFailureResponse: [
+      `    if (body.mode === 'password' && process.env.${INTERLOCK_TOKEN} !== '1') {`,
+      `      return [reply.code(503), { code: 'DEPLOYMENT_ACCESS_ACTIVATION_DISABLED' }];`,
+      '    }',
+    ].join('\n'),
   }[prodDecoy];
 
   writeFileSync(
@@ -76,7 +89,7 @@ function fixture({ interlockInProd, interlockInSpec, fillerModules = 3, specReac
       fillerImports,
       specReachable ? "import './tests/deployment-password.spec.js';" : '',
       'export function buildApiApp() {',
-      `  app.post('/projects/:projectId/deployments/:deploymentId/access', async (request, reply) => {`,
+      `  ${routeReceiver}.post('/projects/:projectId/deployments/:deploymentId/access', async (request, reply) => {`,
       '    const body = request.body;',
       decoySource,
       interlockInProd
@@ -162,6 +175,7 @@ describe('SEC-9 — cutover detection reads the production bundle', () => {
     ['string literal', 'string'],
     ['simple environment read', 'read'],
     ['non-blocking if statement', 'nonBlockingIf'],
+    ['detached status and payload', 'detachedFailureResponse'],
   ])('refuses a %s decoy in the production route', (_label, prodDecoy) => {
     const result = verify(
       fixture({
@@ -172,8 +186,23 @@ describe('SEC-9 — cutover detection reads the production bundle', () => {
     );
 
     expect(result.ok).toBe(false);
+    expect(result.attestation.tokenCarriers).toContain(`${SRC}/app.ts`);
     expect(result.attestation.carriers).toEqual([]);
     expect(result.attestation.verdict).toBe('FAILED');
+  });
+
+  it('refuses a fully shaped interlock registered on a decoy router', () => {
+    const result = verify(
+      fixture({
+        interlockInProd: true,
+        interlockInSpec: false,
+        routeReceiver: 'decoyRouter',
+      }),
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.attestation.tokenCarriers).toContain(`${SRC}/app.ts`);
+    expect(result.attestation.carriers).toEqual([]);
   });
 
   it('never lets a spec file into the graph — and fails loudly if one becomes reachable', () => {
