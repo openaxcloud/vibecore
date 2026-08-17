@@ -8,8 +8,13 @@
  * corrompue.
  */
 
-/** Chemin projet normalisé, ou `null` si le chemin sort de l'arborescence. */
-export type NormalizeProjectPath = (value: string) => string | null;
+/**
+ * Chemin projet normalisé, ou une valeur falsy si le chemin sort de
+ * l'arborescence. Le paramètre est optionnel et le retour accepte
+ * `null | undefined` pour coller à l'implémentation d'`app.ts`, qui est le seul
+ * appelant réel : c'est elle qui fait autorité sur ce qu'est un chemin valide.
+ */
+export type NormalizeProjectPath = (value?: string) => string | null | undefined;
 
 export function boltActionAttributes(source: string) {
   const attributes: Record<string, string> = {};

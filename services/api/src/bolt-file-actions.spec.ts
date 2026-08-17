@@ -19,7 +19,8 @@ import { boltFileActionsFromContent } from './bolt-file-actions.js';
  * un viewport de 390), alors que l'aperçu de développement était correct.
  */
 
-const identite = (v: string) => v;
+/** Normalisation neutre : on teste l'extraction, pas la politique de chemins. */
+const identite = (v?: string) => v ?? null;
 
 const REPRISE_CSS = [
   '<boltArtifact id="expense-tracker" title="Dépenses">',
