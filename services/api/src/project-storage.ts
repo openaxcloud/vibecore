@@ -108,6 +108,14 @@ export interface GitProvider {
   status(
     projectId: string,
     workspaceId?: string,
+
+    /*
+     * The caller's current files. Passing them lets the provider refresh the git
+     * working tree first — without that, an edit saved in the IDE (which lands in
+     * the pod and in `ide-state`, never in the working tree) was invisible and
+     * `status` reported "0 changes" forever.
+     */
+    files?: ProjectFile[],
   ): Promise<{
     branch: string;
 
@@ -886,7 +894,42 @@ export class GitCliProvider implements GitProvider {
     }
   }
 
-  private async git(projectId: string, args: string[], workspaceId?: string) {
+  /**
+   * Bring the git working tree up to date with the caller's view of the files.
+   *
+   * The IDE saves an edit to the workspace pod and to `ide-state`; neither of
+   * those is the git working tree. Nothing else wrote it either — only an agent
+   * artifact close did — so a hand-edited file was invisible to git: `status`
+   * reported "0 changes" forever and the commit buttons stayed disabled. That
+   * is why `commit()` is handed `listProjectFilesIncludingIdeState(...)`, a
+   * parameter it then ignored.
+   *
+   * Only changed content is written, so polling `status` does not churn the
+   * tree (and does not make every file look freshly modified to git).
+   *
+   * NOTE: never call `writeFiles()` from here — it takes the same project lock
+   * that `commit()` already holds, which would deadlock.
+   */
+  private async materializeWorkingTree(projectId: string, files: ProjectFile[] | undefined, workspaceId?: string) {
+    if (!files?.length) {
+      return;
+    }
+
+    for (const file of files) {
+      const target = safeWorkspacePath(projectId, workspaceId, file.path);
+      const next = decodeFileContent(file.content, file.encoding);
+      const current = await readFile(target).catch(() => undefined);
+
+      if (current && current.equals(next)) {
+        continue;
+      }
+
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, next);
+    }
+  }
+
+  private async git(projectId: string, args: string[], workspaceId?: string, raw = false) {
     await this.ensureRepository(projectId, workspaceId);
 
     const result = await execFile(
@@ -913,7 +956,16 @@ export class GitCliProvider implements GitProvider {
       },
     );
 
-    return commandStdout(result).trim();
+    /*
+     * `trim()` is right for the single-value commands (rev-parse, symbolic-ref,
+     * …) but WRONG for porcelain: `git status --porcelain=v1` marks an unstaged
+     * change with a LEADING SPACE (" M path"), and trimming the whole output ate
+     * it on the first line — so `statusPath`'s `slice(3)` cut one character too
+     * many and the first changed file came back as "pp.tsx" instead of
+     * "App.tsx". A corrupt path then broke every per-file git action on it.
+     * Callers that parse column-aligned output ask for the raw text.
+     */
+    return raw ? commandStdout(result) : commandStdout(result).trim();
   }
 
   async importRepository(input: { repositoryUrl: string; branch?: string }) {
@@ -957,7 +1009,9 @@ export class GitCliProvider implements GitProvider {
     });
   }
 
-  async status(projectId: string, workspaceId?: string) {
+  async status(projectId: string, workspaceId?: string, files?: ProjectFile[]) {
+    await this.materializeWorkingTree(projectId, files, workspaceId);
+
     /*
      * `symbolic-ref` fails both when HEAD is detached and when the repo is
      * broken. Distinguish the two so the IDE can render a real detached-HEAD
@@ -977,7 +1031,7 @@ export class GitCliProvider implements GitProvider {
         detached = true;
       }
     }
-    const porcelain = await this.git(projectId, ['status', '--porcelain=v1', '-uall'], workspaceId);
+    const porcelain = await this.git(projectId, ['status', '--porcelain=v1', '-uall'], workspaceId, true);
     const statusLines = porcelain.split('\n').filter(Boolean);
 
     /*
@@ -1024,6 +1078,13 @@ export class GitCliProvider implements GitProvider {
   }) {
     return withProjectLock(input.projectId, async () => {
       await this.ensureRepository(input.projectId, input.workspaceId);
+
+      /*
+       * The whole point of the `files` parameter: put the caller's current files
+       * in the working tree BEFORE staging. Without this, `git add` staged an
+       * unchanged tree and every commit died with GIT_NOTHING_TO_COMMIT.
+       */
+      await this.materializeWorkingTree(input.projectId, input.files, input.workspaceId);
 
       const selectedFiles = input.selectedFiles?.map((filePath) => filePath.replace(/^\/+/, '')).filter(Boolean) ?? [];
       const addArgs = selectedFiles.length ? ['add', '--', ...selectedFiles] : ['add', '--all'];

@@ -30604,7 +30604,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const query = parse(gitWorkspaceQuerySchema, request.query ?? {});
     const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
 
-    return { status: await gitProvider.status(project.id, workspaceId) };
+    /*
+     * Hand the provider the files as the user currently sees them (project
+     * storage + ide-state) so a hand-edited file actually shows up as changed.
+     * The same list is what `commit` receives, so the panel and the commit agree
+     * on what "changed" means.
+     */
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id, workspaceId);
+
+    return { status: await gitProvider.status(project.id, workspaceId, files) };
   });
   app.post('/projects/:projectId/git/commit', async (request) => {
     const project = await requireProject(
