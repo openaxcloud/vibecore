@@ -36,9 +36,9 @@ describe('resolvePreviewBootProgress', () => {
   });
 
   it('still reports ready when the upstream signal clears', () => {
-    expect(
-      resolvePreviewBootProgress({ ...base, previewsLength: 1, upstreamNotReady: false }).activeStep,
-    ).toBe('ready');
+    expect(resolvePreviewBootProgress({ ...base, previewsLength: 1, upstreamNotReady: false }).activeStep).toBe(
+      'ready',
+    );
   });
 
   it('keeps reporting dependencies while the workspace is not ready', () => {
