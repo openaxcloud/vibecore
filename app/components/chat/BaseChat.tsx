@@ -5731,7 +5731,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     useEffect(() => {
-      if (typeof window === 'undefined') {
+      /*
+       * Do not let the initial 420px fallback become an authoritative local
+       * preference before the project IDE state has been restored. That write
+       * made readProjectBottomTerminalUiState() report `stored: true` while the
+       * backend request was still in flight, so a persisted per-project height
+       * was silently ignored on first load.
+       */
+      if (typeof window === 'undefined' || (projectIdeMode && !projectStateReady)) {
         return;
       }
 
@@ -5739,7 +5746,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         PROJECT_BOTTOM_TERMINAL_UI_STORAGE_KEY,
         JSON.stringify({ height: terminalBottomHeight, open: terminalBottomOpen }),
       );
-    }, [terminalBottomHeight, terminalBottomOpen]);
+    }, [projectIdeMode, projectStateReady, terminalBottomHeight, terminalBottomOpen]);
 
     const openBottomTerminal = useCallback(
       (view: ProjectBottomTerminalView = 'terminal') => {
@@ -12225,8 +12232,6 @@ function IdeTabBar({
       if (event.key === 'Escape') {
         event.preventDefault();
         closeToolMenu({ restoreFocus: true });
-      } else if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        closeToolMenu();
       }
     };
 
@@ -12248,6 +12253,26 @@ function IdeTabBar({
       document.removeEventListener('pointerdown', handlePointerDown, true);
     };
   }, [closeToolMenu, open]);
+
+  useEffect(() => {
+    const handleCommandPaletteShortcut = (event: KeyboardEvent) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 'k') {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (open) {
+        closeToolMenu();
+      } else {
+        openToolMenu();
+      }
+    };
+
+    window.addEventListener('keydown', handleCommandPaletteShortcut);
+
+    return () => window.removeEventListener('keydown', handleCommandPaletteShortcut);
+  }, [closeToolMenu, open, openToolMenu]);
 
   const tools: Array<[IdeWorkspacePanel | IdeRightPanel, string, string, string, string, string]> = [
     [
