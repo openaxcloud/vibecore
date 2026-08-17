@@ -4064,6 +4064,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               workspaceLogs,
 
               /*
+               * Un refus de quota (429) n'était visible que dans une infobulle :
+               * Problèmes annonçait « Aucun problème détecté » alors que l'espace
+               * de travail ne pouvait pas démarrer. Il remonte ici comme les
+               * autres conditions bloquantes.
+               */
+              quotaWarning,
+              quotaUpgrade: billingUpgradePrompt,
+
+              /*
                * Once a forwarded port is serving, drop the stale cold-start 500/502
                * provisioning errors (workspaceError AND log-derived) from Problems.
                */
@@ -4071,7 +4080,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             })
           : [],
       );
-    }, [projectIdeMode, setDiagnosticsForSource, workspaceError, workspaceLogs, previewPortLive]);
+    }, [
+      projectIdeMode,
+      setDiagnosticsForSource,
+      workspaceError,
+      workspaceLogs,
+      previewPortLive,
+      quotaWarning,
+      billingUpgradePrompt,
+    ]);
 
     const statusbarDiagnostics = useMemo(
       () => ({

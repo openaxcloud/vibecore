@@ -132,3 +132,41 @@ describe('build-error recovery (audit cluster D, BUG-IDE-003)', () => {
     expect(diagnostics.filter((d) => d.severity === 'error')).toHaveLength(1);
   });
 });
+
+describe('buildRuntimeDiagnostics — refus de quota', () => {
+  /*
+   * Mesuré sur l'env d'audit : espace de travail refusé en 429, panneau
+   * Problèmes affichant « 0 erreurs · 0 avertissements » et mot « quota »
+   * absent de toute la page. Le message existait, mais seulement dans un
+   * attribut `title`.
+   */
+  const AVERTISSEMENT = 'Votre organisation a atteint sa limite d’espaces de travail actifs.';
+  const OFFRE = 'Libérez un espace de travail ou passez à une offre supérieure.';
+
+  it('remonte le refus de quota en erreur, avec la marche à suivre', () => {
+    const diagnostics = buildRuntimeDiagnostics({
+      workspaceLogs: [],
+      quotaWarning: AVERTISSEMENT,
+      quotaUpgrade: OFFRE,
+    });
+
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0].severity).toBe('error');
+    expect(diagnostics[0].message).toContain('limite d’espaces de travail actifs');
+    expect(diagnostics[0].detail).toContain('offre supérieure');
+  });
+
+  it('garde le refus même quand un aperçu tourne — ce n’est pas un raté de démarrage', () => {
+    const diagnostics = buildRuntimeDiagnostics({
+      workspaceLogs: [],
+      quotaWarning: AVERTISSEMENT,
+      previewLive: true,
+    });
+
+    expect(diagnostics.map((d) => d.message)).toContain(AVERTISSEMENT);
+  });
+
+  it('ne signale rien quand aucun quota n’est atteint', () => {
+    expect(buildRuntimeDiagnostics({ workspaceLogs: [] })).toEqual([]);
+  });
+});
