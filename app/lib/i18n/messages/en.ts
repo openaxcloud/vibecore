@@ -11,6 +11,7 @@ export const en = {
   'common.unavailable': 'Unavailable',
   'locale.switchLabel': 'Choose display language',
   'locale.current': 'Current language: {language}',
+  'locale.automatic': 'Automatic (browser language)',
   'locale.english': 'English',
   'locale.french': 'French',
   'root.loadingEcode': 'Loading E-Code',

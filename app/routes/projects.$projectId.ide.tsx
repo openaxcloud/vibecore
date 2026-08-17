@@ -34,7 +34,6 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 import { useLoaderData } from 'react-router';
@@ -42,7 +41,6 @@ import { Link } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { buildIdeNotifications, restartWorkspace, type IdeNotificationKind } from './projects.$projectId.ide.helpers';
 import { BaseChat } from '~/components/chat/BaseChat';
-import { LanguageSwitch } from '~/components/i18n/LanguageSwitch';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { InputDialog } from '~/components/ui/InputDialog';
@@ -88,25 +86,6 @@ function routeKeyWithoutClientIdeParams(url: URL) {
   const search = searchParams.toString();
 
   return `${url.pathname}${search ? `?${search}` : ''}`;
-}
-
-export function MobileIdeLanguageSwitchPortal() {
-  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    setPortalHost(document.body);
-  }, []);
-
-  if (!portalHost) {
-    return null;
-  }
-
-  return createPortal(
-    <div className="bolt-project-mobile-language-switch-slot" data-testid="mobile-ide-language-switch-slot">
-      <LanguageSwitch className="bolt-project-mobile-language-switch" />
-    </div>,
-    portalHost,
-  );
 }
 
 export const shouldRevalidate = ({
@@ -188,7 +167,6 @@ export default function ProjectIdeRoute() {
             projectApiError={projectApiError}
             projectUrl={projectUrl}
           />
-          <MobileIdeLanguageSwitchPortal />
           <main className="h-dvh pt-9">
             <ClientOnly fallback={optimisticShell}>
               {() => (
@@ -585,9 +563,6 @@ function IdeProjectTopBar({
         </nav>
       </div>
       <div className="bolt-project-topbar-actions">
-        <div className="bolt-project-action-group bolt-project-action-group--language" data-priority="high">
-          <LanguageSwitch className="bolt-project-language-switch" />
-        </div>
         <div
           ref={overflowMenuRef}
           className="bolt-project-action-group bolt-project-action-group--overflow"

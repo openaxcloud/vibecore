@@ -59,6 +59,7 @@ import {
   deploymentStatusColor,
   partitionMonitoringEvents as partitionMonitoringEventsHelper,
 } from './projectMonitoring';
+import { LanguageSetting } from '~/components/i18n/LanguageSetting';
 import { formatRailBadgeValue } from '~/lib/labels/rail-badge';
 import {
   pairCheckpointsToSnapshots,
@@ -15528,6 +15529,18 @@ function ProjectSettingsPanel({
                     <option value="light">{t('chat.copy.light_a36ef8ab')}</option>
                     <option value="system">{t('chat.copy.system_bc0792d8')}</option>
                   </select>
+                </label>
+                {/*
+                 * Langue : réglage de COMPTE, pas de projet — d'où le POST vers
+                 * `/api/user/preferences` du composant plutôt que le formulaire
+                 * `intent=preferences` de cette carte, qui écrit dans les
+                 * variables d'environnement du projet. Il a remplacé la bascule
+                 * FR/EN de la barre de l'IDE : la langue est détectée depuis le
+                 * navigateur, ce réglage ne sert qu'à surcharger la détection.
+                 */}
+                <label>
+                  {t('settingsPreferences.language')}
+                  <LanguageSetting />
                 </label>
                 <label>
                   {t('chat.copy.keyboardMode_648b32a7')}
