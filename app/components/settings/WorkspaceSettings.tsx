@@ -73,7 +73,14 @@ export function WorkspaceSettings({ language }: { language?: string }) {
   return (
     <div className="mx-auto w-full max-w-2xl min-w-0 px-4 py-2 sm:px-5">
       <header className="py-4">
-        <h2 className="break-words text-[16px] font-semibold text-bolt-elements-textPrimary">{copy.header.title}</h2>
+        {/*
+         * This is the page title of /workspace-settings, which renders the shell
+         * with `hideHeader`, so nothing else supplies a level-1 heading. Sibling
+         * settings routes (/account-settings, /desktop-settings) do ship one, and
+         * starting the outline at level 2 leaves the route with no document
+         * heading at all. The visual size is unchanged.
+         */}
+        <h1 className="break-words text-[16px] font-semibold text-bolt-elements-textPrimary">{copy.header.title}</h1>
         <p className="break-words text-[12px] leading-5 text-bolt-elements-textSecondary">{copy.header.description}</p>
       </header>
 

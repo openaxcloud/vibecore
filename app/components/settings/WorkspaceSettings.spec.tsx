@@ -42,6 +42,18 @@ describe('WorkspaceSettings — Require review of AI changes toggle', () => {
     expect((screen.getByLabelText('Require review of AI changes') as HTMLInputElement).checked).toBe(true);
   });
 
+  it('gives the page a level-1 heading, and only one', () => {
+    renderWorkspace();
+
+    const level1 = screen.getAllByRole('heading', { level: 1 });
+
+    expect(level1).toHaveLength(1);
+    expect(level1[0].textContent).toBe('Workspace settings');
+
+    // Section titles stay below it rather than competing with it.
+    expect(screen.getAllByRole('heading', { level: 3 }).length).toBeGreaterThan(0);
+  });
+
   it('reflects a persisted "on" value on load', () => {
     window.localStorage.setItem(REQUIRE_AI_CHANGE_REVIEW_STORAGE_KEY, 'true');
 
@@ -53,7 +65,7 @@ describe('WorkspaceSettings — Require review of AI changes toggle', () => {
   it('renders all workspace and theme controls in professional French', () => {
     renderWorkspace('fr');
 
-    expect(screen.getByRole('heading', { name: 'Paramètres de l’espace de travail' })).toBeTruthy();
+    expect(screen.getByRole('heading', { name: 'Paramètres de l’espace de travail', level: 1 })).toBeTruthy();
     expect(screen.getByText('Retour automatique à la ligne')).toBeTruthy();
     expect(screen.getByText('Formater lors de l’enregistrement')).toBeTruthy();
     expect(screen.getByLabelText('Exiger la validation des modifications de l’IA')).toBeTruthy();
