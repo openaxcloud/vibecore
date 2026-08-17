@@ -47,6 +47,7 @@ const SORTIE_TRONQUEE_PUIS_REPRISE = [
   '<boltAction type="file" filePath="src/index.css" contentType="content">',
   '.summary-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}',
   '.skeleton{background:linear-gradient(90deg,#eee 25%,#ddd 50%,#eee 75%);',
+
   // Troncature au milieu d'un token, exactement comme en réel.
   '  border',
   "Je continue exactement là où le fichier CSS s'est arrêté, puis je finalise.",
@@ -60,7 +61,7 @@ const SORTIE_TRONQUEE_PUIS_REPRISE = [
   '</boltArtifact>',
 ].join('\n');
 
-describe("BUG-AGENT-005 — le balisage de reprise ne doit jamais atterrir dans le CSS", () => {
+describe('BUG-AGENT-005 — le balisage de reprise ne doit jamais atterrir dans le CSS', () => {
   it('ne livre aucun balisage de plateforme dans le fichier', () => {
     const contenu = contenuLivrePour(SORTIE_TRONQUEE_PUIS_REPRISE, 'src/index.css') ?? '';
 
@@ -76,7 +77,7 @@ describe("BUG-AGENT-005 — le balisage de reprise ne doit jamais atterrir dans 
     expect(contenu).not.toMatch(/border$/m);
   });
 
-  it("laisse la media query cibler `.summary-grid`, pas `.skeleton .summary-grid`", () => {
+  it('laisse la media query cibler `.summary-grid`, pas `.skeleton .summary-grid`', () => {
     /*
      * Le cœur du défaut : si le balisage survit dans le fichier, le sélecteur
      * ouvert juste avant (`.skeleton`) absorbe tout ce qui suit. On vérifie donc
