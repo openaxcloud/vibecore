@@ -66,6 +66,7 @@ describe('GET /admin/platform-metrics', () => {
     // Record a few known metrics across the metric families the dashboard surfaces.
     metricsRegistry.increment('workspace_starts_total', { outcome: 'success' }, 5);
     metricsRegistry.increment('workspace_failures_total', { reason: 'timeout' }, 2);
+    metricsRegistry.increment('workspace_runtime_reseed_total', { reason: 'reconciled-from-persisted' });
     metricsRegistry.setGauge('queue_depth', { queue: 'builds' }, 7);
     metricsRegistry.increment('api_errors_total', { type: 'validation' }, 3);
     metricsRegistry.increment('ai_tokens_total', { provider: 'openai' }, 1200);
@@ -97,6 +98,14 @@ describe('GET /admin/platform-metrics', () => {
     const failures = byName.get('workspace_failures_total');
     expect(failures.total).toBe(2);
     expect(failures.samples[0].labels).toEqual({ reason: 'timeout' });
+
+    /*
+     * Regression: runtime reseed reconciliation must remain observable without
+     * throwing `Unknown metric` after a real cold start.
+     */
+    const reseeds = byName.get('workspace_runtime_reseed_total');
+    expect(reseeds.total).toBe(1);
+    expect(reseeds.samples).toEqual([{ labels: { reason: 'reconciled-from-persisted' }, value: 1 }]);
 
     // Gauge.
     const queue = byName.get('queue_depth');

@@ -41,6 +41,11 @@ export const platformMetricDefinitions: MetricDefinition[] = [
     help: 'Workspace file writes that self-recovered after waiting out a cold start.',
     type: 'counter',
   },
+  {
+    name: 'workspace_runtime_reseed_total',
+    help: 'Workspace runtime reseeds reconciled from persisted project files.',
+    type: 'counter',
+  },
   { name: 'active_workspaces', help: 'Active workspaces.', type: 'gauge' },
   { name: 'terminal_sessions', help: 'Open terminal sessions.', type: 'gauge' },
   { name: 'preview_requests_total', help: 'Preview proxy requests.', type: 'counter' },
