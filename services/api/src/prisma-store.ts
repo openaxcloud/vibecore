@@ -644,7 +644,7 @@ export class PrismaApiStore implements ApiStore {
         const reclaimed = await tx.$executeRawUnsafe(
           `DELETE FROM "PurgePlan" WHERE id = $1 AND version = $2 AND status = $3 ` +
             `AND "leaseExpiresAt" < (` +
-            `date_trunc('milliseconds', transaction_timestamp()) - make_interval(secs => $4))`,
+            `date_trunc('milliseconds', clock_timestamp()) - make_interval(secs => $4))`,
           existing.id,
           existing.version,
           existing.status,
@@ -661,7 +661,7 @@ export class PrismaApiStore implements ApiStore {
 
       const topology = await this.resolveStorageTopology(tx, userId);
       const [leaseClock] = await tx.$queryRawUnsafe<Array<{ leaseExpiresAt: Date }>>(
-        `SELECT date_trunc('milliseconds', transaction_timestamp())
+        `SELECT date_trunc('milliseconds', clock_timestamp())
                   + ($1::bigint * interval '1 millisecond') AS "leaseExpiresAt"`,
         this.purgeLease.ttlMs,
       );
@@ -707,24 +707,36 @@ export class PrismaApiStore implements ApiStore {
 
   /**
    * RR-CODEX-12: renew (heartbeat) the lease via CAS on (id, ownerToken, version,
-   * status=ACTIVE, unexpired lease). PostgreSQL supplies ONE timestamp for both the
-   * strict liveness predicate and the new expiry; an expired lease can therefore
-   * never be resurrected by a pod whose wall clock is behind the database.
+   * status=ACTIVE, unexpired lease). PostgreSQL first locks the exact CAS target,
+   * then captures ONE current database timestamp for both the strict liveness
+   * predicate and the new expiry. This ordering matters: transaction_timestamp()
+   * is fixed when a transaction starts, so a heartbeat that waited behind a lock
+   * could otherwise resurrect a lease after its real expiry.
    *
    * Returns the NEW version on success, or null if the CAS lost — including when
    * the lease reached its expiry boundary before this statement linearised.
    */
   async renewPurgeLease(planId: string, ownerToken: string, expectedVersion: number): Promise<number | null> {
     const renewed = await this.prisma.$queryRawUnsafe<Array<{ version: number }>>(
-      `WITH lease_clock AS (SELECT date_trunc('milliseconds', transaction_timestamp()) AS ts)
+      `WITH target AS MATERIALIZED (
+         SELECT plan.id
+           FROM "PurgePlan" AS plan
+          WHERE plan.id = $1
+            AND plan."ownerToken" = $2
+            AND plan.version = $3
+            AND plan.status = $5
+            FOR UPDATE OF plan
+       ),
+       lease_clock AS MATERIALIZED (
+         SELECT date_trunc('milliseconds', clock_timestamp()) AS ts
+           FROM target
+       )
        UPDATE "PurgePlan" AS plan
           SET "leaseExpiresAt" = lease_clock.ts + ($4::bigint * interval '1 millisecond'),
               version = plan.version + 1
-         FROM lease_clock
-        WHERE plan.id = $1
-          AND plan."ownerToken" = $2
-          AND plan.version = $3
-          AND plan.status = $5
+         FROM target
+         CROSS JOIN lease_clock
+        WHERE plan.id = target.id
           AND plan."leaseExpiresAt" > lease_clock.ts
       RETURNING plan.version`,
       planId,
@@ -746,7 +758,7 @@ export class PrismaApiStore implements ApiStore {
           WHERE id = $1
             AND "ownerToken" = $2
             AND status = $3
-            AND "leaseExpiresAt" > date_trunc('milliseconds', transaction_timestamp())
+            AND "leaseExpiresAt" > date_trunc('milliseconds', clock_timestamp())
        ) AS valid`,
       planId,
       ownerToken,
@@ -853,7 +865,7 @@ export class PrismaApiStore implements ApiStore {
    */
   async reconcilePurgeFreezes(): Promise<{ reconciled: number; reclaimedPlanIds: string[] }> {
     const [leaseClock] = await this.prisma.$queryRawUnsafe<Array<{ cutoff: Date }>>(
-      `SELECT date_trunc('milliseconds', transaction_timestamp())
+      `SELECT date_trunc('milliseconds', clock_timestamp())
                 - ($1::bigint * interval '1 millisecond') AS cutoff`,
       this.purgeLease.reclaimGraceMs,
     );

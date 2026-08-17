@@ -250,8 +250,9 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
    * `SELECT ... FOR UPDATE` serializes this decision with the API heartbeat UPDATE on
    * PurgePlan. If renewal wins first, we observe a live lease and keep the barrier. If
    * this transaction locks an expired plan first, the release commits before renewal
-   * resumes; its strict `leaseExpiresAt > transaction_timestamp()` predicate is then
-   * false, so it cannot resurrect the owner after the barrier went down.
+   * resumes. Both sides capture `clock_timestamp()` only after taking the row lock, so
+   * even a renewal transaction started before expiry cannot resurrect the owner after
+   * the barrier went down.
    */
   async releaseStalePurgeFence(
     workspaceId: string,
@@ -260,12 +261,20 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     return this.prisma.$transaction(async (tx) => {
       if (observed.fenceToken) {
         const owners = await tx.$queryRawUnsafe<Array<{ live: boolean }>>(
-          `WITH lease_clock AS (SELECT date_trunc('milliseconds', transaction_timestamp()) AS ts)
-           SELECT (plan."leaseExpiresAt" > lease_clock.ts) AS live
-             FROM "PurgePlan" AS plan
-             CROSS JOIN lease_clock
-            WHERE plan."ownerToken" = $1
-              FOR UPDATE OF plan`,
+          `WITH owners AS MATERIALIZED (
+             SELECT plan.id, plan."leaseExpiresAt"
+               FROM "PurgePlan" AS plan
+              WHERE plan."ownerToken" = $1
+              FOR UPDATE OF plan
+           ),
+           lease_clock AS MATERIALIZED (
+             SELECT date_trunc('milliseconds', clock_timestamp()) AS ts
+               FROM owners
+              LIMIT 1
+           )
+           SELECT (owners."leaseExpiresAt" > lease_clock.ts) AS live
+             FROM owners
+             CROSS JOIN lease_clock`,
           observed.fenceToken,
         );
         const live = owners.some((owner) => owner.live);
@@ -318,7 +327,7 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
          SELECT 1
            FROM "PurgePlan"
           WHERE "ownerToken" = $1
-            AND "leaseExpiresAt" > date_trunc('milliseconds', transaction_timestamp())
+            AND "leaseExpiresAt" > date_trunc('milliseconds', clock_timestamp())
        ) AS live`,
       fenceToken,
     );

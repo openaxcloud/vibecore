@@ -1,8 +1,8 @@
 /*
  * RR-CODEX-14 v8 — deterministic lease-renewal/reconciler interleavings on a
- * real PostgreSQL server. No timer decides an ordering in this suite: the first
- * race pauses inside the transaction after PurgePlan has been row-locked, while
- * the expiry-boundary cases share PostgreSQL's transaction_timestamp().
+ * real PostgreSQL server. No timer decides an ordering in this suite: races pause
+ * at database-observable lock boundaries, and the exact expiry-boundary case uses
+ * PostgreSQL's own timestamp.
  */
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
@@ -212,6 +212,153 @@ integrationDescribe('purge lease expiry is linearized with stale-barrier release
     expect(runtime).toMatchObject({ purgeFrozen: false, purgeFenceToken: null, purgeFrozenAt: null });
   });
 
+  it('a renewal transaction started before expiry cannot resurrect the lease after the barrier is released', async () => {
+    const planId = uniqueId('plan-stale-renew-clock');
+    const workspaceId = uniqueId('ws-stale-renew-clock');
+    const ownerToken = uniqueId('owner-stale-renew-clock');
+    planIds.push(planId);
+    runtimeIds.push(workspaceId);
+
+    await prismaA!.$executeRawUnsafe(
+      `INSERT INTO "PurgePlan" (id, "userId", "ownerToken", "leaseExpiresAt", version, status)
+       VALUES (
+         $1,
+         $2,
+         $3,
+         date_trunc('milliseconds', clock_timestamp()) + interval '10 minutes',
+         0,
+         'ACTIVE'
+       )`,
+      planId,
+      uniqueId('user'),
+      ownerToken,
+    );
+
+    const store = new ScopedWorkspaceStore(prismaA!, workspaceId);
+    await store.create({
+      id: workspaceId,
+      orgId: uniqueId('org'),
+      projectId: uniqueId('project'),
+      plan: 'pro',
+      status: 'STOPPED',
+      pvcName: `pvc-${workspaceId}`,
+      podName: `workspace-${workspaceId}`,
+      serviceName: `svc-${workspaceId}`,
+      agentTokenSecretName: `agent-token-${workspaceId}`,
+      purgeFrozen: true,
+      purgeFenceToken: ownerToken,
+      purgeFrozenAt: new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString(),
+    });
+
+    const renewalTransactionReady = deferred<{ pid: number; transactionStartedAt: Date }>();
+    const startRenewal = deferred<void>();
+
+    const renewalPromise = prismaB!.$transaction(
+      async (renewalTx) => {
+        const [session] = await renewalTx.$queryRawUnsafe<
+          Array<{ pid: number; transactionStartedAt: Date; startedLive: boolean }>
+        >(
+          `SELECT pg_backend_pid() AS pid,
+                  date_trunc('milliseconds', transaction_timestamp()) AS "transactionStartedAt",
+                  transaction_timestamp() < "leaseExpiresAt" AS "startedLive"
+             FROM "PurgePlan"
+            WHERE id = $1`,
+          planId,
+        );
+        expect(session?.startedLive).toBe(true);
+        renewalTransactionReady.resolve({
+          pid: session!.pid,
+          transactionStartedAt: session!.transactionStartedAt,
+        });
+        await startRenewal.promise;
+
+        return apiStore(renewalTx as unknown as DatabaseClient).renewPurgeLease(planId, ownerToken, 0);
+      },
+      { timeout: 15_000 },
+    );
+
+    const { pid: renewalBackendPid, transactionStartedAt } = await renewalTransactionReady.promise;
+
+    /*
+     * Move the lease boundary to one millisecond after client B's already-fixed
+     * transaction timestamp. This deterministically models time having crossed the
+     * expiry while B is still open: B's stale transaction clock says live, while the
+     * current PostgreSQL clock says expired. No wall-clock sleep chooses the order.
+     */
+    const expiresOneMillisecondAfterStaleClock = new Date(transactionStartedAt.getTime() + 1);
+    await prismaC!.purgePlan.update({
+      where: { id: planId },
+      data: { leaseExpiresAt: expiresOneMillisecondAfterStaleClock },
+    });
+
+    const [expiryState] = await prismaC!.$queryRawUnsafe<
+      Array<{
+        liveAtRenewalStart: boolean;
+        expiredNow: boolean;
+      }>
+    >(
+      `SELECT "leaseExpiresAt" > $2 AS "liveAtRenewalStart",
+              "leaseExpiresAt" <= date_trunc('milliseconds', clock_timestamp()) AS "expiredNow"
+         FROM "PurgePlan"
+        WHERE id = $1`,
+      planId,
+      transactionStartedAt,
+    );
+    expect(expiryState).toEqual({ liveAtRenewalStart: true, expiredNow: true });
+
+    const ownerChecked = deferred<boolean>();
+    const resumeRelease = deferred<void>();
+    store.purgeFenceTestHooks = {
+      onOwnerLivenessLocked: async ({ live }) => {
+        ownerChecked.resolve(live);
+        await resumeRelease.promise;
+      },
+    };
+
+    const manager = new WorkspaceManager(store, noopK8s, noopEvents, 'test-agent-secret');
+    const sweepPromise = manager.reconcileStaleWorkspaceFreezes(RECONCILE_GRACE_MS);
+
+    try {
+      expect(await ownerChecked.promise).toBe(false);
+      startRenewal.resolve();
+
+      const waitDeadline = Date.now() + 10_000;
+
+      let renewalWaiting = false;
+
+      while (!renewalWaiting && Date.now() < waitDeadline) {
+        const [state] = await prismaC!.$queryRawUnsafe<Array<{ waiting: boolean }>>(
+          `SELECT (wait_event_type = 'Lock') AS waiting
+             FROM pg_stat_activity
+            WHERE pid = $1`,
+          renewalBackendPid,
+        );
+        renewalWaiting = state?.waiting === true;
+
+        if (!renewalWaiting) {
+          await new Promise<void>((resolve) => setImmediate(resolve));
+        }
+      }
+      expect(renewalWaiting).toBe(true);
+    } finally {
+      resumeRelease.resolve();
+    }
+
+    const [sweep, renewed] = await Promise.all([sweepPromise, renewalPromise]);
+    const plan = await prismaC!.purgePlan.findUnique({ where: { id: planId } });
+    const runtime = await prismaC!.workspaceRuntime.findUnique({ where: { id: workspaceId } });
+
+    console.log(
+      `[proof] stale-renew-clock renewed=${renewed} version=${plan?.version} ` +
+        `reconciled=${sweep.reconciled} frozen=${runtime?.purgeFrozen}`,
+    );
+
+    expect(renewed).toBeNull();
+    expect(plan).toMatchObject({ version: 0, status: 'ACTIVE' });
+    expect(sweep).toEqual({ scanned: 1, reconciled: 1, skippedLiveOwner: 0, failed: 0 });
+    expect(runtime).toMatchObject({ purgeFrozen: false, purgeFenceToken: null, purgeFrozenAt: null });
+  });
+
   it('leaseExpiresAt equal to PostgreSQL now is expired even when the API clock is behind', async () => {
     await prismaA!.$transaction(async (tx) => {
       const planId = uniqueId('plan-equality');
@@ -284,20 +431,22 @@ integrationDescribe('purge lease expiry is linearized with stale-barrier release
         vi.useRealTimers();
       }
 
-      const [after] = await tx.$queryRawUnsafe<Array<{ version: number; exactExpiry: boolean }>>(
+      const [after] = await tx.$queryRawUnsafe<Array<{ version: number; freshDbExpiry: boolean }>>(
         `SELECT version,
-                "leaseExpiresAt" = date_trunc('milliseconds', transaction_timestamp())
+                "leaseExpiresAt" <= date_trunc('milliseconds', clock_timestamp())
                   + ($2::bigint * interval '1 millisecond')
-                  AS "exactExpiry"
+                AND "leaseExpiresAt" > date_trunc('milliseconds', clock_timestamp())
+                  + (($2::bigint - 1000) * interval '1 millisecond')
+                  AS "freshDbExpiry"
            FROM "PurgePlan"
           WHERE id = $1`,
         planId,
         LEASE_TTL_MS,
       );
 
-      console.log(`[proof] live renewed=${renewed} version=${after?.version} exact=${after?.exactExpiry}`);
+      console.log(`[proof] live renewed=${renewed} version=${after?.version} fresh=${after?.freshDbExpiry}`);
       expect(renewed).toBe(1);
-      expect(after).toEqual({ version: 1, exactExpiry: true });
+      expect(after).toEqual({ version: 1, freshDbExpiry: true });
       await tx.purgePlan.delete({ where: { id: planId } });
     });
   });
