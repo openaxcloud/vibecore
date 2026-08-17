@@ -64,13 +64,7 @@ export function makeEcodeLegalMeta(key: LegalPageKey): MetaFunction {
         : tag;
     });
 
-    return [
-      { title },
-      { name: 'description', content: page.description },
-      ...social,
-      { name: 'twitter:title', content: title },
-      { name: 'twitter:description', content: page.description },
-    ];
+    return [{ title }, { name: 'description', content: page.description }, ...social];
   };
 }
 
