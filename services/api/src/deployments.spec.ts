@@ -32,10 +32,24 @@ describe('createDeploymentLogs', () => {
     expect(messages.join('\n')).not.toContain('Deployment ready:');
   });
 
-  it('keeps the provider summary lines for non-server providers', () => {
+  it('never announces readiness for a static deploy either, but keeps its summary line', () => {
     const messages = logsFor('static');
 
     expect(messages.join('\n')).toContain('Static export');
+
+    /*
+     * This assertion used to REQUIRE "Deployment ready:", freezing the same lie
+     * BUG-DEPLOY-001 removed from server deploys. The static pipeline installs
+     * and builds in the workspace pod AFTER queueing: two consecutive failed
+     * deploys were measured live, each having already announced
+     * "Déploiement ready: https://s-…/" — an address serving nothing.
+     */
+    expect(messages.join('\n')).not.toContain('Deployment ready:');
+  });
+
+  it('still gives an address for a provider that has no pipeline left to run', () => {
+    const messages = logsFor('vercel');
+
     expect(messages.join('\n')).toContain('Deployment ready:');
   });
 });
