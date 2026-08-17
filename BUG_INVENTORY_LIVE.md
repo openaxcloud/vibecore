@@ -40,6 +40,20 @@ aucun débordement de texte, aucun débordement de page ; le panneau occupe bien
 est celui de Git, déjà corrigé par la PR #150 (l'environnement d'audit tourne encore l'ancien build).
 Le constat « Journaux : rogné + texte débordant » de la première passe **ne se reproduit pas** à froid.
 
+**Pages en TABLETTE 768, clair ET sombre (18/08)** — 32 routes de la zone connectée × 2 thèmes =
+**64 relevés** : débordement de page, éléments hors cadre, rognage interne, contenu collé au bord.
+**Aucun défaut de mise en page tablette.**
+
+⚠️ La première mesure annonçait **52 relevés fautifs sur 64**. Ils étaient tous des artefacts de mon
+instrument, identifiés un par un avant toute correction :
+- les « rognages » étaient des `<span class="sr-only">` — les libellés pour lecteurs d'écran, réduits à
+  1 px **par construction**. Les « corriger » aurait cassé l'accessibilité pour faire taire une fausse mesure ;
+- les « hors cadre » étaient du **décor** : halo `absolute -z-10` sur `/ai-agent`, découpé par une
+  `<section overflow-hidden>` (784 vs 768), et les `_lightRay_` de `BackgroundRays` sur `/settings`
+  (`pageOv` nul : la page ne déborde jamais).
+Détecteur assaini (exclusion des `sr-only`, des largeurs ≤ 1 px et du décoratif positionné derrière le
+contenu), re-mesure complète : **58/64 sains**, les 6 restants étant ces mêmes décoratifs.
+
 **Protocole** : 29 panneaux × 3 formats (mobile 390 / tablette 768 / desktop 1440) × 2 thèmes
 = **174 relevés**, sur un projet RÉEL de l'environnement d'audit, en cherchant activement ce qui casse.
 
