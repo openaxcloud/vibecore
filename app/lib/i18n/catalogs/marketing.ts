@@ -1052,6 +1052,200 @@ export function formatMarketingDocumentTitle(pageTitle: string): string {
  * Les deux sections reprennent le gabarit de `makeSolution`, dans la forme FR
  * déjà employée par `enterprise`.
  */
+/**
+ * Copie EN des cartes de /solutions — pendant obligatoire du catalogue FR.
+ *
+ * Le validateur de catalogues (`scripts/i18n/validate-catalogs.mjs`) impose que
+ * tout `<nom>Fr` ait son `<nom>En` : sans ça, une langue peut dériver de l'autre
+ * sans que rien ne le signale. Le garde a raison, et cet export le satisfait.
+ *
+ * Le contenu est repris À L'IDENTIQUE de `solutionPages`
+ * (`EcodeMarketingPages`), qui est ce que l'anglais affiche aujourd'hui —
+ * `makeSolution` produit ces mêmes `sections` et libellés d'action. L'anglais
+ * rendu est donc inchangé, au caractère près, et un test le vérifie carte par
+ * carte contre `solutionPages`.
+ */
+export const marketingSolutionCardCopyEn = {
+  'app-builder': {
+    title: 'App Builder',
+    eyebrow: 'Solutions',
+    description:
+      'Describe a business workflow and turn it into responsive screens, typed application logic, structured data and a deployable codebase.',
+    highlights: [
+      'Responsive product screens',
+      'Typed routes and logic',
+      'Structured data model',
+      'Deployable source code',
+    ],
+    sections: [
+      {
+        title: 'What you can build',
+        body: 'App Builder gives teams a faster path from idea to a typed, reviewable project with a running preview.',
+        items: [
+          'Responsive product screens',
+          'Typed routes and logic',
+          'Structured data model',
+          'Deployable source code',
+        ],
+      },
+      {
+        title: 'Production workflow',
+        body: 'Every generated project should be inspectable, testable and ready for deployment planning.',
+        items: ['Prompt to project', 'Code review', 'Runtime preview', 'Deployment path'],
+      },
+    ],
+    primaryActionLabel: 'Start building',
+    secondaryActionLabel: 'Contact sales',
+  },
+  'website-builder': {
+    title: 'Website Builder',
+    eyebrow: 'Solutions',
+    description:
+      'Create polished marketing sites, launch pages and content systems with production-ready responsive layouts.',
+    highlights: ['Landing pages', 'Company sites', 'Docs surfaces', 'Lead capture'],
+    sections: [
+      {
+        title: 'What you can build',
+        body: 'Website Builder gives teams a faster path from idea to a typed, reviewable project with a running preview.',
+        items: ['Landing pages', 'Company sites', 'Docs surfaces', 'Lead capture'],
+      },
+      {
+        title: 'Production workflow',
+        body: 'Every generated project should be inspectable, testable and ready for deployment planning.',
+        items: ['Prompt to project', 'Code review', 'Runtime preview', 'Deployment path'],
+      },
+    ],
+    primaryActionLabel: 'Start building',
+    secondaryActionLabel: 'Contact sales',
+  },
+  'game-builder': {
+    title: 'Game Builder',
+    eyebrow: 'Solutions',
+    description:
+      'Design and launch interactive browser experiences while keeping assets, code and preview feedback in one workspace.',
+    highlights: ['Canvas games', 'Interactive demos', 'Prototype loops', 'Deployment previews'],
+    sections: [
+      {
+        title: 'What you can build',
+        body: 'Game Builder gives teams a faster path from idea to a typed, reviewable project with a running preview.',
+        items: ['Canvas games', 'Interactive demos', 'Prototype loops', 'Deployment previews'],
+      },
+      {
+        title: 'Production workflow',
+        body: 'Every generated project should be inspectable, testable and ready for deployment planning.',
+        items: ['Prompt to project', 'Code review', 'Runtime preview', 'Deployment path'],
+      },
+    ],
+    primaryActionLabel: 'Start building',
+    secondaryActionLabel: 'Contact sales',
+  },
+  'dashboard-builder': {
+    title: 'Dashboard Builder',
+    eyebrow: 'Solutions',
+    description:
+      'Build data-rich dashboards with authentication, charts, filters, team access and operational telemetry.',
+    highlights: ['Analytics views', 'Admin panels', 'KPI tracking', 'Real-time status'],
+    sections: [
+      {
+        title: 'What you can build',
+        body: 'Dashboard Builder gives teams a faster path from idea to a typed, reviewable project with a running preview.',
+        items: ['Analytics views', 'Admin panels', 'KPI tracking', 'Real-time status'],
+      },
+      {
+        title: 'Production workflow',
+        body: 'Every generated project should be inspectable, testable and ready for deployment planning.',
+        items: ['Prompt to project', 'Code review', 'Runtime preview', 'Deployment path'],
+      },
+    ],
+    primaryActionLabel: 'Start building',
+    secondaryActionLabel: 'Contact sales',
+  },
+  'chatbot-builder': {
+    title: 'Chatbot / AI Agent Builder',
+    eyebrow: 'Solutions',
+    description:
+      'Deploy conversational assistants and task agents with reviewable prompts, tools, memory and audit boundaries.',
+    highlights: ['Support assistants', 'Internal copilots', 'Workflow agents', 'Knowledge bots'],
+    sections: [
+      {
+        title: 'What you can build',
+        body: 'Chatbot / AI Agent Builder gives teams a faster path from idea to a typed, reviewable project with a running preview.',
+        items: ['Support assistants', 'Internal copilots', 'Workflow agents', 'Knowledge bots'],
+      },
+      {
+        title: 'Production workflow',
+        body: 'Every generated project should be inspectable, testable and ready for deployment planning.',
+        items: ['Prompt to project', 'Code review', 'Runtime preview', 'Deployment path'],
+      },
+    ],
+    primaryActionLabel: 'Start building',
+    secondaryActionLabel: 'Contact sales',
+  },
+  'internal-ai-builder': {
+    title: 'Internal AI Builder',
+    eyebrow: 'Solutions',
+    description:
+      'Bring private AI tools to every team with secure project context, approvals and enterprise observability.',
+    highlights: ['Operations tools', 'Sales assistants', 'Support automation', 'Knowledge workflows'],
+    sections: [
+      {
+        title: 'What you can build',
+        body: 'Internal AI Builder gives teams a faster path from idea to a typed, reviewable project with a running preview.',
+        items: ['Operations tools', 'Sales assistants', 'Support automation', 'Knowledge workflows'],
+      },
+      {
+        title: 'Production workflow',
+        body: 'Every generated project should be inspectable, testable and ready for deployment planning.',
+        items: ['Prompt to project', 'Code review', 'Runtime preview', 'Deployment path'],
+      },
+    ],
+    primaryActionLabel: 'Start building',
+    secondaryActionLabel: 'Contact sales',
+  },
+  startups: {
+    title: 'Startups',
+    eyebrow: 'Solutions',
+    description:
+      'Ship products quickly with templates, AI generation, hosted previews and a path from prototype to production.',
+    highlights: ['MVP launch', 'Investor demos', 'SaaS starters', 'Fast iteration'],
+    sections: [
+      {
+        title: 'What you can build',
+        body: 'Startups gives teams a faster path from idea to a typed, reviewable project with a running preview.',
+        items: ['MVP launch', 'Investor demos', 'SaaS starters', 'Fast iteration'],
+      },
+      {
+        title: 'Production workflow',
+        body: 'Every generated project should be inspectable, testable and ready for deployment planning.',
+        items: ['Prompt to project', 'Code review', 'Runtime preview', 'Deployment path'],
+      },
+    ],
+    primaryActionLabel: 'Start building',
+    secondaryActionLabel: 'Contact sales',
+  },
+  freelancers: {
+    title: 'Freelancers',
+    eyebrow: 'Solutions',
+    description:
+      'Deliver client projects faster with repeatable templates, preview links and production handoff workflows.',
+    highlights: ['Client portals', 'Portfolio sites', 'Retainers', 'Handoff docs'],
+    sections: [
+      {
+        title: 'What you can build',
+        body: 'Freelancers gives teams a faster path from idea to a typed, reviewable project with a running preview.',
+        items: ['Client portals', 'Portfolio sites', 'Retainers', 'Handoff docs'],
+      },
+      {
+        title: 'Production workflow',
+        body: 'Every generated project should be inspectable, testable and ready for deployment planning.',
+        items: ['Prompt to project', 'Code review', 'Runtime preview', 'Deployment path'],
+      },
+    ],
+    primaryActionLabel: 'Start building',
+    secondaryActionLabel: 'Contact sales',
+  },
+} as const satisfies Record<string, MarketingPageCopy>;
+
 export const marketingSolutionCardCopyFr = {
   'app-builder': {
     title: 'App Builder',
@@ -1331,7 +1525,7 @@ export const marketingSolutionCardCopyFr = {
     primaryActionLabel: 'Commencer à créer',
     secondaryActionLabel: 'Contacter l’équipe commerciale',
   },
-} as const satisfies Record<string, MarketingPageCopy>;
+} as const satisfies Record<keyof typeof marketingSolutionCardCopyEn, MarketingPageCopy>;
 
 export function getMarketingPageCopy(slug: string, language?: string | null): MarketingPageCopy | null {
   const locale = resolveMarketingLanguage(language);
@@ -1342,8 +1536,10 @@ export function getMarketingPageCopy(slug: string, language?: string | null): Ma
    * consulte AVANT les catalogues bilingues, sans quoi ces slugs n'entreraient
    * dans aucune branche et repartiraient en anglais.
    */
-  if (locale === 'fr' && slug in marketingSolutionCardCopyFr) {
-    return marketingSolutionCardCopyFr[slug as keyof typeof marketingSolutionCardCopyFr];
+  if (slug in marketingSolutionCardCopyEn) {
+    const cardKey = slug as keyof typeof marketingSolutionCardCopyEn;
+
+    return locale === 'fr' ? marketingSolutionCardCopyFr[cardKey] : marketingSolutionCardCopyEn[cardKey];
   }
 
   if (slug in marketingPageCopyEn) {

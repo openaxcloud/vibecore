@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getMarketingPageCopy, marketingSolutionCardCopyFr } from './marketing';
+import { getMarketingPageCopy, marketingSolutionCardCopyEn, marketingSolutionCardCopyFr } from './marketing';
 import { solutionPages } from '~/components/marketing/EcodeMarketingPages';
 
 /*
@@ -52,6 +52,27 @@ describe('cartes /solutions en locale FR', () => {
       if (en && fr) {
         expect(en.description).not.toBe(fr.description);
       }
+    }
+  });
+
+  it('le catalogue EN des cartes reproduit solutionPages au caractère près', () => {
+    /*
+     * Le catalogue EN n'existe que pour satisfaire l'appariement EN/FR exigé par
+     * le validateur, et pour que la porte d'entrée serve les deux langues depuis
+     * la même source. Il ne doit donc RIEN changer à l'anglais rendu : chaque
+     * entrée doit être le calque exact de `solutionPages`. Sans ce contrôle, une
+     * retouche de l'un des deux ferait diverger l'anglais en silence.
+     */
+    for (const [slug, card] of Object.entries(marketingSolutionCardCopyEn)) {
+      const page = solutionPages[slug as keyof typeof solutionPages];
+
+      expect(card.title).toBe(page.title);
+      expect(card.description).toBe(page.description);
+      expect(card.eyebrow).toBe(page.eyebrow);
+      expect(card.highlights).toEqual(page.highlights);
+      expect(card.sections).toEqual(page.sections);
+      expect(card.primaryActionLabel).toBe(page.primaryAction?.[0]);
+      expect(card.secondaryActionLabel).toBe(page.secondaryAction?.[0]);
     }
   });
 
