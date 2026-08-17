@@ -19308,7 +19308,15 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     /* The mobile chrome header is a fixed 48px bar (not the 36px desktop topbar). */
     --vc-ide-topbar-height: 48px;
     /* 8px before the 50px language switch; panels begin at its lower edge. */
-    --vc-mobile-language-switch-reserved-height: 58px;
+    /*
+     * 0 depuis le retrait du sélecteur de langue de l'IDE : la variable réservait
+     * 58px sous l'en-tête mobile pour un contrôle qui n'existe plus, donc autant
+     * de hauteur perdue sur petit écran. La variable est conservée (et non
+     * supprimée) parce que quatre expressions calc() la référencent : la mettre à
+     * zéro récupère l'espace sans toucher à ces calculs. La langue se règle
+     * désormais dans les Paramètres, atteignables depuis le menu de l'IDE.
+     */
+    --vc-mobile-language-switch-reserved-height: 0px;
     /*
      * Height of the agent context bar ("Working on this workspace" / "Ready for
      * the next change") that sits *below* the 48px header bar when the agent is
