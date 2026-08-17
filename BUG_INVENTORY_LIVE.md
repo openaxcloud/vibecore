@@ -15,6 +15,8 @@ Un panneau n'est ✅ **que** si, sur ce format, il fonctionne réellement en **c
 monté, sans « Unavailable » ni texte anglais résiduel, sans erreur console ni réponse 4xx/5xx,
 sans débordement horizontal, contraste du titre conforme WCAG AA, et **actions réellement exercées**.
 
+**Déploiement en prod au 18/08** : le tier **api/runtime est passé à `c5f381b186`** — le correctif Git (#147) est **LIVE**. Le tier **web reste `5d60450821`** : le correctif du terminal (#144) n'est **pas encore déployé**, son run porte `82e27ce9` et il est en cours.
+
 **Relevé du 17/08, 174 observations** — 143 des 144 relevés à marqueur fiable montrent le titre du panneau visible, avec **zéro** « Unavailable », **zéro** texte d'erreur, **zéro** débordement horizontal et **zéro** contraste hors WCAG AA, en clair comme en sombre.
 
 **Protocole** : 29 panneaux × 3 formats (mobile 390 / tablette 768 / desktop 1440) × 2 thèmes
@@ -33,26 +35,26 @@ seront re-relevés après leur mise en ligne.
 | Paramètres | `settings` | ✅ | ✅ | ✅ | — |
 | Terminal | `terminal` |  ✅ | ✅ | ✅ | rendu confirmé clair+sombre (affiche « Shell ») ; correctifs frappe+titre sur main `7aa73296`, à revalider live après déploiement |
 | Base de données | `database` |  ❌ | ❌ | ❌ | ❌ action « Créer une base de données » : 503 puis le panneau DISPARAÎT (BUG-DB-002 infra + BUG-DB-003 corrigé, non déployé) |
-| Verrous | `locks` | ✅ | ✅ | ✅ | — |
-| Débogueur | `debugger` | ✅ | ✅ | ✅ | — |
+| Verrous | `locks` |  ✅ | ✅ | ✅ | titre « Verrous » affiché hors colonne de service — rendu vérifié, non cassé |
+| Débogueur | `debugger` |  ✅ | ✅ | ✅ | « Actualiser l’environnement » exercé sur les 3 formats |
 | Git | `git` |  ❌ | ❌ | ❌ | ❌ édition enregistrée invisible, commit impossible (BUG-GIT-003/004) + chemin tronqué (BUG-GIT-005) — corrigés `c5f381b1` sur main, pas encore déployés |
-| Paquets | `packages` | ✅ | ✅ | ✅ | — |
-| Compétences | `skills` | ✅ | ✅ | ✅ | — |
+| Paquets | `packages` |  ✅ | ✅ | ✅ | rendu + actions relevées sur les 3 formats |
+| Compétences | `skills` |  ✅ | ✅ | ✅ | bascule de compétence exercée → Projet4 → Projet5 |
 | Studio Agent | `studio` |  ✅ | ✅ | ✅ | rendu confirmé clair+sombre (« Studio de l’agent ») |
-| Intégrations | `integrations` | ✅ | ✅ | ✅ | — |
-| Extensions | `extensions` | ✅ | ✅ | ✅ | — |
-| Collaborateurs | `collaborators` | ✅ | ✅ | ✅ | — |
+| Intégrations | `integrations` |  ✅ | ✅ | ✅ | « Ajouter une authentification » exercé (tablette + desktop) |
+| Extensions | `extensions` |  ✅ | ✅ | ✅ | rendu + actions relevées sur les 3 formats |
+| Collaborateurs | `collaborators` |  ✅ | ✅ | ✅ | « Ajouter un commentaire » exercé sur les 3 formats |
 | Webview | `preview` | ✅ | ✅ | ✅ | — |
-| Journaux | `logs` | ✅ | ✅ | ✅ | — |
+| Journaux | `logs` |  ✅ | ✅ | ✅ | « Recharger » exercé (tablette + desktop) |
 | Secrets | `secrets` | ✅ | ✅ | ✅ | — |
-| Sécurité | `security` | ✅ | ✅ | ✅ | — |
-| Supervision | `monitoring` | ✅ | ✅ | ✅ | — |
-| Domaines | `domains` | ✅ | ✅ | ✅ | — |
-| Ports | `ports` | ✅ | ✅ | ✅ | — |
-| Variables d'environnement | `env` | ✅ | ✅ | ✅ | — |
+| Sécurité | `security` |  ✅ | ✅ | ✅ | « Exécuter une analyse complète » exercé → « Analyse terminée » |
+| Supervision | `monitoring` |  ✅ | ✅ | ✅ | « Actualiser les métriques » exercé (mobile + tablette) ; se monte plus lentement en desktop, vérifié à 40 s |
+| Domaines | `domains` |  ✅ | ✅ | ✅ | « Ajouter un domaine » exercé (mobile + tablette) |
+| Ports | `ports` |  ✅ | ✅ | ✅ | rendu vérifié sur les 3 formats |
+| Variables d'environnement | `env` |  ✅ | ✅ | ✅ | rendu vérifié sur les 3 formats |
 | Flux de travail | `workflows` |  ❌ | ❌ | ❌ | ❌ bouton Exécuter : `sh: vite: not found` sortie 127 (BUG-IDE-009) + 7 libellés FR faux (BUG-I18N-005) — corrigés dans #144, non déployés |
-| Activité | `activity` | ✅ | ✅ | ✅ | — |
-| Instantanés | `snapshots` | ✅ | ✅ | ✅ | — |
+| Activité | `activity` |  ✅ | ✅ | ✅ | « Actualiser maintenant » exercé sur les 3 formats |
+| Instantanés | `snapshots` |  ✅ | ✅ | ✅ | « + Nouveau point de contrôle » exercé (mobile + tablette) |
 | Commandes | `commands` |  ❌ | ❌ | ❌ | ❌ ouvre le panneau `overview` au lieu du sien (BUG-IDE-012), 3 formats × 2 thèmes |
 | Partager | `share` |  ❌ | ❌ | ❌ | ❌ ouvre le panneau `overview` au lieu du sien (BUG-IDE-012), 3 formats × 2 thèmes |
 
