@@ -16152,14 +16152,27 @@ button.bolt-project-statusbar-pill:focus-visible,
   min-width: 0;
 }
 
+/*
+ * Ces deux pastilles sont bornées pour ne pas monopoliser la barre — intention
+ * saine, mais les bornes étaient plus étroites que leur contenu réel, et comme
+ * elles portent `min-width: 0`, le texte se coupait au lieu de s'adapter. Sur
+ * une barre de 1391px (IDE en 1440, aucune règle @container active) on lisait
+ * « Workspace Star… » et « Preview D.. D… » : des moignons illisibles, affichés
+ * précisément pendant les premières secondes de démarrage — donc au pire moment.
+ *
+ * Largeurs naturelles mesurées en réel : workspace 136px (pour 124 alloués),
+ * runtime 203px (pour 112). Les bornes montent juste au-dessus. Les règles
+ * @container à 780 / 760 / 620px continuent de les resserrer quand la barre
+ * manque vraiment de place : le dévoilement progressif reste intact.
+ */
 .bolt-project-statusbar .bolt-project-statusbar-runtime {
-  flex: 0 1 112px;
-  max-width: min(18vw, 150px);
+  flex: 0 1 208px;
+  max-width: min(26vw, 232px);
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-workspace {
-  flex: 0 1 124px;
-  max-width: min(18vw, 158px);
+  flex: 0 1 140px;
+  max-width: min(20vw, 172px);
 }
 
 .bolt-project-statusbar .bolt-project-statusbar-logs {
