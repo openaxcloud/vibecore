@@ -280,7 +280,30 @@ export const Terminal = memo(
         };
       }, [readonly]);
 
-      return <div className={className} ref={terminalElementRef} />;
+      /*
+       * On a phone, tapping the terminal left `document.activeElement` on this
+       * container: xterm's hidden input (`.xterm-helper-textarea`, opacity 0 at
+       * z-index -5) never took focus, so no keystroke ever reached the PTY and
+       * iOS never raised its keyboard. The socket was healthy the whole time —
+       * only `hello` frames were ever sent — which is why the terminal looked
+       * connected but accepted nothing.
+       *
+       * `onPointerDown` covers mouse, touch and pen with one handler, and runs
+       * before focus settles. Purely behavioural: no markup, class or layout
+       * change, so the frozen mobile terminal layout is untouched. A read-only
+       * terminal is not focused — it takes no input by design.
+       */
+      return (
+        <div
+          className={className}
+          ref={terminalElementRef}
+          onPointerDown={() => {
+            if (!readonly) {
+              terminalRef.current?.focus();
+            }
+          }}
+        />
+      );
     },
   ),
 );

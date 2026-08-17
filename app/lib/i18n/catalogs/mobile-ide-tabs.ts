@@ -27,6 +27,14 @@ export const mobileIdeTabsEn = {
   'mobileIdeTabs.objectStorage.description': 'File storage',
   'mobileIdeTabs.settings.title': 'Settings',
   'mobileIdeTabs.settings.description': 'Project settings',
+
+  /*
+   * Frozen label: identical in EN and FR ('Shell (Terminal)'). It lives here as a
+   * real key so the mobile Tools sheet can resolve it — the entry used to carry
+   * the literal in its `titleKey`, which `t()` could not resolve, so the tab
+   * rendered the missing-key fallback "Unavailable" as its title.
+   */
+  'mobileIdeTabs.terminal.title': 'Shell (Terminal)',
   'mobileIdeTabs.terminal.description': 'Workspace shell terminal',
   'mobileIdeTabs.database.title': 'Database',
   'mobileIdeTabs.database.description': 'SQL browser',
@@ -94,6 +102,9 @@ export const mobileIdeTabsFr: Record<keyof typeof mobileIdeTabsEn, string> = {
   'mobileIdeTabs.objectStorage.description': 'Stockage de fichiers',
   'mobileIdeTabs.settings.title': 'Paramètres',
   'mobileIdeTabs.settings.description': 'Paramètres du projet',
+
+  // Libellé gelé : identique en EN et FR, volontairement non traduit.
+  'mobileIdeTabs.terminal.title': 'Shell (Terminal)',
   'mobileIdeTabs.terminal.description': 'Terminal shell de l’espace de travail',
   'mobileIdeTabs.database.title': 'Base de données',
   'mobileIdeTabs.database.description': 'Explorateur SQL',

@@ -15794,15 +15794,35 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
       return;
     }
 
-    const result = await postIntent({ intent: 'status' });
+    /*
+     * `enabled === null` renders "Checking object storage…", so ANY unresolved
+     * probe left that spinner on screen forever with no error — which is what
+     * users saw when the status intent 500'd (the panel route times out after
+     * 30s when the API pod cannot reach the metadata server to mint GCS
+     * credentials). A failed probe is an answer too: report it instead of
+     * pretending the check is still running.
+     */
+    try {
+      const result = await postIntent({ intent: 'status' });
 
-    if (!result) {
-      return;
+      if (!result || result.error) {
+        console.warn('Object storage status request failed', { serverError: result?.error });
+        setEnabled(false);
+        setProvisioned(false);
+        setStatus(t('baseChatAst.storage.unreachable'));
+
+        return;
+      }
+
+      setEnabled(Boolean(result.enabled));
+      setProvisioned(result.enabled ? Boolean(result.provisioned) : false);
+    } catch (error) {
+      console.error('Object storage status request failed', error);
+      setEnabled(false);
+      setProvisioned(false);
+      setStatus(t('baseChatAst.storage.unreachable'));
     }
-
-    setEnabled(Boolean(result.enabled));
-    setProvisioned(result.enabled ? Boolean(result.provisioned) : false);
-  }, [postIntent, projectId]);
+  }, [postIntent, projectId, t]);
 
   useEffect(() => {
     void loadStatus();
@@ -18905,10 +18925,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                           <span data-status={step.status}>{platformStateLabel(t, step.status)}</span>
                           <code>{step.command || t('chat.copy.noCommand_96ba3230')}</code>
                           {step.exitCode !== null && step.exitCode !== undefined ? (
-                            <small>
-                              {t('chat.copy.exit_de3ac217')}
-                              {step.exitCode}
-                            </small>
+                            <small>{`${t('chat.copy.exit_de3ac217')} ${step.exitCode}`}</small>
                           ) : null}
                         </div>
                         {step.outputTail ? <pre>{step.outputTail}</pre> : null}
