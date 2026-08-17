@@ -141,7 +141,27 @@ export class AgentMemoryConfigurationError extends Error {
   constructor(message: string) {
     super(message);
     this.name = 'AgentMemoryConfigurationError';
-    Object.assign(this, { statusCode: 503, code: 'AGENT_MEMORY_UNCONFIGURED' });
+
+    /*
+     * The 5xx branch of the error handler masks `message` behind the generic
+     * INTERNAL_SERVER_ERROR unless the error carries a `publicMessage`
+     * (app.ts: `statusCode >= 500 ? (error.publicMessage ?? …)`). Without one,
+     * this condition surfaced as
+     *   503 {"error":"Internal server error","code":"AGENT_MEMORY_UNCONFIGURED"}
+     * — telling the caller a server FAULT occurred when the feature is simply
+     * not wired in this environment, which sends whoever reads it hunting a
+     * crash that never happened.
+     *
+     * Same escape hatch the other intentional 5xx conditions already use
+     * (WORKSPACE_STARTING, AI_GATEWAY_UNAVAILABLE, MCP_MARKETPLACE_UNAVAILABLE).
+     * The masking posture is untouched: `message` still carries the internal
+     * detail to the logs, only the client-facing text becomes honest.
+     */
+    Object.assign(this, {
+      statusCode: 503,
+      code: 'AGENT_MEMORY_UNCONFIGURED',
+      publicMessage: appPublicEnglish('AGENT_MEMORY_UNCONFIGURED'),
+    });
   }
 }
 
