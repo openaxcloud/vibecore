@@ -226,3 +226,65 @@ spec:
         - protocol: TCP
           port: {{ (index .Values.services "previewProxy").port | default 3020 }}
 {{- end }}
+---
+# Serveur de métadonnées GKE — indispensable à Workload Identity.
+#
+# BUG-STORAGE-001 : le stockage d'objets échouait sur tout environnement déployé
+# depuis ce chart. Le client Google obtient son jeton auprès du serveur de
+# métadonnées (169.254.169.254) ; sans egress vers lui, `deny-all-default` le
+# bloque, l'obtention du jeton part en timeout et TOUT appel GCS échoue.
+# Mesuré sur l'environnement d'audit : timeout à 10 s sur
+# /computeMetadata/v1/.../email. Sur la production, où la même règle avait été
+# posée À LA MAIN il y a 49 jours, le même appel répond 200 en 349 ms et
+# `storage.googleapis.com` renvoie 200 — d'où un écart de comportement entre
+# prod et tout nouvel environnement.
+#
+# Cette règle existe donc DÉJÀ en production, mais hors du chart (aucun label
+# Helm, annotation `kubectl.kubernetes.io/last-applied-configuration`). La
+# déclarer ici ne relâche rien en prod : elle rend reproductible ce que la prod
+# fait déjà, et répare les installations neuves, la reprise après sinistre et
+# les environnements de test.
+#
+# Portée VOLONTAIREMENT étroite — ce n'est pas une levée du garde anti-SSRF :
+#   * un seul pod : `app.kubernetes.io/name=api` (ni web, ni screenshotter, ni
+#     worker, ni preview-proxy) ;
+#   * une seule destination : 169.254.169.254/32 ;
+#   * deux ports : 80 (metadata HTTP) et 988 (proxy GKE metadata server).
+# La règle générale « 443 vers 0.0.0.0/0 EXCEPT 169.254.169.254/32 » de
+# `allow-platform-required-egress` reste intacte pour tous les pods, api compris.
+#
+# Défense en profondeur côté application (déjà en place, indépendante du réseau) :
+# les chemins qui suivent une URL fournie par l'utilisateur rejettent
+# explicitement loopback / link-local / privé / CGNAT / ULA, y compris les
+# encodages IPv4-mapped IPv6 et 6to4 qui replient vers 169.254.169.254 —
+# cf. `rejectInternalGitRemote` (services/api/src/app.ts) et le contrôle d'URL de
+# `services/api/src/mcp-marketplace.ts`.
+#
+# ⚠️ ADOPTION EN PRODUCTION : l'objet existe déjà et n'appartient pas à Helm.
+# Un `helm upgrade` échouera (« invalid ownership metadata ») tant qu'il n'est pas
+# adopté. À exécuter UNE FOIS, avant le premier déploiement portant ce template :
+#   kubectl -n vibecore label networkpolicy allow-api-metadata-egress \
+#     app.kubernetes.io/managed-by=Helm
+#   kubectl -n vibecore annotate networkpolicy allow-api-metadata-egress \
+#     meta.helm.sh/release-name=vibecore meta.helm.sh/release-namespace=vibecore
+# Sans cela le déploiement échoue et `--atomic` rollbacke.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-api-metadata-egress
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 169.254.169.254/32
+      ports:
+        - protocol: TCP
+          port: 80
+        - protocol: TCP
+          port: 988
