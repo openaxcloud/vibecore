@@ -180,11 +180,32 @@ déploiement** :
    posé après l'`await`. Défaut **préexistant**, non introduit ici, et il penche du côté
    sûr (sur-comptage) ; la fenêtre glissante l'efface. Non traité pour garder le diff au
    périmètre du bug.
-3. **Numérotation des panneaux côté client.** Après un rechargement, le panneau ouvert a
-   demandé `terminal-user-3` et non `terminal-user-0` : le compteur client
-   (`user-${this.#terminals.length}`, `app/lib/stores/terminal.ts`) ne se réaligne pas sur
-   les sessions vivantes. Conséquence : un rattachement peut se présenter comme une session
-   neuve et être refusé à juste titre sur une limite 1. **C'est un point client distinct**,
-   hors périmètre de ce correctif quota — à traiter séparément.
+3. **Numérotation des panneaux côté client — diagnostiquée, et corrigée ailleurs.**
+   Après un rechargement, le panneau demandait `terminal-user-3`, puis `terminal-user-6`
+   au relevé suivant, jamais `terminal-user-0` : `sessionKey = user-${#terminals.length}`
+   (`app/lib/stores/terminal.ts`) n'est pas l'identité du panneau — le tableau ne fait que
+   **croître** (un spawn en échec n'ajoute rien, une fermeture ne retire rien), donc
+   l'index dérive à chaque montage. Comme l'agent clé son shell sur `?sessionId`, le
+   panneau ne rattachait **jamais** son propre shell ; et sur une offre dont le créneau est
+   déjà pris, il se faisait refuser (**27 × 429** relevés) et restait bloqué sur
+   « Connexion à l'espace de travail… ». **C'est un défaut CLIENT, sans rapport avec le
+   quota** : la couche quota, elle, faisait exactement son travail — refuser un second
+   terminal réellement distinct sur une limite 1.
+   Corrigé séparément sur **`fix/terminal-pane-session-key`** (SHA `601a649f54`), branché
+   sur le dernier commit terminal **non sensible** (`00cd6ec8`) et **sans aucun commit de
+   quota**, pour rester mergeable indépendamment de ce lot facturation.
 4. **Formats tablette/mobile non vérifiés** pour cette preuve : la validation à l'écran a
    été faite en **desktop 1440** uniquement.
+
+## 7. Ce qui est mergeable sans revue facturation
+
+Sur `fix/quota-per-session-terminal`, **un seul** commit touche le décompte de quota :
+
+- ⛔ **`8a5ea856`** — `fix(quota)` : le lot sensible, celui qui attend la revue expert
+  (et `38ec4062`, ses preuves).
+
+Tout ce qui est **en dessous** est du lot terminal/QA ordinaire, sans code de facturation —
+notamment `b40b7f66` (les frappes n'atteignaient pas le PTY), `ff727b18` (propagation
+`sessionId`/`cols`/`rows`), `98c1bb1e` (identifiant de session par panneau), `00cd6ec8`
+(porte d'entrée ouverte sur `prompt`). La branche `fix/terminal-pane-session-key` prolonge
+exactement cette pile, sans le commit de quota.
