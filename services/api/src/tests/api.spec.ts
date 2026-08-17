@@ -254,6 +254,7 @@ async function startRuntimeServices(
     agentUnavailable?: boolean;
     managerWorkspaceEmpty?: boolean;
     managerStopNotFound?: boolean;
+    agentTokenDelayMs?: number;
   } = {},
 ) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
@@ -261,6 +262,7 @@ async function startRuntimeServices(
   // Captures the parsed body of every POST /commands/run so tests can assert
   // the exact argv the API dispatched to the workspace pod.
   const commandBodies: Array<{ command: string; args?: string[]; timeoutMs?: number }> = [];
+  const commandStreamMessages: string[] = [];
 
   const agent = createServer((request, response) => {
     const url = new URL(request.url ?? '/', 'http://agent.local');
@@ -350,6 +352,10 @@ async function startRuntimeServices(
       socket.on('message', (raw) => {
         const text = raw.toString();
 
+        if (url.pathname === '/commands/stream') {
+          commandStreamMessages.push(text);
+        }
+
         // Echo back stdin the way a shell would, still JSON-framed.
         try {
           const parsed = JSON.parse(text) as { type?: string; data?: string };
@@ -378,7 +384,13 @@ async function startRuntimeServices(
       managerCalls.push({ pathname: url.pathname, body: body ? JSON.parse(body) : {} });
 
       if (url.pathname.endsWith('/agent-token')) {
-        response.end(JSON.stringify({ token: 'runtime-token' }));
+        const sendToken = () => response.end(JSON.stringify({ token: 'runtime-token' }));
+
+        if (options.agentTokenDelayMs) {
+          setTimeout(sendToken, options.agentTokenDelayMs);
+        } else {
+          sendToken();
+        }
       } else if (url.pathname.endsWith('/logs')) {
         response.end(JSON.stringify({ logs: options.logs ?? ['workspace ready'] }));
       } else if (
@@ -415,6 +427,7 @@ async function startRuntimeServices(
     files,
     calls,
     commandBodies,
+    commandStreamMessages,
     managerCalls,
     async close() {
       process.env.WORKSPACE_MANAGER_URL = previousManager;
@@ -5320,6 +5333,112 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       expect(typeof parsed.data === 'string' && parsed.data.trimStart().startsWith('{')).toBe(false);
     } finally {
       socket.close();
+      await app.close();
+      await runtime.close();
+    }
+  });
+
+  it('does not lose an immediate command-stream hello while authorization is in flight', async () => {
+    /*
+     * Deterministically hold proxyRuntimeSocket in agentToken(): without the
+     * pre-auth buffer, the open-handler's immediate hello is dropped.
+     */
+    const runtime = await startRuntimeServices({ agentTokenDelayMs: 150 });
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    const auth = await register(app, {
+      email: 'command-stream-first-frame@example.com',
+      organizationName: 'Command Stream First Frame Org',
+    });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Command Stream First Frame Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+    const address = await app.listen({ port: 0, host: '127.0.0.1' });
+
+    const socket = new WebSocket(
+      `${address.replace(/^http/, 'ws')}/api/runtime/workspaces/${projectId}/commands/stream?token=${encodeURIComponent(
+        auth.token,
+      )}`,
+    );
+    const hello = JSON.stringify({
+      type: 'hello',
+      payload: { command: 'node', args: ['-e', 'console.log("first-frame")'] },
+    });
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('command stream did not open')), 4_000);
+        socket.addEventListener('open', () => {
+          clearTimeout(timer);
+          socket.send(hello);
+          resolve();
+        });
+        socket.addEventListener('error', () => {
+          clearTimeout(timer);
+          reject(new Error('command stream socket failed'));
+        });
+      });
+
+      await vi.waitFor(() => expect(runtime.commandStreamMessages).toContain(hello), { timeout: 4_000 });
+    } finally {
+      socket.close();
+      await app.close();
+      await runtime.close();
+    }
+  });
+
+  it('fails closed when pre-auth runtime websocket input exceeds the bounded buffer', async () => {
+    const runtime = await startRuntimeServices({ agentTokenDelayMs: 500 });
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+
+    const auth = await register(app, {
+      email: 'command-stream-buffer-limit@example.com',
+      organizationName: 'Command Stream Buffer Limit Org',
+    });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Command Stream Buffer Limit Project' },
+    });
+
+    const projectId = project.json().project.id as string;
+    const address = await app.listen({ port: 0, host: '127.0.0.1' });
+
+    const socket = new WebSocket(
+      `${address.replace(/^http/, 'ws')}/api/runtime/workspaces/${projectId}/commands/stream?token=${encodeURIComponent(
+        auth.token,
+      )}`,
+    );
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('oversized pre-auth frame was not rejected')), 4_000);
+        socket.addEventListener('open', () => socket.send(Buffer.alloc(256 * 1024 + 1, 0x61)));
+        socket.addEventListener('close', () => {
+          clearTimeout(timer);
+          resolve();
+        });
+        socket.addEventListener('error', () => {
+          /*
+           * A forced WebSocket termination can surface as error before close;
+           * the close event remains the observable fail-closed contract.
+           */
+        });
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 650));
+      expect(runtime.calls.some((call) => call === 'WS /commands/stream')).toBe(false);
+      expect(runtime.commandStreamMessages).toEqual([]);
+    } finally {
+      socket.terminate();
       await app.close();
       await runtime.close();
     }

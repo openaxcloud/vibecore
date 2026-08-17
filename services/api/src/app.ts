@@ -7553,6 +7553,93 @@ function normalizeRuntimeApiWebSocket(rawSocket: unknown) {
   };
 }
 
+type RuntimeApiWebSocket = ReturnType<typeof normalizeRuntimeApiWebSocket>;
+
+interface RuntimeSocketMessageBuffer {
+  client: RuntimeApiWebSocket;
+  readonly closed: boolean;
+  forwardTo(listener: (message: Buffer) => void): void;
+  forwardCloseTo(listener: () => void): void;
+}
+
+/**
+ * Install the downstream message listener synchronously, before a websocket
+ * route performs authentication or permission I/O.  RemoteRuntimeAdapter sends
+ * its `hello` command in the browser's `open` callback; without this bounded
+ * pre-auth buffer that first frame can arrive while the route is awaiting DB /
+ * workspace-manager calls and is then lost forever (the command stream stays
+ * open, but no process is ever spawned).
+ */
+function bufferRuntimeSocketMessages(
+  rawSocket: unknown,
+  maxPendingMessages = 1000,
+  maxPendingBytes = 256 * 1024,
+): RuntimeSocketMessageBuffer {
+  const client = normalizeRuntimeApiWebSocket(rawSocket);
+  const pending: Buffer[] = [];
+
+  let pendingBytes = 0;
+  let sink: ((message: Buffer) => void) | undefined;
+  let closed = false;
+  let closeSink: (() => void) | undefined;
+
+  client.onMessage((message) => {
+    if (sink) {
+      sink(message);
+      return;
+    }
+
+    const copy = Buffer.from(message);
+
+    if (pending.length < maxPendingMessages && pendingBytes + copy.byteLength <= maxPendingBytes) {
+      pending.push(copy);
+      pendingBytes += copy.byteLength;
+    } else {
+      /*
+       * This is still pre-auth input. Fail closed instead of retaining an
+       * attacker-controlled multi-megabyte queue while authorization is slow.
+       */
+      client.terminate();
+    }
+  });
+
+  client.onClose(() => {
+    closed = true;
+    closeSink?.();
+  });
+
+  return {
+    client,
+    get closed() {
+      return closed;
+    },
+    forwardTo(listener) {
+      if (sink) {
+        throw new Error('Runtime socket message buffer is already attached');
+      }
+
+      sink = listener;
+
+      for (const message of pending.splice(0)) {
+        listener(message);
+      }
+
+      pendingBytes = 0;
+    },
+    forwardCloseTo(listener) {
+      if (closeSink) {
+        throw new Error('Runtime socket close buffer is already attached');
+      }
+
+      closeSink = listener;
+
+      if (closed) {
+        listener();
+      }
+    },
+  };
+}
+
 async function runtimeWebSocketData(data: unknown) {
   if (typeof data === 'string') {
     return data;
@@ -17315,9 +17402,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     wrapMessages = true,
     locale: TransactionalLocale = 'en',
     clientQuery?: unknown,
+    inputBuffer?: RuntimeSocketMessageBuffer,
   ) => {
     const token = await agentToken(workspaceId);
-    const client = normalizeRuntimeApiWebSocket(rawSocket);
+    const client = inputBuffer?.client ?? normalizeRuntimeApiWebSocket(rawSocket);
+
+    /*
+     * The downstream can disappear while authorization / token minting is in
+     * flight. Its close listener was installed synchronously with the message
+     * buffer, so do not create an orphan upstream socket in that case.
+     */
+    if (inputBuffer?.closed) {
+      return;
+    }
 
     const upstream = new WebSocket(
       `${agentBaseUrl(workspaceId)
@@ -17416,7 +17513,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * could otherwise push unbounded input into memory. Drop oldest past the cap.
      */
     const MAX_PENDING_MESSAGES = 1000;
-    client.onMessage((message) => {
+
+    const relayClientMessage = (message: Buffer) => {
       const text = message.toString();
 
       if (upstream.readyState === WebSocket.OPEN) {
@@ -17424,7 +17522,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       } else if (pendingMessages.length < MAX_PENDING_MESSAGES) {
         pendingMessages.push(text);
       }
-    });
+    };
+
+    if (inputBuffer) {
+      inputBuffer.forwardTo(relayClientMessage);
+    } else {
+      client.onMessage(relayClientMessage);
+    }
 
     /*
      * Long-lived runtime sockets (terminal/logs/watch) can sit idle for minutes
@@ -17461,10 +17565,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const stopKeepAlive = () => clearInterval(keepAlive);
 
     upstream.addEventListener('close', stopKeepAlive);
-    client.onClose(() => {
+
+    const closeUpstream = () => {
       stopKeepAlive();
       upstream.close();
-    });
+    };
+
+    if (inputBuffer) {
+      inputBuffer.forwardCloseTo(closeUpstream);
+    } else {
+      client.onClose(closeUpstream);
+    }
   };
 
   /*
@@ -17528,6 +17639,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   };
 
   app.get('/api/runtime/workspaces/:workspaceId/commands/stream', { websocket: true }, async (socket, request) => {
+    // Must happen before the first await: the client sends `hello` on `open`.
+    const inputBuffer = bufferRuntimeSocketMessages(socket);
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
 
@@ -17543,10 +17656,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       false,
       transactionalLocaleForRequest(request),
       request.query,
+      inputBuffer,
     );
   });
 
   app.get('/api/runtime/workspaces/:workspaceId/terminal', { websocket: true }, async (socket, request) => {
+    // Preserve keystrokes sent immediately after the browser's open event.
+    const inputBuffer = bufferRuntimeSocketMessages(socket);
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
 
@@ -17615,6 +17731,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       false,
       transactionalLocaleForRequest(request),
       request.query,
+      inputBuffer,
     );
   });
   app.get('/api/runtime/workspaces/:workspaceId/logs', { websocket: true }, async (socket, request) => {
