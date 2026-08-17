@@ -6060,67 +6060,6 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 6px;
 }
 
-.bolt-project-language-switch {
-  height: 30px;
-  min-height: 30px;
-  border-color: var(--vc-ide-border-visible);
-  background: var(--vc-ide-bg-card);
-  padding: 2px;
-  box-shadow: none;
-}
-
-.bolt-project-language-switch > button {
-  width: 31px;
-  min-width: 31px;
-  min-height: 24px;
-  padding-inline: 5px;
-  font-size: 10px;
-  line-height: 1;
-}
-
-.bolt-project-mobile-language-switch-slot {
-  display: none;
-}
-
-.bolt-project-mobile-language-switch {
-  height: 50px;
-  min-height: 50px;
-  border-color: var(--vc-ide-border-visible);
-  background: var(--vc-ide-bg-card);
-  padding: 3px;
-  box-shadow: none;
-}
-
-.bolt-project-mobile-language-switch > button {
-  width: 44px;
-  height: 44px;
-  min-width: 44px;
-  min-height: 44px;
-  border-radius: 999px;
-  margin: 0;
-  padding: 0;
-  font-size: 10px !important;
-  line-height: 1;
-}
-
-.bolt-project-mobile-language-switch > button:first-child {
-  margin-left: 0;
-}
-
-.bolt-project-mobile-language-switch > button[aria-pressed='true'] {
-  background: var(--vc-action-primary) !important;
-  color: #ffffff !important;
-}
-
-.bolt-project-mobile-language-switch > button[aria-pressed='false'] {
-  background: transparent !important;
-  color: var(--vc-ide-text-secondary) !important;
-}
-
-.bolt-project-mobile-language-switch > button[aria-pressed='false']:where(:hover, :focus-visible) {
-  background: var(--vc-ide-bg-hover) !important;
-  color: var(--vc-ide-text-primary) !important;
-}
 
 .bolt-project-action-group {
   position: relative;
@@ -19240,23 +19179,6 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     display: none !important;
   }
 
-  .bolt-project-mobile-language-switch-slot {
-    position: fixed;
-    top: calc(env(safe-area-inset-top, 0px) + 56px);
-    right: max(12px, env(safe-area-inset-right, 0px));
-    z-index: 11001;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 999px;
-    filter: drop-shadow(0 8px 20px rgb(0 0 0 / 0.2));
-    isolation: isolate;
-  }
-
-  body:has(.bolt-responsive-ide-mobile[data-mobile-agent-context='true']) .bolt-project-mobile-language-switch-slot {
-    /* 48px header + 52px agent context + 8px breathing room. */
-    top: calc(env(safe-area-inset-top, 0px) + 108px);
-  }
 
   .bolt-mobile-ecode-header {
     position: fixed;
@@ -19307,8 +19229,18 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     --mobile-nav-height: 72px;
     /* The mobile chrome header is a fixed 48px bar (not the 36px desktop topbar). */
     --vc-ide-topbar-height: 48px;
-    /* 8px before the 50px language switch; panels begin at its lower edge. */
-    --vc-mobile-language-switch-reserved-height: 58px;
+    /*
+     * La bascule FR/EN flottante a été retirée de l'IDE : la langue est
+     * détectée depuis le navigateur et se règle dans Paramètres → Préférences.
+     * La réserve tombe donc à 0 — la garder aurait laissé 58px de vide en haut
+     * de chaque panneau mobile, sous rien.
+     *
+     * La variable est CONSERVÉE plutôt que supprimée : plusieurs calculs la
+     * lisent (`--vc-mobile-shell-top`, le décalage du transcript, la marge des
+     * panneaux). La mettre à zéro les fait tous suivre d'un coup ; les retirer
+     * un par un aurait été une occasion de plus d'en oublier un.
+     */
+    --vc-mobile-language-switch-reserved-height: 0px;
     /*
      * Height of the agent context bar ("Working on this workspace" / "Ready for
      * the next change") that sits *below* the 48px header bar when the agent is
