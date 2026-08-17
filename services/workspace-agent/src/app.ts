@@ -2130,7 +2130,23 @@ async function listTree(
  * node_modules easily exceeds the 5000-entry limit, failing the whole export)
  * and waste hundreds of MB reading files that the build reproduces anyway.
  */
-const SNAPSHOT_IGNORED_DIRS = new Set(['node_modules', '.git', '.vite', '.next', '.cache', 'dist', '.turbo']);
+const SNAPSHOT_IGNORED_DIRS = new Set([
+  'node_modules',
+  '.git',
+  '.vite',
+  '.next',
+  '.cache',
+  'dist',
+  '.turbo',
+  /*
+   * `lost+found` is not a project dir: ext4 creates it at the root of every
+   * formatted volume, so it surfaced at the top of every PVC-backed workspace.
+   * The user saw it in the file tree and then got a 400 on read (root-owned),
+   * i.e. an entry they can neither use nor open. Filtered where the tree is
+   * produced, rather than papering over the 400 downstream.
+   */
+  'lost+found',
+]);
 
 async function listSnapshotFiles(
   root: string,

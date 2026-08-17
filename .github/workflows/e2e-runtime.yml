@@ -1,0 +1,135 @@
+name: E2E Runtime
+
+# Tests tagged `@runtime` need a *live workspace runtime*: a provisioned
+# workspace pod, a booted dev server and a rendered preview iframe. The
+# Production E2E stack only brings up postgres/redis/mailpit + the API + the
+# built web app, so those tests can never pass there — they were a permanent
+# red in a blocking gate, which is why Production E2E had never been green.
+#
+# They are split out here rather than deleted: the coverage is real and we want
+# it back in a blocking position once the runtime is provisioned in CI (see
+# docs/audit/E2E_SUITE_SPLIT.md). Until then this workflow is deliberately
+# NON-BLOCKING — nightly + on demand — so it reports the gap without pretending
+# the gap is fixed.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 04:20 UTC daily — after the nightly parity collector, before EU morning.
+    - cron: '20 4 * * *'
+
+concurrency:
+  group: e2e-runtime-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  e2e-runtime:
+    name: Playwright @runtime (non-blocking)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    # Reporting-only until a workspace runtime is available in CI.
+    continue-on-error: true
+
+    env:
+      CI: true
+      HUSKY: 0
+      DATABASE_URL: postgresql://vibecore:vibecore@127.0.0.1:55432/vibecore
+      REDIS_URL: redis://127.0.0.1:56379
+      POSTGRES_PORT: 55432
+      REDIS_PORT: 56379
+      API_HOST: 127.0.0.1
+      API_PORT: 3001
+      API_BASE_URL: http://127.0.0.1:3001
+      SAAS_API_URL: http://127.0.0.1:3001
+      PLAYWRIGHT_BASE_URL: http://127.0.0.1:5173
+      PLAYWRIGHT_SKIP_WEB_SERVER: '1'
+      PLATFORM_ADMIN_EMAILS: e2e-platform-admin@local.test
+      ADMIN_MFA_REQUIRED: 'false'
+      # Every test registers a throwaway user, and CI retries multiply that.
+      # The default ceiling (10/min/IP) made the limiter the single biggest
+      # source of run-to-run instability: whichever tests landed in a saturated
+      # window died with `Rate limit exceeded, retry in N seconds`, so a
+      # DIFFERENT test failed on every run of identical code. The limiter exists
+      # to protect production, not a throwaway CI stack — services/api's own
+      # comment says operators may lift it via this variable.
+      AUTH_REGISTER_RATE_LIMIT_MAX: '2000'
+      AUTH_LOGIN_RATE_LIMIT_MAX: '2000'
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.14.4
+          run_install: false
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start local dependencies
+        run: |
+          trap 'docker compose --env-file .env -f docker-compose.dev.yml ps; docker compose --env-file .env -f docker-compose.dev.yml logs --tail=120 postgres redis mailpit' ERR
+          touch .env
+          docker compose --env-file .env -f docker-compose.dev.yml up -d postgres redis mailpit
+          npx wait-on --timeout 180000 --interval 1000 tcp:127.0.0.1:55432 tcp:127.0.0.1:56379 tcp:127.0.0.1:8025
+
+      - name: Prepare database
+        run: |
+          pnpm --filter @vibecore/database db:deploy
+          pnpm --filter @vibecore/database db:seed
+
+      - name: Start API
+        run: |
+          pnpm --filter @vibecore/api dev > /tmp/vibecore-api.log 2>&1 &
+          echo $! > /tmp/vibecore-api.pid
+          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:3001/health
+
+      - name: Build web app
+        run: pnpm run build
+
+      - name: Start web app
+        run: |
+          HOST=127.0.0.1 PORT=5173 NODE_ENV=production pnpm run start:node > /tmp/vibecore-web.log 2>&1 &
+          echo $! > /tmp/vibecore-web.pid
+          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5173
+
+      - name: Start admin app
+        run: |
+          pnpm --filter @vibecore/admin dev > /tmp/vibecore-admin.log 2>&1 &
+          echo $! > /tmp/vibecore-admin.pid
+          npx wait-on --timeout 180000 --interval 1000 http://127.0.0.1:5174
+
+      - name: Playwright @runtime suite
+        run: pnpm exec playwright test tests/e2e --project=chromium --grep @runtime
+
+      # Moved out of Production E2E for the same reason as the @runtime tests:
+      # it audits IDE panels against live project data ("The requested panel
+      # data was not found." for 16 panels in the gate stack), which needs a
+      # provisioned workspace.
+      - name: IDE panel live audit
+        run: |
+          PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 SAAS_API_URL=http://127.0.0.1:3001 pnpm run ide:panel-audit
+          pnpm run ide:panel-audit:validate
+
+      - name: Upload E2E traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-runtime
+          path: |
+            playwright-report
+            test-results
+            /tmp/vibecore-api.log
+            /tmp/vibecore-web.log
+          if-no-files-found: ignore

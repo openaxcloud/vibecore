@@ -53,6 +53,7 @@ async function expectCompactIdeSurfaceFitsViewport(page: import('@playwright/tes
 
   const metrics = await root.evaluate(() => {
     const viewportWidth = window.visualViewport?.width ?? window.innerWidth;
+
     const selectors = [
       '[data-testid="ide-service-panel"]',
       '[data-testid="ide-agent-panel"]',
@@ -846,7 +847,7 @@ async function expectMobileWebviewStartupFitsViewport(
 }
 
 test.describe('responsive IDE shell', () => {
-  test('desktop keeps the full IDE workspace available', async ({ page }, testInfo) => {
+  test('desktop keeps the full IDE workspace available', { tag: '@runtime' }, async ({ page }, testInfo) => {
     test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
     test.setTimeout(120_000);
 
@@ -857,7 +858,7 @@ test.describe('responsive IDE shell', () => {
     await expect(page.getByRole('button', { name: /^(Run|Stop)$/ })).toBeVisible({ timeout: 15000 });
     await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
     await expect(page.locator('.bolt-responsive-ide-desktop')).toBeVisible();
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
     await expect(
       page.locator('.bolt-project-file-tree .bolt-file-tree-name', { hasText: /^src$/ }).first(),
     ).toBeVisible({
@@ -932,7 +933,7 @@ test.describe('responsive IDE shell', () => {
     }
   });
 
-  test('desktop can collapse and restore the right preview panel', async ({ page }, testInfo) => {
+  test('desktop can collapse and restore the right preview panel', { tag: '@runtime' }, async ({ page }, testInfo) => {
     test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
     test.setTimeout(120_000);
 
@@ -940,42 +941,46 @@ test.describe('responsive IDE shell', () => {
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
     await expect(page.getByRole('button', { name: /^(Run|Stop)$/ })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
 
     const filesPanelToggle = page.getByTestId('ide-files-panel-toggle');
     await expect(filesPanelToggle).toBeVisible();
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close files panel');
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close the files panel');
 
     await filesPanelToggle.click();
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toHaveCount(0);
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open files panel');
+    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toHaveCount(0);
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open the files panel');
 
     await filesPanelToggle.click();
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close files panel');
+    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close the files panel');
 
     await page.getByRole('button', { name: 'Close right panel' }).click();
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toHaveCount(0);
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open files panel');
+    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toHaveCount(0);
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Open the files panel');
     await expect(page.locator('[data-testid="ide-agent-panel"]').first()).toBeVisible();
     await expect(page.getByRole('region', { name: 'Editor and preview' })).toBeVisible();
 
     await page.locator('.bolt-project-ide-rail-item[aria-label^="Files"]').click();
-    await expect(page.getByRole('complementary', { name: 'Project files panel' })).toBeVisible({ timeout: 15000 });
-    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close files panel');
+    await expect(page.getByRole('complementary', { name: 'Project library panel' })).toBeVisible({ timeout: 15000 });
+    await expect(filesPanelToggle).toHaveAttribute('aria-label', 'Close the files panel');
   });
 
-  test('desktop opens terminal as a workspace panel from the panel URL', async ({ page }, testInfo) => {
-    test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
-    test.setTimeout(120_000);
+  test(
+    'desktop opens terminal as a workspace panel from the panel URL',
+    { tag: '@runtime' },
+    async ({ page }, testInfo) => {
+      test.skip(isCompactIdeProject(testInfo), 'desktop-only assertion');
+      test.setTimeout(120_000);
 
-    const projectId = await createTestProject(page, 'Responsive terminal panel project');
+      const projectId = await createTestProject(page, 'Responsive terminal panel project');
 
-    await page.goto(`/projects/${projectId}/ide?panel=terminal`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('tab', { name: /Terminal/ })).toBeVisible({ timeout: 15000 });
-    await expect(page.getByRole('button', { name: 'Vibecore Terminal' })).toBeVisible({ timeout: 15000 });
-    await expect(page).toHaveURL(/panel=terminal/);
-  });
+      await page.goto(`/projects/${projectId}/ide?panel=terminal`, { waitUntil: 'domcontentloaded' });
+      await expect(page.getByRole('tab', { name: /Terminal/ })).toBeVisible({ timeout: 15000 });
+      await expect(page.getByRole('button', { name: 'Vibecore Terminal' })).toBeVisible({ timeout: 15000 });
+      await expect(page).toHaveURL(/panel=terminal/);
+    },
+  );
 
   test('mobile exposes icon-only tab navigation for core IDE panels', async ({ page, isMobile }) => {
     test.skip(!isMobile, 'mobile-only assertion');
@@ -1330,6 +1335,7 @@ createServer((_request, response) => {
     const initialRunVisualState = await readButtonVisualState(runButton);
     const editorRunButton = page.getByTestId('mobile-editor-run-toggle');
     await expect(editorRunButton).toBeVisible({ timeout: 15_000 });
+
     const initialEditorRunVisualState = await readButtonVisualState(editorRunButton);
 
     if (initialRunLabel === 'Run project') {

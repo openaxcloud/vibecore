@@ -328,7 +328,7 @@ export function EcodeExactPublicNavbar({
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 w-full">
+    <header role="banner" aria-label={copy.a11y.siteHeader} className="sticky top-0 z-50 w-full">
       {!announcementDismissed ? (
         <div
           data-ecode-announcement

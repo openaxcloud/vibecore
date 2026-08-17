@@ -291,6 +291,24 @@ export class WorkbenchStore {
   billingUpgradePrompt: WritableAtom<string | undefined> =
     hotData.billingUpgradePrompt ?? atom<string | undefined>(undefined);
   #snapshottedArtifacts = new Set<string>();
+
+  /*
+   * Paths already materialized in the runtime by the streaming sampler.
+   *
+   * BUG-AGENT-001. The streaming branch of `#processFileAction` wrote the file
+   * to the runtime whenever the editor had no document for it. That guard never
+   * closed, because `EditorStore.updateFile` no-ops when the document is
+   * missing instead of creating it — so a FULL-FILE write left every 100ms
+   * (`ACTION_STREAM_SAMPLE_INTERVAL_MS`) for as long as the file streamed.
+   * Measured live: 150 writes for 9 files (55 for one single file), 750 for 20
+   * in the QA run. Those writes are chained on one serial promise, so the
+   * authoritative close-writes queued behind them had not drained when the
+   * stream ended — and `abortStreamingFileActions` then cancelled the backlog,
+   * so the files were NEVER written to the runtime.
+   *
+   * One materialization per path is all the guard was ever after.
+   */
+  #streamMaterializedPaths = new Set<string>();
   #agentPatchOriginals = new Map<string, string>();
 
   /*
@@ -2911,7 +2929,8 @@ export class WorkbenchStore {
       if (isStreaming) {
         const doc = this.#editorStore.documents.get()[fullPath];
 
-        if (!doc) {
+        if (!doc && !this.#streamMaterializedPaths.has(fullPath)) {
+          this.#streamMaterializedPaths.add(fullPath);
           await artifact.runner.runAction(data, true);
         }
 
@@ -2978,6 +2997,36 @@ export class WorkbenchStore {
       if (completedAction?.status === 'failed') {
         const message = workbenchText('workbenchRuntime.write.failed', { file: data.action.filePath });
 
+        this.actionAlert.set({
+          type: 'error',
+          title: workbenchText('workbenchRuntime.write.blockedTitle'),
+          description: message,
+          content: message,
+          source: 'preview',
+        });
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.blockedLog', { file: data.action.filePath }));
+
+        return;
+      }
+
+      /*
+       * BUG-AGENT-002 — fail-closed status. "Terminé" used to be declared from
+       * the parser alone: the action was ticked complete whether or not the
+       * bytes ever reached the runtime pod. That is exactly how a run reported
+       * "Terminé 100 %" on 20 files while `src/main.tsx` was absent from the
+       * pod and the preview stayed blank.
+       *
+       * Read the file back instead of trusting the write. Only presence and
+       * readability are asserted, NOT byte equality: the write path legitimately
+       * rewrites the payload (content sanitizer, self-repair loop), so comparing
+       * against `data.action.content` would cry wolf on every repaired file.
+       */
+      try {
+        await this.#runtime.readFile(data.action.filePath);
+      } catch {
+        const message = workbenchText('workbenchRuntime.write.failed', { file: data.action.filePath });
+
+        artifact.runner.failAction(data.actionId, message);
         this.actionAlert.set({
           type: 'error',
           title: workbenchText('workbenchRuntime.write.blockedTitle'),

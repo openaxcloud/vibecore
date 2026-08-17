@@ -896,7 +896,18 @@ export function EcodePricingPage() {
                     {copy.recommended}
                   </span>
                 ) : null}
-                <div className={classNames('inline-flex rounded-xl bg-gradient-to-br p-3 text-white', plan.gradient)}>
+                {/*
+                 * `self-start` is load-bearing: this chip is a direct child of a
+                 * `flex-col` card, so its `inline-flex` blockifies to `flex` and
+                 * the default `align-items: stretch` blew the 48px icon badge up
+                 * into a full-width gradient bar across the top of every plan.
+                 */}
+                <div
+                  className={classNames(
+                    'inline-flex self-start rounded-xl bg-gradient-to-br p-3 text-white',
+                    plan.gradient,
+                  )}
+                >
                   {plan.icon}
                 </div>
                 <h2 className="mt-5 break-words text-2xl font-bold text-bolt-elements-textPrimary">{plan.name}</h2>
@@ -1400,13 +1411,19 @@ function SectionIntro({
   );
 }
 
+/*
+ * `flex-wrap` pushed the icon onto a line of its own as soon as the label
+ * outgrew the row (every uppercase eyebrow does, below ~430px), turning the
+ * `rounded-full` pill into a multi-line slab with a stranded icon. Keep the
+ * icon beside the text and let the LABEL wrap inside the pill instead.
+ */
 function Badge({ children, icon }: { children: ReactNode; icon: LucideIcon }) {
   const IconComponent = icon;
 
   return (
-    <span className="inline-flex max-w-full flex-wrap items-center justify-center gap-2 rounded-full bg-[var(--ecode-accent)] px-4 py-1.5 text-center text-xs font-semibold uppercase leading-5 tracking-[0.14em] text-white">
+    <span className="inline-flex max-w-full flex-nowrap items-center justify-center gap-2 rounded-full bg-[var(--ecode-accent)] px-4 py-1.5 text-center text-xs font-semibold uppercase leading-5 tracking-[0.14em] text-white">
       <IconComponent className="h-4 w-4 shrink-0" aria-hidden />
-      {children}
+      <span className="min-w-0 break-words">{children}</span>
     </span>
   );
 }
@@ -1578,8 +1595,16 @@ function WorkspaceMockup({ large = false }: { large?: boolean }) {
         <span className="h-3 w-3 rounded-full bg-emerald-400" />
         <span className="ml-3 text-xs text-white/50">{workspacePreviewUrl}</span>
       </div>
-      <div className="grid min-h-[inherit] grid-cols-[0.32fr_0.68fr]">
-        <aside className="border-r border-white/10 bg-white/[0.03] p-4 text-xs text-white/55">
+      {/*
+       * An `fr` track keeps an implicit `min-width: min-content`, and the code
+       * block below is `white-space: pre` — so its ~340px min-content width
+       * forced this grid WIDER than its `overflow-hidden` shell on a phone and
+       * the mockup got clipped on both edges (sidebar labels sheared to
+       * "ments", code running off-screen). Stack to one column below `sm`, and
+       * let the panes actually shrink via `min-w-0`.
+       */}
+      <div className="grid min-h-[inherit] grid-cols-1 sm:grid-cols-[0.32fr_0.68fr]">
+        <aside className="min-w-0 border-b border-white/10 bg-white/[0.03] p-4 text-xs text-white/55 sm:border-b-0 sm:border-r">
           {['app', 'components', 'routes', 'api', 'deployments'].map((item) => (
             <div key={item} className="mb-3 flex items-center gap-2">
               <Layers className="h-3.5 w-3.5" aria-hidden />
@@ -1587,8 +1612,9 @@ function WorkspaceMockup({ large = false }: { large?: boolean }) {
             </div>
           ))}
         </aside>
-        <div className="p-4">
-          <pre className="rounded-lg border border-white/10 bg-black/35 p-4 font-mono text-xs leading-6 text-emerald-200">
+        <div className="min-w-0 p-4">
+          {/* `overflow-x-auto` keeps a long line inside the panel instead of widening the grid. */}
+          <pre className="overflow-x-auto rounded-lg border border-white/10 bg-black/35 p-4 font-mono text-xs leading-6 text-emerald-200">
             <code>
               {'import { Dashboard } from "./components";\n'}
               {'export default function App() {\n'}

@@ -8407,6 +8407,36 @@ export async function seedProviderRegistry(store: ApiStore) {
  * `http` 502/503/504 came FROM the agent, so a write may have applied — only
  * retry idempotent reads. Never retry once the attempt budget is exhausted.
  */
+/*
+ * True when a fetch failed because the workspace Service name did not resolve
+ * yet. The Service and its endpoints are created together with the pod, so a
+ * DNS miss right after provisioning is a propagation window, not a fault.
+ *
+ * Node wraps connection errors (AggregateError / TypeError with `cause`), so
+ * walk the cause chain and any aggregated errors instead of string-matching the
+ * message, which differs between Node versions and resolvers.
+ */
+export function isWorkspaceDnsNotResolvedYet(error: unknown, depth = 0): boolean {
+  if (!error || depth > 5) {
+    return false;
+  }
+
+  const candidate = error as { code?: unknown; errors?: unknown; cause?: unknown };
+
+  if (typeof candidate.code === 'string' && (candidate.code === 'ENOTFOUND' || candidate.code === 'EAI_AGAIN')) {
+    return true;
+  }
+
+  if (
+    Array.isArray(candidate.errors) &&
+    candidate.errors.some((nested) => isWorkspaceDnsNotResolvedYet(nested, depth + 1))
+  ) {
+    return true;
+  }
+
+  return isWorkspaceDnsNotResolvedYet(candidate.cause, depth + 1);
+}
+
 export function shouldRetryAgentHop(opts: {
   kind: 'connection' | 'http';
   status?: number;
@@ -13759,6 +13789,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         if (shouldRetryAgentHop({ kind: 'connection', method, attempt, maxAttempts: AGENT_REQUEST_ATTEMPTS })) {
           await agentSleep(agentRetryDelay(attempt));
           continue;
+        }
+
+        /*
+         * A DNS failure on the workspace Service name is NOT a server error: the
+         * Service and its endpoints are created with the pod, and there is a
+         * short window where kube-dns has not propagated the record yet. During
+         * IDE load that window produced bursts of user-visible
+         * `502 WORKSPACE_AGENT_REQUEST_FAILED` /
+         * `getaddrinfo ENOTFOUND workspace-ws-<id>.workspaces.svc.cluster.local`
+         * for a workspace that was simply still coming up (42 occurrences over a
+         * ~4s window in one measured load).
+         *
+         * Report it with the SAME provisioning contract the write path already
+         * uses (425 WORKSPACE_NOT_STARTED / WORKSPACE_STARTING), so the UI shows
+         * "starting" instead of a server error.
+         */
+        if (isWorkspaceDnsNotResolvedYet(error)) {
+          throw Object.assign(new Error(appPublicEnglish('WORKSPACE_STARTING')), {
+            statusCode: 425,
+            code: 'WORKSPACE_NOT_STARTED',
+            publicMessage: appPublicEnglish('WORKSPACE_STARTING'),
+            cause: error,
+          });
         }
 
         /*
