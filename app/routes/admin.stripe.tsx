@@ -246,7 +246,7 @@ function StatusPill({ ok, set, fallback }: { ok: boolean; set: string; fallback:
     <span
       className={`inline-flex max-w-full whitespace-normal break-words rounded-full px-2 py-0.5 text-left text-xs leading-snug ${
         ok
-          ? 'bg-[var(--vc-ide-accent-success)]/15 text-[var(--status-success-text)]'
+          ? 'bg-[color-mix(in_srgb,var(--vc-ide-accent-success)_15%,transparent)] text-[var(--status-success-text)]'
           : 'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary'
       }`}
     >

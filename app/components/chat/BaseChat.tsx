@@ -16719,7 +16719,7 @@ function ProjectSkillsPanel({
 
       {error ? (
         <p
-          className="mt-3 rounded-md border border-[var(--vc-ide-accent-error)]/40 px-3 py-2 text-xs text-[var(--status-error-text)]"
+          className="mt-3 rounded-md border border-[color-mix(in_srgb,var(--vc-ide-accent-error)_40%,transparent)] px-3 py-2 text-xs text-[var(--status-error-text)]"
           role="status"
         >
           {error}
@@ -16893,7 +16893,7 @@ function ProjectSkillsPanel({
                         type="button"
                         onClick={() => void uninstall(entry.ownerRepo, communityScope)}
                         disabled={busy || pending === `u:${communityScope}:${entry.ownerRepo}`}
-                        className="shrink-0 rounded-md border border-[var(--vc-ide-accent-error)]/50 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10 disabled:opacity-60"
+                        className="shrink-0 rounded-md border border-[color-mix(in_srgb,var(--vc-ide-accent-error)_50%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-error)_10%,transparent)] disabled:opacity-60"
                       >
                         {pending === `u:${communityScope}:${entry.ownerRepo}` ? '…' : t('chat.copy.uninstall_a735da1d')}
                       </button>
@@ -17000,8 +17000,9 @@ function SkillProvenanceBadges({ skill }: { skill: InstalledSkill }) {
   const verdictStyle: Record<string, string> = {
     approved: 'border-[var(--vc-ide-accent-success,#16a34a)]/50 text-[var(--vc-ide-accent-success,#16a34a)]',
     quarantined: 'border-[var(--vc-ide-accent-warning,#d97706)]/50 text-[var(--vc-ide-accent-warning,#d97706)]',
-    rejected: 'border-[var(--vc-ide-accent-error)]/50 text-[var(--vc-ide-accent-error)]',
-    revoked: 'border-[var(--vc-ide-accent-error)]/50 text-[var(--vc-ide-accent-error)]',
+    rejected:
+      'border-[color-mix(in_srgb,var(--vc-ide-accent-error)_50%,transparent)] text-[var(--vc-ide-accent-error)]',
+    revoked: 'border-[color-mix(in_srgb,var(--vc-ide-accent-error)_50%,transparent)] text-[var(--vc-ide-accent-error)]',
   };
 
   const verdictIcon: Record<string, string> = {
@@ -17150,7 +17151,7 @@ function InstalledSkillsList({
                       type="button"
                       onClick={() => void onRevoke(skill.ownerRepo, scope)}
                       disabled={busy || pending === `r:${rowKey}`}
-                      className="rounded-md border border-[var(--vc-ide-accent-error)]/50 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10 disabled:opacity-60"
+                      className="rounded-md border border-[color-mix(in_srgb,var(--vc-ide-accent-error)_50%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-error)_10%,transparent)] disabled:opacity-60"
                       title={t('chat.copy.revokeHardDisableAndKeepFor_cfee988f')}
                     >
                       {pending === `r:${rowKey}` ? '…' : t('chat.copy.revoke_0be72075')}
@@ -17179,7 +17180,7 @@ function InstalledSkillsList({
                     <button
                       type="button"
                       onClick={() => onConfirm(rowKey)}
-                      className="rounded-md border border-[var(--vc-ide-accent-error)]/50 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10"
+                      className="rounded-md border border-[color-mix(in_srgb,var(--vc-ide-accent-error)_50%,transparent)] px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[color-mix(in_srgb,var(--vc-ide-accent-error)_10%,transparent)]"
                     >
                       {t('chat.copy.uninstall_a735da1d')}
                     </button>

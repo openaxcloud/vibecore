@@ -839,7 +839,7 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
       className={classNames(
         'flex min-h-[25rem] flex-col rounded-lg border bg-[var(--ecode-surface)] p-6 transition hover:-translate-y-1 hover:shadow-xl',
         featured
-          ? 'border-[var(--ecode-accent)]/45 shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]'
+          ? 'border-[color-mix(in_srgb,var(--ecode-accent)_45%,transparent)] shadow-[0_18px_70px_-42px_rgba(242,98,7,0.85)]'
           : 'border-[var(--ecode-border)]',
       )}
     >
@@ -920,7 +920,7 @@ function CommunityFeedCard({ post }: { post: PublicCommunityPost }) {
   const copy = getMarketingPublicResourceCopy(language).community.post;
 
   return (
-    <article className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-5 transition hover:border-[var(--ecode-accent)]/60 hover:shadow-xl">
+    <article className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-5 transition hover:border-[color-mix(in_srgb,var(--ecode-accent)_60%,transparent)] hover:shadow-xl">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
         <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--ecode-surface-secondary)] text-[13px] font-bold text-[var(--ecode-accent-text)]">
           {post.authorInitials}

@@ -107,7 +107,7 @@ export default function Changelog() {
               </p>
               <Badge
                 variant="secondary"
-                className="whitespace-normal px-4 py-2 text-center text-[13px] text-[var(--ecode-accent-text)] ring-1 ring-[var(--ecode-accent)]/30"
+                className="whitespace-normal px-4 py-2 text-center text-[13px] ring-1 ring-[var(--ecode-accent)]/30"
               >
                 {copy.hero.badge}
               </Badge>

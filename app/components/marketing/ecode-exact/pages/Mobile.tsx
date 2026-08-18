@@ -187,7 +187,7 @@ export default function Mobile() {
           <div className="container-responsive relative py-responsive">
             <div className="grid items-center gap-12 lg:grid-cols-2">
               <div className="text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-accent)]/30 bg-[var(--ecode-accent)]/10 px-4 py-1.5">
+                <div className="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] px-4 py-1.5">
                   <Smartphone className="h-4 w-4 text-[var(--ecode-accent-text)]" />
                   <span className="text-[13px] font-medium text-[var(--ecode-accent-text)]">{copy.hero.badge}</span>
                 </div>
@@ -250,7 +250,7 @@ export default function Mobile() {
                       onClick={() => selectHighlight(index)}
                       className={`flex w-full items-start gap-4 rounded-xl border p-5 text-left transition-colors ${
                         isActive
-                          ? 'border-[var(--ecode-accent)]/40 bg-[var(--ecode-accent)]/5'
+                          ? 'border-[color-mix(in_srgb,var(--ecode-accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--ecode-accent)_5%,transparent)]'
                           : 'border-border bg-surface-solid hover:bg-surface-hover-solid'
                       }`}
                       data-testid={`highlight-${highlight.id}`}
@@ -335,7 +335,7 @@ export default function Mobile() {
               {capabilities.map((capability) => (
                 <Card key={capability.id} className="group transition-all hover:shadow-xl">
                   <CardContent className="pt-6">
-                    <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent-text)] transition-transform group-hover:scale-110">
+                    <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[var(--ecode-accent-text)] transition-transform group-hover:scale-110">
                       {capability.icon}
                     </div>
                     <h3 className="mb-2 mkt-h3 font-semibold">{capability.title}</h3>
@@ -396,7 +396,7 @@ export default function Mobile() {
                 <ul className="space-y-4">
                   {copy.comparison.ecodeItems.map((item) => (
                     <li key={item} className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--ecode-accent)]/15">
+                      <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ecode-accent)_15%,transparent)]">
                         <Check className="h-4 w-4 text-[var(--ecode-accent-text)]" />
                       </span>
                       <span className="mkt-small">{item}</span>

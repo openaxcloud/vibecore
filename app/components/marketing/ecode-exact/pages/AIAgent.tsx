@@ -276,7 +276,7 @@ export default function AiAgent() {
                   className="block w-full h-auto"
                   loading="lazy"
                 />
-                <div className="space-y-2 px-6 py-6 mkt-small text-muted-foreground md:flex md:items-center md:justify-between md:gap-6">
+                <div className="space-y-2 px-6 py-6 mkt-small text-white/75 md:flex md:items-center md:justify-between md:gap-6">
                   <p className="md:max-w-2xl">{copy.capture.body}</p>
                   <Button size="sm" variant="secondary" className="mt-4 md:mt-0" asChild>
                     <a href="#agent-demo">{copy.capture.action}</a>

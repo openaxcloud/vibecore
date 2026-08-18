@@ -399,7 +399,7 @@ export function EcodeAiAgentPage() {
                       className={classNames(
                         'w-full rounded-lg border p-3 text-left transition-colors',
                         selectedSegmentId === segment.id
-                          ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)]/10'
+                          ? 'border-[var(--ecode-accent)] bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)]'
                           : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 hover:bg-bolt-elements-background-depth-3',
                       )}
                     >
@@ -600,12 +600,12 @@ export function EcodeAiPlatformPage() {
                     className={classNames(
                       'w-full rounded-lg border p-4 text-left transition-colors',
                       selectedFeatureId === feature.key
-                        ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)]/10'
+                        ? 'border-[var(--ecode-accent)] bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)]'
                         : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 hover:bg-bolt-elements-background-depth-2',
                     )}
                   >
                     <div className="flex items-start gap-3">
-                      <span className="rounded-lg bg-[var(--ecode-accent)]/10 p-2 text-[var(--ecode-accent-text)]">
+                      <span className="rounded-lg bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] p-2 text-[var(--ecode-accent-text)]">
                         <Icon className="h-5 w-5" aria-hidden />
                       </span>
                       <span>
@@ -803,7 +803,7 @@ export function EcodeMobilePage() {
                   className={classNames(
                     'rounded-lg border p-5 text-left transition-colors',
                     activeFeatureId === feature.id
-                      ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)]/10'
+                      ? 'border-[var(--ecode-accent)] bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)]'
                       : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 hover:bg-bolt-elements-background-depth-2',
                   )}
                 >
@@ -1493,7 +1493,7 @@ function IconCard({ children, icon, title }: { children: ReactNode; icon: Lucide
 
   return (
     <Panel>
-      <span className="inline-flex rounded-lg bg-[var(--ecode-accent)]/10 p-3 text-[var(--ecode-accent-text)]">
+      <span className="inline-flex rounded-lg bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] p-3 text-[var(--ecode-accent-text)]">
         <IconComponent className="h-7 w-7" aria-hidden />
       </span>
       <h3 className="mt-4 text-xl font-semibold text-bolt-elements-textPrimary">{title}</h3>
@@ -1614,7 +1614,7 @@ function WorkspaceMockup({ large = false }: { large?: boolean }) {
         </aside>
         <div className="min-w-0 p-4">
           {/* `overflow-x-auto` keeps a long line inside the panel instead of widening the grid. */}
-          <pre className="overflow-x-auto rounded-lg border border-white/10 bg-black/35 p-4 font-mono text-xs leading-6 text-emerald-200">
+          <pre className="overflow-x-auto rounded-lg border border-white/10 bg-slate-950 p-4 font-mono text-xs leading-6 text-emerald-200">
             <code>
               {'import { Dashboard } from "./components";\n'}
               {'export default function App() {\n'}
@@ -1653,7 +1653,7 @@ function FeatureTile({ feature, icon }: { feature: ProductFeatureCopy; icon: Luc
 
   return (
     <Panel>
-      <span className="inline-flex rounded-lg bg-[var(--ecode-accent)]/10 p-3 text-[var(--ecode-accent-text)]">
+      <span className="inline-flex rounded-lg bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] p-3 text-[var(--ecode-accent-text)]">
         <Icon className="h-6 w-6" aria-hidden />
       </span>
       <h3 className="mt-4 text-xl font-semibold text-bolt-elements-textPrimary">{feature.title}</h3>
