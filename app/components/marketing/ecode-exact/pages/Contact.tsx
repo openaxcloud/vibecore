@@ -514,7 +514,7 @@ export default function Contact() {
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
                   href="/signup"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold text-[var(--ecode-accent-text)] bg-white min-h-[44px] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ecode-accent)]"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold text-[var(--ecode-accent-text-on-light)] bg-white min-h-[44px] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ecode-accent)]"
                   data-testid="link-contact-cta-signup"
                 >
                   {copy.cta.primary}

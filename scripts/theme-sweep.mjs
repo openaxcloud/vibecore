@@ -63,10 +63,27 @@ function collectCandidates() {
     }
     return parts.join(' > ');
   };
+  /*
+   * Hidden-ness is INHERITED: the branded boot splash keeps its text at
+   * opacity 1 while the wrapper it lives in sits at opacity 0, so checking the
+   * element alone reported a fully invisible overlay as a 1.78:1 failure.
+   * Walk the ancestors before trusting that an element is on screen.
+   */
+  const hidden = (el) => {
+    for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+      const cs = getComputedStyle(n);
+      if (cs.display === 'none' || cs.visibility === 'hidden') return true;
+      if (parseFloat(cs.opacity) === 0) return true;
+      if (n.getAttribute('aria-hidden') === 'true') return true;
+      if (n.hasAttribute('inert')) return true;
+    }
+    return false;
+  };
+
   const out = [];
   for (const el of document.querySelectorAll('body *')) {
     const cs = getComputedStyle(el);
-    if (cs.display === 'none' || cs.visibility === 'hidden' || parseFloat(cs.opacity) === 0) continue;
+    if (hidden(el)) continue;
     let text = '';
     for (const n of el.childNodes) if (n.nodeType === 3) text += n.textContent;
     text = text.trim();

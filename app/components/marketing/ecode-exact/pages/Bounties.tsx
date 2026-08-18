@@ -280,7 +280,7 @@ export default function MarketingBounties() {
                 <Link href="/register">
                   <Button
                     size="lg"
-                    className="min-h-[44px] w-full bg-white text-[var(--ecode-accent-text)] hover:bg-white/90 sm:w-auto"
+                    className="min-h-[44px] w-full bg-white text-[var(--ecode-accent-text-on-light)] hover:bg-white/90 sm:w-auto"
                   >
                     {copy.cta.primary}
                     <ArrowRight className="ml-2 h-4 w-4" />

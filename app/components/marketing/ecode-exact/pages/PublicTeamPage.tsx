@@ -142,7 +142,7 @@ export default function PublicTeamPage() {
               <Button
                 size="lg"
                 variant="outline"
-                className="text-[15px] px-8 w-full sm:w-auto min-h-[44px] bg-transparent text-white border-white hover:bg-white hover:text-[var(--ecode-accent-text)]"
+                className="text-[15px] px-8 w-full sm:w-auto min-h-[44px] bg-transparent text-white border-white hover:bg-white hover:text-[var(--ecode-accent-text-on-light)]"
               >
                 {copy.cta.secondary}
               </Button>

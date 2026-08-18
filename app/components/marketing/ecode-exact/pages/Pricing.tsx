@@ -987,7 +987,7 @@ export default function Pricing() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
               <Button
                 size="lg"
-                className="bg-white text-[var(--ecode-accent-text)] hover:bg-white/95 px-8 py-6 text-[15px] font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                className="bg-white text-[var(--ecode-accent-text-on-light)] hover:bg-white/95 px-8 py-6 text-[15px] font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                 onClick={() => navigate(user ? '/dashboard' : '/register')}
                 data-testid="button-cta-start-free"
               >

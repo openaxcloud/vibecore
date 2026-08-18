@@ -9,8 +9,10 @@
   --vc-ide-text-primary: #f5f9fc;
   --vc-ide-text-secondary: #c2c8cc;
   /* Kept in sync with the dark palette of app/styles/index.scss: #6e7681 sat at
-     4.16:1 on #0a0f1c, under the 4.5:1 of WCAG AA for body text. */
-  --vc-ide-text-muted: #7d8590;
+     4.16:1 on #0a0f1c, under the 4.5:1 of WCAG AA for body text. #7d8590 cleared
+     that surface but still measured 4.03:1 on the LIGHTEST dark surface
+     (#23272b), so both copies moved on to #8b949e — 4.89:1 there. */
+  --vc-ide-text-muted: #8b949e;
   --vc-ide-accent-success: #3fb950;
   --vc-ide-accent-action: #0099ff;
   --vc-ide-accent-orange: #f26207;

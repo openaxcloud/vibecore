@@ -379,7 +379,7 @@ export default function AI() {
                   className={`pointer-events-auto gap-2 px-6 py-3 font-semibold shadow-xl transition hover:shadow-2xl ${
                     isVideoPlaying
                       ? 'bg-white/20 text-white hover:bg-white/30'
-                      : 'bg-white text-[var(--ecode-accent-text)] hover:bg-white/90'
+                      : 'bg-white text-[var(--ecode-accent-text-on-light)] hover:bg-white/90'
                   }`}
                   onClick={handleVideoToggle}
                   aria-label={isVideoPlaying ? copy.video.pauseAria : copy.video.playAria}
@@ -713,7 +713,7 @@ export default function AI() {
                 <Button
                   size="lg"
                   asChild
-                  className="text-[15px] px-8 h-14 bg-white text-[var(--ecode-accent-text)] hover:bg-white/90 shadow-lg"
+                  className="text-[15px] px-8 h-14 bg-white text-[var(--ecode-accent-text-on-light)] hover:bg-white/90 shadow-lg"
                   data-testid="button-get-started-free"
                 >
                   <Link href="/signup">

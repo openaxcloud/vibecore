@@ -584,6 +584,16 @@ html:has(.vc-app-shell-grid) body {
   // AA orange for TEXT/links on this theme's backgrounds; fills stay --ecode-accent.
   // Mirrors @vibecore/ecode-theme tokens.css (which the web app does not import).
   --ecode-accent-text: #ff8a3d;
+
+  /*
+   * For accent text on a surface that is white in BOTH themes — the white pill
+   * CTAs that sit on the orange band ("Get started free", "Talk to sales").
+   * Those cannot use --ecode-accent-text: it follows the theme, so in dark it
+   * resolves to #ff8a3d and lands at 2.35:1 on the permanently-white pill. A
+   * theme-invariant surface needs a theme-invariant foreground, so this one is
+   * declared once and deliberately NOT overridden in the light block.
+   */
+  --ecode-accent-text-on-light: #b03f08;
   --ecode-focus-ring: rgba(255, 122, 43, 0.4);
   --ecode-selection: rgba(242, 98, 7, 0.25);
   --status-success-text: #4ade80;
