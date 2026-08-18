@@ -54,6 +54,15 @@ interface ControlPanelProps {
   open: boolean;
   onClose: () => void;
   initialTab?: TabType | null;
+
+  /*
+   * Servi comme PAGE (`/settings`) et non comme dialogue au-dessus d'une autre
+   * page. Le titre devient alors le `h1` du document : sans lui la route n'avait
+   * AUCUN titre de niveau 1 et démarrait au niveau 2, laissant un lecteur d'écran
+   * sans point d'entrée (WCAG 1.3.1). En dialogue, `h2` reste correct — la page
+   * en dessous porte déjà son propre `h1`.
+   */
+  asPage?: boolean;
 }
 
 // Beta status for experimental features
@@ -100,7 +109,7 @@ const EmptySettingsTabs = ({ copy }: { copy: SettingsCoreCopy }) => (
   </div>
 );
 
-export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelProps) => {
+export const ControlPanel = ({ open, onClose, initialTab = null, asPage = false }: ControlPanelProps) => {
   // State
   const [activeTab, setActiveTab] = useState<TabType | null>(null);
   const [loadingTab, setLoadingTab] = useState<TabType | null>(null);
@@ -355,12 +364,27 @@ export const ControlPanel = ({ open, onClose, initialTab = null }: ControlPanelP
                         />
                       </button>
                     )}
-                    <DialogTitle className="min-w-0 text-base font-semibold leading-tight text-bolt-elements-textPrimary [overflow-wrap:anywhere] sm:text-xl">
-                      {showTabManagement
-                        ? copy['settingsCore.panel.tabManagement']
-                        : activeTab
-                          ? getSettingsCoreTabLabel(activeTab, language)
-                          : copy['settingsCore.panel.title']}
+                    <DialogTitle
+                      asChild={asPage}
+                      className="min-w-0 text-base font-semibold leading-tight text-bolt-elements-textPrimary [overflow-wrap:anywhere] sm:text-xl"
+                    >
+                      {asPage ? (
+                        <h1>
+                          {showTabManagement
+                            ? copy['settingsCore.panel.tabManagement']
+                            : activeTab
+                              ? getSettingsCoreTabLabel(activeTab, language)
+                              : copy['settingsCore.panel.title']}
+                        </h1>
+                      ) : (
+                        <>
+                          {showTabManagement
+                            ? copy['settingsCore.panel.tabManagement']
+                            : activeTab
+                              ? getSettingsCoreTabLabel(activeTab, language)
+                              : copy['settingsCore.panel.title']}
+                        </>
+                      )}
                     </DialogTitle>
                   </div>
 
