@@ -51,6 +51,17 @@ describe('barre de la Webview — mobile et tablette', () => {
     expect(bloc).toMatch(/:not\(\.bolt-preview-open-external\)\s*\{\s*display:\s*none/u);
   });
 
+  it('retire aussi « copier l’URL », qui vit dans la pilule d’adresse', () => {
+    /*
+     * Mesuré dans un navigateur sur la feuille compilée : sans cette règle il
+     * restait le troisième contrôle de la ligne, le masquage des groupes ne
+     * l'atteignant pas. Sur un téléphone il fait doublon avec « Ouvrir dans le
+     * navigateur », qui emmène l'adresse avec lui.
+     */
+    expect(preview).toContain('bolt-preview-copy-url');
+    expect(blocCompact(styles)).toMatch(/\.bolt-preview-copy-url\s*\{\s*display:\s*none/u);
+  });
+
   it('tient sur une seule ligne', () => {
     const bloc = blocCompact(styles);
 

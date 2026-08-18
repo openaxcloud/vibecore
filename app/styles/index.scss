@@ -9837,6 +9837,16 @@ body :where(.lucide, svg[data-lucide]) {
   }
 
   /*
+   * « Copier l'URL » disparaît aussi : il vit DANS la pilule d'adresse, donc le
+   * masquage des groupes d'outils ne l'atteignait pas — mesuré, il restait le
+   * troisième contrôle de la ligne. Sur un téléphone il fait doublon avec
+   * « Ouvrir dans le navigateur », qui emmène l'adresse avec lui.
+   */
+  .bolt-project-webview-toolbar .bolt-preview-copy-url {
+    display: none;
+  }
+
+  /*
    * Le bouton garde son libellé — « Ouvrir » seul est ambigu à côté d'une URL —
    * mais il ne doit pas se laisser comprimer par l'adresse.
    */

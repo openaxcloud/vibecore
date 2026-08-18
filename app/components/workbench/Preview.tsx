@@ -2450,7 +2450,7 @@ export const Preview = memo(
             />
             <button
               type="button"
-              className="bolt-preview-toolbar-button"
+              className="bolt-preview-toolbar-button bolt-preview-copy-url"
               disabled={!visiblePreviewUrl}
               onClick={() => void copyPreviewUrl()}
               title={t('idePanels.preview.copyUrl')}
