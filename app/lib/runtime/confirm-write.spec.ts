@@ -77,7 +77,7 @@ describe('câblage dans le magasin d’établi', () => {
   const workbench = readFileSync('app/lib/stores/workbench.ts', 'utf8');
 
   it('la relecture après écriture passe par la confirmation bornée', () => {
-    expect(workbench).toContain('confirmWriteWithinDeadline(() => this.#runtime.readFile(data.action.filePath))');
+    expect(workbench).toContain('confirmWriteWithinDeadline(() => this.#runtime.readFile(cheminEcrit))');
   });
 
   it('plus aucune relecture après écriture sans borne', () => {

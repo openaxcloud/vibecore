@@ -3022,7 +3022,13 @@ export class WorkbenchStore {
        * rewrites the payload (content sanitizer, self-repair loop), so comparing
        * against `data.action.content` would cry wolf on every repaired file.
        */
-      const confirmation = await confirmWriteWithinDeadline(() => this.#runtime.readFile(data.action.filePath));
+      /*
+       * Le chemin est capturé AVANT la closure : dans `() => …`, TypeScript perd
+       * le rétrécissement de `data.action` vers une action de fichier, puisque
+       * l'appel est différé.
+       */
+      const cheminEcrit = data.action.filePath;
+      const confirmation = await confirmWriteWithinDeadline(() => this.#runtime.readFile(cheminEcrit));
 
       if (confirmation !== 'confirmed') {
         const message =
