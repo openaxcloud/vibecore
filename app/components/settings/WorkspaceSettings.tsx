@@ -73,7 +73,14 @@ export function WorkspaceSettings({ language }: { language?: string }) {
   return (
     <div className="mx-auto w-full max-w-2xl min-w-0 px-4 py-2 sm:px-5">
       <header className="py-4">
-        <h2 className="break-words text-[16px] font-semibold text-bolt-elements-textPrimary">{copy.header.title}</h2>
+        {/*
+         * `h1` et non `h2` : la route monte la coque avec `hideHeader`, donc rien
+         * d'autre ne fournit de titre de niveau 1. La page démarrait au niveau 2,
+         * ce qui laisse un lecteur d'écran sans point d'entrée dans le document
+         * (WCAG 1.3.1). L'apparence ne bouge pas — la taille reste portée par la
+         * classe, pas par le niveau de titre.
+         */}
+        <h1 className="break-words text-[16px] font-semibold text-bolt-elements-textPrimary">{copy.header.title}</h1>
         <p className="break-words text-[12px] leading-5 text-bolt-elements-textSecondary">{copy.header.description}</p>
       </header>
 
