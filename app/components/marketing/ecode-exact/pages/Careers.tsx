@@ -133,7 +133,7 @@ export default function Careers() {
                   />
                 </div>
                 <figcaption className="mt-3 flex items-start gap-2 mkt-small text-bolt-elements-textSecondary px-1">
-                  <Compass className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#F26207] flex-shrink-0 mt-0.5" />
+                  <Compass className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[var(--ecode-accent-text)] flex-shrink-0 mt-0.5" />
                   <span>{copy.product.caption}</span>
                 </figcaption>
               </figure>
@@ -184,15 +184,15 @@ export default function Careers() {
                       <h3 className="mkt-h3 text-bolt-elements-textPrimary mb-1">{role.title}</h3>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mkt-small text-bolt-elements-textSecondary">
                         <span className="inline-flex items-center gap-1.5">
-                          <Users className="h-4 w-4 text-[#F26207]" />
+                          <Users className="h-4 w-4 text-[var(--ecode-accent-text)]" />
                           {role.team}
                         </span>
                         <span className="inline-flex items-center gap-1.5">
-                          <MapPin className="h-4 w-4 text-[#F26207]" />
+                          <MapPin className="h-4 w-4 text-[var(--ecode-accent-text)]" />
                           {role.location}
                         </span>
                         <span className="inline-flex items-center gap-1.5">
-                          <Briefcase className="h-4 w-4 text-[#F26207]" />
+                          <Briefcase className="h-4 w-4 text-[var(--ecode-accent-text)]" />
                           {role.type}
                         </span>
                       </div>
@@ -293,7 +293,7 @@ export default function Careers() {
                     className="inline-flex items-center justify-center gap-2 rounded-md px-6 py-3 text-[15px] font-medium min-h-[44px] w-full sm:w-auto border border-bolt-elements-borderColor text-bolt-elements-textPrimary bg-bolt-elements-background-depth-1 transition-colors hover:bg-bolt-elements-background-depth-3"
                     data-testid="link-careers-signup"
                   >
-                    <Building2 className="h-4 w-4 text-[#F26207]" />
+                    <Building2 className="h-4 w-4 text-[var(--ecode-accent-text)]" />
                     {copy.cta.product}
                   </a>
                 </div>

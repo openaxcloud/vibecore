@@ -93,7 +93,7 @@ export default function Blog() {
           <div className="container-responsive">
             <div className="mx-auto max-w-3xl text-center">
               <span className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-bolt-elements-background-depth-3 ring-1 ring-bolt-elements-borderColor">
-                <Newspaper className="h-6 w-6 text-ecode-accent" aria-hidden="true" />
+                <Newspaper className="h-6 w-6 text-ecode-accent-text" aria-hidden="true" />
               </span>
               <h1 className="mb-4 break-words mkt-h1" data-testid="heading-blog">
                 {copy.hero.title}
@@ -177,7 +177,7 @@ export default function Blog() {
                     </div>
                     <Link
                       href="/blog"
-                      className="inline-flex min-h-[44px] w-full items-center justify-center gap-1 whitespace-normal rounded-md text-center text-[14px] font-medium leading-snug text-ecode-accent hover:text-ecode-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ecode-accent sm:w-auto"
+                      className="inline-flex min-h-[44px] w-full items-center justify-center gap-1 whitespace-normal rounded-md text-center text-[14px] font-medium leading-snug text-ecode-accent-text hover:text-ecode-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ecode-accent sm:w-auto"
                       data-testid="link-featured-read-more"
                     >
                       <span className="min-w-0 break-words">{copy.articles.readMore}</span>
@@ -206,7 +206,7 @@ export default function Blog() {
                           {post.categoryLabel}
                         </Badge>
                         <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-bolt-elements-background-depth-3 ring-1 ring-bolt-elements-borderColor">
-                          <Icon className="h-4 w-4 text-ecode-accent" aria-hidden="true" />
+                          <Icon className="h-4 w-4 text-ecode-accent-text" aria-hidden="true" />
                         </span>
                       </div>
                       <CardTitle className="break-words mkt-h3 leading-snug">{post.title}</CardTitle>
@@ -223,7 +223,7 @@ export default function Blog() {
                         </div>
                         <Link
                           href="/blog"
-                          className="inline-flex min-h-[44px] w-full items-center justify-center gap-1 whitespace-normal rounded-md text-center text-[14px] font-medium leading-snug text-ecode-accent hover:text-ecode-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ecode-accent sm:w-auto"
+                          className="inline-flex min-h-[44px] w-full items-center justify-center gap-1 whitespace-normal rounded-md text-center text-[14px] font-medium leading-snug text-ecode-accent-text hover:text-ecode-accent-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ecode-accent sm:w-auto"
                           data-testid="link-read-more"
                         >
                           <span className="min-w-0 break-words">{copy.articles.readMore}</span>

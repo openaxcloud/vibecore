@@ -276,6 +276,14 @@ export default defineConfig({
       'surface-tertiary-solid': 'var(--ecode-surface-tertiary, var(--ecode-surface-secondary))',
       'ecode-accent': 'var(--ecode-accent)',
       'ecode-accent-hover': 'var(--ecode-accent-hover)',
+
+      /*
+       * AA-safe orange for TEXT. `ecode-accent` is a FILL colour: as copy on a
+       * light page it only reaches 3.22:1. Use `text-ecode-accent-text` for
+       * labels and links; backgrounds/borders keep `ecode-accent`.
+       */
+      'ecode-accent-text': 'var(--ecode-accent-text)',
+      'ecode-accent-text-on-light': 'var(--ecode-accent-text-on-light)',
       'ecode-secondary-accent': 'var(--ecode-secondary-accent)',
       'ecode-orange': 'var(--ecode-orange)',
       'ecode-orange-light': 'var(--ecode-orange-light)',

@@ -823,7 +823,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
           <div className="absolute inset-0 marketing-grid opacity-40" aria-hidden />
           <div className="container-responsive relative grid gap-10 py-20 sm:py-28 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div className="max-w-4xl">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent-text)]">
                 <Icon className="h-4 w-4" aria-hidden />
                 {localizedPage.eyebrow}
               </span>
@@ -857,7 +857,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
               </div>
               <div className="grid gap-4 p-5">
                 <div className="flex min-w-0 items-center gap-3 rounded-lg bg-[var(--ecode-background)] p-3 font-mono text-[12px] text-[var(--ecode-text-secondary)]">
-                  <Terminal className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+                  <Terminal className="h-4 w-4 shrink-0 text-[var(--ecode-accent-text)]" aria-hidden />
                   <code className="min-w-0 [overflow-wrap:anywhere]">ecode route verify {localizedPage.route}</code>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
@@ -874,7 +874,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
                   ))}
                 </div>
                 <div className="flex items-center gap-3 rounded-lg bg-[var(--ecode-background)] p-3 text-[13px] text-[var(--ecode-text-secondary)]">
-                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ecode-accent-text)]" aria-hidden />
                   <span>{localizedCopy.ui.importedConfirmation}</span>
                 </div>
               </div>
@@ -892,7 +892,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
                 key={highlight}
                 className="flex min-h-[4.75rem] items-center gap-3 rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-4 text-[14px] font-medium text-[var(--ecode-text)]"
               >
-                <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ecode-accent-text)]" aria-hidden />
                 <span>{highlight}</span>
               </div>
             ))}
@@ -910,7 +910,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
               <ul className="mt-6 grid gap-3">
                 {section.items.map((item) => (
                   <li key={item} className="flex items-center gap-3 text-[14px] font-medium text-[var(--ecode-text)]">
-                    <ArrowRight className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+                    <ArrowRight className="h-4 w-4 shrink-0 text-[var(--ecode-accent-text)]" aria-hidden />
                     <span>{item}</span>
                   </li>
                 ))}
@@ -925,7 +925,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
         >
           <div className="grid gap-8 rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6 sm:p-8 lg:grid-cols-[0.7fr_1.3fr]">
             <div>
-              <span className="inline-flex rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-background)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+              <span className="inline-flex rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-background)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent-text)]">
                 {localizedCopy.ui.connectedRoutes}
               </span>
               <h2 className="mt-5 text-3xl font-bold tracking-tight text-[var(--ecode-text)] sm:text-5xl">
@@ -943,7 +943,7 @@ export function EcodeSurfacePage({ page }: { page: EcodeSurfacePageDefinition })
                   <small className="mt-2 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
                     {route.description}
                   </small>
-                  <span className="mt-auto inline-flex items-center pt-5 text-[13px] font-semibold text-[var(--ecode-accent)]">
+                  <span className="mt-auto inline-flex items-center pt-5 text-[13px] font-semibold text-[var(--ecode-accent-text)]">
                     {localizedCopy.ui.open}
                     <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" aria-hidden />
                   </span>
@@ -969,7 +969,7 @@ function EcodeSurfaceActionLink({
   const className =
     variant === 'primary'
       ? 'inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--ecode-accent)] px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-[var(--ecode-accent-hover)]'
-      : 'inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]';
+      : 'inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent-text)]';
 
   if (/^(https?:)?\/\//.test(to)) {
     return (

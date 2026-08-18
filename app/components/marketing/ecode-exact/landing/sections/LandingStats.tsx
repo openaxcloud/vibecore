@@ -51,7 +51,7 @@ export default function LandingStats() {
                 className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-ecode-accent/10 mb-3 transition-all duration-300 group-hover:bg-ecode-accent/20 group-hover:scale-110"
                 data-testid={`icon-stat-${index}`}
               >
-                <div className="text-ecode-accent">{stat.icon}</div>
+                <div className="text-ecode-accent-text">{stat.icon}</div>
               </div>
               <div
                 className="text-4xl font-bold bg-gradient-to-r from-ecode-orange via-ecode-orange-light to-ecode-yellow bg-clip-text text-transparent"

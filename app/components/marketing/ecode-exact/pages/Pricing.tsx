@@ -302,9 +302,9 @@ export default function Pricing() {
         {
           name: 'Private repos',
           starter: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
-          core: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
-          teams: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
-          enterprise: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
+          core: <Check className="h-4 w-4 text-[var(--ecode-accent-text)]" />,
+          teams: <Check className="h-4 w-4 text-[var(--ecode-accent-text)]" />,
+          enterprise: <Check className="h-4 w-4 text-[var(--ecode-accent-text)]" />,
         },
         {
           name: 'Custom domains',
@@ -315,10 +315,10 @@ export default function Pricing() {
         },
         {
           name: 'SSL certificates',
-          starter: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
-          core: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
-          teams: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
-          enterprise: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
+          starter: <Check className="h-4 w-4 text-[var(--ecode-accent-text)]" />,
+          core: <Check className="h-4 w-4 text-[var(--ecode-accent-text)]" />,
+          teams: <Check className="h-4 w-4 text-[var(--ecode-accent-text)]" />,
+          enterprise: <Check className="h-4 w-4 text-[var(--ecode-accent-text)]" />,
         },
       ],
     },
@@ -355,8 +355,8 @@ export default function Pricing() {
           name: 'Custom AI training',
           starter: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
           core: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
-          teams: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
-          enterprise: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
+          teams: <Check className="h-4 w-4 text-[var(--ecode-accent-text)]" />,
+          enterprise: <Check className="h-4 w-4 text-[var(--ecode-accent-text)]" />,
         },
       ],
     },
@@ -376,7 +376,7 @@ export default function Pricing() {
           starter: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
           core: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
           teams: <X className="h-4 w-4 text-[var(--ecode-text-muted)]" />,
-          enterprise: <Check className="h-4 w-4 text-[var(--ecode-accent)]" />,
+          enterprise: <Check className="h-4 w-4 text-[var(--ecode-accent-text)]" />,
         },
         {
           name: 'SLA',
@@ -444,10 +444,10 @@ export default function Pricing() {
             >
               <Badge
                 variant="secondary"
-                className="mb-4 px-6 py-2 text-[13px] font-semibold bg-[var(--ecode-accent)]/10 border-[var(--ecode-accent)]/20 text-[var(--ecode-accent)]"
+                className="mb-4 px-6 py-2 text-[13px] font-semibold bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] border-[color-mix(in_srgb,var(--ecode-accent)_20%,transparent)] text-[var(--ecode-accent-text)]"
                 data-testid="badge-savings"
               >
-                <Sparkles className="h-4 w-4 mr-2 text-[var(--ecode-accent)]" />
+                <Sparkles className="h-4 w-4 mr-2 text-[var(--ecode-accent-text)]" />
                 Save up to 20% with annual billing
               </Badge>
             </div>
@@ -542,8 +542,8 @@ export default function Pricing() {
                         ? 'border-2 border-[var(--ecode-accent)] shadow-[0_8px_32px_-8px_rgba(242,98,7,0.4)]'
                         : 'border border-[var(--ecode-border)] bg-[var(--ecode-surface)]'
                     }
-                    ${hoveredCard === tier.name && !tier.popular ? 'shadow-[0_8px_24px_-8px_rgba(242,98,7,0.2)] border-[var(--ecode-accent)]/30' : ''}
-                    ${!tier.popular ? 'hover:border-[var(--ecode-accent)]/30' : ''}
+                    ${hoveredCard === tier.name && !tier.popular ? 'shadow-[0_8px_24px_-8px_rgba(242,98,7,0.2)] border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)]' : ''}
+                    ${!tier.popular ? 'hover:border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)]' : ''}
                     backdrop-blur-sm bg-[var(--ecode-surface)]
                   `}
                 >
@@ -585,7 +585,7 @@ export default function Pricing() {
                           </div>
                           {billingPeriod === 'yearly' && (tier.monthlyPrice - tier.yearlyPrice) * 12 > 0 && (
                             <p
-                              className="mkt-small text-[var(--ecode-accent)] mt-1 font-medium"
+                              className="mkt-small text-[var(--ecode-accent-text)] mt-1 font-medium"
                               data-testid={`text-yearly-savings-${tier.name.toLowerCase()}`}
                             >
                               Save €{(tier.monthlyPrice - tier.yearlyPrice) * 12}/yr
@@ -604,7 +604,7 @@ export default function Pricing() {
                           ? 'bg-[var(--ecode-accent)] hover:bg-[var(--ecode-accent-hover)] text-white shadow-lg hover:shadow-xl'
                           : tier.enterprise
                             ? 'bg-[var(--ecode-accent)] hover:bg-[var(--ecode-accent-hover)] text-white'
-                            : 'border border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text)] hover:border-[var(--ecode-accent)]/30 hover:bg-[var(--ecode-accent)]/5'
+                            : 'border border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text)] hover:border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)] hover:bg-[color-mix(in_srgb,var(--ecode-accent)_5%,transparent)]'
                       }`}
                       variant={tier.popular || tier.enterprise ? 'default' : 'outline'}
                       onClick={() => handleSelectPlan(tier)}
@@ -621,17 +621,17 @@ export default function Pricing() {
                           <li key={idx} className="flex items-start gap-3 group">
                             {feature.included ? (
                               <div
-                                className={`mt-0.5 transition-colors duration-200 ${feature.highlight ? 'text-[var(--ecode-accent)]' : 'text-[var(--ecode-accent)]/70'}`}
+                                className={`mt-0.5 transition-colors duration-200 ${feature.highlight ? 'text-[var(--ecode-accent-text)]' : 'text-[color-mix(in_srgb,var(--ecode-accent-text)_70%,transparent)]'}`}
                               >
                                 <CheckCircle2 className="h-5 w-5" />
                               </div>
                             ) : (
-                              <X className="h-5 w-5 text-[var(--ecode-text-muted)]/50 mt-0.5" />
+                              <X className="h-5 w-5 text-[color-mix(in_srgb,var(--ecode-text-muted)_50%,transparent)] mt-0.5" />
                             )}
                             <span
                               className={`mkt-small transition-colors duration-200 ${
                                 !feature.included
-                                  ? 'text-[var(--ecode-text-muted)]/50 line-through'
+                                  ? 'text-[color-mix(in_srgb,var(--ecode-text-muted)_50%,transparent)] line-through'
                                   : feature.highlight
                                     ? 'font-semibold text-[var(--ecode-text)]'
                                     : 'text-[var(--ecode-text-secondary)]'
@@ -642,7 +642,7 @@ export default function Pricing() {
                                 <TooltipProvider>
                                   <Tooltip>
                                     <TooltipTrigger asChild>
-                                      <Info className="inline h-3 w-3 ml-1 text-[var(--ecode-text-muted)] hover:text-[var(--ecode-accent)] transition-colors cursor-help" />
+                                      <Info className="inline h-3 w-3 ml-1 text-[var(--ecode-text-muted)] hover:text-[var(--ecode-accent-text)] transition-colors cursor-help" />
                                     </TooltipTrigger>
                                     <TooltipContent className="bg-[var(--ecode-surface)] border-[var(--ecode-border)] text-[var(--ecode-text)]">
                                       <p>{feature.tooltip}</p>
@@ -657,7 +657,7 @@ export default function Pricing() {
 
                       {tier.features.length > 10 && (
                         <button
-                          className="text-[13px] text-[var(--ecode-accent)] font-medium mt-4 hover:underline transition-all duration-200 hover:text-[var(--ecode-accent-hover)]"
+                          className="text-[13px] text-[var(--ecode-accent-text)] font-medium mt-4 hover:underline transition-all duration-200 hover:text-[var(--ecode-accent-hover)]"
                           onClick={() => {
                             const comparisonSection = document.getElementById('section-comparison');
 
@@ -739,7 +739,7 @@ export default function Pricing() {
                           <div
                             className={
                               column.accent
-                                ? 'font-semibold text-[var(--ecode-accent)]'
+                                ? 'font-semibold text-[var(--ecode-accent-text)]'
                                 : 'font-semibold text-[var(--ecode-text)]'
                             }
                           >
@@ -763,7 +763,7 @@ export default function Pricing() {
                         {category.features.map((feature, featureIdx) => (
                           <tr
                             key={featureIdx}
-                            className="border-b border-[var(--ecode-border)] hover:bg-[var(--ecode-accent)]/5 transition-colors duration-200"
+                            className="border-b border-[var(--ecode-border)] hover:bg-[color-mix(in_srgb,var(--ecode-accent)_5%,transparent)] transition-colors duration-200"
                             data-testid={`row-feature-${feature.name.toLowerCase().replace(/\s/g, '-')}`}
                           >
                             <td className="p-6 font-medium text-[var(--ecode-text-secondary)]">{feature.name}</td>
@@ -774,7 +774,7 @@ export default function Pricing() {
                                   column.key === 'starter'
                                     ? 'text-center p-6 text-[var(--ecode-text-muted)]'
                                     : column.accent
-                                      ? 'text-center p-6 text-[var(--ecode-accent)] font-medium'
+                                      ? 'text-center p-6 text-[var(--ecode-accent-text)] font-medium'
                                       : 'text-center p-6 text-[var(--ecode-text)] font-medium'
                                 }
                               >
@@ -811,7 +811,7 @@ export default function Pricing() {
               transition={{ duration: 0.6 }}
               className="space-y-6"
             >
-              <Badge className="bg-[var(--ecode-accent)]/20 text-[var(--ecode-accent)] border-[var(--ecode-accent)]/30">
+              <Badge className="bg-[color-mix(in_srgb,var(--ecode-accent)_20%,transparent)] text-[var(--ecode-accent-text)] border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)]">
                 <Building2 className="h-4 w-4 mr-2" />
                 Enterprise Solutions
               </Badge>
@@ -823,19 +823,19 @@ export default function Pricing() {
 
               <div className="grid sm:grid-cols-2 gap-4 pt-4">
                 <div className="flex items-center gap-3">
-                  <Shield className="h-5 w-5 text-[var(--ecode-accent)]" />
+                  <Shield className="h-5 w-5 text-[var(--ecode-accent-text)]" />
                   <span>SOC 2 Type II Certified</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Lock className="h-5 w-5 text-[var(--ecode-accent)]" />
+                  <Lock className="h-5 w-5 text-[var(--ecode-accent-text)]" />
                   <span>HIPAA Compliant</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Gauge className="h-5 w-5 text-[var(--ecode-accent)]" />
+                  <Gauge className="h-5 w-5 text-[var(--ecode-accent-text)]" />
                   <span>99.99% Uptime SLA</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Phone className="h-5 w-5 text-[var(--ecode-accent)]" />
+                  <Phone className="h-5 w-5 text-[var(--ecode-accent-text)]" />
                   <span>24/7 Phone Support</span>
                 </div>
               </div>
@@ -853,7 +853,7 @@ export default function Pricing() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="bg-[var(--ecode-surface)] border-white/20 text-white hover:bg-white/10 hover:border-[var(--ecode-accent)]/50 transition-all duration-200"
+                  className="bg-[var(--ecode-surface)] border-white/20 text-white hover:bg-white/10 hover:border-[color-mix(in_srgb,var(--ecode-accent)_50%,transparent)] transition-all duration-200"
                   onClick={() => navigate('/docs/enterprise')}
                   data-testid="button-enterprise-learn"
                 >
@@ -869,7 +869,7 @@ export default function Pricing() {
               transition={{ duration: 0.6 }}
               className="relative"
             >
-              <Card className="bg-white/10 backdrop-blur-sm border-white/20 hover:border-[var(--ecode-accent)]/30 transition-all duration-300">
+              <Card className="bg-white/10 backdrop-blur-sm border-white/20 hover:border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)] transition-all duration-300">
                 <CardHeader>
                   <CardTitle className="text-white">Enterprise includes:</CardTitle>
                 </CardHeader>
@@ -890,7 +890,7 @@ export default function Pricing() {
                         className="flex items-center gap-3 text-white/90 group"
                         data-testid={`list-item-enterprise-${idx}`}
                       >
-                        <CheckCircle2 className="h-5 w-5 text-[var(--ecode-accent)] group-hover:scale-110 transition-transform duration-200" />
+                        <CheckCircle2 className="h-5 w-5 text-[var(--ecode-accent-text)] group-hover:scale-110 transition-transform duration-200" />
                         <span>{item}</span>
                       </li>
                     ))}
@@ -951,7 +951,7 @@ export default function Pricing() {
                 style={{ animationDelay: `${idx * 50}ms`, animationFillMode: 'forwards' }}
               >
                 <Card
-                  className="bg-[var(--ecode-surface)] border-[var(--ecode-border)] hover:border-[var(--ecode-accent)]/30 hover:shadow-[0_4px_16px_-4px_rgba(242,98,7,0.15)] transition-all duration-300"
+                  className="bg-[var(--ecode-surface)] border-[var(--ecode-border)] hover:border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)] hover:shadow-[0_4px_16px_-4px_rgba(242,98,7,0.15)] transition-all duration-300"
                   data-testid={`faq-card-${idx}`}
                 >
                   <CardHeader>
@@ -987,7 +987,7 @@ export default function Pricing() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
               <Button
                 size="lg"
-                className="bg-white text-[var(--ecode-accent)] hover:bg-white/95 px-8 py-6 text-[15px] font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
+                className="bg-white text-[var(--ecode-accent-text-on-light)] hover:bg-white/95 px-8 py-6 text-[15px] font-semibold shadow-lg hover:shadow-xl transition-all duration-200"
                 onClick={() => navigate(user ? '/dashboard' : '/register')}
                 data-testid="button-cta-start-free"
               >

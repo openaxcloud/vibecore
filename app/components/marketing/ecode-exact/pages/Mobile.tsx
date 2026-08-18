@@ -187,9 +187,9 @@ export default function Mobile() {
           <div className="container-responsive relative py-responsive">
             <div className="grid items-center gap-12 lg:grid-cols-2">
               <div className="text-center lg:text-left">
-                <div className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-accent)]/30 bg-[var(--ecode-accent)]/10 px-4 py-1.5">
-                  <Smartphone className="h-4 w-4 text-[var(--ecode-accent)]" />
-                  <span className="text-[13px] font-medium text-[var(--ecode-accent)]">{copy.hero.badge}</span>
+                <div className="inline-flex items-center gap-2 rounded-full border border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] px-4 py-1.5">
+                  <Smartphone className="h-4 w-4 text-[var(--ecode-accent-text)]" />
+                  <span className="text-[13px] font-medium text-[var(--ecode-accent-text)]">{copy.hero.badge}</span>
                 </div>
 
                 <h1 className="mt-6 mkt-h1 font-bold leading-tight" data-testid="heading-mobile">
@@ -234,7 +234,7 @@ export default function Mobile() {
           <div className="container-responsive">
             <div className="mx-auto mb-12 max-w-3xl text-center">
               <h2 className="mkt-h2 font-bold">
-                {copy.tour.title} <span className="text-[var(--ecode-accent)]">{copy.tour.accent}</span>
+                {copy.tour.title} <span className="text-[var(--ecode-accent-text)]">{copy.tour.accent}</span>
               </h2>
               <p className="mt-4 mkt-body text-muted-foreground">{copy.tour.description}</p>
             </div>
@@ -250,14 +250,14 @@ export default function Mobile() {
                       onClick={() => selectHighlight(index)}
                       className={`flex w-full items-start gap-4 rounded-xl border p-5 text-left transition-colors ${
                         isActive
-                          ? 'border-[var(--ecode-accent)]/40 bg-[var(--ecode-accent)]/5'
+                          ? 'border-[color-mix(in_srgb,var(--ecode-accent)_40%,transparent)] bg-[color-mix(in_srgb,var(--ecode-accent)_5%,transparent)]'
                           : 'border-border bg-surface-solid hover:bg-surface-hover-solid'
                       }`}
                       data-testid={`highlight-${highlight.id}`}
                     >
                       <span
                         className={`mt-0.5 inline-flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg ${
-                          isActive ? 'bg-ecode-accent text-white' : 'bg-muted text-[var(--ecode-accent)]'
+                          isActive ? 'bg-ecode-accent text-white' : 'bg-muted text-[var(--ecode-accent-text)]'
                         }`}
                       >
                         {highlight.icon}
@@ -312,7 +312,7 @@ export default function Mobile() {
                   key={stack.name}
                   className="inline-flex items-center gap-2 rounded-full border border-border bg-surface-solid px-4 py-2 text-[13px] font-medium"
                 >
-                  <span className="text-[var(--ecode-accent)]">{stack.icon}</span>
+                  <span className="text-[var(--ecode-accent-text)]">{stack.icon}</span>
                   {stack.name}
                 </div>
               ))}
@@ -326,7 +326,7 @@ export default function Mobile() {
             <div className="mx-auto mb-12 max-w-3xl text-center">
               <h2 className="mkt-h2 font-bold">
                 {copy.capabilitiesIntro.title}{' '}
-                <span className="text-[var(--ecode-accent)]">{copy.capabilitiesIntro.accent}</span>
+                <span className="text-[var(--ecode-accent-text)]">{copy.capabilitiesIntro.accent}</span>
               </h2>
               <p className="mt-4 mkt-body text-muted-foreground">{copy.capabilitiesIntro.description}</p>
             </div>
@@ -335,7 +335,7 @@ export default function Mobile() {
               {capabilities.map((capability) => (
                 <Card key={capability.id} className="group transition-all hover:shadow-xl">
                   <CardContent className="pt-6">
-                    <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)] transition-transform group-hover:scale-110">
+                    <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-lg bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[var(--ecode-accent-text)] transition-transform group-hover:scale-110">
                       {capability.icon}
                     </div>
                     <h3 className="mb-2 mkt-h3 font-semibold">{capability.title}</h3>
@@ -352,13 +352,13 @@ export default function Mobile() {
           <div className="container-responsive">
             <div className="mx-auto mb-12 max-w-3xl text-center">
               <h2 className="mkt-h2 font-bold">
-                {copy.flowIntro.title} <span className="text-[var(--ecode-accent)]">{copy.flowIntro.accent}</span>
+                {copy.flowIntro.title} <span className="text-[var(--ecode-accent-text)]">{copy.flowIntro.accent}</span>
               </h2>
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
               {flow.map((item) => (
                 <div key={item.step} className="rounded-xl border border-border bg-surface-solid p-6">
-                  <span className="mkt-small font-mono font-semibold text-[var(--ecode-accent)]">{item.step}</span>
+                  <span className="mkt-small font-mono font-semibold text-[var(--ecode-accent-text)]">{item.step}</span>
                   <h3 className="mt-3 mkt-h3 font-semibold">{item.title}</h3>
                   <p className="mt-2 mkt-small text-muted-foreground">{item.description}</p>
                 </div>
@@ -372,7 +372,8 @@ export default function Mobile() {
           <div className="container-responsive max-w-5xl">
             <div className="mb-12 text-center">
               <h2 className="mkt-h2 font-bold">
-                {copy.comparison.title} <span className="text-[var(--ecode-accent)]">{copy.comparison.accent}</span>{' '}
+                {copy.comparison.title}{' '}
+                <span className="text-[var(--ecode-accent-text)]">{copy.comparison.accent}</span>{' '}
                 {copy.comparison.suffix}
               </h2>
             </div>
@@ -391,12 +392,12 @@ export default function Mobile() {
                 </ul>
               </div>
               <div>
-                <h3 className="mb-6 mkt-h3 font-bold text-[var(--ecode-accent)]">{copy.comparison.ecodeTitle}</h3>
+                <h3 className="mb-6 mkt-h3 font-bold text-[var(--ecode-accent-text)]">{copy.comparison.ecodeTitle}</h3>
                 <ul className="space-y-4">
                   {copy.comparison.ecodeItems.map((item) => (
                     <li key={item} className="flex items-start gap-3">
-                      <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[var(--ecode-accent)]/15">
-                        <Check className="h-4 w-4 text-[var(--ecode-accent)]" />
+                      <span className="mt-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-[color-mix(in_srgb,var(--ecode-accent)_15%,transparent)]">
+                        <Check className="h-4 w-4 text-[var(--ecode-accent-text)]" />
                       </span>
                       <span className="mkt-small">{item}</span>
                     </li>

@@ -61,7 +61,7 @@ export default function Forum() {
         <section className="bg-gradient-to-b from-background to-muted py-responsive">
           <div className="container-responsive">
             <div className="mx-auto max-w-3xl text-center">
-              <Users className="mx-auto mb-4 h-12 w-12 text-ecode-accent" aria-hidden="true" />
+              <Users className="mx-auto mb-4 h-12 w-12 text-ecode-accent-text" aria-hidden="true" />
               <h1 className="mb-4 break-words text-4xl font-bold leading-tight" data-testid="heading-forum">
                 {copy.hero.title}
               </h1>
@@ -88,7 +88,7 @@ export default function Forum() {
                 return (
                   <Card key={stat.id} className="h-full min-w-0">
                     <CardContent className="pt-6 text-center">
-                      <Icon className="mx-auto mb-3 h-8 w-8 text-ecode-accent" aria-hidden="true" />
+                      <Icon className="mx-auto mb-3 h-8 w-8 text-ecode-accent-text" aria-hidden="true" />
                       <div className="break-words text-2xl font-bold tabular-nums">
                         {formatForumStat(metric.value, language, metric.notation)}
                       </div>
@@ -115,7 +115,7 @@ export default function Forum() {
                     <CardHeader>
                       <div className="flex min-w-0 items-start gap-4">
                         <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-ecode-accent/10">
-                          <Icon className="h-6 w-6 text-ecode-accent" aria-hidden="true" />
+                          <Icon className="h-6 w-6 text-ecode-accent-text" aria-hidden="true" />
                         </div>
                         <div className="min-w-0">
                           <CardTitle className="break-words leading-snug">{category.title}</CardTitle>
@@ -152,7 +152,7 @@ export default function Forum() {
               <div className="grid gap-8 md:grid-cols-2">
                 {copy.guidelines.items.map((guideline) => (
                   <div key={guideline.id} className="flex min-w-0 gap-4">
-                    <Heart className="mt-1 h-6 w-6 shrink-0 text-ecode-accent" aria-hidden="true" />
+                    <Heart className="mt-1 h-6 w-6 shrink-0 text-ecode-accent-text" aria-hidden="true" />
                     <div className="min-w-0">
                       <h3 className="mb-2 break-words font-semibold leading-snug">{guideline.title}</h3>
                       <p className="break-words leading-relaxed text-muted-foreground">{guideline.description}</p>

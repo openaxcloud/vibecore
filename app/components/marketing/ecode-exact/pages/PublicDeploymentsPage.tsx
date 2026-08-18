@@ -45,12 +45,12 @@ export default function PublicDeploymentsPage() {
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-[var(--ecode-border)] bg-[var(--ecode-surface)]">
         <div className="pointer-events-none absolute inset-0 opacity-60" aria-hidden>
-          <div className="absolute -top-40 right-10 h-96 w-96 rounded-full bg-[var(--ecode-accent)]/25 blur-3xl" />
-          <div className="absolute -bottom-32 left-10 h-80 w-80 rounded-full bg-[var(--ecode-secondary-accent)]/20 blur-3xl" />
+          <div className="absolute -top-40 right-10 h-96 w-96 rounded-full bg-[color-mix(in_srgb,var(--ecode-accent)_25%,transparent)] blur-3xl" />
+          <div className="absolute -bottom-32 left-10 h-80 w-80 rounded-full bg-[color-mix(in_srgb,var(--ecode-secondary-accent)_20%,transparent)] blur-3xl" />
         </div>
         <div className="relative mx-auto grid max-w-7xl gap-12 px-6 py-24 lg:grid-cols-[1.2fr_1fr] lg:px-10">
           <div>
-            <Badge className="mb-6 border-[var(--ecode-accent)]/30 bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)]">
+            <Badge className="mb-6 border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[var(--ecode-accent-text)]">
               {copy.page.heroBadge}
             </Badge>
             <h1 className="mkt-h1 font-semibold tracking-tight text-foreground">{copy.page.heroTitle}</h1>
@@ -87,7 +87,7 @@ export default function PublicDeploymentsPage() {
                 return (
                   <Card key={highlight.title} className="border-[var(--ecode-border)] bg-background/60 backdrop-blur">
                     <CardHeader className="pb-2">
-                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)]">
+                      <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[var(--ecode-accent-text)]">
                         <Icon className="h-5 w-5" />
                       </span>
                       <CardTitle className="mkt-h3 font-semibold">{highlight.title}</CardTitle>
@@ -108,7 +108,7 @@ export default function PublicDeploymentsPage() {
                     </p>
                     <p className="text-[15px] font-semibold">{DEMO_DEPLOYMENT_ID}</p>
                   </div>
-                  <Badge className="border-[var(--ecode-accent)]/30 bg-[var(--ecode-accent)]/15 text-[var(--ecode-accent)]">
+                  <Badge className="border-[color-mix(in_srgb,var(--ecode-accent)_30%,transparent)] bg-[color-mix(in_srgb,var(--ecode-accent)_15%,transparent)] text-[var(--ecode-accent-text)]">
                     {copy.page.demo.live}
                   </Badge>
                 </div>
@@ -129,13 +129,13 @@ export default function PublicDeploymentsPage() {
                 <div className="grid gap-3 text-[13px] text-muted-foreground">
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-[var(--ecode-accent)]" /> {copy.page.demo.autoscale}
+                      <CheckCircle2 className="h-4 w-4 text-[var(--ecode-accent-text)]" /> {copy.page.demo.autoscale}
                     </span>
                     <span>{copy.page.demo.enabled}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="flex items-center gap-2">
-                      <Lock className="h-4 w-4 text-[var(--ecode-accent)]" /> {copy.page.demo.tls}
+                      <Lock className="h-4 w-4 text-[var(--ecode-accent-text)]" /> {copy.page.demo.tls}
                     </span>
                     <span>{copy.page.demo.issued}</span>
                   </div>
@@ -173,7 +173,7 @@ export default function PublicDeploymentsPage() {
             return (
               <Card key={mode.label} className="h-full border-[var(--ecode-border)]">
                 <CardHeader>
-                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--ecode-accent)]/10 text-[var(--ecode-accent)]">
+                  <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[color-mix(in_srgb,var(--ecode-accent)_10%,transparent)] text-[var(--ecode-accent-text)]">
                     <Icon className="h-6 w-6" />
                   </div>
                   <CardTitle className="mkt-h3 font-semibold">{mode.label}</CardTitle>
@@ -183,7 +183,7 @@ export default function PublicDeploymentsPage() {
                   <ul className="space-y-2 text-[13px] text-muted-foreground">
                     {mode.metrics.map((item) => (
                       <li key={item} className="flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4 text-[var(--ecode-accent)]" />
+                        <CheckCircle2 className="h-4 w-4 text-[var(--ecode-accent-text)]" />
                         <span>{item}</span>
                       </li>
                     ))}
@@ -196,7 +196,7 @@ export default function PublicDeploymentsPage() {
       </section>
 
       {/* Reliability strip */}
-      <section className="border-y border-[var(--ecode-border)] bg-[var(--ecode-surface)]/40 px-6 py-24 lg:px-10">
+      <section className="border-y border-[var(--ecode-border)] bg-[color-mix(in_srgb,var(--ecode-surface)_40%,transparent)] px-6 py-24 lg:px-10">
         <div className="mx-auto max-w-6xl text-center">
           <h2 className="mkt-h2 font-semibold tracking-tight">{copy.page.reliabilityTitle}</h2>
           <p className="mt-4 mkt-body text-muted-foreground">{copy.page.reliabilityDescription}</p>
@@ -205,7 +205,7 @@ export default function PublicDeploymentsPage() {
           {copy.page.reliabilityHighlights.map(({ value, label }) => (
             <Card key={label} className="border-[var(--ecode-border)] bg-background">
               <CardContent className="p-6 text-center">
-                <p className="text-4xl font-semibold text-[var(--ecode-accent)]">{value}</p>
+                <p className="text-4xl font-semibold text-[var(--ecode-accent-text)]">{value}</p>
                 <p className="mt-2 mkt-small text-muted-foreground">{label}</p>
               </CardContent>
             </Card>

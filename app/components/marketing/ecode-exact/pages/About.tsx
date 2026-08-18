@@ -114,7 +114,7 @@ export default function About() {
                   />
                 </div>
                 <figcaption className="mt-3 flex items-start gap-2 mkt-small text-bolt-elements-textSecondary px-1">
-                  <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[#F26207] flex-shrink-0 mt-0.5" />
+                  <LayoutDashboard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-[var(--ecode-accent-text)] flex-shrink-0 mt-0.5" />
                   <span>{copy.mission.imageCaption}</span>
                 </figcaption>
               </figure>

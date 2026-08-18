@@ -67,7 +67,7 @@ interface EmptyStateProps {
 }
 
 const PRIMARY_CTA_CLASSES =
-  'inline-flex items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-1';
+  'inline-flex items-center justify-center rounded-md bg-[var(--vc-action-primary)] font-medium text-[var(--vc-action-primary-foreground)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-1';
 
 const SECONDARY_CTA_CLASSES =
   'inline-flex items-center justify-center rounded-md border border-bolt-elements-borderColor font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]';

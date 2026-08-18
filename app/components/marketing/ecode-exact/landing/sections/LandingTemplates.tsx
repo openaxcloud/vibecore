@@ -116,7 +116,10 @@ export default function LandingTemplates({ templates, isLoading }: LandingTempla
 
         {isLoading ? (
           <div className="flex min-h-32 items-center justify-center py-12" role="status">
-            <Loader2 className="h-8 w-8 animate-spin text-ecode-accent motion-reduce:animate-none" aria-hidden="true" />
+            <Loader2
+              className="h-8 w-8 animate-spin text-ecode-accent-text motion-reduce:animate-none"
+              aria-hidden="true"
+            />
             <span className="sr-only">{copy['marketingLandingTemplates.loading']}</span>
           </div>
         ) : (

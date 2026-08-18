@@ -204,7 +204,7 @@ export default function VercelConnection() {
                 disabled={connecting || !connection.token}
                 className={classNames(
                   'px-4 py-2 rounded-lg text-sm flex items-center gap-2',
-                  'bg-[var(--vc-ide-accent-action)] text-white',
+                  'bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)]',
                   'hover:opacity-90 hover:text-white',
                   'disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200',
                   'transform active:scale-95',

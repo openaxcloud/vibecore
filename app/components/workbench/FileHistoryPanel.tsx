@@ -399,7 +399,7 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
                 aria-label={isPlaying ? copy['fileHistory.pausePlayback'] : copy['fileHistory.playHistory']}
                 aria-pressed={isPlaying}
                 data-testid="file-history-play"
-                className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-md bg-[var(--vc-ide-accent-action)] px-3 font-medium text-white hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-md bg-[var(--vc-action-primary)] px-3 font-medium text-[var(--vc-action-primary-foreground)] hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[var(--vc-ide-accent-action)]"
               >
                 <div className={isPlaying ? 'i-ph:pause-fill' : 'i-ph:play-fill'} aria-hidden />
                 {isPlaying ? copy['fileHistory.pause'] : copy['fileHistory.play']}
@@ -431,7 +431,7 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
                 className={classNames(
                   'flex min-h-[44px] min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-normal rounded-md border px-3 text-center text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] sm:flex-none',
                   viewMode === 'compare'
-                    ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
+                    ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-accent-action-text)]'
                     : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
                 )}
               >

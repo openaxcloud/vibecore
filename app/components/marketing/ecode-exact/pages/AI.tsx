@@ -249,8 +249,8 @@ export default function AI() {
                   const Icon = item.icon;
                   return (
                     <div key={item.label} className="text-center">
-                      <Icon className="h-5 w-5 mx-auto mb-2 text-[#F26207]" />
-                      <div className="text-2xl md:text-3xl font-bold text-[#F26207]">{item.value}</div>
+                      <Icon className="h-5 w-5 mx-auto mb-2 text-[var(--ecode-accent-text)]" />
+                      <div className="text-2xl md:text-3xl font-bold text-[var(--ecode-accent-text)]">{item.value}</div>
                       <div className="mkt-small text-muted-foreground font-medium">{item.label}</div>
                     </div>
                   );
@@ -379,7 +379,7 @@ export default function AI() {
                   className={`pointer-events-auto gap-2 px-6 py-3 font-semibold shadow-xl transition hover:shadow-2xl ${
                     isVideoPlaying
                       ? 'bg-white/20 text-white hover:bg-white/30'
-                      : 'bg-white text-[#F26207] hover:bg-white/90'
+                      : 'bg-white text-[var(--ecode-accent-text-on-light)] hover:bg-white/90'
                   }`}
                   onClick={handleVideoToggle}
                   aria-label={isVideoPlaying ? copy.video.pauseAria : copy.video.playAria}
@@ -421,14 +421,16 @@ export default function AI() {
                     <CardHeader>
                       <div className="flex items-center gap-3">
                         <div className="p-2 bg-[#F26207]/10 rounded-lg group-hover:bg-[#F26207]/20 transition-colors">
-                          <Icon className="h-5 w-5 text-[#F26207]" />
+                          <Icon className="h-5 w-5 text-[var(--ecode-accent-text)]" />
                         </div>
                         <CardTitle className="mkt-h3">{highlight.title}</CardTitle>
                       </div>
                     </CardHeader>
                     <CardContent>
                       <p className="text-muted-foreground mkt-body">{highlight.description}</p>
-                      <div className="mt-3 mkt-small text-[#F26207] font-medium">{copy.video.jumpAction}</div>
+                      <div className="mt-3 mkt-small text-[var(--ecode-accent-text)] font-medium">
+                        {copy.video.jumpAction}
+                      </div>
                     </CardContent>
                   </Card>
                 );
@@ -448,7 +450,7 @@ export default function AI() {
 
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-4 bg-[#F26207]/10 ring-1 ring-[#F26207]/20 rounded-2xl flex items-center justify-center text-[#F26207]">
+              <div className="w-20 h-20 mx-auto mb-4 bg-[#F26207]/10 ring-1 ring-[#F26207]/20 rounded-2xl flex items-center justify-center text-[var(--ecode-accent-text)]">
                 <MessageSquare className="h-10 w-10" />
               </div>
               <h3 className="mkt-h3 mb-2">{copy.howItWorks.steps[0]?.title}</h3>
@@ -456,7 +458,7 @@ export default function AI() {
             </div>
 
             <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-4 bg-[#F26207]/10 ring-1 ring-[#F26207]/20 rounded-2xl flex items-center justify-center text-[#F26207]">
+              <div className="w-20 h-20 mx-auto mb-4 bg-[#F26207]/10 ring-1 ring-[#F26207]/20 rounded-2xl flex items-center justify-center text-[var(--ecode-accent-text)]">
                 <Brain className="h-10 w-10" />
               </div>
               <h3 className="mkt-h3 mb-2">{copy.howItWorks.steps[1]?.title}</h3>
@@ -464,7 +466,7 @@ export default function AI() {
             </div>
 
             <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-4 bg-[#F26207]/10 ring-1 ring-[#F26207]/20 rounded-2xl flex items-center justify-center text-[#F26207]">
+              <div className="w-20 h-20 mx-auto mb-4 bg-[#F26207]/10 ring-1 ring-[#F26207]/20 rounded-2xl flex items-center justify-center text-[var(--ecode-accent-text)]">
                 <Globe className="h-10 w-10" />
               </div>
               <h3 className="mkt-h3 mb-2">{copy.howItWorks.steps[2]?.title}</h3>
@@ -501,7 +503,7 @@ export default function AI() {
                       <div className="flex items-start gap-3">
                         <div
                           className={`p-2 rounded-lg transition-colors ${
-                            isActive ? 'bg-[#F26207] text-white' : 'bg-[#F26207]/10 text-[#F26207]'
+                            isActive ? 'bg-[#F26207] text-white' : 'bg-[#F26207]/10 text-[var(--ecode-accent-text)]'
                           }`}
                         >
                           <Icon className="h-5 w-5" />
@@ -526,7 +528,7 @@ export default function AI() {
                   <ul className="space-y-3">
                     {activeFeature.details.map((detail) => (
                       <li key={detail} className="flex items-start gap-2">
-                        <CheckCircle className="h-5 w-5 text-[#F26207] mt-0.5 flex-shrink-0" />
+                        <CheckCircle className="h-5 w-5 text-[var(--ecode-accent-text)] mt-0.5 flex-shrink-0" />
                         <span>{detail}</span>
                       </li>
                     ))}
@@ -583,7 +585,7 @@ export default function AI() {
               <ul className="space-y-3">
                 {copy.workspace.points.map((point) => (
                   <li key={point} className="flex items-start gap-2 mkt-body">
-                    <CheckCircle className="h-5 w-5 text-[#F26207] mt-0.5 flex-shrink-0" />
+                    <CheckCircle className="h-5 w-5 text-[var(--ecode-accent-text)] mt-0.5 flex-shrink-0" />
                     <span>{point}</span>
                   </li>
                 ))}
@@ -594,7 +596,7 @@ export default function AI() {
               <div className="absolute -inset-2 bg-gradient-to-l from-[#F26207]/15 to-[#F99D25]/15 blur-2xl rounded-2xl pointer-events-none" />
               <div className="relative rounded-xl overflow-hidden ring-1 ring-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl">
                 <div className="flex items-center gap-2 px-4 py-2.5 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-3">
-                  <GitBranch className="h-3.5 w-3.5 text-[#F26207]" />
+                  <GitBranch className="h-3.5 w-3.5 text-[var(--ecode-accent-text)]" />
                   <span className="mkt-small text-muted-foreground font-medium truncate">
                     {copy.workspace.gitTitle}
                   </span>
@@ -711,7 +713,7 @@ export default function AI() {
                 <Button
                   size="lg"
                   asChild
-                  className="text-[15px] px-8 h-14 bg-white text-[#F26207] hover:bg-white/90 shadow-lg"
+                  className="text-[15px] px-8 h-14 bg-white text-[var(--ecode-accent-text-on-light)] hover:bg-white/90 shadow-lg"
                   data-testid="button-get-started-free"
                 >
                   <Link href="/signup">

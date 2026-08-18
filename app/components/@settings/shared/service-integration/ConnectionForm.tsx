@@ -271,7 +271,7 @@ export function ConnectionForm({
                 aria-label={formatConnectionFormCopy(copy['connectionForm.action.connectAria'], { serviceName })}
                 className={classNames(
                   'inline-flex min-h-[44px] w-full min-w-[44px] items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium sm:w-auto',
-                  'bg-[var(--vc-ide-accent-action)] text-white',
+                  'bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)]',
                   'hover:opacity-90 hover:text-white',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-2',
                   'disabled:cursor-not-allowed disabled:opacity-50',

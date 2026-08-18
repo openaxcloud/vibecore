@@ -253,7 +253,7 @@ function planHighlights(limits: Record<string, number>, copy: UpgradeCopy, langu
 }
 
 const ACTION_CTA_CLASS =
-  'inline-flex min-h-9 w-full items-center justify-center whitespace-normal rounded-md bg-[var(--vc-ide-accent-action)] px-4 py-2 text-center text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
+  'inline-flex min-h-9 w-full items-center justify-center whitespace-normal rounded-md bg-[var(--vc-action-primary)] px-4 py-2 text-center text-sm font-medium text-[var(--vc-action-primary-foreground)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
 
 const OUTLINE_CTA_CLASS =
   'inline-flex min-h-9 w-full items-center justify-center whitespace-normal rounded-md border border-bolt-elements-borderColor px-4 py-2 text-center text-sm font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60';
@@ -359,7 +359,7 @@ export default function UpgradePage() {
                       {copy['upgrade.badge.current']}
                     </span>
                   ) : isSuggested ? (
-                    <span className="rounded-full bg-[var(--vc-ide-accent-action)] px-2 py-0.5 text-xs font-medium text-white">
+                    <span className="rounded-full bg-[var(--vc-action-primary)] px-2 py-0.5 text-xs font-medium text-[var(--vc-action-primary-foreground)]">
                       {copy['upgrade.badge.suggested']}
                     </span>
                   ) : null}
