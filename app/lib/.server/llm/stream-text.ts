@@ -5,6 +5,7 @@ import {
   buildAgentOrchestrationPlan,
   createAgentOrchestrationPrompt,
 } from './agent-orchestration';
+import { withThinkingDisabled, type ProviderOptionsShape } from './anthropic-thinking';
 import {
   MAX_TOKENS,
   PROVIDER_COMPLETION_LIMITS,
@@ -865,6 +866,22 @@ ${props.summary}
 
     ...temperatureOptionsForModel(modelDetails.name, modelDetails.provider),
     ...(abortSignal ? { abortSignal } : {}),
+
+    /*
+     * Contournement temporaire : on demande explicitement à Anthropic de NE PAS
+     * produire de réflexion étendue. Le SDK installé (0.0.39) ne sait pas valider
+     * les événements `thinking` / `thinking_delta` / `signature_delta` et fait
+     * mourir le flux sur le premier d'entre eux. À retirer dès que le SDK est
+     * monté — voir `anthropic-thinking.ts`.
+     */
+    ...(() => {
+      const merged = withThinkingDisabled(
+        modelDetails.provider,
+        (filteredOptions as { providerOptions?: ProviderOptionsShape }).providerOptions,
+      );
+
+      return merged ? { providerOptions: merged } : {};
+    })(),
   };
 
   /*
