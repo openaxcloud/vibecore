@@ -36,6 +36,7 @@ describe('the Object Storage probe shows that it is still working', () => {
 
   it('counts the seconds once the wait stops being instant', () => {
     expect(WAITING_STATE).toMatch(/checkSeconds >= 5/);
+    expect(WAITING_STATE).toContain('baseChatAst.storage.checkingElapsed');
   });
 
   it('says the first probe can be slow, before a user assumes it is broken', () => {

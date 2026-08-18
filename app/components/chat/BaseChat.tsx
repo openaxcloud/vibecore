@@ -16110,7 +16110,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
             <span className="i-svg-spinners:3-dots-fade shrink-0" aria-hidden />
             <span>
               {t('chat.copy.checkingObjectStorage_959b2900')}
-              {checkSeconds >= 5 ? ` (${checkSeconds} s)` : ''}
+              {checkSeconds >= 5 ? ` ${t('baseChatAst.storage.checkingElapsed', { seconds: checkSeconds })}` : ''}
             </span>
           </span>
           {checkSeconds >= 15 ? (
