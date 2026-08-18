@@ -1050,7 +1050,16 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-border: var(--vc-ide-border-visible);
   --vc-ide-text-primary: #f5f9fc;
   --vc-ide-text-secondary: #c2c8cc;
-  --vc-ide-text-muted: #6e7681;
+  /*
+   * #6e7681 measured 4.05:1 on the dark marketing background (#111315) and
+   * 4.16:1 on #0a0f1c — under the 4.5:1 that WCAG AA asks of body text. It is
+   * the token behind `--bolt-elements-textTertiary`, so it carried the whole
+   * secondary line of the dark home page ("No credit card required", "Deploy
+   * instantly", "Scale to millions") and the dark pricing table's
+   * "Contact for pricing". #7d8590 clears the threshold (4.95:1 / 5.13:1) while
+   * staying clearly below --vc-ide-text-secondary (#c2c8cc) in the hierarchy.
+   */
+  --vc-ide-text-muted: #7d8590;
   --vc-ide-text-tertiary: var(--vc-ide-text-muted);
   --vc-ide-text-on-accent: #ffffff;
   --vc-file-tree-foreground: var(--vc-ide-text-secondary);
@@ -21819,6 +21828,14 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 :root[data-theme='light'] .vc-auth-page {
   --vc-auth-bg: #f5f6f7;
   --vc-auth-card: rgb(255 255 255 / 0.9);
+  /*
+   * `--vc-auth-card-solid` was declared only in the dark block above, so the
+   * light theme inherited the dark #191c1f: the four login stat tiles
+   * ("21 AI providers", "29+ Languages", "99.9% Uptime", "SOC2") painted a dark
+   * grey card under the light theme's dark text — 1.78:1, illegible — and
+   * `.vc-auth-left-shade` veiled the top of the light form column in near-black.
+   */
+  --vc-auth-card-solid: #ffffff;
   --vc-auth-field: #ffffff;
   --vc-auth-raised: #f0f1f2;
   --vc-auth-hover: #e7e9eb;

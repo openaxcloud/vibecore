@@ -961,7 +961,7 @@ test('IDE applies the full 2026 color theme tokens', async ({ page, isMobile }) 
       borderVisible: '#2b3245',
       textPrimary: '#f5f9fc',
       textSecondary: '#c2c8cc',
-      textMuted: '#6e7681',
+      textMuted: '#7d8590',
       aiStart: '#7b61ff',
       aiEnd: '#ff6b9d',
       success: '#3fb950',
