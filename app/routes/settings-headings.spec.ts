@@ -48,6 +48,29 @@ describe('titres de niveau 1 des pages de réglages', () => {
   });
 });
 
+describe('enchaînement des niveaux de titre', () => {
+  /*
+   * Promouvoir le titre en `h1` ne suffit pas : les sections restaient en `h3`,
+   * ce qui créait un saut h1→h3. Mesuré aux trois formats APRÈS déploiement —
+   * un niveau sauté reste un défaut WCAG 1.3.1, au même titre que l'absence de
+   * niveau 1 qu'on venait de corriger. C'est la mesure d'après-coup qui l'a vu,
+   * pas la relecture.
+   */
+  it('les sections de /workspace-settings suivent le h1 en h2', () => {
+    const source = readFileSync('app/components/settings/WorkspaceSettings.tsx', 'utf8');
+
+    expect(source).toMatch(/<h2[^>]*>\{title\}<\/h2>/u);
+    expect(source).not.toMatch(/<h3[^>]*>\{title\}<\/h3>/u);
+  });
+
+  it('les tuiles de /settings suivent le h1 en h2', () => {
+    const source = readFileSync('app/components/@settings/shared/components/TabTile.tsx', 'utf8');
+
+    expect(source).toContain('{resolvedLabel}');
+    expect(source).not.toMatch(/<h3\b/u);
+  });
+});
+
 describe('infobulle du rail d’outils de l’IDE', () => {
   /*
    * BUG-IDE-010 (résidu) — mesuré en réel à 1440, dans une interface française :
@@ -61,11 +84,18 @@ describe('infobulle du rail d’outils de l’IDE', () => {
    */
   const baseChat = readFileSync('app/components/chat/BaseChat.tsx', 'utf8');
 
-  it('la description passe par le catalogue', () => {
+  it('le site d’appel passe du TEXTE résolu', () => {
     expect(baseChat).toContain('t(IDE_TOOL_DESCRIPTIONS[item.panel])');
   });
 
-  it('plus aucune description utilisée brute', () => {
-    expect(baseChat).not.toMatch(/:\s*IDE_TOOL_DESCRIPTIONS\[item\.panel\]/u);
+  it('le formateur ne retraduit PAS ce texte — sinon t(t(clé)) échoue partout', () => {
+    /*
+     * Ma première tentative enveloppait l'argument d'un `t()` de plus au site
+     * d'appel, alors que le formateur en appliquait déjà un. Résultat mesuré :
+     * « Unavailable » sur les HUIT items du rail au lieu d'un seul. Le contrat
+     * est désormais explicite — le formateur ne traduit que ce qu'il possède.
+     */
+    expect(baseChat).toContain('const resolved = help?.description ? t(help.description) : description;');
+    expect(baseChat).not.toContain('t(help?.description ?? fallbackDescription)');
   });
 });
