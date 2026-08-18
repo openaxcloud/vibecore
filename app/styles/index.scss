@@ -25125,14 +25125,23 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     padding-top: 0;
   }
 
+  /*
+   * La galerie de modèles reste VISIBLE en mobile.
+   *
+   * Elle était masquée par défaut et ne réapparaissait que sous
+   * `[data-open='true']` — un attribut piloté par le dépliant « Avancé », dont
+   * le libellé et le résumé parlent du type d'artefact, jamais de modèles.
+   * Résultat mesuré en 390 : les quatre boutons « Utiliser le modèle » sont bien
+   * dans le DOM, mais à 0×0 px sous un ancêtre `display: none` — créer depuis un
+   * modèle était donc inatteignable sur téléphone, sans le moindre indice.
+   *
+   * Rien n'est gagné à les cacher : `TemplateGallery` est rendue de toute façon,
+   * le masquage n'était que visuel. La galerie est déjà en mode `compact`, la
+   * page reste donc courte.
+   */
   .vc-new-project-templates {
-    display: none;
     margin-bottom: 40px;
     padding: 0 16px;
-  }
-
-  .vc-new-project-templates[data-open='true'] {
-    display: flex;
   }
 }
 
