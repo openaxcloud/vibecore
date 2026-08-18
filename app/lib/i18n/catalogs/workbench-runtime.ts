@@ -67,6 +67,8 @@ export const workbenchRuntimeEn = {
   'workbenchRuntime.write.blockedTitle': 'AI file write blocked',
   'workbenchRuntime.write.locked': '{file} is locked; the assistant change was not written.',
   'workbenchRuntime.write.failed': 'The assistant could not write {file}.',
+  'workbenchRuntime.write.notConfirmed':
+    'The assistant wrote {file} but the workspace did not confirm it within {seconds}s. Nothing is lost — ask the agent to write it again.',
   'workbenchRuntime.write.blockedLog': 'AI file write blocked: {file}',
   'workbenchRuntime.write.refreshSkipped': 'File refresh was skipped after the AI write.',
   'workbenchRuntime.write.commandReviewPending':
@@ -183,6 +185,8 @@ export const workbenchRuntimeFr: WorkbenchRuntimeCopy = {
   'workbenchRuntime.write.locked':
     'Le fichier {file} est verrouillé ; la modification de l’assistant n’a pas été écrite.',
   'workbenchRuntime.write.failed': 'L’assistant n’a pas pu écrire le fichier {file}.',
+  'workbenchRuntime.write.notConfirmed':
+    'L’assistant a écrit {file}, mais l’espace de travail ne l’a pas confirmé en {seconds}s. Rien n’est perdu — redemandez l’écriture à l’agent.',
   'workbenchRuntime.write.blockedLog': 'Écriture du fichier par l’IA bloquée : {file}',
   'workbenchRuntime.write.refreshSkipped': 'L’actualisation des fichiers a été ignorée après l’écriture de l’IA.',
   'workbenchRuntime.write.commandReviewPending':
