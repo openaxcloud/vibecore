@@ -892,10 +892,18 @@ html:has(.vc-app-shell-grid) body {
   --ecode-accent-text: #c74e00;
   --ecode-focus-ring: rgba(242, 98, 7, 0.35);
   --ecode-selection: rgba(242, 98, 7, 0.25);
-  --status-success-text: #178a4c;
-  --status-warning-text: #b45309;
-  --status-error-text: #dc2626;
-  --status-info-text: #2563eb;
+  /*
+   * Chaque `--status-*-bg` est dérivé de son texte à 10-12 % : la couleur se
+   * pose donc sur sa PROPRE teinte, le cas le plus défavorable. Mesuré dans
+   * l'IDE en clair, les trois y tombaient sous le seuil AA — succès 3,65:1,
+   * avertissement 4,02:1, information 4,24:1 — et le succès échouait même sur
+   * le fond de panneau nu (4,13:1). Les valeurs ci-dessous passent sur leur
+   * teinte comme sur le panneau (5,36 / 5,05 / 5,41 et 6,21 / 6,02 / 6,30).
+   */
+  --status-success-text: #0d6b39;
+  --status-warning-text: #9a4708;
+  --status-error-text: #b91c1c;
+  --status-info-text: #1d4ed8;
 
   /* Tinted status backgrounds (badges, alert banners) — lighter on light theme. */
   --status-success-bg: color-mix(in srgb, var(--status-success-text) 10%, transparent);
