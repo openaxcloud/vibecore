@@ -6954,12 +6954,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </p>
           </div>
         ) : null}
+        {/*
+         * `resize` pilote l'animation quand le CONTENU change de taille alors
+         * qu'on est collé en bas. En « smooth », `useStickToBottom` lance un
+         * ressort qui pousse `scrollTop` image par image vers la nouvelle fin.
+         * Pendant un stream la cible bouge à chaque jeton : le ressort la
+         * poursuit sans jamais l'atteindre, et le transcript n'arrête plus de
+         * glisser. Sur une fenêtre de lecture courte — un téléphone — c'est
+         * exactement le « ça saute » signalé.
+         *
+         * En « instant », la bibliothèque fait une seule affectation
+         * (`state.scrollTop = state.calculatedTargetScrollTop`) : le bas reste
+         * collé, sans animation qui court après lui.
+         *
+         * `initial` reste en « smooth » : c'est l'animation d'ARRIVÉE sur le
+         * fil, jouée une fois, jamais pendant le stream.
+         */}
         <StickToBottom
           className={classNames('pt-6 px-2 sm:px-6 relative', {
             'h-full flex flex-col modern-scrollbar': chatStarted,
             'bolt-project-agent-scroll': projectIdeMode,
           })}
-          resize="smooth"
+          resize="instant"
           initial="smooth"
         >
           <StickToBottom.Content
@@ -23024,35 +23040,37 @@ function panelIcon(panel: string) {
   return icons[panel] ?? 'i-ph:squares-four';
 }
 
-/*
- * Threshold (in px) the user has to be away from the bottom of the conversation
- * before the "Go to last message" control fades in. Keeping it well above the
- * patch-review card height (~200px) prevents the button from flickering when
- * content streams in and the layout settles.
- */
-const SCROLL_TO_BOTTOM_THRESHOLD = 240;
-
 function ScrollToBottom() {
   const { t } = useTranslation();
-  const { isAtBottom, scrollToBottom, state } = useStickToBottomContext();
-  const shouldShowScrollControl = !isAtBottom && state.scrollDifference > SCROLL_TO_BOTTOM_THRESHOLD;
+  const { isAtBottom, scrollToBottom } = useStickToBottomContext();
 
-  if (!shouldShowScrollControl) {
+  /*
+   * Apparaît dès qu'on n'est PLUS en bas — c'est tout.
+   *
+   * Il y avait ici un seuil supplémentaire de 240px, ajouté parce que le bouton
+   * scintillait quand une carte de revue (~200px) arrivait en cours de stream.
+   * Ce scintillement venait du défilement ANIMÉ : le ressort accusait un retard
+   * sur la fin du contenu, on repassait donc brièvement « pas en bas ». Le
+   * défilement étant désormais instantané (voir `resize` plus haut), la cause a
+   * disparu et le seuil n'a plus lieu d'être — il ne faisait que retarder le
+   * bouton de plus d'une demi-fenêtre sur un téléphone.
+   *
+   * `isAtBottom` porte déjà sa propre tolérance (`STICK_TO_BOTTOM_OFFSET_PX`,
+   * 70px) : deux ou trois lignes qui s'ajoutent ne le font pas basculer.
+   */
+  if (isAtBottom) {
     return null;
   }
 
   return (
-    <>
-      <div className="sticky bottom-0 left-0 right-0 bg-gradient-to-t from-bolt-elements-background-depth-1 to-transparent h-20 z-10" />
-      <button
-        type="button"
-        aria-label={t('chat.copy.scrollToTheLatestMessage_705d9356')}
-        className="sticky z-50 bottom-0 left-0 right-0 text-4xl rounded-lg px-1.5 py-0.5 flex items-center justify-center mx-auto gap-2 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor text-bolt-elements-textPrimary text-sm shadow-sm"
-        onClick={() => scrollToBottom()}
-      >
-        {t('chat.copy.goToLastMessage_2d23b856')}
-        <span className="i-ph:arrow-down animate-bounce" />
-      </button>
-    </>
+    <button
+      type="button"
+      className="bolt-agent-scroll-to-bottom"
+      aria-label={t('chat.copy.scrollToTheLatestMessage_705d9356')}
+      title={t('chat.copy.goToLastMessage_2d23b856')}
+      onClick={() => scrollToBottom()}
+    >
+      <span className="i-ph:arrow-down" aria-hidden />
+    </button>
   );
 }
