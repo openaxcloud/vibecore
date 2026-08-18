@@ -1,18 +1,18 @@
 # CI_ATTESTATION — attestation RÉELLE au COMMIT MERGÉ sur main (roulée à
 # chaque intégration — P0-A2-13/P0-LS-18/P0-EX-10).
 schemaVersion: 1
-repoCommit: a8d22e1a
+repoCommit: 869d736c
 attestation:
   workflow: "Parity registries"
-  runId: 32141100148
-  runUrl: "https://github.com/openaxcloud/vibecore/actions/runs/32141100148"
+  runId: 32149417494
+  runUrl: "https://github.com/openaxcloud/vibecore/actions/runs/32149417494"
   conclusion: success
   event: push
-  runCommit: "a8d22e1ac9a13fbb35a7c3799e51b35ebd2a1d7c"
-  mergedCommit: "a8d22e1ac9a13fbb35a7c3799e51b35ebd2a1d7c"
-  repoCommit: "a8d22e1ac9a13fbb35a7c3799e51b35ebd2a1d7c"   # commit de dépôt déclaré — lié au head_sha (verdict -06 §1)
-  mergedToMainAt: "2026-08-18T13:13:55Z"
-  runDate: "2026-08-18T13:13:55Z"
+  runCommit: "869d736ca9e05b3980a760057a478372eda76665"
+  mergedCommit: "869d736ca9e05b3980a760057a478372eda76665"
+  repoCommit: "869d736ca9e05b3980a760057a478372eda76665"   # commit de dépôt déclaré — lié au head_sha (verdict -06 §1)
+  mergedToMainAt: "2026-08-18T14:37:42Z"
+  runDate: "2026-08-18T14:37:42Z"
   attestedChecks:
     - "Validate registries (fails on schema violation)"
     - "generate-approval-status --check (drift)"
