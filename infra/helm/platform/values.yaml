@@ -9,6 +9,13 @@ global:
   # manager onto their own subdomains so each can be reached without sharing
   # the application path prefix.
   marketingDomain: ''
+  # Sert `www.<marketingDomain>` et le redirige (308) vers l'apex, chemin et
+  # query préservés. DÉSACTIVÉ par défaut : l'activer ajoute `www.<domaine>`
+  # aux SAN du certificat, ce qui déclenche une RÉÉMISSION du certificat de
+  # l'ingress principal (apex + app + api + workspace-manager) par
+  # cert-manager. À n'activer que sur un environnement dont le DNS `www`
+  # pointe déjà sur le load balancer.
+  marketingWwwRedirect: false
   apiDomain: ''
   workspaceManagerDomain: ''
   dns01:
