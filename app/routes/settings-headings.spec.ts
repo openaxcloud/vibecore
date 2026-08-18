@@ -47,3 +47,25 @@ describe('titres de niveau 1 des pages de réglages', () => {
     expect(panel).toMatch(/asPage \? \(\s*<h1>/u);
   });
 });
+
+describe('infobulle du rail d’outils de l’IDE', () => {
+  /*
+   * BUG-IDE-010 (résidu) — mesuré en réel à 1440, dans une interface française :
+   *
+   *     title="Bibliothèque. Unavailable. 7 fichiers"
+   *
+   * `IDE_TOOL_DESCRIPTIONS` contient des CLÉS de catalogue, pas du texte.
+   * Utilisée brute, la clé ne résout pas et l'infobulle retombait sur
+   * l'étiquette de secours anglaise. Le même tableau est traduit ailleurs dans
+   * le fichier ; c'est à cet endroit qu'on l'avait oublié.
+   */
+  const baseChat = readFileSync('app/components/chat/BaseChat.tsx', 'utf8');
+
+  it('la description passe par le catalogue', () => {
+    expect(baseChat).toContain('t(IDE_TOOL_DESCRIPTIONS[item.panel])');
+  });
+
+  it('plus aucune description utilisée brute', () => {
+    expect(baseChat).not.toMatch(/:\s*IDE_TOOL_DESCRIPTIONS\[item\.panel\]/u);
+  });
+});
