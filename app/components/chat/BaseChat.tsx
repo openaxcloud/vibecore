@@ -1917,13 +1917,30 @@ function formatRailItemLabel(label: string, badgeLabel?: string) {
   return badgeLabel ? `${label}, ${badgeLabel}` : label;
 }
 
-function formatRailItemTooltip(t: TFunction, label: string, fallbackDescription: string, badgeLabel?: string) {
+/*
+ * Contrat explicite : cette fonction ne traduit QUE ce qu'elle possède — les
+ * descriptions de `IDE_RAIL_TOOLTIP_HELP`, qui sont des clés. La `description`
+ * reçue en argument est du TEXTE DÉJÀ RÉSOLU, et n'est plus retraduite.
+ *
+ * Elle l'était, sans distinguer les deux cas. Or `IDE_RAIL_TOOLTIP_HELP` est
+ * indexée par libellés ANGLAIS (« Files », « Search ») alors que l'appelant
+ * passe le libellé traduit : la carte ne matche jamais en français, on tombait
+ * donc toujours sur l'argument — et quand celui-ci était déjà du texte français,
+ * `t(« Parcourir les fichiers du projet »)` ne résolvait rien et rendait
+ * l'étiquette de secours « Unavailable ».
+ *
+ * Mesuré en réel : `title="Bibliothèque. Unavailable. 8 fichiers"`. Ma première
+ * tentative — envelopper l'argument d'un `t()` de plus au site d'appel — a
+ * AGGRAVÉ le défaut : `t(t(clé))` échouait pour les huit items au lieu d'un
+ * seul. C'est en mesurant les trois formats après déploiement que je l'ai vu.
+ */
+function formatRailItemTooltip(t: TFunction, label: string, description: string, badgeLabel?: string) {
   const help = IDE_RAIL_TOOLTIP_HELP[label];
-  const description = t(help?.description ?? fallbackDescription);
+  const resolved = help?.description ? t(help.description) : description;
 
   const details = [
     label,
-    description,
+    resolved,
     badgeLabel,
     help?.shortcut ? t('chat.copy.shortcutValue', { shortcut: help.shortcut }) : undefined,
   ].filter(Boolean);
@@ -8049,12 +8066,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
 
       /*
-       * `t(...)` et pas la valeur brute : `IDE_TOOL_DESCRIPTIONS` contient des
-       * CLÉS de catalogue, pas du texte. Utilisée telle quelle, la clé ne résout
-       * pas et l'infobulle du rail retombait sur l'étiquette de secours anglaise
-       * — mesuré en réel : `title="Bibliothèque. Unavailable. 7 fichiers"` dans
-       * une interface française. Le même tableau est déjà traduit ligne 1990 ;
-       * c'est ici qu'on l'avait oublié.
+       * On passe au formateur du TEXTE déjà résolu, jamais une clé : soit le
+       * titre porté par l'item (déjà traduit), soit la description du panneau
+       * traduite ici. Le formateur, lui, ne traduit plus que ce qu'il possède.
        */
       const title = 'title' in item && item.title ? item.title : t(IDE_TOOL_DESCRIPTIONS[item.panel]);
       const tooltip = formatRailItemTooltip(t, item.label, title, badgeLabel);
