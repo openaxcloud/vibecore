@@ -1115,7 +1115,7 @@ test('IDE panels, agent input and feature tools keep the platform theme in light
       hoverBorder: 'rgb(26, 32, 48)',
       visibleBorder: 'rgb(43, 50, 69)',
       secondaryText: 'rgb(194, 200, 204)',
-      mutedText: 'rgb(110, 118, 129)',
+      mutedText: 'rgb(125, 133, 144)',
       primaryText: 'rgb(245, 249, 252)',
       forbiddenPanelBackgrounds: [] as string[],
     },
