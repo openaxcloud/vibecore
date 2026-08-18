@@ -60,6 +60,7 @@ import {
   partitionMonitoringEvents as partitionMonitoringEventsHelper,
 } from './projectMonitoring';
 import { LanguageSetting } from '~/components/i18n/LanguageSetting';
+import { panelActionFailureMessage } from '~/lib/panel-action-failure';
 import { formatRailBadgeValue } from '~/lib/labels/rail-badge';
 import {
   pairCheckpointsToSnapshots,
@@ -10532,6 +10533,8 @@ function ProjectIdeServicePanel({
 
       const result = (await response.json().catch(() => ({}))) as {
         error?: string;
+        code?: string;
+        reason?: string;
         shareLink?: { url?: string };
       };
 
@@ -10543,7 +10546,15 @@ function ProjectIdeServicePanel({
           serverError: result.error,
         });
 
-        const message = t('baseChatAst.panel.actionFailedHttp', { status: response.status });
+        /*
+         * Le message du serveur PRIME sur le générique de statut. Il est déjà
+         * masqué et localisé côté route ; le remplacer par « HTTP 503 »
+         * annulait le travail fait en amont pour nommer la cause.
+         */
+        const { message } = panelActionFailureMessage(
+          result,
+          t('baseChatAst.panel.actionFailedHttp', { status: response.status }),
+        );
         setError(message);
         setActionNotice(undefined);
         window.dispatchEvent(
