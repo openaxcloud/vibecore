@@ -4811,7 +4811,15 @@ body :where(.lucide, svg[data-lucide]) {
 .bolt-mobile-tab-switcher-card {
   position: relative;
   display: flex;
-  min-height: 100px;
+
+  /*
+   * Toutes les tuiles ont EXACTEMENT la même hauteur, fermables ou non. Une
+   * simple `min-height` ne suffisait pas : la croix, rendue dans le flux,
+   * ajoutait sa propre hauteur et les tuiles fermables dépassaient les fixes de
+   * 54 px (mesuré à 390 px : 156 px contre 102 px).
+   */
+  height: 102px;
+  min-height: 102px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -4887,7 +4895,13 @@ body :where(.lucide, svg[data-lucide]) {
 // top-right corner of the card. Because it is taken out of the normal flow it
 // never adds height to the card, so cards with a close button stay exactly the
 // same size as the default (non-closable) cards.
-.bolt-mobile-tab-switcher-close {
+.bolt-mobile-tab-switcher-card .bolt-mobile-tab-switcher-close {
+  /*
+   * Scopé à la carte pour l'emporter sur la remise à zéro globale des boutons de
+   * la coque IDE, qui impose `position: relative` avec une spécificité
+   * supérieure à celle d'une classe seule. Sans ce scope, la croix retombait
+   * dans le flux, en bas et centrée — et allongeait la tuile.
+   */
   position: absolute;
   top: 4px;
   right: 4px;
@@ -4899,7 +4913,13 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
   border: 0;
   background: transparent;
-  color: var(--vc-ide-text-tertiary);
+
+  /*
+   * `text-tertiary` rendait la croix quasi illisible sur le fond clair de la
+   * tuile — demandée « nette » : on passe au ton secondaire, lisible sans
+   * concurrencer le titre de la tuile.
+   */
+  color: var(--vc-ide-text-secondary);
   touch-action: manipulation;
 }
 
@@ -4912,8 +4932,11 @@ body :where(.lucide, svg[data-lucide]) {
   align-items: center;
   justify-content: center;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--vc-ide-bg-app) 58%, transparent);
+
+  /* Pastille plus opaque : la croix doit rester nette au-dessus de l'icône. */
+  background: color-mix(in srgb, var(--vc-ide-bg-app) 86%, transparent);
   font-size: 16px;
+  font-weight: 700;
   transition:
     background 150ms ease,
     color 150ms ease;

@@ -3242,7 +3242,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           icon: panelIcon(tabId),
         };
 
-        setMobileOpenTabs((current) => (current.some((item) => item.id === tab.id) ? current : [...current, tab]));
+        /*
+         * Move an already-open tab to the END rather than leaving it in place:
+         * the bottom row shows the most recently used tabs, so "end of list"
+         * has to mean "most recent". Without this, re-opening a panel left it
+         * stuck at its original position and it could stay hidden behind the
+         * +N counter even though the user had just asked for it.
+         */
+        setMobileOpenTabs((current) => [...current.filter((item) => item.id !== tab.id), tab]);
         setActiveMobileOpenTabId(tab.id);
       },
       [t],
