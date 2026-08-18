@@ -8047,7 +8047,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const renderIdeRailToolItem = (item: (typeof ideRailToolItems)[number]) => {
       const badgeLabel = 'badgeLabel' in item ? item.badgeLabel : undefined;
-      const title = 'title' in item && item.title ? item.title : IDE_TOOL_DESCRIPTIONS[item.panel];
+
+      /*
+       * `t(...)` et pas la valeur brute : `IDE_TOOL_DESCRIPTIONS` contient des
+       * CLÉS de catalogue, pas du texte. Utilisée telle quelle, la clé ne résout
+       * pas et l'infobulle du rail retombait sur l'étiquette de secours anglaise
+       * — mesuré en réel : `title="Bibliothèque. Unavailable. 7 fichiers"` dans
+       * une interface française. Le même tableau est déjà traduit ligne 1990 ;
+       * c'est ici qu'on l'avait oublié.
+       */
+      const title = 'title' in item && item.title ? item.title : t(IDE_TOOL_DESCRIPTIONS[item.panel]);
       const tooltip = formatRailItemTooltip(t, item.label, title, badgeLabel);
       const active = 'active' in item ? item.active : activeWorkspacePanel === item.panel;
 
