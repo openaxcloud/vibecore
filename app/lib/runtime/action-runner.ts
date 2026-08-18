@@ -1,6 +1,7 @@
 import type { RuntimeAdapter } from '@vibecore/runtime-contract';
 import { atom, map, type MapStore } from 'nanostores';
 import { applyEntryExportReconcile } from './entry-export-reconcile';
+import { ensureEntryImportsResolvable } from './entry-placeholder';
 import { buildSelfRepairPrompt, validateAndFormatHunk, type HunkValidationError } from './hunk-validate';
 import type { ActionCallbackData } from './message-parser';
 import { workspaceEvents } from './workspace-events';
@@ -959,6 +960,27 @@ export class ActionRunner {
 
         for (const fixedPath of fixed) {
           logger.debug(`Reconciled missing default export in ${fixedPath}`);
+        }
+
+        /*
+         * Et l'inverse : l'entrée qui importe un module PAS ENCORE écrit. L'agent
+         * crée souvent `src/App.tsx` bien après `src/main.tsx`, et Vite répète
+         * « Failed to resolve import "./App" » à chaque requête pendant tout ce
+         * temps — aperçu blanc et compteur d'erreurs qui monte sans fin. Un module
+         * d'attente comble le trou : l'import résout, et l'aperçu montre
+         * « Génération en cours… » au lieu d'un blanc. Il est remplacé dès que
+         * l'agent écrit le vrai fichier.
+         */
+        const combles = await ensureEntryImportsResolvable(
+          {
+            readFile: async (p) => (await this.#runtime.readFile(p)).content,
+            writeFile: (p, content) => this.#runtime.writeFile(p, content),
+          },
+          relativePath,
+        );
+
+        for (const cheminComble of combles) {
+          logger.debug(`Placeholder written for pending entry import: ${cheminComble}`);
         }
       } catch (error) {
         logger.warn('Entry export/import reconcile skipped', error);
