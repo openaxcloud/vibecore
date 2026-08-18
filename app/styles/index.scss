@@ -9764,6 +9764,69 @@ body :where(.lucide, svg[data-lucide]) {
   padding: 0 6px;
 }
 
+/*
+ * Barre de la Webview en mobile et tablette : UNE seule ligne, l'adresse et
+ * « Ouvrir dans le navigateur ».
+ *
+ * En dessous du bureau, la barre alignait une quinzaine de commandes — retour,
+ * suivant, rafraîchir, sélection, capture, sélecteur d'appareil, bascule
+ * d'appareil, QR, rotation, cadre, inspecteur, outils de développement, `</>`,
+ * plein écran, journaux, options de fenêtre — qui repassaient sur deux ou trois
+ * lignes et mangeaient la hauteur de l'aperçu lui-même. Ce sont des outils de
+ * mise au point : ils supposent un pointeur fin et un écran large, et n'ont pas
+ * leur place sur un téléphone.
+ *
+ * On masque donc les deux groupes d'outils et on garde le seul contrôle qui a du
+ * sens sur mobile — ouvrir l'aperçu dans le navigateur — en le sortant du groupe
+ * masqué. Le bureau (≥ 1024px) garde la barre complète, inchangée.
+ *
+ * `flex-wrap: nowrap` est ce qui garantit la ligne unique : sans lui, un libellé
+ * un peu long suffit à faire repasser le bouton à la ligne suivante et on
+ * retombe sur le défaut qu'on corrige.
+ */
+@media (max-width: 1023px) {
+  .bolt-project-webview-toolbar {
+    flex-wrap: nowrap;
+  }
+
+  .bolt-project-webview-toolbar .bolt-preview-toolbar-tools > *:not(.bolt-preview-open-external) {
+    display: none;
+  }
+
+  /*
+   * Le groupe qui ne contient plus que le bouton externe ne doit pas garder sa
+   * largeur ni ses espacements de groupe : il se réduit à son seul enfant.
+   */
+  .bolt-project-webview-toolbar .bolt-preview-toolbar-tools {
+    flex: 0 0 auto;
+    gap: 0;
+  }
+
+  .bolt-project-webview-toolbar .bolt-preview-toolbar-tools:empty,
+  .bolt-project-webview-toolbar .bolt-preview-toolbar-tools:not(:has(.bolt-preview-open-external)) {
+    display: none;
+  }
+
+  /* L'adresse prend toute la place restante et ne pousse jamais le bouton dehors. */
+  .bolt-project-webview-toolbar .bolt-preview-addressbar {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  /*
+   * Le bouton garde son libellé — « Ouvrir » seul est ambigu à côté d'une URL —
+   * mais il ne doit pas se laisser comprimer par l'adresse.
+   */
+  .bolt-project-webview-toolbar .bolt-preview-open-external {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    padding: 0 10px;
+    gap: 6px;
+    white-space: nowrap;
+  }
+}
+
 
 .bolt-project-webview-toolbar .flex.items-center {
   gap: 2px;
@@ -20978,8 +21041,19 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     padding-bottom: 8px;
   }
 
+  /*
+   * Surfaces de l'agent : visibles UNIQUEMENT quand l'agent est le panneau actif.
+   *
+   * `.bolt-agent-statusline` manquait à cette liste. Elle est `sticky` en haut du
+   * transcript, elle survivait donc au changement de panneau et venait se poser
+   * au-dessus de la Webview — « Agent · Génération de la réponse 67 % » barrant
+   * un aperçu avec lequel elle n'a aucun rapport. Le composeur et les
+   * suggestions étaient déjà traités ici ; la ligne d'état relève de la même
+   * règle, elle avait simplement été oubliée.
+   */
   .bolt-responsive-ide-mobile:not([data-mobile-panel='chat']) .bolt-project-agent-composer,
-  .bolt-responsive-ide-mobile:not([data-mobile-panel='chat']) .bolt-project-agent-suggestions {
+  .bolt-responsive-ide-mobile:not([data-mobile-panel='chat']) .bolt-project-agent-suggestions,
+  .bolt-responsive-ide-mobile:not([data-mobile-panel='chat']) .bolt-agent-statusline {
     display: none !important;
   }
 
