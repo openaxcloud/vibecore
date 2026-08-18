@@ -1,4 +1,4 @@
-import { requireApiBaseUrl } from './api-base-url.js';
+import { resolveApiBaseUrl } from './api-base-url.js';
 
 /*
  * Deploy build + stale-build reaper triggers (#26).
@@ -23,7 +23,13 @@ function apiBaseUrl(): string {
    * deux — c'est cette divergence qui laissait les jobs de métrage et de
    * maintenance échouer en production. Une seule source de vérité désormais.
    */
-  return requireApiBaseUrl('deploy jobs');
+  const baseUrl = resolveApiBaseUrl();
+
+  if (!baseUrl) {
+    throw new Error('API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger deploy jobs');
+  }
+
+  return baseUrl;
 }
 
 function internalSecret(): string | undefined {

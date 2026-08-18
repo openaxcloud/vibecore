@@ -48,16 +48,3 @@ export function resolveApiBaseUrl(): string | undefined {
 
   return candidates.map((value) => value?.trim()).find((value) => !!value) || undefined;
 }
-
-/** Variante qui échoue explicitement, avec le nom du job dans le message. */
-export function requireApiBaseUrl(jobName: string): string {
-  const baseUrl = resolveApiBaseUrl();
-
-  if (!baseUrl) {
-    throw new Error(
-      `API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger ${jobName}`,
-    );
-  }
-
-  return baseUrl;
-}

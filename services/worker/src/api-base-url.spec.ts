@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { requireApiBaseUrl, resolveApiBaseUrl } from './api-base-url.js';
+import { resolveApiBaseUrl } from './api-base-url.js';
 
 const VARS = ['API_INTERNAL_URL', 'API_URL', 'SAAS_API_URL', 'API_BASE_URL'] as const;
 const saved: Record<string, string | undefined> = {};
@@ -42,7 +42,6 @@ describe("résolution de l'URL interne de l'API", () => {
     });
 
     expect(resolveApiBaseUrl()).toBe('http://api.svc.cluster.local:3001');
-    expect(() => requireApiBaseUrl('metering.objectStorage')).not.toThrow();
   });
 
   it('respecte l’ordre : les surcharges explicites l’emportent', () => {
@@ -64,10 +63,13 @@ describe("résolution de l'URL interne de l'API", () => {
     expect(resolveApiBaseUrl()).toBe('http://saas:3001');
   });
 
-  it('échoue clairement, en nommant le job, quand AUCUNE variable n’est posée', () => {
+  it('rend `undefined` quand AUCUNE variable n’est posée, pour que l’appelant échoue avec son propre message', () => {
+    /*
+     * Le résolveur ne porte pas de message : chaque job lève le sien, en se
+     * nommant, ce qui rend le `failedReason` BullMQ directement exploitable.
+     */
     only({});
     expect(resolveApiBaseUrl()).toBeUndefined();
-    expect(() => requireApiBaseUrl('database.maintenance')).toThrow(/database\.maintenance/u);
   });
 });
 

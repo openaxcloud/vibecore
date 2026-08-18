@@ -266,7 +266,7 @@
       "id": "worker-control-plane-diagnostics",
       "path": "services/worker/src/index.ts",
       "rule": "error-message",
-      "textPattern": "^(?:SIEM webhook \\{…\\} is missing an encrypted signing secret|SIEM webhook delivery failed: \\{…\\}|WORKSPACE_MANAGER_URL is required to trigger workspace\\.gc|workspace\\.gc upstream failed: \\{…\\}|API_INTERNAL_URL \\(or API_URL\\) is required to trigger (?:inactivity\\.gc|metering\\.objectStorage|metering\\.databaseStorage|database\\.maintenance)|(?:inactivity\\.gc|metering\\.objectStorage|metering\\.databaseStorage|database\\.maintenance) upstream failed: \\{…\\}|Unsupported (?:workspace|enterprise|deploy) job: \\{…\\})$",
+      "textPattern": "^(?:SIEM webhook \\{…\\} is missing an encrypted signing secret|SIEM webhook delivery failed: \\{…\\}|WORKSPACE_MANAGER_URL is required to trigger workspace\\.gc|workspace\\.gc upstream failed: \\{…\\}|API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger (?:inactivity\\.gc|metering\\.objectStorage|metering\\.databaseStorage|database\\.maintenance)|(?:inactivity\\.gc|metering\\.objectStorage|metering\\.databaseStorage|database\\.maintenance) upstream failed: \\{…\\}|Unsupported (?:workspace|enterprise|deploy) job: \\{…\\})$",
       "justification": "These errors are BullMQ control-plane failure reasons and operator diagnostics. No application route reads worker queues or failedReason; user-facing scheduled-task and deployment state is persisted and localized by the API catalogue.",
       "owner": "worker-platform-and-i18n",
       "expiresOn": "2027-08-04"
