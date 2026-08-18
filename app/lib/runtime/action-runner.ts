@@ -275,6 +275,19 @@ class ToolTimeoutError extends Error {
   }
 }
 
+/**
+ * L'action a été annulée par l'utilisateur pendant qu'une entrée-sortie était en
+ * vol. Distincte du dépassement de délai : ce n'est pas une panne, c'est un
+ * arrêt demandé — la boucle de reprise doit s'arrêter net, pas réessayer.
+ */
+class ActionAbortedError extends Error {
+  constructor(actionType: ActionState['type']) {
+    super(`Action ${actionType} aborted by the user`);
+    this.name = 'ActionAbortedError';
+    Object.setPrototypeOf(this, ActionAbortedError.prototype);
+  }
+}
+
 /*
  * Whether a `start` boltAction is launching a DEV SERVER (so it should be handed
  * to the workbench's single tracked launcher) rather than some bespoke long-running
@@ -572,7 +585,15 @@ export class ActionRunner {
         status: isStreaming ? 'running' : action.abortSignal.aborted ? 'aborted' : 'complete',
       });
     } catch (error) {
+      /*
+       * Une annulation doit LAISSER UNE TRACE. Ce `return` silencieux laissait le
+       * statut à « running » : quand l'annulation ne vient pas de `action.abort()`
+       * — qui, lui, pose « aborted » — mais du signal partagé, l'action restait
+       * affichée « En cours » pour toujours, alors même que l'utilisateur venait
+       * d'appuyer sur Arrêter. C'est l'autre moitié du blocage de 68 minutes.
+       */
       if (action.abortSignal.aborted) {
+        this.#updateAction(actionId, { status: 'aborted' });
         return;
       }
 
@@ -638,31 +659,60 @@ export class ActionRunner {
     throw lastError;
   }
 
+  /*
+   * BUG-AGENT-HANG-001 — cette course doit TOUJOURS se dénouer.
+   *
+   * Le délai refusait de rejeter dès que l'action était annulée, en supposant
+   * que « la promesse sous-jacente se dénoue d'elle-même ». Cette hypothèse est
+   * fausse : l'écriture (`#runtime.writeFile`) ne reçoit AUCUN signal
+   * d'annulation, elle poursuit ses quatre tentatives de 30 s et peut relancer
+   * un provisionnement d'espace de travail.
+   *
+   * Enchaînement observé en production, 68 minutes durant : l'utilisateur
+   * appuie sur Arrêter → le drapeau d'annulation bascule → le seul mécanisme
+   * capable de dénouer la course est neutralisé → la course ne se dénoue jamais
+   * → `#executeAction` ne rend jamais la main → `#currentExecutionPromise`, qui
+   * SÉRIALISE toutes les actions, reste en attente → chaque action suivante
+   * reste « En cours » et plus aucun fichier n'apparaît dans l'arbre.
+   *
+   * C'est ce qui explique d'un seul mécanisme les quatre symptômes : le blocage,
+   * l'absence de nouveaux fichiers, l'absence d'erreur, et un « Arrêter » qui
+   * rend le blocage définitif au lieu d'y mettre fin.
+   *
+   * Désormais : l'annulation dénoue la course immédiatement, et le délai rejette
+   * dans tous les cas. Une action ne peut plus rester en attente sans fin.
+   */
   async #withTimeout<T>(action: ActionState, promise: Promise<T>): Promise<T> {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
 
     const timeoutMs = this.#timeoutMsForAction(action);
 
     const timeout = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(() => {
-        /*
-         * If the action was already aborted, the underlying promise is settling on
-         * its own; surfacing a timeout here would mask the abort with a misleading
-         * "timed out" error and defeat the retry/abort handling upstream.
-         */
-        if (action.abortSignal.aborted) {
-          return;
-        }
+      timeoutId = setTimeout(() => reject(new ToolTimeoutError(action.type, timeoutMs)), timeoutMs);
+    });
 
-        reject(new ToolTimeoutError(action.type, timeoutMs));
-      }, timeoutMs);
+    const aborted = new Promise<never>((_, reject) => {
+      const rejeter = () => reject(new ActionAbortedError(action.type));
+
+      if (action.abortSignal.aborted) {
+        rejeter();
+        return;
+      }
+
+      onAbort = rejeter;
+      action.abortSignal.addEventListener('abort', rejeter, { once: true });
     });
 
     try {
-      return await Promise.race([promise, timeout]);
+      return await Promise.race([promise, timeout, aborted]);
     } finally {
       if (timeoutId) {
         clearTimeout(timeoutId);
+      }
+
+      if (onAbort) {
+        action.abortSignal.removeEventListener('abort', onAbort);
       }
     }
   }
