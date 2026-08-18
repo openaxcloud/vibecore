@@ -137,6 +137,18 @@ describe('the palettes that failed the live contrast sweep now clear WCAG AA', (
     }
   });
 
+  /*
+   * The admin app ships its own copy of the palette (apps/admin/src/styles.css),
+   * dark-only and on the same #0a0f1c surface. It carried the same 4.16:1 grey,
+   * so the two copies have to move together or the fix is half-applied.
+   */
+  it('keeps the admin copy of the palette on the same tertiary grey', () => {
+    const adminStylesheet = readFileSync(join(__dirname, '..', '..', 'apps', 'admin', 'src', 'styles.css'), 'utf8');
+    const admin = declarationsBySelector(adminStylesheet).get(':root')?.get('--vc-ide-text-muted');
+
+    expect(admin).toBe(token(":root[data-theme='dark']", '--vc-ide-text-muted'));
+  });
+
   it('keeps the tertiary grey visibly quieter than the secondary text', () => {
     const background = token(":root[data-theme='dark']", '--vc-ide-bg-app');
     const muted = contrast(token(":root[data-theme='dark']", '--vc-ide-text-muted'), background);
