@@ -15859,6 +15859,25 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     void loadStatus();
   }, [loadStatus]);
 
+  /*
+   * Seconds spent on the initial probe, so the waiting state can show that it is
+   * still working. The timer only runs while `enabled` is undecided, and is
+   * cleared as soon as the answer lands — it must not keep ticking behind a
+   * panel that has already rendered its result.
+   */
+  const [checkSeconds, setCheckSeconds] = useState(0);
+
+  useEffect(() => {
+    if (enabled !== null) {
+      return undefined;
+    }
+
+    const started = Date.now();
+    const timer = setInterval(() => setCheckSeconds(Math.round((Date.now() - started) / 1000)), 1000);
+
+    return () => clearInterval(timer);
+  }, [enabled]);
+
   useEffect(() => {
     if (provisioned) {
       void refresh(prefix);
@@ -16075,10 +16094,28 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     : objects;
 
   if (enabled === null) {
+    /*
+     * Measured against a real project: the probe answers `200` three times
+     * while it waits, then fails, and the panel showed this one static line for
+     * 45 seconds before saying anything. Nothing moved, no elapsed time, no
+     * hint that a wait was expected — the panel read as frozen. So: a live
+     * spinner, the seconds counting up once the wait stops being instant, and
+     * an explicit "this can take up to a minute" past the point where a user
+     * starts to assume it is broken.
+     */
     return (
       <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
         <div className="bolt-project-empty-panel grid gap-2 text-sm text-bolt-elements-textSecondary">
-          {t('chat.copy.checkingObjectStorage_959b2900')}
+          <span className="flex items-center gap-2" role="status" aria-live="polite">
+            <span className="i-svg-spinners:3-dots-fade shrink-0" aria-hidden />
+            <span>
+              {t('chat.copy.checkingObjectStorage_959b2900')}
+              {checkSeconds >= 5 ? ` (${checkSeconds} s)` : ''}
+            </span>
+          </span>
+          {checkSeconds >= 15 ? (
+            <span className="text-bolt-elements-textTertiary">{t('baseChatAst.storage.checkingSlow')}</span>
+          ) : null}
         </div>
       </div>
     );

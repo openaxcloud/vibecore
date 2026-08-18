@@ -158,20 +158,33 @@ function PanelInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
+/*
+ * The `accent` variant exists because "Commit changes" used to be the default
+ * variant repainted from the outside — `style={{ background: accent }}` plus a
+ * `text-white` in `className`. The base already sets
+ * `text-bolt-elements-button-primary-text` (the action blue), and which of two
+ * competing colour utilities wins is decided by their order in the generated
+ * stylesheet, not by the order of the class attribute. The blue won: measured
+ * live in the Git panel, the label sat at 1.07:1 in dark and 1.54:1 in light on
+ * the orange fill. Carrying background and foreground together in one variant
+ * removes the conflict instead of racing it.
+ */
 function PanelButton({
   children,
   variant,
   ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'outline' }) {
+}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'outline' | 'accent' }) {
   return (
     <button
       {...props}
       type={props.type ?? 'submit'}
       className={classNames(
         'inline-flex h-[32px] items-center justify-center rounded-[6px] px-3 text-[13.3px] font-medium disabled:opacity-60',
-        variant === 'outline'
-          ? 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3'
-          : 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover',
+        variant === 'outline' &&
+          'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
+        variant === 'accent' && 'bg-[var(--ecode-accent,#F26207)] font-semibold text-white hover:opacity-90',
+        !variant &&
+          'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover',
         props.className,
       )}
     >
@@ -1748,9 +1761,8 @@ export function GitTab({ projectId }: GitTabProps) {
                 type="submit"
                 name="intent"
                 value="commit"
+                variant="accent"
                 disabled={busy || stagedFiles.length === 0 || unserializableStagedFiles.length > 0}
-                className="font-semibold text-white hover:opacity-90"
-                style={{ background: 'var(--ecode-accent, #F26207)' }}
               >
                 {t('idePanels.git.commitChanges')}
               </PanelButton>

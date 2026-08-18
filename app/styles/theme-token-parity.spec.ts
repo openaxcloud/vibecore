@@ -129,10 +129,17 @@ describe('the palettes that failed the live contrast sweep now clear WCAG AA', (
     );
   });
 
-  it('reads the dark tertiary grey on both dark surfaces it lands on', () => {
+  /*
+   * All four dark surfaces, not just the two darkest: the first pass only
+   * checked `bg-app` and `bg-panel`, and the live sweep then caught the same
+   * grey at 4.35:1 on `bg-card` ("Focused on …") and 3.42:1 on `bg-hover`
+   * ("Context loaded"). A guard that checks the easy surfaces passes while the
+   * defect ships.
+   */
+  it('reads the dark tertiary grey on every dark surface it lands on', () => {
     const muted = token(":root[data-theme='dark']", '--vc-ide-text-muted');
 
-    for (const surface of ['--vc-ide-bg-app', '--vc-ide-bg-panel'] as const) {
+    for (const surface of ['--vc-ide-bg-app', '--vc-ide-bg-panel', '--vc-ide-bg-card', '--vc-ide-bg-hover'] as const) {
       expect(contrast(muted, token(":root[data-theme='dark']", surface)), surface).toBeGreaterThanOrEqual(AA_BODY_TEXT);
     }
   });

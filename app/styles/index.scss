@@ -1051,15 +1051,16 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-text-primary: #f5f9fc;
   --vc-ide-text-secondary: #c2c8cc;
   /*
-   * #6e7681 measured 4.05:1 on the dark marketing background (#111315) and
-   * 4.16:1 on #0a0f1c — under the 4.5:1 that WCAG AA asks of body text. It is
-   * the token behind `--bolt-elements-textTertiary`, so it carried the whole
-   * secondary line of the dark home page ("No credit card required", "Deploy
-   * instantly", "Scale to millions") and the dark pricing table's
-   * "Contact for pricing". #7d8590 clears the threshold (4.95:1 / 5.13:1) while
-   * staying clearly below --vc-ide-text-secondary (#c2c8cc) in the hierarchy.
+   * Mesuré dans l'IDE réel, les deux thèmes, 390/768/1440 : #6e7681 donnait
+   * 4,05:1 sur le marketing sombre, et #7d8590 — retenu au lot précédent sur
+   * les seules surfaces `bg-app` et `bg-panel` — restait sous le seuil dès
+   * qu'un texte discret se posait sur une surface surélevée : 4,35:1 sur
+   * `--vc-ide-bg-card` (« Focused on … ») et 3,42:1 sur `--vc-ide-bg-hover`
+   * (« Context loaded »). #949ca6 passe les QUATRE surfaces sombres
+   * (6,89 / 6,56 / 5,85 / 4,60) en gardant un écart net avec
+   * `--vc-ide-text-secondary`, qui reste à 9,61:1 sur la carte.
    */
-  --vc-ide-text-muted: #7d8590;
+  --vc-ide-text-muted: #949ca6;
   --vc-ide-text-tertiary: var(--vc-ide-text-muted);
   --vc-ide-text-on-accent: #ffffff;
   --vc-file-tree-foreground: var(--vc-ide-text-secondary);

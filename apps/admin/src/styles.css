@@ -10,7 +10,7 @@
   --vc-ide-text-secondary: #c2c8cc;
   /* Kept in sync with the dark palette of app/styles/index.scss: #6e7681 sat at
      4.16:1 on #0a0f1c, under the 4.5:1 of WCAG AA for body text. */
-  --vc-ide-text-muted: #7d8590;
+  --vc-ide-text-muted: #949ca6;
   --vc-ide-accent-success: #3fb950;
   --vc-ide-accent-action: #0099ff;
   --vc-ide-accent-orange: #f26207;

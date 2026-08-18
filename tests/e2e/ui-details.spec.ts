@@ -171,7 +171,7 @@ async function mountAgentMessageContextDocument(page: Page) {
             --vc-ide-bg-panel: #0e1525;
             --vc-ide-border-subtle: #1a2030;
             --vc-ide-border-visible: #2b3245;
-            --vc-ide-text-muted: #7d8590;
+            --vc-ide-text-muted: #949ca6;
             --vc-ide-text-primary: #f5f9fc;
             --vc-ui-shadow-xl: 0 24px 64px rgb(0 4 20 / 0.7);
           }
@@ -423,7 +423,7 @@ async function mountFloatingSurfacesDocument(page: Page) {
             --vc-ide-bg-panel: #0e1525;
             --vc-ide-border-subtle: #1a2030;
             --vc-ide-border-visible: #2b3245;
-            --vc-ide-text-muted: #7d8590;
+            --vc-ide-text-muted: #949ca6;
             --vc-ide-text-primary: #f5f9fc;
             --vc-ide-text-secondary: #c2c8cc;
             --vc-ui-overlay-blur: blur(16px);
@@ -688,7 +688,7 @@ async function mountMobilePreviewShellDocument(page: Page) {
             --vc-ide-bg-panel: #0e1525;
             --vc-ide-border-subtle: #1a2030;
             --vc-ide-border-visible: #2b3245;
-            --vc-ide-text-muted: #7d8590;
+            --vc-ide-text-muted: #949ca6;
             --vc-ide-text-primary: #f5f9fc;
             --vc-ide-text-secondary: #c2c8cc;
             --vc-ui-shadow-xl: 0 24px 64px rgb(0 4 20 / 0.7);
@@ -863,7 +863,7 @@ async function mountMobileAgentComposerDocument(page: Page) {
             --vc-ide-accent-success: #20c997;
             --vc-ide-border-visible: #2b3245;
             --vc-ide-border-subtle: #1a2030;
-            --vc-ide-text-muted: #7d8590;
+            --vc-ide-text-muted: #949ca6;
             --vc-ide-text-primary: #f5f9fc;
             --vc-ide-text-secondary: #c2c8cc;
             --vc-ui-radius-card: 8px;
@@ -1736,7 +1736,7 @@ function expectThemeDetails(details: Awaited<ReturnType<typeof readUiDetails>>) 
     themeBorderVisible: '#2b3245',
     themeTextPrimary: '#f5f9fc',
     themeTextSecondary: '#c2c8cc',
-    themeTextMuted: '#7d8590',
+    themeTextMuted: '#949ca6',
     themeAiStart: '#7b61ff',
     themeAiEnd: '#ff6b9d',
     themeSuccess: '#3fb950',
