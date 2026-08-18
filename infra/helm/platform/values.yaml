@@ -37,6 +37,9 @@ platformEnv:
   # `<release>-<chart>-api`, so with `helm install vibecore ...` this is
   # `vibecore-vibecore-platform-api.<ns>.svc.cluster.local:<port>`.
   saasApiUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
+  # Surcharge explicite de l'URL interne utilisée par le worker pour ses jobs
+  # internes. VIDE par défaut : le chart retombe alors sur `saasApiUrl`.
+  apiInternalUrl: ''
   apiBaseUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
   publicApiBaseUrl: ''
   platformAdminEmails: ''

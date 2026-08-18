@@ -1,3 +1,5 @@
+import { requireApiBaseUrl } from './api-base-url.js';
+
 /*
  * Deploy build + stale-build reaper triggers (#26).
  *
@@ -16,23 +18,12 @@
 
 function apiBaseUrl(): string {
   /*
-   * Resolve the in-cluster api base URL. Prefer the deploy-specific overrides
-   * (API_INTERNAL_URL / API_URL), then SAAS_API_URL — the platform configmap's
-   * internal api Service URL that actually works in prod
-   * (http://…-api.<ns>.svc.cluster.local:3001; the api Service listens on 3001).
-   *
-   * API_BASE_URL is kept only as a last resort: in prod it points at
-   * `http://…-api.<ns>.svc:80`, but the api Service exposes NO port 80, so a
-   * request to it times out ("fetch failed"). SAAS_API_URL must therefore win.
+   * Délègue au résolveur partagé (`api-base-url.ts`). Cette fonction avait sa
+   * PROPRE chaîne à quatre variables pendant que `index.ts` n'en essayait que
+   * deux — c'est cette divergence qui laissait les jobs de métrage et de
+   * maintenance échouer en production. Une seule source de vérité désormais.
    */
-  const baseUrl =
-    process.env.API_INTERNAL_URL ?? process.env.API_URL ?? process.env.SAAS_API_URL ?? process.env.API_BASE_URL;
-
-  if (!baseUrl) {
-    throw new Error('API_INTERNAL_URL, API_URL, SAAS_API_URL or API_BASE_URL is required to trigger deploy jobs');
-  }
-
-  return baseUrl.replace(/\/+$/, '');
+  return requireApiBaseUrl('deploy jobs');
 }
 
 function internalSecret(): string | undefined {
