@@ -388,7 +388,7 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
      */
     return (
       <label className={cn('flex items-center gap-1.5 text-[13px] text-[var(--ecode-text-secondary)]', className)}>
-        <Sparkles className="h-3.5 w-3.5 shrink-0 text-ecode-accent" aria-hidden />
+        <Sparkles className="h-3.5 w-3.5 shrink-0 text-ecode-accent-text" aria-hidden />
         <span className="shrink-0 font-medium">{copy.modelSelector.compactLabel}</span>
         <select
           value={selectedModel}
@@ -420,7 +420,7 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
         <CardContent className="p-4 sm:p-6">
           <div className="space-y-3 sm:space-y-4">
             <div className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 shrink-0 text-ecode-accent sm:h-5 sm:w-5" aria-hidden="true" />
+              <Sparkles className="h-4 w-4 shrink-0 text-ecode-accent-text sm:h-5 sm:w-5" aria-hidden="true" />
               <h3 className="min-w-0 break-words text-[13px] font-semibold sm:text-base">
                 {copy.modelSelector.cardTitle}
               </h3>
@@ -488,7 +488,7 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
 
   return (
     <div className={cn('flex items-center gap-2 rounded-lg border border-border bg-background px-3 py-2', className)}>
-      <Zap className="h-4 w-4 shrink-0 text-ecode-accent" aria-hidden="true" />
+      <Zap className="h-4 w-4 shrink-0 text-ecode-accent-text" aria-hidden="true" />
       <select
         value={selectedModel || fallbackModels[0]?.id || ''}
         onChange={(event) => handleModelChange(event.target.value)}
@@ -642,7 +642,7 @@ export function BuildModeSelector({
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <div className="mb-2 flex min-w-0 items-center gap-2">
-                <Sparkles className="h-5 w-5 shrink-0 text-ecode-accent" aria-hidden="true" />
+                <Sparkles className="h-5 w-5 shrink-0 text-ecode-accent-text" aria-hidden="true" />
                 <h2 id="build-mode-selector-title" className="min-w-0 break-words text-[15px] font-semibold">
                   {copy.buildMode.title}
                 </h2>

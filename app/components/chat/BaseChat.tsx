@@ -16842,7 +16842,7 @@ function ProjectSkillsPanel({
                 disabled={scope === 'workspace' && !hasWorkspace}
                 className={`rounded-md border px-2.5 py-1 font-medium capitalize transition-colors disabled:opacity-50 ${
                   communityScope === scope
-                    ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
+                    ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-accent-action-text)]'
                     : 'border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3'
                 }`}
               >

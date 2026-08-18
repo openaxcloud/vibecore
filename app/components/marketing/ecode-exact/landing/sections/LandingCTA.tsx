@@ -29,7 +29,7 @@ export default function LandingCta() {
         >
           <Button
             size="lg"
-            className="!h-auto min-h-[44px] max-w-full gap-2 !whitespace-normal break-words bg-white px-8 py-3 text-center text-[15px] font-semibold leading-tight text-ecode-accent hover:bg-white/90"
+            className="!h-auto min-h-[44px] max-w-full gap-2 !whitespace-normal break-words bg-white px-8 py-3 text-center text-[15px] font-semibold leading-tight text-ecode-accent-text-on-light hover:bg-white/90"
             onClick={() => navigate('/register')}
             data-testid="button-cta-register"
           >

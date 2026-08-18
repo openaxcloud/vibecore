@@ -266,9 +266,9 @@ export default function LandingOptimized() {
               }}
               data-testid="badge-hero"
             >
-              <Sparkles className="h-4 w-4 shrink-0 text-ecode-accent" aria-hidden="true" />
+              <Sparkles className="h-4 w-4 shrink-0 text-ecode-accent-text" aria-hidden="true" />
               <span className="min-w-0 break-words">{copy.hero.badge}</span>
-              <Sparkles className="h-4 w-4 shrink-0 text-ecode-accent" aria-hidden="true" />
+              <Sparkles className="h-4 w-4 shrink-0 text-ecode-accent-text" aria-hidden="true" />
             </Badge>
 
             <h1
@@ -339,13 +339,13 @@ export default function LandingOptimized() {
                   onClick={scrollToVideoDemo}
                   data-testid="button-watch-demo-mobile"
                 >
-                  <PlayCircle className="h-4 w-4 shrink-0 text-ecode-accent" aria-hidden="true" />
+                  <PlayCircle className="h-4 w-4 shrink-0 text-ecode-accent-text" aria-hidden="true" />
                   <span className="min-w-0 break-words">{demoLabel}</span>
                 </Button>
                 <Button
                   size="lg"
                   variant="ghost"
-                  className="gap-2 px-6 py-4 text-base w-full min-h-[48px] text-[var(--ecode-text)] hover:text-ecode-accent"
+                  className="gap-2 px-6 py-4 text-base w-full min-h-[48px] text-[var(--ecode-text)] hover:text-ecode-accent-text"
                   onClick={() => navigate('/pricing')}
                   data-testid="button-view-pricing-mobile"
                 >
@@ -398,7 +398,7 @@ export default function LandingOptimized() {
                     key={assurance.id}
                     className="flex min-w-0 max-w-full items-center gap-2 text-[13px] text-[var(--ecode-text-muted)]"
                   >
-                    <CheckCircle className="h-4 w-4 shrink-0 text-ecode-accent" aria-hidden="true" />
+                    <CheckCircle className="h-4 w-4 shrink-0 text-ecode-accent-text" aria-hidden="true" />
                     <span className="break-words">{assurance.text}</span>
                   </div>
                 ))}
@@ -416,13 +416,13 @@ export default function LandingOptimized() {
                 onClick={scrollToVideoDemo}
                 data-testid="button-watch-demo"
               >
-                <PlayCircle className="h-4 w-4 shrink-0 text-ecode-accent sm:h-5 sm:w-5" aria-hidden="true" />
+                <PlayCircle className="h-4 w-4 shrink-0 text-ecode-accent-text sm:h-5 sm:w-5" aria-hidden="true" />
                 <span className="min-w-0 break-words">{demoLabel}</span>
               </Button>
               <Button
                 size="lg"
                 variant="ghost"
-                className="gap-2 px-6 sm:px-8 py-4 sm:py-6 text-base sm:text-[15px] w-full sm:w-auto min-h-[48px] text-[var(--ecode-text)] hover:text-ecode-accent"
+                className="gap-2 px-6 sm:px-8 py-4 sm:py-6 text-base sm:text-[15px] w-full sm:w-auto min-h-[48px] text-[var(--ecode-text)] hover:text-ecode-accent-text"
                 onClick={() => navigate('/pricing')}
                 data-testid="button-view-pricing"
               >

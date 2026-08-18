@@ -62,7 +62,7 @@ export default function LandingTestimonials() {
               <CardContent className="p-6">
                 <div className="mb-4 flex gap-1" aria-label={copy['marketingLanding.testimonials.rating']} role="img">
                   {[1, 2, 3, 4, 5].map((star) => (
-                    <Star key={star} className="h-5 w-5 fill-ecode-accent text-ecode-accent" aria-hidden />
+                    <Star key={star} className="h-5 w-5 fill-ecode-accent text-ecode-accent-text" aria-hidden />
                   ))}
                 </div>
                 <blockquote className="mb-6 break-words text-[15px] italic leading-relaxed text-[var(--ecode-text)]">

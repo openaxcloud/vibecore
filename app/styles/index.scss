@@ -505,6 +505,12 @@ html:has(.vc-app-shell-grid) body {
    * filled control. So the fill gets its own slightly deeper blue (4.91:1 with
    * white) while #0099ff stays the accent for borders, icons and focus rings.
    */
+  /*
+   * Label colour for "active" chips/pills that pair an accent BORDER with a 12%
+   * accent TINT. On dark the accent itself is fine on its own tint (5.18–5.64:1)
+   * so this just aliases it; the light scopes below have to darken it.
+   */
+  --vc-accent-action-text: var(--vc-ide-accent-action);
   --vc-action-primary: #0c74c0;
   --vc-action-primary-hover: #007fe0;
   --vc-action-primary-foreground: #ffffff;
@@ -843,6 +849,9 @@ html:has(.vc-app-shell-grid) body {
   --vc-file-tree-foreground-hover: #1f2024;
   --vc-ide-accent-success: #17803d;
   --vc-ide-accent-action: #006fd6;
+
+  /* #006fd6 on its own 12% tint is 3.96:1; #0060ba reaches 4.97:1. */
+  --vc-accent-action-text: #0060ba;
   --vc-action-primary: var(--vc-ide-accent-action);
   --vc-action-primary-hover: #0059ab;
   --vc-action-primary-foreground: #ffffff;
@@ -3886,6 +3895,9 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   --vc-ide-text-secondary: #3f4449;
   --vc-ide-text-muted: #626970;
   --vc-action-primary: #c2410c;
+
+  /* #c2410c on its own 12% tint is 4.10:1; #a83c07 reaches 5.02:1. */
+  --vc-accent-action-text: #a83c07;
   --vc-action-primary-hover: #9a3412;
   --vc-action-primary-foreground: #ffffff;
   --bolt-elements-bg-depth-4: rgb(231 233 235 / 0.84);

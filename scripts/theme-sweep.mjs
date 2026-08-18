@@ -80,24 +80,53 @@ function collectCandidates() {
     return false;
   };
 
+  /*
+   * WCAG 1.4.3 exempts "inactive user interface components", so a disabled
+   * control is not a violation. The landing page's "Build now" button ships
+   * disabled until the prompt has text, and its 40% disabled fill put white on
+   * a pale orange at 1.83:1 — flagged as a light-theme defect when it is in
+   * fact exempt. Skip disabled controls rather than restyle them.
+   */
+  const disabled = (el) => {
+    for (let n = el; n && n.nodeType === 1; n = n.parentElement) {
+      if (n.disabled === true) return true;
+      if (n.getAttribute('aria-disabled') === 'true') return true;
+      if (n.matches && n.matches(':disabled')) return true;
+    }
+    return false;
+  };
+
   const out = [];
   for (const el of document.querySelectorAll('body *')) {
     const cs = getComputedStyle(el);
-    if (hidden(el)) continue;
+    if (hidden(el) || disabled(el)) continue;
+
+    /*
+     * Content inside role="img" is a single graphic with a text alternative
+     * (the /docs feature mockups), not text the user reads — skip it.
+     */
+    if (el.closest('[role="img"]')) continue;
     let text = '';
     for (const n of el.childNodes) if (n.nodeType === 3) text += n.textContent;
     text = text.trim();
     if (!text) continue;
     const r = el.getBoundingClientRect();
     if (r.width < 6 || r.height < 6) continue;
-    const fg = parse(cs.color);
+    /*
+     * SVG <text> paints with `fill`, not `color`. Reading `color` reported the
+     * inherited token instead of the real ink: the /docs avatar initials are
+     * fill="white" in BOTH themes, but `color` followed the theme and made a
+     * theme-INVARIANT issue look like a dark-only theme defect.
+     */
+    const isSvgText = el.ownerSVGElement != null;
+    const fg = parse(isSvgText ? cs.fill : cs.color);
     if (!fg || fg.a === 0) continue;
     const size = parseFloat(cs.fontSize);
     const weight = parseInt(cs.fontWeight, 10) || 400;
     out.push({
       sel: sel(el),
       text: text.slice(0, 46),
-      color: cs.color,
+      color: isSvgText ? cs.fill : cs.color,
       fg,
       fontPx: size,
       large: size >= 24 || (size >= 18.66 && weight >= 700),

@@ -539,7 +539,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                     className={classNames(
                       'rounded-md border px-2.5 py-1 text-[12px]',
                       editMode
-                        ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
+                        ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-accent-action-text)]'
                         : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
                     )}
                   >

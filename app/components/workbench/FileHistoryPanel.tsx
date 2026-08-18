@@ -431,7 +431,7 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
                 className={classNames(
                   'flex min-h-[44px] min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-normal rounded-md border px-3 text-center text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] sm:flex-none',
                   viewMode === 'compare'
-                    ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
+                    ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-accent-action-text)]'
                     : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
                 )}
               >

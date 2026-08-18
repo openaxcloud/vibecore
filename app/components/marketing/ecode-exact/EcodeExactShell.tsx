@@ -64,7 +64,7 @@ type FooterLink = {
 };
 
 const MOBILE_MENU_SECTION_PRESENTATION = {
-  product: { icon: Sparkles, iconClassName: 'text-ecode-accent', bordered: false },
+  product: { icon: Sparkles, iconClassName: 'text-ecode-accent-text', bordered: false },
   solutions: { icon: ArrowUpRight, iconClassName: 'text-[var(--ecode-accent-text)]', bordered: true },
   resources: { icon: Search, iconClassName: 'text-[var(--ecode-accent-text)]', bordered: true },
   company: { icon: ChevronRight, iconClassName: 'text-[var(--ecode-accent-text)]', bordered: true },

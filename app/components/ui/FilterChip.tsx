@@ -84,7 +84,7 @@ export function FilterChip({ label, value, onClick, onRemove, active = false, ic
   const chipClasses = classNames(
     'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all',
     active
-      ? 'border border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
+      ? 'border border-[var(--vc-ide-accent-action)] text-[var(--vc-accent-action-text)]'
       : 'bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark',
     onRemove && 'pr-1',
     className,
