@@ -6851,6 +6851,45 @@ body :where(.lucide, svg[data-lucide]) {
   min-width: 0;
 }
 
+/*
+ * Bouton flottant « aller au dernier message ».
+ *
+ * `sticky` plutôt que `fixed` : il doit rester dans le conteneur défilant du
+ * transcript, sinon il flotterait aussi au-dessus des autres panneaux de l'IDE.
+ * Posé en fin de contenu, il se colle au bas de la fenêtre de lecture.
+ *
+ * `margin-left: auto` avec une largeur fixe l'aligne à droite sans exiger un
+ * conteneur en `flex` — le transcript est une colonne, un `align-self` y aurait
+ * étiré le bouton.
+ */
+.bolt-agent-scroll-to-bottom {
+  position: sticky;
+  bottom: 12px;
+  z-index: 20;
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  margin-left: auto;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--vc-ide-border-visible, var(--bolt-elements-borderColor));
+  border-radius: 999px;
+  background: var(--vc-ide-bg-card, var(--bolt-elements-background-depth-2));
+  color: var(--vc-ide-text-primary, var(--bolt-elements-textPrimary));
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+  cursor: pointer;
+}
+
+.bolt-agent-scroll-to-bottom:where(:hover, :focus-visible) {
+  background: var(--vc-ide-bg-hover, var(--bolt-elements-background-depth-3));
+}
+
+.bolt-agent-scroll-to-bottom [class*='i-ph:'] {
+  width: 18px;
+  height: 18px;
+  font-size: 18px;
+}
+
 .bolt-project-agent-panel textarea {
   min-width: 0;
 }
