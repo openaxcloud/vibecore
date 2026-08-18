@@ -541,6 +541,17 @@ html:has(.vc-app-shell-grid) body {
   --card-foreground: 205.7 53.8% 97.5%;
   --popover: 221.7 29.1% 15.5%;
   --popover-foreground: 205.7 53.8% 97.5%;
+  /*
+   * Left at the brand orange with a near-white foreground ON PURPOSE. Both
+   * halves were tried and reverted: `bg-primary` + white is 3.11:1 here, but
+   * `--primary-foreground` is ALSO used on surfaces that are not `bg-primary`
+   * (the /blog eyebrow pill), so flipping it to near-black put dark ink on a
+   * dark chip at 1.04:1 — a worse regression than the defect it fixed. And
+   * `--primary` cannot be split, since `bg-primary` and `text-primary` read the
+   * same token: darkening it for fills would push `text-primary` on dark cards
+   * the wrong way. White-on-brand-orange is the same call as BUG-DESIGN-012 and
+   * belongs with it, not in a token nobody can move safely.
+   */
   --primary: 24 96% 49%;
   --primary-foreground: 210 40% 98%;
   --secondary: 222.9 21.6% 19%;
@@ -680,7 +691,7 @@ html:has(.vc-app-shell-grid) body {
   --bolt-elements-button-danger-text: var(--vc-ide-accent-error);
   --bolt-elements-item-contentDefault: var(--vc-ide-text-secondary);
   --bolt-elements-item-contentActive: var(--vc-ide-text-primary);
-  --bolt-elements-item-contentAccent: var(--vc-ide-accent-action);
+  --bolt-elements-item-contentAccent: var(--vc-accent-action-text);
   --bolt-elements-item-contentDanger: var(--vc-ide-accent-error);
   --bolt-elements-item-backgroundDefault: transparent;
   --bolt-elements-item-backgroundActive: var(--vc-ide-bg-hover);
@@ -1020,7 +1031,7 @@ html:has(.vc-app-shell-grid) body {
   --bolt-elements-button-danger-text: var(--vc-ide-accent-error);
   --bolt-elements-item-contentDefault: var(--vc-ide-text-secondary);
   --bolt-elements-item-contentActive: var(--vc-ide-text-primary);
-  --bolt-elements-item-contentAccent: var(--vc-ide-accent-action);
+  --bolt-elements-item-contentAccent: var(--vc-accent-action-text);
   --bolt-elements-item-contentDanger: var(--vc-ide-accent-error);
   --bolt-elements-item-backgroundDefault: transparent;
   --bolt-elements-item-backgroundActive: var(--vc-ide-bg-hover);
@@ -3884,7 +3895,7 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   --bolt-elements-button-primary-backgroundHover: var(--vc-action-primary-hover);
   --bolt-elements-button-primary-text: var(--vc-action-primary-foreground);
   --bolt-elements-item-backgroundAccent: color-mix(in srgb, var(--vc-action-primary) 14%, transparent);
-  --bolt-elements-item-contentAccent: var(--vc-action-primary);
+  --bolt-elements-item-contentAccent: var(--vc-accent-action-text);
   --bolt-elements-loader-progress: var(--vc-action-primary);
   font-family: var(--vc-font-interface);
 }
@@ -25126,11 +25137,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   background: color-mix(in srgb, var(--vc-ide-accent-action) 14%, transparent);
   border-color: color-mix(in srgb, var(--vc-ide-accent-action) 45%, transparent);
 
-  /*
-   * Read on the chip's own 14% accent tint, where the light accent only reaches
-   * 4.21:1. --vc-accent-action-text is the AA-safe companion (aliased to the
-   * accent on dark, deepened on light).
-   */
+  /* AA-safe on the chip's own 14% accent tint (see --vc-accent-action-text). */
   color: var(--vc-accent-action-text);
 }
 
