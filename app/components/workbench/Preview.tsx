@@ -2385,7 +2385,7 @@ export const Preview = memo(
           />
         )}
         <div className="bolt-project-webview-toolbar">
-          <div className="flex items-center gap-1">
+          <div className="bolt-preview-toolbar-tools flex items-center gap-1">
             <IconButton
               icon="i-ph:arrow-left"
               onClick={() => navigatePreviewHistory('back')}
@@ -2462,7 +2462,7 @@ export const Preview = memo(
             </button>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="bolt-preview-toolbar-tools flex items-center gap-1">
             <select
               aria-label={t('idePanels.preview.device')}
               value={previewDevice}
@@ -2546,7 +2546,7 @@ export const Preview = memo(
             />
             <button
               type="button"
-              className="bolt-preview-toolbar-button"
+              className="bolt-preview-toolbar-button bolt-preview-open-external"
               onClick={openInNewTab}
               disabled={!activePreview}
               title={t('idePanels.preview.openBrowser')}
