@@ -6,6 +6,7 @@ import Cookies from 'js-cookie';
 import JSZip from 'jszip';
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
 import { toast } from 'react-toastify';
+import { confirmWriteWithinDeadline, WRITE_CONFIRMATION_TIMEOUT_MS } from '~/lib/runtime/confirm-write';
 import { EditorStore } from './editor';
 import { fileHistoryStore } from './fileHistory';
 import { FilesStore, type FileMap, type ProjectStorageFile, type SaveFileOptions } from './files';
@@ -3021,10 +3022,16 @@ export class WorkbenchStore {
        * rewrites the payload (content sanitizer, self-repair loop), so comparing
        * against `data.action.content` would cry wolf on every repaired file.
        */
-      try {
-        await this.#runtime.readFile(data.action.filePath);
-      } catch {
-        const message = workbenchText('workbenchRuntime.write.failed', { file: data.action.filePath });
+      const confirmation = await confirmWriteWithinDeadline(() => this.#runtime.readFile(data.action.filePath));
+
+      if (confirmation !== 'confirmed') {
+        const message =
+          confirmation === 'timeout'
+            ? workbenchText('workbenchRuntime.write.notConfirmed', {
+                file: data.action.filePath,
+                seconds: Math.round(WRITE_CONFIRMATION_TIMEOUT_MS / 1000),
+              })
+            : workbenchText('workbenchRuntime.write.failed', { file: data.action.filePath });
 
         artifact.runner.failAction(data.actionId, message);
         this.actionAlert.set({
