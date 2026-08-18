@@ -605,7 +605,15 @@ html:has(.vc-app-shell-grid) body {
   --ecode-border-strong: #4a5057;
   --ecode-text: #f5f7f8;
   --ecode-text-secondary: #c0c5ca;
-  --ecode-text-muted: var(--vc-ide-text-muted);
+  /*
+   * Découplé de --vc-ide-text-muted : celui-ci (#7d8590) est calibré pour les
+   * surfaces de l'IDE (4,88:1 au pire), mais le marketing pose aussi du texte
+   * discret sur ses surfaces surélevées — le sous-titre « Watch a real demo… »
+   * de l'accueil est sur --ecode-surface-tertiary (#2b3035), où il tombait à
+   * 3,57:1. #949ca6 y remonte à 4,80:1 tout en restant nettement en retrait de
+   * --ecode-text-secondary (#c0c5ca).
+   */
+  --ecode-text-muted: #949ca6;
   --ecode-surface: #191c1f;
   --ecode-surface-secondary: #22262a;
   --ecode-surface-tertiary: #2b3035;

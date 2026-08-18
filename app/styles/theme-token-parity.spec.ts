@@ -17,7 +17,13 @@ import { describe, expect, it } from 'vitest';
  * review and shows up as unreadable text in production. So the guard is
  * structural — it walks every `[data-theme='light']` override in the stylesheet.
  */
-const STYLESHEET = readFileSync(join(__dirname, 'index.scss'), 'utf8');
+/*
+ * Comments are stripped first: a rule preceded by a `/* … *\/` block would
+ * otherwise carry it into the selector text, and a selector containing a
+ * newline was skipped — which quietly dropped `.vc-user-area-shell` from the
+ * blocks this guard walks.
+ */
+const STYLESHEET = readFileSync(join(__dirname, 'index.scss'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
 
 type Declarations = Map<string, string>;
 
@@ -28,11 +34,43 @@ type Declarations = Map<string, string>;
 function declarationsBySelector(source: string): Map<string, Declarations> {
   const blocks = new Map<string, Declarations>();
 
-  for (const match of source.matchAll(/(?:^|\n)([^\n{}]+)\{([^{}]*)\}/g)) {
-    const selector = match[1].trim();
+  /*
+   * Brace counting rather than one regex: a palette block can contain nested
+   * rules, and a `([^{}]*)` body silently stops at the first inner `}` — which
+   * made the big `:root` palette parse as 33 declarations instead of its real
+   * size, and the tokens the guard is meant to watch simply vanish.
+   */
+  for (let i = 0; i < source.length; i++) {
+    if (source[i] !== '{') {
+      continue;
+    }
+
+    const head = source.slice(0, i);
+
+    const selector = head
+      .slice(Math.max(head.lastIndexOf('}'), head.lastIndexOf('{'), head.lastIndexOf(';')) + 1)
+      .trim();
+
+    if (!selector || selector.includes('\n')) {
+      continue;
+    }
+
+    let depth = 1;
+    let end = i + 1;
+
+    for (; end < source.length && depth > 0; end++) {
+      if (source[end] === '{') {
+        depth++;
+      } else if (source[end] === '}') {
+        depth--;
+      }
+    }
+
+    // Declarations of this block only — anything nested deeper belongs to its own selector.
+    const body = source.slice(i + 1, end - 1).replace(/\{[^{}]*\}/g, '');
     const declarations = blocks.get(selector) ?? new Map<string, string>();
 
-    for (const property of match[2].matchAll(/(--[\w-]+):\s*([^;]+);/g)) {
+    for (const property of body.matchAll(/(--[\w-]+):\s*([^;]+);/g)) {
       declarations.set(property[1], property[2].trim());
     }
 
@@ -55,9 +93,37 @@ function isLiteralColour(value: string) {
 
 const BLOCKS = declarationsBySelector(STYLESHEET);
 
+/*
+ * Deliberately theme-invariant: the same value in light and dark is the design,
+ * not an oversight. Everything else that a dark palette hard-codes must be
+ * restated for light, which is the defect this guard exists to catch.
+ */
+const SAME_IN_BOTH_THEMES = new Map([
+  ['--vc-ide-accent-ai-start', 'AI gradient stop — brand constant, identical in both themes'],
+  ['--vc-ide-accent-ai-end', 'AI gradient stop — brand constant, identical in both themes'],
+  [
+    '--vc-run-stop-bg',
+    'Stop control red — a status colour; its 3.35:1 with white is tracked as a design call, not a theme gap',
+  ],
+]);
+
+/*
+ * `:root[data-theme='light'] X` is checked against `X`, and the root palette
+ * itself against both dark roots — `:root[data-theme='dark']` and the bare
+ * `:root` that holds the default dark values.
+ */
 const LIGHT_OVERRIDES = [...BLOCKS.keys()]
   .filter((selector) => selector.startsWith(":root[data-theme='light']"))
-  .map((selector) => ({ light: selector, dark: selector.replace(/^:root\[data-theme='light'\]\s*/, '') }))
+  .flatMap((selector) => {
+    const scoped = selector.replace(/^:root\[data-theme='light'\]\s*/, '');
+
+    return scoped
+      ? [{ light: selector, dark: scoped }]
+      : [
+          { light: selector, dark: ":root[data-theme='dark']" },
+          { light: selector, dark: ':root' },
+        ];
+  })
   .filter((pair) => BLOCKS.has(pair.dark));
 
 describe('light-theme palettes override every hard-coded colour of their dark block', () => {
@@ -70,7 +136,10 @@ describe('light-theme palettes override every hard-coded colour of their dark bl
     const lightDeclarations = BLOCKS.get(light)!;
 
     const missing = [...darkDeclarations]
-      .filter(([property, value]) => isLiteralColour(value) && !lightDeclarations.has(property))
+      .filter(
+        ([property, value]) =>
+          isLiteralColour(value) && !lightDeclarations.has(property) && !SAME_IN_BOTH_THEMES.has(property),
+      )
       .map(([property, value]) => `${property} (dark: ${value})`);
 
     expect(missing, `${dark} leaks these dark colours into the light theme`).toEqual([]);
@@ -155,5 +224,33 @@ describe('the palettes that failed the live contrast sweep now clear WCAG AA', (
     const secondary = contrast(token(":root[data-theme='dark']", '--vc-ide-text-secondary'), background);
 
     expect(secondary).toBeGreaterThan(muted * 1.5);
+  });
+});
+
+/*
+ * Deux défauts trouvés par le balayage clair/sombre des pages publiques, et le
+ * garde-fou qui les tient : le badge de héros posait sa couleur en dur, et le
+ * gris discret du marketing tombait sous le seuil sur ses surfaces surélevées.
+ */
+describe('the public marketing surfaces stay legible in both themes', () => {
+  const PAGES_DIR = join(__dirname, '..', 'components', 'marketing', 'ecode-exact', 'pages');
+
+  /*
+   * `<Badge variant="secondary" style={{ color: '#F26207' }}>` peignait l'orange
+   * de marque par-dessus la paire prévue par le thème : en clair le badge est
+   * ambre (`--secondary: 39 96% 56%`) et attend du noir, en sombre il est
+   * ardoise et attend du quasi-blanc. Mesuré en live : 1,73:1 en clair et
+   * 4,33:1 en sombre. Sans le style en ligne, la paire du thème redonne
+   * 11,26:1 et 13,35:1.
+   */
+  it.each(['About.tsx', 'Careers.tsx'])('%s ne repeint pas ses badges avec une couleur en dur', (fichier) => {
+    expect(readFileSync(join(PAGES_DIR, fichier), 'utf8')).not.toMatch(/style=\{\{\s*color:\s*'#[0-9a-f]{6}'\s*\}\}/i);
+  });
+
+  it('garde le gris discret du marketing lisible sur sa surface la plus claire', () => {
+    const muted = token(':root', '--ecode-text-muted');
+    const surface = token(':root', '--ecode-surface-tertiary');
+
+    expect(contrast(muted, surface)).toBeGreaterThanOrEqual(AA_BODY_TEXT);
   });
 });
