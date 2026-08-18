@@ -481,7 +481,7 @@ export function DatabaseStudio({ projectId }: { projectId: string }) {
                 type="button"
                 onClick={() => runQuery(sql)}
                 disabled={running || !connectionKey}
-                className="inline-flex items-center gap-1.5 rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-1.5 text-[13px] font-medium text-white hover:opacity-90 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-md bg-[var(--vc-action-primary)] px-3 py-1.5 text-[13px] font-medium text-[var(--vc-action-primary-foreground)] hover:opacity-90 disabled:opacity-60"
               >
                 <Play className="h-3.5 w-3.5" aria-hidden />
                 {running ? copy['databaseStudio.running'] : copy['databaseStudio.run']}

@@ -661,7 +661,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
                   <div className="bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 rounded-lg p-4 text-left border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
                     <p className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-2 flex items-center gap-2">
-                      <span className="i-ph:github-logo w-4 h-4 text-[var(--ecode-accent)]" />
+                      <span className="i-ph:github-logo w-4 h-4 text-[var(--ecode-accent-text)]" />
                       {copy.success.repositoryUrl}
                     </p>
                     <div className="flex items-center gap-2">
@@ -686,7 +686,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
 
                   <div className="bg-bolt-elements-background-depth-2 dark:bg-bolt-elements-background-depth-3 rounded-lg p-4 border border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark">
                     <p className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark mb-2 flex items-center gap-2">
-                      <span className="i-ph:files w-4 h-4 text-[var(--ecode-accent)]" />
+                      <span className="i-ph:files w-4 h-4 text-[var(--ecode-accent-text)]" />
                       {text(copy.success.pushedFiles, { count: pushedFiles.length })}
                     </p>
                     <div className="max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
@@ -782,7 +782,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="mx-auto w-16 h-16 rounded-xl bg-bolt-elements-background-depth-3 flex items-center justify-center text-[var(--ecode-accent)]"
+                    className="mx-auto w-16 h-16 rounded-xl bg-bolt-elements-background-depth-3 flex items-center justify-center text-[var(--ecode-accent-text)]"
                   >
                     <div className="i-ph:github-logo w-8 h-8" />
                   </motion.div>
@@ -842,7 +842,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                     initial={{ scale: 0.8 }}
                     animate={{ scale: 1 }}
                     transition={{ delay: 0.1 }}
-                    className="w-10 h-10 rounded-xl bg-bolt-elements-background-depth-3 flex items-center justify-center text-[var(--ecode-accent)]"
+                    className="w-10 h-10 rounded-xl bg-bolt-elements-background-depth-3 flex items-center justify-center text-[var(--ecode-accent-text)]"
                   >
                     <div className="i-ph:github-logo w-5 h-5" />
                   </motion.div>
@@ -923,7 +923,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                     {repoName && sanitizeRepoName(repoName) !== repoName && (
                       <p className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary-dark mt-1">
                         {copy.form.willCreateAs}{' '}
-                        <span className="font-mono text-[var(--ecode-accent)]">{sanitizeRepoName(repoName)}</span>
+                        <span className="font-mono text-[var(--ecode-accent-text)]">{sanitizeRepoName(repoName)}</span>
                       </p>
                     )}
                   </div>
@@ -979,8 +979,8 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                             >
                               <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-2">
-                                  <div className="i-ph:git-branch w-4 h-4 text-[var(--ecode-accent)]" />
-                                  <span className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark group-hover:text-[var(--ecode-accent)]">
+                                  <div className="i-ph:git-branch w-4 h-4 text-[var(--ecode-accent-text)]" />
+                                  <span className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary-dark group-hover:text-[var(--ecode-accent-text)]">
                                     {repo.name}
                                   </span>
                                 </div>
@@ -1031,7 +1031,7 @@ export function GitHubDeploymentDialog({ isOpen, onClose, projectName, files }: 
                         id="private"
                         checked={isPrivate}
                         onChange={(e) => setIsPrivate(e.target.checked)}
-                        className="rounded border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark text-[var(--ecode-accent)] focus:ring-[var(--ecode-accent)] dark:bg-bolt-elements-background-depth-3"
+                        className="rounded border-bolt-elements-borderColor dark:border-bolt-elements-borderColor-dark text-[var(--ecode-accent-text)] focus:ring-[var(--ecode-accent)] dark:bg-bolt-elements-background-depth-3"
                       />
                       <label
                         htmlFor="private"

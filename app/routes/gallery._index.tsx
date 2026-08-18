@@ -152,14 +152,14 @@ function GalleryCardLink({ card, copy, language }: { card: GalleryCard; copy: Pu
             {card.category}
           </span>
           {card.featured ? (
-            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ecode-accent)]">
+            <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--ecode-accent-text)]">
               <Sparkles className="h-3.5 w-3.5" aria-hidden />
               {copy['publicGallery.gallery.featured']}
             </span>
           ) : null}
         </div>
 
-        <h3 className="mt-3 text-[16px] font-bold text-[var(--ecode-text)] group-hover:text-[var(--ecode-accent)]">
+        <h3 className="mt-3 text-[16px] font-bold text-[var(--ecode-text)] group-hover:text-[var(--ecode-accent-text)]">
           {card.title}
         </h3>
         <p className="mt-1.5 line-clamp-3 flex-1 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
@@ -232,7 +232,7 @@ export default function GalleryIndexRoute() {
           <div className="absolute inset-0 marketing-grid opacity-40" aria-hidden />
           <div className="container-responsive relative py-16 sm:py-24">
             <div className="max-w-4xl">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent-text)]">
                 <Sparkles className="h-5 w-5" aria-hidden />
                 {copy['publicGallery.gallery.badge']}
               </span>

@@ -65,9 +65,9 @@ type FooterLink = {
 
 const MOBILE_MENU_SECTION_PRESENTATION = {
   product: { icon: Sparkles, iconClassName: 'text-ecode-accent', bordered: false },
-  solutions: { icon: ArrowUpRight, iconClassName: 'text-[var(--ecode-accent)]', bordered: true },
-  resources: { icon: Search, iconClassName: 'text-[var(--ecode-accent)]', bordered: true },
-  company: { icon: ChevronRight, iconClassName: 'text-[var(--ecode-accent)]', bordered: true },
+  solutions: { icon: ArrowUpRight, iconClassName: 'text-[var(--ecode-accent-text)]', bordered: true },
+  resources: { icon: Search, iconClassName: 'text-[var(--ecode-accent-text)]', bordered: true },
+  company: { icon: ChevronRight, iconClassName: 'text-[var(--ecode-accent-text)]', bordered: true },
 } as const satisfies Record<
   MarketingShellNavSectionId,
   Readonly<{ icon: LucideIcon; iconClassName: string; bordered: boolean }>

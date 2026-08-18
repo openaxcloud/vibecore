@@ -497,7 +497,15 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-text-on-accent: #ffffff;
   --vc-ide-accent-success: #3fb950;
   --vc-ide-accent-action: #0099ff;
-  --vc-action-primary: var(--vc-ide-accent-action);
+
+  /*
+   * The action accent doubles as a FILL that carries
+   * --vc-action-primary-foreground text, and white on #0099ff is only 3.00:1 —
+   * fine for a border/icon (1.4.11 wants 3:1) but under AA for the label on a
+   * filled control. So the fill gets its own slightly deeper blue (4.91:1 with
+   * white) while #0099ff stays the accent for borders, icons and focus rings.
+   */
+  --vc-action-primary: #0c74c0;
   --vc-action-primary-hover: #007fe0;
   --vc-action-primary-foreground: #ffffff;
   // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
@@ -889,11 +897,22 @@ html:has(.vc-app-shell-grid) body {
   --ecode-accent: #f26207;
   --ecode-accent-hover: #d04e00;
   // AA orange for TEXT/links on light backgrounds; fills stay --ecode-accent.
-  --ecode-accent-text: #c74e00;
+  /*
+   * #c74e00 only cleared AA on pure white (4.65:1) — on the surfaces this text
+   * actually sits on it fell short: 4.37:1 on #f7f8f9, 4.11:1 on #f0f1f2 and
+   * 3.91:1 over the warm #f6e9e2 glow. #b03f08 holds >= 4.96:1 on all of them.
+   */
+  --ecode-accent-text: #b03f08;
   --ecode-focus-ring: rgba(242, 98, 7, 0.35);
   --ecode-selection: rgba(242, 98, 7, 0.25);
-  --status-success-text: #178a4c;
-  --status-warning-text: #b45309;
+  /*
+   * These are read on the tinted status surfaces, not on plain white: the
+   * savings labels sit on #f9fafc (#178a4c = 4.21:1) and the warning banners on
+   * a warm #f2e6dd (#b45309 = 4.10:1) — both under AA while their dark
+   * counterparts sat at 7.8–10.8:1. Deepened to clear 4.5:1 on those surfaces.
+   */
+  --status-success-text: #157f45;
+  --status-warning-text: #a04a08;
   --status-error-text: #dc2626;
   --status-info-text: #2563eb;
 
@@ -1051,15 +1070,18 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-text-primary: #f5f9fc;
   --vc-ide-text-secondary: #c2c8cc;
   /*
-   * #6e7681 measured 4.05:1 on the dark marketing background (#111315) and
-   * 4.16:1 on #0a0f1c — under the 4.5:1 that WCAG AA asks of body text. It is
-   * the token behind `--bolt-elements-textTertiary`, so it carried the whole
-   * secondary line of the dark home page ("No credit card required", "Deploy
-   * instantly", "Scale to millions") and the dark pricing table's
-   * "Contact for pricing". #7d8590 clears the threshold (4.95:1 / 5.13:1) while
-   * staying clearly below --vc-ide-text-secondary (#c2c8cc) in the hierarchy.
+   * #6e7681 is what `--vc-ide-text-tertiary` and `--bolt-elements-textTertiary`
+   * resolve to, i.e. most secondary copy in the app: the dark home page's
+   * "No credit card required" / "Deploy instantly" / "Scale to millions" line,
+   * the dark pricing table's "Contact for pricing", and every meta/timestamp.
+   * It measured 4.05:1 on #111315 and 4.16:1 on #0a0f1c — and only 3.27:1 on
+   * the LIGHTEST dark surface (#23272b) — while the light theme's #475569 sat
+   * at 7.1:1. #7d8590 clears the common backgrounds but still lands at 4.03:1
+   * on #23272b, so this goes one step further: #8b949e holds 4.89:1 there and
+   * 6.22:1 on #0a0f1c, while staying clearly below --vc-ide-text-secondary
+   * (#c2c8cc) in the hierarchy.
    */
-  --vc-ide-text-muted: #7d8590;
+  --vc-ide-text-muted: #8b949e;
   --vc-ide-text-tertiary: var(--vc-ide-text-muted);
   --vc-ide-text-on-accent: #ffffff;
   --vc-file-tree-foreground: var(--vc-ide-text-secondary);
@@ -19331,18 +19353,40 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
 
+  /*
+   * Fixed chrome bar that floats over WHATEVER the active panel renders — and
+   * for the Webview panel that is the user's own app, which is white far more
+   * often than not. So the bar cannot lean on the panel behind it for
+   * separation; it has to carry its own boundary in both themes.
+   *
+   * Dark solves itself (a #0e1525 bar over a white webview is 14.95:1), but in
+   * light the bar resolved to #ffffff over white webview content — 1.03:1, with
+   * a --vc-ide-border-subtle hairline at 1.45:1. The header simply dissolved
+   * into the page. Hence: an OPAQUE surface (the 95% color-mix also let webview
+   * pixels bleed through) plus a boundary token per theme, sized so the light
+   * hairline clears the 3:1 WCAG 1.4.11 bar against its own background.
+   */
   .bolt-mobile-ecode-header {
+    --vc-mobile-header-border: var(--vc-ide-border-visible);
+    --vc-mobile-header-shadow: 0 2px 8px rgb(0 0 0 / 0.45);
+
     position: fixed;
     top: 0;
     right: 0;
     left: 0;
     z-index: 11002;
     display: block;
-    border-bottom: 1px solid var(--vc-ide-border-subtle);
-    background: color-mix(in srgb, var(--vc-ide-bg-panel) 95%, transparent);
+    border-bottom: 1px solid var(--vc-mobile-header-border);
+    background: var(--vc-ide-bg-panel);
     color: var(--vc-ide-text-primary);
-    backdrop-filter: blur(20px);
+    box-shadow: var(--vc-mobile-header-shadow);
     padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  :root[data-theme='light'] .bolt-mobile-ecode-header {
+    /* 3.34:1 on the white bar; --vc-ide-border-visible (#9aa8bb) only reaches 2.42:1. */
+    --vc-mobile-header-border: #7d8ea6;
+    --vc-mobile-header-shadow: 0 2px 6px rgb(15 23 42 / 0.14);
   }
 
   .bolt-mobile-ecode-header-title,
@@ -21882,7 +21926,15 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   --vc-auth-border-subtle: #d5d8dc;
   --vc-auth-text: #17191c;
   --vc-auth-secondary: #3f4449;
-  --vc-auth-muted: #626970;
+
+  /*
+   * Muted copy (back link, legal line, brand subtitle, stat labels) is never
+   * read against the flat page colour: `.vc-auth-left-glow` lays a warm radial
+   * over it, so the effective background is ~#e1d5d1 at the glow's centre. The
+   * previous #626970 cleared AA on #f5f6f7 (5.14:1) but fell to 3.88:1 over the
+   * glow. #525960 holds 4.95:1 there and 7.10:1 on the card.
+   */
+  --vc-auth-muted: #525960;
   --vc-auth-accent: #c2410c;
   --vc-auth-action-foreground: #ffffff;
   --vc-auth-link: var(--vc-auth-accent);

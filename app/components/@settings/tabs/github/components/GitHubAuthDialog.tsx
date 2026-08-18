@@ -287,7 +287,7 @@ export function GitHubAuthDialog({ isOpen, onClose, onSuccess }: GitHubAuthDialo
                     aria-busy={isConnecting}
                     className={classNames(
                       'inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg px-4 py-2 text-center text-sm whitespace-normal sm:w-auto',
-                      'bg-[var(--vc-ide-accent-action)] text-white',
+                      'bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)]',
                       'hover:text-white hover:opacity-90',
                       'disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200',
                     )}

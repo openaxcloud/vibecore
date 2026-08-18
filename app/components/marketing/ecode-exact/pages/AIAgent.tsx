@@ -190,7 +190,7 @@ export default function AiAgent() {
                     <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
                     <span className="h-3 w-3 rounded-full bg-[#28c840]" />
                     <span className="ml-3 inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1 text-[11px] font-medium text-white/60">
-                      <Sparkles className="h-3 w-3 text-[#F26207]" />
+                      <Sparkles className="h-3 w-3 text-[var(--ecode-accent-text)]" />
                       {PRODUCT_HOST}
                     </span>
                   </div>
@@ -309,7 +309,7 @@ export default function AiAgent() {
                     <span className="h-3 w-3 rounded-full bg-[#febc2e]" />
                     <span className="h-3 w-3 rounded-full bg-[#28c840]" />
                     <span className="ml-3 inline-flex items-center gap-1.5 rounded-md bg-white/5 px-3 py-1 text-[11px] font-medium text-white/60">
-                      <Sparkles className="h-3 w-3 text-[#F26207]" />
+                      <Sparkles className="h-3 w-3 text-[var(--ecode-accent-text)]" />
                       {selectedShot.label}
                     </span>
                   </div>

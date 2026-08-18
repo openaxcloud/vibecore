@@ -303,7 +303,7 @@ export default function Contact() {
                       <p className="mkt-body text-muted-foreground mb-4">{channel.description}</p>
                       <a
                         href={`mailto:${channel.address}`}
-                        className="mkt-small font-medium text-[var(--ecode-accent)] hover:underline break-all"
+                        className="mkt-small font-medium text-[var(--ecode-accent-text)] hover:underline break-all"
                         data-testid={`link-contact-${channel.id}`}
                       >
                         {channel.address}
@@ -467,13 +467,16 @@ export default function Contact() {
           <div className="container-responsive">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div>
-                <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl mb-4 text-[var(--ecode-accent)] bg-[var(--bolt-elements-background-depth-2,rgba(255,255,255,0.04))] ring-1 ring-[var(--ecode-border)]">
+                <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl mb-4 text-[var(--ecode-accent-text)] bg-[var(--bolt-elements-background-depth-2,rgba(255,255,255,0.04))] ring-1 ring-[var(--ecode-border)]">
                   <Globe className="h-6 w-6" />
                 </span>
                 <h2 className="mkt-h2 font-bold mb-4">{copy.remote.title}</h2>
                 <p className="mkt-body text-muted-foreground mb-4">
                   {copy.remote.firstBeforeEmail}{' '}
-                  <a href="mailto:hello@e-code.ai" className="font-medium text-[var(--ecode-accent)] hover:underline">
+                  <a
+                    href="mailto:hello@e-code.ai"
+                    className="font-medium text-[var(--ecode-accent-text)] hover:underline"
+                  >
                     {GENERAL_CONTACT_EMAIL}
                   </a>{' '}
                   {copy.remote.firstAfterEmail}
@@ -511,7 +514,7 @@ export default function Contact() {
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
                 <a
                   href="/signup"
-                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold text-[var(--ecode-accent)] bg-white min-h-[44px] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ecode-accent)]"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-md text-sm font-semibold text-[var(--ecode-accent-text)] bg-white min-h-[44px] transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ecode-accent)]"
                   data-testid="link-contact-cta-signup"
                 >
                   {copy.cta.primary}

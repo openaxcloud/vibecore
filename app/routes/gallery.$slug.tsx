@@ -211,7 +211,7 @@ export default function GalleryDetailRoute() {
         <div className="container-responsive py-10 sm:py-14">
           <Link
             to="/gallery"
-            className="inline-flex min-h-[44px] items-center gap-2 text-[13px] font-semibold text-[var(--ecode-text-secondary)] hover:text-[var(--ecode-accent)]"
+            className="inline-flex min-h-[44px] items-center gap-2 text-[13px] font-semibold text-[var(--ecode-text-secondary)] hover:text-[var(--ecode-accent-text)]"
           >
             <ArrowLeft className="h-4 w-4" aria-hidden />
             {copy['publicGallery.detail.back']}

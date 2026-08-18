@@ -417,7 +417,7 @@ export default function UsagePage() {
                         {tone === 'error' ? (
                           <Link
                             to="/upgrade"
-                            className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                            className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--vc-action-primary)] px-3 text-xs font-medium text-[var(--vc-action-primary-foreground)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
                           >
                             {t('usage.table.increaseLimits')}
                           </Link>

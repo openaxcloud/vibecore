@@ -382,7 +382,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
                 <button
                   type="button"
                   onClick={clearFilters}
-                  className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]"
+                  className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent-text)]"
                 >
                   {copy.clearFilters}
                 </button>
@@ -413,7 +413,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
         <section className="border-y border-[var(--ecode-border)] bg-[var(--ecode-surface)]">
           <div className="container-responsive grid gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
             <div>
-              <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[var(--ecode-accent)]">
+              <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[var(--ecode-accent-text)]">
                 {copy.foundations.eyebrow}
               </p>
               <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--ecode-text)] sm:text-5xl">
@@ -434,7 +434,7 @@ export function TemplatesMarketingPage({ categories, templates }: TemplatesPageP
                   key={title}
                   className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-background)] p-5"
                 >
-                  <ShieldCheck className="h-5 w-5 text-[var(--ecode-accent)]" aria-hidden />
+                  <ShieldCheck className="h-5 w-5 text-[var(--ecode-accent-text)]" aria-hidden />
                   <h3 className="mt-4 text-base font-semibold text-[var(--ecode-text)]">{title}</h3>
                   <p className="mt-2 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">{body}</p>
                 </div>
@@ -518,7 +518,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
                   key={item.title}
                   className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-background)] p-5"
                 >
-                  <Icon className="h-5 w-5 text-[var(--ecode-accent)]" aria-hidden />
+                  <Icon className="h-5 w-5 text-[var(--ecode-accent-text)]" aria-hidden />
                   <h2 className="mt-4 text-lg font-bold text-[var(--ecode-text)]">{item.title}</h2>
                   <p className="mt-2 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">{item.body}</p>
                 </div>
@@ -561,7 +561,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
                       'inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
                       activeCategory === category.id
                         ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)] text-white'
-                        : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
+                        : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent-text)]',
                     )}
                   >
                     {category.name}
@@ -618,7 +618,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
         <section className="border-y border-[var(--ecode-border)] bg-[var(--ecode-surface)]">
           <div className="container-responsive grid gap-10 py-16 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <div>
-              <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[var(--ecode-accent)]">
+              <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[var(--ecode-accent-text)]">
                 {copy.events.eyebrow}
               </p>
               <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--ecode-text)] sm:text-5xl">
@@ -637,7 +637,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
                   key={event.id}
                   className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-background)] p-5"
                 >
-                  <div className="flex items-center justify-between gap-3 text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--ecode-accent)]">
+                  <div className="flex items-center justify-between gap-3 text-[12px] font-semibold uppercase tracking-[0.18em] text-[var(--ecode-accent-text)]">
                     <Calendar className="h-4 w-4" aria-hidden />
                     <span>{formatPublicDate(event.date, language)}</span>
                   </div>
@@ -645,7 +645,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
                   <p className="mt-2 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">{event.description}</p>
                   <Link
                     to={loginReturnTo('/community')}
-                    className="mt-5 inline-flex items-center text-[13px] font-semibold text-[var(--ecode-accent)]"
+                    className="mt-5 inline-flex items-center text-[13px] font-semibold text-[var(--ecode-accent-text)]"
                   >
                     {copy.events.register}
                     <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
@@ -690,7 +690,7 @@ function ResourceHero({
       <div className="absolute inset-0 marketing-grid opacity-40" aria-hidden />
       <div className="container-responsive relative py-20 sm:py-28">
         <div className="max-w-4xl">
-          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+          <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent-text)]">
             {icon}
             {eyebrow}
           </span>
@@ -742,7 +742,7 @@ function ProductCapture({ src, alt, caption }: { src: string; alt: string; capti
 function SectionHeader({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
   return (
     <div className="max-w-3xl">
-      <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[var(--ecode-accent)]">{eyebrow}</p>
+      <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[var(--ecode-accent-text)]">{eyebrow}</p>
       <h2 className="mt-4 text-3xl font-bold tracking-tight text-[var(--ecode-text)] sm:text-5xl">{title}</h2>
       <p className="mt-4 text-base leading-8 text-[var(--ecode-text-secondary)]">{description}</p>
     </div>
@@ -814,7 +814,7 @@ function TemplateTagChip({ label, active, onClick }: { label: string; active: bo
         'inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
         active
           ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)] text-white'
-          : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
+          : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent-text)]',
       )}
     >
       {label}
@@ -922,19 +922,19 @@ function CommunityFeedCard({ post }: { post: PublicCommunityPost }) {
   return (
     <article className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-5 transition hover:border-[var(--ecode-accent)]/60 hover:shadow-xl">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--ecode-surface-secondary)] text-[13px] font-bold text-[var(--ecode-accent)]">
+        <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--ecode-surface-secondary)] text-[13px] font-bold text-[var(--ecode-accent-text)]">
           {post.authorInitials}
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <Link
               to={`/community/post/${post.id}`}
-              className="text-xl font-bold tracking-tight text-[var(--ecode-text)] hover:text-[var(--ecode-accent)]"
+              className="text-xl font-bold tracking-tight text-[var(--ecode-text)] hover:text-[var(--ecode-accent-text)]"
             >
               {post.title}
             </Link>
             <span className="inline-flex items-center gap-1 rounded-full bg-[var(--ecode-surface-secondary)] px-3 py-1 text-[11px] font-semibold text-[var(--ecode-text-secondary)]">
-              <BookOpen className="h-3.5 w-3.5 text-[var(--ecode-accent)]" aria-hidden />
+              <BookOpen className="h-3.5 w-3.5 text-[var(--ecode-accent-text)]" aria-hidden />
               {post.categoryName}
             </span>
           </div>
@@ -971,14 +971,14 @@ function CommunityFeedCard({ post }: { post: PublicCommunityPost }) {
             <div className="flex flex-wrap items-center gap-3">
               <Link
                 to={`/community/post/${post.id}`}
-                className="inline-flex items-center text-[13px] font-semibold text-[var(--ecode-accent)]"
+                className="inline-flex items-center text-[13px] font-semibold text-[var(--ecode-accent-text)]"
               >
                 {copy.read}
                 <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
               </Link>
               <Link
                 to={loginReturnTo(`/community/post/${post.id}`)}
-                className="inline-flex items-center text-[13px] font-semibold text-[var(--ecode-text-secondary)] hover:text-[var(--ecode-accent)]"
+                className="inline-flex items-center text-[13px] font-semibold text-[var(--ecode-text-secondary)] hover:text-[var(--ecode-accent-text)]"
               >
                 {copy.reply}
               </Link>
@@ -994,7 +994,7 @@ function ActionMetric({ href, icon, label }: { href: string; icon: ReactNode; la
   return (
     <Link
       to={href}
-      className="inline-flex min-h-8 items-center gap-1 rounded-full px-2 transition hover:bg-[var(--ecode-surface-secondary)] hover:text-[var(--ecode-accent)]"
+      className="inline-flex min-h-8 items-center gap-1 rounded-full px-2 transition hover:bg-[var(--ecode-surface-secondary)] hover:text-[var(--ecode-accent-text)]"
     >
       {icon}
       {label}
@@ -1006,7 +1006,7 @@ function CommunitySidebarPanel({ title, icon, children }: { title: string; icon:
   return (
     <section className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-5">
       <h2 className="flex items-center gap-2 text-lg font-bold text-[var(--ecode-text)]">
-        <span className="text-[var(--ecode-accent)]">{icon}</span>
+        <span className="text-[var(--ecode-accent-text)]">{icon}</span>
         {title}
       </h2>
       <div className="mt-5 space-y-5">{children}</div>
@@ -1027,7 +1027,7 @@ function CommunityChallengeItem({ challenge }: { challenge: PublicCommunityChall
           className={classNames(
             'inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-[0.16em]',
             difficultyAccent
-              ? 'border-[var(--ecode-accent)] text-[var(--ecode-accent)]'
+              ? 'border-[var(--ecode-accent)] text-[var(--ecode-accent-text)]'
               : 'border-[var(--ecode-border)] text-[var(--ecode-text-muted)]',
           )}
         >
@@ -1047,7 +1047,7 @@ function CommunityChallengeItem({ challenge }: { challenge: PublicCommunityChall
       </div>
       <Link
         to={loginReturnTo('/community')}
-        className="mt-3 inline-flex text-[13px] font-semibold text-[var(--ecode-accent)]"
+        className="mt-3 inline-flex text-[13px] font-semibold text-[var(--ecode-accent-text)]"
       >
         {copy.participate}
         <ArrowRight className="ml-2 h-4 w-4" aria-hidden />
@@ -1067,7 +1067,7 @@ function CommunityContributorRow({ contributor }: { contributor: PublicCommunity
         <p className="truncate text-[12px] text-[var(--ecode-text-muted)]">@{contributor.handle}</p>
       </div>
       <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--ecode-surface-secondary)] px-2.5 py-1 text-[11px] text-[var(--ecode-text-secondary)]">
-        <Award className="h-3.5 w-3.5 text-[var(--ecode-accent)]" aria-hidden />
+        <Award className="h-3.5 w-3.5 text-[var(--ecode-accent-text)]" aria-hidden />
         {contributor.badge}
       </span>
     </div>
@@ -1088,7 +1088,7 @@ function ResourceCta({
   return (
     <section className="container-responsive pb-20 sm:pb-28">
       <div className="rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-8 text-center sm:p-12">
-        <Sparkles className="mx-auto h-8 w-8 text-[var(--ecode-accent)]" aria-hidden />
+        <Sparkles className="mx-auto h-8 w-8 text-[var(--ecode-accent-text)]" aria-hidden />
         <h2 className="mx-auto mt-5 max-w-3xl text-3xl font-bold tracking-tight text-[var(--ecode-text)] sm:text-5xl">
           {title}
         </h2>
@@ -1123,7 +1123,7 @@ function MarketingLinkButton({
         fullWidth ? 'w-full' : '',
         variant === 'primary'
           ? 'bg-[var(--ecode-accent)] text-white hover:bg-[var(--ecode-accent-hover)]'
-          : 'border border-[var(--ecode-border)] bg-transparent text-[var(--ecode-text)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
+          : 'border border-[var(--ecode-border)] bg-transparent text-[var(--ecode-text)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent-text)]',
       )}
     >
       {children}

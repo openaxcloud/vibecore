@@ -521,7 +521,7 @@ export function MarketingIndexPage({
           <div className="absolute inset-0 marketing-grid opacity-40" aria-hidden />
           <div className="container-responsive relative py-20 sm:py-28">
             <div className="max-w-4xl">
-              <span className="inline-flex items-center rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+              <span className="inline-flex items-center rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent-text)]">
                 E-Code
               </span>
               <h1 className="mkt-h1 mt-8 max-w-4xl text-[var(--ecode-text)]">{title}</h1>
@@ -541,14 +541,14 @@ export function MarketingIndexPage({
                   to={routeForPage(page)}
                   className="group flex min-h-[15rem] flex-col rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-6 text-[var(--ecode-text)] no-underline transition hover:-translate-y-1 hover:border-[var(--ecode-accent)] hover:shadow-xl"
                 >
-                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--ecode-surface-secondary)] text-[var(--ecode-accent)]">
+                  <span className="inline-flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--ecode-surface-secondary)] text-[var(--ecode-accent-text)]">
                     <Icon className="h-5 w-5" aria-hidden />
                   </span>
                   <strong className="mt-5 text-xl font-bold tracking-tight">{page.title}</strong>
                   <small className="mt-3 text-[14px] leading-6 text-[var(--ecode-text-secondary)]">
                     {page.description}
                   </small>
-                  <span className="mt-auto inline-flex items-center pt-7 text-[13px] font-semibold text-[var(--ecode-accent)]">
+                  <span className="mt-auto inline-flex items-center pt-7 text-[13px] font-semibold text-[var(--ecode-accent-text)]">
                     {ui.viewPage}
                     <ArrowRight className="ml-2 h-4 w-4 transition group-hover:translate-x-1" aria-hidden />
                   </span>
@@ -604,7 +604,7 @@ function MarketingPageContent({ page }: { page: MarketingPageDefinition }) {
         <div className="absolute inset-0 marketing-grid opacity-40" aria-hidden />
         <div className="container-responsive relative py-20 sm:py-28">
           <div className="max-w-4xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent-text)]">
               <Icon className="h-4 w-4" aria-hidden />
               {page.eyebrow}
             </span>
@@ -631,7 +631,7 @@ function MarketingPageContent({ page }: { page: MarketingPageDefinition }) {
               key={highlight}
               className="flex min-h-[4.75rem] items-center gap-3 rounded-lg border border-[var(--ecode-border)] bg-[var(--ecode-surface)] p-4 text-[14px] font-medium text-[var(--ecode-text)]"
             >
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-[var(--ecode-accent-text)]" aria-hidden />
               <span>{highlight}</span>
             </div>
           ))}
@@ -693,7 +693,7 @@ function MarketingPageContent({ page }: { page: MarketingPageDefinition }) {
             <ul className="mt-6 grid gap-3">
               {section.items.map((item) => (
                 <li key={item} className="flex items-center gap-3 text-[14px] font-medium text-[var(--ecode-text)]">
-                  <ArrowRight className="h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+                  <ArrowRight className="h-4 w-4 shrink-0 text-[var(--ecode-accent-text)]" aria-hidden />
                   <span>{item}</span>
                 </li>
               ))}
@@ -741,7 +741,7 @@ function EcodeMarketingActionLink({
   const className =
     variant === 'primary'
       ? 'inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--ecode-accent)] px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-[var(--ecode-accent-hover)]'
-      : 'inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]';
+      : 'inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent-text)]';
 
   if (/^(https?:)?\/\//.test(to)) {
     return (

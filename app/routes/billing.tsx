@@ -546,7 +546,7 @@ export default function BillingPage() {
             </div>
             <Link
               to="/payment-method"
-              className="inline-flex h-[44px] shrink-0 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+              className="inline-flex h-[44px] shrink-0 items-center justify-center rounded-md bg-[var(--vc-action-primary)] px-3 text-xs font-medium text-[var(--vc-action-primary-foreground)] transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
             >
               {t('billing.alert.updatePayment')}
             </Link>

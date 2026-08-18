@@ -131,7 +131,7 @@ function ExploreProjectCard({
         <span className="text-[12px] text-[var(--ecode-text-muted)]">{project.categoryName}</span>
       </div>
 
-      <h3 className="mt-3 text-[16px] font-bold text-[var(--ecode-text)] group-hover:text-[var(--ecode-accent)]">
+      <h3 className="mt-3 text-[16px] font-bold text-[var(--ecode-text)] group-hover:text-[var(--ecode-accent-text)]">
         {project.name}
       </h3>
       <p className="mt-1.5 line-clamp-3 flex-1 text-[13px] leading-6 text-[var(--ecode-text-secondary)]">
@@ -273,7 +273,7 @@ export function ExploreMarketingPage({ projects, categories }: ExplorePageProps)
           <div className="absolute inset-0 marketing-grid opacity-40" aria-hidden />
           <div className="container-responsive relative py-20 sm:py-28">
             <div className="max-w-4xl">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent-text)]">
                 <Sparkles className="h-5 w-5" aria-hidden />
                 {copy['publicGallery.explore.badge']}
               </span>
@@ -381,7 +381,7 @@ export function ExploreMarketingPage({ projects, categories }: ExplorePageProps)
                   <button
                     type="button"
                     onClick={clearFilters}
-                    className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]"
+                    className="inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent-text)]"
                   >
                     {copy['publicGallery.explore.clearFilters']}
                   </button>

@@ -351,7 +351,7 @@ export function EcodeAiAgentPage() {
               <div className="mt-7 flex flex-wrap gap-4 text-sm text-bolt-elements-textSecondary">
                 {copy.proof.map((proof) => (
                   <span key={proof} className="inline-flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-[var(--ecode-accent)]" aria-hidden />
+                    <CheckCircle2 className="h-4 w-4 text-[var(--ecode-accent-text)]" aria-hidden />
                     {proof}
                   </span>
                 ))}
@@ -421,7 +421,7 @@ export function EcodeAiAgentPage() {
               </Panel>
               <Panel>
                 <h3 className="flex items-center gap-2 text-base font-semibold text-bolt-elements-textPrimary">
-                  <Sparkles className="h-5 w-5 text-[var(--ecode-accent)]" aria-hidden />
+                  <Sparkles className="h-5 w-5 text-[var(--ecode-accent-text)]" aria-hidden />
                   {copy.agentDoes}
                 </h3>
                 <dl className="mt-4 space-y-3 text-sm">
@@ -446,12 +446,12 @@ export function EcodeAiAgentPage() {
                   className="group rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
                 >
                   <Panel className="h-full transition-colors group-hover:border-[var(--ecode-accent)]">
-                    <Icon className="h-7 w-7 text-[var(--ecode-accent)]" aria-hidden />
+                    <Icon className="h-7 w-7 text-[var(--ecode-accent-text)]" aria-hidden />
                     <h3 className="mt-3 font-semibold text-bolt-elements-textPrimary">{reel.title}</h3>
                     <p className="mt-2 text-sm text-bolt-elements-textSecondary">
                       {copy.timestampLabel(reel.timestamp)}
                     </p>
-                    <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--ecode-accent)]">
+                    <span className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[var(--ecode-accent-text)]">
                       {copy.watchNow}
                       <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" aria-hidden />
                     </span>
@@ -481,7 +481,7 @@ export function EcodeAiAgentPage() {
               {copy.capabilities.map((capability) => (
                 <Panel key={capability.title}>
                   <h3 className="flex items-center gap-2 text-lg font-semibold text-bolt-elements-textPrimary">
-                    <Sparkles className="h-5 w-5 text-[var(--ecode-accent)]" aria-hidden />
+                    <Sparkles className="h-5 w-5 text-[var(--ecode-accent-text)]" aria-hidden />
                     {capability.title}
                   </h3>
                   <p className="mt-2 text-sm text-bolt-elements-textSecondary">{capability.description}</p>
@@ -496,7 +496,7 @@ export function EcodeAiAgentPage() {
                 const Icon = aiAgentUseCaseIcons[useCase.id];
                 return (
                   <Panel key={useCase.category}>
-                    <Icon className="h-8 w-8 text-[var(--ecode-accent)]" aria-hidden />
+                    <Icon className="h-8 w-8 text-[var(--ecode-accent-text)]" aria-hidden />
                     <h3 className="mt-3 text-lg font-semibold text-bolt-elements-textPrimary">{useCase.category}</h3>
                     <p className="mt-1 text-sm text-bolt-elements-textTertiary">{useCase.timing}</p>
                     <CheckList className="mt-4" items={useCase.apps} />
@@ -510,7 +510,7 @@ export function EcodeAiAgentPage() {
               {copy.comparison.map((item) => (
                 <Panel key={item.title}>
                   <h3 className="flex items-center gap-2 text-lg font-semibold text-bolt-elements-textPrimary">
-                    <Sparkles className="h-5 w-5 text-[var(--ecode-accent)]" aria-hidden />
+                    <Sparkles className="h-5 w-5 text-[var(--ecode-accent-text)]" aria-hidden />
                     {item.title}
                   </h3>
                   <p className="mt-2 text-sm text-bolt-elements-textSecondary">{item.description}</p>
@@ -560,7 +560,7 @@ export function EcodeAiPlatformPage() {
               <div className="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-4">
                 {copy.highlights.map(([value, label]) => (
                   <div key={value}>
-                    <div className="text-lg font-bold text-[var(--ecode-accent)]">{value}</div>
+                    <div className="text-lg font-bold text-[var(--ecode-accent-text)]">{value}</div>
                     <div className="mt-1 text-xs font-medium text-bolt-elements-textSecondary">{label}</div>
                   </div>
                 ))}
@@ -605,7 +605,7 @@ export function EcodeAiPlatformPage() {
                     )}
                   >
                     <div className="flex items-start gap-3">
-                      <span className="rounded-lg bg-[var(--ecode-accent)]/10 p-2 text-[var(--ecode-accent)]">
+                      <span className="rounded-lg bg-[var(--ecode-accent)]/10 p-2 text-[var(--ecode-accent-text)]">
                         <Icon className="h-5 w-5" aria-hidden />
                       </span>
                       <span>
@@ -807,7 +807,7 @@ export function EcodeMobilePage() {
                       : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 hover:bg-bolt-elements-background-depth-2',
                   )}
                 >
-                  <Icon className="h-8 w-8 text-[var(--ecode-accent)]" aria-hidden />
+                  <Icon className="h-8 w-8 text-[var(--ecode-accent-text)]" aria-hidden />
                   <h3 className="mt-4 text-lg font-semibold text-bolt-elements-textPrimary">{feature.title}</h3>
                   <p className="mt-2 text-sm text-bolt-elements-textSecondary">{feature.description}</p>
                 </button>
@@ -932,7 +932,7 @@ export function EcodePricingPage() {
                         <span className="text-bolt-elements-textSecondary">{copy.perMonth}</span>
                       </div>
                       {billingPeriod === 'yearly' && plan.monthlyCents > 0 ? (
-                        <p className="mt-1 text-sm font-medium text-[var(--ecode-accent)]">
+                        <p className="mt-1 text-sm font-medium text-[var(--ecode-accent-text)]">
                           {copy.billedAnnually(formatAnnualPrice(plan.annualMonthlyCents, language))}
                         </p>
                       ) : null}
@@ -976,7 +976,7 @@ export function EcodePricingPage() {
                       key={planKey}
                       className={classNames(
                         'p-5 text-center font-semibold',
-                        planKey === 'core' ? 'text-[var(--ecode-accent)]' : 'text-bolt-elements-textPrimary',
+                        planKey === 'core' ? 'text-[var(--ecode-accent-text)]' : 'text-bolt-elements-textPrimary',
                       )}
                     >
                       {planCopy[planKey].name}
@@ -1037,7 +1037,7 @@ export function EcodePricingPage() {
               <div className="mt-6 grid gap-3 sm:grid-cols-2">
                 {copy.enterpriseHighlights.map((item) => (
                   <span key={item} className="flex items-center gap-2 text-white/85">
-                    <CheckCircle2 className="h-5 w-5 text-[var(--ecode-accent)]" aria-hidden />
+                    <CheckCircle2 className="h-5 w-5 text-[var(--ecode-accent-text)]" aria-hidden />
                     {item}
                   </span>
                 ))}
@@ -1189,7 +1189,7 @@ export function EcodeBountiesPage() {
                     key={item}
                     className="inline-flex items-center gap-2 rounded-full border border-white/10 px-3 py-1"
                   >
-                    <CheckCircle2 className="h-4 w-4 text-[var(--ecode-accent)]" aria-hidden />
+                    <CheckCircle2 className="h-4 w-4 text-[var(--ecode-accent-text)]" aria-hidden />
                     {item}
                   </span>
                 ))}
@@ -1242,7 +1242,7 @@ export function EcodeBountiesPage() {
             {copy.categories.map((category) => (
               <Panel key={category}>
                 <div className="flex items-center gap-3">
-                  <Sparkles className="h-5 w-5 text-[var(--ecode-accent)]" aria-hidden />
+                  <Sparkles className="h-5 w-5 text-[var(--ecode-accent-text)]" aria-hidden />
                   <h3 className="font-semibold text-bolt-elements-textPrimary">{category}</h3>
                 </div>
               </Panel>
@@ -1493,7 +1493,7 @@ function IconCard({ children, icon, title }: { children: ReactNode; icon: Lucide
 
   return (
     <Panel>
-      <span className="inline-flex rounded-lg bg-[var(--ecode-accent)]/10 p-3 text-[var(--ecode-accent)]">
+      <span className="inline-flex rounded-lg bg-[var(--ecode-accent)]/10 p-3 text-[var(--ecode-accent-text)]">
         <IconComponent className="h-7 w-7" aria-hidden />
       </span>
       <h3 className="mt-4 text-xl font-semibold text-bolt-elements-textPrimary">{title}</h3>
@@ -1521,7 +1521,7 @@ function CheckList({
             invert ? 'text-white/80' : 'text-bolt-elements-textSecondary',
           )}
         >
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--ecode-accent)]" aria-hidden />
+          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-[var(--ecode-accent-text)]" aria-hidden />
           <span>{item}</span>
         </li>
       ))}
@@ -1653,7 +1653,7 @@ function FeatureTile({ feature, icon }: { feature: ProductFeatureCopy; icon: Luc
 
   return (
     <Panel>
-      <span className="inline-flex rounded-lg bg-[var(--ecode-accent)]/10 p-3 text-[var(--ecode-accent)]">
+      <span className="inline-flex rounded-lg bg-[var(--ecode-accent)]/10 p-3 text-[var(--ecode-accent-text)]">
         <Icon className="h-6 w-6" aria-hidden />
       </span>
       <h3 className="mt-4 text-xl font-semibold text-bolt-elements-textPrimary">{feature.title}</h3>
@@ -1678,7 +1678,7 @@ function PhoneDemo({ activeFeature, icon }: { activeFeature: MobileFeatureCopy; 
             <span className="rounded-full bg-emerald-500/20 px-2 py-0.5 text-xs text-emerald-200">{copy.live}</span>
           </div>
           <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-5">
-            <Icon className="h-10 w-10 text-[var(--ecode-accent)]" aria-hidden />
+            <Icon className="h-10 w-10 text-[var(--ecode-accent-text)]" aria-hidden />
             <h2 className="mt-4 text-xl font-semibold">{activeFeature.title}</h2>
             <p className="mt-2 text-sm leading-6 text-white/65">{activeFeature.description}</p>
           </div>
@@ -1727,7 +1727,7 @@ function MobileFeatureDemo({ copy, featureId }: { copy: RemainingProductCopy['mo
               key={device}
               className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-center"
             >
-              <MonitorSmartphone className="mx-auto h-8 w-8 text-[var(--ecode-accent)]" aria-hidden />
+              <MonitorSmartphone className="mx-auto h-8 w-8 text-[var(--ecode-accent-text)]" aria-hidden />
               <p className="mt-3 text-sm font-medium text-bolt-elements-textPrimary">{device}</p>
               <p className="mt-1 text-xs text-bolt-elements-textSecondary">{copy.edgePreview}</p>
             </div>

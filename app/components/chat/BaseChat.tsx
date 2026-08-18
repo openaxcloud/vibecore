@@ -16139,7 +16139,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
             type="button"
             onClick={() => void enableStorage()}
             disabled={enabling || busy}
-            className="w-fit rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-fit rounded-md bg-[var(--vc-action-primary)] px-3 py-2 text-sm font-medium text-[var(--vc-action-primary-foreground)] hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {enabling ? t('chat.copy.enabling_5c258f09') : t('chat.copy.enableObjectStorage_3c4cc0c4')}
           </button>
@@ -16696,7 +16696,7 @@ function ProjectSkillsPanel({
   const tabButtonClass = (active: boolean) =>
     `rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
       active
-        ? 'bg-[var(--vc-ide-accent-action)] text-white'
+        ? 'bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)]'
         : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3'
     }`;
 
@@ -16902,7 +16902,7 @@ function ProjectSkillsPanel({
                         type="button"
                         onClick={() => void installFromCatalog(entry.ownerRepo, communityScope)}
                         disabled={busy || pending === `i:${entry.ownerRepo}`}
-                        className="shrink-0 rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                        className="shrink-0 rounded-md bg-[var(--vc-action-primary)] px-3 py-1.5 text-xs font-medium text-[var(--vc-action-primary-foreground)] transition-opacity hover:opacity-90 disabled:opacity-60"
                       >
                         {pending === `i:${entry.ownerRepo}`
                           ? t('chat.copy.installing_8d278823')

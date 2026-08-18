@@ -210,7 +210,7 @@ function SearchResultRow({
         to={to}
         className="group flex items-start gap-4 p-4 text-[var(--ecode-text)] no-underline transition hover:bg-[var(--ecode-surface-secondary)] sm:p-5"
       >
-        <span className="mt-0.5 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-[var(--ecode-surface-secondary)] text-[var(--ecode-accent)]">
+        <span className="mt-0.5 inline-flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-[var(--ecode-surface-secondary)] text-[var(--ecode-accent-text)]">
           <Icon className="h-4 w-4" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
@@ -225,7 +225,7 @@ function SearchResultRow({
           ) : null}
         </span>
         <ArrowRight
-          className="mt-1 h-4 w-4 flex-shrink-0 text-[var(--ecode-text-secondary)] transition group-hover:translate-x-1 group-hover:text-[var(--ecode-accent)]"
+          className="mt-1 h-4 w-4 flex-shrink-0 text-[var(--ecode-text-secondary)] transition group-hover:translate-x-1 group-hover:text-[var(--ecode-accent-text)]"
           aria-hidden
         />
       </Link>
@@ -305,7 +305,7 @@ export default function SearchRoute() {
           <div className="absolute inset-0 marketing-grid opacity-40" aria-hidden />
           <div className="container-responsive relative py-16 sm:py-20">
             <div className="mx-auto max-w-3xl text-center">
-              <span className="inline-flex items-center rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+              <span className="inline-flex items-center rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent-text)]">
                 {copy.ui.eyebrow}
               </span>
               <h1 className="mkt-h1 mt-8 break-words text-[var(--ecode-text)]">{copy.ui.title}</h1>

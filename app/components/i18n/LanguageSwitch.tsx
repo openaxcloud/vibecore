@@ -95,7 +95,7 @@ export function LanguageSwitch({
             type="button"
             className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full px-2.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)] focus-visible:ring-offset-1 ${
               active
-                ? 'bg-[var(--vc-action-primary)] text-white shadow-sm'
+                ? 'bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)] shadow-sm'
                 : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary'
             }`}
             aria-pressed={active}
