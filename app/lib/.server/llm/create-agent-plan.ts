@@ -123,6 +123,26 @@ export function parseAgentPlan(raw: string): AgentPlan | undefined {
  * Mirrors create-summary.ts for provider/model resolution so the planner runs on
  * the SAME model the user picked.
  */
+/**
+ * Consigne de langue ajoutée au prompt de planification.
+ *
+ * Le `title` de chaque tâche est rendu tel quel dans le panneau de plan, et il
+ * est ÉCRIT PAR LE MODÈLE — pas lu dans un catalogue. Sans cette consigne, il
+ * les rédigeait en anglais au milieu d'une interface française, y compris quand
+ * il avait compris que l'application à construire, elle, devait être en
+ * français (BUG-I18N-003).
+ *
+ * La langue visée est celle de L'INTERFACE, et elle seule : un francophone peut
+ * demander une application en anglais, son plan doit rester en français.
+ */
+export function buildPlanLanguageRule(language?: string): string {
+  if (language !== 'fr') {
+    return '';
+  }
+
+  return '- Write every task title in FRENCH — the interface is French. The language of the app being built does not change this.\n';
+}
+
 export async function createAgentPlan(props: {
   messages: Message[];
   env?: Env;
@@ -130,8 +150,17 @@ export async function createAgentPlan(props: {
   providerSettings?: Record<string, IProviderSetting>;
   abortSignal?: AbortSignal;
   maxRoles?: number;
+
+  /**
+   * Langue de l'interface, telle que résolue par la route. Les intitulés de
+   * tâches affichés dans le plan sont ÉCRITS PAR LE MODÈLE, pas lus dans un
+   * catalogue : sans consigne, il les rédige en anglais au milieu d'une
+   * interface française — y compris quand il a compris que l'application à
+   * construire, elle, doit être en français.
+   */
+  language?: string;
 }): Promise<AgentPlan | undefined> {
-  const { messages, env: serverEnv, apiKeys, providerSettings, abortSignal, maxRoles } = props;
+  const { messages, env: serverEnv, apiKeys, providerSettings, abortSignal, maxRoles, language } = props;
 
   const lastUser = [...messages].reverse().find((message) => message.role === 'user');
 
@@ -179,6 +208,7 @@ export async function createAgentPlan(props: {
     }
 
     const roleCatalog = ECODE_AGENT_ROLES.map((role) => `- ${role.id}: ${role.responsibility}`).join('\n');
+
     const roleCap = Math.max(1, Math.min(maxRoles ?? ECODE_AGENT_ROLES.length, ECODE_AGENT_ROLES.length));
 
     const resp = await generateText({
@@ -191,7 +221,7 @@ Rules:
 - Only include roles that are genuinely needed for THIS request (e.g. a static landing page needs no backend/devops).
 - Use at most ${roleCap} distinct roles.
 - Order tasks in execution order (architecture first, QA last).
-- Output STRICT JSON only, no prose, no code fences:
+${buildPlanLanguageRule(language)}- Output STRICT JSON only, no prose, no code fences:
 {"tasks":[{"title":"<short imperative task>","role":"<roleId>"}]}`,
       prompt: `Build request:\n${getTextContent(lastUser).slice(0, 4000)}\n\nReturn the JSON plan.`,
       model: removeUnsupportedModelSettings(

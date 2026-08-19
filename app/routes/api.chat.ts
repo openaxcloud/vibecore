@@ -876,6 +876,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
               providerSettings,
               abortSignal: request.signal,
               maxRoles: parallelAgents,
+              language,
             });
 
             if (plan) {
