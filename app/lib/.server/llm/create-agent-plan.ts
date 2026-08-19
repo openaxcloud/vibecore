@@ -3,6 +3,7 @@ import type { AgentRoleId } from './agent-orchestration';
 import { ECODE_AGENT_ROLES } from './agent-orchestration';
 import { removeUnsupportedModelSettings } from './model-compat';
 import { resolveUsableProvider } from './provider-credentials';
+import { classifyProviderFailure, markProviderUnhealthy, resolveRuntimeProvider } from './provider-fallback';
 import { extractPropertiesFromMessage } from './utils';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import type { IProviderSetting } from '~/types/model';
@@ -175,6 +176,9 @@ export async function createAgentPlan(props: {
   currentModel = model;
   currentProvider = provider;
 
+  /* Retenu hors du `try` pour que le chemin d'erreur sache QUEL fournisseur a refusé. */
+  let fournisseurDuTour = currentProvider;
+
   try {
     const resolved = resolveUsableProvider({
       requestedProvider: currentProvider,
@@ -183,8 +187,34 @@ export async function createAgentPlan(props: {
       serverEnv: serverEnv as Record<string, string> | undefined,
     });
 
-    const resolvedProvider = resolved.provider;
-    currentModel = resolved.model;
+    /*
+     * Le planificateur est un chemin d'appel SÉPARÉ de `streamText`, et il
+     * résolvait son fournisseur pour lui seul. Mesuré en production le 19/08,
+     * juste après la certification du repli : la génération basculait bien sur
+     * OpenAI, mais le plan, lui, mourait encore —
+     *
+     *     create-agent-plan  Agent planner failed: Your credit balance is too low…
+     *
+     * L'échec n'est pas fatal (l'agent retombe sur le rôle complet), mais il
+     * coûte un appel pour rien et prive l'utilisateur du plan alors que DEUX
+     * fournisseurs répondent. Le repli s'applique donc ici aussi.
+     */
+    const runtimeChoice = resolveRuntimeProvider({
+      provider: resolved.provider,
+      model: resolved.model,
+      apiKeys,
+      serverEnv: serverEnv as Record<string, string> | undefined,
+    });
+
+    const resolvedProvider = runtimeChoice.provider;
+    currentModel = runtimeChoice.model;
+    fournisseurDuTour = resolvedProvider.name;
+
+    if (runtimeChoice.switchedFrom) {
+      logger.warn(
+        `Plan redirigé : [${runtimeChoice.switchedFrom.provider}] écarté (${runtimeChoice.switchedFrom.reason}) → [${resolvedProvider.name}] / ${currentModel}.`,
+      );
+    }
 
     const staticModels = LLMManager.getInstance().getStaticModelListFromProvider(resolvedProvider);
 
@@ -205,6 +235,15 @@ export async function createAgentPlan(props: {
       }
 
       modelDetails = modelsList.find((m) => m.name === currentModel) ?? modelsList[0];
+    }
+
+    /*
+     * `modelsList[0]` reste `undefined` pour le vérificateur (accès indexé non
+     * garanti). Sans cette garde, un registre vide partirait construire une
+     * instance de modèle sur `undefined.name`.
+     */
+    if (!modelDetails) {
+      return undefined;
     }
 
     const roleCatalog = ECODE_AGENT_ROLES.map((role) => `- ${role.id}: ${role.responsibility}`).join('\n');
@@ -259,7 +298,20 @@ ${buildPlanLanguageRule(language)}- Output STRICT JSON only, no prose, no code f
 
     return plan;
   } catch (error) {
+    /*
+     * Signale la panne au repli. Le planificateur tourne AVANT la génération :
+     * s'il essuie un refus de crédit, c'est lui qui l'apprend en premier, et
+     * marquer le fournisseur ici évite que la génération qui suit immédiatement
+     * ne retape le même mur.
+     */
+    const kind = classifyProviderFailure(error);
+
+    if (kind) {
+      markProviderUnhealthy(fournisseurDuTour, kind, String(error).slice(0, 300));
+    }
+
     logger.warn(`Agent planner failed: ${error instanceof Error ? error.message : error}`);
+
     return undefined;
   }
 }
