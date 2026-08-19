@@ -425,7 +425,14 @@ const IDE_WORKSPACE_PANELS = ['editor', 'preview', 'files', 'search', 'locks', .
 const IDE_URL_PANELS = [...IDE_WORKSPACE_PANELS, ...IDE_RIGHT_PANELS] as const;
 const MOBILE_IDE_PANELS = ['chat', 'files', 'editor', 'search', 'locks', 'terminal', 'preview', 'deploy'] as const;
 
-const ECODE_MOBILE_DEFAULT_TABS = ['editor', 'preview', 'agent', 'deployments'] as const;
+/*
+ * Les TROIS onglets fixes de la barre mobile, dans l'ordre demandé par Avi :
+ * Webview, Agent, Déploiement. L'éditeur en a été retiré — il devient un panneau
+ * à la demande, atteignable par la grille du sélecteur, la feuille d'outils ou
+ * l'ouverture d'un fichier, qui le réinsèrent via `ensureMobileOpenTab`.
+ * Ces trois-là ne se ferment pas : la croix des tuiles s'appuie sur cette liste.
+ */
+const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deployments'] as const;
 const MOBILE_OVERLAY_RESTORE_WINDOW_MS = 120_000;
 type MobileOverlayKind = 'tools' | 'tabs' | 'more' | 'agent';
 
@@ -8830,7 +8837,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const mobileBottomTabSlotCount = 4;
 
     const mobileBottomTabs = useMemo(
-      () => selectVisibleMobileBottomTabs(mobileOpenTabs, activeMobileOpenTabId, mobileBottomTabSlotCount),
+      () =>
+        selectVisibleMobileBottomTabs(
+          mobileOpenTabs,
+          activeMobileOpenTabId,
+          mobileBottomTabSlotCount,
+          ECODE_MOBILE_DEFAULT_TABS,
+        ),
       [activeMobileOpenTabId, mobileBottomTabSlotCount, mobileOpenTabs],
     );
     const hiddenMobileBottomTabCount = useMemo(
@@ -9174,9 +9187,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </>
           )}
         </div>
-        {/* DO NOT MODIFY — mobile Terminal tab frozen per Avi (ref IMG_9149). Bottom dock
-            (record/run · tab-switcher · Files · </> · preview · apps · +N · + · ⋮) is the reference;
-            exclude from responsive/fan-out/parity passes. */}
+        {/* DO NOT MODIFY — mobile Terminal tab frozen per Avi (ref IMG_9149). Exclude from
+            responsive/fan-out/parity passes.
+
+            Composition du dock rouverte par Avi le 19/08, et par lui seul : la rangée
+            porte désormais TROIS onglets fixes — Webview · Agent · Déploiement — et
+            l'éditeur devient un panneau à la demande. L'onglet Terminal, lui, reste gelé.
+            Référence à jour :
+            record/run · tab-switcher · preview · agent · deployments · +N · + · ⋮ */}
         {showMobileChrome && (
           <nav
             className="bolt-mobile-replit-nav"

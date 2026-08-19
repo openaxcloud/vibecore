@@ -132,14 +132,22 @@ describe('BaseChat strengthened-AST catalog', () => {
     expect(result.parseErrors).toEqual([]);
 
     /*
-     * Empreinte du bloc mobile Terminal/en-tête GELÉ, re-scellée après la seule
-     * modification autorisée : l'externalisation des libellés visibles vers le
-     * catalogue FR (étape 3/3). La structure, la mise en page et le comportement
-     * sont inchangés — seul le texte affiché passe par `t()`. Toute évolution du
-     * hash sans changement de libellé signale une dérive de mise en page à
-     * refuser.
+     * Empreinte du bloc mobile Terminal/en-tête GELÉ. Re-scellée deux fois, et
+     * seulement sur une modification autorisée par le propriétaire :
+     *
+     * 1. externalisation des libellés visibles vers le catalogue FR (étape 3/3) —
+     *    structure, mise en page et comportement inchangés, seul le texte
+     *    affiché passe par `t()` ;
+     * 2. demande d'Avi du 19/08 — la rangée du dock porte désormais TROIS
+     *    onglets fixes (Webview · Agent · Déploiement) au lieu de quatre, via
+     *    `ECODE_MOBILE_DEFAULT_TABS` passé en onglets épinglés à
+     *    `selectVisibleMobileBottomTabs`. L'onglet Terminal, lui, reste gelé :
+     *    c'est la composition de la rangée qui a été rouverte, pas le Terminal.
+     *
+     * Toute évolution du hash hors d'une demande explicite du propriétaire
+     * signale une dérive de mise en page à refuser.
      */
-    expect(frozenHash).toBe('ea1ba7dc96f9d7bff2cf1dc948d98b4860e263c247e7d208f34f7536f85d0929');
+    expect(frozenHash).toBe('190c000c56d0508869e4dee4cce7c9a5d40d66242a905c2f739e1f4fa2151394');
     expect(outsideFrozen).toEqual([]);
 
     // The mobile header/dock labels are now localized via t(); no raw English remains.
