@@ -498,6 +498,7 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-success: #3fb950;
   --vc-ide-accent-action: #0099ff;
   --vc-action-primary: var(--vc-ide-accent-action);
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #007fe0;
   --vc-action-primary-foreground: #ffffff;
   // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
@@ -826,6 +827,7 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-success: #17803d;
   --vc-ide-accent-action: #006fd6;
   --vc-action-primary: var(--vc-ide-accent-action);
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #0059ab;
   --vc-action-primary-foreground: #ffffff;
   // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
@@ -3822,6 +3824,20 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   --vc-ide-text-secondary: #c0c5ca;
   --vc-ide-text-muted: #979ea6;
   --vc-action-primary: #f97316;
+
+  /*
+   * SCR-007 — l'orange de marque ne porte pas de texte blanc à un contraste
+   * suffisant. Mesuré en production sur la bascule de langue active :
+   * blanc sur `#f97316` = 2,80:1, très en dessous des 4,5 exigés (`#F26207`,
+   * la marque, plafonne à 3,22). Il faut descendre à `#c2410c` pour passer —
+   * 5,18:1.
+   *
+   * Ce ton ne remplace donc PAS l'orange : il ne sert QUE là où l'orange est un
+   * REMPLISSAGE sous du texte blanc. Partout ailleurs — bordures, icônes,
+   * accents, anneaux de focus — la marque reste `--vc-action-primary`, comme
+   * demandé.
+   */
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #fb923c;
   --vc-action-primary-foreground: #111827;
   --vc-ide-accent-action: var(--vc-action-primary);
@@ -3854,6 +3870,9 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   --vc-ide-text-secondary: #3f4449;
   --vc-ide-text-muted: #626970;
   --vc-action-primary: #c2410c;
+
+  /* Déjà assez sombre en clair : le ton fort s'aligne sur l'accent courant. */
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #9a3412;
   --vc-action-primary-foreground: #ffffff;
   --bolt-elements-bg-depth-4: rgb(231 233 235 / 0.84);
@@ -21912,6 +21931,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   --vc-auth-link: var(--vc-auth-accent);
   --vc-auth-focus: var(--vc-auth-accent);
   --vc-action-primary: var(--vc-auth-accent);
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #fb923c;
   --vc-action-primary-foreground: var(--vc-auth-action-foreground);
   --vc-auth-success: var(--vc-ide-accent-success);
@@ -22149,6 +22169,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   --vc-public-card-hover-border: rgba(251, 146, 60, 0.46);
   --vc-public-card-hover-shadow: rgba(249, 115, 22, 0.22);
   --vc-action-primary: var(--vc-public-accent);
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #fb923c;
   --vc-action-primary-foreground: var(--vc-public-button-text);
   --bolt-elements-button-primary-background: var(--vc-action-primary);
@@ -22475,6 +22496,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 [data-ecode-static-shell] {
   --vc-action-primary: var(--ecode-accent);
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: var(--ecode-accent-hover);
   --vc-action-primary-foreground: var(--ecode-accent-contrast);
   --bolt-elements-button-primary-background: var(--vc-action-primary);
