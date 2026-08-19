@@ -474,9 +474,32 @@ function IdeProjectTopBar({
                   }}
                 >
                   <span className="bolt-project-breadcrumb-kicker">{copy['projectIde.project.kicker']}</span>
-                  <span className="bolt-project-breadcrumb-value truncate" title={projectTooltip}>
+                  {/*
+                   * SCR-006 — « le clic sur le NOM du projet ouvre la recherche ».
+                   *
+                   * Le nom vit dans le `<summary>` d'un `<details>` dont le rôle est
+                   * d'ouvrir le menu projet (Paramètres, renommage). Remplacer le
+                   * `<summary>` en entier aurait supprimé ces accès. On sépare donc
+                   * les deux gestes : le NOM ouvre la recherche, le chevron garde le
+                   * menu. `preventDefault` empêche le `<details>` de basculer sous le
+                   * clic, `stopPropagation` empêche le `<summary>` de le récupérer.
+                   */}
+                  <button
+                    type="button"
+                    className="bolt-project-breadcrumb-value truncate"
+                    title={projectTooltip}
+                    aria-label={copy['projectIde.project.search']}
+                    data-testid="button-project-name-search"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      window.dispatchEvent(
+                        new CustomEvent('vibecore:open-command-palette', { detail: { mode: 'all' } }),
+                      );
+                    }}
+                  >
                     {projectLabel.display}
-                  </span>
+                  </button>
                   <ChevronDown className="h-3.5 w-3.5" aria-hidden />
                 </summary>
                 {projectMenuOpen && (
