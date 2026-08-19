@@ -25,6 +25,7 @@ import {
   type WorkspaceAgentLocale,
   type WorkspaceAgentPublicError,
 } from './public-i18n.js';
+import { readResourceUsage } from './resource-usage.js';
 import { TerminalSessionManager, type TerminalSession } from './terminal-session.js';
 
 export interface WorkspaceAgentOptions {
@@ -1295,6 +1296,17 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     }
 
     return { restoredFiles: body.files.length };
+  });
+
+  /*
+   * SCR-008 — source des jauges RAM / CPU / stockage de « Vue d'ensemble ».
+   * Valeurs lues dans les cgroup DU CONTENEUR : `/proc/meminfo` montrerait la
+   * mémoire de l'hôte, donc un chiffre faux et rassurant pour un pod limité.
+   */
+  app.get('/resources', async (_request, reply) => {
+    const usage = await readResourceUsage(root);
+
+    return reply.send(usage);
   });
 
   app.get('/metrics', async (_request, reply) => {

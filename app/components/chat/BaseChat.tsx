@@ -5602,12 +5602,33 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
       };
 
+      /*
+       * SCR-006 — le clic sur le nom du projet doit ouvrir la recherche
+       * « Rechercher des outils et des fichiers », pas la visite guidée.
+       *
+       * La palette vit ici, le nom du projet vit dans la route de l'IDE : il
+       * faut donc un canal. `vibecore:keybinding-run` ne convenait pas — il est
+       * ÉMIS par cette coque pour être observé, jamais consommé, donc le
+       * déclencher n'ouvrirait rien. On suit le modèle éprouvé de
+       * `vibecore:open-project-ide-panel`.
+       *
+       * `Cmd+K`, lui, était déjà relié à la même palette par l'action
+       * `command.palette` — la moitié clavier de la demande fonctionnait déjà.
+       */
+      const handleOpenCommandPalette = (event: Event) => {
+        const mode = (event as CustomEvent<{ mode?: 'all' | 'tools' | 'files' }>).detail?.mode;
+
+        openCommandPalette(mode ?? 'all');
+      };
+
       window.addEventListener('vibecore:open-project-ide-panel', handleOpenProjectIdePanel);
+      window.addEventListener('vibecore:open-command-palette', handleOpenCommandPalette);
 
       return () => {
         window.removeEventListener('vibecore:open-project-ide-panel', handleOpenProjectIdePanel);
+        window.removeEventListener('vibecore:open-command-palette', handleOpenCommandPalette);
       };
-    }, [activateMobileTool, openIdeTool, projectIdeMode, useMobileIde]);
+    }, [activateMobileTool, openCommandPalette, openIdeTool, projectIdeMode, useMobileIde]);
 
     const closeWorkspacePanel = useCallback(
       (panel: IdeWorkspacePanel, paneId = activePaneId, tabId?: string) => {

@@ -498,6 +498,7 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-success: #3fb950;
   --vc-ide-accent-action: #0099ff;
   --vc-action-primary: var(--vc-ide-accent-action);
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #007fe0;
   --vc-action-primary-foreground: #ffffff;
   // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
@@ -826,6 +827,7 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-success: #17803d;
   --vc-ide-accent-action: #006fd6;
   --vc-action-primary: var(--vc-ide-accent-action);
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #0059ab;
   --vc-action-primary-foreground: #ffffff;
   // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
@@ -3822,6 +3824,20 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   --vc-ide-text-secondary: #c0c5ca;
   --vc-ide-text-muted: #979ea6;
   --vc-action-primary: #f97316;
+
+  /*
+   * SCR-007 — l'orange de marque ne porte pas de texte blanc à un contraste
+   * suffisant. Mesuré en production sur la bascule de langue active :
+   * blanc sur `#f97316` = 2,80:1, très en dessous des 4,5 exigés (`#F26207`,
+   * la marque, plafonne à 3,22). Il faut descendre à `#c2410c` pour passer —
+   * 5,18:1.
+   *
+   * Ce ton ne remplace donc PAS l'orange : il ne sert QUE là où l'orange est un
+   * REMPLISSAGE sous du texte blanc. Partout ailleurs — bordures, icônes,
+   * accents, anneaux de focus — la marque reste `--vc-action-primary`, comme
+   * demandé.
+   */
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #fb923c;
   --vc-action-primary-foreground: #111827;
   --vc-ide-accent-action: var(--vc-action-primary);
@@ -3854,6 +3870,9 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   --vc-ide-text-secondary: #3f4449;
   --vc-ide-text-muted: #626970;
   --vc-action-primary: #c2410c;
+
+  /* Déjà assez sombre en clair : le ton fort s'aligne sur l'accent courant. */
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #9a3412;
   --vc-action-primary-foreground: #ffffff;
   --bolt-elements-bg-depth-4: rgb(231 233 235 / 0.84);
@@ -4924,11 +4943,19 @@ body :where(.lucide, svg[data-lucide]) {
   background: transparent;
 
   /*
-   * `text-tertiary` rendait la croix quasi illisible sur le fond clair de la
-   * tuile — demandée « nette » : on passe au ton secondaire, lisible sans
-   * concurrencer le titre de la tuile.
+   * SCR-003 — « croix BIEN VISIBLES ».
+   *
+   * Deux passes ont déjà eu lieu : `text-tertiary` → `text-secondary`. Mesurée,
+   * la croix est pourtant AU-DESSUS de AA (9,0 à 11,1:1 selon le jeu de thème) :
+   * le défaut n'est donc PAS un défaut de contraste, c'est un défaut de
+   * PRÉSENCE — une glyphe fine de 16 px sur une pastille à peine détachée du
+   * fond de la tuile se lit comme un artefact, pas comme un bouton.
+   *
+   * On agit donc sur ce qui la fait exister à l'œil, pas sur le ratio : ton
+   * primaire, pastille pleinement opaque, et une bordure qui la détache de la
+   * tuile.
    */
-  color: var(--vc-ide-text-secondary);
+  color: var(--vc-ide-text-primary);
   touch-action: manipulation;
 }
 
@@ -4942,9 +4969,10 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
   border-radius: 999px;
 
-  /* Pastille plus opaque : la croix doit rester nette au-dessus de l'icône. */
-  background: color-mix(in srgb, var(--vc-ide-bg-app) 86%, transparent);
-  font-size: 16px;
+  /* Pastille pleine et bordée : c'est elle qui fait lire la croix comme un bouton. */
+  border: 1px solid var(--mobile-nav-border);
+  background: var(--vc-ide-bg-app);
+  font-size: 18px;
   font-weight: 700;
   transition:
     background 150ms ease,
@@ -4979,40 +5007,54 @@ body :where(.lucide, svg[data-lucide]) {
     max(16px, env(safe-area-inset-right, 0px));
 }
 
+/*
+ * SCR-003 — « toutes les tuiles de MÊME TAILLE ».
+ *
+ * La rangée du bas n'était pas faite des mêmes tuiles que la grille : une bande
+ * flex scrollable de boutons `70×58 px`, quand la grille pose des tuiles de
+ * `102 px` sur deux colonnes. D'où l'inégalité visible sur la capture d'Avi —
+ * ce n'était pas un écart de marge mais deux composants différents.
+ *
+ * La rangée reprend donc la MÊME grille et la MÊME hauteur que les tuiles du
+ * haut. Le défilement horizontal disparaît avec elle : sur deux colonnes, les
+ * quatre accès rapides tiennent sur deux lignes sans rien masquer.
+ */
 .bolt-mobile-tab-switcher-quick {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  overflow-x: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin-bottom: 16px;
-  scrollbar-width: none;
-}
-
-.bolt-mobile-tab-switcher-quick::-webkit-scrollbar {
-  display: none;
 }
 
 .bolt-mobile-tab-switcher-quick button {
   display: flex;
-  min-width: 70px;
-  min-height: 58px;
+
+  /* Exactement les cotes de `.bolt-mobile-tab-switcher-card` : même hauteur figée,
+     même rayon, même bordure, même fond — sinon l'œil voit deux familles. */
+  height: 102px;
+  min-height: 102px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 10px;
   border: 1px solid var(--mobile-nav-border);
   border-radius: 12px;
   background: var(--vc-ide-bg-card);
   color: var(--vc-ide-text-secondary);
-  font-size: 11px;
-  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 14px;
+  text-align: center;
   touch-action: manipulation;
 }
 
 .bolt-mobile-tab-switcher-quick button > span:first-child {
-  width: 20px;
-  height: 20px;
-  font-size: 20px;
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
 }
 
 .bolt-mobile-tab-switcher-search {
@@ -9856,8 +9898,25 @@ body :where(.lucide, svg[data-lucide]) {
  * retombe sur le défaut qu'on corrige.
  */
 @media (max-width: 1023px) {
+  /*
+   * SCR-001 — « le bouton "ouvrir dans un navigateur" doit être sur la MÊME
+   * LIGNE que la barre d'URL ».
+   *
+   * `flex-wrap: nowrap` était déjà là et le spec le vérifiait… mais la barre est
+   * en `display: grid` : la propriété était donc INERTE, et la grille posait
+   * chaque enfant sur sa propre rangée. Mesuré en production à 390 px : adresse
+   * à y=102, bouton à y=161, barre de 116 px de haut — deux lignes, exactement
+   * ce que la capture d'Avi montre.
+   *
+   * On impose donc le mode de disposition, au lieu de régler une propriété qui
+   * n'a pas cours : une ligne flex, l'adresse absorbe la largeur, le bouton
+   * garde la sienne.
+   */
   .bolt-project-webview-toolbar {
+    display: flex;
     flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
   }
 
   .bolt-project-webview-toolbar .bolt-preview-toolbar-tools > *:not(.bolt-preview-open-external) {
@@ -9881,6 +9940,10 @@ body :where(.lucide, svg[data-lucide]) {
   /* L'adresse prend toute la place restante et ne pousse jamais le bouton dehors. */
   .bolt-project-webview-toolbar .bolt-preview-addressbar {
     min-width: 0;
+
+    /* Absorbe la largeur restante ; `0 0 auto` la figeait à 100 % et poussait le
+       bouton sur la rangée suivante. */
+    width: auto;
     flex: 1 1 auto;
   }
 
@@ -21402,9 +21465,23 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     gap: 4px;
   }
 
-  /* Agent context-bar "Prompt" shortcut to a 40px tap target. */
+  /*
+   * Raccourci « Prompt » de la barre de contexte de l'agent : cible tactile de
+   * 40 px de haut, ET largeur figée sur son contenu.
+   *
+   * Mesuré en production le 19/08 à 390 px : le bouton faisait 36 px de large
+   * pour un libellé qui en demande 49, et le texte sortait de sa bordure
+   * arrondie. La cause n'est pas un `overflow` : c'est `white-space: normal`,
+   * qui autorise le navigateur à réduire le bouton sous la largeur du mot, si
+   * bien que la piste `auto` de la grille le comprimait au profit de la colonne
+   * `minmax(0, 1fr)` voisine. `nowrap` + `min-width: max-content` rendent cette
+   * compression impossible ; la colonne du milieu, elle, tronque déjà
+   * proprement en ellipse.
+   */
   .bolt-responsive-ide-mobile .bolt-mobile-agent-context-bar button {
     min-height: 40px;
+    min-width: max-content;
+    white-space: nowrap;
   }
 
   .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu::before {
@@ -21854,6 +21931,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   --vc-auth-link: var(--vc-auth-accent);
   --vc-auth-focus: var(--vc-auth-accent);
   --vc-action-primary: var(--vc-auth-accent);
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #fb923c;
   --vc-action-primary-foreground: var(--vc-auth-action-foreground);
   --vc-auth-success: var(--vc-ide-accent-success);
@@ -21865,6 +21943,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 :root[data-theme='light'] .vc-auth-page {
+  /* SCR-007 — le bloc clair doit REDÉFINIR le ton fort, sinon la valeur sombre y fuit. */
+  --vc-action-primary-strong: #c2410c;
   --vc-auth-bg: #f5f6f7;
   --vc-auth-card: rgb(255 255 255 / 0.9);
   /*
@@ -22091,6 +22171,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   --vc-public-card-hover-border: rgba(251, 146, 60, 0.46);
   --vc-public-card-hover-shadow: rgba(249, 115, 22, 0.22);
   --vc-action-primary: var(--vc-public-accent);
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: #fb923c;
   --vc-action-primary-foreground: var(--vc-public-button-text);
   --bolt-elements-button-primary-background: var(--vc-action-primary);
@@ -22376,8 +22457,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 .ecode-nav-menu:focus-within .ecode-nav-menu-chevron {
   transform: rotate(90deg);
 }
-
 :root[data-theme='light'] .vc-public-shell {
+  /* SCR-007 — le bloc clair doit REDÉFINIR le ton fort, sinon la valeur sombre y fuit. */
+  --vc-action-primary-strong: #c2410c;
   --vc-public-bg: #f7f8f9;
   --vc-public-panel: #ffffff;
   --vc-public-card: #f0f1f2;
@@ -22417,6 +22499,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 
 [data-ecode-static-shell] {
   --vc-action-primary: var(--ecode-accent);
+  --vc-action-primary-strong: #c2410c;
   --vc-action-primary-hover: var(--ecode-accent-hover);
   --vc-action-primary-foreground: var(--ecode-accent-contrast);
   --bolt-elements-button-primary-background: var(--vc-action-primary);

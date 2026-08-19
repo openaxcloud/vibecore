@@ -135,3 +135,45 @@ describe('mobile bottom tabs — trois onglets fixes', () => {
     ]);
   });
 });
+
+/*
+ * Mesuré en PRODUCTION le 19/08 à 390 px, après le déploiement de la rangée à
+ * trois fixes : elle affichait « Webview · Déploiement · Agent » au lieu de
+ * l'ordre demandé « Webview · Agent · Déploiement ». Cause :
+ * `ensureMobileOpenTab('agent')` porte l'Agent en FIN de liste au chargement, et
+ * la sélection recopiait l'ordre de la liste.
+ */
+describe('ordre des onglets fixes', () => {
+  const core = ['preview', 'agent', 'deployments'] as const;
+
+  it('rend les fixes dans l’ordre canonique, pas dans celui de la liste ouverte', () => {
+    // L'Agent est en fin de liste : c'est l'état réel après ensureMobileOpenTab.
+    const open = [
+      { id: 'preview', name: 'Webview' },
+      { id: 'deployments', name: 'Deployments' },
+      { id: 'agent', name: 'AI Agent' },
+      { id: 'security', name: 'Security' },
+    ];
+
+    expect(selectVisibleMobileBottomTabs(open, 'agent', 4, core).map((tab) => tab.id)).toEqual([
+      'preview',
+      'agent',
+      'deployments',
+      'security',
+    ]);
+  });
+
+  it('garde l’onglet à la demande APRÈS les trois fixes', () => {
+    const open = [
+      { id: 'deployments', name: 'Deployments' },
+      { id: 'agent', name: 'AI Agent' },
+      { id: 'preview', name: 'Webview' },
+      { id: 'skills', name: 'Skills' },
+    ];
+
+    const visible = selectVisibleMobileBottomTabs(open, 'skills', 4, core).map((tab) => tab.id);
+
+    expect(visible.slice(0, 3)).toEqual(['preview', 'agent', 'deployments']);
+    expect(visible[3]).toBe('skills');
+  });
+});
