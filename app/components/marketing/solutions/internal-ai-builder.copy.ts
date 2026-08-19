@@ -308,10 +308,10 @@ export const INTERNAL_AI_BUILDER_COPY = {
         { label: 'Données', value: 'Privées uniquement' },
       ],
       asideCta: 'Ouvrir le journal d’audit',
-      disclaimer: 'Démonstration responsive intégrée · données RH fictives · pas une trace de génération',
+      disclaimer: 'Démonstration adaptative intégrée · données RH fictives · pas une trace de génération',
       caption: {
         title: 'Un assistant privé qui se lit comme un vrai outil interne',
-        body: 'Cette démonstration intégrée présente une liste de demandes, une vue des approbations et un panneau de gouvernance dans une mise en page responsive.',
+        body: 'Cette démonstration intégrée présente une liste de demandes, une vue des approbations et un panneau de gouvernance dans une mise en page adaptative.',
       },
       alt: 'Démonstration d’assistant RH interne avec une liste de demandes récentes et un panneau de gouvernance affichant les contrôles d’accès, d’audit et de données.',
     },
@@ -347,7 +347,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
       outputs: [
         {
           title: 'Ancrage au contexte privé',
-          body: 'Une frontière d’adaptateur modélise l’entrée des procédures approuvées dans l’assistant. Cette page ne connecte pas vos documents : choisissez la source, les permissions et les vérifications de récupération avant usage.',
+          body: 'Une frontière d’adaptateur modélise l’entrée des procédures approuvées dans l’assistant. Cette page ne connecte pas vos documents : choisissez la source, les autorisations et les vérifications de récupération avant usage.',
         },
         {
           title: 'Acheminement des approbations',
@@ -366,31 +366,32 @@ export const INTERNAL_AI_BUILDER_COPY = {
     proofLink: {
       eyebrow: 'Prompt → agent → aperçu',
       title: 'Prenez un run E-Code documenté comme preuve du flux, pas comme promesse de sécurité interne',
-      body: 'Ces captures IDE appartiennent au véritable run App Builder de réservation du salon. Elles montrent dans E-Code un prompt, l’activité de l’Agent, les fichiers générés, l’aperçu et un cycle de correction. PeopleOps Assistant ci-dessus reste une interface scénarisée et fictive, non capturée lors d’une génération d’IA interne.',
-      galleryLabel: 'Workspace salon App Builder documenté, utilisé comme preuve du flux Générateur d’IA interne',
+      body: 'Ces captures IDE appartiennent au véritable run Générateur d’applications de réservation du salon. Elles montrent dans E-Code un prompt, l’activité de l’Agent, les fichiers générés, l’aperçu et un cycle de correction. PeopleOps Assistant ci-dessus reste une interface scénarisée et fictive, non capturée lors d’une génération d’IA interne.',
+      galleryLabel:
+        'Espace de travail salon Générateur d’applications documenté, utilisé comme preuve du flux Générateur d’IA interne',
       disclaimer:
-        'Référence issue du vrai run salon E-Code · données salon fictives · scénario PeopleOps et données RH fictifs · pas une trace de génération d’agent interne · aucune source privée ni fournisseur d’identité démontré',
+        'Référence tirée du vrai run salon E-Code · données salon fictives · scénario PeopleOps et données RH fictifs · pas une trace de génération d’agent interne · aucune source privée ni fournisseur d’identité démontré',
       openFullSizeLabel: 'Examiner la capture complète du flux salon',
       preview: {
-        title: 'Le vrai workspace garde demande, fichiers et app active dans la même vue',
-        body: 'Cette capture salon App Builder vérifie l’espace E-Code et son aperçu de réservation généré. Elle ne démontre ni assistant RH, ni connexion à des documents privés, ni authentification, ni application des rôles, ni stockage d’audit de production.',
-        alt: 'Workspace salon E-Code App Builder documenté avec la demande de réservation, les fichiers générés et l’aperçu de l’application ; aucune donnée RH privée ni contrôle d’accès n’y est prouvé.',
+        title: 'Le vrai espace de travail garde demande, fichiers et application active dans la même vue',
+        body: 'Cette capture salon Générateur d’applications vérifie l’espace E-Code et son aperçu de réservation généré. Elle ne démontre ni assistant RH, ni connexion à des documents privés, ni authentification, ni application des rôles, ni stockage d’audit de production.',
+        alt: 'Espace de travail salon E-Code Générateur d’applications documenté avec la demande de réservation, les fichiers générés et l’aperçu de l’application ; aucune donnée RH privée ni contrôle d’accès n’y est prouvé.',
       },
       iteration: {
         title: 'Le run capturé consigne aussi une correction d’exécution',
-        body: 'Une seconde image App Builder montre l’Agent recevant un suivi d’erreur de routeur auprès du projet salon. Elle prouve une boucle de réparation inspectable, pas la génération ni les tests de sécurité des flux fictifs d’accès et d’audit PeopleOps.',
+        body: 'Une seconde image Générateur d’applications montre l’Agent recevant un suivi d’erreur de routeur auprès du projet salon. Elle prouve une boucle de réparation inspectable, pas la génération ni les tests de sécurité des flux fictifs d’accès et d’audit PeopleOps.',
         alt: 'Correction documentée du run salon E-Code avec suivi d’erreur de routeur, fichiers du projet et aperçu de réservation ; aucun flux de sécurité IA interne n’est représenté.',
       },
       cta: {
         label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page Générateur d’applications',
       },
     },
     deliverables: {
       eyebrow: 'Ce que vous recevez',
       title: 'Un projet d’outil interne traçable, avec des limites de déploiement franches',
       intro:
-        'Le projet généré expose sa source, la jonction vers les procédures, l’espace responsive et ses options de mise en ligne. Une surface statique de revue se publie via E-Code ; les opérations sur données privées restent dans un runtime sécurisé séparément.',
+        'Le projet généré expose sa source, la jonction vers les procédures, l’espace adaptatif et ses options de mise en ligne. Une surface statique de revue se publie via E-Code ; les opérations sur données privées restent dans un environnement d’exécution sécurisé séparément.',
       items: [
         {
           title: 'Fichiers de projet relisibles et transportables',
@@ -398,19 +399,19 @@ export const INTERNAL_AI_BUILDER_COPY = {
         },
         {
           title: 'Adaptateur de procédures visible dans la source',
-          body: 'La jonction vers les procédures approuvées apparaît dans le code. Ajoutez le vrai stockage seulement après avoir défini les permissions et validé la récupération sur vos documents.',
+          body: 'La jonction vers les procédures approuvées apparaît dans le code. Ajoutez le vrai stockage seulement après avoir défini les autorisations et validé la récupération sur vos documents.',
         },
         {
-          title: 'Espace responsive actif dans l’aperçu',
+          title: 'Espace adaptatif actif dans l’aperçu',
           body: 'Examinez les écrans de demande et de politique sur mobile, tablette et desktop. L’aperçu démontre l’interface, pas des documents privés connectés, l’authentification d’entreprise ni des autorisations appliquées.',
         },
         {
-          title: 'Mise en ligne guidée pour les builds statiques compatibles',
-          body: 'E-Code accompagne la publication lorsque la surface générée de l’outil interne constitue un build statique pris en charge. Ce parcours ne transforme pas les données ou règles de sécurité modélisées en services backend actifs.',
+          title: 'Mise en ligne guidée pour les compilations statiques compatibles',
+          body: 'E-Code accompagne la publication lorsque la surface générée de l’outil interne constitue une compilation statique prise en charge. Ce parcours ne transforme pas les données ou règles de sécurité modélisées en services service applicatif actifs.',
         },
         {
           title: 'URL E-Code consacrée à la revue statique',
-          body: 'Placez une surface statique compatible sur une URL E-Code active. Recherche privée, écriture d’approbation, contrôle d’identité et événement durable exigent le code exporté et un runtime backend déployé avec les contrôles requis.',
+          body: 'Placez une surface statique compatible sur une URL E-Code active. Recherche privée, écriture d’approbation, contrôle d’identité et événement durable exigent le code exporté et un environnement d’exécution serveur déployé avec les contrôles requis.',
         },
         {
           title: 'Conversation avec l’Agent comme boucle de changement',
@@ -441,8 +442,8 @@ export const INTERNAL_AI_BUILDER_COPY = {
           body: 'Modélisez les événements utiles, puis acheminez-les vers un stockage résistant à l’altération avec la rétention et les accès exigés par votre organisation.',
         },
         {
-          title: 'Responsive par défaut',
-          body: 'L’interface s’adapte du grand écran au téléphone sans build mobile séparé.',
+          title: 'Adaptatif par défaut',
+          body: 'L’interface s’adapte du grand écran au téléphone sans compilation mobile séparée.',
         },
         {
           title: 'Source exportable',
@@ -465,7 +466,7 @@ export const INTERNAL_AI_BUILDER_COPY = {
           body: 'Faites remonter les procédures IT, finance et opérations avec acheminement vers le bon responsable.',
         },
         {
-          title: 'Outils d’onboarding et de savoir',
+          title: 'Outils de prise en main et de savoir',
           body: 'Guidez les nouvelles recrues à travers des processus ancrés dans votre documentation interne.',
         },
         {

@@ -8,7 +8,7 @@ import { APP_BUILDER_VISUAL_ASSETS } from './app-builder.visuals';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from '~/lib/i18n/language';
 
 const EXPECTED_FRENCH_PROMPT =
-  'Crée une app de réservation pour mon salon de coiffure, avec agenda, comptes clients et rappels par email.';
+  'Crée une application de réservation pour mon salon de coiffure, avec agenda, comptes clients et rappels par email.';
 
 const BANNED_SPEC_LANGUAGE = /\b(?:should be|can be|is designed to)\b/i;
 
@@ -149,7 +149,7 @@ const NOT_CONNECTED_PROOF_PATTERNS = {
 
 const STATIC_PUBLISHING_PATTERNS = {
   en: /supported static builds/i,
-  fr: /builds statiques pris en charge/i,
+  fr: /compilations statiques prises en charge/i,
   es: /builds estáticos compatibles/i,
   ar: /الإصدارات الثابتة المدعومة/i,
 } as const satisfies Record<SupportedLanguage, RegExp>;
@@ -333,7 +333,7 @@ describe('App Builder localized sales copy', () => {
     const copy = APP_BUILDER_COPY.fr;
 
     expect(copy.prompt.text).toBe(EXPECTED_FRENCH_PROMPT);
-    expect(copy.hero.primaryCta.label).toBe('Décrivez votre app');
+    expect(copy.hero.primaryCta.label).toBe('Décrivez votre application');
     expect(copy.prompt.outputs.map(({ title }) => title)).toEqual([
       expect.stringMatching(/écrans.*réservation/i),
       expect.stringMatching(/base.*réservation/i),

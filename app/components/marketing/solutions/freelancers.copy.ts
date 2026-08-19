@@ -261,7 +261,7 @@ export const FREELANCERS_COPY = {
     seo: {
       title: 'Livrez vos projets clients plus vite | E-Code pour freelances',
       description:
-        'Démarrez chaque projet client depuis des modèles réutilisables, partagez des liens d’aperçu pour la revue et transmettez un code source modifiable. E-Code transforme un brief en une application fonctionnelle dans de vrais fichiers, avec un aperçu actif, l’export du projet et la publication des builds pris en charge.',
+        'Démarrez chaque projet client depuis des modèles réutilisables, partagez des liens d’aperçu pour la revue et transmettez un code source modifiable. E-Code transforme un brief en une application fonctionnelle dans de vrais fichiers, avec un aperçu actif, l’export du projet et la publication des compilations prises en charge.',
     },
     hero: {
       eyebrow: 'E-Code pour freelances et studios indépendants',
@@ -285,7 +285,7 @@ export const FREELANCERS_COPY = {
       eyebrow: 'Livraison client',
       title: 'Livrez chaque projet client sur un parcours répétable jusqu’au transfert.',
       intro:
-        'Une vue de livraison responsive qui suit les projets clients actifs, les liens d’aperçu partagés pour la revue et le dossier de transfert.',
+        'Une vue de livraison adaptative qui suit les projets clients actifs, les liens d’aperçu partagés pour la revue et le dossier de transfert.',
       primaryHeading: 'Projets clients actifs',
       primaryRows: [
         { label: 'Boutique — vitrine', meta: 'aperçu partagé · v3', status: 'Livré' },
@@ -296,18 +296,18 @@ export const FREELANCERS_COPY = {
       asideRows: [
         { label: 'Source', value: 'Exporté' },
         { label: 'Lien d’aperçu', value: 'Partagé' },
-        { label: 'Docs', value: 'Inclus' },
+        { label: 'Documentation', value: 'Inclus' },
       ],
       asideCta: 'Envoyer le dossier de transfert',
-      disclaimer: 'Démonstration responsive intégrée · données de freelance fictives · pas une trace de génération',
+      disclaimer: 'Démonstration adaptative intégrée · données de freelance fictives · pas une trace de génération',
       caption: {
         title: 'Une vue de livraison qui se lit comme un vrai pipeline client',
-        body: 'Cette démonstration intégrée présente les projets clients actifs, les liens d’aperçu partagés pour la revue et un dossier de transfert du code source dans une mise en page responsive.',
+        body: 'Cette démonstration intégrée présente les projets clients actifs, les liens d’aperçu partagés pour la revue et un dossier de transfert du code source dans une mise en page adaptative.',
       },
       alt: 'Démonstration de livraison client pour freelance avec une liste de projets clients actifs et un panneau de transfert.',
     },
     problem: {
-      eyebrow: 'Des builds ponctuels à un parcours de livraison répétable',
+      eyebrow: 'Des compilations ponctuelles à un parcours de livraison répétable',
       title: 'Le travail client démarre vite et se transmet lentement',
       intro:
         'Un freelance gagne sur la vitesse et sur la confiance. Reconstruire le même échafaudage pour chaque client brûle la vitesse, et un transfert bâclé — un code que le client ne peut ni exécuter, ni modifier, ni conserver — brûle la confiance le dernier jour du projet.',
@@ -322,7 +322,7 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Le transfert laisse des fils qui pendent',
-          body: 'Un zip sans structure claire, ou un build que vous seul savez exécuter, transforme la livraison finale en tickets de support et laisse le client dépendant de vous.',
+          body: 'Un zip sans structure claire, ou une version que vous seul savez exécuter, transforme la livraison finale en tickets de support et laisse le client dépendant de vous.',
         },
       ],
       bridge:
@@ -335,7 +335,7 @@ export const FREELANCERS_COPY = {
         'La demande ci-dessous se lit comme un mot d’un client. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, du portail jusqu’au transfert du code.',
       label: 'Exemple de prompt',
       promptText:
-        'Construis une app web client avec un portail, des liens d’aperçu partageables et un transfert propre du code source.',
+        'Construis une application web client avec un portail, des liens d’aperçu partageables et un transfert propre du code source.',
       outputs: [
         {
           title: 'Portail client',
@@ -351,38 +351,38 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Transfert du code source',
-          body: 'E-Code exécute l’application dans l’aperçu et exporte les fichiers du projet. Les builds pris en charge utilisent aussi la publication guidée ; la propriété et la réutilisation de la source suivent les conditions E-Code applicables et votre contrat client.',
+          body: 'E-Code exécute l’application dans l’aperçu et exporte les fichiers du projet. Les compilations prises en charge utilisent aussi la publication guidée ; la propriété et la réutilisation de la source suivent les conditions E-Code applicables et votre contrat client.',
         },
       ],
     },
     proofLink: {
       eyebrow: 'Prompt → agent → aperçu',
       title: 'Relisez le vrai parcours du prompt à l’aperçu avant un transfert client',
-      body: 'Voici de vraies captures du run App Builder du salon de coiffure. Elles montrent le prompt, l’échange avec l’agent, les fichiers et l’aperçu actif qu’un freelance relit dans E-Code ; elles ne présentent pas le tableau de livraison client fictif ci-dessus comme une génération capturée.',
+      body: 'Voici de vraies captures du run Générateur d’applications du salon de coiffure. Elles montrent le prompt, l’échange avec l’agent, les fichiers et l’aperçu actif qu’un freelance relit dans E-Code ; elles ne présentent pas le tableau de livraison client fictif ci-dessus comme une génération capturée.',
       galleryLabel: 'Vrai run de réservation du salon utilisé comme preuve du parcours de livraison client',
       disclaimer:
-        'Les deux images IDE documentent le vrai run App Builder de référence. Le tableau de projets freelance de cette page est une démonstration scénarisée avec des données clients fictives, pas un journal de génération ni une mission client.',
+        'Les deux images IDE documentent le vrai run Générateur d’applications de référence. Le tableau de projets freelance de cette page est une démonstration scénarisée avec des données clients fictives, pas un journal de génération ni une mission client.',
       openFullSizeLabel: 'Ouvrir la référence du parcours de livraison client en plein format',
       preview: {
         title: 'Le brief client reste à côté du résultat fonctionnel',
-        body: 'La vraie capture de référence montre la demande du salon, la conversation avec l’agent, les fichiers projet générés et l’aperçu de réservation dans le même workspace E-Code.',
-        alt: 'Vrai run App Builder E-Code du salon montrant la demande, la conversation avec l’agent, les fichiers générés et l’aperçu de réservation comme preuve de parcours pour les freelances.',
+        body: 'La vraie capture de référence montre la demande du salon, la conversation avec l’agent, les fichiers projet générés et l’aperçu de réservation dans le même espace de travail E-Code.',
+        alt: 'Vrai run Générateur d’applications E-Code du salon montrant la demande, la conversation avec l’agent, les fichiers générés et l’aperçu de réservation comme preuve de parcours pour les freelances.',
       },
       iteration: {
         title: 'Une note de revue devient une itération visible',
         body: 'La capture de suivi conserve ensemble l’instruction suivante et l’aperçu mis à jour, pour illustrer la boucle de revue avant le transfert de la source exportée.',
-        alt: 'Vrai suivi App Builder E-Code du salon montrant l’instruction suivante et l’aperçu de réservation mis à jour dans l’IDE.',
+        alt: 'Vrai suivi Générateur d’applications E-Code du salon montrant l’instruction suivante et l’aperçu de réservation mis à jour dans l’IDE.',
       },
       cta: {
         label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page Générateur d’applications',
       },
     },
     deliverables: {
       eyebrow: 'Ce que vous recevez',
       title: 'Un projet client que vous pouvez relire, livrer et transmettre',
       intro:
-        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les liens d’aperçu partageables portent la revue ; le transfert de la source exportée réduit la dépendance du client à votre workspace.',
+        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les liens d’aperçu partageables portent la revue ; le transfert de la source exportée réduit la dépendance du client à votre espace de travail.',
       items: [
         {
           title: 'Source préparée pour le transfert',
@@ -393,16 +393,16 @@ export const FREELANCERS_COPY = {
           body: 'Schémas, adaptateurs, références d’environnement et noms de secrets indiquent où brancher données et services du client. Les vrais identifiants restent hors de la source et chaque base, fournisseur d’identité, email ou paiement exige encore sa configuration.',
         },
         {
-          title: 'Aperçu responsive pour la revue',
+          title: 'Aperçu adaptatif pour la revue',
           body: 'Le projet compatible tourne dans l’aperçu sur desktop, tablette et mobile, pour donner au client une interface courante unique à relire plutôt qu’un dossier de captures.',
         },
         {
           title: 'Publication guidée des projets statiques',
-          body: 'Les sites et frontends statiques pris en charge suivent le parcours de publication guidée E-Code, avec contenu final, domaines, analytics et validation client traités comme des étapes de livraison nommées.',
+          body: 'Les sites et interfaces statiques pris en charge suivent le parcours de publication guidée E-Code, avec contenu final, domaines, analytics et validation client traités comme des étapes de livraison nommées.',
         },
         {
-          title: 'URL statique en ligne et relais runtime',
-          body: 'Un build statique pris en charge reçoit une URL en ligne hébergée par E-Code pour la revue ou la livraison. Les apps avec logique serveur restent exportables et exigent le runtime, les comptes, les secrets et l’exploitation choisis par le client.',
+          title: 'URL statique en ligne et relais d’exécution',
+          body: 'Une compilation statique prise en charge reçoit une URL en ligne hébergée par E-Code pour la revue ou la livraison. Les applications avec logique serveur restent exportables et exigent l’environnement d’exécution, les comptes, les secrets et l’exploitation choisis par le client.',
         },
         {
           title: 'Retour client transformé en changement Agent',
@@ -433,12 +433,12 @@ export const FREELANCERS_COPY = {
           body: 'Demandez le changement suivant et relisez le diff face à l’aperçu actif.',
         },
         {
-          title: 'Responsive par défaut',
-          body: 'Les mises en page s’adaptent du grand écran au téléphone sans build mobile séparé.',
+          title: 'Adaptatif par défaut',
+          body: 'Les mises en page s’adaptent du grand écran au téléphone sans compilation mobile séparée.',
         },
         {
           title: 'Fichiers projet exportables',
-          body: 'Exportez le projet ou publiez les builds pris en charge ; les droits de propriété et de réutilisation du client suivent votre accord et les conditions E-Code applicables.',
+          body: 'Exportez le projet ou publiez les compilations prises en charge ; les droits de propriété et de réutilisation du client suivent votre accord et les conditions E-Code applicables.',
         },
       ],
     },
@@ -446,19 +446,19 @@ export const FREELANCERS_COPY = {
       eyebrow: 'Qui construit avec',
       title: 'Les projets que les freelances livrent avec E-Code',
       intro:
-        'D’un portail client à une page de lancement, la même boucle produit une vraie application responsive prête à transmettre.',
+        'D’un portail client à une page de lancement, la même boucle produit une vraie application adaptative prête à transmettre.',
       items: [
         {
-          title: 'Apps web et portails clients',
+          title: 'Applications web et portails clients',
           body: 'Tableaux de bord et parcours de connexion livrés sous forme de fichiers projet modifiables pour la prochaine étape de développement du client.',
         },
         {
           title: 'Pages vitrines et d’atterrissage',
-          body: 'Sites responsives avec capture de leads, partagés pour la revue avant la mise en ligne.',
+          body: 'Sites adaptatifs avec capture de leads, partagés pour la revue avant la mise en ligne.',
         },
         {
           title: 'Outils internes pour clients',
-          body: 'Petites applications de back-office qui modélisent un vrai workflow plutôt qu’une maquette statique.',
+          body: 'Petites applications de back-office qui modélisent un vrai processus plutôt qu’une maquette statique.',
         },
         {
           title: 'Prototypes pour propositions',
@@ -477,7 +477,7 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Comment les clients relisent-ils le travail ?',
-          body: 'Vous partagez un lien d’aperçu actif pour que le client relise la vraie application à chaque tour, et vous itérez selon ses retours dans le même workspace.',
+          body: 'Vous partagez un lien d’aperçu actif pour que le client relise la vraie application à chaque tour, et vous itérez selon ses retours dans le même espace de travail.',
         },
         {
           title: 'Que contient le transfert ?',
@@ -489,7 +489,7 @@ export const FREELANCERS_COPY = {
         },
         {
           title: 'Puis-je connecter une base ou des services externes ?',
-          body: 'Le code généré est le vôtre à étendre et à brancher à des services externes. La démonstration intégrée de cette page utilise des données fictives et aucun backend connecté.',
+          body: 'Le code généré est le vôtre à étendre et à brancher à des services externes. La démonstration intégrée de cette page utilise des données fictives et aucun service applicatif connecté.',
         },
       ],
     },

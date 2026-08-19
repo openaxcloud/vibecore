@@ -289,7 +289,7 @@ export const DASHBOARD_BUILDER_COPY = {
       eyebrow: 'Ce trimestre',
       title: 'Chaque affaire, indicateur et prévision dans une vue consolidée.',
       intro:
-        'Un tableau de bord responsive qui présente les opportunités ouvertes, les indicateurs clés et un parcours de prévision dans une mise en page claire.',
+        'Un tableau de bord adaptatif qui présente les opportunités ouvertes, les indicateurs clés et un parcours de prévision dans une mise en page claire.',
       primaryHeading: 'Opportunités ouvertes',
       primaryRows: [
         { label: 'Northwind Traders', meta: '48 k€ · Négociation', status: 'En clôture' },
@@ -303,10 +303,10 @@ export const DASHBOARD_BUILDER_COPY = {
         { label: 'Affaire moy.', value: '24 k€' },
       ],
       asideCta: 'Ouvrir la prévision',
-      disclaimer: 'Démonstration responsive intégrée · données de pipeline fictives · pas une trace de génération',
+      disclaimer: 'Démonstration adaptative intégrée · données de pipeline fictives · pas une trace de génération',
       caption: {
         title: 'Un tableau de bord qui se lit comme un vrai outil commercial',
-        body: 'Cette démonstration intégrée présente une ligne d’indicateurs, un tableau d’opportunités et un panneau de prévision dans une mise en page responsive.',
+        body: 'Cette démonstration intégrée présente une ligne d’indicateurs, un tableau d’opportunités et un panneau de prévision dans une mise en page adaptative.',
       },
       alt: 'Démonstration de tableau de bord commercial avec un tableau d’opportunités ouvertes et un panneau d’indicateurs clés.',
     },
@@ -336,7 +336,7 @@ export const DASHBOARD_BUILDER_COPY = {
       eyebrow: 'Un prompt lance le tableau de bord',
       title: 'Décrivez les indicateurs, pas la librairie de graphiques',
       intro:
-        'La demande ci-dessous se lit comme un mot d’un responsable commercial. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un template de BI verrouillé.',
+        'La demande ci-dessous se lit comme un mot d’un responsable commercial. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un modèle de BI verrouillé.',
       label: 'Exemple de prompt',
       promptText: 'Un tableau de bord de mes ventes, connecté à ma base, avec graphiques et filtres.',
       outputs: [
@@ -360,26 +360,26 @@ export const DASHBOARD_BUILDER_COPY = {
     },
     proofLink: {
       eyebrow: 'Demande → fichiers source → interface active',
-      title: 'Voyez le workspace E-Code qui étaye la promesse du workflow',
-      body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un tableau de bord de données comme celui-ci.',
-      galleryLabel: 'Inspectez le vrai workflow IDE utilisé comme preuve',
+      title: 'Voyez l’espace de travail E-Code qui étaye la promesse du processus',
+      body: 'La page Générateur d’applications montre un vrai espace de travail E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un tableau de bord de données comme celui-ci.',
+      galleryLabel: 'Inspectez le vrai processus IDE utilisé comme preuve',
       disclaimer:
-        'Ce que prouvent ces images : elles capturent le vrai run App Builder du salon dans E-Code. PipelineIQ est un tableau de bord scénarisé distinct, avec des chiffres inventés ; il ne montre ni tableau de bord généré, ni base active, ni contrôle d’accès déployé.',
-      openFullSizeLabel: 'Afficher la capture complète du workspace salon',
+        'Ce que prouvent ces images : elles capturent le vrai run Générateur d’applications du salon dans E-Code. PipelineIQ est un tableau de bord scénarisé distinct, avec des chiffres inventés ; il ne montre ni tableau de bord généré, ni base active, ni contrôle d’accès déployé.',
+      openFullSizeLabel: 'Afficher la capture complète de l’espace de travail salon',
       preview: {
         title: 'Prompt, fichiers projet et aperçu actif dans le même IDE',
         body: 'La première capture du run salon rend le flux concret : la demande et le plan de l’Agent restent visibles pendant que l’interface générée tourne dans la Webview et que sa source reste inspectable.',
-        alt: 'Vrai workspace App Builder E-Code montrant une demande de réservation pour salon, le plan de l’agent, le tableau de bord actif dans l’aperçu et l’arborescence source.',
+        alt: 'Vrai espace de travail Générateur d’applications E-Code montrant une demande de réservation pour salon, le plan de l’agent, le tableau de bord actif dans l’aperçu et l’arborescence source.',
       },
       iteration: {
-        title: 'Une panne runtime devient l’instruction suivante en langage courant',
-        body: 'La seconde capture enregistre un vrai prompt de correction d’une erreur de contexte React, avec le même workspace pour inspecter les fichiers et confirmer l’aperçu réparé.',
-        alt: 'Vrai workspace App Builder E-Code montrant un prompt de correction d’erreur de contexte React à côté de la Webview du salon et des fichiers source.',
+        title: 'Une panne d’exécution devient l’instruction suivante en langage courant',
+        body: 'La seconde capture enregistre un vrai prompt de correction d’une erreur de contexte React, avec le même espace de travail pour inspecter les fichiers et confirmer l’aperçu réparé.',
+        alt: 'Vrai espace de travail Générateur d’applications E-Code montrant un prompt de correction d’erreur de contexte React à côté de la Webview du salon et des fichiers source.',
       },
       cta: {
-        label: 'Inspecter la vraie référence du workspace',
+        label: 'Inspecter la vraie référence de l’espace de travail',
         ariaLabel:
-          'Inspecter le vrai workspace App Builder E-Code utilisé comme preuve du workflow Générateur de tableau de bord',
+          'Inspecter le vrai espace de travail Générateur d’applications E-Code utilisé comme preuve du processus Générateur de tableau de bord',
       },
     },
     deliverables: {
@@ -397,16 +397,16 @@ export const DASHBOARD_BUILDER_COPY = {
           body: 'Les champs, les enregistrements d’exemple, les frontières de requêtes et les adaptateurs restent visibles dans le code. Remplacez le pipeline fictif en branchant votre base ou votre API, puis connectez l’identité séparément.',
         },
         {
-          title: 'Un tableau de bord responsive dans l’aperçu actif',
+          title: 'Un tableau de bord adaptatif dans l’aperçu actif',
           body: 'Ouvrez les indicateurs, les lignes du pipeline, les graphiques et les filtres dans l’aperçu en fonctionnement, puis inspectez leur comportement sur desktop, tablette et mobile.',
         },
         {
           title: 'Un parcours guidé pour les publications statiques compatibles',
-          body: 'Un frontend de tableau de bord reconnu comme build statique pris en charge suit le parcours de publication guidée E-Code après vérification.',
+          body: 'Une interface de tableau de bord reconnue comme compilation statique prise en charge suit le parcours de publication guidée E-Code après vérification.',
         },
         {
           title: 'Une URL E-Code en ligne ou un export prêt pour le serveur',
-          body: 'Les tableaux de bord statiques pris en charge reçoivent une URL E-Code après publication. Les projets avec requêtes serveur ou API protégées restent exportables pour être déployés avec leur runtime.',
+          body: 'Les tableaux de bord statiques pris en charge reçoivent une URL E-Code après publication. Les projets avec requêtes serveur ou API protégées restent exportables pour être déployés avec leur environnement d’exécution.',
         },
         {
           title: 'Ajoutez la prochaine vue de décision par la conversation',
@@ -437,8 +437,8 @@ export const DASHBOARD_BUILDER_COPY = {
           body: 'Connexion et accès selon les rôles échafaudés en code que vous branchez à votre fournisseur.',
         },
         {
-          title: 'Responsive par défaut',
-          body: 'Les mises en page s’adaptent du grand écran au téléphone sans build mobile séparé.',
+          title: 'Adaptatif par défaut',
+          body: 'Les mises en page s’adaptent du grand écran au téléphone sans compilation mobile séparée.',
         },
         {
           title: 'Gardez le code accessible',
@@ -450,7 +450,7 @@ export const DASHBOARD_BUILDER_COPY = {
       eyebrow: 'Qui construit avec',
       title: 'Les tableaux de bord que les équipes livrent avec le Générateur de tableau de bord',
       intro:
-        'D’un pipeline commercial à une salle de contrôle des opérations, la même boucle produit un vrai tableau de bord responsive.',
+        'D’un pipeline commercial à une salle de contrôle des opérations, la même boucle produit un vrai tableau de bord adaptatif.',
       items: [
         {
           title: 'Tableaux de bord commerciaux',
@@ -481,14 +481,14 @@ export const DASHBOARD_BUILDER_COPY = {
         },
         {
           title: 'Le tableau de bord est-il connecté à mes données ?',
-          body: 'Non. La démonstration intégrée de cette page utilise des données fictives et aucun backend connecté. Connecter une vraie source de données est du code que vous étendez, branché à votre propre base ou API.',
+          body: 'Non. La démonstration intégrée de cette page utilise des données fictives et aucun service applicatif connecté. Connecter une vraie source de données est du code que vous étendez, branché à votre propre base ou API.',
         },
         {
           title: 'Inclut-il l’authentification et l’accès équipe ?',
           body: 'La génération échafaude la connexion et un accès selon les rôles en vrai code. Le brancher à votre fournisseur d’identité et faire respecter vos règles d’accès est du code que vous étendez.',
         },
         {
-          title: 'Le tableau de bord est-il responsive ?',
+          title: 'Le tableau de bord est-il adaptatif ?',
           body: 'Oui. Les mises en page sont générées pour s’adapter à desktop, tablette et mobile, et vous les vérifiez dans l’aperçu à chaque taille.',
         },
         {
@@ -513,7 +513,7 @@ export const DASHBOARD_BUILDER_COPY = {
       problemLabel: 'Le problème de la création de tableau de bord',
       buildLabel: 'Comment fonctionne le Générateur de tableau de bord',
       outputListLabel: 'Résultats de la génération de tableau de bord',
-      proofLinkLabel: 'Inspecter la preuve du workflow Générateur de tableau de bord',
+      proofLinkLabel: 'Inspecter la preuve du processus Générateur de tableau de bord',
       deliverablesLabel: 'Ce que livre le Générateur de tableau de bord',
       featuresLabel: 'Capacités du Générateur de tableau de bord',
       useCasesLabel: 'Cas d’usage du Générateur de tableau de bord',

@@ -259,13 +259,13 @@ export const ENTERPRISE_COPY = {
     seo: {
       title: 'Déploiement entreprise avec gouvernance | E-Code',
       description:
-        'Planifiez un déploiement E-Code autour de l’intégration SSO et SCIM, des accès par rôle, de l’export d’audit, des approbations de livraison et des exigences runtime, avec validation du tenant avant activation en production.',
+        'Planifiez un déploiement E-Code autour de l’intégration SSO et SCIM, des accès par rôle, de l’export d’audit, des approbations de livraison et des exigences d’exécution, avec validation du tenant avant activation en production.',
     },
     hero: {
       eyebrow: 'Déploiement entreprise pour des équipes d’ingénierie gouvernées',
       title: 'Déployez E-Code dans toute votre organisation avec identité, gouvernance et contrôle',
       subtitle:
-        'Amenez E-Code à toute une organisation d’ingénierie par un déploiement contrôlé. Cadrez l’intégration SSO et SCIM, les frontières de rôles, l’export d’audit, les approbations de livraison et la topologie runtime selon votre environnement, puis validez chaque contrôle avant activation en production.',
+        'Amenez E-Code à toute une organisation d’ingénierie par un déploiement contrôlé. Cadrez l’intégration SSO et SCIM, les frontières de rôles, l’export d’audit, les approbations de livraison et la topologie d’exécution selon votre environnement, puis validez chaque contrôle avant activation en production.',
       primaryCta: { label: 'Planifiez votre déploiement', ariaLabel: 'Planifiez votre déploiement entreprise E-Code' },
       secondaryCta: {
         label: 'Voir la gouvernance',
@@ -283,7 +283,7 @@ export const ENTERPRISE_COPY = {
       eyebrow: 'Console d’organisation',
       title: 'Événements d’audit récents',
       intro:
-        'Une console d’organisation responsive qui présente l’identité, les événements d’audit et les contrôles dans une vue gouvernée.',
+        'Une console d’organisation adaptative qui présente l’identité, les événements d’audit et les contrôles dans une vue gouvernée.',
       primaryHeading: 'Événements d’audit récents',
       primaryRows: [
         { label: 'Rôle modifié — Ingénierie', meta: 'admin · 12:04', status: 'SSO' },
@@ -294,13 +294,13 @@ export const ENTERPRISE_COPY = {
       asideRows: [
         { label: 'Identité / SSO', value: 'SCIM' },
         { label: 'Export d’audit', value: 'Activé' },
-        { label: 'Runtime', value: 'Planification privée' },
+        { label: 'Environnement d’exécution', value: 'Planification privée' },
       ],
       asideCta: 'Exporter le journal d’audit',
-      disclaimer: 'Démonstration responsive intégrée · données d’organisation fictives · pas une trace de génération',
+      disclaimer: 'Démonstration adaptative intégrée · données d’organisation fictives · pas une trace de génération',
       caption: {
         title: 'Une console d’organisation qui se lit comme un vrai déploiement gouverné',
-        body: 'Cette démonstration intégrée présente un flux d’événements d’audit, l’état de l’identité et des contrôles, et une action d’export d’audit dans une mise en page responsive.',
+        body: 'Cette démonstration intégrée présente un flux d’événements d’audit, l’état de l’identité et des contrôles, et une action d’export d’audit dans une mise en page adaptative.',
       },
       alt: 'Démonstration de console d’organisation entreprise avec une liste d’événements d’audit récents et un panneau de contrôles d’identité.',
     },
@@ -320,18 +320,18 @@ export const ENTERPRISE_COPY = {
           body: 'Sans frontières de rôles ni piste d’audit exportable, personne ne peut dire qui a changé quoi, qui a approuvé un déploiement, ni qui peut atteindre quel environnement.',
         },
         {
-          title: 'Runtime et livraison ne sont pas gouvernés',
-          body: 'Quand n’importe quel workspace peut tout exécuter et livrer partout, les équipes plateforme perdent l’isolation du runtime et les contrôles de déploiement qu’exige leur environnement.',
+          title: 'Environnement d’exécution et livraison ne sont pas gouvernés',
+          body: 'Quand n’importe quel espace de travail peut tout exécuter et livrer partout, les équipes plateforme perdent l’isolation de l’environnement d’exécution et les contrôles de déploiement qu’exige leur environnement.',
         },
       ],
       bridge:
-        'Le déploiement entreprise E-Code aligne l’intégration d’identité, les rôles, l’export d’audit, les exigences runtime et les approbations de livraison sur vos contrôles existants. La configuration et la validation du tenant précèdent l’activation en production.',
+        'Le déploiement entreprise E-Code aligne l’intégration d’identité, les rôles, l’export d’audit, les exigences d’exécution et les approbations de livraison sur vos contrôles existants. La configuration et la validation du tenant précèdent l’activation en production.',
     },
     build: {
       eyebrow: 'Une demande cadre le déploiement',
       title: 'Décrivez la gouvernance, pas la tuyauterie',
       intro:
-        'La demande ci-dessous se lit comme un mot d’un responsable plateforme. Les quatre éléments cartographient ce qu’un déploiement gouverné fournit — identité, gouvernance, livraison contrôlée et support — sur une vraie infrastructure, pas un template verrouillé.',
+        'La demande ci-dessous se lit comme un mot d’un responsable plateforme. Les quatre éléments cartographient ce qu’un déploiement gouverné fournit — identité, gouvernance, livraison contrôlée et support — sur une vraie infrastructure, pas un modèle verrouillé.',
       label: 'Exemple de prompt',
       promptText:
         'Déployez E-Code dans toute notre organisation d’ingénierie avec le SSO, des accès par rôle, l’export d’audit et des déploiements gouvernés.',
@@ -346,35 +346,35 @@ export const ENTERPRISE_COPY = {
         },
         {
           title: 'Livraison contrôlée',
-          body: 'L’isolation du runtime est une décision d’architecture et de déploiement, pas un droit activé par défaut. Les rôles et parcours d’approbation sont configurés et testés selon les environnements du périmètre.',
+          body: 'L’isolation de l’environnement d’exécution est une décision d’architecture et de déploiement, pas un droit activé par défaut. Les rôles et parcours d’approbation sont configurés et testés selon les environnements du périmètre.',
         },
         {
           title: 'Support au déploiement',
-          body: 'Un plan de déploiement guidé, un onboarding des équipes et un canal de support aident l’organisation à adopter E-Code par étapes plutôt que d’un seul coup.',
+          body: 'Un plan de déploiement guidé, une prise en main des équipes et un canal de support aident l’organisation à adopter E-Code par étapes plutôt que d’un seul coup.',
         },
       ],
     },
     proofLink: {
       eyebrow: 'Prompt → agent → aperçu',
       title: 'Inspectez le vrai parcours IDE avant de planifier un déploiement organisationnel',
-      body: 'Ces deux captures viennent du vrai run App Builder du salon de coiffure : le prompt, l’agent, les fichiers générés et l’aperçu actif apparaissent ensemble dans E-Code. Elles prouvent le parcours de construction ; elles ne prétendent pas que la console d’organisation fictive ci-dessus vient de ce run.',
-      galleryLabel: 'Preuves IDE réelles du run de référence App Builder du salon',
+      body: 'Ces deux captures viennent du vrai run Générateur d’applications du salon de coiffure : le prompt, l’agent, les fichiers générés et l’aperçu actif apparaissent ensemble dans E-Code. Elles prouvent le parcours de construction ; elles ne prétendent pas que la console d’organisation fictive ci-dessus vient de ce run.',
+      galleryLabel: 'Preuves IDE réelles du run de référence Générateur d’applications du salon',
       disclaimer:
-        'Preuve de référence uniquement : les deux images sont de vraies captures du run App Builder du salon. La console Entreprise de cette page est une démonstration scénarisée avec des données d’organisation fictives, pas un journal de génération.',
+        'Preuve de référence uniquement : les deux images sont de vraies captures du run Générateur d’applications du salon. La console Entreprise de cette page est une démonstration scénarisée avec des données d’organisation fictives, pas un journal de génération.',
       openFullSizeLabel: 'Ouvrir la référence du parcours entreprise en plein format',
       preview: {
-        title: 'Un vrai workspace passe du prompt à l’aperçu actif',
+        title: 'Un vrai espace de travail passe du prompt à l’aperçu actif',
         body: 'La première capture de référence montre le prompt du salon, l’échange avec l’agent, l’arborescence générée et l’application de réservation qui tourne dans l’IDE E-Code.',
-        alt: 'Vrai run App Builder E-Code du salon montrant l’agent, les fichiers projet générés et l’application de réservation dans l’onglet Aperçu, utilisé comme preuve de parcours pour la page Entreprise.',
+        alt: 'Vrai run Générateur d’applications E-Code du salon montrant l’agent, les fichiers projet générés et l’application de réservation dans l’onglet Aperçu, utilisé comme preuve de parcours pour la page Entreprise.',
       },
       iteration: {
-        title: 'Le même workspace conserve la modification demandée ensuite',
+        title: 'Le même espace de travail conserve la modification demandée ensuite',
         body: 'La seconde capture de référence montre une instruction de suivi et l’aperçu mis à jour, soit la boucle d’itération inspectable qu’un déploiement entreprise encadre.',
-        alt: 'Vrai run App Builder E-Code du salon après une itération, avec l’échange de suivi de l’agent et l’aperçu mis à jour visibles dans l’IDE.',
+        alt: 'Vrai run Générateur d’applications E-Code du salon après une itération, avec l’échange de suivi de l’agent et l’aperçu mis à jour visibles dans l’IDE.',
       },
       cta: {
         label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page Générateur d’applications',
       },
     },
     deliverables: {
@@ -385,27 +385,27 @@ export const ENTERPRISE_COPY = {
       items: [
         {
           title: 'Source inspectable et exportable',
-          body: 'Les équipes reçoivent de vrais composants, routes, styles et fichiers de configuration que les relecteurs inspectent dans le workspace puis exportent vers leur processus de versionnement et de livraison.',
+          body: 'Les équipes reçoivent de vrais composants, routes, styles et fichiers de configuration que les relecteurs inspectent dans l’espace de travail puis exportent vers leur processus de versionnement et de livraison.',
         },
         {
           title: 'Frontières données et intégrations visibles',
           body: 'Schémas, adaptateurs, références d’environnement et noms de secrets restent visibles dans le projet. Bases, fournisseurs d’identité et services internes exigent encore des connexions approuvées et la validation du tenant ; les identifiants n’ont pas leur place dans la source générée.',
         },
         {
-          title: 'Aperçu responsive à relire',
-          body: 'Un build compatible tourne dans l’aperçu sur desktop, tablette et mobile pour que produit, plateforme et sécurité inspectent la même interface courante avant toute décision de livraison.',
+          title: 'Aperçu adaptatif à relire',
+          body: 'Une compilation compatible tourne dans l’aperçu sur desktop, tablette et mobile pour que produit, plateforme et sécurité inspectent la même interface courante avant toute décision de livraison.',
         },
         {
           title: 'Publication statique guidée',
-          body: 'Les builds statiques pris en charge suivent le parcours de publication guidée E-Code. Rôles entreprise, points d’approbation et contrôles de l’environnement cible restent une configuration explicite du déploiement.',
+          body: 'Les compilations statiques prises en charge suivent le parcours de publication guidée E-Code. Rôles entreprise, points d’approbation et contrôles de l’environnement cible restent une configuration explicite du déploiement.',
         },
         {
-          title: 'URL statique en ligne ou relais runtime',
-          body: 'Une livraison statique prise en charge reçoit une URL en ligne hébergée par E-Code. Les projets dépendants de processus serveur restent exportables et exigent un modèle convenu de runtime, réseau, secrets et exploitation.',
+          title: 'URL statique en ligne ou relais d’exécution',
+          body: 'Une livraison statique prise en charge reçoit une URL en ligne hébergée par E-Code. Les projets dépendants de processus serveur restent exportables et exigent un modèle convenu d’exécution, réseau, secrets et exploitation.',
         },
         {
           title: 'Itération pilotée par la conversation',
-          body: 'Une équipe poursuit la conversation avec l’Agent pour demander un changement de politique, d’interface ou de workflow, puis relit les fichiers, le diff et l’aperçu mis à jour avant de l’accepter.',
+          body: 'Une équipe poursuit la conversation avec l’Agent pour demander un changement de politique, d’interface ou de processus, puis relit les fichiers, le diff et l’aperçu mis à jour avant de l’accepter.',
         },
       ],
     },
@@ -424,7 +424,7 @@ export const ENTERPRISE_COPY = {
           body: 'Le SCIM synchronise les changements d’appartenance pris en charge après réussite de la configuration du tenant et des tests réels de provisionnement.',
         },
         {
-          title: 'Rôles et permissions',
+          title: 'Rôles et autorisations',
           body: 'Les frontières de rôles cadrent qui peut construire, relire, livrer et administrer.',
         },
         {
@@ -432,8 +432,8 @@ export const ENTERPRISE_COPY = {
           body: 'Vérifiez la couverture des événements exportés d’identité, d’accès et de livraison selon les preuves exigées par votre processus de revue.',
         },
         {
-          title: 'Planification d’isolation runtime',
-          body: 'Évaluez une topologie runtime privée selon les exigences de réseau, secrets, capacité, exploitation et support avant de l’ajouter au périmètre.',
+          title: 'Planification d’isolation de l’environnement d’exécution',
+          body: 'Évaluez une topologie d’exécution privée selon les exigences de réseau, secrets, capacité, exploitation et support avant de l’ajouter au périmètre.',
         },
         {
           title: 'Gouvernance des déploiements',
@@ -457,7 +457,7 @@ export const ENTERPRISE_COPY = {
         },
         {
           title: 'Organisations régulées',
-          body: 'Évaluez E-Code à travers des exigences documentées d’identité, d’audit, de runtime et de livraison sans déduire une certification de cette page.',
+          body: 'Évaluez E-Code à travers des exigences documentées d’identité, d’audit, d’exécution et de livraison sans déduire une certification de cette page.',
         },
         {
           title: 'Organisations multi-équipes',
@@ -480,11 +480,11 @@ export const ENTERPRISE_COPY = {
         },
         {
           title: 'E-Code est-il certifié pour une norme de conformité précise ?',
-          body: 'Nous décrivons le SSO, le provisionnement, l’export d’audit et l’isolation du runtime comme des capacités que vous planifiez et administrez. Nous n’affirmons pas de certification de conformité précise sur cette page — parlons-en selon vos exigences.',
+          body: 'Nous décrivons le SSO, le provisionnement, l’export d’audit et l’isolation de l’environnement d’exécution comme des capacités que vous planifiez et administrez. Nous n’affirmons pas de certification de conformité précise sur cette page — parlons-en selon vos exigences.',
         },
         {
-          title: 'Les workspaces peuvent-ils tourner sur un runtime privé ?',
-          body: 'Cette page promet la planification d’un runtime privé, pas un environnement privé activé. Topologie, disponibilité, réseau, exploitation, support et périmètre commercial sont confirmés pendant le déploiement avant tout engagement d’implémentation.',
+          title: 'Les espaces de travail peuvent-ils tourner sur un environnement d’exécution privé ?',
+          body: 'Cette page promet la planification d’un environnement d’exécution privé, pas un environnement privé activé. Topologie, disponibilité, réseau, exploitation, support et périmètre commercial sont confirmés pendant le déploiement avant tout engagement d’implémentation.',
         },
         {
           title: 'Comment les déploiements restent-ils gouvernés ?',
@@ -494,7 +494,7 @@ export const ENTERPRISE_COPY = {
     },
     finalCta: {
       title: 'Planifiez votre déploiement E-Code gouverné',
-      body: 'Alignez identité, rôles, export d’audit, exigences runtime et approbations de livraison sur votre environnement, puis validez chaque contrôle de production avant activation.',
+      body: 'Alignez identité, rôles, export d’audit, exigences d’exécution et approbations de livraison sur votre environnement, puis validez chaque contrôle de production avant activation.',
       primaryCta: { label: 'Planifiez votre déploiement', ariaLabel: 'Planifiez votre déploiement entreprise E-Code' },
       secondaryCta: {
         label: 'Voir la gouvernance',

@@ -306,10 +306,10 @@ export const CHATBOT_BUILDER_COPY = {
         { label: 'Escalades aujourd’hui', value: '4' },
       ],
       asideCta: 'Escalader à un agent',
-      disclaimer: 'Démonstration responsive intégrée · données d’assistant fictives · pas une trace de génération',
+      disclaimer: 'Démonstration adaptative intégrée · données d’assistant fictives · pas une trace de génération',
       caption: {
         title: 'Un assistant de support qui se lit comme un vrai produit',
-        body: 'Cette démonstration intégrée présente un fil de conversation avec des réponses citées, un transfert en cas de confiance faible et un panneau des sources de la réponse dans une mise en page responsive.',
+        body: 'Cette démonstration intégrée présente un fil de conversation avec des réponses citées, un transfert en cas de confiance faible et un panneau des sources de la réponse dans une mise en page adaptative.',
       },
       alt: 'Démonstration d’assistant de support avec un fil de conversation citant la documentation et un panneau des sources de la réponse.',
     },
@@ -364,15 +364,16 @@ export const CHATBOT_BUILDER_COPY = {
     proofLink: {
       eyebrow: 'Prompt → agent → aperçu',
       title: 'Observez le flux dans une vraie exécution E-Code, sans faire passer cette démo pour une capture',
-      body: 'Les deux images IDE ci-dessous proviennent de la véritable exécution App Builder du salon de coiffure. Elles documentent la boucle E-Code — prompt, plan de l’Agent, fichiers générés, aperçu puis correction — tandis que HelpDesk Copilot reste un scénario créé séparément avec des données fictives.',
-      galleryLabel: 'Référence IDE réelle du run salon App Builder pour illustrer le flux Générateur de chatbot',
+      body: 'Les deux images IDE ci-dessous proviennent de la véritable exécution Générateur d’applications du salon de coiffure. Elles documentent la boucle E-Code — prompt, plan de l’Agent, fichiers générés, aperçu puis correction — tandis que HelpDesk Copilot reste un scénario créé séparément avec des données fictives.',
+      galleryLabel:
+        'Référence IDE réelle du run salon Générateur d’applications pour illustrer le flux Générateur de chatbot',
       disclaimer:
-        'Captures de référence : vrai run salon dans E-Code App Builder · fiches salon fictives · démonstration chatbot scénarisée avec données fictives · pas une trace de génération chatbot',
-      openFullSizeLabel: 'Ouvrir la référence IDE App Builder en taille réelle',
+        'Captures de référence : vrai run salon dans E-Code Générateur d’applications · fiches salon fictives · démonstration chatbot scénarisée avec données fictives · pas une trace de génération chatbot',
+      openFullSizeLabel: 'Ouvrir la référence IDE Générateur d’applications en taille réelle',
       preview: {
         title: 'Un vrai prompt, l’arborescence générée et l’aperçu réunis',
-        body: 'Cette référence App Builder montre le prompt salon et le projet de réservation généré dans le véritable IDE E-Code. Elle prouve le flux visible du prompt vers l’aperçu ; elle ne montre ni chatbot, ni modèle de langage connecté, ni recherche documentaire, ni transfert au support.',
-        alt: 'Référence IDE réelle E-Code App Builder montrant le prompt de réservation du salon, les fichiers générés et le tableau de bord dans l’onglet d’aperçu ; aucun chatbot n’est affiché.',
+        body: 'Cette référence Générateur d’applications montre le prompt salon et le projet de réservation généré dans le véritable IDE E-Code. Elle prouve le flux visible du prompt vers l’aperçu ; elle ne montre ni chatbot, ni modèle de langage connecté, ni recherche documentaire, ni transfert au support.',
+        alt: 'Référence IDE réelle E-Code Générateur d’applications montrant le prompt de réservation du salon, les fichiers générés et le tableau de bord dans l’onglet d’aperçu ; aucun chatbot n’est affiché.',
       },
       iteration: {
         title: 'Une vraie demande de correction reste visible auprès du projet actif',
@@ -381,14 +382,14 @@ export const CHATBOT_BUILDER_COPY = {
       },
       cta: {
         label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page Générateur d’applications',
       },
     },
     deliverables: {
       eyebrow: 'Ce que vous recevez',
       title: 'Un projet d’assistant relisible, du code jusqu’à l’interface statique en ligne',
       intro:
-        'La source, la frontière de l’adaptateur documentaire, l’aperçu responsive et le chemin de publication restent visibles. Les interfaces statiques suivent la publication prise en charge par E-Code ; un chatbot relié à un modèle exige encore ses services et son runtime.',
+        'La source, la frontière de l’adaptateur documentaire, l’aperçu adaptatif et le chemin de publication restent visibles. Les interfaces statiques suivent la publication prise en charge par E-Code ; un chatbot relié à un modèle exige encore ses services et son environnement d’exécution.',
       items: [
         {
           title: 'Source ouverte à la relecture et à l’export',
@@ -403,12 +404,12 @@ export const CHATBOT_BUILDER_COPY = {
           body: 'Testez l’interface du téléphone au desktop dans l’aperçu. Cela confirme le rendu du parcours, pas une recherche documentaire active, une réponse modèle, une authentification ou une livraison au support.',
         },
         {
-          title: 'Publication assistée des builds statiques pris en charge',
-          body: 'Quand la surface de l’assistant correspond à un build statique pris en charge, E-Code guide sa construction et sa publication sans présenter un comportement serveur non connecté comme déployé.',
+          title: 'Publication assistée des compilations statiques prises en charge',
+          body: 'Quand la surface de l’assistant correspond à une compilation statique prise en charge, E-Code guide sa construction et sa publication sans présenter un comportement serveur non connecté comme déployé.',
         },
         {
-          title: 'URL E-Code pour l’interface, runtime séparé pour l’agent',
-          body: 'Publiez l’interface statique compatible sur une URL E-Code. Un chatbot qui appelle un modèle, lit des documents ou conserve des échanges requiert le projet exporté et un runtime backend adapté réellement déployé.',
+          title: 'URL E-Code pour l’interface, environnement d’exécution séparé pour l’agent',
+          body: 'Publiez l’interface statique compatible sur une URL E-Code. Un chatbot qui appelle un modèle, lit des documents ou conserve des échanges requiert le projet exporté et un environnement d’exécution serveur adapté réellement déployé.',
         },
         {
           title: 'Itération en poursuivant l’échange avec l’Agent',
@@ -423,7 +424,7 @@ export const CHATBOT_BUILDER_COPY = {
         'Le parcours Générateur de chatbot garde prompt, outils, mémoire et escalade dans un seul flux inspectable.',
       items: [
         {
-          title: 'Réponses depuis vos docs',
+          title: 'Réponses depuis votre documentation',
           body: 'Partez d’un contrat d’adaptateur de sources et d’un affichage de citations, puis branchez votre corpus et testez chaque chemin de récupération.',
         },
         {
@@ -440,7 +441,7 @@ export const CHATBOT_BUILDER_COPY = {
         },
         {
           title: 'Transfert humain',
-          body: 'Définissez la branche pour les demandes incertaines ou hors périmètre, puis connectez et testez la vraie file de support.',
+          body: 'Définissez la branche pour les demandes incertaines ou hors périmètre, puis connectez et testez la vraie file d’attente du support.',
         },
         {
           title: 'Projet exportable',
@@ -456,18 +457,18 @@ export const CHATBOT_BUILDER_COPY = {
       items: [
         {
           title: 'Bots de support documentation',
-          body: 'Répondez aux questions clients à partir des docs produit et escaladez en cas de doute.',
+          body: 'Répondez aux questions clients à partir de la documentation produit et escaladez en cas de doute.',
         },
         {
           title: 'Help desks internes',
           body: 'Des assistants qui répondent aux questions IT, RH ou ops depuis des bases de connaissances internes.',
         },
         {
-          title: 'Agents de tâches et de workflow',
+          title: 'Agents de tâches et de processus',
           body: 'Des agents qui appellent des outils bornés pour réaliser des étapes et rendre compte pour relecture.',
         },
         {
-          title: 'Assistants d’onboarding',
+          title: 'Assistants de prise en main',
           body: 'Des assistants guidés qui accompagnent les nouveaux utilisateurs dans la configuration avec des sources citées.',
         },
       ],
@@ -483,7 +484,7 @@ export const CHATBOT_BUILDER_COPY = {
         },
         {
           title: 'Répond-il à partir de ma propre documentation ?',
-          body: 'L’assistant généré est modélisé pour récupérer depuis une base de connaissances et citer ce qu’il a utilisé. La démonstration intégrée de cette page utilise des données fictives, sans modèle ni backend connecté.',
+          body: 'L’assistant généré est modélisé pour récupérer depuis une base de connaissances et citer ce qu’il a utilisé. La démonstration intégrée de cette page utilise des données fictives, sans modèle ni service applicatif connecté.',
         },
         {
           title: 'Peut-il transférer à un humain ?',
