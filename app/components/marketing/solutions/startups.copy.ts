@@ -257,7 +257,7 @@ export const STARTUPS_COPY = {
     seo: {
       title: 'Lancez un MVP de startup avec du vrai code | E-Code',
       description:
-        'Décrivez le MVP que votre startup doit démontrer. E-Code le transforme en fichiers source modifiables avec un aperçu hébergé, un lien de revue partageable, l’export du projet et la publication guidée pour les builds pris en charge.',
+        'Décrivez le MVP que votre startup doit démontrer. E-Code le transforme en fichiers source modifiables avec un aperçu hébergé, un lien de revue partageable, l’export du projet et la publication guidée pour les compilations prises en charge.',
     },
     hero: {
       eyebrow: 'Pour les startups qui lancent un MVP',
@@ -281,7 +281,7 @@ export const STARTUPS_COPY = {
       eyebrow: 'Semaine de lancement',
       title: 'Checklist du MVP',
       intro:
-        'Un écran produit responsive qui associe les jalons du MVP à la traction initiale, prêt à dérouler en démonstration.',
+        'Un écran produit adaptatif qui associe les jalons du MVP à la traction initiale, prêt à dérouler en démonstration.',
       primaryHeading: 'Checklist du MVP',
       primaryRows: [
         { label: 'Page d’attente + liste', meta: 'livré · aperçu en ligne', status: 'En ligne' },
@@ -295,10 +295,10 @@ export const STARTUPS_COPY = {
         { label: 'Jours avant la démo', value: '6' },
       ],
       asideCta: 'Partager l’aperçu',
-      disclaimer: 'Démonstration responsive intégrée · données de startup fictives · pas une trace de génération',
+      disclaimer: 'Démonstration adaptative intégrée · données de startup fictives · pas une trace de génération',
       caption: {
         title: 'Un MVP qui se lit comme un vrai produit le jour de la démo',
-        body: 'Cette démonstration intégrée présente une checklist de lancement, un panneau de traction et une action de partage d’aperçu dans une mise en page responsive.',
+        body: 'Cette démonstration intégrée présente une checklist de lancement, un panneau de traction et une action de partage d’aperçu dans une mise en page adaptative.',
       },
       alt: 'Démonstration de MVP de startup avec une checklist de lancement et un panneau de traction initiale.',
     },
@@ -335,7 +335,7 @@ export const STARTUPS_COPY = {
       outputs: [
         {
           title: 'Page d’attente',
-          body: 'Une page d’accueil responsive avec un formulaire de liste d’attente et sa structure de soumission, rendue à partir de vrais composants et routes sur desktop, tablette et mobile. Le service choisi pour la persistance reste à configurer.',
+          body: 'Une page d’accueil adaptative avec un formulaire de liste d’attente et sa structure de soumission, rendue à partir de vrais composants et routes sur desktop, tablette et mobile. Le service choisi pour la persistance reste à configurer.',
         },
         {
           title: 'Tableau de bord produit',
@@ -347,31 +347,31 @@ export const STARTUPS_COPY = {
         },
         {
           title: 'Aperçu hébergé et lien de démo',
-          body: 'E-Code exécute le build compatible du MVP dans un aperçu hébergé et fournit un lien de revue partageable. Le projet reste exportable, tandis que l’aptitude à la production fait l’objet d’une validation séparée.',
+          body: 'E-Code exécute la compilation compatible du MVP dans un aperçu hébergé et fournit un lien de revue partageable. Le projet reste exportable, tandis que l’aptitude à la production fait l’objet d’une validation séparée.',
         },
       ],
     },
     proofLink: {
       eyebrow: 'Prompt → agent → aperçu',
       title: 'Voyez la vraie boucle de construction derrière une démo produit lancée par prompt',
-      body: 'Les images ci-dessous sont de vraies captures du run App Builder du salon de coiffure. Elles montrent comment une demande en langage courant devient des fichiers et un aperçu actif dans E-Code ; elles prouvent le parcours, pas que le tableau de bord fictif de startup ci-dessus a été généré pendant ce run enregistré.',
-      galleryLabel: 'Vraies captures App Builder de référence pour le parcours startup',
+      body: 'Les images ci-dessous sont de vraies captures du run Générateur d’applications du salon de coiffure. Elles montrent comment une demande en langage courant devient des fichiers et un aperçu actif dans E-Code ; elles prouvent le parcours, pas que le tableau de bord fictif de startup ci-dessus a été généré pendant ce run enregistré.',
+      galleryLabel: 'Vraies captures Générateur d’applications de référence pour le parcours startup',
       disclaimer:
         'Le run capturé construit l’application de référence du salon. L’écran de lancement startup de cette page est une démonstration scénarisée avec des données de traction fictives, pas un journal de génération.',
       openFullSizeLabel: 'Ouvrir la référence de construction startup en plein format',
       preview: {
         title: 'Une demande de fondateur devient un projet inspectable',
-        body: 'Dans le vrai run de référence, E-Code garde le prompt du salon, la réponse de l’agent, l’arborescence générée et l’aperçu de réservation fonctionnel dans un même workspace.',
-        alt: 'Vrai run App Builder E-Code du salon avec le prompt de l’agent, l’arborescence source générée et l’application de réservation ouverte dans l’onglet Aperçu, montré comme preuve de référence sur la page Startups.',
+        body: 'Dans le vrai run de référence, E-Code garde le prompt du salon, la réponse de l’agent, l’arborescence générée et l’aperçu de réservation fonctionnel dans un même espace de travail.',
+        alt: 'Vrai run Générateur d’applications E-Code du salon avec le prompt de l’agent, l’arborescence source générée et l’application de réservation ouverte dans l’onglet Aperçu, montré comme preuve de référence sur la page Startups.',
       },
       iteration: {
         title: 'L’instruction suivante met l’application à jour sur place',
         body: 'La vraie capture de suivi garde l’échange avec l’agent à côté de l’aperçu actualisé, soit la boucle qu’une startup utilise pour affiner une démo tout en conservant le code.',
-        alt: 'Vraie itération App Builder E-Code du salon montrant un prompt de suivi et l’aperçu de réservation actualisé dans l’IDE.',
+        alt: 'Vraie itération Générateur d’applications E-Code du salon montrant un prompt de suivi et l’aperçu de réservation actualisé dans l’IDE.',
       },
       cta: {
         label: 'Voir la preuve IDE réelle',
-        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page App Builder',
+        ariaLabel: 'Voir la preuve IDE réelle E-Code sur la page Générateur d’applications',
       },
     },
     deliverables: {
@@ -389,16 +389,16 @@ export const STARTUPS_COPY = {
           body: 'Enregistrements de liste d’attente, formes de comptes, schémas du tableau de bord, adaptateurs, références d’environnement et noms de secrets restent visibles. Base, fournisseur d’identité, analytics et paiements choisis exigent encore de vrais identifiants et un travail d’intégration.',
         },
         {
-          title: 'Aperçu responsive prêt pour la démo',
-          body: 'Le build compatible tourne dans l’aperçu aux formats téléphone, tablette et desktop pour que les fondateurs relisent le parcours courant avant de le partager avec un investisseur ou un premier utilisateur.',
+          title: 'Aperçu adaptatif prêt pour la démo',
+          body: 'La compilation compatible tourne dans l’aperçu aux formats téléphone, tablette et desktop pour que les fondateurs relisent le parcours courant avant de le partager avec un investisseur ou un premier utilisateur.',
         },
         {
           title: 'Lancement statique guidé',
-          body: 'Un build statique pris en charge avance dans le parcours de publication guidée E-Code. Connexion des données clients, authentification, facturation, observabilité et contrôles de livraison restent des travaux explicites.',
+          body: 'Une compilation statique prise en charge avance dans le parcours de publication guidée E-Code. Connexion des données clients, authentification, facturation, observabilité et contrôles de livraison restent des travaux explicites.',
         },
         {
           title: 'URL de démo en ligne et export',
-          body: 'La publication d’un build statique pris en charge produit une URL en ligne hébergée par E-Code à partager. Les fonctionnalités dépendantes d’un serveur restent dans le projet exporté et exigent un runtime compatible et des services configurés.',
+          body: 'La publication d’une compilation statique prise en charge produit une URL en ligne hébergée par E-Code à partager. Les fonctionnalités dépendantes d’un serveur restent dans le projet exporté et exigent un environnement d’exécution compatible et des services configurés.',
         },
         {
           title: 'Itération du fondateur vers l’Agent',
@@ -413,12 +413,12 @@ export const STARTUPS_COPY = {
         'Le parcours Startups garde le prompt, la démo, le code et la prochaine étape d’ingénierie dans un seul flux inspectable.',
       items: [
         {
-          title: 'Templates et génération IA',
-          body: 'Partez d’un template ou d’un prompt et générez une vraie source modifiable au lieu d’un prototype verrouillé.',
+          title: 'Modèles et génération IA',
+          body: 'Partez d’un modèle ou d’un prompt et générez une vraie source modifiable au lieu d’un prototype verrouillé.',
         },
         {
           title: 'Aperçus hébergés',
-          body: 'Exécutez le build compatible courant dans un aperçu hébergé et relisez ses mises en page responsives avant partage.',
+          body: 'Exécutez la compilation compatible courant dans un aperçu hébergé et relisez ses mises en page adaptatives avant partage.',
         },
         {
           title: 'Démos investisseurs partageables',
@@ -426,7 +426,7 @@ export const STARTUPS_COPY = {
         },
         {
           title: 'Authentification et tableaux de bord',
-          body: 'Parcours de connexion et bases de tableau de bord générés comme du code que vous étendez, pas un template figé.',
+          body: 'Parcours de connexion et bases de tableau de bord générés comme du code que vous étendez, pas un modèle figé.',
         },
         {
           title: 'Continuité du prototype au produit',
@@ -434,7 +434,7 @@ export const STARTUPS_COPY = {
         },
         {
           title: 'Source exportable',
-          body: 'Exportez le projet ou publiez les builds pris en charge. La propriété et l’usage autorisé suivent les conditions E-Code applicables.',
+          body: 'Exportez le projet ou publiez les compilations prises en charge. La propriété et l’usage autorisé suivent les conditions E-Code applicables.',
         },
       ],
     },
@@ -442,7 +442,7 @@ export const STARTUPS_COPY = {
       eyebrow: 'Qui construit avec',
       title: 'Ce que les équipes fondatrices livrent avec le parcours Startups',
       intro:
-        'D’une liste d’attente en pré-amorçage à un produit de demo day, la même boucle produit un vrai MVP responsive.',
+        'D’une liste d’attente en pré-amorçage à un produit de demo day, la même boucle produit un vrai MVP adaptatif.',
       items: [
         {
           title: 'Liste d’attente et page en pré-amorçage',
@@ -477,11 +477,11 @@ export const STARTUPS_COPY = {
         },
         {
           title: 'Y a-t-il un vrai chemin du prototype à la production ?',
-          body: 'Les builds pris en charge se publient vers une URL en ligne via la publication guidée, et chaque projet reste exportable. La production exige encore la configuration des services de données et d’identité, des secrets, des contrôles de sécurité, des tests et la validation opérationnelle de votre stack.',
+          body: 'Les compilations prises en charge se publient vers une URL en ligne via la publication guidée, et chaque projet reste exportable. La production exige encore la configuration des services de données et d’identité, des secrets, des contrôles de sécurité, des tests et la validation opérationnelle de votre pile technique.',
         },
         {
           title: 'Puis-je ajouter l’authentification, une base ou des paiements ?',
-          body: 'Les parcours générés sont du code que vous étendez et branchez à des services externes. La démonstration intégrée de cette page utilise des données fictives et aucun backend connecté.',
+          body: 'Les parcours générés sont du code que vous étendez et branchez à des services externes. La démonstration intégrée de cette page utilise des données fictives et aucun service applicatif connecté.',
         },
         {
           title: 'Comment ajouter la fonctionnalité suivante ?',
