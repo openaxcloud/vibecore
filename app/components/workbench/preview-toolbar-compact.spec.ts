@@ -62,10 +62,20 @@ describe('barre de la Webview — mobile et tablette', () => {
     expect(blocCompact(styles)).toMatch(/\.bolt-preview-copy-url\s*\{\s*display:\s*none/u);
   });
 
-  it('tient sur une seule ligne', () => {
+  it('tient sur une seule ligne — et impose le mode de disposition', () => {
     const bloc = blocCompact(styles);
+    const regle = bloc.match(/\.bolt-project-webview-toolbar \{([^}]*)\}/u)?.[1] ?? '';
 
-    expect(bloc).toMatch(/\.bolt-project-webview-toolbar\s*\{\s*flex-wrap:\s*nowrap/u);
+    /*
+     * Cette assertion ne vérifiait QUE `flex-wrap: nowrap`. Elle est restée
+     * verte pendant que la barre s'affichait sur deux lignes en production
+     * (mesuré à 390 px : adresse y=102, bouton y=161, barre de 116 px) — parce
+     * que la barre est en `display: grid`, où `flex-wrap` n'a aucun effet. Une
+     * règle présente n'est pas une règle qui s'applique : on vérifie donc aussi
+     * le mode de disposition, sans quoi le même défaut repasserait.
+     */
+    expect(regle).toMatch(/display:\s*flex/u);
+    expect(regle).toMatch(/flex-wrap:\s*nowrap/u);
   });
 
   it('laisse l’adresse absorber la largeur sans pousser le bouton dehors', () => {

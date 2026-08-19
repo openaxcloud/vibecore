@@ -9879,8 +9879,25 @@ body :where(.lucide, svg[data-lucide]) {
  * retombe sur le défaut qu'on corrige.
  */
 @media (max-width: 1023px) {
+  /*
+   * SCR-001 — « le bouton "ouvrir dans un navigateur" doit être sur la MÊME
+   * LIGNE que la barre d'URL ».
+   *
+   * `flex-wrap: nowrap` était déjà là et le spec le vérifiait… mais la barre est
+   * en `display: grid` : la propriété était donc INERTE, et la grille posait
+   * chaque enfant sur sa propre rangée. Mesuré en production à 390 px : adresse
+   * à y=102, bouton à y=161, barre de 116 px de haut — deux lignes, exactement
+   * ce que la capture d'Avi montre.
+   *
+   * On impose donc le mode de disposition, au lieu de régler une propriété qui
+   * n'a pas cours : une ligne flex, l'adresse absorbe la largeur, le bouton
+   * garde la sienne.
+   */
   .bolt-project-webview-toolbar {
+    display: flex;
     flex-wrap: nowrap;
+    align-items: center;
+    gap: 8px;
   }
 
   .bolt-project-webview-toolbar .bolt-preview-toolbar-tools > *:not(.bolt-preview-open-external) {
@@ -9904,6 +9921,10 @@ body :where(.lucide, svg[data-lucide]) {
   /* L'adresse prend toute la place restante et ne pousse jamais le bouton dehors. */
   .bolt-project-webview-toolbar .bolt-preview-addressbar {
     min-width: 0;
+
+    /* Absorbe la largeur restante ; `0 0 auto` la figeait à 100 % et poussait le
+       bouton sur la rangée suivante. */
+    width: auto;
     flex: 1 1 auto;
   }
 

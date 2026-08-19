@@ -51,6 +51,7 @@ import { getLanguageFromExtension } from '~/utils/getLanguageFromExtension';
 import { type MobileWorkbenchPanel, resolveActiveWorkbenchView } from './active-workbench-view';
 import { shouldAutoRunPreview } from './preview-frame-recovery';
 
+/* Libellé du Terminal mobile — surface GELÉE par Avi (ref IMG_9149). */
 const SHELL_TERMINAL_LABEL = 'Shell (Terminal)';
 
 interface WorkspaceProps {
@@ -645,23 +646,27 @@ export const Workbench = memo(
                       }}
                     />
                     {!useMobileWorkbench && <WorkbenchTabBar selected={selectedView} onSelect={setSelectedView} />}
-                    {useMobileWorkbench && (
+                    {/*
+                     * SCR-002 — « supprimer la ligne redondante "Aperçu" sous l'en-tête
+                     * Webview, et tout sous-titre qui répète le titre de son panneau ».
+                     *
+                     * Cette ligne redisait le nom du panneau actif alors que l'en-tête
+                     * mobile l'affiche déjà, une trentaine de pixels plus haut : mesuré
+                     * en production à 390 px, « Webview » à y=14 et « Aperçu » à y=62 —
+                     * deux fois la même information, pour deux rangées de hauteur prises
+                     * à l'aperçu lui-même. Le nom vient de `ECODE_MOBILE_TAB_META`, qui
+                     * couvre exactement les mêmes panneaux : rien n'est perdu.
+                     *
+                     * Les libellés du catalogue restent en place — ils servent aux
+                     * étiquettes d'accessibilité de la coque mobile.
+                     *
+                     * SEULE EXCEPTION : le Terminal. Sa surface mobile est GELÉE par Avi
+                     * (ref IMG_9149) ; lui retirer son en-tête la modifierait. Il garde
+                     * donc son libellé, et lui seul.
+                     */}
+                    {useMobileWorkbench && mobilePanel === 'terminal' && (
                       <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-bolt-elements-textPrimary">
-                        <span className="truncate">
-                          {mobilePanel === 'files'
-                            ? copy['workbenchSurface.mobile.files']
-                            : mobilePanel === 'search'
-                              ? copy['workbenchSurface.mobile.search']
-                              : mobilePanel === 'locks'
-                                ? copy['workbenchSurface.mobile.locks']
-                                : mobilePanel === 'terminal'
-                                  ? SHELL_TERMINAL_LABEL
-                                  : mobilePanel === 'preview'
-                                    ? copy['workbenchSurface.mobile.preview']
-                                    : mobilePanel === 'deploy'
-                                      ? copy['workbenchSurface.mobile.deploy']
-                                      : copy['workbenchSurface.mobile.editor']}
-                        </span>
+                        <span className="truncate">{SHELL_TERMINAL_LABEL}</span>
                       </div>
                     )}
                     <div className="ml-auto" />
