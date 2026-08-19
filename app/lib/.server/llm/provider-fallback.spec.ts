@@ -49,7 +49,10 @@ describe('classification des échecs fournisseur', () => {
       statusCode: 400,
       responseBody: JSON.stringify({
         type: 'error',
-        error: { type: 'invalid_request_error', message: 'Your credit balance is too low to access the Anthropic API.' },
+        error: {
+          type: 'invalid_request_error',
+          message: 'Your credit balance is too low to access the Anthropic API.',
+        },
       }),
     });
 
