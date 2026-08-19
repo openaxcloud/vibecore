@@ -21402,9 +21402,23 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     gap: 4px;
   }
 
-  /* Agent context-bar "Prompt" shortcut to a 40px tap target. */
+  /*
+   * Raccourci « Prompt » de la barre de contexte de l'agent : cible tactile de
+   * 40 px de haut, ET largeur figée sur son contenu.
+   *
+   * Mesuré en production le 19/08 à 390 px : le bouton faisait 36 px de large
+   * pour un libellé qui en demande 49, et le texte sortait de sa bordure
+   * arrondie. La cause n'est pas un `overflow` : c'est `white-space: normal`,
+   * qui autorise le navigateur à réduire le bouton sous la largeur du mot, si
+   * bien que la piste `auto` de la grille le comprimait au profit de la colonne
+   * `minmax(0, 1fr)` voisine. `nowrap` + `min-width: max-content` rendent cette
+   * compression impossible ; la colonne du milieu, elle, tronque déjà
+   * proprement en ellipse.
+   */
   .bolt-responsive-ide-mobile .bolt-mobile-agent-context-bar button {
     min-height: 40px;
+    min-width: max-content;
+    white-space: nowrap;
   }
 
   .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu::before {
