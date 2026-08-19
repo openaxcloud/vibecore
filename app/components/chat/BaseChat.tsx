@@ -104,6 +104,7 @@ import { buildRuntimeDiagnostics, useDiagnosticsStore, type Diagnostic } from '~
 import { parseProblemLocation, type ProblemLocation } from '~/lib/stores/problem-location';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { DEFAULT_THEME, applyThemeToDocument, kTheme, themeStore, toggleTheme, type Theme } from '~/lib/stores/theme';
+import { resolveProjectThemePreference } from '~/lib/stores/project-theme';
 import type { ProviderInfo } from '~/types/model';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST, WORK_DIR } from '~/utils/constants';
@@ -224,39 +225,19 @@ function isProjectThemePreference(preference: unknown): preference is ProjectThe
   return preference === 'dark' || preference === 'light' || preference === 'system';
 }
 
-function resolveProjectThemePreference(preference: unknown): Theme {
-  if (!isProjectThemePreference(preference)) {
-    return DEFAULT_THEME;
-  }
-
-  if (preference === 'dark' || preference === 'light') {
-    return preference;
-  }
-
-  /*
-   * 'system' / unset → respect the user's persisted toggle if they have one, else
-   * the app default (light, matching Replit). We intentionally do NOT follow the OS
-   * color-scheme: it made the IDE dark on dark-mode machines and persisted that to
-   * bolt_theme, flipping the whole app to dark and overriding both the light default
-   * and an explicit light toggle.
-   */
-  if (typeof localStorage !== 'undefined') {
-    const persisted = localStorage.getItem(kTheme);
-
-    if (persisted === 'dark' || persisted === 'light') {
-      return persisted;
-    }
-  }
-
-  return DEFAULT_THEME;
-}
-
 function applyProjectThemePreference(preference: unknown): Theme {
-  const resolvedTheme = resolveProjectThemePreference(preference);
+  const { theme: resolvedTheme, explicite } = resolveProjectThemePreference(preference);
 
   themeStore.set(resolvedTheme);
 
-  if (typeof localStorage !== 'undefined') {
+  /*
+   * On n'écrit `bolt_theme` que pour un choix réel. Persister le défaut
+   * fabriquait une préférence que l'utilisateur n'avait jamais exprimée : au
+   * chargement suivant, `initStore` la recopiait dans le cookie partagé et
+   * l'épinglait sur toutes les surfaces — un simple passage dans l'IDE suffisait
+   * à figer le compte en clair.
+   */
+  if (explicite && typeof localStorage !== 'undefined') {
     localStorage.setItem(kTheme, resolvedTheme);
   }
 
