@@ -20,6 +20,7 @@ import { removeUnsupportedModelSettings } from './model-compat';
 import { AUTO_MODEL, decideRoute, resolveRouteTable, type RouteDecision } from './model-routing';
 import { estimateOutputBudget, clampOutputBudget, type OutputBudgetInput } from './output-budget';
 import { resolveUsableProvider } from './provider-credentials';
+import { ensureProviderProbed, resolveRuntimeProvider } from './provider-fallback';
 import { createFilesContext, extractPropertiesFromMessage } from './utils';
 import { PromptLibrary } from '~/lib/common/prompt-library';
 import { discussPrompt } from '~/lib/common/prompts/discuss-prompt';
@@ -439,8 +440,48 @@ export async function streamText(props: {
     serverEnv: effectiveServerEnv as Record<string, string> | undefined,
   });
 
-  const provider = resolved.provider;
-  currentModel = resolved.model;
+  /*
+   * Deuxième repli, à l'EXÉCUTION cette fois. `resolveUsableProvider` ci-dessus
+   * ne bascule que sur une clé ABSENTE ; il ne voit pas le mode de panne mesuré
+   * en production le 19/08, où la clé Anthropic est bien présente et c'est
+   * l'appel qui rend « Your credit balance is too low ». La sonde marque alors
+   * le fournisseur comme indisponible et le tour part chez OpenAI puis Gemini,
+   * au lieu de rendre un 500 « Service indisponible » sur une plateforme dont
+   * deux autres fournisseurs répondent.
+   *
+   * La sonde coûte UN jeton et n'est tirée qu'une fois par fournisseur toutes
+   * les cinq minutes ; un échec qui ne désigne pas le fournisseur (prompt,
+   * abandon client) ne déclenche aucune bascule.
+   */
+  await ensureProviderProbed({
+    provider: resolved.provider,
+    model: resolved.model,
+    apiKeys,
+    serverEnv: effectiveServerEnv as Record<string, string> | undefined,
+    abortSignal,
+  });
+
+  const runtimeChoice = resolveRuntimeProvider({
+    provider: resolved.provider,
+    model: resolved.model,
+    apiKeys,
+    serverEnv: effectiveServerEnv as Record<string, string> | undefined,
+  });
+
+  const provider = runtimeChoice.provider;
+  currentModel = runtimeChoice.model;
+
+  if (runtimeChoice.switchedFrom) {
+    logger.warn(
+      JSON.stringify({
+        event: 'provider.fallback',
+        from: runtimeChoice.switchedFrom.provider,
+        reason: runtimeChoice.switchedFrom.reason,
+        to: provider.name,
+        model: currentModel,
+      }),
+    );
+  }
 
   const staticModels = LLMManager.getInstance().getStaticModelListFromProvider(provider);
 

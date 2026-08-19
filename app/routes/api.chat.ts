@@ -40,6 +40,7 @@ import {
 } from '~/lib/.server/llm/context-optimization';
 import { createSummary } from '~/lib/.server/llm/create-summary';
 import { getFilePaths, selectContext } from '~/lib/.server/llm/select-context';
+import { classifyProviderFailure, markProviderUnhealthy } from '~/lib/.server/llm/provider-fallback';
 import { StreamRecoveryManager } from '~/lib/.server/llm/stream-recovery';
 import { anthropicCacheStore } from '~/lib/.server/llm/anthropic-cache-als';
 import { streamText, type Messages, type StreamingOptions } from '~/lib/.server/llm/stream-text';
@@ -1943,6 +1944,22 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         const detail = error?.message ? ` (${error.message})` : '';
 
         logger.info(`stream onError code=${code}${detail}`);
+
+        /*
+         * Signaler la panne au repli multi-fournisseur. La sonde d'un jeton de
+         * `stream-text` attrape déjà le cas « crédit à sec » AVANT la génération,
+         * mais elle ne peut rien voir d'une panne qui n'apparaît qu'en cours de
+         * flux (429 sous charge, 5xx, coupure réseau). Marquer ici fait partir le
+         * tour SUIVANT chez le fournisseur de repli au lieu de re-provoquer la
+         * même erreur. Un abandon client n'est pas une panne fournisseur.
+         */
+        if (!clientDisconnected && routedTurnProvider) {
+          const kind = classifyProviderFailure(error);
+
+          if (kind) {
+            markProviderUnhealthy(routedTurnProvider, kind, String(error?.message ?? code).slice(0, 300));
+          }
+        }
 
         /*
          * F18 — count a GENUINE provider/stream error toward the admin 24h error
