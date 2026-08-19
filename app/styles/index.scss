@@ -21943,6 +21943,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 }
 
 :root[data-theme='light'] .vc-auth-page {
+  /* SCR-007 — le bloc clair doit REDÉFINIR le ton fort, sinon la valeur sombre y fuit. */
+  --vc-action-primary-strong: #c2410c;
   --vc-auth-bg: #f5f6f7;
   --vc-auth-card: rgb(255 255 255 / 0.9);
   /*
@@ -22455,8 +22457,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
 .ecode-nav-menu:focus-within .ecode-nav-menu-chevron {
   transform: rotate(90deg);
 }
-
 :root[data-theme='light'] .vc-public-shell {
+  /* SCR-007 — le bloc clair doit REDÉFINIR le ton fort, sinon la valeur sombre y fuit. */
+  --vc-action-primary-strong: #c2410c;
   --vc-public-bg: #f7f8f9;
   --vc-public-panel: #ffffff;
   --vc-public-card: #f0f1f2;
