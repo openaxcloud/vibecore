@@ -14,10 +14,15 @@ import type { SupportedLanguage } from '~/lib/i18n/language';
 const ROUTE = '/solutions/app-builder';
 const CANONICAL_URL = 'https://e-code.ai/solutions/app-builder';
 
-const FRENCH_PROMPT =
-  'Crée une app de réservation pour mon salon de coiffure, avec agenda, comptes clients et rappels par email.';
-
 const COPY = APP_BUILDER_COPY.fr;
+
+/*
+ * Dérivé du catalogue, pas recopié : cette assertion vérifie que le SSR rend
+ * bien la demande française, pas qu'une chaîne écrite ici deux fois reste
+ * identique à elle-même. Recopiée, elle a figé « une app » et fait échouer le
+ * passage au glossaire (« une application ») alors que la page était correcte.
+ */
+const FRENCH_PROMPT = COPY.prompt.text;
 
 function actionAccessibleName(action: Readonly<{ label: string; ariaLabel: string }>) {
   return `${action.label}. ${action.ariaLabel}`;
