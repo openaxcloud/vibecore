@@ -819,7 +819,7 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
            * touch targets and are preserved; only the column count changes.
            * Measured on prod: footer 3981px -> 3179px, no label truncated.
            */}
-          <nav aria-label={copy.a11y.footerNavigation} className="grid grid-cols-2 gap-x-10 gap-y-6 lg:grid-cols-4">
+          <nav aria-label={copy.a11y.footerNavigation} className="grid grid-cols-2 gap-x-10 gap-y-5 lg:grid-cols-4">
             <FooterColumn title={copy.footer.columnLabels.product} links={productLinks} />
             <div>
               <FooterColumn title={copy.footer.columnLabels.resources} links={resourceLinks} />
@@ -926,10 +926,21 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
 function FooterColumn({ title, links }: { title: string; links: readonly FooterLink[] }) {
   return (
     <div>
-      <h4 className="text-[13px] font-semibold uppercase tracking-[0.3em] text-[var(--ecode-text-muted)] dark:text-slate-400">
+      {/*
+       * SCR-009 — Avi : « l'espace des TITRES de menu dans le pied de page est
+       * trop grand ». La cause est la chasse : `tracking-[0.3em]` met 30 % de la
+       * taille de police entre CHAQUE lettre, soit ~3,9 px à 13 px — « PRODUIT »
+       * occupait ainsi presque deux fois sa largeur naturelle, et les quatre
+       * titres donnaient au pied de page un air distendu.
+       *
+       * `0.12em` garde la lecture en capitales (une chasse nulle rendrait les
+       * capitales compactes et dures à lire) tout en rendant l'espace au titre.
+       * L'écart titre → liens passe de 12 px à 8 px dans le même mouvement.
+       */}
+      <h4 className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--ecode-text-muted)] dark:text-slate-400">
         {title}
       </h4>
-      <ul role="list" className="mt-3 space-y-2 text-[13px]">
+      <ul role="list" className="mt-2 space-y-2 text-[13px]">
         {links.map((link) => (
           <li key={link.id}>
             <Link

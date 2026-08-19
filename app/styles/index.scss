@@ -4924,11 +4924,19 @@ body :where(.lucide, svg[data-lucide]) {
   background: transparent;
 
   /*
-   * `text-tertiary` rendait la croix quasi illisible sur le fond clair de la
-   * tuile — demandée « nette » : on passe au ton secondaire, lisible sans
-   * concurrencer le titre de la tuile.
+   * SCR-003 — « croix BIEN VISIBLES ».
+   *
+   * Deux passes ont déjà eu lieu : `text-tertiary` → `text-secondary`. Mesurée,
+   * la croix est pourtant AU-DESSUS de AA (9,0 à 11,1:1 selon le jeu de thème) :
+   * le défaut n'est donc PAS un défaut de contraste, c'est un défaut de
+   * PRÉSENCE — une glyphe fine de 16 px sur une pastille à peine détachée du
+   * fond de la tuile se lit comme un artefact, pas comme un bouton.
+   *
+   * On agit donc sur ce qui la fait exister à l'œil, pas sur le ratio : ton
+   * primaire, pastille pleinement opaque, et une bordure qui la détache de la
+   * tuile.
    */
-  color: var(--vc-ide-text-secondary);
+  color: var(--vc-ide-text-primary);
   touch-action: manipulation;
 }
 
@@ -4942,9 +4950,10 @@ body :where(.lucide, svg[data-lucide]) {
   justify-content: center;
   border-radius: 999px;
 
-  /* Pastille plus opaque : la croix doit rester nette au-dessus de l'icône. */
-  background: color-mix(in srgb, var(--vc-ide-bg-app) 86%, transparent);
-  font-size: 16px;
+  /* Pastille pleine et bordée : c'est elle qui fait lire la croix comme un bouton. */
+  border: 1px solid var(--mobile-nav-border);
+  background: var(--vc-ide-bg-app);
+  font-size: 18px;
   font-weight: 700;
   transition:
     background 150ms ease,
@@ -4979,40 +4988,54 @@ body :where(.lucide, svg[data-lucide]) {
     max(16px, env(safe-area-inset-right, 0px));
 }
 
+/*
+ * SCR-003 — « toutes les tuiles de MÊME TAILLE ».
+ *
+ * La rangée du bas n'était pas faite des mêmes tuiles que la grille : une bande
+ * flex scrollable de boutons `70×58 px`, quand la grille pose des tuiles de
+ * `102 px` sur deux colonnes. D'où l'inégalité visible sur la capture d'Avi —
+ * ce n'était pas un écart de marge mais deux composants différents.
+ *
+ * La rangée reprend donc la MÊME grille et la MÊME hauteur que les tuiles du
+ * haut. Le défilement horizontal disparaît avec elle : sur deux colonnes, les
+ * quatre accès rapides tiennent sur deux lignes sans rien masquer.
+ */
 .bolt-mobile-tab-switcher-quick {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  overflow-x: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin-bottom: 16px;
-  scrollbar-width: none;
-}
-
-.bolt-mobile-tab-switcher-quick::-webkit-scrollbar {
-  display: none;
 }
 
 .bolt-mobile-tab-switcher-quick button {
   display: flex;
-  min-width: 70px;
-  min-height: 58px;
+
+  /* Exactement les cotes de `.bolt-mobile-tab-switcher-card` : même hauteur figée,
+     même rayon, même bordure, même fond — sinon l'œil voit deux familles. */
+  height: 102px;
+  min-height: 102px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 10px;
   border: 1px solid var(--mobile-nav-border);
   border-radius: 12px;
   background: var(--vc-ide-bg-card);
   color: var(--vc-ide-text-secondary);
-  font-size: 11px;
-  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 14px;
+  text-align: center;
   touch-action: manipulation;
 }
 
 .bolt-mobile-tab-switcher-quick button > span:first-child {
-  width: 20px;
-  height: 20px;
-  font-size: 20px;
+  display: inline-flex;
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
 }
 
 .bolt-mobile-tab-switcher-search {
