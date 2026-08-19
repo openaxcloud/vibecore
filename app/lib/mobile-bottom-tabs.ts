@@ -44,13 +44,42 @@ export function selectVisibleMobileBottomTabs<Tab extends MobileBottomTab>(
   coreTabIds: readonly string[] = [],
 ) {
   const normalizedMax = Math.max(1, Math.floor(maxVisible));
+  const coreIds = new Set(coreTabIds);
+
+  /*
+   * Ordonne les fixes en tête, dans l'ordre canonique, et laisse les onglets à
+   * la demande dans l'ordre de la liste. Appliqué AUSSI quand tout tient dans la
+   * rangée : un retour anticipé « rien à sélectionner » recopiait l'ordre de la
+   * liste et remettait l'Agent en dernier — le défaut mesuré en production.
+   */
+  const ordonner = (selection: Tab[]): Tab[] => {
+    const gardes = new Set(selection.map((tab) => tab.id));
+
+    const fixes = coreTabIds
+      .map((id) => selection.find((tab) => tab.id === id))
+      .filter((tab): tab is Tab => tab !== undefined);
+
+    return [...fixes, ...tabs.filter((tab) => gardes.has(tab.id) && !coreIds.has(tab.id))];
+  };
 
   if (tabs.length <= normalizedMax) {
-    return tabs;
+    return ordonner(tabs);
   }
 
-  const coreIds = new Set(coreTabIds);
-  const pinned = tabs.filter((tab) => coreIds.has(tab.id)).slice(0, normalizedMax);
+  /*
+   * Épinglés dans l'ordre CANONIQUE de `coreTabIds`, pas dans celui de la liste
+   * ouverte. Mesuré en production le 19/08 à 390 px : la rangée affichait
+   * « Webview · Déploiement · Agent » alors qu'Avi demandait
+   * « Webview · Agent · Déploiement » — parce que `ensureMobileOpenTab('agent')`
+   * déplace l'Agent en FIN de liste au chargement, et que l'ordre de la liste
+   * était recopié tel quel. Les fixes étant permanents, leur ordre doit venir de
+   * la déclaration, pas de la dernière activation.
+   */
+  const pinned = coreTabIds
+    .map((id) => tabs.find((tab) => tab.id === id))
+    .filter((tab): tab is Tab => tab !== undefined)
+    .slice(0, normalizedMax);
+
   const remainingSlots = normalizedMax - pinned.length;
 
   /* Aucun onglet fixe : on retombe sur la sélection « plus récents » d'origine. */
@@ -77,10 +106,7 @@ export function selectVisibleMobileBottomTabs<Tab extends MobileBottomTab>(
     kept.push(activeTab);
   }
 
-  const keptIds = new Set(kept.map((tab) => tab.id));
-
-  /* Ordre de la liste préservé : les icônes ne sautent pas d'un rendu à l'autre. */
-  return tabs.filter((tab) => keptIds.has(tab.id));
+  return ordonner(kept);
 }
 
 export function countHiddenMobileBottomTabs<Tab extends MobileBottomTab>(tabs: Tab[], visibleTabs: Tab[]) {
