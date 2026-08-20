@@ -231,6 +231,70 @@ describe('<ProjectOverviewPanel /> i18n', () => {
     expect(screen.queryByText('invalid-provider-date')).toBeNull();
   });
 
+  /*
+   * SCR-008 — la jauge doit dire « on ne sait pas », jamais « zéro ».
+   *
+   * C'est le point qui fait toute la valeur du lecteur cgroup en amont : il rend
+   * `null` quand le noyau n'expose rien, et un rendu qui traduirait ce `null` en
+   * « 0 % » annulerait ce soin à la dernière ligne — l'utilisateur lirait
+   * « rien n'est consommé » là où la vérité est « la mesure manque ».
+   */
+  it('rend les jauges de ressources sans jamais transformer une absence en zéro', () => {
+    language = 'fr';
+
+    render(
+      <ProjectOverviewPanel
+        project={{ id: 'project_customer_id', name: 'Analytics App', sourceType: 'github' }}
+        data={{
+          overview: enrichedOverview,
+          resources: {
+            memory: { used: null, limit: null },
+            cpu: { ratio: null, limitCores: null },
+            storage: { used: null, limit: null },
+            unavailable: true,
+          },
+        }}
+      />,
+    );
+
+    const gauges = screen.getByTestId('project-overview-resources');
+
+    expect(gauges.textContent).toContain('Non communiqué');
+    expect(gauges.textContent).toContain('Mesure en cours');
+    expect(gauges.textContent).not.toMatch(/\b0\s*%/u);
+
+    // Aucune barre n'est dessinée tant qu'aucune mesure n'existe.
+    expect(screen.queryAllByRole('progressbar')).toHaveLength(0);
+  });
+
+  it('rend les vraies valeurs cgroup quand l’espace de travail les communique', () => {
+    language = 'fr';
+
+    render(
+      <ProjectOverviewPanel
+        project={{ id: 'project_customer_id', name: 'Analytics App', sourceType: 'github' }}
+        data={{
+          overview: enrichedOverview,
+          resources: {
+            memory: { used: 400_769_024, limit: 536_870_912 },
+            cpu: { ratio: 0.42, limitCores: 2 },
+            storage: { used: 1_610_612_736, limit: null },
+          },
+        }}
+      />,
+    );
+
+    const gauges = screen.getByTestId('project-overview-resources');
+
+    expect(gauges.textContent).toContain('382');
+    expect(gauges.textContent).toContain('512');
+    expect(gauges.textContent).toContain('42');
+    expect(gauges.textContent).toContain('Aucune limite posée');
+
+    // Mémoire et processeur ont une mesure ET une limite ; le stockage n'a pas de limite.
+    expect(screen.getAllByRole('progressbar')).toHaveLength(2);
+  });
+
   it('has zero scanner findings and explicit responsive, theme, empty-state and command safeguards', async () => {
     const file = 'app/components/project-ide/ProjectOverviewPanel.tsx';
     const source = readFileSync(file, 'utf8');
