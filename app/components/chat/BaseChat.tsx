@@ -6025,7 +6025,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     );
 
     useKeybindings({
-      enabled: projectIdeMode && !useMobileIde,
+      /*
+       * SCR-006 — `Cmd+K` doit ouvrir la recherche AUSSI sur les coques mobile
+       * et tablette. Le raccourci y était purement et simplement désactivé :
+       * mesuré live à 390 et 768, la palette n'était même pas dans le DOM et le
+       * focus restait sur `BODY`. Une tablette avec clavier est exactement le
+       * cas où l'utilisateur l'attend. Le contexte expose déjà `useMobileIde`,
+       * donc une liaison qui n'a pas de sens sur mobile peut s'en exclure
+       * elle-même ; les actions restantes y sont des no-ops inoffensifs.
+       */
+      enabled: projectIdeMode,
       bindings: projectKeybindings,
       getContext: useCallback(
         () => ({
@@ -8912,7 +8921,15 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 </button>
               </div>
 
-              <div className="bolt-mobile-ecode-header-title">
+              <button
+                type="button"
+                className="bolt-mobile-ecode-header-title"
+                aria-label={t('baseChatMobileHeader.search')}
+                data-testid="mobile-header-title-search"
+                onClick={() =>
+                  window.dispatchEvent(new CustomEvent('vibecore:open-command-palette', { detail: { mode: 'all' } }))
+                }
+              >
                 {mobileHeaderTab.icon === 'agent' ? (
                   <MobileReplitAgentIcon className="bolt-mobile-ecode-header-agent" />
                 ) : (
@@ -8922,7 +8939,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <strong>{mobileHeaderTab.name}</strong>
                   {isMobileAgentActive ? <small>{mobileAgentStatusLabel}</small> : null}
                 </span>
-              </div>
+              </button>
 
               <div className="bolt-mobile-ecode-header-side bolt-mobile-ecode-header-side--right">
                 <button

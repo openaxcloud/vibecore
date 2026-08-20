@@ -143,11 +143,20 @@ describe('BaseChat strengthened-AST catalog', () => {
      *    `ECODE_MOBILE_DEFAULT_TABS` passé en onglets épinglés à
      *    `selectVisibleMobileBottomTabs`. L'onglet Terminal, lui, reste gelé :
      *    c'est la composition de la rangée qui a été rouverte, pas le Terminal.
+     * 3. demande d'Avi du 20/08 (SCR-006) — la zone d'identité de l'en-tête
+     *    devient le déclencheur de la recherche : `<div>` → `<button>` portant
+     *    `aria-label` et l'ouverture de la palette. Mesuré live avant le
+     *    correctif : sur les coques mobile ET tablette, la palette n'était pas
+     *    dans le DOM, `Cmd+K` laissait le focus sur `BODY`, et le bouton du nom
+     *    de projet du bandeau bureau existait sans être visible. Le TEXTE
+     *    affiché et la mise en page ne changent pas — l'élément reste le même,
+     *    aux mêmes classes, et des règles CSS de spécificité supérieure
+     *    neutralisent les styles génériques de bouton de l'en-tête.
      *
      * Toute évolution du hash hors d'une demande explicite du propriétaire
      * signale une dérive de mise en page à refuser.
      */
-    expect(frozenHash).toBe('190c000c56d0508869e4dee4cce7c9a5d40d66242a905c2f739e1f4fa2151394');
+    expect(frozenHash).toBe('7e69efa83ed1122db5602affe66bb2a7532ea007e8ccf87d260970288a8fb05a');
     expect(outsideFrozen).toEqual([]);
 
     // The mobile header/dock labels are now localized via t(); no raw English remains.

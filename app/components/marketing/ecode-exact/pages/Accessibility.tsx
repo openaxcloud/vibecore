@@ -269,7 +269,7 @@ export default function Accessibility() {
             <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center">
               <Link
                 href="/signup"
-                className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-md bg-ecode-accent px-8 font-medium text-white hover:bg-ecode-accent-hover sm:w-auto"
+                className="inline-flex min-h-[44px] w-full items-center justify-center gap-2 rounded-md bg-[var(--vc-action-primary-strong)] px-8 font-medium text-white hover:brightness-90 sm:w-auto"
                 data-testid="button-accessibility-cta-start"
               >
                 {copy.cta.primary}
