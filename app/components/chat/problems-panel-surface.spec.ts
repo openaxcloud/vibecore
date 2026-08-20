@@ -56,7 +56,32 @@ describe('BUG-IDE-013 — « Problèmes » est un panneau, pas la surface Termin
      * déjà sous la main. Les deux surfaces doivent donc court-circuiter.
      */
     expect(source).toMatch(/if \(panel === 'problems'\) \{\s*return <ProjectProblemsPanel \/>;/u);
-    expect(source).toContain("activeMobileServicePanel === 'problems' ? (");
+    expect(source).toMatch(/if \(props\.panel === 'problems'\) \{\s*return <ProjectProblemsPanel \/>;/u);
+  });
+
+  it('aiguille depuis une enveloppe SANS crochet, hors du bloc gelé', () => {
+    /*
+     * Le point d'appel mobile vit DANS le bloc gelé par Avi, scellé par
+     * empreinte dans `base-chat-ast.spec.ts`. L'aiguillage doit donc vivre dans
+     * l'enveloppe `ProjectIdeServicePanel`, définie après le bloc — sinon le
+     * sceau dérive, et c'est précisément ce qu'il est là pour refuser.
+     *
+     * L'enveloppe ne porte AUCUN crochet : le corps réel est déplacé dans
+     * `ProjectIdeApiServicePanel` et appelé tel quel, donc aucun crochet ne
+     * devient conditionnel.
+     */
+    const debutGele = source.indexOf('    const mobileHeaderTab =');
+    const finGele = source.indexOf('        {projectIdeMode && (', debutGele);
+    const enveloppe = source.indexOf('function ProjectIdeServicePanel(props:');
+
+    expect(debutGele).toBeGreaterThan(-1);
+    expect(finGele).toBeGreaterThan(debutGele);
+    expect(enveloppe).toBeGreaterThan(finGele);
+
+    const corpsEnveloppe = source.slice(enveloppe, source.indexOf('\n}\n', enveloppe));
+
+    expect(corpsEnveloppe).toContain('<ProjectIdeApiServicePanel {...props} />');
+    expect(corpsEnveloppe).not.toMatch(/\buse[A-Z]/u);
   });
 
   it('laisse le sceau du dock mobile intact', () => {

@@ -9191,20 +9191,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               ) : useMobileIde && mobilePanel === 'deploy' ? (
                 <PanelBoundary title={t(IDE_TOOL_DESCRIPTIONS[activeMobileServicePanel] ?? 'chat.copy.projectTools')}>
                   <div className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full">
-                    {activeMobileServicePanel === 'problems' ? (
-                      <ProjectProblemsPanel />
-                    ) : (
-                      <ProjectIdeServicePanel
-                        key={`${projectId ?? 'project'}:mobile:${activeMobileServicePanel}`}
-                        projectId={projectId}
-                        panel={activeMobileServicePanel}
-                        displayTitle={mobileServiceHeaderTab?.name}
-                        displayIcon={
-                          mobileServiceHeaderTab?.icon === 'agent' ? undefined : mobileServiceHeaderTab?.icon
-                        }
-                        initialPayload={initialIdePanels?.[activeMobileServicePanel]}
-                      />
-                    )}
+                    <ProjectIdeServicePanel
+                      key={`${projectId ?? 'project'}:mobile:${activeMobileServicePanel}`}
+                      projectId={projectId}
+                      panel={activeMobileServicePanel}
+                      displayTitle={mobileServiceHeaderTab?.name}
+                      displayIcon={mobileServiceHeaderTab?.icon === 'agent' ? undefined : mobileServiceHeaderTab?.icon}
+                      initialPayload={initialIdePanels?.[activeMobileServicePanel]}
+                    />
                   </div>
                 </PanelBoundary>
               ) : useMobileIde && mobilePanel === 'chat' ? null : (
@@ -10332,7 +10326,26 @@ function shouldRetryProjectPanelNetworkError(method: string, attempt: number) {
   return method === 'GET' || method === 'HEAD';
 }
 
-function ProjectIdeServicePanel({
+/*
+ * BUG-IDE-013 — « Problèmes » n'est pas alimenté par `/ide-panel/:panel` mais
+ * par le store `diagnostics`, côté client.
+ *
+ * L'aiguillage vit dans cette enveloppe SANS crochet, et non au point d'appel :
+ * le point d'appel mobile est dans le bloc GELÉ par Avi (`mobileHeaderTab` →
+ * `projectIdeMode`), scellé par empreinte dans `base-chat-ast.spec.ts`. Le
+ * modifier aurait fait dériver le sceau — exactement ce qu'il est là pour
+ * refuser. Le corps réel n'a pas bougé ; il est simplement appelé par
+ * l'enveloppe, donc aucun crochet n'est rendu conditionnel.
+ */
+function ProjectIdeServicePanel(props: React.ComponentProps<typeof ProjectIdeApiServicePanel>) {
+  if (props.panel === 'problems') {
+    return <ProjectProblemsPanel />;
+  }
+
+  return <ProjectIdeApiServicePanel {...props} />;
+}
+
+function ProjectIdeApiServicePanel({
   projectId,
   panel,
   displayTitle,
