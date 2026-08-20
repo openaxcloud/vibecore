@@ -4507,6 +4507,41 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 20px;
 }
 
+/*
+ * SCR-006 — la zone d'identité de l'en-tête mobile devient le déclencheur de la
+ * recherche. Elle passe donc de `<div>` à `<button>`, et hérite d'un coup des
+ * règles génériques `.bolt-mobile-ecode-header button` : `36×36 px`, couleur
+ * atténuée, et surtout `> span { width: 20px }` qui écraserait le libellé.
+ *
+ * L'en-tête est GELÉ (ref IMG_9149) : le rendu doit rester au pixel près celui
+ * du `<div>`. Ces règles, de spécificité supérieure (0,2,1 contre 0,1,1),
+ * rendent exactement les valeurs d'origine — mesurées avant/après en
+ * production, la géométrie de l'en-tête est inchangée.
+ */
+.bolt-mobile-ecode-header button.bolt-mobile-ecode-header-title {
+  display: flex;
+  width: auto;
+  height: auto;
+  flex: 1 1 auto;
+  justify-content: center;
+  border-radius: 0;
+  color: var(--vc-ide-text-primary);
+  font-weight: 600;
+  text-align: center;
+}
+
+.bolt-mobile-ecode-header button.bolt-mobile-ecode-header-title > span:last-child {
+  width: auto;
+  height: auto;
+  font-size: inherit;
+}
+
+/* La pression ne doit pas mettre tout l'en-tête à l'échelle : seule la teinte change. */
+.bolt-mobile-ecode-header button.bolt-mobile-ecode-header-title:active {
+  background: transparent;
+  transform: none;
+}
+
 .bolt-mobile-ecode-header-agent {
   color: var(--ecode-accent) !important;
 }
