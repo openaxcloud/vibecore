@@ -377,6 +377,18 @@ function readProjectBottomTerminalUiState() {
 const IDE_MANAGEMENT_PANELS = [
   'overview',
   'studio',
+
+  /*
+   * BUG-IDE-013 — « Problèmes » doit être un panneau à part entière.
+   *
+   * La barre d'état comptait juste (« Problèmes 1 0 ») mais le clic n'ouvrait
+   * rien : `openBottomTerminal('problems')` routait vers la surface TERMINAL,
+   * gelée, qui ignore `bottomTerminalView` et affiche toujours le Shell.
+   * L'utilisateur voyait donc qu'il avait une erreur sans aucun moyen de savoir
+   * laquelle. En faire un panneau lui donne une adresse (`?panel=problems`) et,
+   * sur mobile, une tuile propre — sans toucher à la surface gelée.
+   */
+  'problems',
   'database',
   'object-storage',
   'packages',
@@ -434,6 +446,7 @@ const ECODE_MOBILE_TAB_META_BASE: Record<string, { id: string; name: string; ico
   auth: { id: 'auth', name: 'Settings', icon: 'i-ph:gear' },
   console: { id: 'console', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
   database: { id: 'database', name: 'Database', icon: 'i-ph:database' },
+  problems: { id: 'problems', name: 'Problems', icon: 'i-ph:warning-circle' },
   debug: { id: 'debug', name: 'Debugger', icon: 'i-ph:bug' },
   debugger: { id: 'debugger', name: 'Debugger', icon: 'i-ph:bug' },
   developer: { id: 'developer', name: 'Debugger', icon: 'i-ph:bug' },
@@ -483,6 +496,7 @@ const IDE_FILE_TREE_HIDDEN_PATTERNS = [
 const IDE_TOOL_DESCRIPTIONS: Record<IdeWorkspacePanel | IdeRightPanel, string> = {
   overview: 'chat.copy.projectSummary_398c8190',
   studio: 'chat.copy.agentSupervisor_ac7559cf',
+  problems: 'chat.copy.runtimeDiagnosticsPreviewErrorsAndWarnings_0b9c0dad',
   database: 'chat.copy.sqlBrowser_4bdd94d4',
   'object-storage': 'chat.copy.fileStorage_4fbddfd9',
   packages: 'chat.copy.dependenciesManager_5bf6692e',
@@ -5798,6 +5812,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         setBottomTerminalView(view);
 
         if (useMobileIde) {
+          /*
+           * BUG-IDE-013 — sur mobile, « Problèmes » ne doit PAS atterrir sur la
+           * surface Terminal. Celle-ci est gelée (ref IMG_9149) et ignore
+           * `bottomTerminalView` : elle affiche toujours le Shell. C'est
+           * exactement ce qui faisait qu'un clic sur « Problèmes 1 0 »
+           * n'ouvrait jamais le moindre diagnostic. On ouvre donc le panneau
+           * dédié, sans toucher à la surface gelée.
+           */
+          if (view === 'problems') {
+            openWorkspacePanel('problems', { replaceUrl: false });
+            setProjectPanelSearchParam('problems');
+            setMobileIdePanel('deploy', { activeTabId: 'problems' });
+
+            return;
+          }
+
           setMobileIdePanel('terminal');
 
           return;
@@ -5805,7 +5835,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         setTerminalBottomOpen(true);
       },
-      [useMobileIde],
+      [openWorkspacePanel, setMobileIdePanel, setProjectPanelSearchParam, useMobileIde],
     );
 
     const reopenLastClosedTab = useCallback(() => {
@@ -7729,6 +7759,16 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (panel === 'terminal') {
           return <ProjectInteractiveTerminalPanel projectId={projectId} />;
+        }
+
+        /*
+         * BUG-IDE-013 — « Problèmes » est alimenté par le store `diagnostics`
+         * côté client, pas par `/ide-panel/:panel`. Passer par la coque de
+         * service ferait un aller-retour qui 404 et afficherait une erreur à la
+         * place des diagnostics qu'on a justement sous la main.
+         */
+        if (panel === 'problems') {
+          return <ProjectProblemsPanel />;
         }
 
         return (
@@ -10286,7 +10326,26 @@ function shouldRetryProjectPanelNetworkError(method: string, attempt: number) {
   return method === 'GET' || method === 'HEAD';
 }
 
-function ProjectIdeServicePanel({
+/*
+ * BUG-IDE-013 — « Problèmes » n'est pas alimenté par `/ide-panel/:panel` mais
+ * par le store `diagnostics`, côté client.
+ *
+ * L'aiguillage vit dans cette enveloppe SANS crochet, et non au point d'appel :
+ * le point d'appel mobile est dans le bloc GELÉ par Avi (`mobileHeaderTab` →
+ * `projectIdeMode`), scellé par empreinte dans `base-chat-ast.spec.ts`. Le
+ * modifier aurait fait dériver le sceau — exactement ce qu'il est là pour
+ * refuser. Le corps réel n'a pas bougé ; il est simplement appelé par
+ * l'enveloppe, donc aucun crochet n'est rendu conditionnel.
+ */
+function ProjectIdeServicePanel(props: React.ComponentProps<typeof ProjectIdeApiServicePanel>) {
+  if (props.panel === 'problems') {
+    return <ProjectProblemsPanel />;
+  }
+
+  return <ProjectIdeApiServicePanel {...props} />;
+}
+
+function ProjectIdeApiServicePanel({
   projectId,
   panel,
   displayTitle,
@@ -23011,6 +23070,7 @@ function panelTitle(panel: string, t?: TFunction) {
     search: 'baseChatAst.common.search',
     locks: 'baseChatAst.common.locks',
     overview: 'baseChatAst.common.overview',
+    problems: 'baseChatAst.common.problems',
     deployments: 'baseChatAst.common.deployments',
     security: 'baseChatAst.common.security',
     env: 'baseChatAst.common.environmentVariables',
@@ -23066,6 +23126,7 @@ function panelIcon(panel: string) {
     search: 'i-ph:magnifying-glass',
     locks: 'i-ph:lock',
     overview: 'i-ph:gauge',
+    problems: 'i-ph:warning-circle',
     deployments: 'i-ph:rocket-launch',
     security: 'i-ph:shield-check',
     env: 'i-ph:brackets-curly',
