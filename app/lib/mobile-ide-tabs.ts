@@ -108,6 +108,24 @@ export const ECODE_MOBILE_TOOLS: readonly MobileToolItem[] = [
     tone: 'warning',
   },
   {
+    /*
+     * BUG-IDE-013 (volet MOBILE). « Problèmes » est un panneau à part entière
+     * (`IDE_MANAGEMENT_PANELS`) et son ouverture fonctionne — mais son SEUL
+     * point d'entrée était la pastille de la barre d'état, or celle-ci est
+     * `display: none !important` sous 1200 px (`.bolt-project-statusbar-mobile`).
+     * À 390 le panneau était donc littéralement inatteignable : aucun geste ne
+     * pouvait l'ouvrir, alors que le compteur d'erreurs, lui, existait. Le
+     * déclarer ici lui donne une tuile dans la feuille Outils / « Ajouter un
+     * onglet », qui route par le chemin déjà éprouvé (voir le map ci-dessous).
+     */
+    id: 'problems',
+    section: 'tools',
+    titleKey: 'mobileIdeTabs.problems.title',
+    descriptionKey: 'mobileIdeTabs.problems.description',
+    icon: 'i-ph:warning-circle',
+    tone: 'warning',
+  },
+  {
     id: 'debugger',
     section: 'tools',
     titleKey: 'mobileIdeTabs.debugger.title',
@@ -267,6 +285,7 @@ export const ECODE_MOBILE_MORE_ITEMS: readonly string[] = [
   'preview',
   'agent',
   'overview',
+  'problems',
   'files',
   'editor',
   'deployments',
@@ -310,6 +329,7 @@ export const MOBILE_TOOL_TO_MANAGEMENT_PANEL: Record<string, string> = {
   storage: 'object-storage',
   database: 'database',
   'kv-store': 'database',
+  problems: 'problems',
   debugger: 'debugger',
   debug: 'debugger',
   developer: 'debugger',
