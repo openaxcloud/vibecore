@@ -26780,3 +26780,38 @@ html .text-ecode-accent {
 html .hover\:text-ecode-accent-hover:hover {
   color: var(--ecode-accent-text-hover);
 }
+
+/*
+ * SCR-007 (suite) — `bg-[var(--x)]/NN` ne teinte RIEN.
+ *
+ * Mesuré en direct sur `/mobile` : la carte sélectionnée porte
+ * `bg-[var(--ecode-accent)]/10` et sa couleur calculée est
+ * `rgb(242, 98, 7)` — l'orange PLEIN, pas un voile à 10 %. L'alpha d'un
+ * utilitaire arbitraire est appliqué via `--un-bg-opacity`, mécanisme qui ne
+ * peut pas mordre sur une couleur passée en `var()` : la teinte est
+ * silencieusement perdue et l'aplat sort opaque.
+ *
+ * Double conséquence : la carte s'affiche comme un pavé orange plein au lieu
+ * d'un léger voile (défaut visuel), et son texte secondaire slate
+ * `rgb(51,65,85)` tombe à 3,22:1 (seuil 4,5). `color-mix` applique la teinte
+ * réellement demandée, ce qui corrige l'aspect ET le contraste d'un coup.
+ */
+html .bg-\[var\(--ecode-accent\)\]\/5 {
+  background-color: color-mix(in srgb, var(--ecode-accent) 5%, transparent);
+}
+
+html .bg-\[var\(--ecode-accent\)\]\/10 {
+  background-color: color-mix(in srgb, var(--ecode-accent) 10%, transparent);
+}
+
+html .bg-\[var\(--ecode-accent\)\]\/15 {
+  background-color: color-mix(in srgb, var(--ecode-accent) 15%, transparent);
+}
+
+html .bg-\[var\(--ecode-accent\)\]\/20 {
+  background-color: color-mix(in srgb, var(--ecode-accent) 20%, transparent);
+}
+
+html .bg-\[var\(--ecode-accent\)\]\/25 {
+  background-color: color-mix(in srgb, var(--ecode-accent) 25%, transparent);
+}
