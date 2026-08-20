@@ -499,6 +499,10 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-action: #0099ff;
   --vc-action-primary: var(--vc-ide-accent-action);
   --vc-action-primary-strong: #c2410c;
+  // SCR-007 : survol du bouton primaire porteur de texte blanc. Il remplace
+  // `hover:brightness-110`, qui ECLAIRCIT le fond (#c2410c x1.1 = 4,41:1) et
+  // repasserait donc SOUS AA au survol.
+  --vc-action-primary-strong-hover: #a33c00;
   --vc-action-primary-hover: #007fe0;
   --vc-action-primary-foreground: #ffffff;
   // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
@@ -577,6 +581,7 @@ html:has(.vc-app-shell-grid) body {
   // AA orange for TEXT/links on this theme's backgrounds; fills stay --ecode-accent.
   // Mirrors @vibecore/ecode-theme tokens.css (which the web app does not import).
   --ecode-accent-text: #ff8a3d;
+  --ecode-accent-text-hover: #ffa066;
   --ecode-focus-ring: rgba(255, 122, 43, 0.4);
   --ecode-selection: rgba(242, 98, 7, 0.25);
   --status-success-text: #4ade80;
@@ -828,6 +833,7 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-action: #006fd6;
   --vc-action-primary: var(--vc-ide-accent-action);
   --vc-action-primary-strong: #c2410c;
+  --vc-action-primary-strong-hover: #a33c00;
   --vc-action-primary-hover: #0059ab;
   --vc-action-primary-foreground: #ffffff;
   // E29 shared app/IDE focus ring (blue action accent; marketing keeps --ecode-focus-ring).
@@ -892,6 +898,7 @@ html:has(.vc-app-shell-grid) body {
   --ecode-accent-hover: #d04e00;
   // AA orange for TEXT/links on light backgrounds; fills stay --ecode-accent.
   --ecode-accent-text: #c74e00;
+  --ecode-accent-text-hover: #a33c00;
   --ecode-focus-ring: rgba(242, 98, 7, 0.35);
   --ecode-selection: rgba(242, 98, 7, 0.25);
   --status-success-text: #178a4c;
@@ -26726,4 +26733,50 @@ html[data-ecode-announcement-dismissed='true'] [data-ecode-announcement] {
 
 .vc-no-scrollbar::-webkit-scrollbar {
   display: none;
+}
+
+/*
+ * SCR-007 — l'orange de marque reste EXACT partout où il passe déjà (aplats
+ * sans texte, bordures, icônes, anneaux de focus, gros texte). Les deux seuls
+ * emplois qui échouaient à WCAG AA sont ceux où cet orange porte, ou EST, du
+ * texte de taille normale — et tous deux venaient d'un JETON, pas d'une classe
+ * orange écrite en dur, ce qui les rendait invisibles à un audit par classes :
+ *
+ *   1. Fond du bouton primaire sous texte blanc. `.bg-primary` résout
+ *      `hsl(var(--primary))` = #F56505 ; blanc dessus = 3,11:1 (seuil 4,5).
+ *      On ne touche PAS `--primary` (il sert aussi aux bordures, aux icônes et
+ *      au gros texte, qui passent) : on ne réécrit le fond que lorsque
+ *      l'élément porte AUSSI `.text-primary-foreground`, c'est-à-dire
+ *      exactement « aplat primaire + texte blanc ». Blanc sur #c2410c = 5,18:1.
+ *
+ *   2. Orange-texte-sur-blanc (liens « Lire la suite » et cie).
+ *      `.text-ecode-accent` résout le jeton de REMPLISSAGE `--ecode-accent`
+ *      (#F26207) = 3,22:1 sur blanc, alors que le jeton de TEXTE conforme
+ *      `--ecode-accent-text` existe déjà et vaut #c74e00 (4,65:1) en clair et
+ *      #ff8a3d (8,16:1) en sombre. Le défaut était que l'utilitaire de texte
+ *      ne pointait pas sur le jeton de texte. On l'y branche.
+ *
+ * Le sélecteur est préfixé par `html` (spécificité 0,1,1) pour l'emporter sur
+ * l'utilitaire généré (0,1,0) quel que soit l'ordre des feuilles.
+ */
+html .bg-primary.text-primary-foreground {
+  background-color: var(--vc-action-primary-strong);
+}
+
+html .bg-primary.text-primary-foreground:hover {
+  background-color: var(--vc-action-primary-strong-hover);
+
+  /*
+   * `hover:brightness-110` ECLAIRCIT le fond : #c2410c x 1,1 redescend à
+   * 4,41:1. Le survol doit assombrir, pas éclaircir — d'où le filtre annulé.
+   */
+  filter: none;
+}
+
+html .text-ecode-accent {
+  color: var(--ecode-accent-text);
+}
+
+html .hover\:text-ecode-accent-hover:hover {
+  color: var(--ecode-accent-text-hover);
 }
