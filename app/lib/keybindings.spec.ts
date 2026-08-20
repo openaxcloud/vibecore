@@ -129,7 +129,7 @@ describe('keybindings', () => {
       expect(binding?.action).toBe('command.palette');
     });
 
-    it("laisse ⌘K au shell quand le terminal a le focus sur le BUREAU (garde conservée)", () => {
+    it('laisse ⌘K au shell quand le terminal a le focus sur le BUREAU (garde conservée)', () => {
       const binding = findKeybinding(defaultProjectKeybindings, 'cmd+k', {
         focusTarget: 'terminal',
         useMobileIde: false,
@@ -159,5 +159,4 @@ describe('keybindings', () => {
       expect(binding?.action).toBe('command.palette');
     });
   });
-
 });
