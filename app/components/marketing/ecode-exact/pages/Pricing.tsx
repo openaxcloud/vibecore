@@ -499,7 +499,7 @@ export default function Pricing() {
                 className={`inline-flex cursor-pointer appearance-none items-center border-0 bg-transparent p-0 text-[13px] sm:text-[15px] font-medium transition-colors duration-200 ${billingPeriod === 'yearly' ? 'text-[var(--ecode-text)]' : 'text-[var(--ecode-text-muted)]'}`}
               >
                 Yearly
-                <Badge className="ml-1 sm:ml-2 text-[10px] sm:text-[11px] bg-[var(--ecode-accent)] text-white border-0">
+                <Badge className="ml-1 sm:ml-2 text-[10px] sm:text-[11px] bg-[var(--vc-action-primary-strong)] text-white border-0">
                   Save 20%
                 </Badge>
               </button>
@@ -524,7 +524,7 @@ export default function Pricing() {
                 {tier.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10">
                     <Badge
-                      className="px-4 py-1 bg-[var(--ecode-accent)] text-white border-0 shadow-lg"
+                      className="px-4 py-1 bg-[var(--vc-action-primary-strong)] text-white border-0 shadow-lg"
                       data-testid="badge-popular"
                     >
                       <Star className="h-3 w-3 mr-1 fill-white" />
@@ -601,9 +601,9 @@ export default function Pricing() {
                     <Button
                       className={`w-full h-11 sm:h-12 text-[13px] sm:text-base font-semibold transition-all duration-200 ${
                         tier.popular
-                          ? 'bg-[var(--ecode-accent)] hover:bg-[var(--ecode-accent-hover)] text-white shadow-lg hover:shadow-xl'
+                          ? 'bg-[var(--vc-action-primary-strong)] hover:brightness-90 text-white shadow-lg hover:shadow-xl'
                           : tier.enterprise
-                            ? 'bg-[var(--ecode-accent)] hover:bg-[var(--ecode-accent-hover)] text-white'
+                            ? 'bg-[var(--vc-action-primary-strong)] hover:brightness-90 text-white'
                             : 'border border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text)] hover:border-[var(--ecode-accent)]/30 hover:bg-[var(--ecode-accent)]/5'
                       }`}
                       variant={tier.popular || tier.enterprise ? 'default' : 'outline'}
@@ -843,7 +843,7 @@ export default function Pricing() {
               <div className="flex gap-4 pt-4">
                 <Button
                   size="lg"
-                  className="bg-[var(--ecode-accent)] text-white hover:bg-[var(--ecode-accent-hover)] transition-all duration-200"
+                  className="bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90 transition-all duration-200"
                   onClick={() => navigate('/contact-sales')}
                   data-testid="button-enterprise-contact"
                 >
