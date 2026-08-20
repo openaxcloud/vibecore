@@ -521,7 +521,7 @@ export function MarketingIndexPage({
           <div className="absolute inset-0 marketing-grid opacity-40" aria-hidden />
           <div className="container-responsive relative py-20 sm:py-28">
             <div className="max-w-4xl">
-              <span className="inline-flex items-center rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+              <span className="inline-flex items-center rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent-text)]">
                 E-Code
               </span>
               <h1 className="mkt-h1 mt-8 max-w-4xl text-[var(--ecode-text)]">{title}</h1>
@@ -604,7 +604,7 @@ function MarketingPageContent({ page }: { page: MarketingPageDefinition }) {
         <div className="absolute inset-0 marketing-grid opacity-40" aria-hidden />
         <div className="container-responsive relative py-20 sm:py-28">
           <div className="max-w-4xl">
-            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent)]">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--ecode-border)] bg-[var(--ecode-surface)] px-4 py-2 text-[13px] font-semibold uppercase tracking-[0.24em] text-[var(--ecode-accent-text)]">
               <Icon className="h-4 w-4" aria-hidden />
               {page.eyebrow}
             </span>

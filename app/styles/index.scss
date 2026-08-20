@@ -4183,16 +4183,23 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   padding-bottom: calc(env(safe-area-inset-bottom) + 12px);
 }
 
+/*
+ * SCR-007 : ce CTA porte du texte BLANC. `--vc-action-primary` plafonne à
+ * 2,80:1 sous blanc (orange-500 rgb(249,115,22)) — mesuré live le 20/08 à 390
+ * en thème sombre. Le ton renforcé (#c2410c) est le jeton créé pour exactement
+ * ce cas et donne 5,16:1.
+ */
 .vc-sidebar-cta {
-  background: var(--vc-action-primary);
+  background: var(--vc-action-primary-strong);
   color: var(--vc-action-primary-foreground);
   box-shadow:
     0 1px 0 0 rgb(0 0 0 / 0.04),
     0 1px 2px 0 rgb(0 0 0 / 0.06);
 }
 
+/* Éclaircir au survol RÉDUIT le contraste avec le texte blanc : on assombrit. */
 .vc-sidebar-cta:hover {
-  filter: brightness(1.08);
+  filter: brightness(0.92);
 }
 
 .vc-sidebar-cta:active {
