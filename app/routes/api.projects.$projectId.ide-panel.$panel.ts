@@ -223,6 +223,42 @@ async function resolvePanelWorkspace(
   return { workspaceList, primaryWorkspaceId, activeWorkspaceId, selectedWorkspaceId };
 }
 
+/*
+ * SCR-008 — jauges RAM / CPU / stockage de « Vue d'ensemble ».
+ *
+ * Rien n'est fabriqué ici : la valeur vient du lecteur cgroup du
+ * workspace-agent, relayé par `/api/runtime/workspaces/:id/resources`. Un projet
+ * sans espace de travail, ou un agent injoignable, rend des jauges VIDES
+ * (`null`) marquées `unavailable` — surtout pas des zéros, qui se liraient
+ * « rien n'est consommé » alors que la vraie information est « on ne sait pas ».
+ *
+ * L'appel rejoint le fan-out existant du panneau et échoue toujours ouvert :
+ * une ligne d'affichage secondaire ne doit jamais empêcher « Vue d'ensemble »
+ * de s'ouvrir.
+ */
+function unavailableOverviewResources() {
+  return {
+    memory: { used: null, limit: null },
+    cpu: { ratio: null, limitCores: null },
+    storage: { used: null, limit: null },
+    unavailable: true,
+  };
+}
+
+async function loadOverviewResources(request: Request, projectId: string) {
+  try {
+    const { selectedWorkspaceId } = await resolvePanelWorkspace(request, projectId);
+
+    if (!selectedWorkspaceId) {
+      return unavailableOverviewResources();
+    }
+
+    return await apiRequest(request, `/api/runtime/workspaces/${encodeURIComponent(selectedWorkspaceId)}/resources`);
+  } catch {
+    return unavailableOverviewResources();
+  }
+}
+
 async function loadOverviewPanelEnvelope(
   request: Request,
   projectId: string,
@@ -230,7 +266,7 @@ async function loadOverviewPanelEnvelope(
   language?: string | null,
 ) {
   try {
-    const [dashboard, packages, collaborators, gitGraph, envVars] = await Promise.all([
+    const [dashboard, packages, collaborators, gitGraph, envVars, resources] = await Promise.all([
       apiRequest(request, `/projects/${projectId}/dashboard`).catch((error) => ({
         error: panelErrorMessage(error, language),
       })),
@@ -241,6 +277,7 @@ async function loadOverviewPanelEnvelope(
         envVars: [],
         error: panelErrorMessage(error, language),
       })),
+      loadOverviewResources(request, projectId),
     ]);
 
     const dashboardData = dashboard as Record<string, any>;
@@ -265,6 +302,7 @@ async function loadOverviewPanelEnvelope(
         gitGraph: gitGraphData as any,
         collaboration: collaborationData as any,
       }),
+      resources,
       workflowsState: readWorkflowsState(envVars, language),
       terminalState: readTerminalState(envVars, language),
       packagesState: readPackagesState(envVars),
@@ -272,6 +310,7 @@ async function loadOverviewPanelEnvelope(
   } catch (error) {
     return panelEnvelope('overview', project, {
       overview: buildProjectOverviewInsights({ project: project as any, language }),
+      resources: unavailableOverviewResources(),
       loadError: panelErrorMessage(error, language),
       workflowsState: defaultWorkflowsState(language),
       terminalState: defaultTerminalState(),
