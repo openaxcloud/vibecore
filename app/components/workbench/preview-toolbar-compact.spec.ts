@@ -92,6 +92,7 @@ describe('barre de la Webview — mobile et tablette', () => {
      * premier correctif avait manquée.
      */
     const SELECTEUR = '.bolt-responsive-ide-mobile .bolt-workbench-mobile .bolt-project-webview-toolbar {';
+
     let bloc = '';
 
     for (let i = styles.indexOf(SELECTEUR); i !== -1; i = styles.indexOf(SELECTEUR, i + 1)) {
