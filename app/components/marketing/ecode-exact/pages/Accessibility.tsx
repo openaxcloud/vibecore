@@ -40,6 +40,14 @@ const ACCESSIBILITY_EMAIL = 'accessibility@e-code.ai';
 const ACCESSIBILITY_MAILTO = `mailto:${ACCESSIBILITY_EMAIL}`;
 const ACCENT = 'var(--ecode-accent)';
 
+/*
+ * SCR-007 — la marque `--ecode-accent` (#F26207) plafonne à 3,22:1 sur du blanc,
+ * sous le seuil AA de 4,5. `--vc-action-primary-strong` (#c2410c, 5,16:1) existe
+ * exactement pour les aplats qui PORTENT du texte blanc ; les pastilles d'icônes
+ * de cette page gardent la marque, puisqu'elles ne portent pas de texte.
+ */
+const ACCENT_STRONG = 'var(--vc-action-primary-strong)';
+
 const ACCESSIBILITY_COMMITMENT_ICONS: Record<AccessibilityCommitmentId, LucideIcon> = {
   perceivable: ScanEye,
   operable: MousePointer2,
@@ -252,8 +260,8 @@ export default function Accessibility() {
             <p className="mkt-body text-muted-foreground mb-8 max-w-2xl mx-auto">{copy.report.description}</p>
             <a
               href={ACCESSIBILITY_MAILTO}
-              className="inline-flex min-h-[44px] w-full max-w-sm items-center justify-center gap-2 break-all rounded-md px-6 py-3 text-white sm:w-auto"
-              style={{ backgroundColor: ACCENT }}
+              className="inline-flex min-h-[44px] w-full max-w-sm items-center justify-center gap-2 break-all rounded-md px-6 py-3 text-white transition hover:brightness-90 sm:w-auto"
+              style={{ backgroundColor: ACCENT_STRONG }}
               data-testid="link-accessibility-report"
             >
               <CircleCheckBig className="h-4 w-4 shrink-0" aria-hidden />

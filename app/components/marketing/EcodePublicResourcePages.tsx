@@ -560,7 +560,7 @@ export function CommunityMarketingPage({ posts, categories, challenges, contribu
                     className={classNames(
                       'inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
                       activeCategory === category.id
-                        ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)] text-white'
+                        ? 'border-[var(--ecode-accent)] bg-[var(--vc-action-primary-strong)] text-white'
                         : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
                     )}
                   >
@@ -813,7 +813,7 @@ function TemplateTagChip({ label, active, onClick }: { label: string; active: bo
       className={classNames(
         'inline-flex min-h-[40px] shrink-0 items-center gap-2 rounded-full border px-4 text-[13px] font-semibold transition',
         active
-          ? 'border-[var(--ecode-accent)] bg-[var(--ecode-accent)] text-white'
+          ? 'border-[var(--ecode-accent)] bg-[var(--vc-action-primary-strong)] text-white'
           : 'border-[var(--ecode-border)] bg-[var(--ecode-surface)] text-[var(--ecode-text-secondary)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
       )}
     >
@@ -862,7 +862,7 @@ function TemplateMarketingCard({ template, featured = false }: { template: Publi
           </div>
         </div>
         {template.trending ? (
-          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--ecode-accent)] px-3 py-1 text-[11px] font-semibold text-white">
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-3 py-1 text-[11px] font-semibold text-white">
             <Zap className="h-3 w-3" aria-hidden />
             {copy.trending}
           </span>
@@ -1122,7 +1122,7 @@ function MarketingLinkButton({
         'inline-flex min-h-[44px] items-center justify-center rounded-md px-5 py-3 text-[13px] font-semibold transition',
         fullWidth ? 'w-full' : '',
         variant === 'primary'
-          ? 'bg-[var(--ecode-accent)] text-white hover:bg-[var(--ecode-accent-hover)]'
+          ? 'bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90'
           : 'border border-[var(--ecode-border)] bg-transparent text-[var(--ecode-text)] hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]',
       )}
     >

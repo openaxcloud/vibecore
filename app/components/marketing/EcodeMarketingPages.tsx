@@ -740,7 +740,7 @@ function EcodeMarketingActionLink({
 }) {
   const className =
     variant === 'primary'
-      ? 'inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--ecode-accent)] px-5 py-3 text-[13px] font-semibold text-white transition hover:bg-[var(--ecode-accent-hover)]'
+      ? 'inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--vc-action-primary-strong)] px-5 py-3 text-[13px] font-semibold text-white transition hover:brightness-90'
       : 'inline-flex min-h-[44px] items-center justify-center rounded-md border border-[var(--ecode-border)] bg-transparent px-5 py-3 text-[13px] font-semibold text-[var(--ecode-text)] transition hover:border-[var(--ecode-accent)] hover:text-[var(--ecode-accent)]';
 
   if (/^(https?:)?\/\//.test(to)) {

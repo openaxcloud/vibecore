@@ -869,7 +869,7 @@ export function EcodePricingPage() {
                   className={classNames(
                     'min-h-11 rounded-md px-4 py-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]',
                     billingPeriod === period
-                      ? 'bg-[var(--ecode-accent)] text-white'
+                      ? 'bg-[var(--vc-action-primary-strong)] text-white'
                       : 'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary',
                   )}
                 >
@@ -891,7 +891,7 @@ export function EcodePricingPage() {
                 )}
               >
                 {plan.popular ? (
-                  <span className="absolute -top-4 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full bg-[var(--ecode-accent)] px-4 py-1 text-xs font-semibold text-white">
+                  <span className="absolute -top-4 left-1/2 inline-flex -translate-x-1/2 items-center gap-1 rounded-full bg-[var(--vc-action-primary-strong)] px-4 py-1 text-xs font-semibold text-white">
                     <Star className="h-3 w-3 fill-current" aria-hidden />
                     {copy.recommended}
                   </span>
@@ -1137,7 +1137,7 @@ export function EcodeDeploymentsPage() {
           <div className="grid gap-5 md:grid-cols-4">
             {copy.workflow.map(([title, description], index) => (
               <Panel key={title}>
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--ecode-accent)] text-sm font-bold text-white">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--vc-action-primary-strong)] text-sm font-bold text-white">
                   {index + 1}
                 </span>
                 <h3 className="mt-4 text-lg font-semibold text-bolt-elements-textPrimary">{title}</h3>
@@ -1226,7 +1226,7 @@ export function EcodeBountiesPage() {
           <div className="grid gap-5 md:grid-cols-3">
             {copy.workflow.map(([title, description], index) => (
               <Panel key={title}>
-                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--ecode-accent)] font-bold text-white">
+                <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[var(--vc-action-primary-strong)] font-bold text-white">
                   {index + 1}
                 </span>
                 <h3 className="mt-4 text-lg font-semibold text-bolt-elements-textPrimary">{title}</h3>
@@ -1421,7 +1421,7 @@ function Badge({ children, icon }: { children: ReactNode; icon: LucideIcon }) {
   const IconComponent = icon;
 
   return (
-    <span className="inline-flex max-w-full flex-nowrap items-center justify-center gap-2 rounded-full bg-[var(--ecode-accent)] px-4 py-1.5 text-center text-xs font-semibold uppercase leading-5 tracking-[0.14em] text-white">
+    <span className="inline-flex max-w-full flex-nowrap items-center justify-center gap-2 rounded-full bg-[var(--vc-action-primary-strong)] px-4 py-1.5 text-center text-xs font-semibold uppercase leading-5 tracking-[0.14em] text-white">
       <IconComponent className="h-4 w-4 shrink-0" aria-hidden />
       <span className="min-w-0 break-words">{children}</span>
     </span>
@@ -1442,7 +1442,7 @@ function ActionLink({
   const className = classNames(
     'inline-flex min-h-11 items-center justify-center gap-2 rounded-md px-5 py-2 text-center text-sm font-semibold leading-5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]',
     fullWidth && 'w-full',
-    variant === 'default' && 'bg-[var(--ecode-accent)] text-white hover:bg-[var(--ecode-accent-hover)]',
+    variant === 'default' && 'bg-[var(--vc-action-primary-strong)] text-white hover:brightness-90',
     variant === 'outline' &&
       'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2',
     variant === 'outlineDark' && 'border border-white/25 text-white hover:bg-white/10',

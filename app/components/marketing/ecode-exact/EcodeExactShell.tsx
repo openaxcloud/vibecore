@@ -807,10 +807,26 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
           </div>
 
           {/*
-           * gap-x reste a 10 (40px) : l'alignement horizontal des colonnes ne
-           * bouge pas. Seul l'ecart VERTICAL est resserre (40px -> 24px) ; il ne
-           * joue qu'une fois les colonnes empilees (mobile 1 col, tablette 2 col),
-           * ou il separait deux titres de colonnes.
+           * SCR-010 — Avi : « l'espace ENTRE les titres / colonnes du menu en pied
+           * de page est encore trop grand ». À ne pas confondre avec SCR-009, qui
+           * portait sur la chasse À L'INTÉRIEUR des titres : ici c'est la grille
+           * elle-même qui creuse le vide entre les groupes de liens.
+           *
+           * Mesuré live le 20/08 sur prod `web:73c4edc166`, aux 3 formats et dans
+           * les 2 thèmes (l'espacement ne dépend pas du thème) : `column-gap: 40px`
+           * et `row-gap: 20px` partout. Les 40px de gouttière sont l'essentiel du
+           * vide qu'Avi voit entre PRODUIT · RESSOURCES · SOCIÉTÉ · LÉGAL.
+           *
+           * La note précédente figeait `gap-x` à 10 « pour ne pas bouger
+           * l'alignement horizontal » — c'est précisément ce qu'Avi demande de
+           * revoir, donc elle est levée. `gap-x-6` (24px) resserre les gouttières
+           * sans coller les colonnes, et rend 16px de largeur à chaque colonne :
+           * moins de libellés qui passent à la ligne, donc un pied de page plus
+           * court en prime. `gap-y-3` (12px) resserre les groupes une fois les
+           * colonnes empilées (390 et 768), là où deux titres se suivaient.
+           *
+           * Les lignes de liens gardent leur hauteur tactile de 44px : ce sont des
+           * cibles de doigt, pas de l'espacement décoratif.
            */}
           {/*
            * Two columns from the smallest width up. This nav carries 46 links,
@@ -819,7 +835,7 @@ export function EcodeExactPublicFooter({ copy: copyOverride }: { copy?: Marketin
            * touch targets and are preserved; only the column count changes.
            * Measured on prod: footer 3981px -> 3179px, no label truncated.
            */}
-          <nav aria-label={copy.a11y.footerNavigation} className="grid grid-cols-2 gap-x-10 gap-y-5 lg:grid-cols-4">
+          <nav aria-label={copy.a11y.footerNavigation} className="grid grid-cols-2 gap-x-6 gap-y-3 lg:grid-cols-4">
             <FooterColumn title={copy.footer.columnLabels.product} links={productLinks} />
             <div>
               <FooterColumn title={copy.footer.columnLabels.resources} links={resourceLinks} />
