@@ -1994,7 +1994,8 @@ export function OnboardingChecklistCard({ steps }: { steps: OnboardingStep[] }) 
                   className={classNames(
                     'inline-flex h-[44px] shrink-0 items-center justify-center rounded-md px-3 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
                     isCurrent
-                      ? 'bg-[var(--vc-ide-accent-action)] text-white transition-opacity hover:opacity-90'
+                      ? // SCR-007 : `--vc-ide-accent-action` est la marque vive — 2,80:1 sous blanc. Ton renforcé : 5,16:1.
+                        'bg-[var(--vc-action-primary-strong)] text-white transition-opacity hover:opacity-90'
                       : 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
                   )}
                 >
