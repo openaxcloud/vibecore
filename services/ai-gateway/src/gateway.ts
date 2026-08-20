@@ -351,6 +351,16 @@ export const modelCatalog: AiModel[] = [
 
   // --- Anthropic ---
   {
+    id: 'claude-opus-5',
+    provider: 'anthropic',
+    displayName: 'Claude Opus 5',
+    plans: ['business', 'enterprise'],
+    inputCentsPerMillion: 1500,
+    outputCentsPerMillion: 7500,
+    contextWindow: 1_000_000,
+    maxCompletionTokens: 128000,
+  },
+  {
     id: 'claude-opus-4-8',
     provider: 'anthropic',
     displayName: 'Claude Opus 4.8',
