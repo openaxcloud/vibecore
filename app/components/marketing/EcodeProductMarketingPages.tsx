@@ -971,12 +971,18 @@ export function EcodePricingPage() {
               <thead className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2">
                 <tr>
                   <th className="p-5 text-left font-semibold text-bolt-elements-textPrimary">{copy.featuresLabel}</th>
+                  {/*
+                   * SCR-007 : le libellé de la colonne accentuée est du TEXTE sur fond
+                   * clair. `--ecode-accent` (#f26207) y plafonne à 3,22:1 — mesuré live
+                   * le 20/08 à 390 ET 1440. `--ecode-accent-text` (#c74e00 en thème
+                   * clair) est le jeton prévu pour l'orange porteur de texte.
+                   */}
                   {(['free', 'core', 'pro', 'enterprise'] as const).map((planKey) => (
                     <th
                       key={planKey}
                       className={classNames(
                         'p-5 text-center font-semibold',
-                        planKey === 'core' ? 'text-[var(--ecode-accent)]' : 'text-bolt-elements-textPrimary',
+                        planKey === 'core' ? 'text-[var(--ecode-accent-text)]' : 'text-bolt-elements-textPrimary',
                       )}
                     >
                       {planCopy[planKey].name}
