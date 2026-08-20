@@ -4184,14 +4184,18 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
 }
 
 /*
- * SCR-007 : ce CTA porte du texte BLANC. `--vc-action-primary` plafonne à
- * 2,80:1 sous blanc (orange-500 rgb(249,115,22)) — mesuré live le 20/08 à 390
- * en thème sombre. Le ton renforcé (#c2410c) est le jeton créé pour exactement
- * ce cas et donne 5,16:1.
+ * SCR-007 : fond = ton renforcé (#c2410c), avant-plan = BLANC EN DUR.
+ *
+ * L'avant-plan ne peut PAS venir de `--vc-action-primary-foreground` : dans
+ * `.vc-user-area-shell` ce jeton vaut `#111827` (presque noir), parce qu'il est
+ * appairé à la marque VIVE (`#f97316`). Sur le ton renforcé, qui est sombre, ce
+ * même avant-plan sombre donne 3,43:1 — mesuré live le 20/08 en thème sombre,
+ * et pire encore au survol (3,00:1). Le ton renforcé est sombre dans TOUS les
+ * thèmes, donc son seul avant-plan correct est le blanc : 5,16:1.
  */
 .vc-sidebar-cta {
   background: var(--vc-action-primary-strong);
-  color: var(--vc-action-primary-foreground);
+  color: #ffffff;
   box-shadow:
     0 1px 0 0 rgb(0 0 0 / 0.04),
     0 1px 2px 0 rgb(0 0 0 / 0.06);
