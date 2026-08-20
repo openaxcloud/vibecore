@@ -20104,7 +20104,26 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     min-height: 44px;
     flex: 0 0 auto;
     align-content: center;
-    grid-template-columns: minmax(0, 1fr);
+
+    /*
+     * SCR-001 — « le bouton "ouvrir dans un navigateur" sur la MÊME LIGNE que
+     * la barre d'URL ».
+     *
+     * `minmax(0, 1fr)` = UNE seule colonne : la grille empilait donc l'adresse
+     * et le bouton sur deux rangées. Mesuré en production à 390 px après un
+     * premier correctif : adresse y=102, bouton y=161, barre de 116 px.
+     *
+     * Ce premier correctif posait `display: flex` dans un bloc de spécificité
+     * PLUS FAIBLE — sans effet face au `display: grid !important` ci-dessus,
+     * pendant que le test, qui ne lisait que le texte de ce premier bloc,
+     * restait vert. Deuxième fois que le même piège se referme ici : une règle
+     * présente n'est pas une règle qui s'applique.
+     *
+     * On corrige donc LÀ où la disposition est réellement décidée : deux
+     * colonnes, l'adresse absorbe la largeur, le bouton garde la sienne.
+     */
+    grid-auto-flow: column;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 6px;
     justify-items: stretch;
     overflow: hidden;
