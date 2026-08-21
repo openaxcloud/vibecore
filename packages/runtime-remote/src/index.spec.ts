@@ -1414,3 +1414,71 @@ describe('BUG-AGENT-006/002 — 425 Too Early : backoff, Retry-After et attente 
     expect(early).toBeLessThan(writes().length);
   });
 });
+
+/*
+ * BUG-AGENT-006 — un `425 WORKSPACE_NOT_STARTED` doit PROVISIONNER, pas
+ * seulement retenter.
+ *
+ * Mesuré en direct le 21/08 : 468 écritures en `425` sur 15 min et **zéro
+ * `POST /workspaces`** sur toute la fenêtre. Personne ne créait le pod ; le
+ * client retentait contre un workspace inexistant et le projet restait vide.
+ */
+describe('BUG-AGENT-006 — 425 WORKSPACE_NOT_STARTED déclenche le provisionnement', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('émet un POST /workspaces puis aboutit une fois le pod prêt', async () => {
+    vi.useFakeTimers();
+
+    let notStarted = 2;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.includes('/files/write')) {
+        if (notStarted > 0) {
+          notStarted -= 1;
+          return new Response('{"code":"WORKSPACE_NOT_STARTED"}', { status: 425 });
+        }
+
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.endsWith('/workspaces') && init?.method === 'POST') {
+        return Response.json({
+          id: 'ws-1',
+          runtimeMode: 'remote-kubernetes',
+          status: 'running',
+          workdir: '/workspace',
+          createdAt: '2026-04-28T00:00:00.000Z',
+          updatedAt: '2026-04-28T00:00:00.000Z',
+        });
+      }
+
+      if (url.includes('/status')) {
+        return Response.json({ id: 'ws-1', status: 'running', workdir: '/workspace' });
+      }
+
+      return new Response(null, { status: 204 });
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    const pending = adapter.writeFile('src/App.tsx', 'contenu');
+    await vi.runAllTimersAsync();
+    await expect(pending).resolves.toBeUndefined();
+
+    const provisions = fetchMock.mock.calls.filter(
+      ([u, i]) => String(u).endsWith('/workspaces') && (i as RequestInit | undefined)?.method === 'POST',
+    );
+
+    // le point du ticket : au moins UN provisionnement a été demandé
+    expect(provisions.length).toBeGreaterThanOrEqual(1);
+  });
+})

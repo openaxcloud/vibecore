@@ -965,8 +965,26 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   /** True when the api reports the workspace agent unreachable — the pod is gone (GC'd) or never came up. */
+  /*
+   * BUG-AGENT-006 — quels échecs signifient « il faut (re)créer le pod ».
+   *
+   * `WORKSPACE_AGENT_REQUEST_FAILED` (502) couvrait le pod réclamé par le GC.
+   * Il manquait `WORKSPACE_NOT_STARTED` (425), que l'api renvoie quand le DNS du
+   * pod ne résout pas — c'est-à-dire, très souvent, quand le pod n'existe tout
+   * simplement PAS.
+   *
+   * Mesuré en direct le 21/08 : sur une génération de 15 min, 468 écritures ont
+   * répondu `425` et il y a eu **zéro `POST /workspaces`** sur toute la fenêtre.
+   * Personne ne provisionnait : le client retentait indéfiniment contre un
+   * workspace que rien ne créait, et le projet restait vide.
+   *
+   * `#ensureWorkspaceReprovisioned` est dédupliqué et rattache le même PVC, donc
+   * l'appeler sur un workspace déjà en train de démarrer est sans effet de bord.
+   */
   #isAgentUnavailable(error: unknown): boolean {
-    return (error as { code?: string } | undefined)?.code === 'WORKSPACE_AGENT_REQUEST_FAILED';
+    const code = (error as { code?: string } | undefined)?.code;
+
+    return code === 'WORKSPACE_AGENT_REQUEST_FAILED' || code === 'WORKSPACE_NOT_STARTED';
   }
 
   /**
@@ -1030,7 +1048,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   async #requestOnce<T>(
     path: string,
     init: RequestInit = {},
-    options: { retryReads?: boolean; retryIdempotentWrite?: boolean } = {},
+    options: { retryReads?: boolean; retryIdempotentWrite?: boolean; ensureWorkspace?: boolean } = {},
   ): Promise<T> {
     /*
      * Idempotent reads (file/dir reads) AND idempotent writes (file overwrite,
@@ -1094,6 +1112,15 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         }
 
         if (provisioning) {
+          /*
+           * Déclencher le provisionnement DÈS la première tentative, pas après
+           * épuisement du budget : le backoff sert alors à attendre que le pod
+           * monte, au lieu d'attendre pour rien.
+           */
+          if (options.ensureWorkspace !== false && this.#isAgentUnavailable(error)) {
+            await this.#ensureWorkspaceReprovisioned().catch(() => undefined);
+          }
+
           await this.#waitBeforeProvisioningRetry(attempt, error);
           continue;
         }
