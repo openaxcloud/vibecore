@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deriveBundledArtifactState, firstBundledFailureReason } from './bundled-artifact-state';
+import { deriveBundledArtifactState, firstBundledFailureReason, isAgentRunFailed } from './bundled-artifact-state';
 import type { ActionState } from '~/lib/runtime/action-runner';
 
 function baseAction(overrides: Partial<ActionState> & Pick<ActionState, 'type' | 'status'>): ActionState {
@@ -91,5 +91,38 @@ describe('firstBundledFailureReason', () => {
     const actions = [baseAction({ type: 'file', status: 'complete' })];
 
     expect(firstBundledFailureReason(actions)).toBeUndefined();
+  });
+});
+
+describe('BUG-AGENT-003 — un échec d_orchestration ne doit pas s_afficher « Terminé »', () => {
+  const execution = (over: Record<string, unknown>) => [
+    { type: 'progress', label: 'files', status: 'complete', order: 1, message: '' },
+    { type: 'agentExecution', runId: 'r1', results: [], ...over },
+  ];
+
+  it('vrai quand les cinq voies ont échoué (status failed)', () => {
+    expect(isAgentRunFailed(execution({ status: 'failed' }))).toBe(true);
+  });
+
+  it('vrai quand le consensus est REJETÉ', () => {
+    expect(
+      isAgentRunFailed(execution({ status: 'complete', consensus: { outcome: 'REJECTED', agreementScore: 0 } })),
+    ).toBe(true);
+  });
+
+  it('faux sur un run sain — ne pas crier au loup', () => {
+    expect(
+      isAgentRunFailed(execution({ status: 'complete', consensus: { outcome: 'ACCEPTED', agreementScore: 1 } })),
+    ).toBe(false);
+  });
+
+  it('faux sur un run PARTIEL — le dégrader serait mensonger dans l_autre sens', () => {
+    expect(isAgentRunFailed(execution({ status: 'partial', consensus: { outcome: 'PARTIAL' } }))).toBe(false);
+  });
+
+  it('faux quand il n_y a aucune annotation d_orchestration', () => {
+    expect(isAgentRunFailed([{ type: 'progress', label: 'files', status: 'complete' }])).toBe(false);
+    expect(isAgentRunFailed(undefined)).toBe(false);
+    expect(isAgentRunFailed('pas un tableau')).toBe(false);
   });
 });

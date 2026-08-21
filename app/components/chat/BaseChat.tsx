@@ -131,6 +131,7 @@ const LazyTerminalTabs = lazy(() =>
   import('~/components/workbench/terminal/TerminalTabs').then((module) => ({ default: module.TerminalTabs })),
 );
 import ProgressCompilation from './ProgressCompilation';
+import { isAgentRunFailed } from './bundled-artifact-state';
 import type { ProgressAnnotation } from '~/types/context';
 import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
@@ -3389,6 +3390,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
     const [modelError, setModelError] = useState<string | null>(null);
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
+    const [agentRunFailed, setAgentRunFailed] = useState(false);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const projectFiles = useStore(workbenchStore.files);
@@ -6091,6 +6093,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
           (x) => typeof x === 'object' && (x as any).type === 'progress',
         ) as ProgressAnnotation[];
         setProgressAnnotations(progressList);
+
+        // BUG-AGENT-003 : un échec d'orchestration doit dégrader la ligne de statut.
+        setAgentRunFailed(isAgentRunFailed(data));
       }
     }, [data]);
     useEffect(() => {
@@ -7063,7 +7068,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <ProgressCompilation
                   data={progressAnnotations}
                   streaming={isStreaming}
-                  failed={Boolean(llmErrorAlert)}
+                  failed={Boolean(llmErrorAlert) || agentRunFailed}
                 />
               </div>
             )}

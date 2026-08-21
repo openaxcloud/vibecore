@@ -53,3 +53,52 @@ export function firstBundledFailureReason(actions: ActionState[]): string | unde
 
   return undefined;
 }
+
+/**
+ * BUG-AGENT-003 — l'issue de l'orchestration doit peser sur le statut affiché.
+ *
+ * La ligne de statut du run (« Agent · Terminé · 100 % ») se calcule à partir
+ * des seules annotations `progress`, qui décrivent les ACTIONS. Un run dont les
+ * cinq voies parallèles échouent et dont le consensus est rejeté à 0 % voit donc
+ * ses écritures de fichiers réussir et s'affiche « Terminé 100 % » — alors que
+ * le panneau Agent, lui, affiche honnêtement « Plan 0/5 » et « Rejeté ».
+ *
+ * Deux surfaces, deux vérités contradictoires sur le même run. Ce prédicat
+ * fournit la moitié manquante, pour que la ligne de statut ne puisse plus
+ * annoncer un succès complet quand l'orchestration a échoué.
+ *
+ * Volontairement étroit : seuls un `status: 'failed'` explicite et un consensus
+ * `REJECTED` comptent. Un run `partial` reste `partial` — le dégrader en échec
+ * serait aussi mensonger, dans l'autre sens.
+ */
+export function isAgentRunFailed(annotations: unknown): boolean {
+  if (!Array.isArray(annotations)) {
+    return false;
+  }
+
+  for (const entry of annotations) {
+    if (typeof entry !== 'object' || entry === null) {
+      continue;
+    }
+
+    const annotation = entry as {
+      type?: unknown;
+      status?: unknown;
+      consensus?: { outcome?: unknown } | null;
+    };
+
+    if (annotation.type !== 'agentExecution') {
+      continue;
+    }
+
+    if (annotation.status === 'failed') {
+      return true;
+    }
+
+    if (annotation.consensus && annotation.consensus.outcome === 'REJECTED') {
+      return true;
+    }
+  }
+
+  return false;
+}

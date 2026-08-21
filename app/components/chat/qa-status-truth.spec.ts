@@ -56,7 +56,12 @@ describe('BUG-QA-AGENT-PROGRESS-001 — la progression ne ment plus après une e
 
   it('les signaux réels sont bien câblés depuis BaseChat', () => {
     expect(baseChat).toMatch(/<ProgressCompilation[\s\S]{0,160}streaming=\{isStreaming\}/);
-    expect(baseChat).toMatch(/<ProgressCompilation[\s\S]{0,160}failed=\{Boolean\(llmErrorAlert\)\}/);
+
+    // BUG-AGENT-003 : `failed` porte désormais DEUX signaux, pas seulement l'erreur LLM.
+    expect(baseChat).toMatch(
+      /<ProgressCompilation[\s\S]{0,200}failed=\{Boolean\(llmErrorAlert\) \|\| agentRunFailed\}/,
+    );
+    expect(baseChat).toMatch(/setAgentRunFailed\(isAgentRunFailed\(data\)\)/);
   });
 });
 
