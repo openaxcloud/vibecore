@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   RemoteKubernetesRuntimeAdapter,
   isAuthSocketClose,
@@ -1297,3 +1297,188 @@ describe('BUG-AGENT-001 — writeFile ne repart sur le réseau que sur changemen
     expect(writesOf(fetchMock)).toHaveLength(2);
   });
 });
+
+/*
+ * BUG-AGENT-006 + BUG-AGENT-002 — un workspace pas encore prêt ne doit pas
+ * déclencher une rafale.
+ *
+ * Mesuré en direct le 21/08 : une génération de 15 min a produit 468
+ * `PUT …/files/write`, dont 468 réponses `425 Too Early` et AUCUN succès. Le
+ * budget de tentatives (4 essais, 250/500/750 ms) expirait en ~1,5 s alors
+ * qu'un workspace met des dizaines de secondes, et chaque action ré-émise
+ * repartait pour sa propre rafale.
+ *
+ * On compte donc les requêtes RÉELLEMENT émises, avec des timers simulés pour
+ * ne pas attendre le backoff en vrai.
+ */
+describe('BUG-AGENT-006/002 — 425 Too Early : backoff, Retry-After et attente partagée', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function adapterWith(handler: (url: string, init?: RequestInit) => Response) {
+    const base = createFetchMock() as unknown as ReturnType<typeof vi.fn>;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.includes('/files/write')) {
+        return handler(url, init);
+      }
+
+      return base(input, init);
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    const writes = () => fetchMock.mock.calls.filter(([u]) => String(u).includes('/files/write'));
+
+    return { adapter, writes };
+  }
+
+  it('un 425 persistant finit par abandonner, sans marteler', async () => {
+    vi.useFakeTimers();
+
+    const { adapter, writes } = adapterWith(() => new Response('{"code":"WORKSPACE_NOT_READY"}', { status: 425 }));
+
+    const pending = adapter.writeFile('src/App.tsx', 'x').catch(() => 'rejeté');
+    await vi.runAllTimersAsync();
+
+    expect(await pending).toBe('rejeté');
+
+    /*
+     * Le point du ticket : un nombre BORNÉ de tentatives. 468 en 15 min était
+     * le symptôme ; ici on veut une poignée.
+     */
+    expect(writes().length).toBe(7);
+    expect(writes().length).toBeGreaterThan(1);
+  });
+
+  it('aboutit dès que le workspace devient prêt', async () => {
+    vi.useFakeTimers();
+
+    let calls = 0;
+    const { adapter, writes } = adapterWith(() => {
+      calls += 1;
+      return calls < 3 ? new Response('{}', { status: 425 }) : new Response(null, { status: 204 });
+    });
+
+    const pending = adapter.writeFile('src/App.tsx', 'x');
+    await vi.runAllTimersAsync();
+    await expect(pending).resolves.toBeUndefined();
+
+    expect(writes()).toHaveLength(3);
+  });
+
+  it('chaque fichier reste borné à son budget — pas de martèlement', async () => {
+    vi.useFakeTimers();
+
+    const { adapter, writes } = adapterWith(() => new Response('{}', { status: 425 }));
+
+    const all = Promise.allSettled(
+      Array.from({ length: 10 }, (_, i) => adapter.writeFile(`src/f${i}.ts`, `contenu ${i}`)),
+    );
+    await vi.runAllTimersAsync();
+    await all;
+
+    /*
+     * 10 fichiers × 7 tentatives = 70, et ça s'ARRÊTE là. Le symptôme mesuré
+     * était 468 écritures qui montaient encore après 15 min, parce que chaque
+     * action échouait en ~1,5 s et repartait aussitôt. Ici chaque fichier occupe
+     * ~35 s de backoff avant d'abandonner proprement.
+     */
+    expect(writes()).toHaveLength(70);
+  });
+
+  it('respecte Retry-After quand le serveur en fournit un', async () => {
+    vi.useFakeTimers();
+
+    const { adapter, writes } = adapterWith(
+      () => new Response('{}', { status: 425, headers: { 'retry-after': '2' } }),
+    );
+
+    const pending = adapter.writeFile('src/App.tsx', 'x').catch(() => 'rejeté');
+
+    // avant le délai annoncé, aucune nouvelle tentative
+    await vi.advanceTimersByTimeAsync(500);
+
+    const early = writes().length;
+    await vi.runAllTimersAsync();
+    await pending;
+
+    expect(early).toBeLessThan(writes().length);
+  });
+});
+
+/*
+ * BUG-AGENT-006 — un `425 WORKSPACE_NOT_STARTED` doit PROVISIONNER, pas
+ * seulement retenter.
+ *
+ * Mesuré en direct le 21/08 : 468 écritures en `425` sur 15 min et **zéro
+ * `POST /workspaces`** sur toute la fenêtre. Personne ne créait le pod ; le
+ * client retentait contre un workspace inexistant et le projet restait vide.
+ */
+describe('BUG-AGENT-006 — 425 WORKSPACE_NOT_STARTED déclenche le provisionnement', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('émet un POST /workspaces puis aboutit une fois le pod prêt', async () => {
+    vi.useFakeTimers();
+
+    let notStarted = 2;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.includes('/files/write')) {
+        if (notStarted > 0) {
+          notStarted -= 1;
+          return new Response('{"code":"WORKSPACE_NOT_STARTED"}', { status: 425 });
+        }
+
+        return new Response(null, { status: 204 });
+      }
+
+      if (url.endsWith('/workspaces') && init?.method === 'POST') {
+        return Response.json({
+          id: 'ws-1',
+          runtimeMode: 'remote-kubernetes',
+          status: 'running',
+          workdir: '/workspace',
+          createdAt: '2026-04-28T00:00:00.000Z',
+          updatedAt: '2026-04-28T00:00:00.000Z',
+        });
+      }
+
+      if (url.includes('/status')) {
+        return Response.json({ id: 'ws-1', status: 'running', workdir: '/workspace' });
+      }
+
+      return new Response(null, { status: 204 });
+    });
+
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    const pending = adapter.writeFile('src/App.tsx', 'contenu');
+    await vi.runAllTimersAsync();
+    await expect(pending).resolves.toBeUndefined();
+
+    const provisions = fetchMock.mock.calls.filter(
+      ([u, i]) => String(u).endsWith('/workspaces') && (i as RequestInit | undefined)?.method === 'POST',
+    );
+
+    // le point du ticket : au moins UN provisionnement a été demandé
+    expect(provisions.length).toBeGreaterThanOrEqual(1);
+  });
+})

@@ -51,6 +51,30 @@ export interface WebSocketLike {
   removeEventListener?(type: 'open' | 'message' | 'error' | 'close', listener: (event: any) => void): void;
 }
 
+/**
+ * `Retry-After` en secondes (entier) ou en date HTTP. Renvoie undefined si
+ * l'en-tête est absent ou illisible — on retombe alors sur le backoff calculé.
+ */
+function parseRetryAfterMs(header: string | null): number | undefined {
+  if (!header) {
+    return undefined;
+  }
+
+  const seconds = Number(header.trim());
+
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.min(seconds * 1000, 60_000);
+  }
+
+  const when = Date.parse(header);
+
+  if (Number.isFinite(when)) {
+    return Math.max(0, Math.min(when - Date.now(), 60_000));
+  }
+
+  return undefined;
+}
+
 export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   readonly mode = 'remote-kubernetes' as const;
   readonly capabilities: RuntimeCapability[] = [
@@ -941,8 +965,26 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   /** True when the api reports the workspace agent unreachable — the pod is gone (GC'd) or never came up. */
+  /*
+   * BUG-AGENT-006 — quels échecs signifient « il faut (re)créer le pod ».
+   *
+   * `WORKSPACE_AGENT_REQUEST_FAILED` (502) couvrait le pod réclamé par le GC.
+   * Il manquait `WORKSPACE_NOT_STARTED` (425), que l'api renvoie quand le DNS du
+   * pod ne résout pas — c'est-à-dire, très souvent, quand le pod n'existe tout
+   * simplement PAS.
+   *
+   * Mesuré en direct le 21/08 : sur une génération de 15 min, 468 écritures ont
+   * répondu `425` et il y a eu **zéro `POST /workspaces`** sur toute la fenêtre.
+   * Personne ne provisionnait : le client retentait indéfiniment contre un
+   * workspace que rien ne créait, et le projet restait vide.
+   *
+   * `#ensureWorkspaceReprovisioned` est dédupliqué et rattache le même PVC, donc
+   * l'appeler sur un workspace déjà en train de démarrer est sans effet de bord.
+   */
   #isAgentUnavailable(error: unknown): boolean {
-    return (error as { code?: string } | undefined)?.code === 'WORKSPACE_AGENT_REQUEST_FAILED';
+    const code = (error as { code?: string } | undefined)?.code;
+
+    return code === 'WORKSPACE_AGENT_REQUEST_FAILED' || code === 'WORKSPACE_NOT_STARTED';
   }
 
   /**
@@ -1006,7 +1048,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   async #requestOnce<T>(
     path: string,
     init: RequestInit = {},
-    options: { retryReads?: boolean; retryIdempotentWrite?: boolean } = {},
+    options: { retryReads?: boolean; retryIdempotentWrite?: boolean; ensureWorkspace?: boolean } = {},
   ): Promise<T> {
     /*
      * Idempotent reads (file/dir reads) AND idempotent writes (file overwrite,
@@ -1022,11 +1064,31 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
      * though the agent reported "done". Non-idempotent mutations (move/rename) and
      * non-transient errors (4xx) still fail fast.
      */
-    const maxAttempts = options.retryReads || options.retryIdempotentWrite ? 4 : 1;
+    const retryable = options.retryReads || options.retryIdempotentWrite;
+
+    /*
+     * BUG-AGENT-006 / BUG-AGENT-002 — deux budgets de tentatives, pas un.
+     *
+     * Un 5xx transitoire se règle en une seconde : 4 tentatives suffisent. Un
+     * workspace qui n'est pas encore PRÊT (`425 Too Early`) met des dizaines de
+     * secondes, et l'ancien budget — 4 tentatives, 250/500/750 ms, soit ~1,5 s —
+     * expirait toujours avant. Chaque action ré-émise repartait alors pour sa
+     * propre rafale : mesuré en direct le 21/08, 468 `PUT …/files/write` sur une
+     * génération de 15 min, dont 468 réponses `425` et AUCUN succès.
+     */
+    const maxAttempts = retryable ? 4 : 1;
+    const maxProvisioningAttempts = retryable ? 7 : 1;
 
     let lastError: unknown;
 
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    /*
+     * La boucle porte le PLUS GRAND des deux budgets ; c'est le test dans le
+     * `catch` qui coupe court au budget court pour une erreur non liée au
+     * provisionnement. Borner la boucle sur `maxAttempts` rendait le budget long
+     * inatteignable — défaut introduit puis attrapé par le test qui compte les
+     * requêtes réellement émises.
+     */
+    for (let attempt = 1; attempt <= Math.max(maxAttempts, maxProvisioningAttempts); attempt++) {
       try {
         const response = await this.#rawRequest(path, init);
 
@@ -1038,12 +1100,29 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       } catch (error) {
         lastError = error;
 
+        const provisioning = this.#isRetryableProvisioningError(error);
+        const budget = provisioning ? maxProvisioningAttempts : maxAttempts;
+
         if (
           init.signal?.aborted ||
-          attempt >= maxAttempts ||
-          !(this.#isTransientStartError(error) || this.#isRetryableProvisioningError(error))
+          attempt >= budget ||
+          !(this.#isTransientStartError(error) || provisioning)
         ) {
           throw error;
+        }
+
+        if (provisioning) {
+          /*
+           * Déclencher le provisionnement DÈS la première tentative, pas après
+           * épuisement du budget : le backoff sert alors à attendre que le pod
+           * monte, au lieu d'attendre pour rien.
+           */
+          if (options.ensureWorkspace !== false && this.#isAgentUnavailable(error)) {
+            await this.#ensureWorkspaceReprovisioned().catch(() => undefined);
+          }
+
+          await this.#waitBeforeProvisioningRetry(attempt, error);
+          continue;
         }
 
         /*
@@ -1055,6 +1134,19 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     }
 
     throw lastError;
+  }
+
+  /*
+   * BUG-AGENT-002 — temporisation avant une nouvelle tentative sur un workspace
+   * pas encore prêt : backoff exponentiel (1s, 2s, 4s, 8s, plafonné à 10s), que
+   * `Retry-After` remplace quand le serveur en fournit un.
+   */
+  async #waitBeforeProvisioningRetry(attempt: number, error: unknown): Promise<void> {
+    const serverHint = (error as { retryAfterMs?: number } | null)?.retryAfterMs;
+    const backoffMs = Math.min(10_000, 1000 * 2 ** (attempt - 1));
+    const delayMs = serverHint ?? backoffMs;
+
+    await new Promise<void>((resolve) => setTimeout(resolve, delayMs));
   }
 
   async #rawRequest(path: string, init: RequestInit = {}): Promise<Response> {
@@ -1105,11 +1197,25 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         }
       }
 
-      throw new RuntimeError(`Remote runtime request failed: ${response.status}`, {
+      const runtimeError = new RuntimeError(`Remote runtime request failed: ${response.status}`, {
         code: apiCode ?? 'REMOTE_RUNTIME_REQUEST_FAILED',
         status: response.status,
         details: bodyText,
       });
+
+      /*
+       * BUG-AGENT-002 — respecter `Retry-After` quand le serveur le donne.
+       * On l'attache à l'erreur plutôt qu'à `details`, qui porte le corps brut et
+       * qui est déjà scruté ailleurs (détection de quota) : en changer le type
+       * casserait ces lectures.
+       */
+      const retryAfterMs = parseRetryAfterMs(response.headers?.get?.('retry-after') ?? null);
+
+      if (retryAfterMs !== undefined) {
+        Object.defineProperty(runtimeError, 'retryAfterMs', { value: retryAfterMs, enumerable: false });
+      }
+
+      throw runtimeError;
     }
   }
 
