@@ -502,7 +502,7 @@ export class ActionRunner {
             break;
           }
           case 'file': {
-            await this.#runFileAction(action, isStreaming);
+            await this.#runFileAction(action, isStreaming, actionId);
             break;
           }
           case 'diff': {
@@ -831,12 +831,65 @@ export class ActionRunner {
     return resp;
   }
 
-  async #runFileAction(action: ActionState, isStreaming: boolean = false) {
+  /*
+   * BUG-AGENT-001 — mémo des écritures déjà appliquées, pour ne PUT que sur un
+   * changement réel.
+   *
+   * Mesuré en direct le 21/08 sur `web:405b1f369d`, en interceptant `fetch` et
+   * en relevant la TAILLE du corps de chaque écriture :
+   *
+   *   vite.config.ts   20 écritures — 1 SEULE taille distincte (363)
+   *   index.html        8 écritures — 1 SEULE taille distincte (661)
+   *   package.json     96 écritures — 2 tailles distinctes (69 puis 1015)
+   *
+   * Ce sont donc des répétitions À L'IDENTIQUE, pas de la croissance de
+   * streaming. La garde `if (action.executed) return` de `runAction` empêche
+   * déjà de rejouer un MÊME `actionId` : ces écritures portent donc des
+   * actionId différents pour un contenu identique — des actions ré-émises. La
+   * clé doit être (chemin, contenu), pas l'actionId, sinon elle ne dédoublonne
+   * rien de ce qui se passe réellement.
+   *
+   * Ce qui est sauté est exactement une écriture qui produirait, octet pour
+   * octet, ce que ce runner a déjà écrit à ce chemin — sans effet sur le
+   * disque, mais qui coûtait un aller-retour réseau ET, sur le chemin
+   * non-streaming, un tour de self-repair (donc un appel LLM) par répétition.
+   * Un contenu DIFFÉRENT n'est jamais sauté : la transition 69 → 1015 de
+   * package.json passe. L'entrée n'est posée qu'APRÈS une écriture réussie,
+   * donc un échec laisse le chemin réécrivable.
+   */
+  #lastWrittenFingerprint = new Map<string, number>();
+
+  static #contentFingerprint(content: string): number {
+    let h = 5381;
+
+    for (let i = 0; i < content.length; i++) {
+      h = ((h << 5) + h + content.charCodeAt(i)) | 0;
+    }
+
+    // la longueur discrimine les collisions de contenus courts
+    return (h ^ content.length) | 0;
+  }
+
+  async #runFileAction(action: ActionState, isStreaming: boolean = false, actionId?: string) {
     if (action.type !== 'file') {
       unreachable('Expected file action');
     }
 
     const relativePath = this.#toRuntimePath(action.filePath);
+
+    const contentFingerprint = ActionRunner.#contentFingerprint(action.content);
+
+    /*
+     * On compare au DERNIER contenu écrit à ce chemin, pas à l'ensemble des
+     * contenus déjà vus. La nuance est ce qui sépare un dédoublonnage sûr d'une
+     * perte de fichier : avec un ensemble, la séquence A → B → A saute la
+     * troisième écriture et laisse B sur le disque. Un test dédié couvre ce
+     * retour arrière.
+     */
+    if (this.#lastWrittenFingerprint.get(relativePath) === contentFingerprint) {
+      logger.debug(`Skipping byte-identical rewrite of ${relativePath} (action ${actionId ?? 'n/a'})`);
+      return;
+    }
 
     let folder = nodePath.dirname(relativePath);
 
@@ -931,6 +984,9 @@ export class ActionRunner {
     try {
       await this.#runtime.writeFile(relativePath, payload);
       logger.debug(`File written ${relativePath}`);
+
+      // Après succès seulement : un échec doit laisser le chemin réécrivable.
+      this.#lastWrittenFingerprint.set(relativePath, contentFingerprint);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
       throw error;
