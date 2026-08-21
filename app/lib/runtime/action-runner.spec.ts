@@ -951,3 +951,90 @@ describe('ActionRunner.recoverDiffViaFullFileReemit (diff apply-fail full-file f
     expect(out).toBeNull();
   });
 });
+
+/*
+ * BUG-AGENT-001 — amplification d'écritures.
+ *
+ * Comportement, pas structure. Le scénario reproduit ce qui a été MESURÉ en
+ * direct le 21/08 sur `web:405b1f369d` : des actions ré-émises, portant des
+ * `actionId` DIFFÉRENTS, réécrivent le même fichier avec un contenu identique
+ * (vite.config.ts : 20 écritures, 1 seule taille distincte).
+ *
+ * Utiliser le même actionId ne testerait RIEN : `runAction` a déjà une garde
+ * `if (action.executed) return` qui l'attrape. C'est précisément la confusion
+ * qui rendait ce bug difficile à cerner.
+ */
+describe('BUG-AGENT-001 — une réécriture octet-pour-octet ne repart pas sur le réseau', () => {
+  beforeEach(() => {
+    validateAndFormatHunkMock.mockReset();
+    validateAndFormatHunkMock.mockResolvedValue({ kind: 'skipped' });
+    buildSelfRepairPromptMock.mockReset();
+    buildSelfRepairPromptMock.mockReturnValue('synthetic-prompt');
+  });
+
+  async function replay(runner: ActionRunner, actionId: string, content: string) {
+    const data = createActionData(actionId);
+    (data.action as { content: string }).content = content;
+    runner.addAction(data);
+    await runner.runAction(data);
+    await runner.waitForIdle();
+  }
+
+  const cssWrites = (runtime: RuntimeAdapter) =>
+    (runtime.writeFile as ReturnType<typeof vi.fn>).mock.calls
+      .filter((c) => String(c[0]).includes('index.css'))
+      .map((c) => String(c[1]));
+
+  it('écrit UNE fois pour vingt ré-émissions identiques (actionId différents)', async () => {
+    const runtime = createRuntime();
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    for (let i = 0; i < 20; i++) {
+      await replay(runner, `action-${i}`, 'body { color: red; }');
+    }
+
+    expect(cssWrites(runtime)).toHaveLength(1);
+  });
+
+  it('laisse passer TOUT changement de contenu — une garde trop large perdrait le fichier', async () => {
+    const runtime = createRuntime();
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    // motif réel de package.json : répétitions, puis un contenu plus complet
+    for (let i = 0; i < 5; i++) {
+      await replay(runner, `a-${i}`, '{"name":"app"}');
+    }
+
+    for (let i = 0; i < 5; i++) {
+      await replay(runner, `b-${i}`, '{"name":"app","dependencies":{"react":"18"}}');
+    }
+
+    const written = cssWrites(runtime);
+
+    // une écriture par contenu distinct, et la version complète a bien atteint le disque
+    expect(written).toEqual(['{"name":"app"}', '{"name":"app","dependencies":{"react":"18"}}']);
+  });
+
+  it('un retour au contenu précédent est bien réécrit (annulation)', async () => {
+    const runtime = createRuntime();
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    await replay(runner, 'v1', 'AAA');
+    await replay(runner, 'v2', 'BBB');
+    await replay(runner, 'v3', 'AAA');
+
+    // Le mémo ne doit pas transformer un retour arrière en no-op silencieux.
+    expect(cssWrites(runtime).at(-1)).toBe('AAA');
+  });
+
+  it('une écriture en ÉCHEC laisse le chemin réécrivable', async () => {
+    const writeFile = vi.fn().mockRejectedValueOnce(new Error('boom')).mockResolvedValue(undefined);
+    const runtime = createRuntime({ writeFile } as Partial<RuntimeAdapter>);
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    await replay(runner, 'r1', 'body { color: red; }');
+    await replay(runner, 'r2', 'body { color: red; }');
+
+    expect(cssWrites(runtime).length).toBeGreaterThanOrEqual(2);
+  });
+});
