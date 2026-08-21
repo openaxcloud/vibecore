@@ -1218,3 +1218,82 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     expect(isAuthSocketClose(undefined)).toBe(false);
   });
 });
+
+/*
+ * BUG-AGENT-001 — amplification d'écritures.
+ *
+ * Mesuré en direct : 144 `PUT …/files/write` pour 5 fichiers sur UNE génération,
+ * dont `tsconfig.json` 28 fois pour une SEULE taille de contenu. Une première
+ * garde posée sur l'ActionRunner n'a rien changé (144 avant, 144 après) : les
+ * écritures redondantes ne partagent pas le même runner. L'adaptateur est le
+ * seul point de passage obligé.
+ *
+ * On compte donc les requêtes réellement émises, pas la forme du code.
+ */
+describe('BUG-AGENT-001 — writeFile ne repart sur le réseau que sur changement réel', () => {
+  const writesOf = (fetchMock: ReturnType<typeof vi.fn>) =>
+    fetchMock.mock.calls.filter(([url]) => String(url).includes('/files/write'));
+
+  function makeAdapter() {
+    const fetchMock = createFetchMock() as unknown as ReturnType<typeof vi.fn>;
+    const adapter = new RemoteKubernetesRuntimeAdapter({
+      baseUrl: 'https://runtime.example.com',
+      authToken: 'token',
+      workspaceId: 'ws-1',
+      fetchImpl: fetchMock as unknown as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+    });
+
+    return { adapter, fetchMock };
+  }
+
+  it('vingt écritures identiques ne produisent QU_UNE requête', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+
+    for (let i = 0; i < 20; i++) {
+      await adapter.writeFile('tsconfig.json', '{"compilerOptions":{}}');
+    }
+
+    expect(writesOf(fetchMock)).toHaveLength(1);
+  });
+
+  it('tout changement de contenu passe — sinon on perd le fichier', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+
+    await adapter.writeFile('package.json', '{"name":"a"}');
+    await adapter.writeFile('package.json', '{"name":"a"}');
+    await adapter.writeFile('package.json', '{"name":"a","deps":{}}');
+
+    expect(writesOf(fetchMock)).toHaveLength(2);
+  });
+
+  it('un retour au contenu précédent est bien réécrit (A → B → A)', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+
+    await adapter.writeFile('src/App.tsx', 'AAA');
+    await adapter.writeFile('src/App.tsx', 'BBB');
+    await adapter.writeFile('src/App.tsx', 'AAA');
+
+    const bodies = writesOf(fetchMock).map(([, init]) => JSON.parse(String((init as RequestInit).body)).content);
+    expect(bodies).toEqual(['AAA', 'BBB', 'AAA']);
+  });
+
+  it('une commande shell invalide le mémo — elle a pu toucher le disque', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+
+    await adapter.writeFile('src/App.tsx', 'AAA');
+    await adapter.runCommand({ command: 'rm -f src/App.tsx' } as never).catch(() => undefined);
+    await adapter.writeFile('src/App.tsx', 'AAA');
+
+    expect(writesOf(fetchMock)).toHaveLength(2);
+  });
+
+  it('deux chemins différents ne se masquent pas', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+
+    await adapter.writeFile('a.ts', 'X');
+    await adapter.writeFile('b.ts', 'X');
+
+    expect(writesOf(fetchMock)).toHaveLength(2);
+  });
+});

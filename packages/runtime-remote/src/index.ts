@@ -355,7 +355,31 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     return { content: result.content, encoding: result.encoding };
   }
 
+  /*
+   * BUG-AGENT-001 — dernier contenu écrit par chemin, pour ne PUT que sur un
+   * changement réel.
+   *
+   * Le mémo vit sur l'ADAPTATEUR, pas sur l'ActionRunner. Une première version
+   * placée dans le runner n'a rien changé en réel (144 écritures avant, 144
+   * après, `tsconfig.json` 28× pour une seule taille) : les écritures
+   * redondantes ne partagent pas le même runner. L'adaptateur est le seul point
+   * de passage obligé de TOUTES les écritures — action-runner, agent-file-write,
+   * files store, reconcile d'entrée — donc le seul endroit où la garde attrape
+   * le cas réel.
+   */
+  #lastWrittenContent = new Map<string, string>();
+
   async writeFile(path: string, content: string): Promise<void> {
+    /*
+     * Sauter une écriture qui produirait, octet pour octet, ce que l'on a déjà
+     * écrit à ce chemin. On compare au DERNIER contenu, pas à l'ensemble des
+     * contenus déjà vus : avec un ensemble, la séquence A → B → A sauterait la
+     * troisième écriture et laisserait B sur le disque — une perte de fichier.
+     */
+    if (this.#lastWrittenContent.get(path) === content) {
+      return;
+    }
+
     /*
      * Overwrite is idempotent — retry through a transient api/agent 5xx so a pod
      * rollout/restart mid-generation never silently drops a generated file.
@@ -365,6 +389,18 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       { method: 'PUT', body: JSON.stringify({ path, content }) },
       { retryIdempotentWrite: true },
     );
+
+    // Après succès seulement : un échec doit laisser le chemin réécrivable.
+    this.#lastWrittenContent.set(path, content);
+  }
+
+  /**
+   * Oublier ce que l'on croit savoir du disque. Une commande shell, un checkout
+   * git ou une restauration peuvent modifier les fichiers hors de notre vue :
+   * garder le mémo ferait sauter une réécriture pourtant nécessaire.
+   */
+  #forgetWrittenContent(): void {
+    this.#lastWrittenContent.clear();
   }
 
   async createFile(path: string, content = ''): Promise<void> {
@@ -423,6 +459,9 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   async runCommand(request: CommandRequest): Promise<CommandResult> {
+    // Une commande peut réécrire n'importe quel fichier : le mémo n'est plus fiable.
+    this.#forgetWrittenContent();
+
     return this.#request<CommandResult>(`/workspaces/${this.#requireWorkspaceId()}/commands`, {
       method: 'POST',
       body: JSON.stringify(request),
