@@ -37,6 +37,7 @@ import { getProjectIdeMemory, saveProjectIdeMemory } from '~/lib/persistence/pro
 import { workspaceEvents } from '~/lib/runtime/workspace-events';
 import type { FileMap } from '~/lib/stores/files';
 import {
+  canKickDeadPreview,
   resolvePreviewBootOverlay,
   shouldKickReopenPreview,
   shouldLatchPreviewStartFailure,
@@ -1365,13 +1366,41 @@ export const Preview = memo(
      */
     const reopenKickedSessionRef = useRef<string | null>(null);
     useEffect(() => {
-      if (!shouldKickReopenPreview({ autoStart, hasProject: Boolean(projectId), isStartingPreview, workspaceStatus })) {
+      /*
+       * BUG-AGENT-007 : `serving` (le port répond ET un processus vivant le
+       * détient) et NON `ready` — ce dernier agrège le statut manager et le
+       * beacon client, et l'événement de port ment (il annonçait 5173 alors que
+       * rien n'écoutait).
+       */
+      const hasServingPreview = previews.some((preview) => preview.serving === true);
+
+      if (
+        !shouldKickReopenPreview({
+          autoStart,
+          hasProject: Boolean(projectId),
+          isStartingPreview,
+          workspaceStatus,
+          hasServingPreview,
+        })
+      ) {
         return;
       }
 
       const sessionKey = workspaceStatus?.id ?? 'unknown';
 
       if (reopenKickedSessionRef.current === sessionKey) {
+        return;
+      }
+
+      /*
+       * Plafond dur, EN PLUS du garde par session. Le garde par session suffit
+       * pour un pod qui redémarre, mais pas pour un workspace qui reste
+       * `running` en servant un aperçu mort : l'id de session ne change pas, or
+       * un remontage du composant remet la ref à zéro. Sans ce plafond, chaque
+       * remontage relancerait le serveur — la boucle de redémarrage que le
+       * chemin de l'aperçu a déjà connue.
+       */
+      if (!canKickDeadPreview()) {
         return;
       }
 
@@ -1383,7 +1412,7 @@ export const Preview = memo(
         .startPreviewServer()
         .catch(() => undefined)
         .finally(() => window.setTimeout(() => setIsStartingPreview(false), 2500));
-    }, [autoStart, projectId, isStartingPreview, workspaceStatus, t]);
+    }, [autoStart, projectId, isStartingPreview, workspaceStatus, previews, t]);
 
     /*
      * A detected port means the loop succeeded — reset the relaunch budget so a
