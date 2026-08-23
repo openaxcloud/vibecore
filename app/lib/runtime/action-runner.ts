@@ -4,6 +4,7 @@ import { applyEntryExportReconcile } from './entry-export-reconcile';
 import { ensureEntryImportsResolvable } from './entry-placeholder';
 import { buildSelfRepairPrompt, validateAndFormatHunk, type HunkValidationError } from './hunk-validate';
 import type { ActionCallbackData } from './message-parser';
+import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from './preview-dependencies';
 import { workspaceEvents } from './workspace-events';
 import { formatActionRunnerCopy, getActionRunnerCopy, type ActionRunnerKey } from '~/lib/i18n/catalogs/action-runner';
 import { getI18nInstance } from '~/lib/i18n/runtime';
@@ -307,6 +308,43 @@ export function isDevServerStartCommand(command: string): boolean {
     ) ||
     /\bnpm\s+start\b/.test(normalized)
   );
+}
+
+/*
+ * BUG-AGENT-007 (chemin de repli) — la commande de `start` embarque-t-elle DÉJÀ
+ * une installation explicite (`npm install && node server.js`) ? Dans ce cas la
+ * garantie d'installation ci-dessous ne doit pas en préfixer une seconde.
+ * Volontairement plus strict que INSTALL_COMMAND_PATTERN : `npx`/`bunx` ne
+ * comptent PAS comme une installation du projet (ils n'installent que l'outil
+ * invoqué, pas les dépendances de l'app).
+ */
+const EXPLICIT_INSTALL_PATTERN = /(^|[\s;&|])(?:npm|pnpm|yarn|bun)\s+(?:install|ci|i|add)\b/i;
+
+export function startCommandAlreadyInstalls(command: string): boolean {
+  return EXPLICIT_INSTALL_PATTERN.test(command ?? '');
+}
+
+/**
+ * BUG-AGENT-007 (chemin de repli) — quelle commande d'installation précéder au
+ * `start` quand node_modules est vide. Déduite du gestionnaire visible dans la
+ * commande elle-même, sinon du champ `packageManager` du package.json, sinon npm.
+ */
+export function installCommandForStartCommand(command: string, packageManager?: string): string {
+  const source = `${command ?? ''} ${packageManager ?? ''}`.toLowerCase();
+
+  if (/(^|[\s;&|])pnpm[\s@]/.test(`${source} `)) {
+    return 'pnpm install';
+  }
+
+  if (/(^|[\s;&|])yarn[\s@]/.test(`${source} `)) {
+    return 'yarn install';
+  }
+
+  if (/(^|[\s;&|])bunx?[\s@]/.test(`${source} `)) {
+    return 'bun install';
+  }
+
+  return 'npm install';
 }
 
 export class ActionRunner {
@@ -815,6 +853,22 @@ export class ActionRunner {
       unreachable('Shell terminal not found');
     }
 
+    /*
+     * BUG-AGENT-007 (chemin de repli) — garantie d'installation AVANT le launch.
+     * Le chemin délégué ci-dessus (onStartDevServer → startPreviewServer) porte
+     * déjà la « bulletproof install guarantee » du workbench ; ce chemin PTY —
+     * commande non reconnue comme dev-server (`node server.js`, script sur
+     * mesure) ou hook non câblé — lançait la commande BRUTE. Sur un workspace
+     * dont node_modules est vide, elle mourait aussitôt (« command not found » /
+     * « Cannot find module ») et l'aperçu restait vide. On sonde node_modules
+     * via le même helper que le workbench et on installe d'abord si besoin.
+     */
+    await this.#ensureStartDependenciesInstalled(action, shell);
+
+    if (action.abortSignal.aborted) {
+      return { exitCode: 0, output: '' };
+    }
+
     const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
       logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
       action.abort();
@@ -829,6 +883,58 @@ export class ActionRunner {
     }
 
     return resp;
+  }
+
+  /*
+   * BUG-AGENT-007 (chemin de repli) — s'assure que les dépendances du projet
+   * sont installées avant qu'un `start` PTY ne lance son serveur. Sonde en
+   * meilleure-intention : impossible de lire package.json → on ne change RIEN au
+   * comportement historique (la commande part telle quelle). Une installation
+   * qui ÉCHOUE, en revanche, fait échouer l'action avec la vraie erreur npm —
+   * strictement plus actionnable que le « command not found » qui suivrait.
+   */
+  async #ensureStartDependenciesInstalled(action: ActionState, shell: BoltShell) {
+    if (startCommandAlreadyInstalls(action.content)) {
+      return;
+    }
+
+    let pkg: PreviewPackageManifest & { packageManager?: string };
+
+    try {
+      const read = await this.#runtime.readFile('package.json');
+      pkg = JSON.parse(read.content) as PreviewPackageManifest & { packageManager?: string };
+    } catch {
+      // Pas de manifeste lisible → rien à garantir.
+      return;
+    }
+
+    let installed = true;
+
+    try {
+      installed = await hasInstalledPreviewDependencies(pkg, (directory) => this.#runtime.listFiles(directory));
+    } catch {
+      // Sonde indisponible : on n'ajoute pas d'installation sur un doute.
+      return;
+    }
+
+    if (installed || action.abortSignal.aborted) {
+      return;
+    }
+
+    const installCommand = installCommandForStartCommand(action.content, pkg.packageManager);
+    logger.debug(`[start]: node_modules incomplet — exécution de « ${installCommand} » avant « ${action.content} »`);
+
+    const resp = await shell.executeCommand(this.runnerId.get(), installCommand, () => {
+      logger.debug('[start]: Aborting dependency install before start', action);
+      action.abort();
+    });
+
+    if (resp?.exitCode !== 0 && !action.abortSignal.aborted) {
+      throw new ActionCommandError(
+        actionRunnerText('actionRunner.error.startFailed'),
+        resp?.output || actionRunnerText('actionRunner.error.noOutputAvailable'),
+      );
+    }
   }
 
   /*
