@@ -54,6 +54,38 @@ describe('BUG-QA-AGENT-PROGRESS-001 — la progression ne ment plus après une e
     expect(deriveProgressState({ completedCount: 0, totalCount: 0, hasActiveWork: false })).toBe('interrupted');
   });
 
+  it("APRÈS (BUG-UX-AGENT-DONE-FALSE) : 100 % d'actions + projet dégradé = « terminé avec erreurs », pas la coche verte", () => {
+    /*
+     * Le cas observé en live : toutes les actions de fichiers ont réussi (100 %)
+     * mais 51 erreurs dans Problèmes / consensus à 20 % / aperçu en erreur.
+     * L'ancien code n'avait pas le signal : il affichait « Terminé » vert.
+     */
+    const fullyCompleted = { completedCount: 3, totalCount: 3, hasActiveWork: false };
+
+    expect(deriveProgressState({ ...fullyCompleted, degraded: true })).toBe('done-with-issues');
+  });
+
+  it('BUG-UX-AGENT-DONE-FALSE : la dégradation ne requalifie pas un échec ni un run en cours', () => {
+    const fullyCompleted = { completedCount: 3, totalCount: 3, hasActiveWork: false };
+
+    // L'échec franc prime : « interrompu », pas « terminé avec erreurs ».
+    expect(deriveProgressState({ ...fullyCompleted, degraded: true, failed: true })).toBe('interrupted');
+
+    // Tant que ça travaille, on montre le vrai avancement, pas un verdict.
+    expect(deriveProgressState({ ...fullyCompleted, degraded: true, streaming: true })).toBe('working');
+
+    // Et un run incomplet dégradé reste « interrompu » avec son vrai %.
+    expect(deriveProgressState({ completedCount: 1, totalCount: 3, hasActiveWork: false, degraded: true })).toBe(
+      'interrupted',
+    );
+  });
+
+  it('BUG-UX-AGENT-DONE-FALSE : sans signal dégradé, « terminé » reste « terminé »', () => {
+    expect(deriveProgressState({ completedCount: 3, totalCount: 3, hasActiveWork: false, degraded: false })).toBe(
+      'done',
+    );
+  });
+
   it('les signaux réels sont bien câblés depuis BaseChat', () => {
     expect(baseChat).toMatch(/<ProgressCompilation[\s\S]{0,160}streaming=\{isStreaming\}/);
 
@@ -62,6 +94,15 @@ describe('BUG-QA-AGENT-PROGRESS-001 — la progression ne ment plus après une e
       /<ProgressCompilation[\s\S]{0,200}failed=\{Boolean\(llmErrorAlert\) \|\| agentRunFailed\}/,
     );
     expect(baseChat).toMatch(/setAgentRunFailed\(isAgentRunFailed\(data\)\)/);
+
+    /*
+     * BUG-UX-AGENT-DONE-FALSE : `degraded` porte les TROIS signaux de santé —
+     * orchestration dégradée, compteur d'erreurs Problèmes, alerte d'aperçu.
+     */
+    expect(baseChat).toMatch(/setAgentRunDegraded\(isAgentRunDegraded\(data\)\)/);
+    expect(baseChat).toMatch(
+      /degraded=\{\s*agentRunDegraded\s*\|\|\s*diagnosticErrorCount > 0\s*\|\|\s*Boolean\(actionAlert && actionAlert\.source === 'preview'\)\s*\}/,
+    );
   });
 });
 

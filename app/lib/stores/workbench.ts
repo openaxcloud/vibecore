@@ -17,6 +17,7 @@ import {
   shouldUseExistingPreviewServer,
   workspaceNeedsReprovision,
 } from './preview-recovery';
+import { isPreviewHealthy, shouldAutoDismissPreviewAlert } from './preview-alert-autodismiss';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
@@ -412,6 +413,31 @@ export class WorkbenchStore {
         failureKind: payload.failureKind,
         estimatedTokensSaved: payload.estimatedTokensSaved,
       });
+    });
+
+    /*
+     * BUG-UX-PREVIEW-ERROR-STICKY — la carte « Erreur d'aperçu » se retire toute
+     * seule quand l'aperçu redevient sain. Détection par FRONT malade → sain sur
+     * le store des previews (un port `ready` réapparaît) : voir
+     * preview-alert-autodismiss.ts pour la règle exacte et pourquoi une alerte
+     * posée pendant que l'aperçu est déjà sain n'est jamais balayée.
+     */
+    let previewWasHealthy = isPreviewHealthy(this.previews.get());
+
+    this.previews.subscribe((previews) => {
+      const previewIsHealthy = isPreviewHealthy(previews);
+
+      if (
+        shouldAutoDismissPreviewAlert({
+          wasHealthy: previewWasHealthy,
+          isHealthy: previewIsHealthy,
+          alert: this.actionAlert.get(),
+        })
+      ) {
+        this.actionAlert.set(undefined);
+      }
+
+      previewWasHealthy = previewIsHealthy;
     });
   }
 
