@@ -9677,32 +9677,6 @@ body :where(.lucide, svg[data-lucide]) {
   transform: translateX(2px);
 }
 
-.bolt-project-tool-empty {
-  display: grid;
-  justify-items: center;
-  gap: 5px;
-  padding: 34px 12px;
-  color: var(--vc-ide-text-muted);
-  font-size: 12px;
-  text-align: center;
-}
-
-.bolt-project-tool-empty > span {
-  color: var(--vc-ide-text-muted);
-  font-size: 28px;
-  opacity: 0.35;
-}
-
-.bolt-project-tool-empty strong {
-  color: var(--vc-ide-text-secondary);
-  font-size: 13px;
-}
-
-.bolt-project-tool-empty small {
-  color: var(--vc-ide-text-muted);
-  font-size: 11px;
-}
-
 .bolt-project-welcome {
   display: flex;
   height: 100%;
@@ -15406,36 +15380,6 @@ body :where(.lucide, svg[data-lucide]) {
   background: transparent;
   color: var(--vc-ide-text-muted);
   box-shadow: inset 0 0 0 1px var(--vc-ide-border-subtle);
-}
-
-.bolt-project-problems-empty {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 32px;
-  text-align: center;
-}
-
-.bolt-project-problems-empty [class*='i-ph:'] {
-  color: var(--vc-ide-accent-success);
-  font-size: 28px;
-}
-
-.bolt-project-problems-empty h4 {
-  margin: 0;
-  color: var(--vc-ide-text-primary);
-  font-size: 14px;
-}
-
-.bolt-project-problems-empty p {
-  max-width: 420px;
-  margin: 0;
-  color: var(--vc-ide-text-secondary);
-  font-size: 12px;
-  line-height: 1.5;
 }
 
 .bolt-project-problems-list {
