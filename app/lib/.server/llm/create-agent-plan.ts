@@ -258,6 +258,7 @@ ${roleCatalog}
 
 Rules:
 - Only include roles that are genuinely needed for THIS request (e.g. a static landing page needs no backend/devops).
+- Prefer the SIMPLEST architecture that works: a client-only tool (local counter, calculator, timer, single-user todo — anything whose state fits in the browser with no shared or durable server data) needs NO backend lane and NO HTTP API; do not add one.
 - Use at most ${roleCap} distinct roles.
 - Order tasks in execution order (architecture first, QA last).
 ${buildPlanLanguageRule(language)}- Output STRICT JSON only, no prose, no code fences:
