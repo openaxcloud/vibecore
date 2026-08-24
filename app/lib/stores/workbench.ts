@@ -682,7 +682,15 @@ export class WorkbenchStore {
   async refreshRuntimePorts() {
     await this.#previewsStore.refreshPorts();
 
-    if (this.previews.get().some((preview) => preview.ready !== false)) {
+    /*
+     * BUG-UX-DEV-BLOCKED-STUCK: a latched `error` state (transient "stream
+     * closed" on reopen, a dead first launch…) must RESOLVE the moment a port is
+     * really up. `serving === true` (HTTP answers + live process, server-side
+     * probe) counts even while the aggregate `ready` is still vetoed by a
+     * lagging manager status / stale client beacon — otherwise the status bar
+     * sat on "Dev: blocked" over a serving app.
+     */
+    if (this.previews.get().some((preview) => preview.ready !== false || preview.serving === true)) {
       const current = this.previewServerState.get();
       this.previewServerState.set({ status: 'running', command: current.command });
     }
@@ -998,7 +1006,9 @@ export class WorkbenchStore {
 
         if (this.previewServerState.get().status !== 'error') {
           this.previewServerState.set({
-            status: this.previews.get().some((preview) => preview.ready !== false) ? 'running' : 'idle',
+            status: this.previews.get().some((preview) => preview.ready !== false || preview.serving === true)
+              ? 'running'
+              : 'idle',
             command: command.label,
           });
         }
