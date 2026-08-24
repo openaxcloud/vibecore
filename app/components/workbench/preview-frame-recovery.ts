@@ -21,6 +21,19 @@ export interface PreviewLoadRetryState {
   /* The runtime port watcher's readiness signal (undefined when unknown). */
   ready?: boolean;
 
+  /*
+   * The server-side "this port actually answers HTTP AND a live process holds
+   * it" probe (`WorkspacePort.serving`). `ready` aggregates two EXTRA vetoes on
+   * top of it — the manager status (which notoriously lags at PENDING/STARTING
+   * on reopen) and the persisted client beacon (which reflects the PREVIOUS
+   * page's render). Both can hold `ready` at false long after the dev server is
+   * genuinely serving 200s — which left the boot overlay stuck on "Starting dev
+   * server" while the preview URL rendered the app in a plain tab
+   * (BUG-UX-PREVIEW-OVERLAY-LAG, live 24/08). When the server says
+   * serving === true, a frame load IS the app.
+   */
+  serving?: boolean;
+
   /* Whether an iframe `error` event (not `load`) triggered this evaluation. */
   erroredLoad: boolean;
 }
@@ -59,6 +72,22 @@ export function decidePreviewLoadOutcome(state: PreviewLoadRetryState): PreviewL
   }
 
   /*
+   * The port answers HTTP and a live process holds it (server-side probe): the
+   * body the iframe just loaded is the real app, not the proxy's 502 holding
+   * page. Trust the load even while the aggregate `ready` is still vetoed by a
+   * lagging manager status / stale client beacon — otherwise every genuine
+   * render is discarded and the overlay stays on "Starting dev server" over a
+   * serving app.
+   */
+  if (state.serving === true) {
+    return {
+      treatAsRendered: true,
+      scheduleReload: false,
+      nextAttempt: 0,
+    };
+  }
+
+  /*
    * A successful load while the runtime explicitly reports the port as
    * not-ready is the classic "port bound, still compiling → 502 body" race.
    * Do not dismiss the overlay; schedule another reload until the port is ready
@@ -77,6 +106,47 @@ export function decidePreviewLoadOutcome(state: PreviewLoadRetryState): PreviewL
     scheduleReload: false,
     nextAttempt: 0,
   };
+}
+
+/*
+ * BUG-UX-PREVIEW-OVERLAY-LAG — whether the "WEBVIEW STARTUP / Starting dev
+ * server" overlay must stay over the iframe.
+ *
+ * The old inline condition held the overlay while `activePreview.ready ===
+ * false` EVEN AFTER the frame had genuinely loaded the app. `ready` aggregates
+ * the manager status (lags at PENDING/STARTING on reopen) and the persisted
+ * client beacon (reflects the previous page), so it can sit at false for a long
+ * time while the port serves 200s — measured live 24/08: the preview URL
+ * rendered the app in a plain tab while the embedded overlay still said
+ * "Starting". The overlay must reflect the PORT's real state: once the server
+ * says the port is serving (`serving === true`) and the frame has loaded the
+ * current URL, there is nothing left to wait for.
+ */
+export function shouldHoldPreviewLoadingOverlay(input: {
+  hasActivePreview: boolean;
+  hasIframeUrl: boolean;
+  ready?: boolean;
+  serving?: boolean;
+  frameLoaded: boolean;
+  loadedUrlMatches: boolean;
+}): boolean {
+  if (!input.hasActivePreview || !input.hasIframeUrl) {
+    return false;
+  }
+
+  // Nothing rendered yet for the current URL — the overlay is all there is.
+  if (!input.frameLoaded || !input.loadedUrlMatches) {
+    return true;
+  }
+
+  /*
+   * Frame loaded. Only keep covering it when the runtime BOTH reports the port
+   * not-ready AND does not report it serving — i.e. the load really was the 502
+   * holding page. A serving port (HTTP answers + live process) means the loaded
+   * body is the app; ready's extra manager/beacon vetoes must not keep a
+   * finished render hidden behind "Starting dev server".
+   */
+  return input.ready === false && input.serving !== true;
 }
 
 /*
