@@ -41,6 +41,7 @@ import {
   renderImageToCanvas,
 } from './image-attachments';
 import { clearComposerDraft, createComposerDraftWriter, readComposerDraft } from './composer-draft';
+import { devServerStatusText } from './dev-server-status';
 import { describeSkipReason, parseDotEnv } from './parse-dot-env';
 import { AppliedFilesToastBuffer } from './applied-files-toast-buffer';
 import {
@@ -1115,58 +1116,11 @@ function previewPortCompactText(
     : t('baseChatAst.port.compactNone');
 }
 
-function previewCommandFromLogs(logs: string[]) {
-  for (const log of [...logs].reverse()) {
-    const message = typeof log === 'string' ? log : '';
-    const match = message.match(/Starting preview with ([^\n]+)/i);
-
-    if (match?.[1]) {
-      return match[1].replace(/\s+in\s+.+$/i, '').trim();
-    }
-  }
-
-  return undefined;
-}
-
-function devServerStatusText(
-  t: TFunction,
-  input: {
-    previews: Array<{ ready?: boolean }>;
-    workspaceLoading: boolean;
-    workspaceError?: string;
-    logs: string[];
-    previewServerState: { status: string; command?: string; error?: string };
-  },
-) {
-  const command = input.previewServerState.command ?? previewCommandFromLogs(input.logs);
-
-  if (input.previews.some((preview) => preview.ready !== false)) {
-    return command ? t('baseChatAst.dev.activeCommand', { command }) : t('baseChatAst.dev.active');
-  }
-
-  if (input.workspaceError || input.previewServerState.status === 'error') {
-    return t('baseChatAst.dev.blocked');
-  }
-
-  if (input.previewServerState.status === 'static') {
-    return t('baseChatAst.dev.static');
-  }
-
-  if (
-    input.workspaceLoading ||
-    input.previewServerState.status === 'starting' ||
-    input.previewServerState.status === 'stopping' ||
-    command
-  ) {
-    if (input.previewServerState.status === 'stopping') {
-      return command ? t('baseChatAst.dev.stoppingCommand', { command }) : t('baseChatAst.dev.stopping');
-    }
-
-    return command ? t('baseChatAst.dev.startingCommand', { command }) : t('baseChatAst.dev.starting');
-  }
-
-  return t('baseChatAst.dev.idle');
-}
+/*
+ * previewCommandFromLogs / devServerStatusText live in ./dev-server-status so
+ * the BUG-UX-DEV-BLOCKED-STUCK decision is unit-testable without importing
+ * this whole file (see dev-server-status.spec.ts).
+ */
 
 const PRESENCE_STATUS_WEIGHT: Record<string, number> = {
   online: 3,
