@@ -14,6 +14,12 @@ const buttonVariants = cva(
          * The blue action-accent CTA (H1): one factored primary so the six hand-rolled
          * copies stop drifting — and hover darkens the fill instead of turning the label
          * accent-coloured (invisible on the accent bg).
+         *
+         * Décision UNIF lot 5 : on GARDE l'alias `--vc-action-primary` ici (ne pas
+         * hardcoder `--vc-ide-accent-action`). L'alias est surface-aware dans
+         * index.scss : IDE → var(--vc-ide-accent-action) (le primary canonique plein
+         * accent + texte blanc), user area → orange, auth/public/marketing → leurs
+         * accents. Hardcoder l'accent IDE casserait ces surfaces.
          */
         primary:
           'bg-[var(--vc-action-primary)] text-[var(--vc-action-primary-foreground)] hover:bg-[var(--vc-action-primary-hover)]',

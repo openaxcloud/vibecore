@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IdePanelHeader, PanelEmptyState } from '~/components/project-ide/PanelPrimitives';
+import { IdePanelHeader, PanelButton, PanelEmptyState, PanelInput } from '~/components/project-ide/PanelPrimitives';
 import { Checkbox } from '~/components/ui/Checkbox';
 import { toast } from '~/components/ui/use-toast';
 import {
@@ -227,14 +227,16 @@ export function LockManager() {
             className="i-ph:magnifying-glass pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-xs text-bolt-elements-textTertiary"
             aria-hidden
           />
-          <input
+          {/* UNIF lot 5 : chrome partagé PanelInput (bordure/fond/focus communs) ; les
+              `!` gardent la hauteur tactile 44px (spec a11y) et la place de l'icône
+              face au h-9/px-2 du gabarit md. */}
+          <PanelInput
             type="text"
             placeholder={copy['lockManager.search.placeholder']}
             aria-label={copy['lockManager.search.ariaLabel']}
-            className="h-11 w-full rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 py-2 pl-7 pr-2 text-xs text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus"
+            className="!h-11 w-full !pl-7 pr-2 !text-xs"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ minWidth: 0 }}
           />
         </div>
         {/* Filter Select */}
@@ -268,15 +270,18 @@ export function LockManager() {
           />
           <span>{copy['lockManager.selectAll.label']}</span>
         </div>
+        {/* UNIF lot 5 : « Unlock selected » = PanelButton outline partagé (action
+            secondaire) ; min-h-11 conserve la cible tactile 44px (spec a11y). */}
         {selectedItems.size > 0 && (
-          <button
+          <PanelButton
             type="button"
-            className="ml-auto flex min-h-11 min-w-0 items-center gap-1 whitespace-normal rounded bg-bolt-elements-button-secondary-background px-3 py-2 text-center text-xs text-bolt-elements-button-secondary-text hover:bg-bolt-elements-button-secondary-backgroundHover"
+            variant="outline"
+            className="!h-auto ml-auto min-h-11 min-w-0 whitespace-normal py-2 text-xs"
             onClick={handleUnlockSelected}
             title={copy['lockManager.unlockSelected.title']}
           >
             {copy['lockManager.unlockSelected']}
-          </button>
+          </PanelButton>
         )}
       </div>
 

@@ -70,7 +70,7 @@ const BETA_TABS = new Set<TabType>(['local-providers', 'mcp']);
 
 const BetaLabel = ({ label }: { label: string }) => (
   <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-[color-mix(in_srgb,var(--vc-ide-accent-action)_10%,transparent)]">
-    <span className="text-[10px] font-medium text-[var(--vc-ide-accent-action)]">{label}</span>
+    <span className="text-[11px] font-medium text-[var(--vc-ide-accent-action)]">{label}</span>
   </div>
 );
 
