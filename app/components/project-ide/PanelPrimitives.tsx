@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from 'react';
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, Ref } from 'react';
 
 import { EmptyState } from '~/components/ui/EmptyState';
 import { classNames } from '~/utils/classNames';
@@ -56,6 +56,52 @@ export function PanelInput({ className, ...props }: PanelInputProps) {
         className,
       )}
     />
+  );
+}
+
+export interface IdePanelHeaderProps {
+  /** Icône UnoCSS (`i-ph:*`) affichée avant le titre. */
+  icon?: string;
+
+  title: string;
+
+  /**
+   * Attributs additionnels du titre (ex. `tabIndex: -1` pour un panneau qui
+   * déplace le focus sur sa tête à l'ouverture, comme Problems).
+   */
+  titleTabIndex?: number;
+
+  /**
+   * Slot méta + actions, rendu à droite (puce « Updated … », compteurs,
+   * menu ⋮). Le conteneur est `position: relative` pour ancrer un menu.
+   */
+  children?: ReactNode;
+
+  /** Ref du conteneur d'actions (fermeture au clic extérieur, ancrage menu). */
+  actionsRef?: Ref<HTMLDivElement>;
+  className?: string;
+}
+
+/**
+ * En-tête de panneau IDE unique (UNIF-06, audit H1). Reprend la tête partagée
+ * des panneaux « gestion » (`.bolt-project-ide-panel-header`, 36 px) et
+ * l'expose aux panneaux workspace qui divergeaient (Problems) ou n'avaient
+ * aucune tête (Search, Locks) : même icône + titre + slot méta/actions, mêmes
+ * paddings et typo partout.
+ */
+export function IdePanelHeader({ icon, title, titleTabIndex, children, actionsRef, className }: IdePanelHeaderProps) {
+  return (
+    <div className={classNames('bolt-project-ide-panel-header', className)}>
+      {icon ? <span className={icon} aria-hidden /> : null}
+      <h2 className="m-0 min-w-0 truncate text-sm font-semibold" tabIndex={titleTabIndex}>
+        {title}
+      </h2>
+      {children ? (
+        <div className="relative ml-auto flex min-w-0 items-center gap-2" ref={actionsRef}>
+          {children}
+        </div>
+      ) : null}
+    </div>
   );
 }
 

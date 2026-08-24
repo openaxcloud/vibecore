@@ -41,12 +41,16 @@ function extractStringArray(name: string): string[] {
 }
 
 function extractPanelIconKeys(): string[] {
-  const match = baseChatCode.match(
-    /function panelIcon\(panel: string\) \{[\s\S]*?const icons: Record<string, string> = \{([\s\S]*?)\};/,
-  );
+  /*
+   * UNIF-05 (lot 3) : le registre ne vit plus dans BaseChat — la source unique
+   * est app/components/project-ide/panel-meta.ts (PANEL_ICONS), consommée par
+   * onglets, rail, palette « + » et tuiles mobile.
+   */
+  const panelMetaCode = codeOnly(readFileSync(join(__dirname, '..', 'project-ide', 'panel-meta.ts'), 'utf8'));
+  const match = panelMetaCode.match(/export const PANEL_ICONS: Record<string, string> = \{([\s\S]*?)\};/);
 
   if (!match) {
-    throw new Error('Unable to locate the panelIcon icon registry in BaseChat.tsx');
+    throw new Error('Unable to locate the PANEL_ICONS registry in panel-meta.ts');
   }
 
   return [...match[1].matchAll(/(?:'([a-z0-9-]+)'|([a-zA-Z0-9]+)):\s*'i-ph:/g)].map((entry) => entry[1] ?? entry[2]);

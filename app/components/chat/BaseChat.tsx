@@ -92,7 +92,8 @@ import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
 import { FloatingPaneFrame } from '~/components/project-ide/FloatingPaneFrame';
-import { PanelButton, PanelEmptyState, PanelInput } from '~/components/project-ide/PanelPrimitives';
+import { PANEL_ICONS, panelIcon } from '~/components/project-ide/panel-meta';
+import { IdePanelHeader, PanelButton, PanelEmptyState, PanelInput } from '~/components/project-ide/PanelPrimitives';
 import { ProjectEditorToolbar } from '~/components/project-ide/ProjectEditorToolbar';
 import { ProjectOverviewPanel } from '~/components/project-ide/ProjectOverviewPanel';
 import {
@@ -442,56 +443,65 @@ const ECODE_MOBILE_DEFAULT_TABS = ['preview', 'agent', 'deployments'] as const;
 const MOBILE_OVERLAY_RESTORE_WINDOW_MS = 120_000;
 type MobileOverlayKind = 'tools' | 'tabs' | 'more' | 'agent';
 
+/*
+ * UNIF-05 : les icônes viennent du registre unique PANEL_ICONS (panel-meta) —
+ * la même icône pour le même outil sur les tuiles mobile, les onglets desktop,
+ * le rail et la palette « + ». Deux exceptions volontaires, en littéral :
+ * - `agent` (marque, rendue à part) ;
+ * - `terminal`/`console`/`shell` : l'onglet Terminal mobile est GELÉ sur la
+ *   référence d'Avi (IMG_9149) — son glyphe ne doit jamais dériver via le
+ *   registre (même si la valeur actuelle y est identique).
+ */
 const ECODE_MOBILE_TAB_META_BASE: Record<string, { id: string; name: string; icon: string }> = {
-  preview: { id: 'preview', name: 'Webview', icon: 'i-ph:monitor' },
+  preview: { id: 'preview', name: 'Webview', icon: PANEL_ICONS.preview },
   agent: { id: 'agent', name: 'Agent', icon: 'agent' },
-  deploy: { id: 'deploy', name: 'Deployments', icon: 'i-ph:rocket-launch' },
-  deployments: { id: 'deployments', name: 'Deployments', icon: 'i-ph:rocket-launch' },
-  files: { id: 'files', name: 'Library', icon: 'i-ph:folder-open' },
-  editor: { id: 'editor', name: 'Editor', icon: 'i-ph:code' },
-  search: { id: 'search', name: 'Search', icon: 'i-ph:magnifying-glass' },
-  locks: { id: 'locks', name: 'Locks', icon: 'i-ph:lock' },
+  deploy: { id: 'deploy', name: 'Deployments', icon: PANEL_ICONS.deployments },
+  deployments: { id: 'deployments', name: 'Deployments', icon: PANEL_ICONS.deployments },
+  files: { id: 'files', name: 'Library', icon: PANEL_ICONS.files },
+  editor: { id: 'editor', name: 'Editor', icon: PANEL_ICONS.editor },
+  search: { id: 'search', name: 'Search', icon: PANEL_ICONS.search },
+  locks: { id: 'locks', name: 'Locks', icon: PANEL_ICONS.locks },
   terminal: { id: 'terminal', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
   actions: { id: 'actions', name: 'Agent', icon: 'agent' },
   assistant: { id: 'assistant', name: 'Agent', icon: 'agent' },
-  publishing: { id: 'publishing', name: 'Deployments', icon: 'i-ph:rocket-launch' },
-  'app-storage': { id: 'app-storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
-  auth: { id: 'auth', name: 'Settings', icon: 'i-ph:gear' },
+  publishing: { id: 'publishing', name: 'Deployments', icon: PANEL_ICONS.deployments },
+  'app-storage': { id: 'app-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
+  auth: { id: 'auth', name: 'Settings', icon: PANEL_ICONS.settings },
   console: { id: 'console', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  database: { id: 'database', name: 'Database', icon: 'i-ph:database' },
-  problems: { id: 'problems', name: 'Problems', icon: 'i-ph:warning-circle' },
-  debug: { id: 'debug', name: 'Debugger', icon: 'i-ph:bug' },
-  debugger: { id: 'debugger', name: 'Debugger', icon: 'i-ph:bug' },
-  developer: { id: 'developer', name: 'Debugger', icon: 'i-ph:bug' },
-  git: { id: 'git', name: 'Git', icon: 'i-ph:git-branch' },
-  history: { id: 'history', name: 'Activity', icon: 'i-ph:activity' },
-  activity: { id: 'activity', name: 'Activity', icon: 'i-ph:activity' },
-  integrations: { id: 'integrations', name: 'Integrations', icon: 'i-ph:package' },
-  multiplayer: { id: 'multiplayer', name: 'Collaborators', icon: 'i-ph:users' },
-  collaboration: { id: 'collaboration', name: 'Collaborators', icon: 'i-ph:users' },
-  collaborate: { id: 'collaborate', name: 'Collaborators', icon: 'i-ph:users' },
-  collaborators: { id: 'collaborators', name: 'Collaborators', icon: 'i-ph:users' },
-  packages: { id: 'packages', name: 'Packages', icon: 'i-ph:package' },
-  skills: { id: 'skills', name: 'Skills', icon: 'i-ph:sparkle' },
-  secrets: { id: 'secrets', name: 'Secrets', icon: 'i-ph:lock' },
-  settings: { id: 'settings', name: 'Settings', icon: 'i-ph:gear' },
-  workflows: { id: 'workflows', name: 'Workflows', icon: 'i-ph:git-branch' },
-  checkpoints: { id: 'checkpoints', name: 'Snapshots', icon: 'i-ph:stack' },
-  snapshots: { id: 'snapshots', name: 'Snapshots', icon: 'i-ph:stack' },
-  extensions: { id: 'extensions', name: 'Extensions', icon: 'i-ph:puzzle-piece' },
-  security: { id: 'security', name: 'Security', icon: 'i-ph:shield-check' },
+  database: { id: 'database', name: 'Database', icon: PANEL_ICONS.database },
+  problems: { id: 'problems', name: 'Problems', icon: PANEL_ICONS.problems },
+  debug: { id: 'debug', name: 'Debugger', icon: PANEL_ICONS.debugger },
+  debugger: { id: 'debugger', name: 'Debugger', icon: PANEL_ICONS.debugger },
+  developer: { id: 'developer', name: 'Debugger', icon: PANEL_ICONS.debugger },
+  git: { id: 'git', name: 'Git', icon: PANEL_ICONS.git },
+  history: { id: 'history', name: 'Activity', icon: PANEL_ICONS.activity },
+  activity: { id: 'activity', name: 'Activity', icon: PANEL_ICONS.activity },
+  integrations: { id: 'integrations', name: 'Integrations', icon: PANEL_ICONS.integrations },
+  multiplayer: { id: 'multiplayer', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
+  collaboration: { id: 'collaboration', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
+  collaborate: { id: 'collaborate', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
+  collaborators: { id: 'collaborators', name: 'Collaborators', icon: PANEL_ICONS.collaborators },
+  packages: { id: 'packages', name: 'Packages', icon: PANEL_ICONS.packages },
+  skills: { id: 'skills', name: 'Skills', icon: PANEL_ICONS.skills },
+  secrets: { id: 'secrets', name: 'Secrets', icon: PANEL_ICONS.secrets },
+  settings: { id: 'settings', name: 'Settings', icon: PANEL_ICONS.settings },
+  workflows: { id: 'workflows', name: 'Workflows', icon: PANEL_ICONS.workflows },
+  checkpoints: { id: 'checkpoints', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
+  snapshots: { id: 'snapshots', name: 'Snapshots', icon: PANEL_ICONS.snapshots },
+  extensions: { id: 'extensions', name: 'Extensions', icon: PANEL_ICONS.extensions },
+  security: { id: 'security', name: 'Security', icon: PANEL_ICONS.security },
   shell: { id: 'shell', name: SHELL_TERMINAL_LABEL, icon: 'i-ph:terminal-window' },
-  'kv-store': { id: 'kv-store', name: 'Database', icon: 'i-ph:database' },
-  storage: { id: 'storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
-  'object-storage': { id: 'object-storage', name: 'Object Storage', icon: 'i-ph:hard-drives' },
-  env: { id: 'env', name: 'Environment variables', icon: 'i-ph:brackets-curly' },
-  logs: { id: 'logs', name: 'Logs', icon: 'i-ph:list-magnifying-glass' },
-  monitoring: { id: 'monitoring', name: 'Monitoring', icon: 'i-ph:chart-line' },
-  ports: { id: 'ports', name: 'Ports', icon: 'i-ph:plugs' },
-  domains: { id: 'domains', name: 'Domains', icon: 'i-ph:globe' },
-  overview: { id: 'overview', name: 'Overview', icon: 'i-ph:gauge' },
-  studio: { id: 'studio', name: 'Agent Studio', icon: 'i-ph:robot' },
-  web: { id: 'web', name: 'Webview', icon: 'i-ph:monitor' },
+  'kv-store': { id: 'kv-store', name: 'Database', icon: PANEL_ICONS.database },
+  storage: { id: 'storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
+  'object-storage': { id: 'object-storage', name: 'Object Storage', icon: PANEL_ICONS['object-storage'] },
+  env: { id: 'env', name: 'Environment variables', icon: PANEL_ICONS.env },
+  logs: { id: 'logs', name: 'Logs', icon: PANEL_ICONS.logs },
+  monitoring: { id: 'monitoring', name: 'Monitoring', icon: PANEL_ICONS.monitoring },
+  ports: { id: 'ports', name: 'Ports', icon: PANEL_ICONS.ports },
+  domains: { id: 'domains', name: 'Domains', icon: PANEL_ICONS.domains },
+  overview: { id: 'overview', name: 'Overview', icon: PANEL_ICONS.overview },
+  studio: { id: 'studio', name: 'Agent Studio', icon: PANEL_ICONS.studio },
+  web: { id: 'web', name: 'Webview', icon: PANEL_ICONS.webview },
   tools: { id: 'tools', name: 'Tools', icon: 'i-ph:stack' },
 };
 
@@ -7906,7 +7916,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   ...tab,
                   label,
                   displayLabel: formatEditorTabLabel(label, tab.panel),
-                  icon: tab.panel === 'editor' ? 'i-ph:code' : panelIcon(tab.panel),
+                  icon: panelIcon(tab.panel),
                   preview: tab.preview,
                   dirty:
                     tab.panel === 'editor' &&
@@ -8076,7 +8086,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       {
         panel: 'files',
         label: t('chat.copy.library_b8100f5b'),
-        icon: 'i-ph:files',
+        icon: panelIcon('files'),
         badge: visibleProjectFilePaths.length || undefined,
         badgeLabel:
           visibleProjectFilePaths.length > 0
@@ -8089,14 +8099,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       {
         panel: 'search',
         label: t('chat.copy.search_bce06414'),
-        icon: 'i-ph:magnifying-glass',
+        icon: panelIcon('search'),
         badge: undefined,
         tone: 'neutral',
       },
       {
         panel: 'git',
         label: t('chat.copy.git_58197788'),
-        icon: 'i-ph:git-branch',
+        icon: panelIcon('git'),
         badge: statusbarChangedFiles || undefined,
         badgeLabel:
           statusbarChangedFiles > 0 ? t('baseChatAst.files.changedCount', { count: statusbarChangedFiles }) : undefined,
@@ -8105,35 +8115,35 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       {
         panel: 'packages',
         label: t('chat.copy.packages_0a999012'),
-        icon: 'i-ph:cube',
+        icon: panelIcon('packages'),
         badge: undefined,
         tone: 'neutral',
       },
       {
         panel: 'database',
         label: t('chat.copy.database_61074f1c'),
-        icon: 'i-ph:database',
+        icon: panelIcon('database'),
         badge: undefined,
         tone: 'neutral',
       },
       {
         panel: 'secrets',
         label: t('chat.copy.secrets_1e3732ae'),
-        icon: 'i-ph:lock',
+        icon: panelIcon('secrets'),
         badge: undefined,
         tone: 'neutral',
       },
       {
         panel: 'deployments',
         label: t('chat.copy.deployments_8d458ed0'),
-        icon: 'i-ph:rocket-launch',
+        icon: panelIcon('deployments'),
         badge: undefined,
         tone: 'neutral',
       },
       {
         panel: 'monitoring',
         label: t('chat.copy.monitoring_a8143458'),
-        icon: 'i-ph:chart-line',
+        icon: panelIcon('monitoring'),
         badge: statusbarDiagnostics.errors || undefined,
         badgeLabel:
           statusbarDiagnostics.errors > 0
@@ -8144,7 +8154,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       {
         panel: 'settings',
         label: t('chat.copy.settings_c7f73bb5'),
-        icon: 'i-ph:gear',
+        icon: panelIcon('settings'),
         badge: undefined,
         tone: 'neutral',
       },
@@ -8806,7 +8816,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             title: tab.filePath?.replace(WORK_DIR, '') || panelTitle(tab.panel, t),
             description: t('chat.copy.focusOpenTab_9394aa42'),
             shortcut: '',
-            icon: tab.panel === 'editor' ? 'i-ph:code' : panelIcon(tab.panel),
+            icon: panelIcon(tab.panel),
             kind: 'recent' as const,
             tabId: tab.id,
           })),
@@ -10803,59 +10813,60 @@ function ProjectIdeApiServicePanel({
 
   return (
     <div className="bolt-project-service-panel" data-testid="ide-service-panel" data-panel={panel}>
-      <div className="bolt-project-ide-panel-header">
-        <span className={icon} aria-hidden />
-        <h2 className="m-0 min-w-0 truncate text-sm font-semibold">{title}</h2>
-        <div className="relative ml-auto flex min-w-0 items-center gap-2" ref={panelActionsRef}>
-          <span
-            className="hidden max-w-[190px] items-center gap-1.5 truncate rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary sm:inline-flex"
-            data-testid="ide-panel-updated-at"
-            title={updatedTitle}
-            aria-live="polite"
-          >
-            <span className={busy ? 'i-ph:spinner-gap animate-spin' : 'i-ph:clock'} aria-hidden />
-            <span className="truncate">{updatedLabel}</span>
-          </span>
-          <button
-            type="button"
-            className="inline-flex h-7 w-7 items-center justify-center rounded border border-bolt-elements-borderColor text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary disabled:cursor-not-allowed disabled:opacity-60"
+      <IdePanelHeader icon={icon} title={title} actionsRef={panelActionsRef}>
+        {/*
+         * UNIF-06 (audit H2) : la puce « Updated … » était `hidden sm:` — donc
+         * JAMAIS visible en mobile 390, là où Avi teste. Elle reste affichée en
+         * compact (largeur plafonnée en vw, truncate) et s'élargit dès sm.
+         */}
+        <span
+          className="inline-flex max-w-[34vw] items-center gap-1.5 truncate rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary sm:max-w-[190px]"
+          data-testid="ide-panel-updated-at"
+          title={updatedTitle}
+          aria-live="polite"
+        >
+          <span className={busy ? 'i-ph:spinner-gap animate-spin' : 'i-ph:clock'} aria-hidden />
+          <span className="truncate">{updatedLabel}</span>
+        </span>
+        <button
+          type="button"
+          className="inline-flex h-7 w-7 items-center justify-center rounded border border-bolt-elements-borderColor text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary disabled:cursor-not-allowed disabled:opacity-60"
+          aria-label={t('chat.copy.value0PanelActions_4358c33e', { value0: title })}
+          aria-haspopup="menu"
+          aria-expanded={panelActionsOpen}
+          data-testid="ide-panel-actions"
+          onClick={() => setPanelActionsOpen((value) => !value)}
+          disabled={busy && !payload}
+        >
+          <span className="i-ph:dots-three-vertical-bold" aria-hidden />
+        </button>
+        {panelActionsOpen ? (
+          <div
+            className="bolt-project-panel-actions-menu absolute right-0 top-[calc(100%+6px)] z-20 w-[192px] max-w-[calc(100vw-1.5rem)] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-1 text-[12px] text-bolt-elements-textPrimary shadow-lg"
+            role="menu"
             aria-label={t('chat.copy.value0PanelActions_4358c33e', { value0: title })}
-            aria-haspopup="menu"
-            aria-expanded={panelActionsOpen}
-            data-testid="ide-panel-actions"
-            onClick={() => setPanelActionsOpen((value) => !value)}
-            disabled={busy && !payload}
           >
-            <span className="i-ph:dots-three-vertical-bold" aria-hidden />
-          </button>
-          {panelActionsOpen ? (
-            <div
-              className="bolt-project-panel-actions-menu absolute right-0 top-[calc(100%+6px)] z-20 w-[192px] max-w-[calc(100vw-1.5rem)] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-1 text-[12px] text-bolt-elements-textPrimary shadow-lg"
-              role="menu"
-              aria-label={t('chat.copy.value0PanelActions_4358c33e', { value0: title })}
+            <button
+              type="button"
+              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
+              role="menuitem"
+              onClick={() => {
+                setPanelActionsOpen(false);
+                void loadPanel();
+              }}
+              disabled={busy}
             >
-              <button
-                type="button"
-                className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
-                role="menuitem"
-                onClick={() => {
-                  setPanelActionsOpen(false);
-                  void loadPanel();
-                }}
-                disabled={busy}
-              >
-                <span className="i-ph:arrow-clockwise" aria-hidden />
-                {t('chat.copy.refreshNow_29664b3f')}
-              </button>
-              <div className="flex items-center gap-2 px-2 py-1.5 text-bolt-elements-textTertiary" role="presentation">
-                <span className="i-ph:clock" aria-hidden />
-                {t('chat.copy.autoRefreshEvery_f2835242')}
-                {refreshCadenceLabel}
-              </div>
+              <span className="i-ph:arrow-clockwise" aria-hidden />
+              {t('chat.copy.refreshNow_29664b3f')}
+            </button>
+            <div className="flex items-center gap-2 px-2 py-1.5 text-bolt-elements-textTertiary" role="presentation">
+              <span className="i-ph:clock" aria-hidden />
+              {t('chat.copy.autoRefreshEvery_f2835242')}
+              {refreshCadenceLabel}
             </div>
-          ) : null}
-        </div>
-      </div>
+          </div>
+        ) : null}
+      </IdePanelHeader>
       {/*
        * pb-20: the service panel and the bottom terminal are flex siblings. When a
        * tall panel (e.g. Settings) is open in a short viewport, its scroller is
@@ -11326,8 +11337,9 @@ function ProjectProblemsPanel() {
       return;
     }
 
+    // UNIF-06 : le titre vient d'IdePanelHeader et est un h2 (plus un h3 maison).
     const target =
-      panel.querySelector<HTMLElement>('.bolt-project-problem-open') ?? panel.querySelector<HTMLElement>('h3');
+      panel.querySelector<HTMLElement>('.bolt-project-problem-open') ?? panel.querySelector<HTMLElement>('h2');
     target?.focus({ preventScroll: true });
   }, []);
 
@@ -11344,11 +11356,13 @@ function ProjectProblemsPanel() {
       aria-label={t('chat.copy.problems_8e6b86dc')}
       aria-live="polite"
     >
-      <header className="bolt-project-problems-header">
-        <div>
-          <h3 tabIndex={-1}>{t('chat.copy.problems_8e6b86dc')}</h3>
-          <p>{t('baseChatAst.counts.problemsSummary', { errors, warnings })}</p>
-        </div>
+      {/*
+       * UNIF-06 (audit H1) : Problems adoptait une tête maison (h3 + résumé)
+       * différente de l'en-tête commun des panneaux. Il passe sur le même
+       * IdePanelHeader (icône + titre + slot droite) ; les compteurs restent le
+       * slot d'actions, le résumé textuel doublonnait les puces et disparaît.
+       */}
+      <IdePanelHeader icon={panelIcon('problems')} title={t('chat.copy.problems_8e6b86dc')} titleTabIndex={-1}>
         <div
           className="bolt-project-problems-counts"
           aria-label={t('baseChatAst.diagnostics.summary', {
@@ -11379,7 +11393,7 @@ function ProjectProblemsPanel() {
             </span>
           </span>
         </div>
-      </header>
+      </IdePanelHeader>
       {diagnostics.length === 0 ? (
         <div className="bolt-project-problems-empty">
           <span className="i-ph:check-circle" aria-hidden />
@@ -12494,15 +12508,15 @@ function IdeTabBar({
       'overview',
       panelTitle('overview', t),
       t(IDE_TOOL_DESCRIPTIONS.overview),
-      'i-ph:gauge',
+      panelIcon('overview'),
       'var(--vc-ide-accent-action)',
       t('baseChatAst.common.workspace'),
     ],
     [
       'editor',
-      t('baseChatAst.common.code'),
+      panelTitle('editor', t),
       t(IDE_TOOL_DESCRIPTIONS.editor),
-      'i-ph:code',
+      panelIcon('editor'),
       'var(--vc-ide-accent-action)',
       t('baseChatAst.common.workspace'),
     ],
@@ -12510,7 +12524,7 @@ function IdeTabBar({
       'files',
       panelTitle('files', t),
       t(IDE_TOOL_DESCRIPTIONS.files),
-      'i-ph:files',
+      panelIcon('files'),
       'var(--vc-ide-accent-warning)',
       t('baseChatAst.common.workspace'),
     ],
@@ -12518,7 +12532,7 @@ function IdeTabBar({
       'search',
       panelTitle('search', t),
       t(IDE_TOOL_DESCRIPTIONS.search),
-      'i-ph:magnifying-glass',
+      panelIcon('search'),
       'var(--vc-ide-accent-action)',
       t('baseChatAst.common.workspace'),
     ],
@@ -12526,7 +12540,7 @@ function IdeTabBar({
       'locks',
       panelTitle('locks', t),
       t(IDE_TOOL_DESCRIPTIONS.locks),
-      'i-ph:lock',
+      panelIcon('locks'),
       'var(--vc-ide-accent-warning)',
       t('baseChatAst.common.workspace'),
     ],
@@ -12534,7 +12548,7 @@ function IdeTabBar({
       'terminal',
       SHELL_TERMINAL_LABEL,
       t(IDE_TOOL_DESCRIPTIONS.terminal),
-      'i-ph:terminal-window',
+      panelIcon('terminal'),
       'var(--vc-ide-accent-success)',
       t('baseChatAst.common.runtime'),
     ],
@@ -12542,7 +12556,7 @@ function IdeTabBar({
       'logs',
       panelTitle('logs', t),
       t(IDE_TOOL_DESCRIPTIONS.logs),
-      'i-ph:list-magnifying-glass',
+      panelIcon('logs'),
       'var(--vc-ide-accent-success)',
       t('baseChatAst.common.runtime'),
     ],
@@ -12550,7 +12564,7 @@ function IdeTabBar({
       'preview',
       panelTitle('preview', t),
       t(IDE_TOOL_DESCRIPTIONS.preview),
-      'i-ph:browser',
+      panelIcon('preview'),
       'var(--vc-ide-accent-action)',
       t('baseChatAst.common.runtime'),
     ],
@@ -12558,7 +12572,7 @@ function IdeTabBar({
       'database',
       panelTitle('database', t),
       t(IDE_TOOL_DESCRIPTIONS.database),
-      'i-ph:database',
+      panelIcon('database'),
       'var(--vc-ide-accent-action)',
       t('baseChatAst.common.data'),
     ],
@@ -12566,7 +12580,7 @@ function IdeTabBar({
       'object-storage',
       panelTitle('object-storage', t),
       t(IDE_TOOL_DESCRIPTIONS['object-storage']),
-      'i-ph:package',
+      panelIcon('object-storage'),
       'var(--vc-ide-accent-warning)',
       t('baseChatAst.common.data'),
     ],
@@ -12574,7 +12588,7 @@ function IdeTabBar({
       'env',
       panelTitle('env', t),
       t(IDE_TOOL_DESCRIPTIONS.env),
-      'i-ph:brackets-curly',
+      panelIcon('env'),
       'var(--vc-ide-accent-warning)',
       t('baseChatAst.common.configuration'),
     ],
@@ -12582,7 +12596,7 @@ function IdeTabBar({
       'secrets',
       panelTitle('secrets', t),
       t(IDE_TOOL_DESCRIPTIONS.secrets),
-      'i-ph:lock',
+      panelIcon('secrets'),
       'var(--vc-ide-accent-warning)',
       t('baseChatAst.common.configuration'),
     ],
@@ -12590,7 +12604,7 @@ function IdeTabBar({
       'git',
       panelTitle('git', t),
       t(IDE_TOOL_DESCRIPTIONS.git),
-      'i-ph:git-branch',
+      panelIcon('git'),
       'var(--vc-ide-accent-success)',
       t('baseChatAst.common.project'),
     ],
@@ -12598,7 +12612,7 @@ function IdeTabBar({
       'packages',
       panelTitle('packages', t),
       t(IDE_TOOL_DESCRIPTIONS.packages),
-      'i-ph:cube',
+      panelIcon('packages'),
       'var(--vc-ide-accent-warning)',
       t('baseChatAst.common.project'),
     ],
@@ -12606,7 +12620,7 @@ function IdeTabBar({
       'skills',
       panelTitle('skills', t),
       t(IDE_TOOL_DESCRIPTIONS.skills),
-      'i-ph:sparkle',
+      panelIcon('skills'),
       'var(--vc-ide-accent-action)',
       t('baseChatAst.common.project'),
     ],
@@ -12614,7 +12628,7 @@ function IdeTabBar({
       'integrations',
       panelTitle('integrations', t),
       t(IDE_TOOL_DESCRIPTIONS.integrations),
-      'i-ph:plugs-connected',
+      panelIcon('integrations'),
       'var(--vc-ide-accent-success)',
       t('baseChatAst.common.project'),
     ],
@@ -12622,7 +12636,7 @@ function IdeTabBar({
       'workflows',
       panelTitle('workflows', t),
       t(IDE_TOOL_DESCRIPTIONS.workflows),
-      'i-ph:git-branch',
+      panelIcon('workflows'),
       'var(--vc-ide-accent-success)',
       t('baseChatAst.common.project'),
     ],
@@ -12630,7 +12644,7 @@ function IdeTabBar({
       'debugger',
       panelTitle('debugger', t),
       t(IDE_TOOL_DESCRIPTIONS.debugger),
-      'i-ph:bug',
+      panelIcon('debugger'),
       'var(--vc-ide-accent-action)',
       t('baseChatAst.common.project'),
     ],
@@ -12638,7 +12652,7 @@ function IdeTabBar({
       'deployments',
       panelTitle('deployments', t),
       t(IDE_TOOL_DESCRIPTIONS.deployments),
-      'i-ph:rocket-launch',
+      panelIcon('deployments'),
       'var(--vc-ide-accent-action)',
       t('baseChatAst.common.delivery'),
     ],
@@ -12646,7 +12660,7 @@ function IdeTabBar({
       'security',
       panelTitle('security', t),
       t(IDE_TOOL_DESCRIPTIONS.security),
-      'i-ph:shield-check',
+      panelIcon('security'),
       'var(--vc-ide-accent-error)',
       t('baseChatAst.common.security'),
     ],
@@ -12654,7 +12668,7 @@ function IdeTabBar({
       'monitoring',
       panelTitle('monitoring', t),
       t(IDE_TOOL_DESCRIPTIONS.monitoring),
-      'i-ph:chart-line',
+      panelIcon('monitoring'),
       'var(--vc-ide-accent-action)',
       t('baseChatAst.common.delivery'),
     ],
@@ -12662,7 +12676,7 @@ function IdeTabBar({
       'ports',
       panelTitle('ports', t),
       t(IDE_TOOL_DESCRIPTIONS.ports),
-      'i-ph:plugs',
+      panelIcon('ports'),
       'var(--vc-ide-accent-success)',
       t('baseChatAst.common.runtime'),
     ],
@@ -12670,7 +12684,7 @@ function IdeTabBar({
       'extensions',
       panelTitle('extensions', t),
       t(IDE_TOOL_DESCRIPTIONS.extensions),
-      'i-ph:puzzle-piece',
+      panelIcon('extensions'),
       'var(--vc-ide-text-secondary)',
       t('baseChatAst.common.project'),
     ],
@@ -12678,7 +12692,7 @@ function IdeTabBar({
       'snapshots',
       panelTitle('snapshots', t),
       t(IDE_TOOL_DESCRIPTIONS.snapshots),
-      'i-ph:stack',
+      panelIcon('snapshots'),
       'var(--vc-ide-accent-action)',
       t('baseChatAst.common.project'),
     ],
@@ -12686,7 +12700,7 @@ function IdeTabBar({
       'activity',
       panelTitle('activity', t),
       t(IDE_TOOL_DESCRIPTIONS.activity),
-      'i-ph:activity',
+      panelIcon('activity'),
       'var(--vc-ide-accent-action)',
       t('baseChatAst.common.team'),
     ],
@@ -12694,7 +12708,7 @@ function IdeTabBar({
       'collaborators',
       panelTitle('collaborators', t),
       t(IDE_TOOL_DESCRIPTIONS.collaborators),
-      'i-ph:users',
+      panelIcon('collaborators'),
       'var(--vc-ide-text-secondary)',
       t('baseChatAst.common.team'),
     ],
@@ -12702,7 +12716,7 @@ function IdeTabBar({
       'settings',
       panelTitle('settings', t),
       t(IDE_TOOL_DESCRIPTIONS.settings),
-      'i-ph:gear',
+      panelIcon('settings'),
       'var(--vc-ide-text-secondary)',
       t('baseChatAst.common.configuration'),
     ],
@@ -13141,15 +13155,16 @@ function ProjectWelcomeState({
 }) {
   const { t } = useTranslation();
 
+  // UNIF-05 : icônes des raccourcis d'accueil tirées du registre unique.
   const shortcuts: Array<[string, string, string, IdeWorkspacePanel | IdeRightPanel]> = [
-    ['i-ph:files', t('baseChatAst.tool.openFiles'), formatKeybindingCombo('cmd+p'), 'files'],
+    [panelIcon('files'), t('baseChatAst.tool.openFiles'), formatKeybindingCombo('cmd+p'), 'files'],
     [
-      'i-ph:terminal-window',
+      panelIcon('terminal'),
       t('baseChatAst.tool.openTerminal', { terminal: SHELL_TERMINAL_LABEL }),
       formatKeybindingCombo('cmd+`'),
       'terminal',
     ],
-    ['i-ph:browser', t('baseChatAst.tool.viewPreview'), formatKeybindingCombo('cmd+enter'), 'preview'],
+    [panelIcon('preview'), t('baseChatAst.tool.viewPreview'), formatKeybindingCombo('cmd+enter'), 'preview'],
     ['i-ph:command', t('baseChatAst.tool.allCommands'), formatKeybindingCombo('cmd+k'), 'settings'],
   ];
 
@@ -23153,51 +23168,11 @@ function panelTitle(panel: string, t?: TFunction) {
   return ECODE_MOBILE_TAB_META_BASE[panel]?.name ?? panel;
 }
 
-function panelIcon(panel: string) {
-  const icons: Record<string, string> = {
-    studio: 'i-ph:robot',
-    editor: 'i-ph:code',
-    preview: 'i-ph:browser',
-    webview: 'i-ph:browser',
-    console: 'i-ph:terminal-window',
-    network: 'i-ph:activity',
-    database: 'i-ph:database',
-    'object-storage': 'i-ph:package',
-    packages: 'i-ph:cube',
-
-    /*
-     * UNIF-IDE lot 1 : `skills` et `ports` manquaient ici alors que le rail et
-     * la palette « + » les dessinent — l'onglet desktop retombait sur l'icône
-     * générique `i-ph:squares-four`. Mêmes glyphes que le rail (sparkle/plugs).
-     */
-    skills: 'i-ph:sparkle',
-    ports: 'i-ph:plugs',
-    monitoring: 'i-ph:chart-line',
-    extensions: 'i-ph:puzzle-piece',
-    integrations: 'i-ph:plugs-connected',
-    workflows: 'i-ph:git-branch',
-    debugger: 'i-ph:bug',
-    files: 'i-ph:files',
-    search: 'i-ph:magnifying-glass',
-    locks: 'i-ph:lock',
-    overview: 'i-ph:gauge',
-    problems: 'i-ph:warning-circle',
-    deployments: 'i-ph:rocket-launch',
-    security: 'i-ph:shield-check',
-    env: 'i-ph:brackets-curly',
-    secrets: 'i-ph:lock',
-    git: 'i-ph:git-branch',
-    activity: 'i-ph:activity',
-    terminal: 'i-ph:terminal-window',
-    logs: 'i-ph:list-magnifying-glass',
-    collaborators: 'i-ph:users',
-    domains: 'i-ph:globe',
-    snapshots: 'i-ph:stack',
-    settings: 'i-ph:gear',
-  };
-
-  return icons[panel] ?? 'i-ph:squares-four';
-}
+/*
+ * UNIF-05 : `panelIcon` ne vit plus ici — le registre unique est
+ * `~/components/project-ide/panel-meta` (PANEL_ICONS), consommé par les
+ * onglets, le rail, la palette « + » et les tuiles mobile.
+ */
 
 function ScrollToBottom() {
   const { t } = useTranslation();
