@@ -15,7 +15,7 @@ type LocalizedText = Readonly<Record<BilingualLanguage, string>>;
 
 export type SolutionAppVisual = Readonly<{
   id: string;
-  name: string;
+  name: LocalizedText;
   thumbnailSrc: string;
   previewHref: string;
   alt: LocalizedText;
@@ -29,9 +29,14 @@ export type SolutionAppShowcase = Readonly<{
   related: SolutionAppVisual;
 }>;
 
+/*
+ * Le nom d'une app de démo est le plus souvent un nom propre identique dans les
+ * deux langues : on l'accepte alors en chaîne simple. Quand il contient un terme
+ * que le glossaire français proscrit (« Docs »), on passe la forme bilingue.
+ */
 function galleryApp(
   id: string,
-  name: string,
+  name: string | LocalizedText,
   content: Readonly<{
     alt: LocalizedText;
     description: LocalizedText;
@@ -40,7 +45,7 @@ function galleryApp(
 ): SolutionAppVisual {
   return {
     id,
-    name,
+    name: typeof name === 'string' ? { en: name, fr: name } : name,
     thumbnailSrc: `/gallery-apps/${id}/thumbnail.png`,
     previewHref: `/gallery-apps/${id}/preview/`,
     ...content,
@@ -55,9 +60,9 @@ const APPS = {
     },
     description: {
       en: 'A responsive service website with an editorial identity and a clear booking journey.',
-      fr: 'Un site de services responsive avec une identité éditoriale et un parcours de réservation clair.',
+      fr: 'Un site de services adaptatif avec une identité éditoriale et un parcours de réservation clair.',
     },
-    capability: { en: 'Responsive website', fr: 'Site responsive' },
+    capability: { en: 'Responsive website', fr: 'Site adaptatif' },
   }),
   storefront: galleryApp('storefront', 'Meridian Supply Co.', {
     alt: {
@@ -99,7 +104,7 @@ const APPS = {
     },
     description: {
       en: 'A certified analytics app with filters, computed KPIs, cohort drill-down, and customer detail.',
-      fr: 'Une app analytique certifiée avec filtres, KPI calculés, détail par cohorte et fiche client.',
+      fr: 'Une application analytique certifiée avec filtres, KPI calculés, détail par cohorte et fiche client.',
     },
     capability: { en: 'Interactive analytics', fr: 'Analyse interactive' },
   }),
@@ -114,17 +119,21 @@ const APPS = {
     },
     capability: { en: 'Operations dashboard', fr: 'Tableau de bord opérations' },
   }),
-  docsCopilot: galleryApp('docs-copilot', 'Docs Copilot', {
-    alt: {
-      en: 'Docs Copilot support workspace with a documentation question, grounded answer, source citations, and knowledge collections.',
-      fr: 'Espace de support Docs Copilot avec question documentaire, réponse sourcée, citations et collections de connaissances.',
+  docsCopilot: galleryApp(
+    'docs-copilot',
+    { en: 'Docs Copilot', fr: 'Copilote Documentaire' },
+    {
+      alt: {
+        en: 'Docs Copilot support workspace with a documentation question, grounded answer, source citations, and knowledge collections.',
+        fr: 'Espace de support Copilote Documentaire avec question documentaire, réponse sourcée, citations et collections de connaissances.',
+      },
+      description: {
+        en: 'A working documentation-grounded assistant with free-form questions, ranked retrieval, citations, and source controls.',
+        fr: 'Un assistant documentaire fonctionnel avec questions libres, recherche classée, citations et contrôle des sources.',
+      },
+      capability: { en: 'Grounded support assistant', fr: 'Assistant de support sourcé' },
     },
-    description: {
-      en: 'A working documentation-grounded assistant with free-form questions, ranked retrieval, citations, and source controls.',
-      fr: 'Un assistant documentaire fonctionnel avec questions libres, recherche classée, citations et contrôle des sources.',
-    },
-    capability: { en: 'Grounded support assistant', fr: 'Assistant de support sourcé' },
-  }),
+  ),
   aiAgent: galleryApp('ai-agent', 'Launchline', {
     alt: {
       en: 'Launchline AI task workspace showing launch readiness, critical tasks, owners, and completion states.',
@@ -134,7 +143,7 @@ const APPS = {
       en: 'A focused AI-assisted workspace that turns a complex launch into clear, actionable steps.',
       fr: 'Un espace assisté par IA qui transforme un lancement complexe en étapes claires et actionnables.',
     },
-    capability: { en: 'AI-assisted workflow', fr: 'Workflow assisté par IA' },
+    capability: { en: 'AI-assisted workflow', fr: 'Flux de travail assisté par IA' },
   }),
   incident: galleryApp('incident-postmortem-explainer', 'Incident Postmortem Explainer', {
     alt: {
@@ -143,20 +152,20 @@ const APPS = {
     },
     description: {
       en: 'A certified internal knowledge app that turns operational evidence into an interactive incident narrative.',
-      fr: 'Une app de connaissance interne certifiée qui transforme les preuves opérationnelles en récit d’incident interactif.',
+      fr: 'Une application de connaissance interne certifiée qui transforme les preuves opérationnelles en récit d’incident interactif.',
     },
     capability: { en: 'Knowledge assistant', fr: 'Assistant de connaissance' },
   }),
   vendorRisk: galleryApp('vendor-risk-review', 'Vendor Risk Review', {
     alt: {
       en: 'Vendor Risk Review sign-in and role-aware workflow for scoring and approving third-party vendors.',
-      fr: 'Connexion Vendor Risk Review et workflow par rôle pour noter et approuver les fournisseurs tiers.',
+      fr: 'Connexion Vendor Risk Review et flux de travail par rôle pour noter et approuver les fournisseurs tiers.',
     },
     description: {
       en: 'A certified full-stack workflow with authentication, approvals, weighted risk scoring, and an audit trail.',
-      fr: 'Un workflow full-stack certifié avec authentification, approbations, score de risque pondéré et journal d’audit.',
+      fr: 'Un flux de travail complet certifié avec authentification, approbations, score de risque pondéré et journal d’audit.',
     },
-    capability: { en: 'Governed workflow', fr: 'Workflow gouverné' },
+    capability: { en: 'Governed workflow', fr: 'Flux de travail gouverné' },
   }),
   qbr: galleryApp('qbr-generator', 'QBR Generator', {
     alt: {
@@ -165,7 +174,7 @@ const APPS = {
     },
     description: {
       en: 'A certified executive reporting app with a live backend, slide deck, and shared data appendix.',
-      fr: 'Une app de reporting exécutif certifiée avec backend réel, présentation et annexe de données partagée.',
+      fr: 'Une application de reporting exécutif certifiée avec service côté serveur réel, présentation et annexe de données partagée.',
     },
     capability: { en: 'Executive reporting', fr: 'Reporting exécutif' },
   }),
@@ -187,9 +196,9 @@ const APPS = {
     },
     description: {
       en: 'A certified sales application with movable opportunities, live totals, search, and forecasting.',
-      fr: 'Une app commerciale certifiée avec opportunités déplaçables, totaux en direct, recherche et prévisions.',
+      fr: 'Une application commerciale certifiée avec opportunités déplaçables, totaux en direct, recherche et prévisions.',
     },
-    capability: { en: 'Sales workflow', fr: 'Workflow commercial' },
+    capability: { en: 'Sales workflow', fr: 'Flux de travail commercial' },
   }),
   fieldService: galleryApp('field-service-inspector', 'Field Service Inspector', {
     alt: {
@@ -198,9 +207,9 @@ const APPS = {
     },
     description: {
       en: 'A certified offline-first field app with inspection state, notes, photos, and explicit synchronisation.',
-      fr: 'Une app terrain certifiée hors ligne avec contrôles, notes, photos et synchronisation explicite.',
+      fr: 'Une application terrain certifiée hors ligne avec contrôles, notes, photos et synchronisation explicite.',
     },
-    capability: { en: 'Offline-first field app', fr: 'App terrain hors ligne' },
+    capability: { en: 'Offline-first field app', fr: 'Application terrain hors ligne' },
   }),
 } as const;
 
