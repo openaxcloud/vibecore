@@ -7122,20 +7122,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
              */}
             {progressAnnotations && (
               <div className="sticky top-0 z-10 -mt-6 -mx-2 sm:-mx-6">
+                {/*
+                 * BUG-UX-AGENT-DONE-FALSE : le % vient du ratio d'actions de
+                 * fichiers — il peut valoir 100 sur un projet cassé. `degraded`
+                 * injecte la santé réelle : erreurs dans Problèmes, orchestration
+                 * partielle / accord faible / rôles incomplets, ou carte
+                 * « Erreur d'aperçu » encore active. La ligne affiche alors
+                 * « Terminé avec des erreurs », jamais une coche verte.
+                 */}
                 <ProgressCompilation
                   data={progressAnnotations}
                   streaming={isStreaming}
                   failed={Boolean(llmErrorAlert) || agentRunFailed}
-                  /*
-                   * BUG-UX-AGENT-DONE-FALSE : le % vient du ratio d'actions de
-                   * fichiers — il peut valoir 100 sur un projet cassé. `degraded`
-                   * injecte la santé réelle : erreurs dans Problèmes, orchestration
-                   * partielle / accord faible / rôles incomplets, ou carte
-                   * « Erreur d'aperçu » encore active. La ligne affiche alors
-                   * « Terminé avec des erreurs », jamais une coche verte.
-                   */
                   degraded={
-                    agentRunDegraded || diagnosticErrorCount > 0 || Boolean(actionAlert && actionAlert.source === 'preview')
+                    agentRunDegraded ||
+                    diagnosticErrorCount > 0 ||
+                    Boolean(actionAlert && actionAlert.source === 'preview')
                   }
                 />
               </div>
