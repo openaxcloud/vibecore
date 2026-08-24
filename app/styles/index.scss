@@ -584,10 +584,17 @@ html:has(.vc-app-shell-grid) body {
   --ecode-accent-text-hover: #ffa066;
   --ecode-focus-ring: rgba(255, 122, 43, 0.4);
   --ecode-selection: rgba(242, 98, 7, 0.25);
-  --status-success-text: #4ade80;
-  --status-warning-text: #fbbf24;
-  --status-error-text: #f87171;
-  --status-info-text: #60a5fa;
+  /*
+   * UNIF lot 4 (audit K1) — UNE seule famille de statuts. Les tokens
+   * `--status-*` ne portent plus de valeurs propres : ce sont des ALIAS de la
+   * famille canonique `--vc-ide-accent-(success|warning|error)` (info → accent
+   * action). Le rouge d'erreur / l'orange d'alerte ont ainsi la même valeur
+   * partout, clair comme sombre.
+   */
+  --status-success-text: var(--vc-ide-accent-success);
+  --status-warning-text: var(--vc-ide-accent-warning);
+  --status-error-text: var(--vc-ide-accent-error);
+  --status-info-text: var(--vc-ide-accent-action);
 
   /* Tinted status backgrounds (badges, alert banners) derived from the text tokens. */
   --status-success-bg: color-mix(in srgb, var(--status-success-text) 14%, transparent);
@@ -901,10 +908,11 @@ html:has(.vc-app-shell-grid) body {
   --ecode-accent-text-hover: #a33c00;
   --ecode-focus-ring: rgba(242, 98, 7, 0.35);
   --ecode-selection: rgba(242, 98, 7, 0.25);
-  --status-success-text: #178a4c;
-  --status-warning-text: #b45309;
-  --status-error-text: #dc2626;
-  --status-info-text: #2563eb;
+  /* UNIF lot 4 (audit K1) — alias de la famille canonique `--vc-ide-accent-*` (cf. bloc sombre). */
+  --status-success-text: var(--vc-ide-accent-success);
+  --status-warning-text: var(--vc-ide-accent-warning);
+  --status-error-text: var(--vc-ide-accent-error);
+  --status-info-text: var(--vc-ide-accent-action);
 
   /* Tinted status backgrounds (badges, alert banners) — lighter on light theme. */
   --status-success-bg: color-mix(in srgb, var(--status-success-text) 10%, transparent);
@@ -12341,24 +12349,17 @@ body :where(.lucide, svg[data-lucide]) {
   line-height: 1.5;
 }
 
-.bolt-project-activity-hero button,
+/*
+ * UNIF lot 4 — le bouton du héros Activity est devenu un `PanelButton`
+ * (project-ide/PanelPrimitives) : plus de style SCSS sur `button` nu ici,
+ * sinon le sélecteur élément écraserait les classes utilitaires du composant.
+ */
 .bolt-project-activity-filters input,
 .bolt-project-activity-filters select {
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 7px;
   background: var(--vc-ide-bg-card);
   color: var(--vc-ide-text-primary);
-}
-
-.bolt-project-activity-hero button {
-  display: inline-flex;
-  min-height: 34px;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 7px;
-  padding: 0 12px;
-  font-size: 12px;
-  font-weight: 700;
 }
 
 .bolt-project-activity-metrics {
@@ -12426,8 +12427,7 @@ body :where(.lucide, svg[data-lucide]) {
 
 .bolt-project-activity-filters input:focus,
 .bolt-project-activity-filters select:focus,
-.bolt-project-activity-event-main:focus-visible,
-.bolt-project-activity-hero button:focus-visible {
+.bolt-project-activity-event-main:focus-visible {
   border-color: var(--vc-ide-accent-action);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--vc-ide-accent-action) 25%, transparent);
 }

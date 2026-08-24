@@ -53,11 +53,57 @@ describe('<PanelButton />', () => {
     expect(button.className).not.toContain('button-primary-background');
   });
 
-  it('renders the primary variant by default', () => {
+  it('renders THE primary IDE style by default (accent action plein, décision UNIF lot 4)', () => {
     render(<PanelButton>Create</PanelButton>);
-    expect(screen.getByRole('button', { name: 'Create' }).className).toContain(
-      'bg-bolt-elements-button-primary-background',
+
+    const className = screen.getByRole('button', { name: 'Create' }).className;
+
+    // Style tranché : plein --vc-ide-accent-action + texte blanc (= CTA EmptyState).
+    expect(className).toContain('bg-[var(--vc-ide-accent-action)]');
+    expect(className).toContain('text-white');
+
+    // L'ancien style teinté n'est plus émis par les primitives de panneau.
+    expect(className).not.toContain('button-primary-background');
+  });
+
+  it('expose une taille sm (28 px / 12 px) pour toolbars et bannières', () => {
+    render(
+      <PanelButton type="button" size="sm">
+        Retry
+      </PanelButton>,
     );
+
+    const className = screen.getByRole('button', { name: 'Retry' }).className;
+    expect(className).toContain('h-7');
+    expect(className).toContain('text-xs');
+  });
+
+  it('expose une variante danger (bordure + texte accent erreur)', () => {
+    render(
+      <PanelButton type="button" variant="danger" size="sm">
+        Delete bucket
+      </PanelButton>,
+    );
+
+    const className = screen.getByRole('button', { name: 'Delete bucket' }).className;
+    expect(className).toContain('border-[var(--vc-ide-accent-error)]/50');
+    expect(className).toContain('text-[var(--vc-ide-accent-error)]');
+  });
+
+  it('expose une variante menu (item ⋮ pleine largeur, aligné à gauche)', () => {
+    render(
+      <PanelButton type="button" variant="menu" role="menuitem">
+        Refresh now
+      </PanelButton>,
+    );
+
+    const className = screen.getByRole('menuitem', { name: 'Refresh now' }).className;
+    expect(className).toContain('w-full');
+    expect(className).toContain('text-left');
+
+    // Un item de menu n'a pas le gabarit CTA (pas de hauteur figée h-9/h-7).
+    expect(className).not.toContain('h-9');
+    expect(className).not.toContain('h-7');
   });
 });
 
@@ -94,6 +140,15 @@ describe('<PanelInput />', () => {
     expect(input.className).toContain('h-9');
     expect(input.className).toContain('border-bolt-elements-borderColor');
     expect(input.className).toContain('custom-marker');
+  });
+
+  it('expose une taille sm (28 px / 12 px) pour filtres et toolbars', () => {
+    render(<PanelInput aria-label="Filter objects" size="sm" />);
+
+    const input = screen.getByLabelText('Filter objects');
+    expect(input.className).toContain('h-7');
+    expect(input.className).toContain('text-xs');
+    expect(input.className).not.toContain('h-9');
   });
 });
 

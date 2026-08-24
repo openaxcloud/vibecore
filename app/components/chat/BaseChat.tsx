@@ -100,6 +100,7 @@ import {
   PanelInput,
   PanelSectionTitle,
 } from '~/components/project-ide/PanelPrimitives';
+import { Badge } from '~/components/ui/Badge';
 import { ProjectEditorToolbar } from '~/components/project-ide/ProjectEditorToolbar';
 import { ProjectOverviewPanel } from '~/components/project-ide/ProjectOverviewPanel';
 import {
@@ -10852,9 +10853,9 @@ function ProjectIdeApiServicePanel({
             role="menu"
             aria-label={t('chat.copy.value0PanelActions_4358c33e', { value0: title })}
           >
-            <button
+            <PanelButton
               type="button"
-              className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
+              variant="menu"
               role="menuitem"
               onClick={() => {
                 setPanelActionsOpen(false);
@@ -10864,7 +10865,7 @@ function ProjectIdeApiServicePanel({
             >
               <span className="i-ph:arrow-clockwise" aria-hidden />
               {t('chat.copy.refreshNow_29664b3f')}
-            </button>
+            </PanelButton>
             <div className="flex items-center gap-2 px-2 py-1.5 text-bolt-elements-textTertiary" role="presentation">
               <span className="i-ph:clock" aria-hidden />
               {t('chat.copy.autoRefreshEvery_f2835242')}
@@ -10888,14 +10889,9 @@ function ProjectIdeApiServicePanel({
             role="alert"
           >
             <span className="flex-1">{error}</span>
-            <button
-              type="button"
-              className="rounded border border-[var(--status-error-border)] px-2 py-0.5 text-[11px] hover:bg-[var(--status-error-bg)]"
-              onClick={() => void loadPanel()}
-              disabled={busy}
-            >
+            <PanelButton type="button" variant="danger" size="sm" onClick={() => void loadPanel()} disabled={busy}>
               {t('chat.copy.retry_9f5cd8a2')}
-            </button>
+            </PanelButton>
           </div>
         ) : null}
         {!error && actionNotice ? (
@@ -10917,11 +10913,12 @@ function ProjectIdeApiServicePanel({
               {t('chat.copy.shareLinkCreatedCopiedToClipboard_ff151a13')}
             </span>
             <div className="flex items-center gap-2">
-              <input
+              <PanelInput
                 readOnly
+                size="sm"
                 value={createdShareLink}
                 onFocus={(event) => event.currentTarget.select()}
-                className="min-w-0 flex-1 select-all rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 font-mono text-[12px] text-bolt-elements-textPrimary"
+                className="flex-1 select-all font-mono text-bolt-elements-textPrimary"
                 aria-label={t('chat.copy.shareLinkUrl_4e30a187')}
               />
               <PanelButton
@@ -14128,10 +14125,18 @@ function ProjectActivityPanel({
           <h3>{t('chat.copy.projectActivity_d2b7b50c')}</h3>
           <p>{t('chat.copy.backendActivityCollaborationChangesAndOperational_ad32cb87')}</p>
         </div>
-        <button type="button" onClick={() => void reload?.()} disabled={busy}>
+        {/* UNIF lot 4 — bouton nu stylé SCSS remplacé par le PanelButton partagé. */}
+        <PanelButton
+          type="button"
+          variant="outline"
+          size="sm"
+          className="shrink-0 gap-1.5"
+          onClick={() => void reload?.()}
+          disabled={busy}
+        >
           <span className="i-ph:arrows-clockwise" aria-hidden />
           {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.refreshNow_29664b3f')}
-        </button>
+        </PanelButton>
       </header>
 
       <div className="bolt-project-activity-metrics" aria-label={t('chat.copy.activitySummary_70f4ec76')}>
@@ -16330,14 +16335,9 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
               {status}
             </span>
           ) : null}
-          <button
-            type="button"
-            onClick={() => void enableStorage()}
-            disabled={enabling || busy}
-            className="w-fit rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-2 text-sm font-medium text-white hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
-          >
+          <PanelButton type="button" onClick={() => void enableStorage()} disabled={enabling || busy} className="w-fit">
             {enabling ? t('chat.copy.enabling_5c258f09') : t('chat.copy.enableObjectStorage_3c4cc0c4')}
-          </button>
+          </PanelButton>
         </div>
       </div>
     );
@@ -16463,14 +16463,16 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
               <p className="text-xs text-bolt-elements-textSecondary">
                 {t('chat.copy.aSingleGcsBucketIsProvisioned_0d81fecc')}
               </p>
-              <button
+              <PanelButton
                 type="button"
-                className="w-fit rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60"
+                variant="outline"
+                size="sm"
+                className="w-fit"
                 onClick={() => void runOperation({ intent: 'ensure-bucket' }, t('baseChatAst.storage.bucketReady'))}
                 disabled={busy || working}
               >
                 {t('chat.copy.ensureBucketExists_5c9d55b8')}
-              </button>
+              </PanelButton>
             </section>
             <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
               <PanelSectionTitle level="group">{t('chat.copy.sharing_78779bad')}</PanelSectionTitle>
@@ -16483,14 +16485,16 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
               <p className="text-xs text-bolt-elements-textTertiary">
                 {t('chat.copy.permanentlyDeletesTheProjectBucketAnd_850cc916')}
               </p>
-              <button
+              <PanelButton
                 type="button"
-                className="w-fit rounded-md border border-[var(--status-error-border)] px-3 py-1.5 text-xs font-medium text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)] disabled:opacity-60"
+                variant="danger"
+                size="sm"
+                className="w-fit"
                 disabled={busy || working}
                 onClick={() => setConfirmDeleteBucket(true)}
               >
                 {t('chat.copy.deleteBucket_0d2c8e99')}
-              </button>
+              </PanelButton>
             </section>
             {status ? (
               <p className="text-xs text-bolt-elements-textSecondary" role="status">
@@ -16561,26 +16565,29 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
               </div>
             ) : null}
 
-            <input
+            <PanelInput
+              size="sm"
               value={filter}
               onChange={(event) => setFilter(event.target.value)}
               placeholder={t('chat.copy.searchThisFolder_3bbb9af2')}
               autoCapitalize="none"
               spellCheck={false}
               aria-label={t('chat.copy.searchObjects_e9aa6bcc')}
-              className="w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+              className="w-full text-bolt-elements-textPrimary"
             />
 
             {visibleFolders.length ? (
               <div className="flex flex-wrap gap-2">
                 {visibleFolders.map((folder) => (
                   <span key={folder} className="inline-flex items-center gap-1">
+                    {/* UNIF lot 4 — plus d'emoji brut : icône Phosphor, même gabarit que les badges. */}
                     <button
                       type="button"
                       onClick={() => setPrefix(folder)}
                       className="inline-flex items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
                     >
-                      📁 {folder.replace(prefix, '').replace(/\/$/, '')}
+                      <span className="i-ph:folder" aria-hidden />
+                      {folder.replace(prefix, '').replace(/\/$/, '')}
                     </button>
                     <button
                       type="button"
@@ -17187,11 +17194,12 @@ function SkillProvenanceBadges({ skill }: { skill: InstalledSkill }) {
   const { t } = useTranslation();
   const verdict = skill.revokedAt ? 'revoked' : (skill.auditVerdict ?? null);
 
-  const verdictStyle: Record<string, string> = {
-    approved: 'border-[var(--vc-ide-accent-success,#16a34a)]/50 text-[var(--vc-ide-accent-success,#16a34a)]',
-    quarantined: 'border-[var(--vc-ide-accent-warning,#d97706)]/50 text-[var(--vc-ide-accent-warning,#d97706)]',
-    rejected: 'border-[var(--vc-ide-accent-error)]/50 text-[var(--vc-ide-accent-error)]',
-    revoked: 'border-[var(--vc-ide-accent-error)]/50 text-[var(--vc-ide-accent-error)]',
+  /* UNIF lot 4 (audit point 4) — les tags skills passent par le Badge commun `ui/Badge`. */
+  const verdictVariant: Record<string, 'success' | 'warning' | 'danger'> = {
+    approved: 'success',
+    quarantined: 'warning',
+    rejected: 'danger',
+    revoked: 'danger',
   };
 
   const verdictIcon: Record<string, string> = {
@@ -17204,24 +17212,26 @@ function SkillProvenanceBadges({ skill }: { skill: InstalledSkill }) {
   return (
     <span className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px]">
       {verdict ? (
-        <span
-          className={`inline-flex items-center gap-1 rounded border px-1.5 py-0.5 font-medium capitalize ${
-            verdictStyle[verdict] ?? 'border-bolt-elements-borderColor text-bolt-elements-textSecondary'
-          }`}
+        <Badge
+          size="sm"
+          variant={verdictVariant[verdict] ?? 'secondary'}
+          icon={verdictIcon[verdict] ?? 'i-ph:shield'}
+          className="font-medium capitalize"
           title={t('chat.copy.securityAuditVerdict_291c3bac')}
         >
-          <span className={verdictIcon[verdict] ?? 'i-ph:shield'} />
           {platformStateLabel(t, verdict)}
-        </span>
+        </Badge>
       ) : null}
       {skill.origin ? (
-        <span
-          className="inline-flex items-center gap-1 rounded bg-bolt-elements-background-depth-3 px-1.5 py-0.5 capitalize text-bolt-elements-textTertiary"
+        <Badge
+          size="sm"
+          variant="secondary"
+          icon="i-ph:git-fork"
+          className="capitalize"
           title={t('chat.copy.whereThisSkillCameFrom_1f68b118')}
         >
-          <span className="i-ph:git-fork" />
           {skill.origin}
-        </span>
+        </Badge>
       ) : null}
       {skill.auditFindings && skill.auditFindings.length ? (
         <span className="text-bolt-elements-textTertiary">
