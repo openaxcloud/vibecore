@@ -92,7 +92,7 @@ import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
 import { FloatingPaneFrame } from '~/components/project-ide/FloatingPaneFrame';
-import { PanelButton, PanelEmptyState, PanelInput } from '~/components/project-ide/PanelPrimitives';
+import { PanelButton, PanelEmptyState, PanelInput, PanelSectionTitle } from '~/components/project-ide/PanelPrimitives';
 import { ProjectEditorToolbar } from '~/components/project-ide/ProjectEditorToolbar';
 import { ProjectOverviewPanel } from '~/components/project-ide/ProjectOverviewPanel';
 import {
@@ -10867,13 +10867,13 @@ function ProjectIdeApiServicePanel({
       <div className="min-h-0 flex-1 overflow-auto p-4 pb-20">
         {error ? (
           <div
-            className="mb-4 flex items-start gap-3 rounded-md border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-[var(--status-error-text)]"
+            className="mb-4 flex items-start gap-3 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]"
             role="alert"
           >
             <span className="flex-1">{error}</span>
             <button
               type="button"
-              className="rounded border border-red-500/40 px-2 py-0.5 text-[11px] hover:bg-red-500/20"
+              className="rounded border border-[var(--status-error-border)] px-2 py-0.5 text-[11px] hover:bg-[var(--status-error-bg)]"
               onClick={() => void loadPanel()}
               disabled={busy}
             >
@@ -10907,21 +10907,23 @@ function ProjectIdeApiServicePanel({
                 className="min-w-0 flex-1 select-all rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 font-mono text-[12px] text-bolt-elements-textPrimary"
                 aria-label={t('chat.copy.shareLinkUrl_4e30a187')}
               />
-              <button
+              <PanelButton
                 type="button"
-                className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] hover:bg-bolt-elements-background-depth-3"
+                variant="outline"
+                size="sm"
                 onClick={() => void navigator.clipboard?.writeText(createdShareLink).catch(() => undefined)}
               >
                 {t('chat.copy.copy_af74f7c5')}
-              </button>
-              <button
+              </PanelButton>
+              <PanelButton
                 type="button"
-                className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] hover:bg-bolt-elements-background-depth-3"
+                variant="outline"
+                size="sm"
                 onClick={() => setCreatedShareLink(undefined)}
                 aria-label={t('chat.copy.dismissShareLink_275b18df')}
               >
                 {t('chat.copy.dismiss_70afe9ef')}
-              </button>
+              </PanelButton>
             </div>
           </div>
         ) : null}
@@ -10941,13 +10943,9 @@ function ProjectIdeApiServicePanel({
                 role="status"
               >
                 <span>{t('chat.copy.thisIsTakingLongerThanUsual_04718c01')}</span>
-                <button
-                  type="button"
-                  className="rounded border border-bolt-elements-borderColor px-2 py-1 text-[12px] text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
-                  onClick={() => void loadPanel()}
-                >
+                <PanelButton type="button" variant="outline" size="sm" onClick={() => void loadPanel()}>
                   {t('chat.copy.retry_9f5cd8a2')}
-                </button>
+                </PanelButton>
               </div>
             ) : null}
           </div>
@@ -11381,11 +11379,12 @@ function ProjectProblemsPanel() {
         </div>
       </header>
       {diagnostics.length === 0 ? (
-        <div className="bolt-project-problems-empty">
-          <span className="i-ph:check-circle" aria-hidden />
-          <h4>{t('chat.copy.noProblemsDetected_2b9a1d7d')}</h4>
-          <p>{t('chat.copy.runtimeDiagnosticsPreviewErrorsAndWarnings_0b9c0dad')}</p>
-        </div>
+        <PanelEmptyState
+          icon="i-ph:check-circle"
+          title={t('chat.copy.noProblemsDetected_2b9a1d7d')}
+          description={t('chat.copy.runtimeDiagnosticsPreviewErrorsAndWarnings_0b9c0dad')}
+          className="m-3 flex-1"
+        />
       ) : (
         <ul className="bolt-project-problems-list">
           {diagnostics.map((diagnostic) => {
@@ -12818,11 +12817,12 @@ function IdeTabBar({
             </div>
           ))}
           {!filteredTools.length && (
-            <div className="bolt-project-tool-empty">
-              <span className="i-ph:sparkle" aria-hidden />
-              <strong>{t('chat.copy.noFeaturesFound_295ba03b')}</strong>
-              <small>{t('chat.copy.tryADifferentSearchTerm_0ba628a3')}</small>
-            </div>
+            <PanelEmptyState
+              icon="i-ph:sparkle"
+              title={t('chat.copy.noFeaturesFound_295ba03b')}
+              description={t('chat.copy.tryADifferentSearchTerm_0ba628a3')}
+              className="m-2"
+            />
           )}
         </div>
         <div className="bolt-project-tool-footer">
@@ -13455,7 +13455,7 @@ function ProjectIdePanelContent({
                 </div>
               ))
             ) : (
-              <div className="bolt-project-empty-panel">{t('chat.copy.noActivePresenceYet_5bb4c6e2')}</div>
+              <PanelEmptyState icon="i-ph:users" title={t('chat.copy.noActivePresenceYet_5bb4c6e2')} />
             )}
           </div>
         </section>
@@ -13490,7 +13490,7 @@ function ProjectIdePanelContent({
                 </div>
               ))
             ) : (
-              <div className="bolt-project-empty-panel">{t('chat.copy.noProjectCollaborators_3bcac170')}</div>
+              <PanelEmptyState icon="i-ph:users" title={t('chat.copy.noProjectCollaborators_3bcac170')} />
             )}
           </div>
           <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
@@ -13562,7 +13562,7 @@ function ProjectIdePanelContent({
                 </div>
               ))
             ) : (
-              <div className="bolt-project-empty-panel">{t('chat.copy.noCommentsYet_207b24fc')}</div>
+              <PanelEmptyState icon="i-ph:chat-circle" title={t('chat.copy.noCommentsYet_207b24fc')} />
             )}
           </div>
           <form onSubmit={onSubmit} className="bolt-project-collaboration-form">
@@ -14277,7 +14277,10 @@ function ProjectActivityPanel({
             );
           })
         ) : (
-          <div className="bolt-project-empty-panel">{t('chat.copy.noActivityMatchesTheCurrentFilters_b352e1bf')}</div>
+          <PanelEmptyState
+            icon="i-ph:list-magnifying-glass"
+            title={t('chat.copy.noActivityMatchesTheCurrentFilters_b352e1bf')}
+          />
         )}
       </div>
     </section>
@@ -15191,9 +15194,10 @@ function ProjectSettingsPanel({
                       </form>
                     ))
                   ) : (
-                    <div className="bolt-project-empty-panel">
-                      {t('chat.copy.noActiveSessionsReturnedByApi_93156dfd')}
-                    </div>
+                    <PanelEmptyState
+                      icon="i-ph:monitor"
+                      title={t('chat.copy.noActiveSessionsReturnedByApi_93156dfd')}
+                    />
                   )}
                 </div>
                 <form
@@ -15286,7 +15290,7 @@ function ProjectSettingsPanel({
                     })}
                   </div>
                 ) : (
-                  <div className="bolt-project-empty-panel">{t('chat.copy.noBillingLimitsReturnedByApi_68d00609')}</div>
+                  <PanelEmptyState icon="i-ph:gauge" title={t('chat.copy.noBillingLimitsReturnedByApi_68d00609')} />
                 )}
                 <a href="/billing" target="_blank" rel="noreferrer">
                   {t('chat.copy.openBillingManagement_e4f3b4fc')}
@@ -15709,9 +15713,10 @@ function ProjectSettingsPanel({
                     ))}
                   </div>
                 ) : (
-                  <div className="bolt-project-empty-panel">
-                    {t('chat.copy.noPersistentMemoriesStoredForThis_322165dc')}
-                  </div>
+                  <PanelEmptyState
+                    icon="i-ph:brain"
+                    title={t('chat.copy.noPersistentMemoriesStoredForThis_322165dc')}
+                  />
                 )}
               </section>
             </div>
@@ -16275,14 +16280,11 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   if (enabled === false) {
     return (
       <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
-        <div className="bolt-project-empty-panel grid gap-2 text-sm">
-          <strong className="text-bolt-elements-textPrimary">
-            {t('chat.copy.objectStorageIsNotAvailableYet_0f2325e6')}
-          </strong>
-          <span className="text-bolt-elements-textSecondary">
-            {t('chat.copy.cloudObjectStorageHasnTBeen_714efe71')}
-          </span>
-        </div>
+        <PanelEmptyState
+          icon="i-ph:hard-drives"
+          title={t('chat.copy.objectStorageIsNotAvailableYet_0f2325e6')}
+          description={t('chat.copy.cloudObjectStorageHasnTBeen_714efe71')}
+        />
       </div>
     );
   }
@@ -16436,9 +16438,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         {view === 'settings' ? (
           <div className="grid gap-4 text-sm">
             <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                {t('chat.copy.bucket_40dafe4c')}
-              </h4>
+              <PanelSectionTitle level="group">{t('chat.copy.bucket_40dafe4c')}</PanelSectionTitle>
               <p className="text-xs text-bolt-elements-textSecondary">
                 {t('chat.copy.aSingleGcsBucketIsProvisioned_0d81fecc')}
               </p>
@@ -16452,23 +16452,19 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
               </button>
             </section>
             <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                {t('chat.copy.sharing_78779bad')}
-              </h4>
+              <PanelSectionTitle level="group">{t('chat.copy.sharing_78779bad')}</PanelSectionTitle>
               <p className="text-xs text-bolt-elements-textTertiary">
                 {t('chat.copy.addingOrRemovingThisBucketFrom_63b69b72')}
               </p>
             </section>
-            <section className="grid gap-2 rounded-lg border border-red-500/30 bg-bolt-elements-background-depth-2 p-3">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                {t('chat.copy.deleteBucket_0d2c8e99')}
-              </h4>
+            <section className="grid gap-2 rounded-lg border border-[var(--status-error-border)] bg-bolt-elements-background-depth-2 p-3">
+              <PanelSectionTitle level="group">{t('chat.copy.deleteBucket_0d2c8e99')}</PanelSectionTitle>
               <p className="text-xs text-bolt-elements-textTertiary">
                 {t('chat.copy.permanentlyDeletesTheProjectBucketAnd_850cc916')}
               </p>
               <button
                 type="button"
-                className="w-fit rounded-md border border-red-500/40 px-3 py-1.5 text-xs font-medium text-[var(--status-error-text)] hover:bg-red-500/10 disabled:opacity-60"
+                className="w-fit rounded-md border border-[var(--status-error-border)] px-3 py-1.5 text-xs font-medium text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)] disabled:opacity-60"
                 disabled={busy || working}
                 onClick={() => setConfirmDeleteBucket(true)}
               >
@@ -16624,16 +16620,19 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                   </div>
                 ))}
               </div>
+            ) : loading ? (
+              <div className="bolt-project-empty-panel">{t('chat.copy.loadingObjects_9bcff057')}</div>
             ) : (
-              <div className="bolt-project-empty-panel">
-                {loading
-                  ? t('chat.copy.loadingObjects_9bcff057')
-                  : normalizedFilter
+              <PanelEmptyState
+                icon="i-ph:hard-drives"
+                title={
+                  normalizedFilter
                     ? t('chat.copy.noObjectsMatchYourSearch_15d8d7b9')
                     : prefix
                       ? t('chat.copy.noObjectsUnderThisPrefix_a8bfd956')
-                      : t('chat.copy.theBucketIsEmpty_18809c5d')}
-              </div>
+                      : t('chat.copy.theBucketIsEmpty_18809c5d')
+                }
+              />
             )}
 
             {status ? (
@@ -16906,9 +16905,7 @@ function ProjectSkillsPanel({
       {tab === 'project' ? (
         <section className="mt-3 grid gap-4">
           <div className="grid gap-2">
-            <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-              {t('chat.copy.builtinSkills_e1514b4a')}
-            </h4>
+            <PanelSectionTitle level="group">{t('chat.copy.builtinSkills_e1514b4a')}</PanelSectionTitle>
             <p className="text-xs text-bolt-elements-textSecondary">
               {t('chat.copy.togglesAreStoredPerProjectOver_7e9883ea')}
             </p>
@@ -16944,7 +16941,7 @@ function ProjectSkillsPanel({
                 </div>
               ))
             ) : (
-              <div className="bolt-project-empty-panel">{t('chat.copy.noBuiltinSkillsAreAvailable_22eb212a')}</div>
+              <PanelEmptyState icon="i-ph:sparkle" title={t('chat.copy.noBuiltinSkillsAreAvailable_22eb212a')} />
             )}
           </div>
 
@@ -16972,7 +16969,7 @@ function ProjectSkillsPanel({
       {tab === 'workspace' ? (
         <section className="mt-3 grid gap-4">
           {!hasWorkspace ? (
-            <div className="bolt-project-empty-panel">{t('chat.copy.thisProjectHasNoWorkspaceYet_c3f6040c')}</div>
+            <PanelEmptyState icon="i-ph:sparkle" title={t('chat.copy.thisProjectHasNoWorkspaceYet_c3f6040c')} />
           ) : (
             <InstalledSkillsList
               title={t('chat.copy.installedFromGithubWorkspace_f3607e99')}
@@ -17100,10 +17097,10 @@ function ProjectSkillsPanel({
               );
             })
           ) : (
-            <div className="bolt-project-empty-panel">
-              {t('chat.copy.noCommunitySkillsMatch_7bc0a3ba')}
-              {query}”.
-            </div>
+            <PanelEmptyState
+              icon="i-ph:sparkle"
+              title={t('chat.copy.noCommunitySkillsMatchQuery_4c1d9a2e', { value0: query })}
+            />
           )}
         </section>
       ) : null}
@@ -17258,7 +17255,7 @@ function InstalledSkillsList({
 
   return (
     <div className="grid gap-2">
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">{title}</h4>
+      <PanelSectionTitle level="group">{title}</PanelSectionTitle>
       {skills.length ? (
         skills.map((skill) => {
           const rowKey = `${scope}:${skill.ownerRepo}`;
@@ -17444,7 +17441,7 @@ function InstalledSkillsList({
           );
         })
       ) : (
-        <div className="bolt-project-empty-panel">{emptyLabel}</div>
+        <PanelEmptyState icon="i-ph:sparkle" title={emptyLabel} />
       )}
     </div>
   );
@@ -17639,11 +17636,14 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
               </a>
             ))}
             {!visibleDependencies.length && (
-              <div className="bolt-project-empty-panel">
-                {dependencies.length
-                  ? t('chat.copy.noInstalledPackageMatchesThisFilter_e346163e')
-                  : t('chat.copy.noDependenciesFoundInPackageJson_8f3d26bd')}
-              </div>
+              <PanelEmptyState
+                icon="i-ph:cube"
+                title={
+                  dependencies.length
+                    ? t('chat.copy.noInstalledPackageMatchesThisFilter_e346163e')
+                    : t('chat.copy.noDependenciesFoundInPackageJson_8f3d26bd')
+                }
+              />
             )}
           </div>
         </div>
@@ -17793,7 +17793,7 @@ function ProjectPortsPanel({
             })}
           </div>
         ) : (
-          <div className="bolt-project-empty-panel">{t('chat.copy.noPortsDetectedYetStartYour_3bba07f1')}</div>
+          <PanelEmptyState icon="i-ph:plugs" title={t('chat.copy.noPortsDetectedYetStartYour_3bba07f1')} />
         )}
       </section>
     </div>
@@ -17829,9 +17829,9 @@ const CONSENSUS_OUTCOME_LABEL: Record<string, string> = {
 };
 
 const CONSENSUS_OUTCOME_CLASS: Record<string, string> = {
-  ACCEPTED: 'text-[var(--status-success-text)] border-green-500/40',
-  REJECTED: 'text-[var(--status-error-text)] border-red-500/40',
-  PARTIAL: 'text-amber-500 border-amber-500/40',
+  ACCEPTED: 'text-[var(--status-success-text)] border-[var(--status-success-border)]',
+  REJECTED: 'text-[var(--status-error-text)] border-[var(--status-error-border)]',
+  PARTIAL: 'text-[var(--status-warning-text)] border-[var(--status-warning-border)]',
   ABSTAINED: 'text-bolt-elements-textSecondary border-bolt-elements-borderColor',
 };
 
@@ -17951,12 +17951,12 @@ function ConsensusLaneChips({ label, roles, tone }: { label: string; roles: stri
 const CONSENSUS_DECISION_CLASS: Record<string, string> = {
   accepted: 'text-[var(--status-success-text)]',
   rejected: 'text-[var(--status-error-text)]',
-  inconclusive: 'text-amber-500',
+  inconclusive: 'text-[var(--status-warning-text)]',
 };
 
 const CONSENSUS_SEVERITY_CLASS: Record<string, string> = {
-  high: 'text-[var(--status-error-text)] border-red-500/40',
-  medium: 'text-amber-500 border-amber-500/40',
+  high: 'text-[var(--status-error-text)] border-[var(--status-error-border)]',
+  medium: 'text-[var(--status-warning-text)] border-[var(--status-warning-border)]',
   low: 'text-bolt-elements-textSecondary border-bolt-elements-borderColor',
 };
 
@@ -17970,11 +17970,11 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
   return (
     <>
       <div>
-        <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+        <PanelSectionTitle level="group">
           {t('chat.copy.vote_f3f11c36')}
           {detail.claimVotes.length}{' '}
           {detail.claimVotes.length === 1 ? t('chat.copy.claim_013872e3') : t('chat.copy.claims_d72041bc')}
-        </h4>
+        </PanelSectionTitle>
         {detail.claimVotes.length ? (
           <ul className="mt-1 space-y-2">
             {detail.claimVotes.map((vote, index) => (
@@ -18000,12 +18000,12 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
                   <ConsensusLaneChips
                     label={t('chat.copy.for_f7880600')}
                     roles={vote.supporters}
-                    tone="text-[var(--status-success-text)] border-green-500/40"
+                    tone="text-[var(--status-success-text)] border-[var(--status-success-border)]"
                   />
                   <ConsensusLaneChips
                     label={t('chat.copy.against_2d19e3d7')}
                     roles={vote.dissenters}
-                    tone="text-[var(--status-error-text)] border-red-500/40"
+                    tone="text-[var(--status-error-text)] border-[var(--status-error-border)]"
                   />
                   <ConsensusLaneChips
                     label={t('chat.copy.abstain_bc39d849')}
@@ -18025,10 +18025,10 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
 
       {detail.conflicts.length ? (
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+          <PanelSectionTitle level="group">
             {t('chat.copy.conflicts_19401428')}
             {detail.conflicts.length}
-          </h4>
+          </PanelSectionTitle>
           <ul className="mt-1 space-y-1">
             {detail.conflicts.map((conflict, index) => (
               <li key={`${conflict.type}-${index}`} className="flex flex-wrap items-center gap-2 text-xs">
@@ -18055,9 +18055,7 @@ function ConsensusVoteDetail({ detail }: { detail: ConsensusRecordDetailView }) 
 
       {detail.consolidated && detail.consolidated.summary ? (
         <div>
-          <h4 className="text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-            {t('chat.copy.consolidated_067fc063')}
-          </h4>
+          <PanelSectionTitle level="group">{t('chat.copy.consolidated_067fc063')}</PanelSectionTitle>
           <p className="mt-1 whitespace-pre-wrap text-xs text-bolt-elements-textPrimary">
             {detail.consolidated.summary}
           </p>
@@ -18280,9 +18278,7 @@ function ProjectAgentStudioPanel({
         className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
         aria-label={t('chat.copy.pendingAiChanges_69a074a3')}
       >
-        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
-          {t('chat.copy.pendingAiChanges_69a074a3')}
-        </h3>
+        <PanelSectionTitle className="mb-2">{t('chat.copy.pendingAiChanges_69a074a3')}</PanelSectionTitle>
         {pendingProposals.length ? (
           <AgentPatchReviewQueue proposals={pendingProposals} />
         ) : (
@@ -18300,12 +18296,12 @@ function ProjectAgentStudioPanel({
         className="mt-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
         aria-label={t('chat.copy.multiAgentConsensus_6ab6c619')}
       >
-        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
+        <PanelSectionTitle className="mb-2">
           {t('chat.copy.multiAgentConsensus_6ab6c619')}
           <span className="ml-2 rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
             {consensusRecords.length}
           </span>
-        </h3>
+        </PanelSectionTitle>
         {consensusRecords.length ? (
           <ul className="divide-y divide-bolt-elements-borderColor">
             {consensusRecords.map((record) => {
@@ -18371,12 +18367,12 @@ function ProjectAgentStudioPanel({
         className="mt-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
         aria-label={t('chat.copy.conversationBranches_ab9b421a')}
       >
-        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
+        <PanelSectionTitle className="mb-2">
           {t('chat.copy.conversationBranches_ab9b421a')}
           <span className="ml-2 rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs text-bolt-elements-textSecondary">
             {branchCount}
           </span>
-        </h3>
+        </PanelSectionTitle>
         {branchCount ? (
           <ul className="divide-y divide-bolt-elements-borderColor">
             {tree.flatMap(function flatten(node, depth = 0): React.ReactNode[] {
@@ -18411,9 +18407,7 @@ function ProjectAgentStudioPanel({
         className="mt-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3"
         aria-label={t('chat.copy.agentMemory_bcf5354f')}
       >
-        <h3 className="mb-2 text-sm font-medium text-bolt-elements-textPrimary">
-          {t('chat.copy.agentMemory_bcf5354f')}
-        </h3>
+        <PanelSectionTitle className="mb-2">{t('chat.copy.agentMemory_bcf5354f')}</PanelSectionTitle>
         {memoryError ? (
           <p className="text-sm text-[var(--status-error-text)]">{memoryError}</p>
         ) : !memory ? (
@@ -18929,7 +18923,10 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
             ))}
           </div>
         ) : (
-          <div className="bolt-project-empty-panel">{t('chat.copy.noExtensionsInstalledYetInstallOne_d6597fc4')}</div>
+          <PanelEmptyState
+            icon="i-ph:puzzle-piece"
+            title={t('chat.copy.noExtensionsInstalledYetInstallOne_d6597fc4')}
+          />
         )}
         {legacyInstalled.length ? (
           <p className="bolt-project-extension-legacy-note">
@@ -18981,11 +18978,14 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
             })}
           </div>
         ) : (
-          <div className="bolt-project-empty-panel">
-            {catalog.length
-              ? t('chat.copy.noExtensionsMatchTheCurrentSearch_98b63cc6')
-              : t('chat.copy.theMcpMarketplaceCatalogIsEmpty_be25c277')}
-          </div>
+          <PanelEmptyState
+            icon="i-ph:puzzle-piece"
+            title={
+              catalog.length
+                ? t('chat.copy.noExtensionsMatchTheCurrentSearch_98b63cc6')
+                : t('chat.copy.theMcpMarketplaceCatalogIsEmpty_be25c277')
+            }
+          />
         )}
       </section>
     </div>
@@ -19067,7 +19067,7 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
         {items.length ? (
           items.map((workflow) => <WorkflowItem key={workflow.id} workflow={workflow} />)
         ) : (
-          <div className="bolt-project-empty-panel">{empty}</div>
+          <PanelEmptyState icon="i-ph:git-branch" title={empty} />
         )}
       </section>
     );
@@ -19451,9 +19451,10 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                 </article>
               ))}
               {!tasks.length && (
-                <div className="bolt-project-empty-panel">
-                  {t('chat.copy.noTasksConfiguredForThisWorkflow_e345761c')}
-                </div>
+                <PanelEmptyState
+                  icon="i-ph:list-checks"
+                  title={t('chat.copy.noTasksConfiguredForThisWorkflow_e345761c')}
+                />
               )}
             </div>
 
@@ -19618,9 +19619,7 @@ function AddAuthenticationCard({ projectId }: { projectId?: string }) {
     <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-            {t('chat.copy.addAuthentication_2855841d')}
-          </h3>
+          <PanelSectionTitle>{t('chat.copy.addAuthentication_2855841d')}</PanelSectionTitle>
           <p className="text-xs text-bolt-elements-textSecondary">
             {t('chat.copy.scaffoldRealEmailPasswordAuthInto_9954f11b')}
             <code>users</code>
@@ -20365,11 +20364,14 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
                 </tbody>
               </table>
             ) : (
-              <div className="bolt-project-empty-panel">
-                {query
-                  ? t('chat.copy.noKeyMatchesThisFilter_ec9af2f3')
-                  : t('chat.copy.noEnvironmentVariablesToCompareYet_73d09bd3')}
-              </div>
+              <PanelEmptyState
+                icon="i-ph:brackets-curly"
+                title={
+                  query
+                    ? t('chat.copy.noKeyMatchesThisFilter_ec9af2f3')
+                    : t('chat.copy.noEnvironmentVariablesToCompareYet_73d09bd3')
+                }
+              />
             )}
           </div>
         ) : (
@@ -20412,9 +20414,10 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
                 </div>
               ))
             ) : query ? (
-              <div className="bolt-project-empty-panel">
-                {t('chat.copy.noEnvironmentVariableMatchesThisSearch_71d294b1')}
-              </div>
+              <PanelEmptyState
+                icon="i-ph:brackets-curly"
+                title={t('chat.copy.noEnvironmentVariableMatchesThisSearch_71d294b1')}
+              />
             ) : (
               <EmptyState
                 variant="compact"
@@ -21454,21 +21457,14 @@ function ProjectDebuggerPanel({
           <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
-                <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                  {t('chat.copy.debugSessions_7f873835')}
-                </h3>
+                <PanelSectionTitle>{t('chat.copy.debugSessions_7f873835')}</PanelSectionTitle>
                 <p className="text-xs text-bolt-elements-textSecondary">
                   {t('chat.copy.launchesRunInTheRealWorkspace_307c6320')}
                 </p>
               </div>
-              <button
-                type="button"
-                className="rounded border border-bolt-elements-borderColor px-2 py-1 text-xs text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
-                onClick={() => void reload?.()}
-                disabled={busy}
-              >
+              <PanelButton type="button" variant="outline" size="sm" onClick={() => void reload?.()} disabled={busy}>
                 {t('chat.copy.refreshRuntime_f5c4addc')}
-              </button>
+              </PanelButton>
             </div>
             <div className="grid gap-2">
               {sessions.length ? (
@@ -21531,9 +21527,7 @@ function ProjectDebuggerPanel({
 
           <div className="grid gap-4 lg:grid-cols-2">
             <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                {t('chat.copy.breakpoints_21a8752f')}
-              </h3>
+              <PanelSectionTitle>{t('chat.copy.breakpoints_21a8752f')}</PanelSectionTitle>
               <div className="mt-3 grid gap-2">
                 {breakpoints.length ? (
                   breakpoints.map((breakpoint: any) => (
@@ -21579,9 +21573,7 @@ function ProjectDebuggerPanel({
             </section>
 
             <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                {t('chat.copy.callStackAndVariables_6820d7cf')}
-              </h3>
+              <PanelSectionTitle>{t('chat.copy.callStackAndVariables_6820d7cf')}</PanelSectionTitle>
               {activeSession?.status === 'paused' ? (
                 <div className="mt-3 grid gap-2">
                   <PanelRows rows={activeSession.callStack ?? []} empty={t('baseChatAst.debugger.noFrames')} />
@@ -21623,9 +21615,7 @@ function ProjectDebuggerPanel({
             className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
           >
             <input name="intent" value="save-config" type="hidden" />
-            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-              {t('chat.copy.launchJsonConfig_018615eb')}
-            </h3>
+            <PanelSectionTitle>{t('chat.copy.launchJsonConfig_018615eb')}</PanelSectionTitle>
             <PanelInput name="name" placeholder={t('chat.copy.nodeInspectorApp_25e2551a')} required />
             <PanelInput name="command" placeholder={t('chat.copy.npmRunDev_4eedebe9')} />
             <PanelInput name="program" placeholder={t('chat.copy.srcServerTs_bcc09dcb')} />
@@ -21643,9 +21633,7 @@ function ProjectDebuggerPanel({
             className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
           >
             <input name="intent" value="add-breakpoint" type="hidden" />
-            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-              {t('chat.copy.conditionalBreakpoint_af2996c8')}
-            </h3>
+            <PanelSectionTitle>{t('chat.copy.conditionalBreakpoint_af2996c8')}</PanelSectionTitle>
             <PanelInput name="filePath" placeholder={t('chat.copy.srcAppTsx_835da56f')} required />
             <PanelInput name="line" type="number" min="1" placeholder="42" required />
             <PanelInput name="condition" placeholder={t('chat.copy.userIdTargetid_cecbcb16')} />
@@ -21659,18 +21647,14 @@ function ProjectDebuggerPanel({
             className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4"
           >
             <input name="intent" value="add-watch" type="hidden" />
-            <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-              {t('chat.copy.watchExpressions_5a230a1a')}
-            </h3>
+            <PanelSectionTitle>{t('chat.copy.watchExpressions_5a230a1a')}</PanelSectionTitle>
             <PanelInput name="expression" placeholder={codeExample('request.user')} required />
             <PanelButton disabled={busy}>{t('chat.copy.addWatch_11f0adc5')}</PanelButton>
           </form>
 
           {watches.length ? (
             <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                {t('chat.copy.watchList_daa6ded7')}
-              </h3>
+              <PanelSectionTitle>{t('chat.copy.watchList_daa6ded7')}</PanelSectionTitle>
               <div className="mt-3 grid gap-2">
                 {watches.map((watch: any) => (
                   <div key={watch.id} className="flex items-center justify-between gap-2 text-xs">
@@ -21690,9 +21674,7 @@ function ProjectDebuggerPanel({
 
           {logs.length ? (
             <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                {t('chat.copy.runtimeOutput_fb71b522')}
-              </h3>
+              <PanelSectionTitle>{t('chat.copy.runtimeOutput_fb71b522')}</PanelSectionTitle>
               <div className="mt-3 max-h-44 overflow-auto font-mono text-xs text-bolt-elements-textSecondary">
                 {logs.slice(-12).map((log: any, index: number) => (
                   <div key={`${log.timestamp}-${index}`}>{log.message}</div>
@@ -22439,7 +22421,7 @@ function ProjectSecretsPanel({
                     </span>
                     {existingSecretKeys.has(entry.key) ? (
                       <span
-                        className="rounded-sm px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+                        className="rounded-sm px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide"
                         style={{
                           background: 'color-mix(in srgb, var(--vc-ide-accent-warning) 12%, transparent)',
                           borderLeft: '3px solid var(--vc-ide-accent-warning)',
@@ -22553,7 +22535,7 @@ function ProjectSecretsPanel({
             </div>
           ))
         ) : (
-          <div className="bolt-project-empty-panel">{t('chat.copy.noProjectSecrets_f3f1ca38')}</div>
+          <PanelEmptyState icon="i-ph:lock" title={t('chat.copy.noProjectSecrets_f3f1ca38')} />
         )}
       </div>
     </div>
@@ -22777,7 +22759,7 @@ function ProjectDeploymentsPanel({
               </article>
             ))
           ) : (
-            <div className="bolt-project-empty-panel">{t('chat.copy.noDeploymentLogsYet_8f8bec37')}</div>
+            <PanelEmptyState icon="i-ph:file-text" title={t('chat.copy.noDeploymentLogsYet_8f8bec37')} />
           )}
         </section>
       ) : null}

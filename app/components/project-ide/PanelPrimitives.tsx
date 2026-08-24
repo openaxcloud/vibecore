@@ -24,19 +24,29 @@ import { classNames } from '~/utils/classNames';
 
 export interface PanelButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'outline';
+
+  /**
+   * `md` (défaut) : CTA de formulaire — 36 px.
+   * `sm` : action compacte de panneau (Copy, Retry, Refresh…) — 28 px, la
+   * hauteur des contrôles d'onglet (UNIF-08). Remplace les boutons ad hoc
+   * `rounded border px-2 py-1 text-[12px]` dispersés dans la coque service.
+   */
+  size?: 'sm' | 'md';
   children?: ReactNode;
 }
 
-export function PanelButton({ children, variant, type, className, ...props }: PanelButtonProps) {
+export function PanelButton({ children, variant, size, type, className, ...props }: PanelButtonProps) {
   return (
     <button
       {...props}
       type={type ?? 'submit'}
       className={classNames(
-        'inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium disabled:opacity-60',
+        'inline-flex items-center justify-center rounded-md font-medium transition disabled:opacity-60',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+        size === 'sm' ? 'h-7 px-2 text-xs' : 'h-9 px-3 text-sm',
         variant === 'outline'
           ? 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3'
-          : 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text',
+          : 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:opacity-90',
         className,
       )}
     >
@@ -56,6 +66,43 @@ export function PanelInput({ className, ...props }: PanelInputProps) {
         className,
       )}
     />
+  );
+}
+
+export interface PanelSectionTitleProps {
+  /**
+   * `section` (défaut) : titre de section de panneau — 13 px / 600.
+   * `group` : intertitre de groupe — 11 px / 600, capitales espacées.
+   */
+  level?: 'section' | 'group';
+  className?: string;
+  children: ReactNode;
+}
+
+/*
+ * Titre de section normalisé des panneaux IDE (UNIF-08, audit H3).
+ *
+ * Avant : trois familles coexistaient dans BaseChat — `<h3 text-sm
+ * font-semibold>`, `<h3 mb-2 text-sm font-medium>` (Agent Studio) et
+ * `<h4 text-xs uppercase tracking-wide>` — donc trois hiérarchies visuelles
+ * pour le même rôle. Deux niveaux fermés, sur l'échelle typo 11/12/13/14.
+ */
+export function PanelSectionTitle({ level = 'section', className, children }: PanelSectionTitleProps) {
+  if (level === 'group') {
+    return (
+      <h4
+        className={classNames(
+          'text-[11px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary',
+          className,
+        )}
+      >
+        {children}
+      </h4>
+    );
+  }
+
+  return (
+    <h3 className={classNames('text-[13px] font-semibold text-bolt-elements-textPrimary', className)}>{children}</h3>
   );
 }
 
