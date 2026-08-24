@@ -25,6 +25,7 @@ import { PortDropdown } from './PortDropdown';
 import { ScreenshotSelector } from './ScreenshotSelector';
 import { evaluatePreviewReadyEdge, resolvePreviewAddress, type PreviewReadyEdgeState } from './preview-address';
 import {
+  beginPreviewFrameReload,
   decidePreviewLoadOutcome,
   shouldReloadPreviewOnReadyEdge,
   shouldRunPreviewBootLoop,
@@ -1146,18 +1147,15 @@ export const Preview = memo(
           return;
         }
 
-        try {
-          iframe.contentWindow?.location.reload();
-        } catch {
-          /*
-           * Cross-origin previews block contentWindow.location.reload(). A bare
-           * `iframe.src = currentSrc` does NOT force a fresh navigation when the
-           * frame is parked on a chrome-error page (e.g. it loaded a transient
-           * 502 while the dev server was still starting) — the browser keeps the
-           * error. Bounce through about:blank so the next assignment is always a
-           * new navigation that picks up the now-healthy server.
-           */
-          iframe.src = 'about:blank';
+        /*
+         * BUG-A (live 23/08): a same-origin reload() of a frame parked on
+         * about:blank "succeeds" silently and leaves the Webview blank — the
+         * forced about:blank → target bounce is the only reload that always
+         * works. beginPreviewFrameReload keeps the same-origin fast path for a
+         * genuinely-loaded page and forces a real navigation everywhere else
+         * (cross-origin frame, blank frame, missing contentWindow).
+         */
+        if (beginPreviewFrameReload(iframe) === 'force-navigation') {
           window.setTimeout(() => {
             if (iframeRef.current) {
               iframeRef.current.src = target;

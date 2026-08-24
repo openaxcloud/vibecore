@@ -168,3 +168,55 @@ export function shouldAutoRunPreview(input: {
 export function shouldReloadPreviewOnReadyEdge(input: { readyEdgeReload: boolean; frameRendered: boolean }): boolean {
   return input.readyEdgeReload && !input.frameRendered;
 }
+
+/*
+ * BUG-A (live 23/08) — "Refresh preview" did not actually reload the iframe.
+ *
+ * The old inline handler tried `iframe.contentWindow.location.reload()` and only
+ * fell back to a forced navigation (about:blank bounce) when that call THREW
+ * (cross-origin frame). But two silent no-op cases never throw:
+ *
+ *   - the frame is parked on `about:blank` (a previous bounce that never
+ *     completed, or a remount that lost its src): about:blank inherits the
+ *     parent origin, so `reload()` "succeeds"… and reloads a blank page. The
+ *     Webview stays white forever, which is exactly what was observed live —
+ *     the dev server was serving on 5173, a standalone tab rendered the app,
+ *     yet Refresh did nothing until the src was reset by hand.
+ *   - `contentWindow` is null: the optional chain skips the call entirely.
+ *
+ * This helper makes the decision testable: it returns `same-origin-reload` only
+ * when a REAL page (same-origin, not about:blank) was genuinely reloaded.
+ * Otherwise it parks the frame on about:blank and returns `force-navigation`;
+ * the caller MUST then re-assign the target src after a short delay (a bare
+ * re-assignment of the same src is ignored by the browser, and an immediate one
+ * can be coalesced with the about:blank navigation).
+ */
+export type PreviewFrameReloadAction = 'same-origin-reload' | 'force-navigation';
+
+export interface PreviewFrameLike {
+  contentWindow: { location: { href: string; reload(): void } } | null;
+  src: string;
+}
+
+export function beginPreviewFrameReload(frame: PreviewFrameLike): PreviewFrameReloadAction {
+  const frameWindow = frame.contentWindow;
+
+  if (frameWindow) {
+    try {
+      // Reading href throws on a cross-origin frame → forced navigation below.
+      const href = frameWindow.location.href;
+
+      if (href && href !== 'about:blank') {
+        frameWindow.location.reload();
+
+        return 'same-origin-reload';
+      }
+    } catch {
+      // Cross-origin (or a chrome-error page): fall through to the forced bounce.
+    }
+  }
+
+  frame.src = 'about:blank';
+
+  return 'force-navigation';
+}
