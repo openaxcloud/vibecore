@@ -64,47 +64,6 @@
   min-width: 0;
 }
 
-.sol-language-switch {
-  display: inline-flex;
-  min-height: 44px;
-  align-items: center;
-  gap: 0.25rem;
-  margin-bottom: 1.25rem;
-  border: 1px solid var(--ecode-border-strong);
-  border-radius: 0.65rem;
-  padding: 0.2rem;
-  background: color-mix(in srgb, var(--ecode-surface) 88%, transparent);
-}
-
-.sol-language-switch a {
-  display: inline-flex;
-  min-width: 72px;
-  min-height: 44px;
-  align-items: center;
-  justify-content: center;
-  border-radius: 0.45rem;
-  padding-inline: 0.85rem;
-  color: var(--ecode-text-secondary);
-  font-size: 0.8125rem;
-  font-weight: 700;
-  line-height: 1;
-  text-decoration: none;
-  transition:
-    background-color 150ms ease,
-    color 150ms ease,
-    box-shadow 150ms ease;
-}
-
-.sol-language-switch a:hover {
-  color: var(--ecode-text);
-}
-
-.sol-language-switch a[aria-current='page'] {
-  background: var(--ecode-accent);
-  color: var(--ecode-accent-contrast);
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--ecode-accent) 22%, transparent);
-}
-
 /*
  * Accent de MARQUE, pas statut « info ». Ces surfaces utilisaient
  * `--status-info-text` (#2563eb) : l'accroche et ses icônes ressortaient en
@@ -137,7 +96,8 @@
  * dérivant du token pour qu'il suive toute évolution de la charte. Le thème
  * sombre garde #ff8a3d, qui n'a pas ce problème sur fond foncé.
  */
-:root[data-theme='light'] :where(.sol-eyebrow, .sol-product-visual figcaption > span, .sol-icon-tile) {
+:root[data-theme='light']
+  :where(.sol-eyebrow, .sol-product-visual figcaption > span, .sol-app-showcase figcaption > span, .sol-icon-tile) {
   color: color-mix(in srgb, var(--ecode-accent-text), #000 10%);
 }
 
@@ -351,6 +311,200 @@
 
 .sol-product-visual--hero {
   align-self: center;
+}
+
+/* Real, executable Gallery applications used throughout SOL-02 → SOL-09. */
+.sol-app-showcase {
+  display: grid;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--ecode-border-strong);
+  border-radius: 1rem;
+  background: var(--ecode-surface);
+  box-shadow: 0 26px 70px color-mix(in srgb, var(--ecode-shadow, #000) 20%, transparent);
+}
+
+.sol-app-showcase--hero {
+  align-self: center;
+  box-shadow:
+    0 30px 78px color-mix(in srgb, var(--ecode-shadow, #000) 24%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--ecode-accent) 7%, transparent);
+}
+
+.sol-app-showcase__chrome {
+  display: flex;
+  min-width: 0;
+  min-height: 3rem;
+  align-items: center;
+  gap: 0.45rem;
+  border-bottom: 1px solid var(--ecode-border);
+  padding: 0.65rem 0.85rem;
+  background: color-mix(in srgb, var(--ecode-surface-secondary) 76%, var(--ecode-surface));
+}
+
+.sol-app-showcase__chrome > span {
+  width: 0.58rem;
+  height: 0.58rem;
+  flex: none;
+  border-radius: 999px;
+  background: var(--ecode-border-strong);
+}
+
+.sol-app-showcase__chrome > span:first-child {
+  background: var(--ecode-accent);
+}
+
+.sol-app-showcase__chrome strong {
+  min-width: 0;
+  margin-inline-start: 0.35rem;
+  overflow: hidden;
+  color: var(--ecode-text);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sol-app-showcase__chrome em {
+  display: inline-flex;
+  min-height: 1.75rem;
+  flex: none;
+  align-items: center;
+  margin-inline-start: auto;
+  border: 1px solid var(--status-success-border);
+  border-radius: 999px;
+  padding-inline: 0.65rem;
+  background: var(--status-success-bg);
+  color: var(--status-success-text);
+  font-size: 0.625rem;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sol-app-showcase__media {
+  position: relative;
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  background: #090c10;
+  text-decoration: none;
+}
+
+.sol-app-showcase__media img {
+  display: block;
+  width: 100%;
+  max-width: none;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  transition: transform 220ms ease;
+}
+
+.sol-app-showcase__media:hover img {
+  transform: scale(1.012);
+}
+
+.sol-app-showcase__open-hint {
+  position: absolute;
+  right: 0.8rem;
+  bottom: 0.8rem;
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 999px;
+  padding-inline: 0.9rem;
+  background: rgb(5 8 12 / 86%);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  box-shadow: 0 12px 30px rgb(0 0 0 / 28%);
+  backdrop-filter: blur(10px);
+}
+
+.sol-app-showcase__open-hint svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.sol-app-showcase figcaption {
+  display: grid;
+  min-width: 0;
+  gap: 0.45rem;
+  border-top: 1px solid var(--ecode-border);
+  padding: 1rem 1.1rem 1.15rem;
+  background: var(--ecode-surface);
+}
+
+.sol-app-showcase figcaption > span {
+  color: var(--ecode-accent-text);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.45;
+  text-transform: uppercase;
+}
+
+.sol-app-showcase figcaption > strong {
+  color: var(--ecode-text);
+  font-size: 1rem;
+  line-height: 1.35;
+}
+
+.sol-app-showcase figcaption > p {
+  color: var(--ecode-text-secondary);
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.sol-app-showcase__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  margin-top: 0.35rem;
+}
+
+.sol-app-showcase__actions a {
+  display: inline-flex;
+  min-width: 44px;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--ecode-border-strong);
+  border-radius: 0.5rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--ecode-surface-secondary);
+  color: var(--ecode-text);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.25;
+  text-decoration: none;
+  transition:
+    border-color 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.sol-app-showcase__actions a:first-child {
+  border-color: color-mix(in srgb, var(--ecode-accent) 45%, var(--ecode-border));
+}
+
+.sol-app-showcase__actions a:hover {
+  border-color: var(--ecode-accent);
+  color: var(--ecode-accent-text);
+  transform: translateY(-1px);
+}
+
+.sol-app-showcase__actions svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: none;
 }
 
 .sol-product-visual--feature {
@@ -1435,6 +1589,21 @@
   }
 
   .sol-product-visual__full-size {
+    width: 100%;
+  }
+
+  .sol-app-showcase__chrome em {
+    max-width: 8.5rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .sol-app-showcase__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .sol-app-showcase__actions a {
     width: 100%;
   }
 

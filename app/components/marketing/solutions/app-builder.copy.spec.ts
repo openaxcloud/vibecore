@@ -229,9 +229,6 @@ function expectCompleteCopy(copy: Copy, language: SupportedLanguage) {
   expectLength(copy.hero.subtitle, 140, 380, `${language}.hero.subtitle`);
   expectLength(copy.hero.microcopy, 70, 300, `${language}.hero.microcopy`);
   expectLength(copy.prompt.text, 60, 180, `${language}.prompt.text`);
-  expectLength(copy.languageSwitch.label, 12, 80, `${language}.languageSwitch.label`);
-  expect(copy.languageSwitch.english).toBe('English');
-  expect(copy.languageSwitch.french).toBe('Français');
 
   for (const [label, action] of [
     ['hero.primaryCta', copy.hero.primaryCta],
