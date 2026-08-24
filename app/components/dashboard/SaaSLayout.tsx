@@ -1058,6 +1058,7 @@ export function AppShell({
   hideTopBar = false,
   mainClassName,
   contentClassName,
+  serverSync = true,
 }: {
   title: string;
   description: string;
@@ -1067,6 +1068,16 @@ export function AppShell({
   hideTopBar?: boolean;
   mainClassName?: string;
   contentClassName?: string;
+
+  /*
+   * Vrai quand la page est servie à un utilisateur AUTHENTIFIÉ. Les routes de
+   * l'espace utilisateur le sont toutes (défaut), mais `AppShell` sert aussi de
+   * coque à des pages publiques — `EnterpriseFormPage` (`/invitations/accept`)
+   * et les frontières d'erreur de `root` — qui doivent passer `false` : sinon le
+   * tour interroge `/api/user/preferences`, reçoit 401, et le navigateur
+   * journalise une erreur que l'audit live EN/FR rejette.
+   */
+  serverSync?: boolean;
 }) {
   const { t } = useTranslation();
   const { sidebarCollapsed, toggleSidebar, drawerOpen, openDrawer, closeDrawer } = useSidebarController();
@@ -1154,7 +1165,7 @@ export function AppShell({
           </div>
         </section>
       </div>
-      {!hideTopBar ? <ProductTour restartToken={tourRestartToken} /> : null}
+      {!hideTopBar ? <ProductTour restartToken={tourRestartToken} serverSync={serverSync} /> : null}
     </main>
   );
 }

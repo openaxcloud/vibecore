@@ -153,7 +153,7 @@ describe('public marketing brand', () => {
     const layoutSource = readFileSync(join(process.cwd(), 'app/components/dashboard/SaaSLayout.tsx'), 'utf8');
     const stylesSource = readFileSync(join(process.cwd(), 'app/styles/index.scss'), 'utf8');
 
-    expect(layoutSource).toContain('<ProductTour restartToken={tourRestartToken} />');
+    expect(layoutSource).toContain('<ProductTour restartToken={tourRestartToken} serverSync={serverSync} />');
     expect(layoutSource).toContain('onStartTour={() => setTourRestartToken((current) => current + 1)}');
     expect(layoutSource).toContain("t('userArea.topbar.openTour')");
     expect(layoutSource).toContain('data-vc-tour-target="navigation"');
