@@ -101,7 +101,6 @@ describe('BUG-QA-AGENT-PROGRESS-001 — la progression ne ment plus après une e
      */
     expect(baseChat).toMatch(/setAgentRunDegraded\(isAgentRunDegraded\(data\)\)/);
     expect(baseChat).toMatch(
-      /* Tolère l'enveloppement de prettier : l'expression peut tenir sur une ou plusieurs lignes. */
       /degraded=\{\s*agentRunDegraded\s*\|\|\s*diagnosticErrorCount > 0\s*\|\|\s*Boolean\(actionAlert && actionAlert\.source === 'preview'\)\s*\}/,
     );
   });
