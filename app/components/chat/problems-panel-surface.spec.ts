@@ -101,7 +101,14 @@ describe('BUG-IDE-013 — « Problèmes » est un panneau, pas la surface Termin
   it('donne au panneau un titre et une icône, jamais son identifiant brut', () => {
     // BUG-IDE-002 : un panneau sans clé affichait son id (« skills », « studio »).
     expect(source).toContain("problems: 'baseChatAst.common.problems'");
-    expect(source).toContain("problems: 'i-ph:warning-circle'");
+
+    /*
+     * UNIF-05 : l'icône vit désormais dans le registre unique
+     * app/components/project-ide/panel-meta.ts (PANEL_ICONS), consommé par
+     * toutes les surfaces — la garantie reste la même.
+     */
+    const panelMetaSource = readFileSync('app/components/project-ide/panel-meta.ts', 'utf8');
+    expect(panelMetaSource).toContain("problems: 'i-ph:warning-circle'");
   });
 });
 

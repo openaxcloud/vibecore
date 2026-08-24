@@ -10,6 +10,7 @@ import {
   needsContentHydration,
   toRuntimeRelativePath,
 } from './search-replace';
+import { IdePanelHeader } from '~/components/project-ide/PanelPrimitives';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -373,6 +374,9 @@ export function Search() {
 
   return (
     <div className="flex flex-col h-full bg-bolt-elements-background-depth-2">
+      {/* UNIF-06 (audit H1) : Search n'avait AUCUNE tête de panneau — il adopte
+          l'en-tête commun (même icône que l'onglet/rail, mêmes paddings). */}
+      <IdePanelHeader icon="i-ph:magnifying-glass" title={t('workbenchSearch.panel.title')} />
       <ConfirmationDialog
         isOpen={confirmReplaceAllOpen}
         onClose={() => setConfirmReplaceAllOpen(false)}
