@@ -535,7 +535,7 @@ test.describe('App Builder solution sales page', () => {
     });
   }
 
-  test('the English and French selector updates the SSR language, localized images, and saved preference', async ({
+  test('the global header language control updates SSR language, localized images, and saved preference', async ({
     page,
   }, testInfo) => {
     const baseURL = runtimeBaseUrl(testInfo.project.use.baseURL?.toString());
@@ -545,11 +545,12 @@ test.describe('App Builder solution sales page', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     await expect(page.getByTestId('app-builder-visual-hero')).toHaveAttribute('data-visual-language', 'en');
 
-    const languageNavigation = page.getByRole('navigation', { name: APP_BUILDER_COPY.en.languageSwitch.label });
-    await expect(
-      languageNavigation.getByRole('link', { name: APP_BUILDER_COPY.en.languageSwitch.english }),
-    ).toHaveAttribute('aria-current', 'page');
-    await languageNavigation.getByRole('link', { name: APP_BUILDER_COPY.en.languageSwitch.french }).click();
+    const languageControl = page.getByTestId('language-switch');
+
+    await expect(languageControl).toHaveCount(1);
+    await expect(page.locator('.app-builder-sales [data-testid="language-switch"]')).toHaveCount(0);
+    await expect(languageControl.locator('button[lang="en"]')).toHaveAttribute('aria-pressed', 'true');
+    await languageControl.locator('button[lang="fr"]').click();
 
     await expect(page).toHaveURL(new URL(`${ROUTE}?lang=fr`, baseURL).toString());
     await expect(page.locator('html')).toHaveAttribute('lang', 'fr');

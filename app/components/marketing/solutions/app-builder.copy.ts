@@ -33,11 +33,6 @@ export type AppBuilderCopy = Readonly<{
     secondaryCta: ActionCopy;
     microcopy: string;
   }>;
-  languageSwitch: Readonly<{
-    label: string;
-    english: string;
-    french: string;
-  }>;
   problem: Readonly<{
     eyebrow: string;
     title: string;
@@ -169,11 +164,6 @@ export const APP_BUILDER_COPY = {
       },
       microcopy:
         'Start with the process you already know. Project files, the running Preview, build output, and export controls stay visible as the application evolves.',
-    },
-    languageSwitch: {
-      label: 'Choose the App Builder page language',
-      english: 'English',
-      french: 'Français',
     },
     problem: {
       eyebrow: 'From scattered process to working app',
@@ -485,11 +475,6 @@ export const APP_BUILDER_COPY = {
       },
       microcopy:
         'Commencez par le processus que vous connaissez déjà. Les fichiers du projet, l’aperçu actif, la sortie de compilation et les contrôles d’export restent visibles à mesure que l’application évolue.',
-    },
-    languageSwitch: {
-      label: 'Choisir la langue de la page Générateur d’applications',
-      english: 'English',
-      french: 'Français',
     },
     problem: {
       eyebrow: 'Du processus dispersé à l’application fonctionnelle',
@@ -803,11 +788,6 @@ export const APP_BUILDER_COPY = {
       microcopy:
         'Empieza por el proceso que ya conoces. Los archivos del proyecto, la Preview activa, el resultado del build y los controles de exportación permanecen visibles mientras evoluciona la aplicación.',
     },
-    languageSwitch: {
-      label: 'Elegir el idioma de la página App Builder',
-      english: 'English',
-      french: 'Français',
-    },
     problem: {
       eyebrow: 'Del proceso disperso a la aplicación funcional',
       title: 'Tu proceso supera las hojas de cálculo mucho antes de que llegue el software a medida',
@@ -1119,11 +1099,6 @@ export const APP_BUILDER_COPY = {
       },
       microcopy:
         'ابدأ بسير العمل الذي تعرفه. تظل ملفات المشروع والمعاينة العاملة ونتيجة البناء وعناصر التصدير ظاهرة أمامك مع تطور التطبيق.',
-    },
-    languageSwitch: {
-      label: 'اختر لغة صفحة منشئ التطبيقات',
-      english: 'English',
-      french: 'Français',
     },
     problem: {
       eyebrow: 'من عملية متفرقة إلى تطبيق يعمل',

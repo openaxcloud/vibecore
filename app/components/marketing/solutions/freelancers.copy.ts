@@ -23,7 +23,6 @@ export const FREELANCERS_COPY = {
       microcopy:
         'Begin from the brief you already have. Source files, the running Preview, and a shareable preview link stay visible as the work moves toward handoff.',
     },
-    languageSwitch: { label: 'Choose the Freelancers page language', english: 'English', french: 'Français' },
     demo: {
       badge: 'Fictional demo data',
       brand: 'Studio Ferro',
@@ -276,7 +275,6 @@ export const FREELANCERS_COPY = {
       microcopy:
         'Partez du brief que vous avez déjà. Les fichiers source, l’aperçu actif et un lien d’aperçu partageable restent visibles à mesure que le travail avance vers le transfert.',
     },
-    languageSwitch: { label: 'Choisir la langue de la page Freelances', english: 'English', french: 'Français' },
     demo: {
       badge: 'Données fictives',
       brand: 'Studio Ferro',

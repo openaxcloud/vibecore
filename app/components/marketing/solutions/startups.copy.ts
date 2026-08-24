@@ -23,7 +23,6 @@ export const STARTUPS_COPY = {
       microcopy:
         'Start from the product you already pitch. Source files, the hosted Preview, and a shareable demo link stay visible as the MVP evolves.',
     },
-    languageSwitch: { label: 'Choose the Startups page language', english: 'English', french: 'Français' },
     demo: {
       badge: 'Fictional demo data',
       brand: 'Launchpad',
@@ -272,7 +271,6 @@ export const STARTUPS_COPY = {
       microcopy:
         'Partez du produit que vous pitchez déjà. Les fichiers source, l’aperçu hébergé et un lien de démonstration partageable restent visibles à mesure que le MVP évolue.',
     },
-    languageSwitch: { label: 'Choisir la langue de la page Startups', english: 'English', french: 'Français' },
     demo: {
       badge: 'Données fictives',
       brand: 'Launchpad',

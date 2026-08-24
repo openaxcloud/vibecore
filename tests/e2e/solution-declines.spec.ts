@@ -1,3 +1,6 @@
+import { mkdirSync } from 'node:fs';
+import { join } from 'node:path';
+
 import { expect, test, type Page } from '@playwright/test';
 
 import { CHATBOT_BUILDER_COPY } from '~/components/marketing/solutions/chatbot-builder.copy';
@@ -6,6 +9,7 @@ import { ENTERPRISE_COPY } from '~/components/marketing/solutions/enterprise.cop
 import { FREELANCERS_COPY } from '~/components/marketing/solutions/freelancers.copy';
 import { GAME_BUILDER_COPY } from '~/components/marketing/solutions/game-builder.copy';
 import { INTERNAL_AI_BUILDER_COPY } from '~/components/marketing/solutions/internal-ai-builder.copy';
+import { SOLUTION_APP_SHOWCASES } from '~/components/marketing/solutions/solution-app-showcases';
 import type { SolutionCopyByLanguage } from '~/components/marketing/solutions/solution-copy';
 import { STARTUPS_COPY } from '~/components/marketing/solutions/startups.copy';
 import { WEBSITE_BUILDER_COPY } from '~/components/marketing/solutions/website-builder.copy';
@@ -30,6 +34,8 @@ const VIEWPORTS = [
 
 const THEMES = ['light', 'dark'] as const;
 const LANGUAGES = ['en', 'fr'] as const;
+const SCREENSHOT_WIDTHS = new Set([390, 768, 1440]);
+const screenshotDirectory = process.env.SOLUTION_SCREENSHOT_DIR?.trim();
 
 function runtimeBaseUrl(testBaseUrl: string | undefined): string {
   return testBaseUrl ?? process.env.PLAYWRIGHT_BASE_URL ?? 'http://127.0.0.1:5173';
@@ -83,28 +89,63 @@ async function expectTouchTargets(page: Page) {
   expect(undersized, 'every visible solution-page target must measure at least 44×44 CSS pixels').toEqual([]);
 }
 
-async function expectProofImages(page: Page, language: (typeof LANGUAGES)[number]) {
-  const expectedSources = [
-    `/assets/solutions/app-builder/${language}/ide-agent-preview.png`,
-    `/assets/solutions/app-builder/${language}/ide-agent-iteration.png`,
-  ];
+async function expectPreviewTouchTargets(page: Page, selector: string) {
+  const undersized = await page.locator(selector).evaluateAll((elements) =>
+    elements.flatMap((element) => {
+      const target = element as HTMLElement;
+      const bounds = target.getBoundingClientRect();
+      const style = window.getComputedStyle(target);
+      const visible =
+        style.display !== 'none' &&
+        style.visibility !== 'hidden' &&
+        Number(style.opacity) > 0 &&
+        bounds.width > 0 &&
+        bounds.height > 0;
+
+      return visible && (bounds.width < 44 || bounds.height < 44)
+        ? [
+            {
+              height: bounds.height,
+              label: target.getAttribute('aria-label') ?? target.textContent?.trim().slice(0, 80),
+              width: bounds.width,
+            },
+          ]
+        : [];
+    }),
+  );
+
+  expect(undersized, 'every visible linked-demo target must measure at least 44×44 CSS pixels').toEqual([]);
+}
+
+async function expectRealAppImages(
+  page: Page,
+  slug: (typeof SOLUTIONS)[number]['slug'],
+  language: (typeof LANGUAGES)[number],
+) {
+  const showcase = SOLUTION_APP_SHOWCASES[slug];
+  const heroImage = page.getByTestId('solution-demo').locator('img');
+
+  await expect(heroImage).toHaveAttribute('src', showcase.primary.thumbnailSrc);
+  await expect(heroImage).toHaveAttribute('width', '1200');
+  await expect(heroImage).toHaveAttribute('height', '675');
+  await expect(heroImage).toHaveAttribute('loading', 'eager');
+  await expect(heroImage).toHaveAttribute('alt', showcase.primary.alt[language]);
 
   const images = page.locator('[data-testid="solution-ide-proof-gallery"] img');
+  const expectedVisuals = [showcase.supporting, showcase.related];
 
   await expect(images).toHaveCount(2);
 
-  for (const [index, source] of expectedSources.entries()) {
+  for (const [index, visual] of expectedVisuals.entries()) {
     const image = images.nth(index);
 
-    await expect(image).toHaveAttribute('src', source);
-    await expect(image).toHaveAttribute('width', '1440');
-    await expect(image).toHaveAttribute('height', '900');
+    await expect(image).toHaveAttribute('src', visual.thumbnailSrc);
+    await expect(image).toHaveAttribute('width', '1200');
+    await expect(image).toHaveAttribute('height', '675');
     await expect(image).toHaveAttribute('loading', 'lazy');
     await expect(image).toHaveAttribute('decoding', 'async');
-
-    const alt = await image.getAttribute('alt');
-
-    expect(alt?.trim().length).toBeGreaterThan(20);
+    await expect(image).toHaveAttribute('alt', visual.alt[language]);
+    expect(await image.getAttribute('src')).not.toContain('/assets/solutions/app-builder/');
 
     await image.scrollIntoViewIfNeeded();
     await expect
@@ -115,11 +156,25 @@ async function expectProofImages(page: Page, language: (typeof LANGUAGES)[number
           return htmlImage.complete ? [htmlImage.naturalWidth, htmlImage.naturalHeight] : [0, 0];
         }),
       )
-      .toEqual([1440, 900]);
+      .toEqual([1200, 675]);
   }
+
+  await heroImage.scrollIntoViewIfNeeded();
+  await expect
+    .poll(() =>
+      heroImage.evaluate((element) => {
+        const image = element as HTMLImageElement;
+
+        return image.complete ? [image.naturalWidth, image.naturalHeight] : [0, 0];
+      }),
+    )
+    .toEqual([1200, 675]);
+
+  await expect(page.locator('.sol-sales [data-testid="language-switch"]')).toHaveCount(0);
+  await expect(page.getByTestId('language-switch')).toHaveCount(1);
 }
 
-test.describe('declined solution sales pages', () => {
+test.describe('solution sales pages', () => {
   for (const solution of SOLUTIONS) {
     for (const language of LANGUAGES) {
       for (const theme of THEMES) {
@@ -130,9 +185,26 @@ test.describe('declined solution sales pages', () => {
             const copy = solution.copy[language];
             const errors: string[] = [];
             const baseURL = runtimeBaseUrl(testInfo.project.use.baseURL?.toString());
+            const baseOrigin = new URL(baseURL).origin;
 
             page.on('console', (message) => message.type() === 'error' && errors.push(message.text()));
             page.on('pageerror', (error) => errors.push(error.message));
+            page.on('requestfailed', (request) => {
+              if (new URL(request.url()).origin === baseOrigin) {
+                errors.push(`request failed: ${request.method()} ${request.url()} — ${request.failure()?.errorText}`);
+              }
+            });
+            page.on('response', (response) => {
+              const resourceType = response.request().resourceType();
+
+              if (
+                new URL(response.url()).origin === baseOrigin &&
+                response.status() >= 400 &&
+                ['document', 'script', 'stylesheet', 'image', 'font'].includes(resourceType)
+              ) {
+                errors.push(`resource ${response.status()}: ${response.url()}`);
+              }
+            });
 
             await page.setViewportSize(viewport);
             await configureTheme(page, baseURL, theme);
@@ -166,7 +238,11 @@ test.describe('declined solution sales pages', () => {
             await expect(page.getByTestId('solution-hero').getByRole('heading', { level: 1 })).toHaveText(
               copy.hero.title,
             );
-            await expect(page.getByTestId('solution-demo')).toContainText(copy.demo.disclaimer);
+            await expect(page.getByTestId('solution-demo')).toHaveAttribute('data-visual-kind', 'working-demo-app');
+            await expect(page.getByTestId('solution-demo')).toHaveAttribute(
+              'data-gallery-app-id',
+              SOLUTION_APP_SHOWCASES[solution.slug].primary.id,
+            );
             await expect(page.getByTestId('solution-problem').locator('article')).toHaveCount(3);
             await expect(page.getByTestId('solution-build').locator('blockquote')).toHaveText(copy.build.promptText);
             await expect(page.getByTestId('solution-build').locator('.sol-output-grid > li')).toHaveCount(4);
@@ -190,7 +266,7 @@ test.describe('declined solution sales pages', () => {
 
             await expectNoHorizontalOverflow(page, viewport.width);
             await expectTouchTargets(page);
-            await expectProofImages(page, language);
+            await expectRealAppImages(page, solution.slug, language);
 
             await page.evaluate(() => {
               if (document.activeElement instanceof HTMLElement) {
@@ -230,9 +306,71 @@ test.describe('declined solution sales pages', () => {
               'focused CTA must expose a visible outline or focus ring',
             ).toBe(true);
             expect(errors).toEqual([]);
+
+            if (screenshotDirectory && SCREENSHOT_WIDTHS.has(viewport.width)) {
+              const output = join(screenshotDirectory, solution.slug, language, theme);
+
+              mkdirSync(output, { recursive: true });
+              await page.screenshot({
+                path: join(output, `${viewport.width}.png`),
+                fullPage: true,
+                animations: 'disabled',
+              });
+            }
           });
         }
       }
     }
   }
+});
+
+test.describe('linked solution demo apps', () => {
+  test('Docs Copilot is functional and touch-safe on mobile and desktop', async ({ page }) => {
+    test.setTimeout(60_000);
+    const errors: string[] = [];
+
+    page.on('console', (message) => message.type() === 'error' && errors.push(message.text()));
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('requestfailed', (request) => errors.push(`${request.method()} ${request.url()}`));
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/gallery-apps/docs-copilot/preview/', { waitUntil: 'networkidle' });
+    await expect(page.locator('[data-gallery-app-id="docs-copilot"]')).toBeVisible();
+    await expectNoHorizontalOverflow(page, 390);
+    await expectPreviewTouchTargets(page, 'button, a[href], textarea, .source-toggle');
+
+    await page.getByRole('button', { name: 'How do I invite a teammate?' }).click();
+    await expect(page.getByText(/Open Settings → Members/)).toBeVisible();
+    await page.getByRole('button', { name: /New conversation/ }).click();
+    await expect(page.getByText(/Open Settings → Members/)).toHaveCount(0);
+
+    await page.setViewportSize({ width: 1200, height: 675 });
+    await page.reload({ waitUntil: 'networkidle' });
+    await expect(page.locator('.source-toggle')).toHaveCount(8);
+    await expectPreviewTouchTargets(page, 'button, a[href], textarea, .source-toggle, .source-toggle input');
+    expect(errors).toEqual([]);
+  });
+
+  test('Neon Trivia Arena plays a real round and exposes mobile-safe controls', async ({ page }) => {
+    test.setTimeout(60_000);
+    const errors: string[] = [];
+
+    page.on('console', (message) => message.type() === 'error' && errors.push(message.text()));
+    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('requestfailed', (request) => errors.push(`${request.method()} ${request.url()}`));
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/gallery-apps/neon-trivia-arena/preview/', { waitUntil: 'networkidle' });
+    await expect(page.locator('[data-gallery-app-id="neon-trivia-arena"]')).toBeVisible();
+    await expectNoHorizontalOverflow(page, 390);
+    await expectPreviewTouchTargets(page, 'button, a[href]');
+
+    await page.getByRole('button', { name: /50:50/ }).click();
+    await expect(page.locator('.answer[data-state="hidden"]')).toHaveCount(2);
+    await page.locator('.answer:not([data-state="hidden"])').first().click();
+    await expect(page.locator('.feedback')).toBeVisible();
+    await page.getByRole('button', { name: /Next question/ }).click();
+    await expect(page.locator('.round-label')).toContainText('ROUND 02');
+    expect(errors).toEqual([]);
+  });
 });

@@ -3,6 +3,22 @@
 États par point : 📤 Dispatché · 💻 Codé (commité+poussé sur main) · ✅ Testé live (écran + greps, web/tablette/mobile le cas échéant).
 Un point n'est « fait » QUE quand ✅ est coché.
 
+## Finition des huit pages Solutions — demande Avi du 24/08
+
+Les validations d'une version antérieure de SOL-02→SOL-09 restent historiques. Ce lot n'est terminé qu'après commit+poussé sur `main`, déploiement du SHA exact et matrice navigateur en production. Décision fail-closed : les cartes utilisent des démos E-Code statiques exécutables et des liens directs `/gallery-apps/<id>/preview/`, sans fiche Gallery, sans claim `GalleryListing` publié/remixable et sans seeding. Preuve commune : EN/FR × clair/sombre × 390/768/1024/1440, 0 overflow/pageerror/erreur console, images 1200×675 chargées avec alt localisés, aperçus directs HTTP 200/non blancs, interaction centrale de chaque application vérifiée et cibles ≥44 px.
+
+| Point | 📤 | 💻 | ✅ | Notes |
+|---|:---:|:---:|:---:|---|
+| SOL-02-APP-REAL — Website Builder : vraies captures de sites/apps web thématiques | ✅ 24/08 | ☐ | ☐ | Principal + 2 appuis, libellé honnête « démo E-Code » et previews statiques liées directement ; protocole commun complet. |
+| SOL-03-APP-REAL — Game Builder : vrai quiz/jeu navigateur jouable | ✅ 24/08 | ☐ | ☐ | Réponse/action de partie exercée dans l'aperçu ; aucun mock décoratif ni visuel App Builder réutilisé. |
+| SOL-04-APP-REAL — Dashboard Builder : vrais dashboards interactifs | ✅ 24/08 | ☐ | ☐ | Données rendues et filtre/contrôle exercé ; principal + 2 appuis thématiques. |
+| SOL-05-APP-REAL — Chatbot Builder : vrai support documentaire conversationnel | ✅ 24/08 | ☐ | ☐ | Question envoyée et réponse/état conversationnel visible dans l'aperçu. |
+| SOL-06-APP-REAL — Internal AI Builder : vrais workflows IA internes | ✅ 24/08 | ☐ | ☐ | Action centrale exercée sur des cas procédures/incidents/revues. |
+| SOL-07-APP-REAL — Enterprise : vraies apps gouvernance/risque/opérations | ✅ 24/08 | ☐ | ☐ | Trois cas Enterprise cohérents et aperçus exécutables vérifiés. |
+| SOL-08-APP-REAL — Startups : vraies apps SaaS/go-to-market | ✅ 24/08 | ☐ | ☐ | App SaaS principale et cas pipeline/agent complémentaires vérifiés. |
+| SOL-09-APP-REAL — Freelancers : vraies apps de livraison client/terrain | ✅ 24/08 | ☐ | ☐ | App client/terrain principale et deux cas complémentaires vérifiés. |
+| SOL-I18N-HEADER-ONLY — supprimer les sélecteurs FR/EN locaux | ✅ 24/08 | ☐ | ☐ | SOL-01→SOL-09 : exactement 1 sélecteur global dans l'en-tête, 0 dans `<main>` ; bascule EN↔FR persistante et `html[lang]` cohérent sur la matrice. |
+
 ## AUDIT V4 — 4 chantiers + statut calculé (décision Avi 16/07)
 
 Audit externe v4 (15 P0). Priorité 4 (sécu) → 3 (échelle) → 2 → 1. Statut CALCULÉ (jamais écrit à la main).
@@ -162,4 +178,3 @@ Décisions committées : `docs/DEPLOY_REPRODUCIBLE_PIPELINE.md` (pipeline) + `do
 
 ⚠️ Capacité : demande de quota `SSD_TOTAL_GB` REPORTÉE par Google (« resubmit après 48 h ou avec plus d'historique billing » — pas un refus définitif). État 15/07 soir : 432/500, dont **400 = boot disks pd-balanced des 4 nœuds gvisor** (aucun pd-ssd n'existe ; pd-balanced compte DANS ce quota). Seule sortie structurelle : recréer le pool gvisor avec boot disks **pd-standard 200 Go** (throughput ≈ équivalent, coût identique, `DISKS_TOTAL_GB` 4,2/20 To) → SSD ~32/500 et autoscale débloqué. GO d'Avi requis (drain = redémarrage des pods workspaces). Ménage fait : spike-workspace-pvc (2 Go SSD) + 19 PVC d'orgs de test E2E supprimées.
 ⚠️ `--reuse-values` : les nouvelles clés chart (`serverDeployImageRepo`, `nixStorePvc`…) n'atteignent la release que via UN `--set` manuel (fait après passage CD), ensuite persistées.
-
