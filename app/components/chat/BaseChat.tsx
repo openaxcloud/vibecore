@@ -164,7 +164,11 @@ import {
   shouldMountMobileWorkbench,
   type MobileWorkbenchPanelId,
 } from '~/components/chat/mobile-workbench-keepalive';
-import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
+import {
+  isRedundantPanelSearchParamUpdate,
+  readPanelSearchParam,
+  withPanelSearchParam,
+} from '~/utils/project-ide-panel-url';
 import {
   type CompactPreviewRunState,
   compactPreviewRunAriaLabel,
@@ -3850,6 +3854,25 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
     const setProjectPanelSearchParam = useCallback(
       (panel?: string) => {
+        /*
+         * BUG-IDE-PANEL-RECLICK-REPROVISION-001 — re-cliquer le panneau DÉJÀ
+         * ACTIF ne doit déclencher AUCUNE navigation. setSearchParams avec une
+         * valeur ?panel= inchangée est une navigation vers la même URL, que
+         * React Router traite comme un refresh (defaultShouldRevalidate est
+         * VRAI quand pathname+search sont identiques) : tous les loaders
+         * repartaient, initialIdePanels changeait d'identité, chaque panneau de
+         * service se rechargeait et la Webview repartait dans sa boucle de
+         * démarrage — le « re-clic recharge tout l'IDE » constaté en prod. La
+         * valeur est lue sur window.location (l'URL réellement affichée) pour
+         * ne pas dépendre de l'identité changeante de searchParams.
+         */
+        if (
+          typeof window !== 'undefined' &&
+          isRedundantPanelSearchParamUpdate(new URLSearchParams(window.location.search), panel)
+        ) {
+          return;
+        }
+
         setSearchParams((current) => withPanelSearchParam(current, panel));
       },
       [setSearchParams],

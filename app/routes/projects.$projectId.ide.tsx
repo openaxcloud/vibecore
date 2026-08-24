@@ -40,6 +40,7 @@ import { useLoaderData } from 'react-router';
 import { Link } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { buildIdeNotifications, restartWorkspace, type IdeNotificationKind } from './projects.$projectId.ide.helpers';
+import { shouldRevalidateProjectIde } from './projects.$projectId.ide.revalidate';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
@@ -74,45 +75,13 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   ];
 };
 
-const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit', 'peWindow']);
-
-function routeKeyWithoutClientIdeParams(url: URL) {
-  const searchParams = new URLSearchParams(url.search);
-
-  for (const param of IDE_CLIENT_SEARCH_PARAMS) {
-    searchParams.delete(param);
-  }
-
-  const search = searchParams.toString();
-
-  return `${url.pathname}${search ? `?${search}` : ''}`;
-}
-
-export const shouldRevalidate = ({
-  currentUrl,
-  nextUrl,
-  formMethod,
-  defaultShouldRevalidate,
-}: {
-  currentUrl: URL;
-  nextUrl: URL;
-  formMethod?: string;
-  defaultShouldRevalidate: boolean;
-}) => {
-  if (formMethod && formMethod.toUpperCase() !== 'GET') {
-    return defaultShouldRevalidate;
-  }
-
-  if (
-    currentUrl.origin === nextUrl.origin &&
-    routeKeyWithoutClientIdeParams(currentUrl) === routeKeyWithoutClientIdeParams(nextUrl) &&
-    currentUrl.search !== nextUrl.search
-  ) {
-    return false;
-  }
-
-  return defaultShouldRevalidate;
-};
+/*
+ * Revalidation policy extracted to projects.$projectId.ide.revalidate.ts (pure,
+ * unit-tested). BUG-IDE-PANEL-RECLICK-REPROVISION-001: it now also skips the
+ * loader on a SAME-URL navigation (re-click of the already-active panel), which
+ * React Router otherwise treats as a refresh and revalidates.
+ */
+export const shouldRevalidate = shouldRevalidateProjectIde;
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) =>
   loadProjectIdeData(request, params.projectId ?? '');
