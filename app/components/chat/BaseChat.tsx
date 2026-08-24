@@ -131,7 +131,7 @@ const LazyTerminalTabs = lazy(() =>
   import('~/components/workbench/terminal/TerminalTabs').then((module) => ({ default: module.TerminalTabs })),
 );
 import ProgressCompilation from './ProgressCompilation';
-import { isAgentRunFailed } from './bundled-artifact-state';
+import { isAgentRunDegraded, isAgentRunFailed } from './bundled-artifact-state';
 import type { ProgressAnnotation } from '~/types/context';
 import { SupabaseChatAlert } from '~/components/chat/SupabaseAlert';
 import { expoUrlAtom } from '~/lib/stores/qrCodeStore';
@@ -3423,6 +3423,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [modelError, setModelError] = useState<string | null>(null);
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
     const [agentRunFailed, setAgentRunFailed] = useState(false);
+
+    // BUG-UX-AGENT-DONE-FALSE : run allé au bout mais pas proprement (partiel / accord faible / rôles incomplets).
+    const [agentRunDegraded, setAgentRunDegraded] = useState(false);
     const expoUrl = useStore(expoUrlAtom);
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const projectFiles = useStore(workbenchStore.files);
@@ -6147,6 +6150,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         // BUG-AGENT-003 : un échec d'orchestration doit dégrader la ligne de statut.
         setAgentRunFailed(isAgentRunFailed(data));
+
+        // BUG-UX-AGENT-DONE-FALSE : un run partiel / à faible accord ne peut pas s'afficher « Terminé » tout court.
+        setAgentRunDegraded(isAgentRunDegraded(data));
       }
     }, [data]);
     useEffect(() => {
@@ -7120,6 +7126,17 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   data={progressAnnotations}
                   streaming={isStreaming}
                   failed={Boolean(llmErrorAlert) || agentRunFailed}
+                  /*
+                   * BUG-UX-AGENT-DONE-FALSE : le % vient du ratio d'actions de
+                   * fichiers — il peut valoir 100 sur un projet cassé. `degraded`
+                   * injecte la santé réelle : erreurs dans Problèmes, orchestration
+                   * partielle / accord faible / rôles incomplets, ou carte
+                   * « Erreur d'aperçu » encore active. La ligne affiche alors
+                   * « Terminé avec des erreurs », jamais une coche verte.
+                   */
+                  degraded={
+                    agentRunDegraded || diagnosticErrorCount > 0 || Boolean(actionAlert && actionAlert.source === 'preview')
+                  }
                 />
               </div>
             )}
