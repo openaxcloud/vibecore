@@ -6209,7 +6209,6 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 6px;
 }
 
-
 .bolt-project-action-group {
   position: relative;
   display: inline-flex;
@@ -8160,6 +8159,24 @@ body :where(.lucide, svg[data-lucide]) {
   cursor: not-allowed;
 }
 
+/* UNIF-04 (audit C5) : même état désactivé que le toggle Plan pour le
+   déclencheur de mode — un seul comportement de contrôle composeur. */
+.bolt-chatbox-mode-trigger:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/*
+ * UNIF-04 (audit C4) : le feedback de glisser-déposer est porté par la COQUE du
+ * composeur. La bordure garde sa largeur de 1px (le « 2px » visuel vient du
+ * liseré interne en box-shadow) → aucun saut de mise en page, plus de double
+ * bordure textarea + coque.
+ */
+.bolt-chatbox-input-shell[data-dragover='true'] {
+  border-color: var(--bolt-elements-focus);
+  box-shadow: inset 0 0 0 1px var(--bolt-elements-focus);
+}
+
 @container (max-width: 300px) {
   /* Tightest width: drop the Plan label, keep the icon (matches mode trigger). */
   .bolt-chatbox-plan-toggle-label {
@@ -10045,7 +10062,6 @@ body :where(.lucide, svg[data-lucide]) {
     white-space: nowrap;
   }
 }
-
 
 .bolt-project-webview-toolbar .flex.items-center {
   gap: 2px;
@@ -13575,8 +13591,7 @@ body :where(.lucide, svg[data-lucide]) {
    * exactement ce qu'il faut : il reste en ligne tant qu'il y a la place, et
    * ne passe à la ligne que lorsqu'il n'y en a plus.
    */
-  .bolt-project-service-panel
-    :where(.bolt-project-security-scan-form, .bolt-project-deploy-actions) {
+  .bolt-project-service-panel :where(.bolt-project-security-scan-form, .bolt-project-deploy-actions) {
     display: grid !important;
     grid-template-columns: minmax(0, 1fr) !important;
     align-items: stretch !important;
@@ -15340,29 +15355,9 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary);
 }
 
-.bolt-project-problems-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  border-bottom: 1px solid var(--vc-ide-border-subtle);
-  background: var(--vc-ide-bg-panel);
-  padding: 14px 16px;
-}
-
-.bolt-project-problems-header h3 {
-  margin: 0;
-  color: var(--vc-ide-text-primary);
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.bolt-project-problems-header p {
-  margin: 4px 0 0;
-  color: var(--vc-ide-text-secondary);
-  font-size: 12px;
-}
-
+/* UNIF-06 : la tête maison de Problems (`.bolt-project-problems-header`,
+   h3 + résumé, padding 14/16) a été remplacée par l'en-tête commun
+   `.bolt-project-ide-panel-header` (IdePanelHeader). */
 .bolt-project-problems-counts {
   display: inline-flex;
   align-items: center;
@@ -19467,7 +19462,6 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   .bolt-project-topbar {
     display: none !important;
   }
-
 
   .bolt-mobile-ecode-header {
     position: fixed;

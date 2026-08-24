@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { IdePanelHeader } from '~/components/project-ide/PanelPrimitives';
 import { Checkbox } from '~/components/ui/Checkbox';
 import { toast } from '~/components/ui/use-toast';
 import {
@@ -215,6 +216,9 @@ export function LockManager() {
 
   return (
     <div className="flex h-full min-w-0 flex-col overflow-hidden">
+      {/* UNIF-06 (audit H1) : Locks n'avait AUCUNE tête de panneau — il adopte
+          l'en-tête commun (même icône que l'onglet/rail, mêmes paddings). */}
+      <IdePanelHeader icon="i-ph:lock" title={copy['lockManager.panel.title']} />
       {/* Controls */}
       <div className="flex min-w-0 flex-col gap-2 border-b border-bolt-elements-borderColor px-2 py-2 sm:flex-row sm:items-center">
         {/* Search Input */}
