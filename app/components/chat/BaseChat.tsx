@@ -91,6 +91,7 @@ import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
 import { FloatingPaneFrame } from '~/components/project-ide/FloatingPaneFrame';
+import { PanelButton, PanelEmptyState, PanelInput } from '~/components/project-ide/PanelPrimitives';
 import { ProjectEditorToolbar } from '~/components/project-ide/ProjectEditorToolbar';
 import { ProjectOverviewPanel } from '~/components/project-ide/ProjectOverviewPanel';
 import {
@@ -10978,12 +10979,11 @@ function ProjectIdeApiServicePanel({
             ) : null}
           </div>
         ) : payload?.status === 'empty' && !error && !rendersEmptyStateActions ? (
-          <div className="rounded-lg border border-dashed border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 text-center text-sm text-bolt-elements-textSecondary">
-            <div className="mb-1 font-medium text-bolt-elements-textPrimary">
-              {t('baseChatAst.phrases.emptyYet', { title: title.toLowerCase() })}
-            </div>
-            <div className="text-[12px]">{t('chat.copy.onceYourWorkspaceProducesDataIt_1de76193')}</div>
-          </div>
+          <PanelEmptyState
+            icon={icon}
+            title={t('baseChatAst.phrases.emptyYet', { title: title.toLowerCase() })}
+            description={t('chat.copy.onceYourWorkspaceProducesDataIt_1de76193')}
+          />
         ) : (
           <PanelErrorBoundary
             panel={title}
@@ -13405,10 +13405,11 @@ function ProjectIdePanelContent({
             })}
           </div>
         ) : (
-          <div className="bolt-project-snapshots-empty">
-            <strong>{t('chat.copy.noCheckpointsYet_0cd8841d')}</strong>
-            <p>{t('chat.copy.createACheckpointBeforeMajorEdits_c50a54ac')}</p>
-          </div>
+          <PanelEmptyState
+            icon="i-ph:stack"
+            title={t('chat.copy.noCheckpointsYet_0cd8841d')}
+            description={t('chat.copy.createACheckpointBeforeMajorEdits_c50a54ac')}
+          />
         )}
       </section>
     );
@@ -13844,10 +13845,11 @@ function ProjectDomainsPanel({
             ))}
           </div>
         ) : (
-          <div className="bolt-project-domain-empty">
-            <strong>{t('chat.copy.noCustomDomainsYet_d9c8b21d')}</strong>
-            <span>{t('chat.copy.addADomainToGenerateOrganization_14f8de9b')}</span>
-          </div>
+          <PanelEmptyState
+            icon="i-ph:globe"
+            title={t('chat.copy.noCustomDomainsYet_d9c8b21d')}
+            description={t('chat.copy.addADomainToGenerateOrganization_14f8de9b')}
+          />
         )}
       </div>
     </div>
@@ -23013,11 +23015,14 @@ function PanelRows({ rows, events, empty }: { rows: any[]; events?: any[]; empty
       ]);
 
   if (!normalized.length) {
-    return (
-      <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-sm text-bolt-elements-textSecondary">
-        {empty ?? t('chat.copy.noRecords_2cd2e011')}
-      </div>
-    );
+    /*
+     * UNIF-IDE lot 1 : l'état vide passe par la carte canonique partagée
+     * (PanelEmptyState → ui/EmptyState) au lieu d'une carte ad hoc alignée à
+     * gauche — même rendu vide pour tous les panneaux qui listent via
+     * PanelRows (Activity, Collaborators, Security, Debugger, Monitoring,
+     * Settings, Integrations, …).
+     */
+    return <PanelEmptyState title={empty ?? t('chat.copy.noRecords_2cd2e011')} />;
   }
 
   return (
@@ -23029,32 +23034,6 @@ function PanelRows({ rows, events, empty }: { rows: any[]; events?: any[]; empty
         </div>
       ))}
     </div>
-  );
-}
-
-function PanelInput(props: any) {
-  return (
-    <input
-      {...props}
-      className="h-9 min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm outline-none focus:border-bolt-elements-focus"
-    />
-  );
-}
-
-function PanelButton({ children, variant, ...props }: any) {
-  return (
-    <button
-      {...props}
-      type="submit"
-      className={classNames(
-        'inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium disabled:opacity-60',
-        variant === 'outline'
-          ? 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3'
-          : 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text',
-      )}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -23212,6 +23191,14 @@ function panelIcon(panel: string) {
     database: 'i-ph:database',
     'object-storage': 'i-ph:package',
     packages: 'i-ph:cube',
+
+    /*
+     * UNIF-IDE lot 1 : `skills` et `ports` manquaient ici alors que le rail et
+     * la palette « + » les dessinent — l'onglet desktop retombait sur l'icône
+     * générique `i-ph:squares-four`. Mêmes glyphes que le rail (sparkle/plugs).
+     */
+    skills: 'i-ph:sparkle',
+    ports: 'i-ph:plugs',
     monitoring: 'i-ph:chart-line',
     extensions: 'i-ph:puzzle-piece',
     integrations: 'i-ph:plugs-connected',
