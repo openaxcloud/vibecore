@@ -71,10 +71,11 @@ export function PanelButton({
       type={type ?? 'submit'}
       className={classNames(
         'disabled:cursor-not-allowed disabled:opacity-60',
+        'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
         variant === 'menu'
           ? PANEL_BUTTON_VARIANT_CLASSES.menu
           : classNames(
-              'inline-flex items-center justify-center rounded-md font-medium',
+              'inline-flex items-center justify-center rounded-md font-medium transition',
               size === 'sm' ? 'h-7 px-2 text-xs' : 'h-9 px-3 text-sm',
               PANEL_BUTTON_VARIANT_CLASSES[variant],
             ),
@@ -102,6 +103,43 @@ export function PanelInput({ className, size = 'md', ...props }: PanelInputProps
         className,
       )}
     />
+  );
+}
+
+export interface PanelSectionTitleProps {
+  /**
+   * `section` (défaut) : titre de section de panneau — 13 px / 600.
+   * `group` : intertitre de groupe — 11 px / 600, capitales espacées.
+   */
+  level?: 'section' | 'group';
+  className?: string;
+  children: ReactNode;
+}
+
+/*
+ * Titre de section normalisé des panneaux IDE (UNIF-08, audit H3).
+ *
+ * Avant : trois familles coexistaient dans BaseChat — `<h3 text-sm
+ * font-semibold>`, `<h3 mb-2 text-sm font-medium>` (Agent Studio) et
+ * `<h4 text-xs uppercase tracking-wide>` — donc trois hiérarchies visuelles
+ * pour le même rôle. Deux niveaux fermés, sur l'échelle typo 11/12/13/14.
+ */
+export function PanelSectionTitle({ level = 'section', className, children }: PanelSectionTitleProps) {
+  if (level === 'group') {
+    return (
+      <h4
+        className={classNames(
+          'text-[11px] font-semibold uppercase tracking-wide text-bolt-elements-textSecondary',
+          className,
+        )}
+      >
+        {children}
+      </h4>
+    );
+  }
+
+  return (
+    <h3 className={classNames('text-[13px] font-semibold text-bolt-elements-textPrimary', className)}>{children}</h3>
   );
 }
 

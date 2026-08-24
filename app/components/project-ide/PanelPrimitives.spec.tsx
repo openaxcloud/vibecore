@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { PanelButton, PanelEmptyState, PanelInput } from './PanelPrimitives';
+import { PanelButton, PanelEmptyState, PanelInput, PanelSectionTitle } from './PanelPrimitives';
 
 afterEach(cleanup);
 
@@ -107,6 +107,31 @@ describe('<PanelButton />', () => {
   });
 });
 
+describe('<PanelButton /> — tailles et états partagés (UNIF, lot F)', () => {
+  it('rend la taille compacte 28 px pour les actions de panneau (size="sm")', () => {
+    render(
+      <PanelButton type="button" variant="outline" size="sm">
+        Retry
+      </PanelButton>,
+    );
+
+    const button = screen.getByRole('button', { name: 'Retry' });
+    expect(button.className).toContain('h-7');
+    expect(button.className).toContain('text-xs');
+    expect(button.className).not.toContain('h-9');
+  });
+
+  it('garde le CTA md par défaut et applique les états focus/hover partagés', () => {
+    render(<PanelButton>Save</PanelButton>);
+
+    const button = screen.getByRole('button', { name: 'Save' });
+    expect(button.className).toContain('h-9');
+    expect(button.className).toContain('focus-visible:ring-2');
+    expect(button.className).toContain('hover:opacity-90');
+    expect(button.className).toContain('disabled:opacity-60');
+  });
+});
+
 describe('<PanelInput />', () => {
   it('keeps the shared field chrome and merges custom class names', () => {
     render(<PanelInput aria-label="Secret key" className="custom-marker" />);
@@ -141,5 +166,25 @@ describe('<PanelEmptyState />', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Add domain' }));
     expect(onAction).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('<PanelSectionTitle />', () => {
+  it('rend un titre de section 13 px / 600 (niveau par défaut)', () => {
+    render(<PanelSectionTitle className="mb-2">Danger zone</PanelSectionTitle>);
+
+    const heading = screen.getByRole('heading', { level: 3, name: 'Danger zone' });
+    expect(heading.className).toContain('text-[13px]');
+    expect(heading.className).toContain('font-semibold');
+    expect(heading.className).toContain('mb-2');
+  });
+
+  it('rend un intertitre de groupe 11 px capitales (level="group")', () => {
+    render(<PanelSectionTitle level="group">Buckets</PanelSectionTitle>);
+
+    const heading = screen.getByRole('heading', { level: 4, name: 'Buckets' });
+    expect(heading.className).toContain('text-[11px]');
+    expect(heading.className).toContain('uppercase');
+    expect(heading.className).toContain('tracking-wide');
   });
 });
