@@ -263,7 +263,7 @@ function SolutionAppVisualCard({
         <span />
         <span />
         <span />
-        <strong>{visual.name}</strong>
+        <strong>{visual.name[language]}</strong>
         <em>{ui.realApp}</em>
       </div>
       <a
@@ -271,7 +271,7 @@ function SolutionAppVisualCard({
         href={visual.previewHref}
         target="_blank"
         rel="noopener"
-        aria-label={`${ui.openPreviewAria}: ${visual.name}`}
+        aria-label={`${ui.openPreviewAria}: ${visual.name[language]}`}
       >
         <img
           src={visual.thumbnailSrc}
@@ -291,14 +291,14 @@ function SolutionAppVisualCard({
         <span>
           {ui.workingDemo} · {visual.capability[language]}
         </span>
-        <strong>{visual.name}</strong>
+        <strong>{visual.name[language]}</strong>
         <p>{visual.description[language]}</p>
         <div className="sol-app-showcase__actions">
           <a
             href={visual.previewHref}
             target="_blank"
             rel="noopener"
-            aria-label={`${ui.openPreviewAria}: ${visual.name}`}
+            aria-label={`${ui.openPreviewAria}: ${visual.name[language]}`}
           >
             <span>{ui.openPreview}</span>
             <ExternalLink aria-hidden />

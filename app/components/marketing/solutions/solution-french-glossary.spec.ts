@@ -7,6 +7,7 @@ import { ENTERPRISE_COPY } from './enterprise.copy';
 import { FREELANCERS_COPY } from './freelancers.copy';
 import { GAME_BUILDER_COPY } from './game-builder.copy';
 import { INTERNAL_AI_BUILDER_COPY } from './internal-ai-builder.copy';
+import { SOLUTION_APP_SHOWCASES } from './solution-app-showcases';
 import { STARTUPS_COPY } from './startups.copy';
 import { WEBSITE_BUILDER_COPY } from './website-builder.copy';
 import { findFrenchAuditResidue, type AuditSemanticEntry } from '~/lib/i18n/catalogs/live-audit-heuristics';
@@ -66,6 +67,26 @@ const SOLUTION_PAGES = [
   ['website-builder', WEBSITE_BUILDER_COPY],
 ] as const;
 
+/*
+ * Les vignettes d'apps de démo portent leur copie par CHAMP bilingue
+ * (`{ en, fr }`), et non par arbre de langue comme les `*.copy.ts` : elles
+ * échappaient donc à `collectCopy` et à ce spec. C'est exactement par là que la
+ * régression est passée — `Docs Copilot`, `Workflow assisté par IA`,
+ * `Une app …`, `backend`, `responsive`, `full-stack` — pour n'être signalée
+ * qu'une heure plus tard par l'audit live en CI.
+ */
+function collectShowcaseCopy(language: 'en' | 'fr'): AuditSemanticEntry[] {
+  return Object.entries(SOLUTION_APP_SHOWCASES).flatMap(([slug, showcase]) =>
+    Object.entries(showcase).flatMap(([role, visual]) =>
+      (['name', 'alt', 'description', 'capability'] as const).map((field) => {
+        const locator = `${slug}.${role}.${field}`;
+
+        return { kind: 'text' as const, text: visual[field][language], locator, semanticKey: locator };
+      }),
+    ),
+  );
+}
+
 function formatFindings(findings: ReturnType<typeof findFrenchAuditResidue>): string {
   return findings.map((finding) => `${finding.reason} @ ${finding.locator} — ${finding.text}`).join('\n');
 }
@@ -73,6 +94,12 @@ function formatFindings(findings: ReturnType<typeof findFrenchAuditResidue>): st
 describe('French glossary on the Solutions pages', () => {
   it.each(SOLUTION_PAGES)('keeps %s free of the English terms the live audit rejects', (_slug, copy) => {
     const findings = findFrenchAuditResidue(collectCopy(copy.en), collectCopy(copy.fr));
+
+    expect(findings, formatFindings(findings)).toEqual([]);
+  });
+
+  it('keeps the demo app showcases free of the same terms', () => {
+    const findings = findFrenchAuditResidue(collectShowcaseCopy('en'), collectShowcaseCopy('fr'));
 
     expect(findings, formatFindings(findings)).toEqual([]);
   });
