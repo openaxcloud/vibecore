@@ -425,7 +425,7 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
                 {copy.modelSelector.cardTitle}
               </h3>
             </div>
-            <p className="break-words text-[10px] leading-relaxed text-muted-foreground sm:text-[11px]">
+            <p className="break-words text-[11px] leading-relaxed text-muted-foreground sm:text-[11px]">
               {modelsLoading
                 ? copy.modelSelector.loadingDescription
                 : formatExactControlCount(models.length, copy.modelSelector.availableDescription, language)}
@@ -457,12 +457,12 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
                     <CurrentProviderIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
                     {currentModel.name}
                     {currentModel.supportsStreaming ? (
-                      <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                      <Badge variant="secondary" className="text-[11px] px-1.5 py-0">
                         {copy.modelSelector.streaming}
                       </Badge>
                     ) : null}
                   </div>
-                  <p className="mt-1 break-words text-[10px] leading-relaxed text-muted-foreground">
+                  <p className="mt-1 break-words text-[11px] leading-relaxed text-muted-foreground">
                     {currentModel.description}
                   </p>
                 </div>
@@ -671,7 +671,7 @@ export function BuildModeSelector({
                 <span className="min-w-0 break-words text-[11px] font-medium text-muted-foreground">
                   {copy.buildMode.featureListCreated}
                 </span>
-                <Badge variant="secondary" className="max-w-full whitespace-normal text-[10px] leading-snug">
+                <Badge variant="secondary" className="max-w-full whitespace-normal text-[11px] leading-snug">
                   {formatExactControlCount(featureList.length, copy.buildMode.featureCount, language)}
                 </Badge>
               </div>
@@ -704,7 +704,7 @@ export function BuildModeSelector({
                   <div className="mb-3 flex justify-end">
                     <Badge
                       className={cn(
-                        'max-w-full whitespace-normal border-0 px-2 text-right text-[10px] leading-snug',
+                        'max-w-full whitespace-normal border-0 px-2 text-right text-[11px] leading-snug',
                         getColorClasses(option.color, 'fg'),
                         getColorClasses(option.color, 'icon'),
                       )}

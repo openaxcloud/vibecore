@@ -1,6 +1,6 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, Ref } from 'react';
 
-import { EmptyState } from '~/components/ui/EmptyState';
+import { EmptyState, IDE_PRIMARY_ACCENT_CLASSES } from '~/components/ui/EmptyState';
 import { classNames } from '~/utils/classNames';
 
 /*
@@ -22,21 +22,62 @@ import { classNames } from '~/utils/classNames';
  *    l'ignorer, pour permettre les ajustements locaux sans re-fork.
  */
 
+/*
+ * UNIF lot 4 — LE style primary tranché (audit B2/K1). Deux styles de CTA
+ * coexistaient dans les mêmes panneaux : la paire de tokens
+ * `bg-bolt-elements-button-primary-*` (fond teinté + texte accent) et le plein
+ * `--vc-ide-accent-action` + texte blanc du `ui/EmptyState` canonique. Le
+ * standard IDE retenu est le SECOND ; la source unique est
+ * `IDE_PRIMARY_ACCENT_CLASSES` (ui/EmptyState — importée ici pour éviter un
+ * import circulaire). Les tokens `--bolt-elements-button-primary-*` restent
+ * définis pour les surfaces legacy hors panneaux IDE (dialogs, marketing) —
+ * c'est l'« alias » de transition.
+ */
 export interface PanelButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'outline';
+  /**
+   * - `primary` (défaut) : CTA plein accent action (standard EmptyState).
+   * - `outline` : action secondaire bordée.
+   * - `danger` : action destructive/erreur bordée (Retry d'erreur, Delete).
+   * - `menu` : item de menu déroulant (⋮ de la coque) — pleine largeur,
+   *   aligné à gauche, hover discret ; ignore `size`.
+   */
+  variant?: 'primary' | 'outline' | 'danger' | 'menu';
+
+  /** `md` (défaut) : h-9 / 14 px. `sm` : h-7 / 12 px (toolbars, bannières). */
+  size?: 'md' | 'sm';
   children?: ReactNode;
 }
 
-export function PanelButton({ children, variant, type, className, ...props }: PanelButtonProps) {
+const PANEL_BUTTON_VARIANT_CLASSES: Record<NonNullable<PanelButtonProps['variant']>, string> = {
+  primary: IDE_PRIMARY_ACCENT_CLASSES,
+  outline:
+    'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
+  danger:
+    'border border-[var(--vc-ide-accent-error)]/50 text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10',
+  menu: 'flex w-full items-center gap-2 rounded px-2 py-1.5 text-left hover:bg-bolt-elements-background-depth-3',
+};
+
+export function PanelButton({
+  children,
+  variant = 'primary',
+  size = 'md',
+  type,
+  className,
+  ...props
+}: PanelButtonProps) {
   return (
     <button
       {...props}
       type={type ?? 'submit'}
       className={classNames(
-        'inline-flex h-9 items-center justify-center rounded-md px-3 text-sm font-medium disabled:opacity-60',
-        variant === 'outline'
-          ? 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3'
-          : 'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text',
+        'disabled:cursor-not-allowed disabled:opacity-60',
+        variant === 'menu'
+          ? PANEL_BUTTON_VARIANT_CLASSES.menu
+          : classNames(
+              'inline-flex items-center justify-center rounded-md font-medium',
+              size === 'sm' ? 'h-7 px-2 text-xs' : 'h-9 px-3 text-sm',
+              PANEL_BUTTON_VARIANT_CLASSES[variant],
+            ),
         className,
       )}
     >
@@ -45,14 +86,19 @@ export function PanelButton({ children, variant, type, className, ...props }: Pa
   );
 }
 
-export type PanelInputProps = InputHTMLAttributes<HTMLInputElement>;
+/* `size` natif (largeur en caractères) écarté au profit de la taille de gabarit. */
+export interface PanelInputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
+  /** `md` (défaut) : h-9 / 14 px. `sm` : h-7 / 12 px (filtres, toolbars). */
+  size?: 'md' | 'sm';
+}
 
-export function PanelInput({ className, ...props }: PanelInputProps) {
+export function PanelInput({ className, size = 'md', ...props }: PanelInputProps) {
   return (
     <input
       {...props}
       className={classNames(
-        'h-9 min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 text-sm outline-none focus:border-bolt-elements-focus',
+        'min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 outline-none focus:border-bolt-elements-focus',
+        size === 'sm' ? 'h-7 px-2 text-xs' : 'h-9 px-2 text-sm',
         className,
       )}
     />
