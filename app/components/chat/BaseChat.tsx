@@ -158,6 +158,12 @@ import {
 import { hasLivePreviewPort, isWorkspaceReallyRunning, workspaceUiState } from '~/lib/runtime/workspace-status';
 import { useCurrentWorkspaceId } from '~/lib/runtime/CurrentWorkspaceContext';
 import { useNavigate, useSearchParams } from 'react-router';
+import {
+  isMobileWorkbenchPanel,
+  resolveMobileWorkbenchPanel,
+  shouldMountMobileWorkbench,
+  type MobileWorkbenchPanelId,
+} from '~/components/chat/mobile-workbench-keepalive';
 import { readPanelSearchParam, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 import {
   type CompactPreviewRunState,
@@ -2992,6 +2998,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [mobilePanel, setMobilePanel] = useState<
       'chat' | 'files' | 'editor' | 'search' | 'locks' | 'terminal' | 'preview' | 'deploy'
     >('chat');
+
+    /*
+     * BUG-IDE-PANEL-REPROVISION-RELOAD-001 — keep-alive du Workbench mobile.
+     * Une fois un panneau workbench (Webview, Shell, éditeur, fichiers,
+     * recherche) ouvert, LazyWorkbench reste monté pour la session et n'est que
+     * MASQUÉ quand Agent/gestion/locks est actif. Avant, chaque retour vers un
+     * panneau workbench remontait tout le workbench à froid (Suspense plein
+     * écran, terminal et éditeur réinitialisés) et, sur un pod endormi, la
+     * Preview remontée relançait le re-provisionnement avec son overlay
+     * « Webview startup » sur toute la zone — vécu comme « ouvrir un panneau
+     * recharge tout l'IDE ». Voir mobile-workbench-keepalive.ts.
+     */
+    const [mobileWorkbenchKeepAlive, setMobileWorkbenchKeepAlive] = useState(false);
+    const lastMobileWorkbenchPanelRef = useRef<MobileWorkbenchPanelId | undefined>(undefined);
+    const mobileWorkbenchPanelActive = useMobileIde && isMobileWorkbenchPanel(mobilePanel);
+
+    useEffect(() => {
+      if (mobileWorkbenchPanelActive && isMobileWorkbenchPanel(mobilePanel)) {
+        setMobileWorkbenchKeepAlive(true);
+        lastMobileWorkbenchPanelRef.current = mobilePanel;
+      }
+    }, [mobilePanel, mobileWorkbenchPanelActive]);
 
     const [mobileToolsSheetOpen, setMobileToolsSheetOpen] = useState(false);
     const [mobileToolsQuery, setMobileToolsQuery] = useState('');
@@ -9210,7 +9238,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <LockManager />
                   </div>
                 </PanelBoundary>
-              ) : useMobileIde && mobilePanel === 'deploy' ? (
+              ) : null}
+              {useMobileIde && mobilePanel === 'deploy' ? (
                 <PanelBoundary title={t(IDE_TOOL_DESCRIPTIONS[activeMobileServicePanel] ?? 'chat.copy.projectTools')}>
                   <div className="bolt-workbench-mobile bolt-workbench-mobile-service fixed left-0 z-0 w-full">
                     <ProjectIdeServicePanel
@@ -9223,31 +9252,52 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     />
                   </div>
                 </PanelBoundary>
-              ) : useMobileIde && mobilePanel === 'chat' ? null : (
-                <ClientOnly>
-                  {() => (
-                    <PanelBoundary title={t('chat.copy.workbench_93ef7c63')}>
-                      <Suspense fallback={<PanelLoading title={t('chat.copy.loadingWorkspacePanels_3d3423fa')} />}>
-                        <LazyWorkbench
-                          chatStarted={chatStarted || useMobileIde}
-                          isStreaming={isStreaming}
-                          setSelectedElement={setSelectedElement}
-                          mobilePanel={
-                            mobilePanel === 'chat' ? 'editor' : mobilePanel === 'deploy' ? 'editor' : mobilePanel
-                          }
-                          projectId={projectId}
-                          onMobilePanelChange={(panel) => {
-                            if (panel === 'editor') {
-                              setMobileIdePanel('editor');
-                              setProjectPanelSearchParam('editor');
-                            }
-                          }}
-                        />
-                      </Suspense>
-                    </PanelBoundary>
-                  )}
-                </ClientOnly>
-              )}
+              ) : null}
+              {/*
+               * BUG-IDE-PANEL-REPROVISION-RELOAD-001 — le Workbench n'est plus
+               * démonté quand Agent/gestion/locks est actif : une fois ouvert il
+               * reste monté (keep-alive) et n'est que masqué via
+               * [data-active='false'], pour qu'un changement de panneau ne
+               * remonte jamais tout l'IDE ni ne relance la boucle de démarrage
+               * de la Preview (re-provisionnement plein écran sur pod froid).
+               */}
+              {shouldMountMobileWorkbench({
+                useMobileIde,
+                mobilePanel,
+                workbenchKeepAlive: mobileWorkbenchKeepAlive,
+              }) ? (
+                <div
+                  className="bolt-workbench-mobile-keepalive"
+                  data-testid="mobile-workbench-keepalive"
+                  data-active={!useMobileIde || mobileWorkbenchPanelActive ? 'true' : 'false'}
+                  aria-hidden={!useMobileIde || mobileWorkbenchPanelActive ? undefined : true}
+                >
+                  <ClientOnly>
+                    {() => (
+                      <PanelBoundary title={t('chat.copy.workbench_93ef7c63')}>
+                        <Suspense fallback={<PanelLoading title={t('chat.copy.loadingWorkspacePanels_3d3423fa')} />}>
+                          <LazyWorkbench
+                            chatStarted={chatStarted || useMobileIde}
+                            isStreaming={isStreaming}
+                            setSelectedElement={setSelectedElement}
+                            mobilePanel={resolveMobileWorkbenchPanel({
+                              mobilePanel,
+                              lastWorkbenchPanel: lastMobileWorkbenchPanelRef.current,
+                            })}
+                            projectId={projectId}
+                            onMobilePanelChange={(panel) => {
+                              if (panel === 'editor') {
+                                setMobileIdePanel('editor');
+                                setProjectPanelSearchParam('editor');
+                              }
+                            }}
+                          />
+                        </Suspense>
+                      </PanelBoundary>
+                    )}
+                  </ClientOnly>
+                </div>
+              ) : null}
             </>
           )}
         </div>

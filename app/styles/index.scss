@@ -5800,6 +5800,28 @@ body :where(.lucide, svg[data-lucide]) {
   padding-top: 12px;
 }
 
+/*
+ * BUG-IDE-PANEL-REPROVISION-RELOAD-001 — keep-alive du Workbench mobile.
+ * `display: contents` : le conteneur ne crée AUCUNE boîte, la mise en page du
+ * workbench (motion.div à largeur animée + enfant `fixed`) reste identique au
+ * rendu sans wrapper, sur mobile comme sur desktop. Quand un panneau
+ * non-workbench (Agent, gestion, locks) est actif, le workbench reste monté —
+ * terminal connecté, webview vivante, état de l'éditeur conservé — mais il est
+ * masqué par `visibility` (héritée à travers display: contents) et ne capte
+ * plus aucun événement. Le démonter, comme avant, forçait un remontage complet
+ * à chaque retour : Suspense plein écran + relance de la boucle de démarrage de
+ * la Preview (re-provisionnement du pod froid, overlay « Webview startup » sur
+ * toute la zone) — le « ouvrir un panneau recharge tout l'IDE » d'Avi.
+ */
+.bolt-workbench-mobile-keepalive {
+  display: contents;
+}
+
+.bolt-workbench-mobile-keepalive[data-active='false'] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
 .bolt-workbench-mobile-action {
   display: inline-flex;
   min-height: 32px;
