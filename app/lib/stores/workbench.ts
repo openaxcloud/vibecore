@@ -735,6 +735,36 @@ export class WorkbenchStore {
     }
 
     /*
+     * BUG-IDE-PANEL-RECLICK-REPROVISION-001 — reattach fast-path evaluated
+     * BEFORE any recovery. A redundant, NON-forced start against an
+     * already-serving preview (re-clicking the active Webview tab, a panel
+     * re-activation, a stray auto-kick) must be a strict no-op: no
+     * #ensureWorkspaceProvisioned (a stale stopped/error status in the store
+     * would replace the LIVE pod), no manifest sync, no install and no
+     * stopPreviewServer (which killed the healthy dev command mid-stream).
+     * Live repro (24/08, desktop prod): re-clicking the active Webview tab
+     * reprovisioned the workspace, collapsed the file tree from 12 to 1 file
+     * and killed the running preview command ("Command stream closed before
+     * completion / exited with code 1"). The ports snapshot is refreshed first
+     * so the decision sees reality, and a genuinely dead pod fails the
+     * ready/deps probes and falls through to the recovery path below.
+     */
+    if (!forceInstall && !forceRestart) {
+      await this.refreshRuntimePorts().catch(() => undefined);
+
+      if (this.#previewStartPromise) {
+        return this.#previewStartPromise;
+      }
+
+      if (await this.#canShortCircuitToExistingPreview()) {
+        this.previewServerState.set({ status: 'running' });
+        this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.reattached'));
+
+        return workbenchText('workbenchRuntime.preview.reattachedResult');
+      }
+    }
+
+    /*
      * Recover a reaped workspace before doing anything else. The Run / Reinstall
      * buttons issue dev-server commands at the EXISTING workspace pod; once the
      * manager has reconciled the pod away (status stopped/error) those commands

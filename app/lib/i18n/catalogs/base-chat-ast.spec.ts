@@ -152,11 +152,21 @@ describe('BaseChat strengthened-AST catalog', () => {
      *    affiché et la mise en page ne changent pas — l'élément reste le même,
      *    aux mêmes classes, et des règles CSS de spécificité supérieure
      *    neutralisent les styles génériques de bouton de l'en-tête.
+     * 4. bug remonté par Avi (BUG-IDE-PANEL-REPROVISION-RELOAD-001, « ouvrir
+     *    certains panneaux recharge tout l'IDE ») — le Workbench mobile passe
+     *    en keep-alive : une fois ouvert il reste monté et n'est que masqué
+     *    (`.bolt-workbench-mobile-keepalive[data-active='false']`, visibility)
+     *    quand Agent/gestion/locks est actif, au lieu d'être démonté puis
+     *    remonté à froid à chaque retour (Suspense plein écran + relance de la
+     *    boucle de démarrage de la Preview → re-provisionnement du pod).
+     *    L'onglet Terminal (ShellPanel), l'en-tête et le dock sont inchangés :
+     *    seule la stratégie de montage du conteneur workbench change, dans la
+     *    même région de source. Voir mobile-workbench-keepalive.ts.
      *
      * Toute évolution du hash hors d'une demande explicite du propriétaire
      * signale une dérive de mise en page à refuser.
      */
-    expect(frozenHash).toBe('7e69efa83ed1122db5602affe66bb2a7532ea007e8ccf87d260970288a8fb05a');
+    expect(frozenHash).toBe('37963dd8b90af8b61ac670c0d8bb20da6d3558fc9da096fc2ac9afeeeb3c024d');
     expect(outsideFrozen).toEqual([]);
 
     // The mobile header/dock labels are now localized via t(); no raw English remains.
