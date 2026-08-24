@@ -25,7 +25,7 @@ import {
   onTerminalFrame,
   onTerminalReconnectScheduled,
   onTerminalReconnected,
-} from './terminal-reconnect';
+} from './terminal-reconnect.js';
 
 export interface RemoteKubernetesRuntimeAdapterOptions {
   baseUrl: string;

@@ -7,7 +7,7 @@ import {
   onTerminalFrame,
   onTerminalReconnectScheduled,
   onTerminalReconnected,
-} from './terminal-reconnect';
+} from './terminal-reconnect.js';
 
 /*
  * BUG-UX-DEV-BLOCKED-STUCK — the endless "[terminal reconnected]" flap seen
