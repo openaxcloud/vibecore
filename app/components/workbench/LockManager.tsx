@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { IdePanelHeader, PanelButton, PanelInput } from '~/components/project-ide/PanelPrimitives';
+import { IdePanelHeader, PanelButton, PanelEmptyState, PanelInput } from '~/components/project-ide/PanelPrimitives';
 import { Checkbox } from '~/components/ui/Checkbox';
 import { toast } from '~/components/ui/use-toast';
 import {
@@ -287,10 +287,10 @@ export function LockManager() {
 
       {/* List of locked items */}
       <div className="flex-1 overflow-auto modern-scrollbar px-1 py-1">
+        {/* UNIF lot 4 (audit E1) — état vide canonique partagé. */}
         {filteredAndSortedItems.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-2 px-4 text-center text-xs text-bolt-elements-textTertiary">
-            <span className="i-ph:lock-open-duotone text-lg opacity-50" aria-hidden />
-            <span>{copy['lockManager.empty']}</span>
+          <div className="flex h-full items-center justify-center px-2">
+            <PanelEmptyState icon="i-ph:lock-open" title={copy['lockManager.empty']} className="w-full" />
           </div>
         ) : (
           <ul className="space-y-1">

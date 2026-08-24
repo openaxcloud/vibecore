@@ -10,7 +10,7 @@ import {
   needsContentHydration,
   toRuntimeRelativePath,
 } from './search-replace';
-import { IdePanelHeader, PanelButton, PanelInput } from '~/components/project-ide/PanelPrimitives';
+import { IdePanelHeader, PanelButton, PanelEmptyState, PanelInput } from '~/components/project-ide/PanelPrimitives';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -491,8 +491,9 @@ export function Search() {
             {t('workbenchSearch.errors.search')}
           </div>
         )}
+        {/* UNIF lot 4 (audit E1) — état vide canonique au lieu du texte gris nu. */}
         {!isSearching && !searchError && hasSearched && searchResults.length === 0 && searchQuery.trim() !== '' && (
-          <div className="flex items-center justify-center h-32 text-gray-500">{t('workbenchSearch.noResults')}</div>
+          <PanelEmptyState icon="i-ph:magnifying-glass" title={t('workbenchSearch.noResults')} className="mx-3" />
         )}
         {!isSearching &&
           Object.keys(groupedResults).map((file) => (
