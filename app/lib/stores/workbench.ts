@@ -67,6 +67,11 @@ import {
 } from '~/utils/agent-patch-logs';
 import { mergeJsonContent } from '~/lib/chat/merge-json-content';
 import { resolveFailedAgentPatchContent } from '~/lib/stores/agent-patch-fallback';
+import {
+  AgentPatchFloodGuard,
+  patchContentFingerprint,
+  type PatchAdmission,
+} from '~/lib/stores/agent-patch-flood-guard';
 import { reconcileRemoteWrite } from '~/lib/stores/reconcile-remote-write';
 import { KeyedMutex } from '~/lib/common/keyed-mutex';
 import { createSampler } from '~/utils/sampler';
@@ -319,6 +324,31 @@ export class WorkbenchStore {
    * that surfaced as "Remote file changed since it was loaded".
    */
   #agentPatchApplyMutex = new KeyedMutex();
+
+  /*
+   * BUG-SELFREPAIR-RUNAWAY-LOOP-001 — bounded admission for the proposal /
+   * silent auto-apply pipeline. The generator re-emits file actions with fresh
+   * actionIds for identical content (measured: ~90 duplicate proposals for one
+   * CSS file in a single run); without this guard every duplicate became a new
+   * pending proposal, the auto-applier accepted each one ("AI patch accepted"
+   * ×90), and follow-up commands — including `start` — stayed starved behind
+   * the never-draining review queue.
+   */
+  #agentPatchFloodGuard = new AgentPatchFloodGuard();
+
+  /** Paths whose duplicate-skip has already been logged (one line, not a storm). */
+  #agentPatchSkipLogged = new Set<string>();
+
+  /** Halt escalations already surfaced (per scope/path), to alert exactly once. */
+  #agentPatchHaltAlerted = new Set<string>();
+
+  /**
+   * `start` actions skipped because proposals were open for their artifact.
+   * Re-dispatched (via the tracked startPreviewServer launcher) as soon as the
+   * artifact's review queue drains — before this, the skipped start was marked
+   * "complete" ("Start application — Done") while `npm run dev` never ran.
+   */
+  #deferredStartArtifacts = new Set<string>();
   #runtimeFilesLoadedProjectId: string | undefined;
   #globalExecutionQueue = Promise.resolve();
   constructor() {
@@ -495,6 +525,10 @@ export class WorkbenchStore {
   #resetProjectScopedState() {
     this.agentPatchProposals.set({});
     this.#agentPatchOriginals.clear();
+    this.#agentPatchFloodGuard.reset();
+    this.#agentPatchSkipLogged.clear();
+    this.#agentPatchHaltAlerted.clear();
+    this.#deferredStartArtifacts.clear();
     this.agentPatchSelfRepair.set({});
     this.unsavedFiles.set(new Set<string>());
 
@@ -2262,6 +2296,7 @@ export class WorkbenchStore {
     });
     this.#syncAgentPatchProposalToServer(proposalId);
     this.#dropResolvedAgentPatchLogs(proposal.relativePath);
+    this.#maybeRunDeferredStart(proposal.artifactId);
     this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.rejected', { file: proposal.relativePath }));
   }
 
@@ -2326,6 +2361,18 @@ export class WorkbenchStore {
      * interleave; different paths still apply concurrently.
      */
     return this.#agentPatchApplyMutex.run(proposal.filePath, async () => {
+      /*
+       * BUG-SELFREPAIR-RUNAWAY-LOOP-001 — per-file backoff. Once the same file
+       * has been patched several times inside the window, each further apply
+       * waits exponentially longer (capped), so a repair loop drains slowly and
+       * visibly instead of hammering write/reload/checkpoint back-to-back.
+       */
+      const backoffMs = this.#agentPatchFloodGuard.backoffDelayMs(proposal.relativePath);
+
+      if (backoffMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, backoffMs));
+      }
+
       try {
         let acceptedContent = applyReviewableDiffHunks({
           originalContent: proposal.originalContent,
@@ -2428,6 +2475,8 @@ export class WorkbenchStore {
         });
         this.#dropResolvedAgentPatchLogs(proposal.relativePath);
         this.#dropResolvedMissingImportFailures();
+        this.#agentPatchFloodGuard.recordAccepted(proposal.relativePath, patchContentFingerprint(acceptedContent));
+        this.#maybeRunDeferredStart(proposal.artifactId);
         this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.accepted', { file: proposal.relativePath }));
 
         await this.#createProjectAgentCheckpoint(
@@ -2446,6 +2495,8 @@ export class WorkbenchStore {
           error: message,
         });
         this.#syncAgentPatchProposalToServer(proposalId);
+        this.#agentPatchFloodGuard.recordFailure(proposal.relativePath);
+        this.#maybeRunDeferredStart(proposal.artifactId);
         this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.failedLog', { file: proposal.relativePath }));
 
         return 'failed';
@@ -3132,6 +3183,17 @@ export class WorkbenchStore {
       this.#dropResolvedMissingImportFailures();
     } else {
       if (this.agentPatchReviewRequired.get() && this.#hasOpenAgentPatchProposalsForArtifact(artifactId)) {
+        /*
+         * A skipped `start` is remembered and re-dispatched once the review
+         * queue drains. skipAction marks the action "complete", so without this
+         * the UI showed "Start application — Done" while `npm run dev` never
+         * ran and the preview stayed on `preview.proxy.unreachable` (live
+         * incident 24/08 — see BUG-SELFREPAIR-RUNAWAY-LOOP-001).
+         */
+        if (data.action.type === 'start') {
+          this.#deferredStartArtifacts.add(artifactId);
+        }
+
         artifact.runner.skipAction(data.actionId);
         this.appendWorkspaceLog(workbenchText('workbenchRuntime.write.commandReviewPending'));
 
@@ -3252,10 +3314,52 @@ export class WorkbenchStore {
         );
       }
     }
+
+    this.#maybeRunDeferredStart(artifactId);
   }
 
   #queueAgentPatchProposal(data: ActionCallbackData, isStreaming: boolean) {
     if (data.action.type !== 'file') {
+      return;
+    }
+
+    /*
+     * BUG-SELFREPAIR-RUNAWAY-LOOP-001 — admission control BEFORE a proposal is
+     * created. A re-emitted action with byte-identical content (fresh actionId,
+     * same bytes — the measured ×90 duplicate storm) must not spawn yet another
+     * pending proposal for the auto-applier to accept; and a file that keeps
+     * being re-patched without converging must stop cleanly and escalate
+     * instead of looping. The caller (`_runAction`) already skips the action
+     * for the non-streaming close, so returning here is a clean no-op.
+     */
+    const fingerprint = patchContentFingerprint(data.action.content);
+
+    /*
+     * Only the authoritative non-streaming close COUNTS toward the bounds: a
+     * streamed file arrives as dozens of partial chunks (measured: 55 writes
+     * for one file), and counting those would exhaust the per-file budget on a
+     * single legitimate generation. Streaming uses the non-counting probe so a
+     * halted path still stops updating and identical bytes are still skipped.
+     */
+    const admission = isStreaming
+      ? this.#agentPatchFloodGuard.probe(data.action.filePath, fingerprint)
+      : this.#agentPatchFloodGuard.admit(data.action.filePath, fingerprint);
+
+    if (admission.kind === 'skip-identical') {
+      if (!isStreaming && !this.#agentPatchSkipLogged.has(data.action.filePath)) {
+        this.#agentPatchSkipLogged.add(data.action.filePath);
+        this.appendWorkspaceLog(
+          workbenchText('workbenchRuntime.patch.duplicateSkippedLog', { file: data.action.filePath }),
+        );
+      }
+
+      this.#maybeRunDeferredStart(data.artifactId);
+
+      return;
+    }
+
+    if (admission.kind === 'halt') {
+      this.#escalateAgentPatchHalt(data.action.filePath, data.artifactId, admission);
       return;
     }
 
@@ -3305,6 +3409,99 @@ export class WorkbenchStore {
         workbenchText('workbenchRuntime.validation.waitingForReview', { file: data.action.filePath }),
       );
     }
+  }
+
+  /**
+   * A patch-flood bound was hit: stop cleanly and escalate. Any still-open
+   * proposal for the path is failed (so the review queue drains and skipped
+   * commands can unblock), one workspace-log line + one alert are surfaced per
+   * scope/path, and the deferred start is given a chance to run.
+   */
+  #escalateAgentPatchHalt(
+    relativePath: string,
+    artifactId: string,
+    admission: Extract<PatchAdmission, { kind: 'halt' }>,
+  ) {
+    const values = { file: relativePath, attempts: admission.attempts, limit: admission.limit };
+    const alertKey = admission.scope === 'global' ? 'global' : `file:${relativePath}`;
+
+    for (const proposal of Object.values(this.agentPatchProposals.get())) {
+      if (proposal.relativePath !== relativePath || isTerminalAgentPatchStatus(proposal.status)) {
+        continue;
+      }
+
+      const artifact = this.#getArtifact(proposal.artifactId);
+
+      artifact?.runner.skipAction(proposal.actionId);
+      this.agentPatchProposals.setKey(proposal.id, {
+        ...proposal,
+        status: 'failed',
+        updatedAt: new Date().toISOString(),
+        error: workbenchText(
+          admission.scope === 'global' ? 'workbenchRuntime.patch.haltGlobal' : 'workbenchRuntime.patch.haltFile',
+          values,
+        ),
+      });
+      this.#syncAgentPatchProposalToServer(proposal.id);
+    }
+
+    if (!this.#agentPatchHaltAlerted.has(alertKey)) {
+      this.#agentPatchHaltAlerted.add(alertKey);
+
+      const description = workbenchText(
+        admission.scope === 'global' ? 'workbenchRuntime.patch.haltGlobal' : 'workbenchRuntime.patch.haltFile',
+        values,
+      );
+
+      this.appendWorkspaceLog(
+        workbenchText(
+          admission.scope === 'global' ? 'workbenchRuntime.patch.haltGlobalLog' : 'workbenchRuntime.patch.haltFileLog',
+          values,
+        ),
+      );
+      this.actionAlert.set({
+        type: 'error',
+        title: workbenchText('workbenchRuntime.patch.haltTitle'),
+        description,
+        content: description,
+        source: 'preview',
+      });
+    }
+
+    this.#maybeRunDeferredStart(artifactId);
+  }
+
+  /**
+   * Launch the tracked dev-server start that was skipped while the artifact's
+   * review queue was open. Runs at most once per artifact and only when no
+   * proposal for the artifact is still pending/applying; startPreviewServer
+   * itself is guarded/idempotent (in-flight promise + reattach short-circuit).
+   *
+   * NOTE: this deliberately does NOT reuse #hasOpenAgentPatchProposalsForArtifact
+   * — that predicate (via isTerminalAgentPatchStatus) treats a 'failed'
+   * proposal as still open, which is exactly how a failing patch used to
+   * starve the start command FOREVER. A failed proposal must not keep the dev
+   * server from launching.
+   */
+  #maybeRunDeferredStart(artifactId: string) {
+    if (!this.#deferredStartArtifacts.has(artifactId)) {
+      return;
+    }
+
+    const stillBlocking = Object.values(this.agentPatchProposals.get()).some(
+      (proposal) =>
+        proposal.artifactId === artifactId && (proposal.status === 'pending' || proposal.status === 'applying'),
+    );
+
+    if (stillBlocking) {
+      return;
+    }
+
+    this.#deferredStartArtifacts.delete(artifactId);
+    this.appendWorkspaceLog(workbenchText('workbenchRuntime.patch.deferredStartLog'));
+    void this.startPreviewServer().catch(() => {
+      this.appendWorkspaceLog(workbenchText('workbenchRuntime.preview.startFailed'));
+    });
   }
 
   async #refreshPreviewAfterArtifactClose(artifactId: string) {
