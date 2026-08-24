@@ -17,6 +17,7 @@ import {
   shouldUseExistingPreviewServer,
   workspaceNeedsReprovision,
 } from './preview-recovery';
+import { isPreviewHealthy, shouldAutoDismissPreviewAlert } from './preview-alert-autodismiss';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
@@ -413,6 +414,31 @@ export class WorkbenchStore {
         estimatedTokensSaved: payload.estimatedTokensSaved,
       });
     });
+
+    /*
+     * BUG-UX-PREVIEW-ERROR-STICKY — la carte « Erreur d'aperçu » se retire toute
+     * seule quand l'aperçu redevient sain. Détection par FRONT malade → sain sur
+     * le store des previews (un port `ready` réapparaît) : voir
+     * preview-alert-autodismiss.ts pour la règle exacte et pourquoi une alerte
+     * posée pendant que l'aperçu est déjà sain n'est jamais balayée.
+     */
+    let previewWasHealthy = isPreviewHealthy(this.previews.get());
+
+    this.previews.subscribe((previews) => {
+      const previewIsHealthy = isPreviewHealthy(previews);
+
+      if (
+        shouldAutoDismissPreviewAlert({
+          wasHealthy: previewWasHealthy,
+          isHealthy: previewIsHealthy,
+          alert: this.actionAlert.get(),
+        })
+      ) {
+        this.actionAlert.set(undefined);
+      }
+
+      previewWasHealthy = previewIsHealthy;
+    });
   }
 
   requestProjectFilesPanel(open?: boolean) {
@@ -682,7 +708,15 @@ export class WorkbenchStore {
   async refreshRuntimePorts() {
     await this.#previewsStore.refreshPorts();
 
-    if (this.previews.get().some((preview) => preview.ready !== false)) {
+    /*
+     * BUG-UX-DEV-BLOCKED-STUCK: a latched `error` state (transient "stream
+     * closed" on reopen, a dead first launch…) must RESOLVE the moment a port is
+     * really up. `serving === true` (HTTP answers + live process, server-side
+     * probe) counts even while the aggregate `ready` is still vetoed by a
+     * lagging manager status / stale client beacon — otherwise the status bar
+     * sat on "Dev: blocked" over a serving app.
+     */
+    if (this.previews.get().some((preview) => preview.ready !== false || preview.serving === true)) {
       const current = this.previewServerState.get();
       this.previewServerState.set({ status: 'running', command: current.command });
     }
@@ -998,7 +1032,9 @@ export class WorkbenchStore {
 
         if (this.previewServerState.get().status !== 'error') {
           this.previewServerState.set({
-            status: this.previews.get().some((preview) => preview.ready !== false) ? 'running' : 'idle',
+            status: this.previews.get().some((preview) => preview.ready !== false || preview.serving === true)
+              ? 'running'
+              : 'idle',
             command: command.label,
           });
         }
