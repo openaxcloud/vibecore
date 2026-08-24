@@ -22,7 +22,7 @@ interface EnterpriseFormPageProps {
  */
 export function EnterpriseFormPage({ title, description, children, status, error }: EnterpriseFormPageProps) {
   return (
-    <AppShell title={title} description={description}>
+    <AppShell title={title} description={description} serverSync={false}>
       <div className="w-full max-w-3xl">
         <div className="w-full max-w-full rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 shadow-sm sm:p-6">
           {status ? (

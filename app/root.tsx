@@ -1042,7 +1042,7 @@ export default function App() {
   }, []);
 
   return (
-    <AppShell>
+    <AppShell serverSync={false}>
       {/*
        * Mounted once at the app root so the impersonation indicator persists
        * across every authenticated route (IDE, chat, project, dashboard). It
@@ -1122,7 +1122,7 @@ export function ErrorBoundary() {
    * a nested <html>.
    */
   return (
-    <AppShell>
+    <AppShell serverSync={false}>
       <RootErrorView status={status} />
     </AppShell>
   );

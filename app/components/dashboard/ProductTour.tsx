@@ -211,6 +211,16 @@ export function pushProductTourProgressToServer(progress: PersistedProductTourPr
   }
 }
 
+/*
+ * Verdict serveur DÉJÀ connu pour ce chargement de page, sans jamais déclencher
+ * de requête. Un tour refusé puis remonté dans la même page doit rester fermé
+ * même sans session et même si localStorage est saturé — c'est ce mémo qui le
+ * garantit, pas le réseau.
+ */
+function peekMemoizedServerProgress(): Promise<PersistedProductTourProgress | undefined> | undefined {
+  return serverProgressPromise;
+}
+
 /** Test-only: drop the memoized server fetch so each case starts clean. */
 export function __resetProductTourServerCache(): void {
   serverProgressPromise = undefined;
@@ -246,7 +256,16 @@ function findVisibleTarget(target: string, fallbackTarget?: string): HTMLElement
   );
 }
 
-export function ProductTour({ restartToken }: { restartToken: number }) {
+/*
+ * `serverSync` = « une session authentifiée existe ». `/api/user/preferences`
+ * répond 401 pour un visiteur anonyme, et le NAVIGATEUR journalise ce 401 —
+ * `response.ok ? … : undefined` ne peut pas l'en empêcher. Or `AppShell` monte
+ * ce composant sur des pages volontairement publiques (`/invitations/accept`
+ * via `EnterpriseFormPage`, les coques d'erreur de `root`), où l'audit live
+ * EN/FR rejette toute erreur de console. Sans session : localStorage seul,
+ * AUCUNE requête — ni au montage, ni à la sortie du tour.
+ */
+export function ProductTour({ restartToken, serverSync = false }: { restartToken: number; serverSync?: boolean }) {
   const { i18n } = useTranslation();
   const language = i18n.resolvedLanguage ?? i18n.language;
   const copy = getProductTourCopy(language);
@@ -275,7 +294,16 @@ export function ProductTour({ restartToken }: { restartToken: number }) {
      */
     let cancelled = false;
 
-    void fetchProductTourProgressFromServer().then((serverProgress) => {
+    const memoized = peekMemoizedServerProgress();
+
+    if (!serverSync && !memoized) {
+      // Pas de session et rien en mémoire : verdict local, et AUCUNE requête.
+      setOpen(true);
+
+      return undefined;
+    }
+
+    void (serverSync ? fetchProductTourProgressFromServer() : memoized!).then((serverProgress) => {
       if (cancelled) {
         return;
       }
@@ -295,7 +323,7 @@ export function ProductTour({ restartToken }: { restartToken: number }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [serverSync]);
 
   useEffect(() => {
     if (!ready || restartToken === 0) {
@@ -342,9 +370,13 @@ export function ProductTour({ restartToken }: { restartToken: number }) {
     const progress = { status: 'dismissed', step: stepIndex } as const;
 
     persistProductTourProgress(getBrowserStorage(), progress);
-    pushProductTourProgressToServer(progress);
+
+    if (serverSync) {
+      pushProductTourProgressToServer(progress);
+    }
+
     setOpen(false);
-  }, [stepIndex]);
+  }, [serverSync, stepIndex]);
 
   useEffect(() => {
     if (!open) {
@@ -373,7 +405,11 @@ export function ProductTour({ restartToken }: { restartToken: number }) {
     const progress = { status: 'completed', step: 0 } as const;
 
     persistProductTourProgress(getBrowserStorage(), progress);
-    pushProductTourProgressToServer(progress);
+
+    if (serverSync) {
+      pushProductTourProgressToServer(progress);
+    }
+
     setOpen(false);
   };
 

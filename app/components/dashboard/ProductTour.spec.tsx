@@ -69,6 +69,41 @@ describe('ProductTour', () => {
     expect(readProductTourProgress(window.localStorage).status).toBe('dismissed');
   });
 
+  /*
+   * BUG-UX-TOUR-PUBLIC-401 — `AppShell` monte le tour sur des pages
+   * volontairement publiques (`/invitations/accept` via `EnterpriseFormPage`,
+   * les coques d'erreur de `root`). `/api/user/preferences` y répond 401 et le
+   * NAVIGATEUR journalise l'erreur — que `response.ok ? … : undefined` ne peut
+   * pas masquer — ce que l'audit live EN/FR rejette. Sans session, le tour doit
+   * donc rester strictement localStorage-only : ZÉRO requête.
+   */
+  it('émet zéro requête réseau sans session authentifiée (BUG-UX-TOUR-PUBLIC-401)', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<ProductTour restartToken={0} />);
+
+    // Le tour s'ouvre bien : c'est la SYNCHRO qui est désactivée, pas la fonctionnalité.
+    expect(await screen.findByRole('dialog', { name: 'Navigate your workspace' })).toBeTruthy();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('émet zéro requête réseau à la sortie du tour sans session (BUG-UX-TOUR-PUBLIC-401)', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<ProductTour restartToken={0} />);
+
+    expect(await screen.findByRole('dialog', { name: 'Navigate your workspace' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+
+    // Le verdict est bien conservé — localement, et sans PATCH.
+    expect(readProductTourProgress(window.localStorage).status).toBe('dismissed');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it('stays closed when the backend recorded a dismissal, even with an empty localStorage (BUG-UX-TOUR-REAPPEARS)', async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -78,7 +113,7 @@ describe('ProductTour', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
-    render(<ProductTour restartToken={0} />);
+    render(<ProductTour restartToken={0} serverSync />);
 
     // The backend verdict wins and heals the local cache.
     await waitFor(() => expect(readProductTourProgress(window.localStorage)).toEqual({ status: 'dismissed', step: 1 }));
@@ -98,7 +133,7 @@ describe('ProductTour', () => {
       throw new Error('QuotaExceededError');
     });
 
-    const first = render(<ProductTour restartToken={0} />);
+    const first = render(<ProductTour restartToken={0} serverSync />);
 
     expect(await screen.findByRole('dialog', { name: 'Navigate your workspace' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
