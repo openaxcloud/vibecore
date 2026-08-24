@@ -1404,6 +1404,15 @@
       "justification": "This is the canonical persisted PAYG_CHARGE reason. Both credit-ledger HTTP boundaries recognize the kind/value pair and return locale catalogue copy; it is never rendered raw in French.",
       "owner": "billing-and-i18n",
       "expiresOn": "2027-08-05"
+    },
+    {
+      "id": "workspace-reseed-walk-budget-diagnostics",
+      "path": "app/lib/runtime/workspace-reseed.ts",
+      "rule": "error-message",
+      "textPattern": "^workspace-reseed: pod tree (?:deeper|larger) than the walk budget$",
+      "justification": "These two Errors are internal walk-budget sentinels thrown by collectPodTree and caught inside clearProjectTreeForReseed, which logs them to the console and falls back to the historical full clear. No caller receives them and no message crosses a UI boundary.",
+      "owner": "runtime-platform-and-i18n",
+      "expiresOn": "2027-08-24"
     }
   ]
 }
