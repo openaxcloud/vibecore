@@ -9,15 +9,17 @@ Les validations d'une version antérieure de SOL-02→SOL-09 restent historiques
 
 | Point | 📤 | 💻 | ✅ | Notes |
 |---|:---:|:---:|:---:|---|
-| SOL-02-APP-REAL — Website Builder : vraies captures de sites/apps web thématiques | ✅ 24/08 | ☐ | ☐ | Principal + 2 appuis, libellé honnête « démo E-Code » et previews statiques liées directement ; protocole commun complet. |
-| SOL-03-APP-REAL — Game Builder : vrai quiz/jeu navigateur jouable | ✅ 24/08 | ☐ | ☐ | Réponse/action de partie exercée dans l'aperçu ; aucun mock décoratif ni visuel App Builder réutilisé. |
-| SOL-04-APP-REAL — Dashboard Builder : vrais dashboards interactifs | ✅ 24/08 | ☐ | ☐ | Données rendues et filtre/contrôle exercé ; principal + 2 appuis thématiques. |
-| SOL-05-APP-REAL — Chatbot Builder : vrai support documentaire conversationnel | ✅ 24/08 | ☐ | ☐ | Question envoyée et réponse/état conversationnel visible dans l'aperçu. |
-| SOL-06-APP-REAL — Internal AI Builder : vrais workflows IA internes | ✅ 24/08 | ☐ | ☐ | Action centrale exercée sur des cas procédures/incidents/revues. |
-| SOL-07-APP-REAL — Enterprise : vraies apps gouvernance/risque/opérations | ✅ 24/08 | ☐ | ☐ | Trois cas Enterprise cohérents et aperçus exécutables vérifiés. |
-| SOL-08-APP-REAL — Startups : vraies apps SaaS/go-to-market | ✅ 24/08 | ☐ | ☐ | App SaaS principale et cas pipeline/agent complémentaires vérifiés. |
-| SOL-09-APP-REAL — Freelancers : vraies apps de livraison client/terrain | ✅ 24/08 | ☐ | ☐ | App client/terrain principale et deux cas complémentaires vérifiés. |
-| SOL-I18N-HEADER-ONLY — supprimer les sélecteurs FR/EN locaux | ✅ 24/08 | ☐ | ☐ | SOL-01→SOL-09 : exactement 1 sélecteur global dans l'en-tête, 0 dans `<main>` ; bascule EN↔FR persistante et `html[lang]` cohérent sur la matrice. |
+| SOL-02-APP-REAL — Website Builder : vraies captures de sites/apps web thématiques | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | Principal + 2 appuis et previews statiques vérifiés sur la matrice production. |
+| SOL-03-APP-REAL — Game Builder : vrai quiz/jeu navigateur jouable | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | Neon Trivia Arena joué jusqu'au résultat et au replay ; aucun visuel App Builder réutilisé. |
+| SOL-04-APP-REAL — Dashboard Builder : vrais dashboards interactifs | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | Données, contrôles et trois visuels thématiques vérifiés en production. |
+| SOL-05-APP-REAL — Chatbot Builder : vrai support documentaire conversationnel | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | Docs Copilot exercé avec réponses sourcées et états fail-closed. |
+| SOL-06-APP-REAL — Internal AI Builder : vrais workflows IA internes | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | Trois cas procédures/incidents/revues vérifiés sur la matrice production. |
+| SOL-07-APP-REAL — Enterprise : vraies apps gouvernance/risque/opérations | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | Trois cas Enterprise et leurs aperçus exécutables vérifiés. |
+| SOL-08-APP-REAL — Startups : vraies apps SaaS/go-to-market | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | App SaaS principale et cas complémentaires vérifiés en production. |
+| SOL-09-APP-REAL — Freelancers : vraies apps de livraison client/terrain | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | App terrain principale et deux cas complémentaires vérifiés en production. |
+| SOL-I18N-HEADER-ONLY — supprimer les sélecteurs FR/EN locaux | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | SOL-01→SOL-09 : exactement 1 sélecteur global, 0 dans `<main>` ; bascule/persistance/SSR vérifiés. |
+
+Clôture live : head final `79ec62f4`, image `web:79ec62f442` (digest `sha256:7c8cb82a1f1dbb157c1f41ca09fcae4ce10289ca1cc438197a9826606526ebda`), déploiement `32712753339` vert, Helm révision `1064`; Playwright production **153/153**, 96 captures inspectées et 16/16 URLs clés HTTP 200 sans défaut responsive, console, réseau ou accessibilité tactile.
 
 ## AUDIT V4 — 4 chantiers + statut calculé (décision Avi 16/07)
 
