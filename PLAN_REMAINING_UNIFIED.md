@@ -19,7 +19,7 @@ Les validations d'une version antérieure de SOL-02→SOL-09 restent historiques
 | SOL-09-APP-REAL — Freelancers : vraies apps de livraison client/terrain | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | App terrain principale et deux cas complémentaires vérifiés en production. |
 | SOL-I18N-HEADER-ONLY — supprimer les sélecteurs FR/EN locaux | ✅ 24/08 | ✅ 24/08 `79ec62f4` | ✅ 24/08 | SOL-01→SOL-09 : exactement 1 sélecteur global, 0 dans `<main>` ; bascule/persistance/SSR vérifiés. |
 
-Clôture live : head final `79ec62f4`, image `web:79ec62f442` (digest `sha256:7c8cb82a1f1dbb157c1f41ca09fcae4ce10289ca1cc438197a9826606526ebda`), déploiement `32712753339` vert, Helm révision `1064`; Playwright production **153/153**, 96 captures inspectées et 16/16 URLs clés HTTP 200 sans défaut responsive, console, réseau ou accessibilité tactile.
+Clôture live : matrice exhaustive production **153/153** sur `web:79ec62f442`, 96 captures inspectées et 16/16 URLs clés HTTP 200 ; puis smoke final **48/48** après le remplacement par le descendant `web:7d9a96d36e` (digest `sha256:ff2b506d037d08cd90e75bf171d74a9a48bda8946612c789e7904f3b6259710b`, déploiement `32714604287`, Helm `1065`) en EN/clair + FR/sombre × 390/768/1440, sans défaut responsive, console, réseau ou accessibilité tactile.
 
 ## AUDIT V4 — 4 chantiers + statut calculé (décision Avi 16/07)
 
