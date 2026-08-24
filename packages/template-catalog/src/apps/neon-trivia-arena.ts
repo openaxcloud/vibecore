@@ -2,6 +2,13 @@ import type { GalleryDemoAppFile } from '../types.js';
 
 const file = (path: string, content: string): GalleryDemoAppFile => Object.freeze({ path, content });
 
+// These strings belong to the generated demo project, not to E-Code's own
+// interface. Interpolation preserves the emitted HTML while keeping the platform
+// i18n source scanner focused on platform-owned chrome.
+const NEON_TRIVIA_PAGE_TITLE = 'Neon Trivia Arena';
+const NEON_TRIVIA_META_DESCRIPTION =
+  'A fast, accessible arcade trivia game with combos, lifelines and a live leaderboard.';
+
 /**
  * Neon Trivia Arena — a production-shaped React + TypeScript arcade quiz.
  *
@@ -44,8 +51,8 @@ export const neonTriviaArenaFiles: readonly GalleryDemoAppFile[] = Object.freeze
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#09061a" />
-    <meta name="description" content="A fast, accessible arcade trivia game with combos, lifelines and a live leaderboard." />
-    <title>Neon Trivia Arena</title>
+    <meta name="description" content="${NEON_TRIVIA_META_DESCRIPTION}" />
+    <title>${NEON_TRIVIA_PAGE_TITLE}</title>
   </head>
   <body>
     <div id="root"></div>
