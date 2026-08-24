@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   MAX_PREVIEW_BOOT_ATTEMPTS,
+  beginPreviewFrameReload,
   MAX_PREVIEW_LOAD_RETRIES,
   decidePreviewLoadOutcome,
   shouldAutoRunPreview,
@@ -166,5 +167,82 @@ describe('shouldReloadPreviewOnReadyEdge', () => {
   it('never reloads when there was no ready edge, regardless of render state', () => {
     expect(shouldReloadPreviewOnReadyEdge({ readyEdgeReload: false, frameRendered: false })).toBe(false);
     expect(shouldReloadPreviewOnReadyEdge({ readyEdgeReload: false, frameRendered: true })).toBe(false);
+  });
+});
+
+describe('beginPreviewFrameReload (BUG-A — "Refresh preview" must force a REAL iframe reload)', () => {
+  /*
+   * Live 23/08: dev server serving on 5173 (app rendered fine in a standalone
+   * tab), embedded Webview blank, "Refresh preview" a silent no-op. The old
+   * inline handler only forced a navigation when contentWindow.location.reload()
+   * THREW (cross-origin); a frame parked on about:blank reloads "successfully"
+   * — and stays blank.
+   */
+
+  function fakeFrame(input: { href?: string; crossOrigin?: boolean; noWindow?: boolean }) {
+    const reloadCalls: string[] = [];
+
+    const frame = {
+      src: input.href ?? '',
+      contentWindow: input.noWindow
+        ? null
+        : {
+            location: {
+              get href(): string {
+                if (input.crossOrigin) {
+                  throw new DOMException('Blocked a frame from accessing a cross-origin frame.', 'SecurityError');
+                }
+
+                return input.href ?? 'about:blank';
+              },
+              reload() {
+                if (input.crossOrigin) {
+                  throw new DOMException('Blocked a frame from accessing a cross-origin frame.', 'SecurityError');
+                }
+
+                reloadCalls.push('reload');
+              },
+            },
+          },
+    };
+
+    return { frame, reloadCalls };
+  }
+
+  it('forces a navigation when the frame is parked on about:blank — the silent no-op that left the Webview blank', () => {
+    const { frame, reloadCalls } = fakeFrame({ href: 'about:blank' });
+
+    expect(beginPreviewFrameReload(frame)).toBe('force-navigation');
+
+    // The frame is parked for the bounce; the caller re-assigns the target src.
+    expect(frame.src).toBe('about:blank');
+
+    // Reloading about:blank is NOT a real reload and must never count as one.
+    expect(reloadCalls).toHaveLength(0);
+  });
+
+  it('forces a navigation when contentWindow is missing (the optional chain used to skip the reload entirely)', () => {
+    const { frame } = fakeFrame({ noWindow: true, href: 'https://ws-x-5173.preview.e-code.ai/' });
+
+    expect(beginPreviewFrameReload(frame)).toBe('force-navigation');
+    expect(frame.src).toBe('about:blank');
+  });
+
+  it('forces a navigation for a cross-origin frame (reload() throws — the one case the old code did handle)', () => {
+    const { frame, reloadCalls } = fakeFrame({ crossOrigin: true, href: 'https://ws-x-5173.preview.e-code.ai/' });
+
+    expect(() => beginPreviewFrameReload(frame)).not.toThrow();
+    expect(beginPreviewFrameReload(frame)).toBe('force-navigation');
+    expect(reloadCalls).toHaveLength(0);
+  });
+
+  it('keeps the same-origin fast path: a genuinely loaded page is reloaded in place, without a src bounce', () => {
+    const { frame, reloadCalls } = fakeFrame({ href: 'http://localhost:5173/' });
+
+    expect(beginPreviewFrameReload(frame)).toBe('same-origin-reload');
+    expect(reloadCalls).toEqual(['reload']);
+
+    // No bounce: the frame keeps its src (no flicker on the healthy path).
+    expect(frame.src).toBe('http://localhost:5173/');
   });
 });
