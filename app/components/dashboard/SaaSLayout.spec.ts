@@ -94,7 +94,7 @@ describe('public marketing brand', () => {
       "navItem('userArea.navigation.account', '/account-settings', Settings, { end: true })",
     );
     expect(layoutSource).toContain('end={item.end}');
-    expect(layoutSource).toContain('px-3 pb-0.5 text-[10px]');
+    expect(layoutSource).toContain('px-3 pb-0.5 text-[11px]');
     expect(layoutSource).not.toContain("classNames('grid w-full gap-1', collapsed");
     expect(layoutSource).toContain('vc-user-area-shell min-h-[100dvh]');
     expect(layoutSource).toContain('vc-app-shell-title text-[28px] font-semibold leading-[36px]');

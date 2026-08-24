@@ -425,7 +425,7 @@ function AiModelSelector({ variant = 'inline', className = '', onModelChange }: 
                 {copy.modelSelector.cardTitle}
               </h3>
             </div>
-            <p className="break-words text-[11px] leading-relaxed text-muted-foreground sm:text-[11px]">
+            <p className="break-words text-[11px] leading-relaxed text-muted-foreground">
               {modelsLoading
                 ? copy.modelSelector.loadingDescription
                 : formatExactControlCount(models.length, copy.modelSelector.availableDescription, language)}
