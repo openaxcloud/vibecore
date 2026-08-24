@@ -10,7 +10,7 @@ import {
   needsContentHydration,
   toRuntimeRelativePath,
 } from './search-replace';
-import { IdePanelHeader } from '~/components/project-ide/PanelPrimitives';
+import { IdePanelHeader, PanelButton, PanelInput } from '~/components/project-ide/PanelPrimitives';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { useRuntimeAdapter } from '~/lib/runtime/RuntimeAdapterProvider';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -395,13 +395,14 @@ export function Search() {
       {/* Search Bar */}
       <div className="space-y-2 border-b border-bolt-elements-borderColor px-3 py-3">
         <div className="relative flex items-center gap-2">
-          <input
+          {/* UNIF lot 5 : input partagé PanelInput au lieu du champ ad hoc (fond depth-3, ring). */}
+          <PanelInput
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('workbenchSearch.search.placeholder')}
             aria-label={t('workbenchSearch.search.aria')}
-            className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
+            className="w-full"
           />
           <button
             type="button"
@@ -425,22 +426,25 @@ export function Search() {
           </button>
         </div>
         <div className="relative flex items-center gap-2">
-          <input
+          <PanelInput
             type="text"
             value={replaceQuery}
             onChange={(e) => setReplaceQuery(e.target.value)}
             placeholder={t('workbenchSearch.replace.placeholder')}
             aria-label={t('workbenchSearch.replace.aria')}
-            className="w-full px-2 py-1 rounded-md bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus transition-all"
+            className="w-full"
           />
-          <button
+          {/* UNIF lot 5 : « Replace all » = PanelButton primaire partagé ; `!h-auto`
+              + whitespace-normal pour laisser le libellé FR long passer sur 2 lignes
+              (même recette que les CTA de SelectionDialog). */}
+          <PanelButton
             type="button"
-            className="min-h-7 whitespace-normal rounded-md bg-bolt-elements-item-backgroundAccent px-2 py-1 text-center text-xs font-medium text-bolt-elements-item-contentAccent disabled:cursor-not-allowed disabled:opacity-50"
+            className="!h-auto min-h-9 shrink-0 whitespace-normal py-1 text-center disabled:cursor-not-allowed"
             disabled={isReplacing || searchResults.length === 0}
             onClick={() => void replaceAll()}
           >
             {isReplacing ? t('workbenchSearch.replace.replacing') : t('workbenchSearch.replace.all')}
-          </button>
+          </PanelButton>
         </div>
       </div>
 

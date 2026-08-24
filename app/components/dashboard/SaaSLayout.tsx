@@ -1845,7 +1845,7 @@ export function TemplateGallery({
               {template.providers.map((provider) => (
                 <span
                   key={provider.name}
-                  className="vc-template-provider-pill rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  className="vc-template-provider-pill rounded-full px-2 py-0.5 text-[11px] font-medium"
                 >
                   {provider.name}
                 </span>
@@ -1987,7 +1987,7 @@ export function OnboardingChecklistCard({ steps }: { steps: OnboardingStep[] }) 
                   {step.title}
                   {step.done ? (
                     <span
-                      className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none"
+                      className="rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none"
                       style={{
                         color: 'var(--status-success-text)',
                         background: 'color-mix(in srgb, var(--vc-ide-accent-success) 12%, transparent)',
@@ -2209,7 +2209,7 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
       </label>
       {query.trim().length === 0 && recentItems.length > 0 ? (
         <div className="mt-3">
-          <p className="vc-sidebar-group-label px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
+          <p className="vc-sidebar-group-label px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
             {t('userArea.command.recent')}
           </p>
           <div className="grid gap-1">
@@ -2360,7 +2360,7 @@ function TopBar({
       >
         <Command className="h-4 w-4" aria-hidden />
         {t('userArea.topbar.search')}
-        <kbd className="vc-keyboard-shortcut rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] text-bolt-elements-textTertiary">
+        <kbd className="vc-keyboard-shortcut rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[11px] text-bolt-elements-textTertiary">
           ⌘K
         </kbd>
       </Link>
@@ -2608,7 +2608,7 @@ function TopBarNotifications() {
           <Bell className="h-4 w-4" aria-hidden />
           {unreadCount > 0 ? (
             <span
-              className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-bolt-elements-item-contentAccent px-1 text-[10px] font-semibold leading-none text-white"
+              className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-bolt-elements-item-contentAccent px-1 text-[11px] font-semibold leading-none text-white"
               aria-hidden
             >
               {unreadCount > 9 ? '9+' : unreadCount}
@@ -2740,7 +2740,7 @@ function NavSection({ label, items, collapsed }: { label?: string; items: NavIte
     <div className={classNames('w-full', collapsed && 'flex flex-col items-center')}>
       {label ? (
         !collapsed ? (
-          <p className="vc-sidebar-group-label vc-sidebar-fade-label px-3 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
+          <p className="vc-sidebar-group-label vc-sidebar-fade-label px-3 pb-0.5 text-[11px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
             {label}
           </p>
         ) : (
@@ -2812,7 +2812,7 @@ function NavGroup({ items, collapsed = false }: { items: NavItem[]; collapsed?: 
             />
             {!collapsed ? <span className="vc-sidebar-fade-label flex-1 truncate">{t(item.labelKey)}</span> : null}
             {!collapsed && item.shortcut ? (
-              <kbd className="vc-keyboard-shortcut vc-sidebar-shortcut ml-auto rounded border border-bolt-elements-borderColor px-1 py-0 text-[10px] font-medium leading-4 text-bolt-elements-textTertiary">
+              <kbd className="vc-keyboard-shortcut vc-sidebar-shortcut ml-auto rounded border border-bolt-elements-borderColor px-1 py-0 text-[11px] font-medium leading-4 text-bolt-elements-textTertiary">
                 {item.shortcut}
               </kbd>
             ) : null}
