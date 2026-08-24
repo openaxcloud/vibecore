@@ -3,18 +3,25 @@
  */
 
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  __resetProductTourServerCache,
+  PRODUCT_TOUR_PREFERENCE_KEY,
   PRODUCT_TOUR_STORAGE_KEY,
   ProductTour,
   persistProductTourProgress,
   readProductTourProgress,
 } from './ProductTour';
 
-beforeEach(() => window.localStorage.clear());
+beforeEach(() => {
+  window.localStorage.clear();
+  __resetProductTourServerCache();
+});
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   document.querySelectorAll('[data-vc-tour-active]').forEach((element) => {
     element.removeAttribute('data-vc-tour-active');
   });
@@ -60,6 +67,58 @@ describe('ProductTour', () => {
     fireEvent.keyDown(window, { key: 'Escape' });
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(readProductTourProgress(window.localStorage).status).toBe('dismissed');
+  });
+
+  it('stays closed when the backend recorded a dismissal, even with an empty localStorage (BUG-UX-TOUR-REAPPEARS)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        preferences: { [PRODUCT_TOUR_PREFERENCE_KEY]: { version: 1, status: 'dismissed', step: 1 } },
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<ProductTour restartToken={0} />);
+
+    // The backend verdict wins and heals the local cache.
+    await waitFor(() => expect(readProductTourProgress(window.localStorage)).toEqual({ status: 'dismissed', step: 1 }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/user/preferences',
+      expect.objectContaining({ headers: expect.anything() }),
+    );
+  });
+
+  it('pushes Not now to the backend so the dismissal survives a broken localStorage (BUG-UX-TOUR-REAPPEARS)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ preferences: {} }) });
+    vi.stubGlobal('fetch', fetchMock);
+
+    // Simulate Avi's saturated storage: every write throws QuotaExceededError.
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+
+    const first = render(<ProductTour restartToken={0} />);
+
+    expect(await screen.findByRole('dialog', { name: 'Navigate your workspace' })).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Not now' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+
+    const patchCall = fetchMock.mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === 'PATCH');
+
+    expect(patchCall).toBeTruthy();
+    expect(patchCall?.[0]).toBe('/api/user/preferences');
+    expect(JSON.parse(String((patchCall?.[1] as RequestInit).body))).toEqual({
+      preferences: { [PRODUCT_TOUR_PREFERENCE_KEY]: { version: 1, status: 'dismissed', step: 0 } },
+    });
+
+    // A later mount in the same page load (localStorage still broken) must NOT reopen the tour.
+    first.unmount();
+    render(<ProductTour restartToken={0} />);
+
+    // Let the memoized server verdict resolve, then confirm the tour stayed closed.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('recovers from invalid or unavailable persistence', () => {
