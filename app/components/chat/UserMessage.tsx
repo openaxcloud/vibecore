@@ -96,17 +96,17 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
                   decoding="sync"
                 />
               ) : (
-                <div className="i-ph:user-fill text-accent-500 text-2xl" />
+                <div className="i-ph:user-fill text-[var(--vc-action-primary)] text-2xl" />
               )}
               <span className="text-bolt-elements-textPrimary text-sm">
                 {profile?.username ? profile.username : ''}
               </span>
             </div>
           ) : (
-            <div className="i-ph:user-fill text-accent-500 text-2xl" />
+            <div className="i-ph:user-fill text-[var(--vc-action-primary)] text-2xl" />
           )}
         </div>
-        <div className="group bolt-user-message-bubble flex flex-col gap-3 bg-accent-500/10 backdrop-blur-sm px-3 py-2 w-auto rounded-lg [margin-inline-end:auto]">
+        <div className="group bolt-user-message-bubble flex flex-col gap-3 bg-[color-mix(in_srgb,var(--vc-action-primary)_10%,transparent)] backdrop-blur-sm px-3 py-2 w-auto rounded-lg [margin-inline-end:auto]">
           {textContent && <Markdown html>{textContent}</Markdown>}
           {images.map((item, index) => (
             <img
@@ -132,7 +132,7 @@ export function UserMessage({ content, parts, messageId, canEdit }: UserMessageP
   const textContent = stripMetadata(content);
 
   return (
-    <div className="group bolt-user-message bolt-user-message-bubble flex flex-col bg-accent-500/10 backdrop-blur-sm px-4 py-2.5 w-auto rounded-lg [margin-inline-start:auto]">
+    <div className="group bolt-user-message bolt-user-message-bubble flex flex-col bg-[color-mix(in_srgb,var(--vc-action-primary)_10%,transparent)] backdrop-blur-sm px-4 py-2.5 w-auto rounded-lg [margin-inline-start:auto]">
       <div className="flex gap-3 mb-2">
         {images.map((item, index) => (
           <div key={index} className="relative flex rounded-lg border border-bolt-elements-borderColor overflow-hidden">

@@ -1544,7 +1544,7 @@ function AdminNav({ active, securityOpenCount }: { active: string; securityOpenC
       >
         {navGroups.map((group) => (
           <div key={group.label} className="mb-2 last:mb-0">
-            <p className="vc-sidebar-group-label px-2 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
+            <p className="vc-sidebar-group-label px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
               {translateAdminRouteEnglish(language, group.label)}
             </p>
             {group.items.map((item) => {
@@ -1569,7 +1569,7 @@ function AdminNav({ active, securityOpenCount }: { active: string; securityOpenC
                         badge === 1 ? 'admin.route.unresolvedCount_one' : 'admin.route.unresolvedCount_other',
                         { count: badge },
                       )}
-                      className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--status-error-text)] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white"
+                      className="inline-flex min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--status-error-text)] px-1.5 py-0.5 text-[11px] font-semibold leading-none text-white"
                     >
                       {badge > 99 ? '99+' : badge}
                     </span>
@@ -3593,7 +3593,7 @@ function McpCatalogRow({ entry, password }: { entry: Record<string, JsonValue>; 
         <td className="px-4 py-3 text-bolt-elements-textPrimary">
           {String(entry.name ?? '')}
           {!enabled ? (
-            <span className="ml-2 rounded-full border border-[color-mix(in_srgb,var(--status-error-text)_40%,transparent)] px-1.5 py-0.5 text-[10px] font-medium uppercase text-[var(--status-error-text)]">
+            <span className="ml-2 rounded-full border border-[color-mix(in_srgb,var(--status-error-text)_40%,transparent)] px-1.5 py-0.5 text-[11px] font-medium uppercase text-[var(--status-error-text)]">
               {adminT('admin.route.disabled_f4f447')}
             </span>
           ) : null}
