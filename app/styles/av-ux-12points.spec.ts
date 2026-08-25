@@ -151,3 +151,32 @@ describe('AV-UX point 9 — barre de contexte agent (« Prompt ») retirée en m
   });
 });
 
+/*
+ * BUG-MOB-PALETTE-KEYBOARD-001 — le volet CSS du correctif « ouvrir un panneau
+ * depuis la palette Commandes » (le volet comportemental est couvert par
+ * `app/lib/command-palette-focus.spec.ts`).
+ */
+describe('AV-UX point 7 — palette Commandes bornée au viewport VISUEL en mobile', () => {
+  const paletteBlock = (() => {
+    const start = scss.indexOf('.bolt-responsive-ide-mobile .bolt-project-command-palette {');
+    return start === -1 ? '' : scss.slice(start, scss.indexOf('\n  }', start));
+  })();
+
+  it('la feuille mobile de la palette existe', () => {
+    expect(paletteBlock).not.toBe('');
+  });
+
+  it('elle plafonne sur la hauteur mesurée du viewport visuel', () => {
+    expect(paletteBlock).toContain('var(--vc-mobile-visual-viewport-height, 100dvh)');
+    expect(paletteBlock).not.toContain('max-height: none;');
+  });
+
+  it('elle reste au-dessus du fond cliquable de la palette', () => {
+    const backdrop = scss.match(/\.bolt-project-command-palette-backdrop \{[\s\S]*?z-index: (\d+);/);
+    const sheet = paletteBlock.match(/z-index: (\d+);/);
+
+    expect(backdrop?.[1]).toBeDefined();
+    expect(sheet?.[1]).toBeDefined();
+    expect(Number(sheet?.[1])).toBeGreaterThan(Number(backdrop?.[1]));
+  });
+});

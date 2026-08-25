@@ -16347,7 +16347,8 @@ button.bolt-project-statusbar-pill:focus-visible,
    */
   .bolt-project-tab-save {
     opacity: 1 !important;
-  }}
+  }
+}
 
 .bolt-project-statusbar-primary > .bolt-project-statusbar-pill:first-child,
 .bolt-project-statusbar-primary > .bolt-project-statusbar-pill:nth-child(2) {
@@ -21557,7 +21558,23 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     z-index: 12018;
     width: min(calc(100vw - 20px), var(--vc-mobile-sheet-max-width)) !important;
     max-width: var(--vc-mobile-sheet-max-width);
-    max-height: none;
+
+    /*
+     * BUG-MOB-PALETTE-KEYBOARD-001 — borner la feuille au viewport VISUEL, pas
+     * au viewport de mise en page. `--vc-mobile-visual-viewport-height` est
+     * déjà mesurée par la coque via `visualViewport` et déjà utilisée par les
+     * autres feuilles mobiles ; la palette était la seule à l'ignorer, avec
+     * `max-height: none` + un ancrage haut/bas. Résultat sur un téléphone dès
+     * que le clavier logiciel monte : la moitié basse de la liste reste « à
+     * l'écran » pour la mise en page mais se retrouve physiquement sous le
+     * clavier, donc intouchable. Le `bottom` reste en place pour le cas sans
+     * clavier ; ce plafond ne fait que rendre la feuille plus courte quand le
+     * viewport visuel rétrécit.
+     */
+    max-height: calc(
+      var(--vc-mobile-visual-viewport-height, 100dvh) - var(--vc-ide-topbar-height, 48px) - 20px -
+        env(safe-area-inset-top, 0px)
+    );
     overflow-y: auto;
     overscroll-behavior: contain;
     border-radius: var(--vc-mobile-sheet-radius);

@@ -207,6 +207,7 @@ import {
   type Keybinding,
   type KeybindingOverrideMap,
 } from '~/lib/keybindings';
+import { readPointerCapabilities, shouldAutoFocusCommandPalette } from '~/lib/command-palette-focus';
 import { useFocusTrap } from '~/lib/use-focus-trap';
 import {
   formatBaseChatAstDate,
@@ -3456,6 +3457,20 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [commandPaletteMode, setCommandPaletteMode] = useState<'all' | 'tools' | 'files'>('all');
     const [commandPaletteQuery, setCommandPaletteQuery] = useState('');
     const [commandPaletteIndex, setCommandPaletteIndex] = useState(0);
+
+    /*
+     * BUG-MOB-PALETTE-KEYBOARD-001 — sur un appareil purement tactile, ne PAS
+     * lever le clavier logiciel à l'ouverture de la palette : c'est lui qui
+     * masquait la moitié basse de la liste et déplaçait la mise en page entre
+     * le toucher et le `click`, si bien que la sélection partait sur une autre
+     * cible (« la palette reste », « la vue ne bascule pas »). Voir
+     * `~/lib/command-palette-focus` pour le détail du mécanisme. Mesuré côté
+     * client uniquement : la palette n'existe jamais dans le rendu serveur.
+     */
+    const [commandPaletteAutoFocus, setCommandPaletteAutoFocus] = useState(true);
+    useEffect(() => {
+      setCommandPaletteAutoFocus(shouldAutoFocusCommandPalette(readPointerCapabilities()));
+    }, []);
 
     /*
      * Restore focus to whatever was focused when the palette opened, once it
@@ -9134,7 +9149,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             >
               <input
                 type="text"
-                autoFocus
+                autoFocus={commandPaletteAutoFocus}
                 autoComplete="off"
                 inputMode="search"
                 placeholder={t('chat.copy.searchToolsFilesAndCommands_c085ba2a')}
