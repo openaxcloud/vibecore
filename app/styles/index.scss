@@ -12267,28 +12267,11 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 12px;
 }
 
+/* UNIF-14 — le zoom fit/2x/4x est un FilterChip commun ; seul le conteneur reste. */
 .bolt-project-monitoring-zoom {
   display: inline-flex;
   flex-wrap: wrap;
   gap: 4px;
-}
-
-.bolt-project-monitoring-zoom button {
-  min-height: 28px;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 7px;
-  background: var(--vc-ide-bg-card);
-  color: var(--vc-ide-text-secondary);
-  padding: 0 9px;
-  font-size: 11px;
-  font-weight: 750;
-}
-
-.bolt-project-monitoring-zoom button.selected {
-  border-color: var(--vc-ide-accent-action);
-  background: color-mix(in srgb, var(--vc-ide-accent-action) 13%, var(--vc-ide-bg-card));
-  color: var(--vc-ide-text-primary);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--vc-ide-accent-action), transparent 40%);
 }
 
 .bolt-project-monitoring-routine-note {
@@ -12873,7 +12856,11 @@ body :where(.lucide, svg[data-lucide]) {
  * PanelInput / PanelButton / FilterChip (primitives partagées), qui portent
  * leur propre gabarit. Seuls le conteneur flex et le label restent stylés ici.
  */
-.bolt-project-object-grid button,
+/*
+ * UNIF-14 — `.bolt-project-object-grid` purgé : plus aucun usage JSX depuis le
+ * passage d'Object Storage aux primitives (lot 7) ; ses ~17 sélecteurs SCSS
+ * étaient orphelins.
+ */
 .bolt-project-package-list button {
   border: 1px solid var(--vc-ide-border-visible);
   border-radius: 6px;
@@ -12881,12 +12868,6 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary);
 }
 
-.bolt-project-object-grid button.selected {
-  border-color: var(--vc-ide-accent-action);
-  box-shadow: inset 0 0 0 1px var(--vc-ide-accent-action);
-}
-
-.bolt-project-object-grid,
 .bolt-project-package-list,
 .bolt-project-extension-catalog,
 .bolt-project-env-list,
@@ -12896,11 +12877,6 @@ body :where(.lucide, svg[data-lucide]) {
   margin-bottom: 12px;
 }
 
-.bolt-project-object-grid {
-  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
-}
-
-.bolt-project-object-grid button,
 .bolt-project-package-list button {
   display: grid;
   min-width: 0;
@@ -12909,12 +12885,10 @@ body :where(.lucide, svg[data-lucide]) {
   text-align: left;
 }
 
-.bolt-project-object-grid button:hover,
 .bolt-project-package-list button:hover {
   background: var(--vc-ide-bg-hover);
 }
 
-.bolt-project-object-grid strong,
 .bolt-project-package-list strong,
 .bolt-project-metric-grid strong {
   min-width: 0;
@@ -12924,7 +12898,6 @@ body :where(.lucide, svg[data-lucide]) {
   font-size: 13px;
 }
 
-.bolt-project-object-grid span,
 .bolt-project-package-list span,
 .bolt-project-metric-grid span,
 .bolt-project-metric-grid small {
@@ -12933,18 +12906,6 @@ body :where(.lucide, svg[data-lucide]) {
   overflow-wrap: anywhere;
   color: var(--vc-ide-text-secondary);
   font-size: 12px;
-}
-
-.bolt-project-object-grid em {
-  width: fit-content;
-  max-width: 100%;
-  border-radius: 999px;
-  background: var(--vc-ide-bg-hover);
-  color: var(--vc-ide-text-secondary);
-  font-size: 11px;
-  font-style: normal;
-  overflow-wrap: anywhere;
-  padding: 3px 7px;
 }
 
 .bolt-project-package-list button.pending {
@@ -13577,7 +13538,6 @@ body :where(.lucide, svg[data-lucide]) {
 
   .bolt-project-service-panel
     :where(
-      .bolt-project-object-grid,
       .bolt-project-extension-catalog,
       .bolt-project-security-scope,
       .bolt-project-security-comparison-grid,
@@ -13589,9 +13549,6 @@ body :where(.lucide, svg[data-lucide]) {
 
   .bolt-project-service-panel
     :where(
-      .bolt-project-object-grid strong,
-      .bolt-project-object-grid span,
-      .bolt-project-object-grid em,
       .bolt-project-package-list strong,
       .bolt-project-package-list span,
       .bolt-project-package-list small,
@@ -13673,51 +13630,31 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary);
 }
 
-.bolt-project-env-row button {
-  min-height: 28px;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 5px;
-  color: var(--vc-ide-text-primary);
-  padding: 0 8px;
-}
-
+/* UNIF-14 — Edit / Copy / Delete de ligne sont des PanelButton (outline sm). */
 .bolt-project-env-row form {
   margin: 0;
 }
 
-/* F11 — per-scope env vars: scope tabs, diff view and the scope selector. */
+/*
+ * F11 / UNIF-14 — per-scope env vars. Les onglets de scope sont désormais un
+ * PanelToolTabs partagé (feuille `.bolt-project-tool-tabs` unique) et le
+ * « Diff scopes » un PanelButton : seule la mise en page de la rangée
+ * (onglets + bascule Diff) vit encore ici.
+ */
 .bolt-project-env-scopes {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 12px;
 }
 
-.bolt-project-env-scopes button {
-  min-height: 32px;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 6px;
-  background: var(--vc-ide-bg-card);
-  color: var(--vc-ide-text-primary);
-  padding: 0 12px;
-  font-size: 12px;
-}
-
-.bolt-project-env-scopes button:hover:not(:disabled) {
-  background: var(--vc-ide-bg-hover);
-}
-
-.bolt-project-env-scopes button:disabled {
-  opacity: 0.5;
-}
-
-.bolt-project-env-scopes button.selected {
-  border-color: var(--vc-ide-accent-action);
-  box-shadow: inset 0 0 0 1px var(--vc-ide-accent-action);
-  color: var(--vc-ide-accent-action);
+.bolt-project-env-scopes .bolt-project-tool-tabs {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .bolt-project-env-scopes .bolt-project-env-diff-toggle {
+  flex: 0 0 auto;
   margin-inline-start: auto;
 }
 
@@ -13744,24 +13681,11 @@ body :where(.lucide, svg[data-lucide]) {
   overflow-x: auto;
 }
 
+/* UNIF-14 — « Reveal values » est un PanelButton ; seul le conteneur reste stylé. */
 .bolt-project-env-diff-actions {
   display: flex;
   justify-content: flex-end;
   margin-bottom: 8px;
-}
-
-.bolt-project-env-diff-actions button {
-  min-height: 30px;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 6px;
-  background: var(--vc-ide-bg-card);
-  color: var(--vc-ide-accent-action);
-  padding: 0 10px;
-  font-size: 12px;
-}
-
-.bolt-project-env-diff-actions button:hover {
-  background: var(--vc-ide-bg-hover);
 }
 
 .bolt-project-env-diff {
@@ -13912,6 +13836,12 @@ body :where(.lucide, svg[data-lucide]) {
   box-shadow: inset 0 -2px 0 var(--vc-ide-accent-orange);
 }
 
+/* UNIF-14 — onglets gelés (Env pendant la vue « Diff scopes »). */
+.bolt-project-tool-tabs button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .bolt-project-sql-editor,
 .bolt-project-inline-form,
 .bolt-project-security-settings {
@@ -13960,20 +13890,7 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 8px;
 }
 
-.bolt-project-security-cancel {
-  min-height: 36px;
-  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-error), transparent 42%);
-  border-radius: 7px;
-  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 90%);
-  color: var(--vc-ide-text-primary);
-  font-size: 12px;
-  font-weight: 750;
-  padding: 0 10px;
-}
-
-.bolt-project-security-cancel:hover {
-  background: color-mix(in srgb, var(--vc-ide-accent-error), transparent 82%);
-}
+/* UNIF-14 — « Cancel scan » est un PanelButton danger ; le style maison est supprimé. */
 
 .bolt-project-security-progress {
   display: grid;
@@ -14166,18 +14083,7 @@ body :where(.lucide, svg[data-lucide]) {
   margin-top: 12px;
 }
 
-.bolt-project-security-reports button {
-  min-height: 34px;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 7px;
-  color: var(--vc-ide-text-primary);
-  font-size: 12px;
-  padding: 0 10px;
-}
-
-.bolt-project-security-reports button:hover {
-  background: var(--vc-ide-bg-hover);
-}
+/* UNIF-14 — les exports SARIF/JSON/Print sont des PanelButton (outline sm). */
 
 .bolt-project-security-comparison-grid {
   display: grid;
@@ -18248,10 +18154,13 @@ button.bolt-project-statusbar-pill:focus-visible,
   font-size: 12px;
 }
 
-.bolt-project-workflows-head > button,
+/*
+ * UNIF-14 — « New workflow » et « Add task » sont des PanelButton ; il ne
+ * reste ici que le lien externe de la toolbar et le bouton-titre (disclosure)
+ * de carte, qui n'est pas un CTA.
+ */
 .bolt-project-workflows-toolbar a,
-.bolt-project-workflow-card header button,
-.bolt-project-workflow-add-task button {
+.bolt-project-workflow-card header > button {
   display: inline-flex;
   min-height: 40px;
   align-items: center;
@@ -18483,21 +18392,7 @@ button.bolt-project-statusbar-pill:focus-visible,
   min-width: 0;
 }
 
-.bolt-project-workflow-task-delete button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--vc-ide-border);
-  border-radius: 6px;
-  background: transparent;
-  padding: 6px;
-  color: var(--vc-ide-text-muted);
-  cursor: pointer;
-}
-
-.bolt-project-workflow-task-delete button:hover {
-  color: var(--vc-danger, #f85149);
-}
+/* UNIF-14 — la corbeille de tâche est un PanelButton danger sm ; le style maison est supprimé. */
 
 .bolt-project-workflow-add-task {
   flex-wrap: wrap;
@@ -18739,11 +18634,12 @@ button.bolt-project-statusbar-pill:focus-visible,
   gap: 8px;
 }
 
-.bolt-project-integrations-actions button,
-.bolt-project-integrations-tabs button,
-.bolt-project-integrations-section-head button,
-.bolt-project-integration-config > button,
-.bolt-project-integrations-list article > button {
+/*
+ * UNIF-14 — les actions d'en-tête, les CTA de section, « Configure » et
+ * « Close configuration » sont des PanelButton ; seuls les onglets
+ * Browse/Connected/Webhooks/API keys gardent leur habillage ad hoc ici.
+ */
+.bolt-project-integrations-tabs button {
   display: inline-flex;
   min-height: 34px;
   align-items: center;
@@ -18758,11 +18654,7 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 .bolt-project-integrations-tabs button[aria-current='page'],
-.bolt-project-integrations-actions button:hover,
-.bolt-project-integrations-tabs button:hover,
-.bolt-project-integrations-section-head button:hover,
-.bolt-project-integration-config > button:hover,
-.bolt-project-integrations-list article > button:hover {
+.bolt-project-integrations-tabs button:hover {
   background: var(--vc-ide-bg-hover);
   color: var(--vc-ide-text-primary);
 }
@@ -18964,13 +18856,7 @@ button.bolt-project-statusbar-pill:focus-visible,
   padding-top: 10px;
 }
 
-.bolt-project-integrations-grid article footer button {
-  min-height: 32px;
-  border-radius: 6px;
-  background: var(--bolt-elements-button-primary-background);
-  color: var(--bolt-elements-button-primary-text);
-  padding: 0 10px;
-}
+/* UNIF-14 — Connect/Manage de carte est un PanelButton primary (exit les tokens legacy button-primary). */
 
 .bolt-project-integrations-grid em {
   flex: 0 0 auto;
@@ -20737,16 +20623,9 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     gap: 7px;
   }
 
-  .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-object-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   .bolt-responsive-ide-mobile
     .bolt-workbench-mobile-service
     :where(
-      .bolt-project-object-grid strong,
-      .bolt-project-object-grid span,
-      .bolt-project-object-grid em,
       .bolt-project-package-list strong,
       .bolt-project-package-list span,
       .bolt-project-package-list small,

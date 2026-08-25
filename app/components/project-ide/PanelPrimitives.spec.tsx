@@ -223,4 +223,32 @@ describe('<PanelToolTabs /> (UNIF lot 7)', () => {
     fireEvent.click(settings);
     expect(onSelect).toHaveBeenCalledWith('settings');
   });
+
+  it('UNIF-14 : `disabled` gèle tous les onglets sans perdre la sélection affichée', () => {
+    /*
+     * Cas réel : les onglets de scope Env (Development | Preview | Production)
+     * restent visibles mais inertes pendant la vue « Diff scopes ».
+     */
+    const onSelect = vi.fn();
+    render(<PanelToolTabs tabs={tabs} active="objects" onSelect={onSelect} disabled />);
+
+    const objects = screen.getByRole('button', { name: 'Objects' });
+    const settings = screen.getByRole('button', { name: 'Settings' });
+    expect(objects).toHaveProperty('disabled', true);
+    expect(settings).toHaveProperty('disabled', true);
+
+    // La sélection courante reste marquée…
+    expect(objects.getAttribute('aria-current')).toBe('page');
+
+    // …et le clic ne remonte rien.
+    fireEvent.click(settings);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+});
+
+describe('<PanelButton /> — gabarit icône+libellé (UNIF-14)', () => {
+  it('porte gap-1.5 dans le gabarit (les boutons icône+texte ne dépendent plus du gap SCSS ad hoc)', () => {
+    render(<PanelButton variant="outline">Webhooks</PanelButton>);
+    expect(screen.getByRole('button', { name: 'Webhooks' }).className).toContain('gap-1.5');
+  });
 });

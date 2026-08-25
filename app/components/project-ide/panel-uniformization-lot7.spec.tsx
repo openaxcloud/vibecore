@@ -87,8 +87,11 @@ describe('UNIF lot 7 — point 1 : actions par objet et fil d’Ariane', () => {
   it('la bascule Objects | Settings passe par la primitive PanelToolTabs', () => {
     expect(panelPrimitivesSource).toContain('export function PanelToolTabs');
 
-    // Les 3 barres d'onglets d'outil (Storage, Security, Deployments) partagent la primitive…
-    expect(countOccurrences(baseChatSource, '<PanelToolTabs')).toBe(3);
+    /*
+     * Les barres d'onglets d'outil partagent la primitive : Storage, Security,
+     * Deployments (lot 7) + les scopes Env (UNIF-14, lot 8)…
+     */
+    expect(countOccurrences(baseChatSource, '<PanelToolTabs')).toBe(4);
 
     // …et plus personne ne re-mappe le markup à la main dans BaseChat.
     expect(baseChatSource).not.toContain('className="bolt-project-tool-tabs"');

@@ -17074,20 +17074,15 @@ function ProjectSkillsPanel({
 
           <div className="flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
             <span>{t('chat.copy.installTo_358c06d6')}</span>
+            {/* UNIF-14 — bascule de scope d'installation sur le FilterChip commun (aria-pressed + accent action). */}
             {(['project', 'workspace'] as SkillInstallScope[]).map((scope) => (
-              <button
+              <FilterChip
                 key={scope}
-                type="button"
-                onClick={() => setCommunityScope(scope)}
+                label={scope === 'project' ? t('baseChatAst.common.project') : t('baseChatAst.common.workspace')}
+                active={communityScope === scope}
                 disabled={scope === 'workspace' && !hasWorkspace}
-                className={`rounded-md border px-2.5 py-1 font-medium capitalize transition-colors disabled:opacity-50 ${
-                  communityScope === scope
-                    ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
-                    : 'border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3'
-                }`}
-              >
-                {scope === 'project' ? t('baseChatAst.common.project') : t('baseChatAst.common.workspace')}
-              </button>
+                onClick={() => setCommunityScope(scope)}
+              />
             ))}
           </div>
 
@@ -17128,26 +17123,31 @@ function ProjectSkillsPanel({
                       </span>
                     </button>
 
+                    {/* UNIF-14 — Install / Uninstall dupliquaient à la main les classes du
+                        PanelButton (danger / primary) ; ils passent au composant partagé. */}
                     {installed ? (
-                      <button
+                      <PanelButton
                         type="button"
+                        variant="danger"
+                        size="sm"
+                        className="shrink-0"
                         onClick={() => void uninstall(entry.ownerRepo, communityScope)}
                         disabled={busy || pending === `u:${communityScope}:${entry.ownerRepo}`}
-                        className="shrink-0 rounded-md border border-[var(--vc-ide-accent-error)]/50 px-3 py-1.5 text-xs font-medium text-[var(--vc-ide-accent-error)] transition-colors hover:bg-[var(--vc-ide-accent-error)]/10 disabled:opacity-60"
                       >
                         {pending === `u:${communityScope}:${entry.ownerRepo}` ? '…' : t('chat.copy.uninstall_a735da1d')}
-                      </button>
+                      </PanelButton>
                     ) : (
-                      <button
+                      <PanelButton
                         type="button"
+                        size="sm"
+                        className="shrink-0"
                         onClick={() => void installFromCatalog(entry.ownerRepo, communityScope)}
                         disabled={busy || pending === `i:${entry.ownerRepo}`}
-                        className="shrink-0 rounded-md bg-[var(--vc-ide-accent-action)] px-3 py-1.5 text-xs font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-60"
                       >
                         {pending === `i:${entry.ownerRepo}`
                           ? t('chat.copy.installing_8d278823')
                           : t('chat.copy.install_fd6c3ebf')}
-                      </button>
+                      </PanelButton>
                     )}
                   </div>
 
@@ -18841,16 +18841,15 @@ function ProjectMonitoringActivitySparkline({
             })}
           </small>
         </div>
+        {/* UNIF-14 — le zoom du graphe (fit/2x/4x) passe au FilterChip commun, comme la fenêtre 15m/1h/24h. */}
         <div className="bolt-project-monitoring-zoom" aria-label={t('chat.copy.activityChartZoom_3789999d')}>
           {(['fit', '2x', '4x'] as const).map((level) => (
-            <button
+            <FilterChip
               key={level}
-              type="button"
-              className={zoomLevel === level ? 'selected' : ''}
+              label={level === 'fit' ? t('chat.copy.fit_dab564d8') : level}
+              active={zoomLevel === level}
               onClick={() => setZoomLevel(level)}
-            >
-              {level === 'fit' ? t('chat.copy.fit_dab564d8') : level}
-            </button>
+            />
           ))}
         </div>
       </header>
@@ -19500,14 +19499,16 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
                     <input type="hidden" name="intent" value="delete-task" />
                     <input type="hidden" name="workflowId" value={workflow.id} />
                     <input type="hidden" name="taskId" value={task.id} />
-                    <button
-                      type="submit"
+                    {/* UNIF-14 — corbeille de tâche sur le PanelButton commun (danger sm, icône seule). */}
+                    <PanelButton
+                      variant="danger"
+                      size="sm"
                       disabled={busy}
                       aria-label={t('chat.copy.deleteTask_9ad9dc2d')}
                       title={t('chat.copy.deleteTask_9ad9dc2d')}
                     >
                       <span className="i-ph:trash" aria-hidden />
-                    </button>
+                    </PanelButton>
                   </ConfirmSubmitForm>
                   {/* Hidden form the drop handler submits to reorder this task to `index`. */}
                   <form onSubmit={onSubmit} data-reorder hidden>
@@ -19579,10 +19580,11 @@ function ProjectWorkflowsPanel({ data, onSubmit, busy }: { data: any; onSubmit: 
             {workspace?.id ? ` (${workspace.id})` : ''}.
           </p>
         </div>
-        <button type="button" onClick={() => setCreateOpen((value) => !value)} data-testid="new-workflow-button">
+        {/* UNIF-14 — « New workflow » sur le PanelButton commun (CTA primary). */}
+        <PanelButton type="button" onClick={() => setCreateOpen((value) => !value)} data-testid="new-workflow-button">
           <span className="i-ph:plus" aria-hidden />
           {t('chat.copy.newWorkflow_c1418c2d')}
-        </button>
+        </PanelButton>
       </header>
 
       <div className="bolt-project-workflows-toolbar">
@@ -19794,19 +19796,20 @@ function ProjectIntegrationsPanel({
           <h3>{t('chat.copy.integrationHub_689b11c8')}</h3>
           <p>{t('chat.copy.connectProjectToolsWebhooksApiKeys_8c15c5e1')}</p>
         </div>
+        {/* UNIF-14 — les 3 raccourcis d'en-tête (API keys / Webhooks / Event streaming) sur le PanelButton commun. */}
         <div className="bolt-project-integrations-actions">
-          <button type="button" onClick={() => setShowApiKeyForm((value) => !value)}>
+          <PanelButton type="button" variant="outline" size="sm" onClick={() => setShowApiKeyForm((value) => !value)}>
             <span className="i-ph:key" aria-hidden />
             {t('chat.copy.apiKeys_e18ffc8d')}
-          </button>
-          <button type="button" onClick={() => setShowWebhookForm((value) => !value)}>
+          </PanelButton>
+          <PanelButton type="button" variant="outline" size="sm" onClick={() => setShowWebhookForm((value) => !value)}>
             <span className="i-ph:webhooks-logo" aria-hidden />
             {t('chat.copy.webhooks_fdfe2da7')}
-          </button>
-          <button type="button" onClick={() => setShowStreamForm((value) => !value)}>
+          </PanelButton>
+          <PanelButton type="button" variant="outline" size="sm" onClick={() => setShowStreamForm((value) => !value)}>
             <span className="i-ph:broadcast" aria-hidden />
             {t('chat.copy.eventStreaming_d053a572')}
-          </button>
+          </PanelButton>
         </div>
       </header>
 
@@ -19949,9 +19952,9 @@ function ProjectIntegrationsPanel({
                   ],
                 ]}
               />
-              <button type="button" onClick={() => setSelectedIntegrationId(null)}>
+              <PanelButton type="button" variant="outline" size="sm" onClick={() => setSelectedIntegrationId(null)}>
                 {t('chat.copy.closeConfiguration_0675f715')}
-              </button>
+              </PanelButton>
             </section>
           ) : null}
 
@@ -19971,13 +19974,16 @@ function ProjectIntegrationsPanel({
                   </div>
                   <footer>
                     <small>{integrationCategoryLabel(item.category)}</small>
-                    <button
+                    {/* UNIF-14 — Connect/Manage de carte sur le PanelButton commun (primary sm) ;
+                        c'était le dernier usage des tokens legacy button-primary du hub. */}
+                    <PanelButton
                       type="button"
+                      size="sm"
                       onClick={() => setSelectedIntegrationId(item.id)}
                       data-testid={`button-connect-${item.id}`}
                     >
                       {item.connected ? t('chat.copy.manage_bf58d17e') : t('chat.copy.connect_b65463cb')}
-                    </button>
+                    </PanelButton>
                   </footer>
                 </article>
               ))}
@@ -20006,9 +20012,14 @@ function ProjectIntegrationsPanel({
                       {t('chat.copy.sync_905f6309')}
                     </PanelButton>
                   </form>
-                  <button type="button" onClick={() => setSelectedIntegrationId(item.id)}>
+                  <PanelButton
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedIntegrationId(item.id)}
+                  >
                     {t('chat.copy.configure_792c81a4')}
-                  </button>
+                  </PanelButton>
                 </article>
               ))}
               {!connected.length && (
@@ -20031,9 +20042,10 @@ function ProjectIntegrationsPanel({
                   <strong>{t('chat.copy.webhooks_fdfe2da7')}</strong>
                   <small>{t('chat.copy.outgoingEndpointsPersistedInProjectBackend_e4b52238')}</small>
                 </div>
-                <button type="button" onClick={() => setShowWebhookForm((value) => !value)}>
+                {/* UNIF-14 — CTA de création sur le PanelButton commun (primary sm, comme « New variable »). */}
+                <PanelButton type="button" size="sm" onClick={() => setShowWebhookForm((value) => !value)}>
                   {t('chat.copy.createWebhook_0e738ec3')}
-                </button>
+                </PanelButton>
               </div>
               {showWebhookForm && (
                 <form onSubmit={onSubmit} className="bolt-project-integrations-form">
@@ -20102,9 +20114,9 @@ function ProjectIntegrationsPanel({
                   <strong>{t('chat.copy.apiKeys_e18ffc8d')}</strong>
                   <small>{t('chat.copy.secretsAreStoredInTheBackend_e0a856a4')}</small>
                 </div>
-                <button type="button" onClick={() => setShowApiKeyForm((value) => !value)}>
+                <PanelButton type="button" size="sm" onClick={() => setShowApiKeyForm((value) => !value)}>
                   {t('chat.copy.createApiKey_b68d55de')}
-                </button>
+                </PanelButton>
               </div>
               {showApiKeyForm && (
                 <form onSubmit={onSubmit} className="bolt-project-integrations-form">
@@ -20173,9 +20185,9 @@ function ProjectIntegrationsPanel({
                 <strong>{t('chat.copy.eventStreaming_d053a572')}</strong>
                 <small>{t('chat.copy.streamsAreProjectScopedAndBacked_3cc6a996')}</small>
               </div>
-              <button type="button" onClick={() => setShowStreamForm((value) => !value)}>
+              <PanelButton type="button" size="sm" onClick={() => setShowStreamForm((value) => !value)}>
                 {t('chat.copy.addStream_0c868a56')}
-              </button>
+              </PanelButton>
             </div>
             {showStreamForm && (
               <form onSubmit={onSubmit} className="bolt-project-integrations-form">
@@ -20339,31 +20351,32 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
   return (
     <div className="bolt-project-managed-panel">
       <section>
-        <div className="bolt-project-env-scopes" role="tablist" aria-label={t('chat.copy.environmentScope_aa238040')}>
-          {ENV_VAR_SCOPES.map((scope) => (
-            <button
-              key={scope.key}
-              type="button"
-              role="tab"
-              aria-selected={activeScope === scope.key}
-              className={activeScope === scope.key ? 'selected' : undefined}
-              disabled={showDiff}
-              onClick={() => {
-                setActiveScope(scope.key);
-                setEditing((current) => (current ? { ...current, scope: scope.key } : current));
-              }}
-            >
-              {t(scope.label)}
-            </button>
-          ))}
-          <button
+        {/*
+         * UNIF-14 — les onglets de scope maison (boutons `.selected` + rôle tab
+         * ad hoc) passent au PanelToolTabs commun (aria-current, feuille
+         * `.bolt-project-tool-tabs` unique) ; ils restent gelés pendant la vue
+         * Diff, comme avant. Le « Diff scopes » devient un PanelButton outline.
+         */}
+        <div className="bolt-project-env-scopes">
+          <PanelToolTabs
+            tabs={ENV_VAR_SCOPES.map((scope) => [scope.key, t(scope.label)] as const)}
+            active={activeScope}
+            disabled={showDiff}
+            onSelect={(scopeKey) => {
+              setActiveScope(scopeKey);
+              setEditing((current) => (current ? { ...current, scope: scopeKey } : current));
+            }}
+          />
+          <PanelButton
             type="button"
-            className={showDiff ? 'bolt-project-env-diff-toggle selected' : 'bolt-project-env-diff-toggle'}
+            variant="outline"
+            size="sm"
+            className="bolt-project-env-diff-toggle"
             aria-pressed={showDiff}
             onClick={() => setShowDiff((current) => !current)}
           >
             {showDiff ? t('chat.copy.exitDiff_f97e0642') : t('chat.copy.diffScopes_053a2907')}
-          </button>
+          </PanelButton>
         </div>
 
         <div className="bolt-project-panel-toolbar">
@@ -20393,9 +20406,16 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
         {showDiff ? (
           <div className="bolt-project-env-diff-wrap">
             <div className="bolt-project-env-diff-actions">
-              <button type="button" onClick={() => setRevealDiff((current) => !current)} aria-pressed={revealDiff}>
+              {/* UNIF-14 — « Reveal values » sur le PanelButton commun (outline sm). */}
+              <PanelButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setRevealDiff((current) => !current)}
+                aria-pressed={revealDiff}
+              >
                 {revealDiff ? t('chat.copy.maskValues_bc20ce51') : t('chat.copy.revealValues_3c8deb88')}
-              </button>
+              </PanelButton>
             </div>
             {diffRows.length ? (
               <table className="bolt-project-env-diff">
@@ -20459,15 +20479,23 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
                       ? (formatBaseChatAstDateTime(language, item.updatedAt) ?? item.updatedAt)
                       : t('chat.copy.storedInProjectMetadata_ac0072b9')}
                   </small>
-                  <button
+                  {/* UNIF-14 — Edit / Copy de ligne sur le PanelButton commun (outline sm). */}
+                  <PanelButton
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => setEditing({ key: item.key, value: item.value ?? '', scope: activeScope })}
                   >
                     {t('chat.copy.edit_5301648d')}
-                  </button>
-                  <button type="button" onClick={() => void copyEnv(item.key, item.value)}>
+                  </PanelButton>
+                  <PanelButton
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void copyEnv(item.key, item.value)}
+                  >
                     {t('chat.copy.copy_af74f7c5')}
-                  </button>
+                  </PanelButton>
                   <ConfirmSubmitForm
                     onSubmit={onSubmit}
                     title={t('chat.copy.deleteValue0FromValue1_9746c6b2', {
@@ -20480,7 +20508,7 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
                     <input name="intent" value="delete" type="hidden" />
                     <input name="key" value={item.key} type="hidden" />
                     <input name="scope" value={activeScope} type="hidden" />
-                    <PanelButton disabled={busy} variant="outline">
+                    <PanelButton disabled={busy} variant="outline" size="sm">
                       {t('chat.copy.delete_f6fdbe48')}
                     </PanelButton>
                   </ConfirmSubmitForm>
@@ -20934,10 +20962,11 @@ function ProjectSecurityPanel({
           <PanelButton disabled={busy || scanRunning}>
             {scanRunning ? t('chat.copy.scanning_bd5e8d69') : t('chat.copy.runFullScan_aedc848e')}
           </PanelButton>
+          {/* UNIF-14 — « Cancel scan » sur le PanelButton commun (variant danger). */}
           {scanRunning ? (
-            <button type="button" className="bolt-project-security-cancel" onClick={cancelScan}>
+            <PanelButton type="button" variant="danger" onClick={cancelScan}>
               {t('chat.copy.cancelScan_b37844ba')}
-            </button>
+            </PanelButton>
           ) : null}
         </form>
       </section>
@@ -21120,16 +21149,17 @@ function ProjectSecurityPanel({
               <article>
                 <strong>{t('chat.copy.exportAuditPackage_913ca7d5')}</strong>
                 <p>{t('chat.copy.generateAReportFromTheCurrent_99a3cc7e')}</p>
+                {/* UNIF-14 — les 3 exports (SARIF / JSON / Print) sur le PanelButton commun. */}
                 <div>
-                  <button type="button" onClick={exportSarifReport}>
+                  <PanelButton type="button" variant="outline" size="sm" onClick={exportSarifReport}>
                     {t('chat.copy.exportSarif_e4ff4ea2')}
-                  </button>
-                  <button type="button" onClick={exportJsonReport}>
+                  </PanelButton>
+                  <PanelButton type="button" variant="outline" size="sm" onClick={exportJsonReport}>
                     {t('chat.copy.exportJson_bc399052')}
-                  </button>
-                  <button type="button" onClick={printReport}>
+                  </PanelButton>
+                  <PanelButton type="button" variant="outline" size="sm" onClick={printReport}>
                     {t('chat.copy.printSavePdf_6b15347b')}
-                  </button>
+                  </PanelButton>
                 </div>
               </article>
               <PanelRows
