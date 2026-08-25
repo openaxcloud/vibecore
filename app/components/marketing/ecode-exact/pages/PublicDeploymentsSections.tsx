@@ -340,7 +340,8 @@ function PublicDeploymentsSectionsImpl() {
                 {copy.bookConsultation}
               </Button>
             </Link>
-            <Link href="/docs/deployments/api">
+            {/* /docs/deployments/api n'existe pas (splat 404) — /docs est le hub docs réel. */}
+            <Link href="/docs">
               <Button size="lg" variant="outline" className="border-[var(--ecode-border)]">
                 {copy.reviewApiIntegrations}
               </Button>
