@@ -163,10 +163,25 @@ describe('BaseChat strengthened-AST catalog', () => {
      *    seule la stratégie de montage du conteneur workbench change, dans la
      *    même région de source. Voir mobile-workbench-keepalive.ts.
      *
+     * 5. bug remonté par Avi (BUG-MOB-PALETTE-KEYBOARD-001, « ouvrir un panneau
+     *    depuis la palette Commandes ne bascule pas la vue / la palette
+     *    reste », iPhone ~390 px) — le champ de recherche de la palette passe
+     *    de `autoFocus` inconditionnel à `autoFocus={commandPaletteAutoFocus}`.
+     *    Sur un appareil PUREMENT tactile, l'auto-focus levait le clavier
+     *    logiciel dès l'ouverture : il masque la moitié basse de la liste (la
+     *    feuille est en `position: fixed` ancrée au viewport de MISE EN PAGE,
+     *    que le clavier ne réduit pas) et, à sa fermeture, la mise en page se
+     *    ré-étale entre le toucher et le `click`, qui atterrit alors sur une
+     *    autre cible. Un pointeur fin (souris, trackpad — y compris tablette
+     *    avec clavier, cas voulu par SCR-006) garde l'auto-focus à l'identique.
+     *    Aucun texte, aucune classe, aucun élément ne change : seule la valeur
+     *    d'un attribut de comportement devient conditionnelle. Voir
+     *    `~/lib/command-palette-focus`.
+     *
      * Toute évolution du hash hors d'une demande explicite du propriétaire
      * signale une dérive de mise en page à refuser.
      */
-    expect(frozenHash).toBe('37963dd8b90af8b61ac670c0d8bb20da6d3558fc9da096fc2ac9afeeeb3c024d');
+    expect(frozenHash).toBe('509abbb9f97fb6ddf80c54d7dbc7736a2220db0386b7eea05486ba5f7d2cd15e');
     expect(outsideFrozen).toEqual([]);
 
     // The mobile header/dock labels are now localized via t(); no raw English remains.
