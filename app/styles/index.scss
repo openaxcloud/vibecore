@@ -498,6 +498,10 @@ html:has(.vc-app-shell-grid) body {
   --vc-ide-accent-success: #3fb950;
   --vc-ide-accent-action: #0099ff;
   --vc-action-primary: var(--vc-ide-accent-action);
+  // CTA plein porteur de texte blanc. Dans l'IDE il reste sur l'accent action ;
+  // la coque user area (.vc-user-area-shell) le remappe sur le ton renforcé
+  // SCR-007, car blanc sur l'orange de marque #f97316 = 2,80:1 (< 4,5 AA).
+  --vc-cta-accent: var(--vc-ide-accent-action);
   --vc-action-primary-strong: #c2410c;
   // SCR-007 : survol du bouton primaire porteur de texte blanc. Il remplace
   // `hover:brightness-110`, qui ECLAIRCIT le fond (#c2410c x1.1 = 4,41:1) et
@@ -3856,6 +3860,9 @@ body :where([data-radix-tooltip-arrow], .tooltip-arrow) {
   --vc-action-primary-hover: #fb923c;
   --vc-action-primary-foreground: #111827;
   --vc-ide-accent-action: var(--vc-action-primary);
+  // SCR-007 : les CTA pleins à texte blanc du user area utilisent le ton
+  // renforcé (5,16:1) — l'orange de marque reste pour bordures/icônes/anneaux.
+  --vc-cta-accent: var(--vc-action-primary-strong);
   --vc-ide-accent-primary: var(--vc-action-primary);
   --vc-ide-accent: var(--vc-action-primary);
   --vc-ide-text-on-accent: var(--vc-action-primary-foreground);

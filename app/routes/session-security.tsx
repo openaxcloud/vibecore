@@ -6,6 +6,7 @@ import { toast } from 'react-toastify';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { EmptyState } from '~/components/ui/EmptyState';
 import {
   apiRequest,
   currentSessionTokenHash,
@@ -242,7 +243,7 @@ export default function SessionSecurityPage() {
                   color: 'var(--status-error-text)',
                   borderColor: 'color-mix(in srgb, var(--vc-ide-accent-error) 40%, transparent)',
                 }}
-                className="mt-3 inline-flex min-h-8 w-full items-center justify-center gap-1.5 whitespace-normal rounded-md border px-3 py-1.5 text-center text-xs font-medium leading-snug transition-colors hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60 sm:mt-0 sm:w-auto sm:shrink-0"
+                className="mt-3 inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 whitespace-normal rounded-md border px-3 py-1.5 text-center text-xs font-medium leading-snug transition-colors hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60 sm:mt-0 sm:w-auto sm:shrink-0"
               >
                 <LogOut className="h-3.5 w-3.5" aria-hidden />
                 {copy[revokingAll ? 'sessionSecurity.sessions.signingOutAll' : 'sessionSecurity.sessions.signOutAll']}
@@ -265,14 +266,12 @@ export default function SessionSecurityPage() {
               />
             )
           ) : sessions.length === 0 ? (
-            <div className="mt-4 flex flex-col items-center gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-6 py-10 text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-bolt-elements-background-depth-3">
-                <Monitor className="h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
-              </span>
-              <p className="break-words text-sm text-bolt-elements-textSecondary">
-                {copy['sessionSecurity.sessions.empty']}
-              </p>
-            </div>
+            <EmptyState
+              variant="compact"
+              icon={Monitor}
+              title={copy['sessionSecurity.sessions.empty']}
+              className="mt-4"
+            />
           ) : (
             <ul className="mt-4 overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1">
               {sessions.map((session, index) => {
@@ -335,7 +334,7 @@ export default function SessionSecurityPage() {
                         <button
                           type="submit"
                           disabled={busy}
-                          className="inline-flex min-h-8 w-full items-center justify-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-center text-xs font-medium leading-snug text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                          className="inline-flex min-h-[44px] w-full items-center justify-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-center text-xs font-medium leading-snug text-[var(--status-error-text)] hover:bg-[var(--status-error-bg)] disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                         >
                           <Trash2 className="h-3.5 w-3.5" aria-hidden />
                           {

@@ -994,7 +994,12 @@ function NewsletterMiniForm({ copy }: { copy: MarketingShellCopy }) {
 
   return (
     <div className="mt-8">
-      <h4 className="text-[13px] font-semibold uppercase tracking-[0.3em] text-[var(--ecode-text-muted)] dark:text-slate-400">
+      {/*
+       * SCR-009 (suite) — même chasse que les titres de colonnes (FooterColumn) :
+       * ce titre « Newsletter » vit dans la même grille de pied de page ; le
+       * laisser à 0.3em recréait exactement l'étirement corrigé juste au-dessus.
+       */}
+      <h4 className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--ecode-text-muted)] dark:text-slate-400">
         {copy.newsletter.title}
       </h4>
       {succeeded ? (
