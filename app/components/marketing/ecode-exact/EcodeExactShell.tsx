@@ -956,12 +956,20 @@ function FooterColumn({ title, links }: { title: string; links: readonly FooterL
       <h4 className="text-[13px] font-semibold uppercase tracking-[0.12em] text-[var(--ecode-text-muted)] dark:text-slate-400">
         {title}
       </h4>
-      <ul role="list" className="mt-2 space-y-2 text-[13px]">
+      {/*
+       * AV-UX point 11 — « titres encore trop espacés » : le pas vertical réel
+       * d'une ligne de lien était 52px (rangée tactile de 44px + `space-y-2`).
+       * Les grands sites tournent autour de 32-40px. `space-y-0` supprime la
+       * marge décorative (la rangée de 44px espace déjà d'elle-même) et, au
+       * bureau (`lg:`, pointeur souris), la rangée descend à 32px — au-dessus
+       * du minimum WCAG 2.2 (24px). Tactile (mobile/tablette) : 44px conservés.
+       */}
+      <ul role="list" className="mt-2 space-y-0 text-[13px]">
         {links.map((link) => (
           <li key={link.id}>
             <Link
               href={link.href}
-              className="inline-flex min-h-11 min-w-11 items-center text-[var(--ecode-text-secondary)] dark:text-slate-300 transition hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
+              className="inline-flex min-h-11 min-w-11 lg:min-h-8 items-center text-[var(--ecode-text-secondary)] dark:text-slate-300 transition hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
             >
               {link.label}
             </Link>
