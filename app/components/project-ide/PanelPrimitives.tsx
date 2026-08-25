@@ -74,8 +74,13 @@ export function PanelButton({
         'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
         variant === 'menu'
           ? PANEL_BUTTON_VARIANT_CLASSES.menu
-          : classNames(
-              'inline-flex items-center justify-center rounded-md font-medium transition',
+          : /*
+             * UNIF-14 : `gap-1.5` intégré au gabarit — les boutons icône+libellé
+             * (Integrations, Workflows) tenaient leur espacement de règles SCSS
+             * ad hoc désormais supprimées.
+             */
+            classNames(
+              'inline-flex items-center justify-center gap-1.5 rounded-md font-medium transition',
               size === 'sm' ? 'h-7 px-2 text-xs' : 'h-9 px-3 text-sm',
               PANEL_BUTTON_VARIANT_CLASSES[variant],
             ),
@@ -194,6 +199,12 @@ export interface PanelToolTabsProps<T extends string> {
   tabs: ReadonlyArray<readonly [T, string]>;
   active: T;
   onSelect: (id: T) => void;
+
+  /**
+   * Désactive TOUS les onglets (UNIF-14 : onglets de scope Env gelés pendant
+   * la vue « Diff scopes »). La sélection courante reste affichée.
+   */
+  disabled?: boolean;
   className?: string;
 }
 
@@ -206,11 +217,23 @@ export interface PanelToolTabsProps<T extends string> {
  * comme les vrais onglets de navigation — PAS des PanelButton : un onglet
  * actif n'est pas un CTA.
  */
-export function PanelToolTabs<T extends string>({ tabs, active, onSelect, className }: PanelToolTabsProps<T>) {
+export function PanelToolTabs<T extends string>({
+  tabs,
+  active,
+  onSelect,
+  disabled,
+  className,
+}: PanelToolTabsProps<T>) {
   return (
     <div className={classNames('bolt-project-tool-tabs', className)}>
       {tabs.map(([id, label]) => (
-        <button key={id} type="button" aria-current={active === id ? 'page' : undefined} onClick={() => onSelect(id)}>
+        <button
+          key={id}
+          type="button"
+          aria-current={active === id ? 'page' : undefined}
+          disabled={disabled}
+          onClick={() => onSelect(id)}
+        >
           {label}
         </button>
       ))}
