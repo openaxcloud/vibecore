@@ -3,7 +3,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { PanelButton, PanelEmptyState, PanelInput, PanelSectionTitle } from './PanelPrimitives';
+import { PanelButton, PanelEmptyState, PanelInput, PanelSectionTitle, PanelToolTabs } from './PanelPrimitives';
 
 afterEach(cleanup);
 
@@ -186,5 +186,41 @@ describe('<PanelSectionTitle />', () => {
     expect(heading.className).toContain('text-[11px]');
     expect(heading.className).toContain('uppercase');
     expect(heading.className).toContain('tracking-wide');
+  });
+});
+
+describe('<PanelToolTabs /> (UNIF lot 7)', () => {
+  const tabs = [
+    ['objects', 'Objects'],
+    ['settings', 'Settings'],
+  ] as const;
+
+  it('rend la barre .bolt-project-tool-tabs partagée avec un bouton par onglet', () => {
+    const { container } = render(<PanelToolTabs tabs={tabs} active="objects" onSelect={() => undefined} />);
+
+    expect(container.querySelector('.bolt-project-tool-tabs')).not.toBeNull();
+
+    const buttons = container.querySelectorAll('button');
+    expect(buttons).toHaveLength(2);
+    expect(buttons[0].textContent).toBe('Objects');
+    expect(buttons[1].textContent).toBe('Settings');
+  });
+
+  it("marque l'onglet actif via aria-current=page (pas de classe selected ad hoc)", () => {
+    render(<PanelToolTabs tabs={tabs} active="settings" onSelect={() => undefined} />);
+
+    expect(screen.getByRole('button', { name: 'Settings' }).getAttribute('aria-current')).toBe('page');
+    expect(screen.getByRole('button', { name: 'Objects' }).getAttribute('aria-current')).toBeNull();
+  });
+
+  it("remonte l'id typé au clic et n'emet pas de submit (type=button)", () => {
+    const onSelect = vi.fn();
+    render(<PanelToolTabs tabs={tabs} active="objects" onSelect={onSelect} />);
+
+    const settings = screen.getByRole('button', { name: 'Settings' });
+    expect(settings).toHaveProperty('type', 'button');
+
+    fireEvent.click(settings);
+    expect(onSelect).toHaveBeenCalledWith('settings');
   });
 });
