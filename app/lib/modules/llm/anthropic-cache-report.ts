@@ -1,14 +1,13 @@
 /**
  * Client-safe indirection for reporting Anthropic off-wire cache usage.
  *
- * `@ai-sdk/anthropic@0.0.39` discards `cache_read_input_tokens` /
- * `cache_creation_input_tokens`, so the provider's wire middleware
- * (`createAnthropicCachingFetch`) reads them straight off the SSE stream and
- * reports them here. The provider module (`providers/anthropic.ts`) is reachable
- * from the CLIENT bundle through the model registry, so it must NOT import
- * `node:async_hooks`. This tiny module has zero node builtins: it just forwards to
- * a handler that the SERVER-ONLY ALS module installs at import time. On the client
- * the handler stays null and every call is a silent no-op.
+ * The provider normally surfaces cache tokens now; the wire middleware remains a
+ * compatibility fail-safe and reports them here only for the route's zero-metadata
+ * fallback. The provider module (`providers/anthropic.ts`) is reachable from the
+ * CLIENT bundle through the model registry, so it must NOT import `node:async_hooks`.
+ * This tiny module has zero node builtins: it forwards to a handler that the
+ * SERVER-ONLY ALS module installs at import time. On the client the handler stays
+ * null and every call is a silent no-op.
  */
 export type AnthropicCacheHandler = (readTokens: number, writeTokens: number) => void;
 

@@ -490,10 +490,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         /*
          * Scope a per-request Anthropic cache tally to this execute's async
          * context. The provider's wire reader (spawned during streamText below)
-         * accumulates the off-wire cache_read/creation tokens here — the ones
-         * @ai-sdk/anthropic@0.0.39 drops — so flushUsage can fold them into the
-         * normalized telemetry. enterWith (not run) avoids re-indenting the whole
-         * body; each concurrent request runs execute in its own async context.
+         * accumulates cache_read/creation tokens as a fallback when normalized
+         * provider metadata omits them, so flushUsage can still account correctly.
+         * enterWith (not run) avoids re-indenting the whole body; each concurrent
+         * request runs execute in its own async context.
          */
         anthropicCacheStore.enterWith({ read: 0, write: 0 });
 
@@ -1483,7 +1483,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
               /*
                * Fold in the off-wire Anthropic cache tokens when the SDK surfaced
-               * none (its provider metadata is empty on 0.0.39). Guarded on
+               * none (some provider/API variants omit cache metadata). Guarded on
                * cachedPromptTokens===0 so providers that DO report via metadata
                * (OpenAI, Google) are never double-counted, and the tally only ever
                * holds Anthropic data (no other provider reports into it).

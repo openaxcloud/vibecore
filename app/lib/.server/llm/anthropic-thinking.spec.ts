@@ -1,88 +1,95 @@
 import { readFileSync } from 'node:fs';
 
-import { describe, expect, it } from 'vitest';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { describe, expect, it, vi } from 'vitest';
 
-import { isAnthropicProvider, withThinkingDisabled } from './anthropic-thinking';
+const asSse = (events: unknown[]) => events.map((event) => `data: ${JSON.stringify(event)}\n\n`).join('');
 
-/*
- * BUG-CHAT-THINKING-001 — « Une erreur inattendue est survenue pendant la
- * génération » (500, code UNKNOWN) sur le tier « Puissance ».
- *
- * Relevé dans les journaux du pod web en production, 18/08 :
- *
- *     stream onError code=UNKNOWN (Type validation failed: Value:
- *     {"type":"content_block_start","index":0,
- *      "content_block":{"type":"thinking","thinking":"","signature":""}}
- *
- * `claude-fable-5` émet des blocs de réflexion ; `@ai-sdk/anthropic` 0.0.39 ne
- * connaît pas ces événements et fait mourir le flux au premier d'entre eux.
- */
-describe('désactivation de la réflexion étendue', () => {
-  it('ne touche QUE Anthropic', () => {
-    expect(withThinkingDisabled('openai', undefined)).toBeUndefined();
-    expect(withThinkingDisabled('OpenAI', { openai: { store: true } })).toEqual({ openai: { store: true } });
+describe('BUG-CHAT-THINKING-001 — flux Anthropic avec réflexion', () => {
+  it('accepte les blocs thinking, thinking_delta et signature_delta sans tuer le flux', async () => {
+    const fetch = vi.fn(
+      async () =>
+        new Response(
+          asSse([
+            {
+              type: 'message_start',
+              message: {
+                id: 'msg-thinking',
+                model: 'claude-fable-5',
+                usage: { input_tokens: 12, output_tokens: 0 },
+              },
+            },
+            {
+              type: 'content_block_start',
+              index: 0,
+              content_block: { type: 'thinking', thinking: '' },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: { type: 'thinking_delta', thinking: 'Je vérifie le plan.' },
+            },
+            {
+              type: 'content_block_delta',
+              index: 0,
+              delta: { type: 'signature_delta', signature: 'signed-reasoning' },
+            },
+            { type: 'content_block_stop', index: 0 },
+            {
+              type: 'content_block_start',
+              index: 1,
+              content_block: { type: 'text', text: '' },
+            },
+            {
+              type: 'content_block_delta',
+              index: 1,
+              delta: { type: 'text_delta', text: 'Application générée.' },
+            },
+            { type: 'content_block_stop', index: 1 },
+            {
+              type: 'message_delta',
+              delta: { stop_reason: 'end_turn' },
+              usage: { output_tokens: 8 },
+            },
+            { type: 'message_stop' },
+          ]),
+          { status: 200, headers: { 'content-type': 'text/event-stream' } },
+        ),
+    );
+
+    const model = createAnthropic({ apiKey: 'test-key', fetch })('claude-fable-5');
+
+    const result = await model.doStream({
+      mode: { type: 'regular' },
+      inputFormat: 'prompt',
+      prompt: [{ role: 'user', content: [{ type: 'text', text: 'Construis une application.' }] }],
+      maxTokens: 1024,
+    } as Parameters<typeof model.doStream>[0]);
+
+    const chunks = [];
+
+    for await (const chunk of result.stream) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toContainEqual({ type: 'reasoning', textDelta: 'Je vérifie le plan.' });
+    expect(chunks).toContainEqual({ type: 'reasoning-signature', signature: 'signed-reasoning' });
+    expect(chunks).toContainEqual({ type: 'text-delta', textDelta: 'Application générée.' });
+    expect(chunks.some((chunk) => chunk.type === 'error')).toBe(false);
   });
 
-  it('reconnaît le fournisseur quelle que soit la casse', () => {
-    expect(isAnthropicProvider('Anthropic')).toBe(true);
-    expect(isAnthropicProvider('anthropic')).toBe(true);
-    expect(isAnthropicProvider(' ANTHROPIC ')).toBe(true);
-    expect(isAnthropicProvider('bedrock')).toBe(false);
-    expect(isAnthropicProvider(undefined)).toBe(false);
+  it('ne force plus thinking=disabled dans le chemin de production', () => {
+    const streamText = readFileSync('app/lib/.server/llm/stream-text.ts', 'utf8');
+
+    expect(streamText).not.toContain('withThinkingDisabled');
+    expect(streamText).not.toContain("thinking: { type: 'disabled' }");
   });
 
-  it('demande explicitement la désactivation quand rien n’est posé', () => {
-    expect(withThinkingDisabled('anthropic', undefined)).toEqual({
-      anthropic: { thinking: { type: 'disabled' } },
-    });
-  });
+  it('reste sur la version provider qui connaît les événements de réflexion', () => {
+    const pkg = JSON.parse(readFileSync('package.json', 'utf8')) as {
+      dependencies: Record<string, string>;
+    };
 
-  it('FUSIONNE au lieu d’écraser les options existantes', () => {
-    /*
-     * Écraser ferait perdre silencieusement les options d'un appelant — un
-     * défaut plus difficile à voir que celui qu'on corrige.
-     */
-    const merged = withThinkingDisabled('anthropic', {
-      anthropic: { cacheControl: 'ephemeral' },
-      openai: { store: true },
-    });
-
-    expect(merged).toEqual({
-      anthropic: { thinking: { type: 'disabled' }, cacheControl: 'ephemeral' },
-      openai: { store: true },
-    });
-  });
-
-  it('laisse gagner un `thinking` posé explicitement par l’appelant', () => {
-    const merged = withThinkingDisabled('anthropic', {
-      anthropic: { thinking: { type: 'enabled', budgetTokens: 1024 } },
-    });
-
-    expect((merged?.anthropic as any).thinking).toEqual({ type: 'enabled', budgetTokens: 1024 });
-  });
-});
-
-describe('câblage dans le flux', () => {
-  const streamText = readFileSync('app/lib/.server/llm/stream-text.ts', 'utf8');
-
-  it('les paramètres du flux passent par la désactivation', () => {
-    expect(streamText).toContain('withThinkingDisabled(');
-    expect(streamText).toContain("from './anthropic-thinking'");
-  });
-});
-
-describe('rappel de dette', () => {
-  it('le contournement se retire quand le SDK est monté', () => {
-    /*
-     * Ce test échouera dès que quelqu'un montera `@ai-sdk/anthropic` : c'est
-     * voulu. Il force à revenir ici et à supprimer le contournement plutôt que
-     * de le laisser vivre indéfiniment.
-     */
-    const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
-
-    expect(
-      pkg.dependencies['@ai-sdk/anthropic'],
-      'SDK monté : retirer le contournement `anthropic-thinking.ts` et réactiver la réflexion',
-    ).toBe('0.0.39');
+    expect(pkg.dependencies['@ai-sdk/anthropic']).toBe('1.2.12');
   });
 });

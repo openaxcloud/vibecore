@@ -10,13 +10,11 @@ import { createScopedLogger } from '~/utils/logger';
 const anthropicCacheLogger = createScopedLogger('anthropic-cache');
 
 /**
- * DIAGNOSTIC — `@ai-sdk/anthropic@0.0.39` reads ONLY `input_tokens`/`output_tokens`
- * from the wire and DISCARDS `cache_read_input_tokens` / `cache_creation_input_tokens`,
- * so our normalized telemetry is blind to Anthropic caching (it reports
- * cachedPromptTokens=0 even on a real hit). To PROVE the cache live we tee the SSE
- * response stream and read Anthropic's raw usage off the wire (message_start carries
- * the cache fields). Read-only, best-effort, memory-capped: it must NEVER break or
- * delay the generation stream the SDK consumes.
+ * DIAGNOSTIC — the provider now surfaces Anthropic cache metadata, but this wire
+ * reader remains a fail-safe for provider/API variants that omit normalized fields.
+ * `flushUsage` only consumes this tally when provider metadata reported no cache
+ * tokens, preventing double accounting. Read-only, best-effort, memory-capped: it
+ * must NEVER break or delay the generation stream the SDK consumes.
  */
 function teeAndLogAnthropicWireUsage(response: Response): Response {
   try {
@@ -108,7 +106,7 @@ export function buildAnthropicModelLabel(model: { display_name?: string | null; 
 /**
  * Wrap `fetch` so every Anthropic `/v1/messages` call caches its stable prefix.
  *
- * The installed `@ai-sdk/anthropic@0.0.39` predates the SDK's `cacheControl`
+ * The provider's portable prompt-cache path predates the SDK's `cacheControl`
  * plumbing (it flattens `system` to a plain string and exposes no way to mark a
  * cache breakpoint), so we inject the breakpoint at the wire level instead of
  * upgrading the provider SDK (which would touch the certified OpenAI path).
@@ -315,10 +313,11 @@ export default class AnthropicProvider extends BaseProvider {
        * 128k output. Opus 5 runs ADAPTIVE THINKING BY DEFAULT — unlike Opus 4.8,
        * omitting the `thinking` param no longer means "no thinking" — and those
        * thinking tokens share the same `max_tokens` ceiling as the visible answer.
-       * `@ai-sdk/anthropic@0.0.39` exposes no `thinking` knob, so we cannot pin it
-       * off; the declared 128k completion ceiling plus the existing
-       * finishReason:'length' auto-continue is what keeps a long build from
-       * stopping mid-file.
+       * `@ai-sdk/anthropic@1.2.12` understands `thinking`, `thinking_delta` and
+       * `signature_delta`; adaptive-thinking output can therefore flow through
+       * without the former forced-disable workaround. The declared 128k completion
+       * ceiling plus the existing finishReason:'length' auto-continue keeps a long
+       * build from stopping mid-file.
        */
       name: 'claude-opus-5',
       label: 'Claude Opus 5',
