@@ -41,7 +41,13 @@ const lockManagerSource = read('..', 'workbench', 'LockManager.tsx');
 describe('UNIF lot 4 — point 1 : boutons restants → PanelButton', () => {
   it('LE style primary est tranché : source unique IDE_PRIMARY_ACCENT_CLASSES (EmptyState), consommée par PanelButton', () => {
     expect(emptyStateSource).toContain('export const IDE_PRIMARY_ACCENT_CLASSES');
-    expect(emptyStateSource).toContain("'bg-[var(--vc-ide-accent-action)] text-white");
+
+    /*
+     * Audit user area : le fond passe par `--vc-cta-accent`, qui vaut l'accent
+     * action dans l'IDE (inchangé) et le ton renforcé AA dans la coque user
+     * area (blanc sur l'orange de marque = 2,80:1).
+     */
+    expect(emptyStateSource).toContain("'bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] text-white");
     expect(panelPrimitivesSource).toContain('IDE_PRIMARY_ACCENT_CLASSES');
 
     // L'ancien style teinté n'est plus émis par les primitives de panneau.

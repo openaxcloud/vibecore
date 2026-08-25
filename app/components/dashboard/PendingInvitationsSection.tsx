@@ -1,7 +1,10 @@
+import { Mail } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Form, useSubmit } from 'react-router';
+import { Badge } from '~/components/ui/Badge';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
+import { EmptyState } from '~/components/ui/EmptyState';
 import { RelativeTime } from '~/components/ui/RelativeTime';
 import {
   formatOrganizationMembersCopy,
@@ -49,8 +52,8 @@ export function PendingInvitationsSection({ orgId, invitations }: { orgId: strin
         </p>
       </div>
       {pending.length === 0 ? (
-        <div className="px-4 py-4 text-bolt-elements-textSecondary sm:px-6">
-          {copy['organizationMembers.pending.empty']}
+        <div role="status" aria-live="polite" className="p-4 sm:p-6">
+          <EmptyState variant="compact" icon={Mail} title={copy['organizationMembers.pending.empty']} />
         </div>
       ) : (
         pending.map((invite) => {
@@ -62,19 +65,14 @@ export function PendingInvitationsSection({ orgId, invitations }: { orgId: strin
               className="grid gap-3 border-b border-bolt-elements-borderColor px-4 py-4 last:border-b-0 sm:px-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center"
             >
               <div className="min-w-0">
-                <div className="truncate font-medium text-bolt-elements-textPrimary">{invite.email}</div>
+                <div className="break-all font-medium text-bolt-elements-textPrimary">{invite.email}</div>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-bolt-elements-textSecondary">
                   <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5">
                     {organizationMemberRoleLabel(invite.roleKey, undefined, copy)}
                   </span>
                   <RelativeTime value={invite.createdAt} prefix={copy['organizationMembers.pending.invited']} />
                   {expired ? (
-                    <span
-                      className="rounded-full border px-2 py-0.5 font-medium"
-                      style={{ color: 'var(--status-error-text)', borderColor: 'var(--status-error-text)' }}
-                    >
-                      {copy['organizationMembers.pending.expired']}
-                    </span>
+                    <Badge variant="warning">{copy['organizationMembers.pending.expired']}</Badge>
                   ) : (
                     <RelativeTime
                       value={invite.expiresAt}

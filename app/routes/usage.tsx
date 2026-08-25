@@ -230,7 +230,7 @@ export default function UsagePage() {
           />
         )
       ) : breakdown && breakdown.categories.length ? (
-        <section className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-5">
+        <section className="mb-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
           <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-semibold text-bolt-elements-textPrimary">{t('usage.breakdown.title')}</h2>
             <div className="flex flex-wrap items-center gap-2">
@@ -417,7 +417,7 @@ export default function UsagePage() {
                         {tone === 'error' ? (
                           <Link
                             to="/upgrade"
-                            className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                            className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] px-3 text-xs font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
                           >
                             {t('usage.table.increaseLimits')}
                           </Link>
@@ -431,8 +431,8 @@ export default function UsagePage() {
           </div>
 
           {overrides.length > 0 ? (
-            <div className="mt-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-              <h3 className="text-sm font-medium text-bolt-elements-textPrimary">{t('usage.overrides.title')}</h3>
+            <div className="mt-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
+              <h2 className="text-base font-semibold text-bolt-elements-textPrimary">{t('usage.overrides.title')}</h2>
               <p className="mb-3 text-xs text-bolt-elements-textSecondary">{t('usage.overrides.description')}</p>
               <ul className="flex flex-col gap-2">
                 {overrides.map((override) => (
@@ -472,8 +472,8 @@ export default function UsagePage() {
           />
         )
       ) : memberLimits && memberLimits.members.length ? (
-        <div className="mt-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
-          <h3 className="text-sm font-medium text-bolt-elements-textPrimary">{t('usage.members.title')}</h3>
+        <div className="mt-6 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
+          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">{t('usage.members.title')}</h2>
           <p className="mb-3 text-xs text-bolt-elements-textSecondary">{t('usage.members.description')}</p>
           {actionSuccess ? (
             <div className="mb-3 rounded-md border border-[var(--status-success-border)] bg-[var(--status-success-bg)] p-2 text-xs text-[var(--status-success-text)]">
