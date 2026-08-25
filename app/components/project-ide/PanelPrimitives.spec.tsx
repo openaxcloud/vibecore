@@ -58,8 +58,14 @@ describe('<PanelButton />', () => {
 
     const className = screen.getByRole('button', { name: 'Create' }).className;
 
-    // Style tranché : plein --vc-ide-accent-action + texte blanc (= CTA EmptyState).
-    expect(className).toContain('bg-[var(--vc-ide-accent-action)]');
+    /*
+     * Style tranché : fond plein + texte blanc (= CTA EmptyState). Depuis
+     * l'audit user area, le fond passe par `--vc-cta-accent`, qui VAUT
+     * `--vc-ide-accent-action` partout (défaut global) et bascule sur le ton
+     * renforcé AA dans la seule coque user area — la couleur rendue dans l'IDE
+     * est donc inchangée, c'est l'indirection qui est nouvelle.
+     */
+    expect(className).toContain('bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))]');
     expect(className).toContain('text-white');
 
     // L'ancien style teinté n'est plus émis par les primitives de panneau.
