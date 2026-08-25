@@ -372,7 +372,7 @@ export default function UsagePage() {
                       <span className="min-w-0 break-words">
                         {quotaLabel}
                         {override ? (
-                          <span className="ml-2 inline-flex rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] uppercase text-bolt-elements-textTertiary">
+                          <span className="ml-2 inline-flex rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[11px] uppercase text-bolt-elements-textTertiary">
                             {t('usage.table.customLimit')}
                           </span>
                         ) : null}

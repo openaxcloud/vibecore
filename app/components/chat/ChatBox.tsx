@@ -492,7 +492,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
       {props.selectedElement && (
         <div className="mx-1.5 flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg rounded-b-none border border-b-0 border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary sm:flex-nowrap">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 lowercase">
-            <code className="rounded-4px mr-0.5 max-w-full whitespace-normal break-all bg-accent-500 px-1.5 py-1 text-white">
+            <code className="rounded-4px mr-0.5 max-w-full whitespace-normal break-all bg-[var(--vc-action-primary)] px-1.5 py-1 text-[var(--vc-action-primary-foreground)]">
               {props?.selectedElement?.tagName}
             </code>
             <span className="min-w-0 break-words">{copy['chatBox.inspector.selected']}</span>
@@ -500,7 +500,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           <button
             type="button"
             aria-label={copy['chatBox.inspector.clearAria']}
-            className="pointer-auto min-h-8 shrink-0 bg-transparent px-1 text-accent-500"
+            className="pointer-auto min-h-8 shrink-0 bg-transparent px-1 text-[var(--vc-action-primary)]"
             onClick={() => props.setSelectedElement?.(null)}
           >
             {copy['chatBox.inspector.clear']}

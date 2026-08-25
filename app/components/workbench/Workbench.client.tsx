@@ -153,7 +153,7 @@ const FileModifiedDropdown = memo(
               <Popover.Button className="flex min-h-[36px] items-center gap-2 rounded-lg bg-bolt-elements-background-depth-2 px-3 py-1.5 text-sm text-bolt-elements-item-contentDefault transition-colors hover:bg-bolt-elements-background-depth-3">
                 <span className="whitespace-normal text-left">{copy['workbenchSurface.files.changes']}</span>
                 {hasChanges && (
-                  <span className="w-5 h-5 rounded-full bg-accent-500/20 text-accent-500 text-xs flex items-center justify-center border border-accent-500/30">
+                  <span className="w-5 h-5 rounded-full bg-[color-mix(in_srgb,var(--vc-action-primary)_20%,transparent)] text-[var(--vc-action-primary)] text-xs flex items-center justify-center border border-[color-mix(in_srgb,var(--vc-action-primary)_30%,transparent)]">
                     {formatWorkbenchSurfaceNumber(language, modifiedFiles.length)}
                   </span>
                 )}
@@ -345,7 +345,7 @@ const FileModifiedDropdown = memo(
                             ?.writeText(filteredFiles.map(([filePath]) => filePath).join('\n'))
                             ?.then(() => {
                               toast(copy['workbenchSurface.files.copySuccess'], {
-                                icon: <div className="i-ph:check-circle text-accent-500" />,
+                                icon: <div className="i-ph:check-circle text-[var(--vc-action-primary)]" />,
                               });
                             })
                             ?.catch(() => {

@@ -394,7 +394,7 @@ export default function LoginPage() {
             {AUTH_HERO_STATS.map((item) => (
               <div key={item.value} className="vc-auth-mobile-stat rounded-lg px-3 py-3 text-center">
                 <div className="text-[16px] font-bold">{item.value}</div>
-                <div className="mt-1 text-[10px]">{t(item.labelKey)}</div>
+                <div className="mt-1 text-[11px]">{t(item.labelKey)}</div>
               </div>
             ))}
           </div>
