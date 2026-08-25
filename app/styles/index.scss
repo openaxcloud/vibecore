@@ -5116,13 +5116,29 @@ body :where(.lucide, svg[data-lucide]) {
   touch-action: manipulation;
 }
 
+.bolt-mobile-tab-switcher-quick button {
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    color 150ms ease,
+    transform 150ms ease;
+}
+
+.bolt-mobile-tab-switcher-quick button:active {
+  transform: scale(0.95);
+}
+
+/* AV-UX point 3 — same icon box as `.bolt-mobile-tab-switcher-card-icon`
+   (40×40, radius 10, 20px glyph) so the quick tiles read as the SAME family
+   as Déploiements/Agent/Webview, down to the glyph size. */
 .bolt-mobile-tab-switcher-quick button > span:first-child {
   display: inline-flex;
   width: 40px;
   height: 40px;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  border-radius: 10px;
+  font-size: 20px;
 }
 
 .bolt-mobile-tab-switcher-search {
@@ -19301,6 +19317,20 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     font-size: 20px !important;
   }
 
+  /*
+   * AV-UX point 2 — the blanket `button > span { width: 20px !important }`
+   * above also squashed the title LABEL (`> span:last-child`) of the header
+   * button, truncating "Agent"/"Shell"/"Déploiements" to ~1 character
+   * ("A 1.", "S…", "D…"). The label must keep its natural width; only the
+   * 20px icon boxes are fixed-size. Matches the frozen reference (IMG_9149:
+   * full "Shell (Terminal)" label).
+   */
+  .bolt-mobile-ecode-header button.bolt-mobile-ecode-header-title > span:last-child {
+    width: auto !important;
+    height: auto !important;
+    font-size: 13px !important;
+  }
+
   .bolt-project-ide-shell > main {
     /*
      * Track the *visual* viewport (updated in JS from window.visualViewport) so the
@@ -19470,6 +19500,20 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     padding-inline: var(--vc-mobile-panel-gutter);
   }
 
+  /*
+   * AV-UX point 10 — en mobile, la rangée icône+titre du panneau service
+   * (ex-« Déploiements | Mis à jour … | ⋮ ») doublonne l'en-tête mobile gelé
+   * qui affiche déjà le nom du panneau. La rangée disparaît ; les panneaux
+   * qui portent des actions dans leur en-tête (Problems, Search, Locks) ont
+   * d'autres classes racine et ne sont pas concernés.
+   */
+  .bolt-responsive-ide-mobile
+    .bolt-workbench-mobile-service
+    .bolt-project-service-panel
+    > .bolt-project-ide-panel-header {
+    display: none;
+  }
+
   .bolt-responsive-ide-mobile .bolt-workbench-mobile-service .bolt-project-ide-panel-header > * {
     min-width: 0;
   }
@@ -19600,12 +19644,21 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
   }
 
   /*
-   * When the agent is the active mobile surface the fixed header grows by the
-   * context bar ("Working on this workspace" / "Ready for the next change").
-   * Reserve that height so it never overlaps the transcript or workbench panels.
+   * AV-UX point 9 — the agent context bar ("Prêt pour la prochaine
+   * modification" + a truncated "Prompt" button) duplicated information the
+   * header already shows (the agent status renders as the <small> under the
+   * header title) and its button only re-focused the composer — which a tap
+   * on the composer does anyway. Avi asked for the row to go: it is hidden
+   * here (its JSX lives in the owner-frozen mobile header block sealed by
+   * base-chat-ast.spec.ts, so the markup itself must not be edited) and its
+   * 52px reserve is returned to the transcript.
    */
+  .bolt-responsive-ide-mobile .bolt-mobile-agent-context-bar {
+    display: none !important;
+  }
+
   .bolt-responsive-ide-mobile[data-mobile-agent-context='true'] {
-    --vc-mobile-agent-context-height: 52px;
+    --vc-mobile-agent-context-height: 0px;
   }
 
   .bolt-responsive-ide-mobile .bolt-project-agent-panel {
@@ -21279,8 +21332,11 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     margin-left: 0;
   }
 
+  /* AV-UX point 9 — the rendered class is .bolt-chatbox-plan-toggle
+     (ChatBox.tsx); the old .bolt-chatbox-plan-button selectors matched
+     nothing, so the Plan button never got its 44px mobile touch target. */
   .bolt-responsive-ide-mobile .bolt-chatbox-toolbar-button,
-  .bolt-responsive-ide-mobile .bolt-chatbox-plan-button {
+  .bolt-responsive-ide-mobile .bolt-chatbox-plan-toggle {
     min-height: 44px;
     border-radius: 10px;
   }
@@ -21291,9 +21347,31 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     flex-basis: 44px;
   }
 
-  .bolt-responsive-ide-mobile .bolt-chatbox-plan-button {
+  .bolt-responsive-ide-mobile .bolt-chatbox-plan-toggle {
     height: 44px;
     min-width: 76px;
+  }
+
+  /*
+   * AV-UX point 8 — the tools/mode sheets below use `position: fixed` to
+   * escape the composer's scroll clipping, but `.bolt-chatbox-toolbar` is a
+   * size container (`container-type: inline-size` implies layout
+   * containment), which makes the TOOLBAR the containing block for its fixed
+   * descendants. `left: 50% / bottom: 88px` then resolved against the ~44px
+   * toolbar box, not the viewport: the "⋯" menu floated unanchored over the
+   * transcript. On mobile the containment is dropped so the sheets anchor to
+   * the real viewport; the container-query tweaks it powered are reproduced
+   * just below (at 390px the toolbar sat in the ≤380px container band).
+   */
+  .bolt-responsive-ide-mobile .bolt-chatbox-toolbar {
+    container-type: normal;
+    gap: 6px;
+  }
+
+  .bolt-responsive-ide-mobile .bolt-chatbox-mode-trigger {
+    min-width: 0;
+    gap: 4px;
+    padding: 0 8px;
   }
 
   .bolt-responsive-ide-mobile .bolt-chatbox-tools-menu {
@@ -21312,7 +21390,10 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     border-color: var(--mobile-nav-border);
     border-top-color: var(--mobile-nav-border-top);
     border-radius: var(--vc-mobile-sheet-radius);
-    background: var(--mobile-nav-bg-elevated);
+
+    /* Opaque panel background: the translucent nav mix let the transcript
+       bleed through the menu (part of the point-8 "mal affiché"). */
+    background: var(--vc-ide-bg-panel);
     box-shadow:
       var(--mobile-nav-shadow),
       0 24px 80px rgb(0 0 0 / 0.45);
@@ -21338,6 +21419,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     max-height: min(64dvh, 520px);
     overflow-y: auto;
     overscroll-behavior: contain;
+    background: var(--vc-ide-bg-panel);
     transform: translateX(-50%) !important;
   }
 
@@ -21407,7 +21489,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     overscroll-behavior: contain;
     border-color: var(--mobile-nav-border);
     border-radius: var(--vc-mobile-sheet-radius);
-    background: var(--mobile-nav-bg-elevated);
+    background: var(--vc-ide-bg-panel);
     box-shadow:
       var(--mobile-nav-shadow),
       0 24px 80px rgb(0 0 0 / 0.45);
@@ -26457,7 +26539,7 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
     border-radius: 8px;
   }
 
-  .bolt-project-chatbox .bolt-chatbox-plan-button {
+  .bolt-project-chatbox .bolt-chatbox-plan-toggle {
     height: 30px;
     min-height: 30px;
     min-width: 72px;

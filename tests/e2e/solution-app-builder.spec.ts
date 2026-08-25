@@ -134,10 +134,25 @@ async function expectNoHorizontalOverflow(page: Page, viewport: Viewport) {
   expect(measurements.bodyScrollWidth, 'body horizontal overflow').toBeLessThanOrEqual(viewport.width + 1);
 }
 
-async function expectVisibleTargetsAreTouchable(page: Page) {
-  const undersizedTargets = await page
-    .locator('a[href], button, summary, input, select, textarea')
-    .evaluateAll((elements) =>
+/*
+ * AV-UX point 11 (25/08) — Avi a demandé un pied de page resserré : la rangée
+ * d'un lien passe de 44px à 32px au bureau (`lg:min-h-8`), le tactile gardant
+ * ses 44px. Le seuil suit donc le pointeur au lieu d'être figé à 44px :
+ *   - tactile (mobile/tablette, < 1024px) : 44px, cible tactile confortable ;
+ *   - bureau (>= 1024px, pointeur fin)    : 32px, au-dessus du minimum WCAG 2.2
+ *     AA (SC 2.5.8 Target Size Minimum = 24px).
+ * Une vraie régression (lien de 20px, bouton écrasé) reste attrapée aux deux
+ * paliers.
+ */
+const TOUCH_TARGET_MIN_PX = 44;
+const POINTER_TARGET_MIN_PX = 32;
+const DESKTOP_BREAKPOINT_PX = 1024;
+
+async function expectVisibleTargetsAreTouchable(page: Page, viewport: Viewport) {
+  const minimumPx = viewport.width >= DESKTOP_BREAKPOINT_PX ? POINTER_TARGET_MIN_PX : TOUCH_TARGET_MIN_PX;
+
+  const undersizedTargets = await page.locator('a[href], button, summary, input, select, textarea').evaluateAll(
+    (elements, minimum) =>
       elements.flatMap((element) => {
         const target = element as HTMLElement;
 
@@ -151,7 +166,7 @@ async function expectVisibleTargetsAreTouchable(page: Page) {
           rect.width > 0 &&
           rect.height > 0;
 
-        if (!visible || (rect.width >= 44 && rect.height >= 44)) {
+        if (!visible || (rect.width >= minimum && rect.height >= minimum)) {
           return [];
         }
 
@@ -167,9 +182,13 @@ async function expectVisibleTargetsAreTouchable(page: Page) {
           },
         ];
       }),
-    );
+    minimumPx,
+  );
 
-  expect(undersizedTargets, 'all visible interactive targets must measure at least 44×44 CSS pixels').toEqual([]);
+  expect(
+    undersizedTargets,
+    `all visible interactive targets must measure at least ${minimumPx}×${minimumPx} CSS pixels at ${viewport.width}px`,
+  ).toEqual([]);
 }
 
 async function expectKeyboardFocusIsVisible(page: Page) {
@@ -613,7 +632,7 @@ test.describe('App Builder solution sales page', () => {
           expect(h1Typography.fontFamily).toContain('IBM Plex Sans');
 
           await expectNoHorizontalOverflow(page, viewport);
-          await expectVisibleTargetsAreTouchable(page);
+          await expectVisibleTargetsAreTouchable(page, viewport);
           await expectKeyboardFocusIsVisible(page);
           await expectImagesAreValid(page, copy, language);
           await prepareFullPageCapture(page);

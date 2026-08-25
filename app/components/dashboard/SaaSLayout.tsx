@@ -1730,7 +1730,14 @@ function ProjectPreviewFallback({ project }: { project: ProjectCard }) {
  * exactement ce qu'on voyait quand la lecture de vignette côté API attendait un
  * stockage objet injoignable.
  */
-const PREVIEW_IMAGE_DEADLINE_MS = 6_000;
+/*
+ * AV-UX point 12 : 6s était trop court pour la première lecture d'une vignette
+ * réelle (302 vers une URL GCS signée, stockage froid) — la carte basculait sur
+ * « Aucun aperçu » alors qu'un aperçu existait. 15s laisse passer le trajet
+ * froid ; et l'échéance est désormais RÉVERSIBLE : l'image reste montée sous le
+ * repli et le remplace dès que son `onLoad` arrive.
+ */
+const PREVIEW_IMAGE_DEADLINE_MS = 15_000;
 
 export function ProjectPreviewMedia({ project, className }: { project: ProjectCard; className?: string }) {
   const { t } = useTranslation();
@@ -1761,19 +1768,29 @@ export function ProjectPreviewMedia({ project, className }: { project: ProjectCa
     return () => clearTimeout(minuterie);
   }, [url]);
 
-  if (!url || failed || timedOut) {
+  if (!url || failed) {
     return <ProjectPreviewFallback project={project} />;
   }
 
   return (
-    <img
-      ref={imageRef}
-      src={url}
-      alt={t('userArea.project.latestPreview', { name: project.name })}
-      className={className}
-      loading="lazy"
-      onError={() => setFailed(true)}
-    />
+    <>
+      <img
+        ref={imageRef}
+        src={url}
+        alt={t('userArea.project.latestPreview', { name: project.name })}
+        aria-hidden={timedOut || undefined}
+        className={className}
+        loading="lazy"
+        onLoad={() => setTimedOut(false)}
+        onError={() => setFailed(true)}
+      />
+      {/*
+       * Slow-but-successful thumbnails recover: the fallback overlays the
+       * still-mounted image, and the image's onLoad clears the deadline so the
+       * real preview replaces "No preview yet" as soon as it arrives.
+       */}
+      {timedOut ? <ProjectPreviewFallback project={project} /> : null}
+    </>
   );
 }
 
