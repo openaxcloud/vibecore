@@ -99,6 +99,7 @@ import {
   PanelEmptyState,
   PanelInput,
   PanelSectionTitle,
+  PanelToolTabs,
 } from '~/components/project-ide/PanelPrimitives';
 import { Badge } from '~/components/ui/Badge';
 import { ProjectEditorToolbar } from '~/components/project-ide/ProjectEditorToolbar';
@@ -16437,23 +16438,16 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
             <span className="i-ph:package" aria-hidden />
             <strong>{t('chat.copy.projectBucket_b51aaf40')}</strong>
           </div>
-          <div className="bolt-project-tool-tabs">
-            {(
+          <PanelToolTabs
+            tabs={
               [
                 ['objects', t('baseChatAst.common.objects')],
                 ['settings', t('baseChatAst.common.settings')],
               ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                aria-current={view === id ? 'page' : undefined}
-                onClick={() => setView(id)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+            }
+            active={view}
+            onSelect={setView}
+          />
         </div>
 
         {view === 'settings' ? (
@@ -16504,10 +16498,12 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
           </div>
         ) : (
           <>
+            {/* UNIF lot 7 — toolbar storage sur les primitives (PanelInput/PanelButton sm). */}
             <div className="bolt-project-panel-toolbar flex flex-wrap items-end gap-2">
               <label className="grid gap-1 text-xs text-bolt-elements-textSecondary">
                 {t('chat.copy.prefixFolder_db73cfed')}
-                <input
+                <PanelInput
+                  size="sm"
                   value={prefix}
                   onChange={(event) => setPrefix(event.target.value)}
                   placeholder={t('chat.copy.assets_79f5d556')}
@@ -16515,25 +16511,50 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                   spellCheck={false}
                 />
               </label>
-              <button type="button" onClick={() => void refresh(prefix)} disabled={loading || working}>
-                {loading ? t('chat.copy.loading_33ce4174') : t('chat.copy.refresh_56e3badc')}
-              </button>
-              <button type="button" onClick={() => uploadInputRef.current?.click()} disabled={busy || working}>
-                {t('chat.copy.uploadFiles_41aca16f')}
-              </button>
-              <button type="button" onClick={() => folderInputRef.current?.click()} disabled={busy || working}>
-                {t('chat.copy.uploadFolder_e77a1496')}
-              </button>
-              <button type="button" onClick={() => setCreateFolderOpen(true)} disabled={busy || working}>
-                {t('chat.copy.createFolder_e59f63fa')}
-              </button>
-              <button
+              <PanelButton
                 type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => void refresh(prefix)}
+                disabled={loading || working}
+              >
+                {loading ? t('chat.copy.loading_33ce4174') : t('chat.copy.refresh_56e3badc')}
+              </PanelButton>
+              <PanelButton
+                type="button"
+                size="sm"
+                onClick={() => uploadInputRef.current?.click()}
+                disabled={busy || working}
+              >
+                {t('chat.copy.uploadFiles_41aca16f')}
+              </PanelButton>
+              <PanelButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => folderInputRef.current?.click()}
+                disabled={busy || working}
+              >
+                {t('chat.copy.uploadFolder_e77a1496')}
+              </PanelButton>
+              <PanelButton
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCreateFolderOpen(true)}
+                disabled={busy || working}
+              >
+                {t('chat.copy.createFolder_e59f63fa')}
+              </PanelButton>
+              <PanelButton
+                type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => void runOperation({ intent: 'ensure-bucket' }, t('baseChatAst.storage.bucketReady'))}
                 disabled={busy || working}
               >
                 {t('chat.copy.ensureBucket_59b7cad5')}
-              </button>
+              </PanelButton>
               <input
                 ref={uploadInputRef}
                 type="file"
@@ -16558,10 +16579,12 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
 
             {prefix ? (
               <div className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
-                <button type="button" onClick={() => setPrefix(parentPrefix)} className="underline">
+                {/* UNIF lot 7 — « Up » n'est plus un lien souligné ad hoc mais un PanelButton outline. */}
+                <PanelButton type="button" variant="outline" size="sm" onClick={() => setPrefix(parentPrefix)}>
+                  <span className="i-ph:arrow-elbow-left-up mr-1" aria-hidden />
                   {t('chat.copy.up_12493f7d')}
-                </button>
-                <span className="font-mono">{prefix}</span>
+                </PanelButton>
+                <span className="min-w-0 truncate font-mono">{prefix}</span>
               </div>
             ) : null}
 
@@ -16589,6 +16612,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                       <span className="i-ph:folder" aria-hidden />
                       {folder.replace(prefix, '').replace(/\/$/, '')}
                     </button>
+                    {/* UNIF lot 7 — croix typographique remplacée par l'icône Phosphor standard. */}
                     <button
                       type="button"
                       onClick={() =>
@@ -16598,10 +16622,10 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                         )
                       }
                       aria-label={t('chat.copy.deleteFolderValue0_f97d9e9f', { value0: folder })}
-                      className="text-bolt-elements-textTertiary hover:text-bolt-elements-item-contentDanger"
+                      className="inline-flex items-center rounded p-0.5 text-bolt-elements-textTertiary transition-colors hover:text-bolt-elements-item-contentDanger disabled:cursor-not-allowed disabled:opacity-60"
                       disabled={working}
                     >
-                      ×
+                      <span className="i-ph:x" aria-hidden />
                     </button>
                   </span>
                 ))}
@@ -16615,24 +16639,44 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                     key={object.key}
                     className="flex items-center justify-between gap-2 rounded-md border border-bolt-elements-borderColor px-2 py-1 text-xs"
                   >
-                    <div className="min-w-0">
-                      <strong className="block truncate text-bolt-elements-textPrimary">
-                        {object.key.replace(prefix, '')}
-                      </strong>
-                      <span className="text-bolt-elements-textSecondary">
-                        {formatObjectStorageSize(t, language, object.size)}
-                        {object.updated ? ` · ${formatBaseChatAstDateTime(language, object.updated) ?? ''}` : ''}
-                      </span>
+                    {/* UNIF lot 7 — ligne fichier : icône Phosphor + taille en Badge, actions en PanelButton. */}
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="i-ph:file shrink-0 text-bolt-elements-textSecondary" aria-hidden />
+                      <div className="min-w-0">
+                        <strong className="block truncate text-bolt-elements-textPrimary">
+                          {object.key.replace(prefix, '')}
+                        </strong>
+                        <span className="flex flex-wrap items-center gap-1 text-bolt-elements-textSecondary">
+                          <Badge variant="subtle" size="sm">
+                            {formatObjectStorageSize(t, language, object.size)}
+                          </Badge>
+                          {object.updated ? (formatBaseChatAstDateTime(language, object.updated) ?? '') : ''}
+                        </span>
+                      </div>
                     </div>
                     <div className="bolt-project-object-actions flex shrink-0 items-center gap-2">
-                      <button type="button" onClick={() => void handleDownload(object.key)} disabled={working}>
-                        {t('chat.copy.download_a479c9c3')}
-                      </button>
-                      <button type="button" onClick={() => setRenameKey(object.key)} disabled={working}>
-                        {t('chat.copy.move_76cdb950')}
-                      </button>
-                      <button
+                      <PanelButton
                         type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void handleDownload(object.key)}
+                        disabled={working}
+                      >
+                        {t('chat.copy.download_a479c9c3')}
+                      </PanelButton>
+                      <PanelButton
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setRenameKey(object.key)}
+                        disabled={working}
+                      >
+                        {t('chat.copy.move_76cdb950')}
+                      </PanelButton>
+                      <PanelButton
+                        type="button"
+                        variant="danger"
+                        size="sm"
                         onClick={() =>
                           void runOperation(
                             { intent: 'delete-object', key: object.key },
@@ -16640,10 +16684,9 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                           )
                         }
                         disabled={working}
-                        className="text-bolt-elements-item-contentDanger"
                       >
                         {t('chat.copy.delete_f6fdbe48')}
-                      </button>
+                      </PanelButton>
                     </div>
                   </div>
                 ))}
@@ -17645,7 +17688,8 @@ function ProjectPackagesPanel({ data, onSubmit, busy }: { data: any; onSubmit: a
           <div className="bolt-project-panel-toolbar">
             <label>
               {t('chat.copy.filterInstalledPackages_40f3effe')}
-              <input
+              <PanelInput
+                size="sm"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={t('chat.copy.searchNameVersionManifestScope_c42b6712')}
@@ -18290,9 +18334,9 @@ function ProjectAgentStudioPanel({
   return (
     <div className="bolt-project-monitoring-panel" aria-label={t('chat.copy.agentStudioSupervisor_fc1ab50e')}>
       <div className="bolt-project-panel-toolbar">
-        <button type="button" onClick={() => void reload?.()} disabled={busy}>
+        <PanelButton type="button" variant="outline" size="sm" onClick={() => void reload?.()} disabled={busy}>
           {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.refresh_56e3badc')}
-        </button>
+        </PanelButton>
       </div>
 
       <div className="bolt-project-metric-grid">
@@ -18548,19 +18592,13 @@ function ProjectMonitoringPanel({
   return (
     <div className="bolt-project-monitoring-panel">
       <div className="bolt-project-panel-toolbar">
+        {/* UNIF lot 7 — le sélecteur de plage passe au FilterChip commun (aria-pressed + accent action). */}
         {(['15m', '1h', '24h'] as const).map((item) => (
-          <button
-            key={item}
-            type="button"
-            className={windowSize === item ? 'selected' : ''}
-            onClick={() => setWindowSize(item)}
-          >
-            {item}
-          </button>
+          <FilterChip key={item} label={item} active={windowSize === item} onClick={() => setWindowSize(item)} />
         ))}
-        <button type="button" onClick={() => void reload?.()} disabled={busy}>
+        <PanelButton type="button" variant="outline" size="sm" onClick={() => void reload?.()} disabled={busy}>
           {busy ? t('chat.copy.refreshing_505dddc9') : t('chat.copy.refreshMetrics_d4cc03bc')}
-        </button>
+        </PanelButton>
       </div>
       <div className="bolt-project-metric-grid">
         {metrics.map(([label, value, detail]) => (
@@ -18886,27 +18924,26 @@ function ProjectExtensionsPanel({ data, onSubmit, busy }: { data: any; onSubmit:
       <div className="bolt-project-panel-toolbar">
         <label>
           {t('chat.copy.searchTheMcpMarketplace_48179a04')}
-          <input
+          <PanelInput
+            size="sm"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t('chat.copy.nameAuthorTagOrCapability_a6726d8f')}
           />
         </label>
+        {/* UNIF lot 7 — pilules de domaine sur le FilterChip commun (aria-pressed + accent action). */}
         <div
           className="bolt-project-extension-categories"
           role="group"
           aria-label={t('chat.copy.extensionDomains_abc98b01')}
         >
           {domains.map((item) => (
-            <button
+            <FilterChip
               key={item}
-              type="button"
-              aria-pressed={domain === item}
-              className={domain === item ? 'selected' : ''}
+              label={item === 'All' ? t('chat.copy.all_6a720856') : String(item).replace(/_/g, ' ').toLowerCase()}
+              active={domain === item}
               onClick={() => setDomain(item)}
-            >
-              {item === 'All' ? t('chat.copy.all_6a720856') : String(item).replace(/_/g, ' ').toLowerCase()}
-            </button>
+            />
           ))}
         </div>
       </div>
@@ -20334,16 +20371,21 @@ function ProjectEnvPanel({ data, onSubmit, busy }: { data: any; onSubmit: any; b
             {showDiff
               ? t('chat.copy.filterKeys_14e0ed60')
               : t('chat.copy.searchValue0Variables_01db9728', { value0: activeScopeLabel })}
-            <input
+            <PanelInput
+              size="sm"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder={t('chat.copy.viteDatabaseApi_c73cb9ac')}
             />
           </label>
           {!showDiff && (
-            <button type="button" onClick={() => setEditing({ key: 'VITE_API_URL', value: '', scope: activeScope })}>
+            <PanelButton
+              type="button"
+              size="sm"
+              onClick={() => setEditing({ key: 'VITE_API_URL', value: '', scope: activeScope })}
+            >
               {t('chat.copy.newVariable_7adfa76b')}
-            </button>
+            </PanelButton>
           )}
         </div>
         {message && <div className="bolt-project-empty-panel">{message}</div>}
@@ -20999,24 +21041,19 @@ function ProjectSecurityPanel({
         </aside>
 
         <main>
-          <div className="bolt-project-tool-tabs">
-            {[
-              ['active', t('baseChatAst.common.active')],
-              ['hidden', t('baseChatAst.common.hidden')],
-              ['compare', t('baseChatAst.common.compare')],
-              ['reports', t('baseChatAst.common.reports')],
-              ['settings', t('baseChatAst.common.settings')],
-            ].map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                aria-current={activeTab === id ? 'page' : undefined}
-                onClick={() => setActiveTab(id as any)}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+          <PanelToolTabs
+            tabs={
+              [
+                ['active', t('baseChatAst.common.active')],
+                ['hidden', t('baseChatAst.common.hidden')],
+                ['compare', t('baseChatAst.common.compare')],
+                ['reports', t('baseChatAst.common.reports')],
+                ['settings', t('baseChatAst.common.settings')],
+              ] as const
+            }
+            active={activeTab}
+            onSelect={setActiveTab}
+          />
 
           {activeTab === 'settings' ? (
             <form onSubmit={onSubmit} className="bolt-project-security-settings">
@@ -22618,20 +22655,18 @@ function ProjectDeploymentsPanel({
 
   return (
     <div className="bolt-project-deploy-tool">
-      <div className="bolt-project-tool-tabs">
-        {(
+      <PanelToolTabs
+        tabs={
           [
             ['overview', t('baseChatAst.common.overview')],
             ['logs', t('baseChatAst.common.logs')],
             ['domains', t('baseChatAst.common.domains')],
             ['manage', t('baseChatAst.common.manage')],
           ] as const
-        ).map(([id, label]) => (
-          <button key={id} type="button" aria-current={tab === id ? 'page' : undefined} onClick={() => setTab(id)}>
-            {label}
-          </button>
-        ))}
-      </div>
+        }
+        active={tab}
+        onSelect={setTab}
+      />
 
       {tab === 'overview' ? (
         <section className="bolt-project-deploy-history">

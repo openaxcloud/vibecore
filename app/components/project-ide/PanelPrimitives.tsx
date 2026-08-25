@@ -189,6 +189,35 @@ export function IdePanelHeader({ icon, title, titleTabIndex, children, actionsRe
   );
 }
 
+export interface PanelToolTabsProps<T extends string> {
+  /** Paires [id, libellé] dans l'ordre d'affichage. */
+  tabs: ReadonlyArray<readonly [T, string]>;
+  active: T;
+  onSelect: (id: T) => void;
+  className?: string;
+}
+
+/**
+ * Barre d'onglets d'outil de panneau (UNIF lot 7). Trois panneaux (Object
+ * Storage « Objects | Settings », Security, Deployments) dupliquaient le même
+ * `map()` de `<button aria-current>` sous `.bolt-project-tool-tabs` ; le
+ * markup vit désormais ici, la feuille `.bolt-project-tool-tabs` (desktop +
+ * mobile 40px) reste la source unique du style. Sélection = `aria-current`,
+ * comme les vrais onglets de navigation — PAS des PanelButton : un onglet
+ * actif n'est pas un CTA.
+ */
+export function PanelToolTabs<T extends string>({ tabs, active, onSelect, className }: PanelToolTabsProps<T>) {
+  return (
+    <div className={classNames('bolt-project-tool-tabs', className)}>
+      {tabs.map(([id, label]) => (
+        <button key={id} type="button" aria-current={active === id ? 'page' : undefined} onClick={() => onSelect(id)}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export interface PanelEmptyStateProps {
   /** Phrase principale (« No checkpoints yet »). */
   title: string;

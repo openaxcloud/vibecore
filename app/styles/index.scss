@@ -12867,19 +12867,12 @@ body :where(.lucide, svg[data-lucide]) {
   overflow-wrap: anywhere;
 }
 
-.bolt-project-panel-toolbar input {
-  box-sizing: border-box;
-  width: 100%;
-  height: 32px;
-  min-width: 0;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 6px;
-  background: var(--vc-ide-bg-card);
-  color: var(--vc-ide-text-primary);
-  padding: 0 10px;
-}
-
-.bolt-project-panel-toolbar button,
+/*
+ * UNIF lot 7 — les styles « nus » `.bolt-project-panel-toolbar input/button`
+ * sont supprimés : toutes les toolbars de BaseChat rendent désormais des
+ * PanelInput / PanelButton / FilterChip (primitives partagées), qui portent
+ * leur propre gabarit. Seuls le conteneur flex et le label restent stylés ici.
+ */
 .bolt-project-object-grid button,
 .bolt-project-package-list button {
   border: 1px solid var(--vc-ide-border-visible);
@@ -12888,16 +12881,6 @@ body :where(.lucide, svg[data-lucide]) {
   color: var(--vc-ide-text-primary);
 }
 
-.bolt-project-panel-toolbar button {
-  flex: 0 1 auto;
-  min-height: 32px;
-  max-width: 100%;
-  padding: 0 10px;
-  white-space: normal;
-  overflow-wrap: anywhere;
-}
-
-.bolt-project-panel-toolbar button.selected,
 .bolt-project-object-grid button.selected {
   border-color: var(--vc-ide-accent-action);
   box-shadow: inset 0 0 0 1px var(--vc-ide-accent-action);
@@ -12927,8 +12910,7 @@ body :where(.lucide, svg[data-lucide]) {
 }
 
 .bolt-project-object-grid button:hover,
-.bolt-project-package-list button:hover,
-.bolt-project-panel-toolbar button:hover:not(:disabled) {
+.bolt-project-package-list button:hover {
   background: var(--vc-ide-bg-hover);
 }
 
@@ -13052,21 +13034,12 @@ body :where(.lucide, svg[data-lucide]) {
   gap: 6px;
 }
 
-.bolt-project-extension-categories button {
-  min-height: 32px;
-  border: 1px solid var(--vc-ide-border-visible);
-  border-radius: 999px;
-  background: var(--vc-ide-bg-card);
-  color: var(--vc-ide-text-secondary);
-  font-size: 12px;
-  padding: 0 10px;
-}
-
-.bolt-project-extension-categories button.selected {
-  border-color: color-mix(in srgb, var(--vc-ide-accent-primary), transparent 35%);
-  background: color-mix(in srgb, var(--vc-ide-accent-primary), transparent 88%);
-  color: var(--vc-ide-text-primary);
-}
+/*
+ * UNIF lot 7 — les pilules de domaine du panneau Extensions sont rendues par
+ * le FilterChip commun (`ui/FilterChip`, aria-pressed + accent action) ; les
+ * styles bouton ad hoc (pilule 999px + `.selected` teinté) sont retirés. Le
+ * conteneur garde son flux (wrap desktop, scroll horizontal mobile).
+ */
 
 .bolt-project-installed-extensions,
 .bolt-project-extensions-panel section {
