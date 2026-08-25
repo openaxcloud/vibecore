@@ -605,7 +605,13 @@ export const Workbench = memo(
       selectedView,
     });
 
-    const showWorkbenchToolbar = !useMobileWorkbench || mobilePanel !== 'terminal';
+    /*
+     * AV-UX point 1 — on mobile the toolbar's sidebar toggle and close button
+     * are display:none'd by the responsive stylesheet, so for every panel but
+     * the editor (Run/Review actions) the row rendered as an EMPTY 48px strip
+     * under the mobile header (seen on Webview). Only the editor keeps it.
+     */
+    const showWorkbenchToolbar = !useMobileWorkbench || mobilePanel === 'editor';
 
     return (
       chatStarted && (
