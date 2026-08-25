@@ -48,6 +48,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { I18nextProvider, useTranslation } from 'react-i18next';
 import { cssTransition, ToastContainer } from 'react-toastify';
 
+import { shouldShowGlobalRouteSplash } from './lib/global-route-splash';
 import { createI18nInstance } from './lib/i18n/runtime';
 import { resolveLeafDocumentSeoOwnership, type RouteMetaModule } from './lib/i18n/document-seo';
 import { AUTO_LANGUAGE_COOKIE } from './lib/i18n/language';
@@ -891,6 +892,10 @@ function GlobalRouteLoader() {
    * Background fetchers and route revalidations must not blank an already
    * rendered page. User-area route transitions also own a local skeleton, so
    * only the slim progress bar remains visible for those navigations.
+   *
+   * BUG-IDE-PANEL-SPLASH — idem pour les navigations « même pathname, seul le
+   * search change » (bascule de panneau IDE via `?panel=`) : le splash plein
+   * écran recouvrait l'IDE déjà rendu et donnait l'impression d'un reload.
    */
 
   const loading = navigation.state !== 'idle';
@@ -901,7 +906,14 @@ function GlobalRouteLoader() {
     navigationState: navigation.state,
   });
 
-  const fullScreenVisible = visible && !localUserAreaSkeletonVisible;
+  const splashAllowed = shouldShowGlobalRouteSplash({
+    navigationState: navigation.state,
+    currentPathname: location.pathname,
+    targetPathname: navigation.location?.pathname,
+    localSkeletonVisible: localUserAreaSkeletonVisible,
+  });
+
+  const fullScreenVisible = visible && splashAllowed;
 
   useEffect(() => {
     if (!loading) {
