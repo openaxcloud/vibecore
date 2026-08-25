@@ -1865,8 +1865,10 @@ export function TemplateGallery({
             two-line title pushed its CTA 64px below its neighbours' — the
             "Use template" buttons did not line up across a row.
           */}
-          <CardContent className="mt-auto flex items-center justify-between">
-            <span className="text-sm text-bolt-elements-textSecondary">{t('userArea.template.productionStarter')}</span>
+          <CardContent className="mt-auto flex flex-wrap items-center justify-between gap-3">
+            <span className="min-w-0 text-sm text-bolt-elements-textSecondary">
+              {t('userArea.template.productionStarter')}
+            </span>
             {/*
               Authenticated "Use template" creates the project from this template and goes
               straight to the IDE from wherever the card renders (Dashboard included): POST to
@@ -1962,7 +1964,7 @@ export function OnboardingChecklistCard({ steps }: { steps: OnboardingStep[] }) 
           const isCurrent = step.key === currentKey;
 
           return (
-            <li key={step.key} className="flex items-center gap-3">
+            <li key={step.key} className="flex flex-wrap items-center gap-3">
               {step.done ? (
                 <span
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
@@ -1997,7 +1999,7 @@ export function OnboardingChecklistCard({ steps }: { steps: OnboardingStep[] }) 
                     </span>
                   ) : null}
                 </p>
-                <p className="mt-0.5 truncate text-[13px] text-bolt-elements-textSecondary">{step.description}</p>
+                <p className="mt-0.5 line-clamp-2 text-[13px] text-bolt-elements-textSecondary">{step.description}</p>
               </div>
               {!step.done && step.to ? (
                 <Link
@@ -2204,7 +2206,7 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
           onKeyDown={handleKeyDown}
         />
         <kbd className="vc-keyboard-shortcut rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-xs text-bolt-elements-textTertiary">
-          K
+          ⌘K
         </kbd>
       </label>
       {query.trim().length === 0 && recentItems.length > 0 ? (
@@ -2293,7 +2295,7 @@ export function LinkButton({
   variant?: 'default' | 'outline' | 'ghost';
 }) {
   const className = classNames(
-    'inline-flex h-[44px] items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)]',
+    'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md px-4 text-center text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)]',
     variant === 'default' &&
       'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover',
     variant === 'outline' &&
@@ -2608,7 +2610,7 @@ function TopBarNotifications() {
           <Bell className="h-4 w-4" aria-hidden />
           {unreadCount > 0 ? (
             <span
-              className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-bolt-elements-item-contentAccent px-1 text-[11px] font-semibold leading-none text-white"
+              className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--vc-action-primary-strong)] px-1 text-[11px] font-semibold leading-none text-white"
               aria-hidden
             >
               {unreadCount > 9 ? '9+' : unreadCount}
