@@ -10,8 +10,11 @@
  *     coque service ET les panneaux workspace qui divergeaient (Problems) ou
  *     n'avaient aucune tête (Search, Locks) ; le double standard 34/36 px de
  *     ui/PanelHeader est fusionné sur 36 px ;
- * H2  la puce « Updated … » n'est plus `hidden sm:` — elle est visible en
- *     mobile 390 (compacte, plafonnée en vw), là où Avi teste.
+ * H2 (révisé — AV-UX point 10, 2026-08-25) : Avi a ensuite demandé le retrait
+ *     COMPLET de la rangée « Mis à jour … / Actualiser » : le rafraîchissement
+ *     est automatique (intervalle silencieux) et la puce n'apportait qu'une
+ *     méta-information. La coque service garde l'en-tête icône+titre nu, et le
+ *     mobile masque cette rangée (le titre est déjà dans l'en-tête gelé).
  */
 
 import { readFileSync } from 'node:fs';
@@ -55,7 +58,7 @@ describe('UNIF-06 — IdePanelHeader partagé (H1)', () => {
   });
 
   it('la coque service des panneaux gestion consomme IdePanelHeader (source)', () => {
-    expect(baseChatSource).toContain('<IdePanelHeader icon={icon} title={title} actionsRef={panelActionsRef}>');
+    expect(baseChatSource).toContain('<IdePanelHeader icon={icon} title={title} />');
   });
 
   it('Problems abandonne sa tête maison pour IdePanelHeader (source + SCSS)', () => {
@@ -84,19 +87,21 @@ describe('UNIF-06 — IdePanelHeader partagé (H1)', () => {
   });
 });
 
-describe('UNIF-06 — puce « Updated … » visible en mobile (H2)', () => {
-  it('la puce n’est plus hidden sm: — inline-flex dès 390, largeur plafonnée', () => {
-    const chipMatch = baseChatSource.match(/className="([^"]*)"\s*\n\s*data-testid="ide-panel-updated-at"/);
+describe('AV-UX point 10 — rangée « Mis à jour … / Actualiser » retirée, refresh automatique', () => {
+  it('la puce « Updated » et le menu ⋮ ne sont plus rendus par la coque service', () => {
+    expect(baseChatSource).not.toContain('data-testid="ide-panel-updated-at"');
+    expect(baseChatSource).not.toContain('data-testid="ide-panel-actions"');
+    expect(baseChatSource).not.toContain('bolt-project-panel-actions-menu');
+  });
 
-    expect(chipMatch, 'puce ide-panel-updated-at introuvable dans BaseChat').not.toBeNull();
+  it('le rafraîchissement automatique silencieux reste en place', () => {
+    expect(baseChatSource).toContain('void loadPanel({ silent: true });');
+    expect(baseChatSource).toContain('}, refreshIntervalMs);');
+  });
 
-    const chipClasses = chipMatch![1];
-    expect(chipClasses.split(/\s+/)).not.toContain('hidden');
-    expect(chipClasses).toContain('inline-flex');
-    expect(chipClasses).not.toContain('sm:inline-flex');
-
-    // Compacte en mobile (plafond vw), plus large dès sm.
-    expect(chipClasses).toMatch(/max-w-\[\d+vw\]/);
-    expect(chipClasses).toContain('sm:max-w-[190px]');
+  it('le mobile masque la rangée icône+titre du panneau service (titre déjà dans l’en-tête)', () => {
+    expect(indexScssSource).toMatch(
+      /\.bolt-workbench-mobile-service\s*\n?\s*\.bolt-project-service-panel\s*\n?\s*>\s*\.bolt-project-ide-panel-header\s*\{\s*\n\s*display:\s*none;/,
+    );
   });
 });

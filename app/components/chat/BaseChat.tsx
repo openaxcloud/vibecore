@@ -187,11 +187,7 @@ import {
   isCompactPreviewRunActive,
   resolveCompactPreviewRunState,
 } from '~/lib/runtime/preview-run-state';
-import {
-  formatProjectPanelRefreshCadence,
-  formatProjectPanelUpdatedLabel,
-  projectPanelRefreshIntervalMs,
-} from '~/utils/project-panel-refresh';
+import { projectPanelRefreshIntervalMs } from '~/utils/project-panel-refresh';
 import { countHiddenMobileBottomTabs, selectVisibleMobileBottomTabs } from '~/lib/mobile-bottom-tabs';
 import {
   ECODE_MOBILE_MORE_ITEMS,
@@ -5534,23 +5530,28 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         }
 
         if (normalizedToolId === 'share') {
-          closeMobileOverlays();
-
+          /*
+           * AV-UX point 6 — tapping "Partager" used to only fire a clipboard
+           * write after the sheet unmounted: no surface ever opened, and on
+           * iOS the write itself could be rejected once the gesture was gone,
+           * so the tap looked like a no-op. Copy the link as a best-effort
+           * side effect while the tap gesture is still alive, then OPEN the
+           * Collaborators panel — the surface that owns the project share
+           * link (the same one the desktop "Invite" button opens).
+           */
           const projectLink = `${window.location.origin}${projectUrl ?? `/projects/${projectId}`}`;
 
-          if (!navigator.clipboard?.writeText) {
-            toast.error(t('chat.copy.clipboardUnavailable_bec46a29'));
-
-            return;
+          if (navigator.clipboard?.writeText) {
+            void navigator.clipboard
+              .writeText(projectLink)
+              .then(() => toast.success(t('chat.copy.projectLinkCopied_d1bf8999')))
+              .catch((error) => console.error('Project link copy failed', error));
           }
 
-          void navigator.clipboard
-            .writeText(projectLink)
-            .then(() => toast.success(t('chat.copy.projectLinkCopied_d1bf8999')))
-            .catch((error) => {
-              console.error('Project link copy failed', error);
-              toast.error(t('baseChatAst.clipboard.copyFailed'));
-            });
+          openWorkspacePanel('collaborators', { replaceUrl: false });
+          setProjectPanelSearchParam('collaborators');
+          setMobileIdePanel('deploy', { activeTabId: 'collaborators' });
+          closeMobileOverlays();
 
           return;
         }
@@ -8855,37 +8856,74 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         return;
       }
 
-      if (entry.kind === 'file') {
-        openProjectFile(entry.filePath, { preview: false });
-      } else if (entry.kind === 'tool') {
-        openIdeTool(entry.panel);
-      } else if (entry.kind === 'recent') {
-        const leaf = findLeafContainingTab(paneTree, entry.tabId);
-        const tab = leaf?.tabs.find((item) => item.id === entry.tabId);
+      /*
+       * AV-UX point 7 — the palette entries only mutated desktop pane state /
+       * the URL search param; on mobile the URL round-trip is skipped when the
+       * param is unchanged, so `mobilePanel` never switched and the previous
+       * panel stayed on screen after the palette closed. Each activation is
+       * now explicitly mobile-aware, and the close runs in `finally` so a
+       * throw can never leave the full-screen palette sheet covering the IDE.
+       */
+      try {
+        if (entry.kind === 'file') {
+          openProjectFile(entry.filePath, { preview: false });
 
-        if (leaf && tab) {
-          selectPaneTab(leaf.id, tab.id, tab.panel);
+          if (useMobileIde) {
+            setMobileIdePanel('editor');
+            setProjectPanelSearchParam('editor');
+          }
+        } else if (entry.kind === 'tool') {
+          if (useMobileIde) {
+            activateMobileTool(entry.panel);
+          } else {
+            openIdeTool(entry.panel);
+          }
+        } else if (entry.kind === 'recent') {
+          const leaf = findLeafContainingTab(paneTree, entry.tabId);
+          const tab = leaf?.tabs.find((item) => item.id === entry.tabId);
+
+          if (leaf && tab) {
+            selectPaneTab(leaf.id, tab.id, tab.panel);
+
+            if (useMobileIde) {
+              activateMobileTool(tab.panel);
+            }
+          }
+        } else if (entry.kind === 'command') {
+          if (entry.command === 'reset-layout') {
+            setPaneTree(cloneDefaultPaneTree());
+            setActivePaneId('pane-main');
+          } else if (entry.command === 'deploy') {
+            if (useMobileIde) {
+              activateMobileTool('deployments');
+            } else {
+              openWorkspacePanel('deployments');
+            }
+          } else if (entry.command === 'run') {
+            if (useMobileIde) {
+              activateMobileTool('preview');
+            } else {
+              openWorkspacePanel('preview');
+            }
+
+            void workbenchStore.startPreviewServer();
+          } else if (entry.command === 'stop') {
+            void workbenchStore.stopPreviewServer();
+
+            if (useMobileIde) {
+              activateMobileTool('logs');
+            } else {
+              openWorkspacePanel('logs');
+            }
+          } else if (entry.command === 'theme') {
+            toggleTheme();
+          }
         }
-      } else if (entry.kind === 'command') {
-        if (entry.command === 'reset-layout') {
-          setPaneTree(cloneDefaultPaneTree());
-          setActivePaneId('pane-main');
-        } else if (entry.command === 'deploy') {
-          openWorkspacePanel('deployments');
-        } else if (entry.command === 'run') {
-          openWorkspacePanel('preview');
-          void workbenchStore.startPreviewServer();
-        } else if (entry.command === 'stop') {
-          void workbenchStore.stopPreviewServer();
-          openWorkspacePanel('logs');
-        } else if (entry.command === 'theme') {
-          toggleTheme();
-        }
+      } finally {
+        setCommandPaletteOpen(false);
+        setCommandPaletteQuery('');
+        setCommandPaletteIndex(0);
       }
-
-      setCommandPaletteOpen(false);
-      setCommandPaletteQuery('');
-      setCommandPaletteIndex(0);
     };
 
     const commandPaletteSections = useMemo(
@@ -10445,8 +10483,7 @@ function ProjectIdeApiServicePanel({
   displayIcon?: string;
   initialPayload?: any;
 }) {
-  const { t, i18n } = useTranslation();
-  const language = resolvedBaseChatLanguage(i18n);
+  const { t } = useTranslation();
 
   /*
    * Seed from SSR payload first, else the in-memory cache from a previous visit
@@ -10459,13 +10496,10 @@ function ProjectIdeApiServicePanel({
   const [actionNotice, setActionNotice] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [slowLoad, setSlowLoad] = useState(false);
-  const [panelActionsOpen, setPanelActionsOpen] = useState(false);
 
   // One-time share link returned by the share-link action; the raw token is never re-listed afterwards.
   const [createdShareLink, setCreatedShareLink] = useState<string | undefined>();
-  const [refreshLabelNow, setRefreshLabelNow] = useState(() => new Date());
   const loadingPanelRef = useRef(false);
-  const panelActionsRef = useRef<HTMLDivElement | null>(null);
 
   const [lastLoadedAt, setLastLoadedAt] = useState<string | undefined>(() =>
     initialPayload ? new Date().toISOString() : seededCache?.lastLoadedAt,
@@ -10655,45 +10689,6 @@ function ProjectIdeApiServicePanel({
   }, [loadPanel, refreshIntervalMs]);
 
   useEffect(() => {
-    const interval = window.setInterval(() => {
-      setRefreshLabelNow(new Date());
-    }, 15_000);
-
-    return () => window.clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (!panelActionsOpen) {
-      return undefined;
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault();
-        setPanelActionsOpen(false);
-      }
-    };
-
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
-
-      if (target && panelActionsRef.current?.contains(target)) {
-        return;
-      }
-
-      setPanelActionsOpen(false);
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    document.addEventListener('pointerdown', handlePointerDown, true);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.removeEventListener('pointerdown', handlePointerDown, true);
-    };
-  }, [panelActionsOpen]);
-
-  useEffect(() => {
     if (panel !== 'collaborators' || !collaborationRealtime.snapshot) {
       return;
     }
@@ -10809,72 +10804,19 @@ function ProjectIdeApiServicePanel({
 
   const data = payload?.data ?? {};
   const project = payload?.project ?? {};
-  const updatedLabel = formatProjectPanelUpdatedLabel(lastLoadedAt, refreshLabelNow, language);
-
-  const updatedTitle = lastLoadedAt
-    ? t('baseChatAst.runtime.lastUpdated', {
-        date: formatBaseChatAstDateTime(language, lastLoadedAt) ?? t('baseChatAst.status.notAvailable'),
-      })
-    : t('baseChatAst.runtime.autoRefreshPending');
-
-  const refreshCadenceLabel = formatProjectPanelRefreshCadence(refreshIntervalMs, language);
 
   return (
     <div className="bolt-project-service-panel" data-testid="ide-service-panel" data-panel={panel}>
-      <IdePanelHeader icon={icon} title={title} actionsRef={panelActionsRef}>
-        {/*
-         * UNIF-06 (audit H2) : la puce « Updated … » était `hidden sm:` — donc
-         * JAMAIS visible en mobile 390, là où Avi teste. Elle reste affichée en
-         * compact (largeur plafonnée en vw, truncate) et s'élargit dès sm.
-         */}
-        <span
-          className="inline-flex max-w-[34vw] items-center gap-1.5 truncate rounded border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-0.5 text-[11px] text-bolt-elements-textTertiary sm:max-w-[190px]"
-          data-testid="ide-panel-updated-at"
-          title={updatedTitle}
-          aria-live="polite"
-        >
-          <span className={busy ? 'i-ph:spinner-gap animate-spin' : 'i-ph:clock'} aria-hidden />
-          <span className="truncate">{updatedLabel}</span>
-        </span>
-        <button
-          type="button"
-          className="inline-flex h-7 w-7 items-center justify-center rounded border border-bolt-elements-borderColor text-bolt-elements-textTertiary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary disabled:cursor-not-allowed disabled:opacity-60"
-          aria-label={t('chat.copy.value0PanelActions_4358c33e', { value0: title })}
-          aria-haspopup="menu"
-          aria-expanded={panelActionsOpen}
-          data-testid="ide-panel-actions"
-          onClick={() => setPanelActionsOpen((value) => !value)}
-          disabled={busy && !payload}
-        >
-          <span className="i-ph:dots-three-vertical-bold" aria-hidden />
-        </button>
-        {panelActionsOpen ? (
-          <div
-            className="bolt-project-panel-actions-menu absolute right-0 top-[calc(100%+6px)] z-20 w-[192px] max-w-[calc(100vw-1.5rem)] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-1 text-[12px] text-bolt-elements-textPrimary shadow-lg"
-            role="menu"
-            aria-label={t('chat.copy.value0PanelActions_4358c33e', { value0: title })}
-          >
-            <PanelButton
-              type="button"
-              variant="menu"
-              role="menuitem"
-              onClick={() => {
-                setPanelActionsOpen(false);
-                void loadPanel();
-              }}
-              disabled={busy}
-            >
-              <span className="i-ph:arrow-clockwise" aria-hidden />
-              {t('chat.copy.refreshNow_29664b3f')}
-            </PanelButton>
-            <div className="flex items-center gap-2 px-2 py-1.5 text-bolt-elements-textTertiary" role="presentation">
-              <span className="i-ph:clock" aria-hidden />
-              {t('chat.copy.autoRefreshEvery_f2835242')}
-              {refreshCadenceLabel}
-            </div>
-          </div>
-        ) : null}
-      </IdePanelHeader>
+      {/*
+       * AV-UX point 10 : la puce « Mis à jour … » et le menu ⋮ (« Actualiser
+       * maintenant » / cadence) sont retirés de TOUS les panneaux. Le
+       * rafraîchissement est AUTOMATIQUE (intervalle silencieux ci-dessus,
+       * 15 s ou 60 s selon le panneau, + rechargement après chaque action) :
+       * la rangée n'apportait qu'une méta-information redondante. En mobile,
+       * l'en-tête (icône + titre) est masqué par la feuille responsive — le
+       * titre est déjà dans l'en-tête mobile gelé.
+       */}
+      <IdePanelHeader icon={icon} title={title} />
       {/*
        * pb-20: the service panel and the bottom terminal are flex siblings. When a
        * tall panel (e.g. Settings) is open in a short viewport, its scroller is

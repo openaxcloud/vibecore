@@ -59,8 +59,15 @@ describe('UNIF lot 4 — point 1 : boutons restants → PanelButton', () => {
     expect(heroBlock).not.toContain('<button');
   });
 
-  it('l’item « Refresh now » du menu ⋮ de la coque est un PanelButton variant="menu"', () => {
-    expect(baseChatSource).toMatch(/<PanelButton\s+type="button"\s+variant="menu"\s+role="menuitem"/);
+  it('le menu ⋮ « Refresh now » de la coque n’existe plus (AV-UX point 10 : refresh automatique)', () => {
+    /*
+     * 25/08 — Avi a demandé le retrait de la rangée « Mis à jour … /
+     * Actualiser » de tous les panneaux : le menu ⋮ et son PanelButton
+     * « Refresh now » sont partis avec elle. Le rafraîchissement est
+     * automatique (intervalle silencieux) ; ce test garde le menu mort.
+     */
+    expect(baseChatSource).not.toContain('data-testid="ide-panel-actions"');
+    expect(baseChatSource).not.toMatch(/<PanelButton\s+type="button"\s+variant="menu"\s+role="menuitem"/);
   });
 
   it('le Retry de la bannière d’erreur est un PanelButton danger (plus de rouge Tailwind brut)', () => {
