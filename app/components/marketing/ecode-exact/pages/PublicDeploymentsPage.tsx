@@ -65,7 +65,8 @@ export default function PublicDeploymentsPage() {
                   {copy.page.talkToExpert}
                 </Button>
               </Link>
-              <Link href="/docs/deployments">
+              {/* /docs/deployments n'existe pas (splat 404) — /docs est le hub docs réel. */}
+              <Link href="/docs">
                 <Button
                   size="lg"
                   variant="outline"
