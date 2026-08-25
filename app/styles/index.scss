@@ -16314,7 +16314,40 @@ button.bolt-project-statusbar-pill:focus-visible,
   .bolt-project-statusbar {
     min-height: 44px;
   }
-}
+
+  /*
+   * BUG-MOB-CLOSE-X-001 — la croix de fermeture d'onglet était DÉFINITIVEMENT
+   * invisible sur un pointeur sans survol (iPhone, iPad, écran tactile).
+   *
+   * Mesuré en réel (thème clair, 6 croix dans le DOM) : la règle de base pose
+   * `opacity: 0` sur `.bolt-project-tab-close` / `-pin` et ne la relève QUE via
+   * `.bolt-project-tab:hover` — un état qui n'existe jamais au doigt. Le bloc
+   * tactile ci-dessus ne réglait que la taille de cible (44 px) : une cible de
+   * 44 px totalement transparente. Ici on la découple du survol.
+   *
+   * Deux pièges volontairement traités :
+   * - la couleur est forcée ailleurs en `--vc-ide-text-muted !important`
+   *   (règle de lisibilité de `.bolt-project-ide-shell`), donc la couleur
+   *   lisible doit l'être aussi — via TOKEN, jamais un blanc en dur, pour
+   *   rester correcte en clair ET en sombre ;
+   * - seuls les VRAIS boutons sont révélés. Un onglet non fermable rend un
+   *   `<span class="bolt-project-tab-close">×</span>` qui ne sert que de
+   *   gabarit d'espacement : le rendre visible afficherait une croix morte.
+   *   `.bolt-project-tab[data-pinned='true']` garde son `display: none`.
+   */
+  button.bolt-project-tab-close,
+  .bolt-project-tab-pin {
+    opacity: 1 !important;
+    color: var(--vc-ide-text-primary) !important;
+  }
+
+  /*
+   * La pastille « enregistrer » garde son accent (c'est un signal d'état, pas
+   * une action neutre) : seule son opacité est découplée du survol.
+   */
+  .bolt-project-tab-save {
+    opacity: 1 !important;
+  }}
 
 .bolt-project-statusbar-primary > .bolt-project-statusbar-pill:first-child,
 .bolt-project-statusbar-primary > .bolt-project-statusbar-pill:nth-child(2) {

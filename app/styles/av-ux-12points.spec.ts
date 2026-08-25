@@ -63,6 +63,51 @@ describe('AV-UX point 4 — croix de fermeture visible en clair ET en sombre', (
     expect(chipBlock).toContain('background: var(--vc-ide-bg-app);');
     expect(chipBlock).toContain('border: 1px solid var(--mobile-nav-border);');
   });
+
+  /*
+   * BUG-MOB-CLOSE-X-001 — les TUILES étaient corrigées, pas les ONGLETS. Sur un
+   * pointeur sans survol, `.bolt-project-tab-close` restait à `opacity: 0` :
+   * mesuré en réel (thème clair, 6 boutons dans le DOM, `opacity` calculée = 0).
+   * Le bloc `@media (pointer: coarse)` ne réglait que la taille de cible.
+   */
+  const coarseBlock = (() => {
+    const start = scss.indexOf('@media (pointer: coarse), (max-width: 768px) {');
+    return start === -1 ? '' : scss.slice(start, scss.indexOf('\n}\n', start));
+  })();
+
+  it('le bloc tactile existe et découple la croix d’onglet du survol', () => {
+    expect(coarseBlock).not.toBe('');
+    expect(coarseBlock).toMatch(
+      /button\.bolt-project-tab-close,\s*\n\s*\.bolt-project-tab-pin \{\s*\n\s*opacity: 1 !important;\s*\n\s*color: var\(--vc-ide-text-primary\) !important;/,
+    );
+  });
+
+  it('la couleur tactile passe par un token (jamais un blanc/noir en dur)', () => {
+    const rule = coarseBlock.match(/button\.bolt-project-tab-close,[\s\S]*?\n {2}\}/)?.[0] ?? '';
+
+    expect(rule).toContain('color: var(--vc-ide-text-primary) !important;');
+    expect(rule).not.toMatch(/#fff|#000|\bwhite\b|\bblack\b/i);
+  });
+
+  it('la pastille « enregistrer » est révélée sans perdre son accent', () => {
+    const saveRule = coarseBlock.match(/\.bolt-project-tab-save \{[\s\S]*?\n {2}\}/)?.[0] ?? '';
+
+    expect(saveRule).toContain('opacity: 1 !important;');
+    expect(saveRule).not.toContain('color:');
+  });
+
+  /*
+   * Le gabarit d'espacement des onglets NON fermables est un <span> qui porte la
+   * même classe. Le révéler afficherait une croix morte : la règle tactile doit
+   * rester qualifiée par `button`.
+   */
+  it('le gabarit <span> des onglets non fermables n’est pas révélé', () => {
+    const rule = coarseBlock.match(/button\.bolt-project-tab-close,[\s\S]*?\n {2}\}/)?.[0] ?? '';
+    const selectors = rule.slice(0, rule.indexOf('{'));
+
+    expect(selectors).toContain('button.bolt-project-tab-close');
+    expect(selectors).not.toMatch(/(^|[\s,])\.bolt-project-tab-close/m);
+  });
 });
 
 describe('AV-UX point 8 — menu « ⋯ » du composeur ancré au viewport en mobile', () => {
@@ -105,3 +150,4 @@ describe('AV-UX point 9 — barre de contexte agent (« Prompt ») retirée en m
     expect(scss).toContain('.bolt-responsive-ide-mobile .bolt-chatbox-plan-toggle');
   });
 });
+
