@@ -485,7 +485,7 @@ export function EcodeExactPublicNavbar({
 
             <div className="shrink-0 p-4 border-b border-border">
               <Button
-                className="w-full bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)]"
+                className="w-full !min-h-11 bg-ecode-accent hover:bg-ecode-accent text-[var(--ecode-accent-contrast)]"
                 onClick={() => {
                   setMobileMenuOpen(false);
                   navigate(MARKETING_SHELL_LINKS.register.href);
@@ -495,7 +495,7 @@ export function EcodeExactPublicNavbar({
               </Button>
               <Button
                 variant="outline"
-                className="mt-2 w-full border-border text-foreground hover:bg-muted"
+                className="mt-2 w-full !min-h-11 border-border text-foreground hover:bg-muted"
                 onClick={() => {
                   setMobileMenuOpen(false);
                   navigate(MARKETING_SHELL_LINKS.login.href);
@@ -959,17 +959,17 @@ function FooterColumn({ title, links }: { title: string; links: readonly FooterL
       {/*
        * AV-UX point 11 — « titres encore trop espacés » : le pas vertical réel
        * d'une ligne de lien était 52px (rangée tactile de 44px + `space-y-2`).
-       * Les grands sites tournent autour de 32-40px. `space-y-0` supprime la
-       * marge décorative (la rangée de 44px espace déjà d'elle-même) et, au
-       * bureau (`lg:`, pointeur souris), la rangée descend à 32px — au-dessus
-       * du minimum WCAG 2.2 (24px). Tactile (mobile/tablette) : 44px conservés.
+       * Les grands sites tournent autour de 32-44px. `space-y-0` supprime la
+       * marge décorative : la rangée de 44px espace déjà d'elle-même. La hauteur
+       * reste volontairement à 44px à toutes les largeurs, car `lg:` commence à
+       * 1024px — une largeur encore courante sur les tablettes tactiles.
        */}
       <ul role="list" className="mt-2 space-y-0 text-[13px]">
         {links.map((link) => (
           <li key={link.id}>
             <Link
               href={link.href}
-              className="inline-flex min-h-11 min-w-11 lg:min-h-8 items-center text-[var(--ecode-text-secondary)] dark:text-slate-300 transition hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
+              className="inline-flex min-h-11 min-w-11 items-center text-[var(--ecode-text-secondary)] dark:text-slate-300 transition hover:text-[var(--ecode-accent-text)] dark:hover:text-white"
             >
               {link.label}
             </Link>

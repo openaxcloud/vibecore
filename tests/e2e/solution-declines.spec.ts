@@ -95,6 +95,7 @@ async function expectPreviewTouchTargets(page: Page, selector: string) {
       const target = element as HTMLElement;
       const bounds = target.getBoundingClientRect();
       const style = window.getComputedStyle(target);
+
       const visible =
         style.display !== 'none' &&
         style.visibility !== 'hidden' &&
@@ -262,7 +263,17 @@ test.describe('solution sales pages', () => {
               });
 
             expect(h1Style.fontFamily).toContain('IBM Plex Sans');
-            expect(h1Style.fontSize).toBe(viewport.width === 390 ? '28px' : '32px');
+
+            if (viewport.width === 390) {
+              expect(h1Style.fontSize).toBe('28px');
+            } else {
+              const minimumTitleSize = viewport.width >= 1120 ? 40 : 32;
+
+              expect(
+                Number.parseFloat(h1Style.fontSize),
+                `${viewport.width}px: solution H1 must preserve the responsive type hierarchy`,
+              ).toBeGreaterThanOrEqual(minimumTitleSize);
+            }
 
             await expectNoHorizontalOverflow(page, viewport.width);
             await expectTouchTargets(page);
@@ -327,6 +338,7 @@ test.describe('solution sales pages', () => {
 test.describe('linked solution demo apps', () => {
   test('Docs Copilot is functional and touch-safe on mobile and desktop', async ({ page }) => {
     test.setTimeout(60_000);
+
     const errors: string[] = [];
 
     page.on('console', (message) => message.type() === 'error' && errors.push(message.text()));
@@ -353,6 +365,7 @@ test.describe('linked solution demo apps', () => {
 
   test('Neon Trivia Arena plays a real round and exposes mobile-safe controls', async ({ page }) => {
     test.setTimeout(60_000);
+
     const errors: string[] = [];
 
     page.on('console', (message) => message.type() === 'error' && errors.push(message.text()));

@@ -76,9 +76,9 @@ export function SolutionSalesPage({
         dir={direction}
       >
         <Hero copy={copy} language={visualLanguage} visual={showcase.primary} />
+        <ProofLinkBand language={visualLanguage} showcase={showcase} />
         <ProblemSection copy={copy} />
         <BuildSection copy={copy} />
-        <ProofLinkBand language={visualLanguage} showcase={showcase} />
         <DeliverablesSection copy={copy} />
         <FeaturesSection copy={copy} />
         <UseCasesSection copy={copy} />
@@ -293,17 +293,6 @@ function SolutionAppVisualCard({
         </span>
         <strong>{visual.name[language]}</strong>
         <p>{visual.description[language]}</p>
-        <div className="sol-app-showcase__actions">
-          <a
-            href={visual.previewHref}
-            target="_blank"
-            rel="noopener"
-            aria-label={`${ui.openPreviewAria}: ${visual.name[language]}`}
-          >
-            <span>{ui.openPreview}</span>
-            <ExternalLink aria-hidden />
-          </a>
-        </div>
       </figcaption>
     </figure>
   );
