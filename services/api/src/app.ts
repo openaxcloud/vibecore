@@ -191,6 +191,11 @@ import {
   type ProvisionResult,
 } from './database-provisioner.js';
 import {
+  DATABASE_PROVISION_FAILURE,
+  databaseProvisionDeadline,
+  reconcileDatabaseProvisioning,
+} from './database-provision-lifecycle.js';
+import {
   IMPORT_HUB_PROVIDERS,
   ImportInvariantError,
   applyConsentedRedactions,
@@ -410,6 +415,7 @@ import {
   type ApiKeyScope,
   type ApiStore,
   type CollaborationPresenceRecord,
+  type DatabaseInstanceRecord,
   type DeploymentRecord,
   type InstalledSkillRecord,
   type ProjectIdeStateRecord,
@@ -15280,6 +15286,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
   };
 
+  const reconcileManagedDatabase = async (
+    instance: DatabaseInstanceRecord,
+    options: { planKey?: string; nowMs?: number; warn?: (context: Record<string, unknown>, message: string) => void } = {},
+  ) => {
+    const provisioner = resolveDefaultDatabaseProvisioner();
+    const result = await reconcileDatabaseProvisioning({
+      store,
+      provisioner,
+      instance,
+      tier: resolveDatabaseTier(options.planKey),
+      nowMs: options.nowMs,
+      encryptConnectionUri: (uri) => encryptJson({ value: uri }),
+    });
+
+    if (result.probeFailed) {
+      options.warn?.(
+        { databaseInstanceId: instance.id, projectId: instance.projectId },
+        'managed database readiness probe failed',
+      );
+    }
+
+    return result.instance;
+  };
+
   /*
    * Rolling window for the terminals.concurrent gauge (see computeUsageForQuota).
    * Long enough that a genuinely-open terminal stays counted through a normal
@@ -22462,47 +22492,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       'projects:read',
     );
 
-    /*
-     * Reconcile-on-read for THIS panel's connection source. A managed CNPG database
-     * ("Create database") is provisioned async: the POST creates the instance record
-     * + kicks off the cluster, but the DATABASE_URL secret is only seeded once the
-     * cluster is ready. That seeding lived ONLY in the /projects/:id/database (PITR)
-     * endpoint — never triggered by the IDE Database panel, which loads THIS route —
-     * so a provisioned CNPG cluster stayed unbound (connections:[], no DATABASE_URL,
-     * orphaned cluster). Seed it here too: if a non-ACTIVE managed instance exists and
-     * the provisioner can now resolve its URI, write DATABASE_URL + flip ACTIVE so it
-     * shows up as a postgres connection below. Best-effort — never fails the list.
-     */
-    try {
-      const instance = await store.getDatabaseInstanceByProject(project.id);
+    const billing = await billingState(project.organizationId).catch(() => undefined);
+    const managedInstances = (
+      await Promise.all(
+        (['development', 'production'] as const).map(async (environment) => {
+          const instance = await store.getDatabaseInstanceByProject(project.id, environment);
 
-      if (instance && instance.status !== 'ACTIVE') {
-        const provisioner = resolveDefaultDatabaseProvisioner();
-
-        if (provisioner.active) {
-          const environment = ((instance as { environment?: string }).environment ?? 'development') as Parameters<
-            typeof provisioner.getConnectionUri
-          >[0]['environment'];
-
-          const billing = await billingState(project.organizationId).catch(() => undefined);
-          const tier = resolveDatabaseTier(billing?.plan.key);
-          const uri = await provisioner.getConnectionUri({ projectId: project.id, tier, environment });
-
-          if (uri) {
-            await store.upsertProjectSecret({
-              projectId: project.id,
-              key: environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
-              valueEncrypted: encryptJson({ value: uri }),
-            });
-            await store.updateDatabaseInstance(instance.id, { status: 'ACTIVE' });
+          if (!instance || instance.status !== 'PROVISIONING') {
+            return instance;
           }
-        }
-      }
-    } catch (error) {
-      request.log?.warn?.({ err: error }, 'db connection reconcile on /databases failed (non-fatal)');
-    }
+
+          return reconcileManagedDatabase(instance, {
+            planKey: billing?.plan.key,
+            warn: (context, message) => request.log?.warn?.(context, message),
+          }).catch((error) => {
+            request.log?.warn?.(
+              { err: error, databaseInstanceId: instance.id },
+              'managed database reconcile failed',
+            );
+
+            return instance;
+          });
+        }),
+      )
+    ).filter((instance): instance is DatabaseInstanceRecord => Boolean(instance));
 
     const connections = await listDatabaseConnections(store, project.id);
+    const managedKeys = new Set<string>(
+      managedInstances.map((instance) =>
+        instance.environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
+      ),
+    );
 
     return {
       connections: connections.map(({ value: _value, ...connection }) => ({
@@ -22514,7 +22534,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               ? ['schema', 'readonly-commands']
               : ['schema', 'readonly-sql', 'query'],
       })),
-      environments: ['development', 'preview', 'staging', 'production', 'shared'],
+      /*
+       * Structured cards, not a static list of strings. The static list used to
+       * win `environments ?? connections` in DatabaseWorkbench, so every real
+       * connection was silently hidden and the panel always rendered "No database".
+       */
+      environments: [
+        ...managedInstances.map((instance) => ({
+          key: instance.environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
+          name: instance.environment,
+          environment: instance.environment,
+          managed: true,
+          status: instance.status,
+          usedBytes: instance.sizeBytes,
+          provisioningDeadlineAt: instance.provisioningDeadlineAt,
+          lastErrorCode: instance.lastErrorCode,
+        })),
+        ...connections
+          .filter((connection) => !managedKeys.has(connection.key))
+          .map((connection) => ({
+            key: connection.key,
+            name: connection.key,
+            environment: connection.environment,
+            managed: false,
+            status: 'ACTIVE',
+          })),
+      ],
     };
   });
   app.get('/projects/:projectId/databases/schema', async (request) => {
@@ -29937,9 +29982,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const nowMs = Date.now();
     const pruned = await store.pruneExpiredDatabaseSnapshots(nowMs).catch(() => 0);
     const instances = await store.listActiveDatabaseInstances().catch(() => []);
+    const provisioningInstances = await store.listProvisioningDatabaseInstances().catch(() => []);
 
     let snapshotted = 0;
     let restoresAdvanced = 0;
+    let provisioningActivated = 0;
+    let provisioningFailed = 0;
+    let provisioningProbeFailures = 0;
+    let provisioningErrors = 0;
+
+    for (const instance of provisioningInstances) {
+      const state = await billingState(instance.organizationId).catch(() => undefined);
+      const reconciled = await reconcileDatabaseProvisioning({
+        store,
+        provisioner,
+        instance,
+        tier: resolveDatabaseTier(state?.plan.key),
+        nowMs,
+        encryptConnectionUri: (uri) => encryptJson({ value: uri }),
+      }).catch((error) => {
+        provisioningErrors += 1;
+        request.log?.warn?.(
+          { err: error, databaseInstanceId: instance.id, projectId: instance.projectId },
+          'managed database maintenance reconcile failed',
+        );
+
+        return undefined;
+      });
+
+      if (reconciled?.probeFailed) {
+        provisioningProbeFailures += 1;
+        request.log?.warn?.(
+          { databaseInstanceId: instance.id, projectId: instance.projectId },
+          'managed database maintenance readiness probe failed',
+        );
+      }
+
+      if (reconciled?.transition === 'active') {
+        provisioningActivated += 1;
+      } else if (reconciled?.transition === 'failed') {
+        provisioningFailed += 1;
+      }
+    }
 
     for (const instance of instances) {
       // Daily automatic snapshot, retained for the plan window.
@@ -29980,7 +30064,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
-    return { skipped: false, pruned, snapshotted, restoresAdvanced, instances: instances.length };
+    return {
+      skipped: false,
+      pruned,
+      snapshotted,
+      restoresAdvanced,
+      instances: instances.length,
+      provisioningScanned: provisioningInstances.length,
+      provisioningActivated,
+      provisioningFailed,
+      provisioningProbeFailures,
+      provisioningErrors,
+    };
   });
 
   /*
@@ -31525,34 +31620,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { entitlement, instance: null, snapshots: [], restores: [] };
     }
 
-    /*
-     * Reconcile-on-read: once the backend is ready, resolve + inject the env's
-     * DATABASE_URL (idempotent) and flip the instance to ACTIVE. Stored as a
-     * project secret so it auto-appears as a `postgres` connection in /databases
-     * (detectDatabaseKind) → the IDE panel's schema/query routes work against the
-     * native DB with no extra API. Production uses a distinct PROD_DATABASE_URL
-     * secret so dev and prod connections coexist. Best-effort.
-     */
-    if (instance.status !== 'ACTIVE') {
-      const provisioner = resolveDefaultDatabaseProvisioner();
+    if (instance.status === 'PROVISIONING') {
+      instance = await reconcileManagedDatabase(instance, {
+        planKey: state?.plan.key,
+        warn: (context, message) => request.log?.warn?.(context, message),
+      }).catch((error) => {
+        request.log?.warn?.({ err: error, databaseInstanceId: instance!.id }, 'managed database reconcile failed');
 
-      if (provisioner.active) {
-        try {
-          const tier = resolveDatabaseTier(state?.plan.key);
-          const uri = await provisioner.getConnectionUri({ projectId: project.id, tier, environment });
-
-          if (uri) {
-            await store.upsertProjectSecret({
-              projectId: project.id,
-              key: environment === 'production' ? 'PROD_DATABASE_URL' : 'DATABASE_URL',
-              valueEncrypted: encryptJson({ value: uri }),
-            });
-            instance = (await store.updateDatabaseInstance(instance.id, { status: 'ACTIVE' })) ?? instance;
-          }
-        } catch (error) {
-          request.log?.warn?.({ err: error }, 'db connection-uri reconcile failed (non-fatal)');
-        }
-      }
+        return instance!;
+      });
     }
 
     const [snapshots, restores] = await Promise.all([
@@ -31678,76 +31754,107 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     const environment = parse(databaseEnvironmentQuery, request.body ?? {}).environment;
-    const existing = await store.getDatabaseInstanceByProject(project.id, environment);
-
-    if (existing) {
-      return { instance: existing, created: false };
-    }
-
     const state = await billingState(project.organizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
 
     const provisioner = resolveDefaultDatabaseProvisioner();
     const tier = resolveDatabaseTier(state?.plan.key);
+    const existing = await store.getDatabaseInstanceByProject(project.id, environment);
 
-    /*
-     * BUG-QA-DB-PROVISIONING-STUCK — un provisionnement qui n'a pas démarré ne
-     * doit pas être enregistré comme « en cours ».
-     *
-     * La ligne était créée en PROVISIONING, puis l'appel au provisionneur était
-     * avalé (`non-fatal`) : quand il échouait, PLUS RIEN ne réconciliait la
-     * ligne. L'utilisateur voyait « provisionnement » indéfiniment, et le
-     * réessai était impossible — la ligne zombie faisait répondre
-     * `{ created: false }` à toute nouvelle demande.
-     *
-     * Même règle transverse que pour la progression de l'agent : ne jamais
-     * déduire « c'est en cours » de l'ABSENCE d'un signal d'échec. Si le
-     * provisionnement ne part pas, on retire la ligne et on nomme la cause, ce
-     * qui rend le réessai possible.
-     */
-    if (provisioner.active) {
-      const outcome = await provisioner
-        .provisionInstance({
-          projectId: project.id,
-          organizationId: project.organizationId,
-          retentionDays: entitlement.retentionDays,
-          tier,
-          environment,
-        })
-        .catch((error) => {
-          request.log?.warn?.({ err: error }, 'db provision kickoff failed');
+    if (existing && existing.status !== 'FAILED') {
+      return { instance: existing, created: false, environment };
+    }
 
-          /* Une exception ne dit pas POURQUOI : on ne lui invente pas de raison. */
-          const failed: ProvisionResult = { clusterName: '', applied: false };
-
-          return failed;
-        });
-
-      if (!outcome.applied) {
-        return reply.code(503).send({
-          error: appPublicEnglish('DATABASE_PROVISION_UNAVAILABLE'),
-          code: 'DATABASE_PROVISION_UNAVAILABLE',
-          reason: outcome.reason,
-        });
-      }
+    if (!provisioner.active) {
+      return reply.code(503).send({
+        error: appPublicEnglish('DATABASE_PROVISION_UNAVAILABLE'),
+        code: 'DATABASE_PROVISION_UNAVAILABLE',
+        reason: DATABASE_PROVISION_FAILURE.providerUnavailable,
+      });
     }
 
     /*
-     * La ligne n'est ecrite qu'ICI : une fois le provisionnement reellement
-     * accepte. Aucune ligne zombie ne peut donc subsister en PROVISIONING, et
-     * un reessai repart d'un etat propre (la contrainte unique
-     * (projectId, environment) rendait sinon la reprise impossible).
+     * Persist intent BEFORE the external side effect so two workers cannot both
+     * provision the same tenant. A crash here is safe: the durable deadline is
+     * reconciled to FAILED. An existing FAILED row is the only state a retry may
+     * claim; every live state remains singleton and idempotent.
      */
-    const instance = await store.createDatabaseInstance({
+    const acquisition = await store.acquireDatabaseProvisioning({
       projectId: project.id,
       organizationId: project.organizationId,
       retentionDays: entitlement.retentionDays,
       environment,
+      provisioningDeadlineAt: databaseProvisionDeadline(),
+    });
+
+    if (!acquisition.acquired) {
+      return { instance: acquisition.instance, created: false, environment };
+    }
+
+    let outcome: ProvisionResult;
+
+    try {
+      outcome = await provisioner.provisionInstance({
+        projectId: project.id,
+        organizationId: project.organizationId,
+        retentionDays: entitlement.retentionDays,
+        tier,
+        environment,
+      });
+    } catch (error) {
+      request.log?.warn?.({ err: error, databaseInstanceId: acquisition.instance.id }, 'db provision kickoff failed');
+      const failed = await store.failDatabaseProvisioning(acquisition.instance.id, {
+        errorCode: DATABASE_PROVISION_FAILURE.kickoffFailed,
+        failedAt: new Date().toISOString(),
+      });
+
+      return reply.code(503).send({
+        error: appPublicEnglish('DATABASE_PROVISION_UNAVAILABLE'),
+        code: 'DATABASE_PROVISION_UNAVAILABLE',
+        reason: DATABASE_PROVISION_FAILURE.kickoffFailed,
+        instance: failed,
+      });
+    }
+
+    if (!outcome.applied) {
+      const reason = outcome.reason ?? DATABASE_PROVISION_FAILURE.rejected;
+      const failed = await store.failDatabaseProvisioning(acquisition.instance.id, {
+        errorCode: reason,
+        failedAt: new Date().toISOString(),
+      });
+
+      return reply.code(503).send({
+        error: appPublicEnglish('DATABASE_PROVISION_UNAVAILABLE'),
+        code: 'DATABASE_PROVISION_UNAVAILABLE',
+        reason,
+        instance: failed,
+      });
+    }
+
+    await store.recordProjectActivity({
+      projectId: project.id,
+      actorUserId: request.currentUser!.id,
+      action: 'database.provision.requested',
+      metadata: { databaseInstanceId: acquisition.instance.id, environment, tier },
+    });
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'database.provision.requested',
+      resourceType: 'projectDatabase',
+      resourceId: acquisition.instance.id,
+      metadata: { environment, tier, retry: !acquisition.created },
     });
 
     return reply
       .code(202)
-      .send({ instance, created: true, clusterName: clusterName(project.id, environment), tier, environment });
+      .send({
+        instance: acquisition.instance,
+        created: acquisition.created,
+        retried: !acquisition.created,
+        clusterName: outcome.clusterName || clusterName(project.id, environment),
+        tier,
+        environment,
+      });
   });
 
   /** Take a manual snapshot of a project's database (Phase 2, dormant). */
@@ -34438,36 +34545,55 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * is enabled, and a no-op once the production instance already exists. The
      * production DATABASE_URL is reconciled+stored (as PROD_DATABASE_URL) by
      * GET /projects/:id/database?environment=production.
-     */
+    */
     if (isDatabaseRollbackEnabled()) {
+      let acquiredProdInstanceId: string | undefined;
+
       try {
         const existingProd = await store.getDatabaseInstanceByProject(project.id, 'production');
 
-        if (!existingProd) {
+        if (!existingProd || existingProd.status === 'FAILED') {
           const billing = await billingState(project.organizationId).catch(() => undefined);
           const entitlement = databaseRollbackEntitlement(toCreditPlanKey(billing?.plan.key));
-          await store.createDatabaseInstance({
-            projectId: project.id,
-            organizationId: project.organizationId,
-            retentionDays: entitlement.retentionDays,
-            environment: 'production',
-          });
-
           const provisioner = resolveDefaultDatabaseProvisioner();
 
           if (provisioner.active) {
-            await provisioner
-              .provisionInstance({
+            const acquisition = await store.acquireDatabaseProvisioning({
+              projectId: project.id,
+              organizationId: project.organizationId,
+              retentionDays: entitlement.retentionDays,
+              environment: 'production',
+              provisioningDeadlineAt: databaseProvisionDeadline(),
+            });
+
+            if (acquisition.acquired) {
+              acquiredProdInstanceId = acquisition.instance.id;
+              const outcome = await provisioner.provisionInstance({
                 projectId: project.id,
                 organizationId: project.organizationId,
                 retentionDays: entitlement.retentionDays,
                 tier: resolveDatabaseTier(billing?.plan.key),
                 environment: 'production',
-              })
-              .catch((error) => request.log?.warn?.({ err: error }, 'prod db provision on publish failed (non-fatal)'));
+              });
+
+              if (!outcome.applied) {
+                await store.failDatabaseProvisioning(acquisition.instance.id, {
+                  errorCode: outcome.reason ?? DATABASE_PROVISION_FAILURE.rejected,
+                  failedAt: new Date().toISOString(),
+                });
+              }
+            }
           }
         }
       } catch (error) {
+        if (acquiredProdInstanceId) {
+          await store
+            .failDatabaseProvisioning(acquiredProdInstanceId, {
+              errorCode: DATABASE_PROVISION_FAILURE.kickoffFailed,
+              failedAt: new Date().toISOString(),
+            })
+            .catch(() => undefined);
+        }
         request.log?.warn?.({ err: error }, 'prod db ensure on publish failed (non-fatal)');
       }
     }

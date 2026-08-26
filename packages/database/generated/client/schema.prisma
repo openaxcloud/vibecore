@@ -2171,6 +2171,7 @@ enum DatabaseInstanceStatus {
   PROVISIONING
   ACTIVE
   SUSPENDED
+  FAILED
   DELETED
 }
 
@@ -2180,28 +2181,35 @@ enum DatabaseInstanceStatus {
 /// gated behind DB_ROLLBACK_ENABLED, so this table is dormant until then.
 /// `retentionDays` is the plan-derived PITR window (Pro = 28).
 model DatabaseInstance {
-  id             String                 @id @default(cuid())
-  projectId      String
-  organizationId String
+  id                     String                 @id @default(cuid())
+  projectId              String
+  organizationId         String
   // P2d dev/prod split: a project has a `development` instance (its workspace
   // DB) and, once published, a separate `production` instance. Existing rows
   // backfill to 'development', preserving the prior one-per-project behaviour.
-  environment    String                 @default("development")
-  status         DatabaseInstanceStatus @default(PROVISIONING)
-  engine         String                 @default("postgres")
-  region         String?
-  sizeBytes      BigInt                 @default(0)
-  retentionDays  Int                    @default(7)
-  pitrEnabled    Boolean                @default(false)
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
-  project        Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  snapshots      DatabaseSnapshot[]
-  restores       DatabaseRestore[]
+  environment            String                 @default("development")
+  status                 DatabaseInstanceStatus @default(PROVISIONING)
+  engine                 String                 @default("postgres")
+  region                 String?
+  sizeBytes              BigInt                 @default(0)
+  retentionDays          Int                    @default(7)
+  pitrEnabled            Boolean                @default(false)
+  // Durable provisioning lifecycle. A request is never allowed to remain
+  // PROVISIONING past this deadline; FAILED keeps a stable, non-secret reason
+  // and can be atomically claimed for a retry.
+  provisioningDeadlineAt DateTime?
+  lastErrorCode          String?
+  lastErrorAt            DateTime?
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
+  project                Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  snapshots              DatabaseSnapshot[]
+  restores               DatabaseRestore[]
 
   @@unique([projectId, environment])
   @@index([organizationId])
   @@index([status])
+  @@index([status, provisioningDeadlineAt])
 }
 
 /// A recovery point for a DatabaseInstance — either a scheduled automatic

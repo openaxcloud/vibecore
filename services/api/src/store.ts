@@ -222,12 +222,15 @@ export interface DatabaseInstanceRecord {
   organizationId: string;
   /** P2d dev/prod split — which environment this instance backs. */
   environment: 'development' | 'production';
-  status: 'PROVISIONING' | 'ACTIVE' | 'SUSPENDED' | 'DELETED';
+  status: 'PROVISIONING' | 'ACTIVE' | 'SUSPENDED' | 'FAILED' | 'DELETED';
   engine: string;
   region?: string;
   sizeBytes: number;
   retentionDays: number;
   pitrEnabled: boolean;
+  provisioningDeadlineAt?: string;
+  lastErrorCode?: string;
+  lastErrorAt?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -1879,10 +1882,42 @@ export interface ApiStore {
     retentionDays: number;
     region?: string;
     environment?: string;
+    provisioningDeadlineAt?: string;
   }): Promise<DatabaseInstanceRecord>;
+  /**
+   * Atomically creates a provisioning row, or claims an existing FAILED row for
+   * retry. A live PROVISIONING/ACTIVE/SUSPENDED row is returned without a claim.
+   */
+  acquireDatabaseProvisioning(input: {
+    projectId: string;
+    organizationId: string;
+    retentionDays: number;
+    region?: string;
+    environment?: string;
+    provisioningDeadlineAt: string;
+  }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }>;
+  completeDatabaseProvisioning(
+    id: string,
+    connection: { projectId: string; key: string; valueEncrypted: string },
+  ): Promise<DatabaseInstanceRecord | undefined>;
+  failDatabaseProvisioning(
+    id: string,
+    input: { errorCode: string; failedAt: string; deadlineBefore?: string },
+  ): Promise<DatabaseInstanceRecord | undefined>;
   updateDatabaseInstance(
     id: string,
-    patch: Partial<Pick<DatabaseInstanceRecord, 'status' | 'sizeBytes' | 'pitrEnabled' | 'region'>>,
+    patch: Partial<
+      Pick<
+        DatabaseInstanceRecord,
+        | 'status'
+        | 'sizeBytes'
+        | 'pitrEnabled'
+        | 'region'
+        | 'provisioningDeadlineAt'
+        | 'lastErrorCode'
+        | 'lastErrorAt'
+      >
+    >,
   ): Promise<DatabaseInstanceRecord | undefined>;
   createDatabaseSnapshot(input: {
     databaseInstanceId: string;
@@ -1897,6 +1932,7 @@ export interface ApiStore {
     patch: Partial<Pick<DatabaseRestoreRecord, 'status' | 'error' | 'startedAt' | 'completedAt'>>,
   ): Promise<DatabaseRestoreRecord | undefined>;
   listActiveDatabaseInstances(take?: number): Promise<DatabaseInstanceRecord[]>;
+  listProvisioningDatabaseInstances(take?: number): Promise<DatabaseInstanceRecord[]>;
   listPendingDatabaseRestores(take?: number): Promise<DatabaseRestoreRecord[]>;
   createDeployment(input: {
     projectId: string;

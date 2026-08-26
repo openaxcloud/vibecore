@@ -1374,6 +1374,9 @@ exports.Prisma.DatabaseInstanceScalarFieldEnum = {
   sizeBytes: 'sizeBytes',
   retentionDays: 'retentionDays',
   pitrEnabled: 'pitrEnabled',
+  provisioningDeadlineAt: 'provisioningDeadlineAt',
+  lastErrorCode: 'lastErrorCode',
+  lastErrorAt: 'lastErrorAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -1798,6 +1801,7 @@ exports.DatabaseInstanceStatus = exports.$Enums.DatabaseInstanceStatus = {
   PROVISIONING: 'PROVISIONING',
   ACTIVE: 'ACTIVE',
   SUSPENDED: 'SUSPENDED',
+  FAILED: 'FAILED',
   DELETED: 'DELETED'
 };
 

@@ -53,11 +53,16 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
     const status = error instanceof Response && error.status !== 500 ? error.status : 502;
 
-    throw remainingApiErrorResponse(
+    /*
+     * Fetcher resource routes must return failures as data. Throwing here
+     * bubbles into the parent route ErrorBoundary and can unmount the entire
+     * IDE before DatabasePanel can render its recovery state.
+     */
+    return remainingApiErrorResponse(
       request,
       status === 401 || status === 403 ? 'DATABASE_AUTH_REQUIRED' : 'DATABASE_PANEL_FAILED',
       status,
-      { extra: { ok: false } },
+      { extra: { ok: false, status } },
     );
   }
 }

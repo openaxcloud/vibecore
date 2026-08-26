@@ -179,6 +179,11 @@ export function buildSharedTenantUri(input: {
  */
 export interface TenantSqlExecutor {
   provisionTenant(input: { adminUri: string; role: string; db: string; password: string }): Promise<void>;
+  /**
+   * Prove that the exact application URI can execute SQL. A Kubernetes Secret or
+   * a healthy CR alone is not enough to declare a user database ACTIVE.
+   */
+  verifyConnection(input: { uri: string; expectedRole?: string; expectedDatabase?: string }): Promise<boolean>;
 }
 
 /**
@@ -191,7 +196,7 @@ export interface TenantSqlExecutor {
 /** Minimal shape of the pg client this executor drives (injectable for tests). */
 export interface TenantSqlClient {
   connect(): Promise<void>;
-  query(text: string, values?: unknown[]): Promise<{ rowCount: number | null }>;
+  query(text: string, values?: unknown[]): Promise<{ rowCount: number | null; rows?: Array<Record<string, unknown>> }>;
   end(): Promise<void>;
 }
 
@@ -244,6 +249,33 @@ export class PgTenantSqlExecutor implements TenantSqlExecutor {
       // Tenant isolation: only the owner may connect to its own database.
       await client.query(`REVOKE CONNECT ON DATABASE "${db}" FROM PUBLIC`);
       await client.query(`GRANT CONNECT ON DATABASE "${db}" TO "${role}"`);
+    } finally {
+      await client.end().catch(() => {});
+    }
+  }
+
+  async verifyConnection(input: {
+    uri: string;
+    expectedRole?: string;
+    expectedDatabase?: string;
+  }): Promise<boolean> {
+    const client = this.createClient(input.uri);
+    await client.connect();
+
+    try {
+      const result = await client.query(
+        'SELECT current_user::text AS "user", current_database()::text AS "database"',
+      );
+      const row = result.rows?.[0];
+
+      if (!row) {
+        return false;
+      }
+
+      return (
+        (!input.expectedRole || row.user === input.expectedRole) &&
+        (!input.expectedDatabase || row.database === input.expectedDatabase)
+      );
     } finally {
       await client.end().catch(() => {});
     }
@@ -643,21 +675,44 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     environment?: DatabaseEnvironment;
   }): Promise<string | undefined> {
     if (input.tier === 'shared') {
-      // Idempotently ensure the tenant exists and return its pooled URL. Self-
-      // heals a project provisioned before the shared cluster/secret existed.
-      return this.#ensureSharedTenant(
+      // Idempotently ensure the tenant exists, then prove that the exact pooled
+      // application URI can execute SQL. A generated URI is not readiness.
+      const uri = await this.#ensureSharedTenant(
         input.projectId,
         input.sharedClusterName ?? DEFAULT_SHARED_CLUSTER,
         input.environment,
-      ).catch(() => undefined);
+      );
+
+      if (!uri) {
+        return undefined;
+      }
+
+      const verified = await this.sqlExec.verifyConnection({
+        uri,
+        expectedRole: tenantRoleName(input.projectId, input.environment),
+        expectedDatabase: sharedDbName(input.projectId, input.environment),
+      });
+
+      return verified ? uri : undefined;
     }
 
-    const secret = await this.k8s
-      .getSecret(DB_NAMESPACE, `${clusterName(input.projectId, input.environment)}-app`)
-      .catch(() => undefined);
+    const name = clusterName(input.projectId, input.environment);
+    const cluster = await this.k8s.get('Cluster', DB_NAMESPACE, name);
+    const phase = cluster?.status?.phase;
+    const readyInstances = Number(cluster?.status?.readyInstances ?? 0);
+
+    if (readyInstances < 1 || typeof phase !== 'string' || !/healthy/i.test(phase)) {
+      return undefined;
+    }
+
+    const secret = await this.k8s.getSecret(DB_NAMESPACE, `${name}-app`);
     const uri = secret?.uri?.trim();
 
-    return uri && uri.length > 0 ? uri : undefined;
+    if (!uri) {
+      return undefined;
+    }
+
+    return (await this.sqlExec.verifyConnection({ uri })) ? uri : undefined;
   }
 
   async takeSnapshot(input: { projectId: string; snapshotId: string }): Promise<{ applied: boolean }> {

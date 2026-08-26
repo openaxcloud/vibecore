@@ -93,17 +93,21 @@ export function DatabaseRollbackPanel({ projectId }: { projectId: string }) {
   const language = resolveDatabaseRollbackLanguage(i18n.resolvedLanguage ?? i18n.language);
   const copy = getDatabaseRollbackCopy(language);
   const loadFetcher = useFetcher<PanelData>();
-  const restoreFetcher = useFetcher<{ ok: boolean; error?: string }>();
+  const restoreFetcher = useFetcher<{ ok: boolean; error?: string; code?: string }>();
   const [target, setTarget] = useState('');
   const [restoreConfirmOpen, setRestoreConfirmOpen] = useState(false);
 
   const loadUrl = `/api/projects/${encodeURIComponent(projectId)}/database`;
+  const loadedUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (loadFetcher.state === 'idle' && !loadFetcher.data) {
-      loadFetcher.load(loadUrl);
+    if (loadedUrlRef.current === loadUrl) {
+      return;
     }
-  }, [loadFetcher, loadUrl]);
+
+    loadedUrlRef.current = loadUrl;
+    loadFetcher.load(loadUrl);
+  }, [loadUrl]);
 
   /*
    * Refresh after a restore is requested so the new PENDING row appears.

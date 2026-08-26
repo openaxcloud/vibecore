@@ -101,6 +101,8 @@ import type {
   RecordSkillAuditInput,
 } from './store.js';
 
+const RUNTIME_WEBSOCKET_TICKET_INSERT_EMPTY = 'RUNTIME_WEBSOCKET_TICKET_INSERT_EMPTY';
+
 function now() {
   return new Date().toISOString();
 }
@@ -149,6 +151,9 @@ function mapDatabaseInstance(row: {
   sizeBytes: bigint;
   retentionDays: number;
   pitrEnabled: boolean;
+  provisioningDeadlineAt: Date | null;
+  lastErrorCode: string | null;
+  lastErrorAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }): DatabaseInstanceRecord {
@@ -163,6 +168,9 @@ function mapDatabaseInstance(row: {
     sizeBytes: Number(row.sizeBytes),
     retentionDays: row.retentionDays,
     pitrEnabled: row.pitrEnabled,
+    provisioningDeadlineAt: toIso(row.provisioningDeadlineAt),
+    lastErrorCode: row.lastErrorCode ?? undefined,
+    lastErrorAt: toIso(row.lastErrorAt),
     createdAt: toIso(row.createdAt)!,
     updatedAt: toIso(row.updatedAt)!,
   };
@@ -562,7 +570,7 @@ export class PrismaApiStore implements ApiStore {
     `);
 
     if (!ticket) {
-      throw new Error('Runtime WebSocket ticket insert returned no row');
+      throw new Error(RUNTIME_WEBSOCKET_TICKET_INSERT_EMPTY);
     }
 
     return mapRuntimeWebSocketTicket(ticket);
@@ -2796,6 +2804,7 @@ export class PrismaApiStore implements ApiStore {
     retentionDays: number;
     region?: string;
     environment?: string;
+    provisioningDeadlineAt?: string;
   }): Promise<DatabaseInstanceRecord> {
     const row = await this.prisma.databaseInstance.create({
       data: {
@@ -2805,15 +2814,136 @@ export class PrismaApiStore implements ApiStore {
         retentionDays: input.retentionDays,
         region: input.region ?? null,
         pitrEnabled: input.retentionDays > 0,
+        provisioningDeadlineAt: input.provisioningDeadlineAt
+          ? new Date(input.provisioningDeadlineAt)
+          : null,
       },
     });
 
     return mapDatabaseInstance(row);
   }
 
+  async acquireDatabaseProvisioning(input: {
+    projectId: string;
+    organizationId: string;
+    retentionDays: number;
+    region?: string;
+    environment?: string;
+    provisioningDeadlineAt: string;
+  }): Promise<{ instance: DatabaseInstanceRecord; acquired: boolean; created: boolean }> {
+    const environment = input.environment ?? 'development';
+
+    try {
+      const instance = await this.createDatabaseInstance({ ...input, environment });
+
+      return { instance, acquired: true, created: true };
+    } catch (error) {
+      if (!isPrismaKnownRequestError(error) || error.code !== 'P2002') {
+        throw error;
+      }
+    }
+
+    const existing = await this.prisma.databaseInstance.findUniqueOrThrow({
+      where: { projectId_environment: { projectId: input.projectId, environment } },
+    });
+    const claimed = await this.prisma.databaseInstance.updateMany({
+      where: { id: existing.id, status: 'FAILED' },
+      data: {
+        status: 'PROVISIONING',
+        provisioningDeadlineAt: new Date(input.provisioningDeadlineAt),
+        lastErrorCode: null,
+        lastErrorAt: null,
+      },
+    });
+    // Re-read on both paths. If another retry won the conditional update, the
+    // loser must return the winner's PROVISIONING state instead of a stale
+    // FAILED snapshot that would incorrectly invite another retry.
+    const current = await this.prisma.databaseInstance.findUniqueOrThrow({ where: { id: existing.id } });
+
+    return { instance: mapDatabaseInstance(current), acquired: claimed.count === 1, created: false };
+  }
+
+  async completeDatabaseProvisioning(
+    id: string,
+    connection: { projectId: string; key: string; valueEncrypted: string },
+  ): Promise<DatabaseInstanceRecord | undefined> {
+    const row = await this.prisma.$transaction(async (tx) => {
+      const updated = await tx.databaseInstance.updateMany({
+        where: { id, projectId: connection.projectId, status: 'PROVISIONING' },
+        data: {
+          status: 'ACTIVE',
+          provisioningDeadlineAt: null,
+          lastErrorCode: null,
+          lastErrorAt: null,
+        },
+      });
+
+      if (updated.count !== 1) {
+        return undefined;
+      }
+
+      await tx.projectSecret.upsert({
+        where: { projectId_key: { projectId: connection.projectId, key: connection.key } },
+        create: {
+          projectId: connection.projectId,
+          key: connection.key,
+          valueEncrypted: connection.valueEncrypted,
+          valueHash: hashToken(connection.valueEncrypted),
+        },
+        update: {
+          valueEncrypted: connection.valueEncrypted,
+          valueHash: hashToken(connection.valueEncrypted),
+        },
+      });
+
+      return tx.databaseInstance.findUnique({ where: { id } });
+    });
+
+    return row ? mapDatabaseInstance(row) : undefined;
+  }
+
+  async failDatabaseProvisioning(
+    id: string,
+    input: { errorCode: string; failedAt: string; deadlineBefore?: string },
+  ): Promise<DatabaseInstanceRecord | undefined> {
+    const updated = await this.prisma.databaseInstance.updateMany({
+      where: {
+        id,
+        status: 'PROVISIONING',
+        ...(input.deadlineBefore
+          ? { provisioningDeadlineAt: { not: null, lte: new Date(input.deadlineBefore) } }
+          : {}),
+      },
+      data: {
+        status: 'FAILED',
+        lastErrorCode: input.errorCode,
+        lastErrorAt: new Date(input.failedAt),
+      },
+    });
+
+    if (updated.count !== 1) {
+      return undefined;
+    }
+
+    const row = await this.prisma.databaseInstance.findUnique({ where: { id } });
+
+    return row ? mapDatabaseInstance(row) : undefined;
+  }
+
   async updateDatabaseInstance(
     id: string,
-    patch: Partial<Pick<DatabaseInstanceRecord, 'status' | 'sizeBytes' | 'pitrEnabled' | 'region'>>,
+    patch: Partial<
+      Pick<
+        DatabaseInstanceRecord,
+        | 'status'
+        | 'sizeBytes'
+        | 'pitrEnabled'
+        | 'region'
+        | 'provisioningDeadlineAt'
+        | 'lastErrorCode'
+        | 'lastErrorAt'
+      >
+    >,
   ): Promise<DatabaseInstanceRecord | undefined> {
     const row = await this.prisma.databaseInstance
       .update({
@@ -2823,6 +2953,15 @@ export class PrismaApiStore implements ApiStore {
           sizeBytes: patch.sizeBytes === undefined ? undefined : BigInt(patch.sizeBytes),
           pitrEnabled: patch.pitrEnabled,
           region: patch.region,
+          provisioningDeadlineAt:
+            patch.provisioningDeadlineAt === undefined
+              ? undefined
+              : patch.provisioningDeadlineAt
+                ? new Date(patch.provisioningDeadlineAt)
+                : null,
+          lastErrorCode: patch.lastErrorCode,
+          lastErrorAt:
+            patch.lastErrorAt === undefined ? undefined : patch.lastErrorAt ? new Date(patch.lastErrorAt) : null,
         },
       })
       .catch(() => undefined);
@@ -2881,6 +3020,16 @@ export class PrismaApiStore implements ApiStore {
     const rows = await this.prisma.databaseInstance.findMany({
       where: { status: 'ACTIVE' },
       orderBy: { createdAt: 'asc' },
+      take,
+    });
+
+    return rows.map(mapDatabaseInstance);
+  }
+
+  async listProvisioningDatabaseInstances(take = 500): Promise<DatabaseInstanceRecord[]> {
+    const rows = await this.prisma.databaseInstance.findMany({
+      where: { status: 'PROVISIONING' },
+      orderBy: { provisioningDeadlineAt: 'asc' },
       take,
     });
 

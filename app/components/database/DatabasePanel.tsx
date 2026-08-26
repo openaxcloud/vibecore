@@ -1,5 +1,5 @@
 import { Database as DatabaseIcon, RefreshCw } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useFetcher } from 'react-router';
 import { DatabaseRollbackPanel } from './DatabaseRollbackPanel';
@@ -93,16 +93,20 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
   const fetcher = useFetcher<DatabasePanelData>();
   const loadUrl = `/api/projects/${encodeURIComponent(projectId)}/database`;
   const loading = fetcher.state !== 'idle';
+  const loadedUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (fetcher.state === 'idle' && !fetcher.data) {
-      fetcher.load(loadUrl);
+    if (loadedUrlRef.current === loadUrl) {
+      return;
     }
-  }, [fetcher, loadUrl]);
+
+    loadedUrlRef.current = loadUrl;
+    fetcher.load(loadUrl);
+  }, [loadUrl]);
 
   const data = fetcher.data;
   const language = i18n.resolvedLanguage?.startsWith('fr') ? 'fr-FR' : 'en-GB';
-  const failed = data?.ok === false;
+  const failed = data?.ok === false || (loadedUrlRef.current === loadUrl && fetcher.state === 'idle' && !data);
 
   const enabled = Boolean(
     data?.ok !== false && data?.enabled !== false && (data?.instance || data?.environments?.length),
@@ -188,6 +192,13 @@ export function DatabasePanel({ projectId }: { projectId: string }) {
             {t('idePanels.database.loadErrorTitle')}
           </p>
           <p className="mt-1 text-xs text-bolt-elements-textSecondary">{t('idePanels.database.loadErrorBody')}</p>
+          <button
+            type="button"
+            onClick={() => fetcher.load(loadUrl)}
+            className="mt-4 min-h-11 rounded-md border border-bolt-elements-borderColor px-3 py-2 text-[13px] text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
+          >
+            {t('idePanels.database.refresh')}
+          </button>
         </div>
       ) : !enabled ? (
         <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 py-10 text-center">
