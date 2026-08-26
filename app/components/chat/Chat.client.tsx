@@ -28,7 +28,12 @@ import { logStore } from '~/lib/stores/logs';
 import { useMCPStore } from '~/lib/stores/mcp';
 import { streamingState } from '~/lib/stores/streaming';
 import { workbenchStore } from '~/lib/stores/workbench';
-import { countWorkspaceFiles, decidePendingPromptReplay, resolvePendingPrompt } from '~/lib/runtime/pending-generation';
+import {
+  countWorkspaceFiles,
+  decidePendingPromptReplay,
+  resolvePendingPrompt,
+  workspaceGenerationSignature,
+} from '~/lib/runtime/pending-generation';
 import { computeRewindTruncation } from '~/utils/chat-rewind';
 import {
   DEFAULT_MODEL,
@@ -478,11 +483,16 @@ export const ChatImpl = memo(
     /*
      * Tracks an in-flight initial project generation (the queued pendingPrompt) so
      * onFinish/onError can decide whether to clear it. The prompt is the project's
-     * only retry handle, so it is cleared ONLY once the agent has actually written a
-     * file; a failed/empty/errored attempt keeps it so generation retries on the
-     * next open instead of leaving the project stuck with just its seeded README.
+     * only retry handle, so it is cleared ONLY once the agent has replaced the
+     * runnable generation shell with a startable app. A failed/empty/errored
+     * attempt keeps it so generation retries on the next open instead of leaving
+     * the user on the pending shell forever.
      */
-    const pendingGenerationRef = useRef<{ promptId: string; baselineFileCount: number } | null>(null);
+    const pendingGenerationRef = useRef<{
+      promptId: string;
+      baselineFileCount: number;
+      baselineSignature: string;
+    } | null>(null);
 
     const ensureProjectAiConversation = useCallback(async () => {
       if (!projectIdeMode || !projectId) {
@@ -724,11 +734,13 @@ export const ChatImpl = memo(
         handleError(e, 'chat');
 
         /*
-         * A failed generation must not consume the project's queued prompt — drop
-         * the in-flight marker but leave pendingPrompt in storage so the initial
-         * app generation retries on the next open instead of stranding an empty project.
+         * A failed generation must not consume the project's queued prompt OR its
+         * baseline. Keep the in-flight marker: the alert's Retry (and the bounded
+         * automatic retry above) reuses the same turn, so a later successful
+         * onFinish can verify the resulting app and clear pendingPrompt. If the
+         * user closes instead, the ref disappears while the durable pendingPrompt
+         * remains available for replay on the next open.
          */
-        pendingGenerationRef.current = null;
         window.setTimeout(() => {
           const snapshot = latestMessagesRef.current;
 
@@ -777,9 +789,9 @@ export const ChatImpl = memo(
           /*
            * Resolve the queued initial-generation prompt. Let the streamed file
            * writes flush into the workbench file map, then clear the prompt ONLY if
-           * the agent actually produced a file; if nothing was written (empty or
-           * truncated response) keep it so generation retries on the next open.
-           * Erring toward keep is safe — a redundant retry beats a stranded project.
+           * the workspace changed, is runnable, and is no longer the explicit
+           * generation-pending shell. File count alone is insufficient because the
+           * agent normally replaces the shell's paths in place.
            */
           window.setTimeout(() => {
             if (pendingGenerationRef.current?.promptId !== generation.promptId) {
@@ -788,9 +800,13 @@ export const ChatImpl = memo(
 
             pendingGenerationRef.current = null;
 
+            const finalFiles = workbenchStore.files.get();
+
             const resolution = resolvePendingPrompt({
               baselineFileCount: generation.baselineFileCount,
-              finalFileCount: countWorkspaceFiles(workbenchStore.files.get()),
+              finalFileCount: countWorkspaceFiles(finalFiles),
+              baselineSignature: generation.baselineSignature,
+              finalFiles,
               errored: false,
             });
 
@@ -1461,14 +1477,16 @@ export const ChatImpl = memo(
           runAnimation();
 
           /*
-           * Mark the generation in-flight with the current file count as a baseline
-           * instead of clearing the prompt now. onFinish clears pendingPrompt once
-           * the agent has written at least one file; a failed/empty attempt leaves it
-           * in storage so generation retries on the next open (no stranded project).
+           * Mark the generation in-flight with both count and content signature.
+           * The API now seeds a runnable shell, so a healthy generation often
+           * replaces files in place without increasing the count. onFinish clears
+           * only after that shell really changed into a runnable app.
            */
+          const baselineFiles = workbenchStore.files.get();
           pendingGenerationRef.current = {
             promptId: pendingPrompt.id,
-            baselineFileCount: countWorkspaceFiles(workbenchStore.files.get()),
+            baselineFileCount: countWorkspaceFiles(baselineFiles),
+            baselineSignature: workspaceGenerationSignature(baselineFiles),
           };
 
           append({

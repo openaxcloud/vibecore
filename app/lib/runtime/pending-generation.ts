@@ -9,23 +9,126 @@ export interface GenerationOutcome {
 
   /** The generation stream errored (dropped connection, provider error, abort). */
   errored: boolean;
+
+  /** Stable signature captured before the prompt was sent. */
+  baselineSignature?: string;
+
+  /** Hydrated workspace after all streamed file actions settled. */
+  finalFiles?: FileMap;
+}
+
+/** Must stay byte-identical to the API's public scaffold marker. */
+export const AI_GENERATION_SCAFFOLD_MARKER = '@vibecore-ai-generation-scaffold:v1';
+
+function normalizedFileEntries(files: FileMap | undefined) {
+  return Object.entries(files ?? {})
+    .filter((entry): entry is [string, Extract<NonNullable<FileMap[string]>, { type: 'file' }>] =>
+      Boolean(entry[1]?.type === 'file'),
+    )
+    .map(([path, entry]) => [path.replace(/\\/g, '/'), entry.content] as const)
+    .sort(([left], [right]) => left.localeCompare(right));
+}
+
+function fileContentAt(files: FileMap | undefined, suffix: string): string | undefined {
+  const normalizedSuffix = suffix.startsWith('/') ? suffix : `/${suffix}`;
+
+  return normalizedFileEntries(files).find(([path]) => `/${path.replace(/^\/+/, '')}`.endsWith(normalizedSuffix))?.[1];
+}
+
+/**
+ * The API seeds /from-ai with a real Vite runtime, but it is only an honest
+ * "generation pending" shell. Requiring the marker on package + entry + app
+ * distinguishes that shell from generated output even though both are runnable.
+ * Extra files do not turn it into a completed app: a truncated model response
+ * may write helpers before it ever replaces the visible entry point.
+ */
+export function isAiGenerationScaffold(files: FileMap | undefined): boolean {
+  const packageJson = fileContentAt(files, 'package.json');
+  const entry = fileContentAt(files, 'src/main.tsx') ?? fileContentAt(files, 'src/main.jsx');
+  const app = fileContentAt(files, 'src/App.tsx') ?? fileContentAt(files, 'src/App.jsx');
+
+  return Boolean(
+    packageJson?.includes(AI_GENERATION_SCAFFOLD_MARKER) &&
+      entry?.includes(AI_GENERATION_SCAFFOLD_MARKER) &&
+      app?.includes(AI_GENERATION_SCAFFOLD_MARKER),
+  );
+}
+
+/**
+ * A successful initial generation must leave a startable package, not merely
+ * increment the file count. This is intentionally framework-neutral: generated
+ * projects may use any source layout, but `npm run dev` must exist and there must
+ * be an HTML or source entry for Preview to serve.
+ */
+export function hasRunnableWorkspace(files: FileMap | undefined): boolean {
+  const packageJson = fileContentAt(files, 'package.json');
+
+  if (!packageJson) {
+    return false;
+  }
+
+  try {
+    const manifest = JSON.parse(packageJson) as { scripts?: Record<string, unknown> };
+    const dev = manifest.scripts?.dev;
+
+    if (typeof dev !== 'string' || dev.trim().length === 0) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+
+  return normalizedFileEntries(files).some(([path]) =>
+    /(?:^|\/)(?:index\.html|src\/(?:main|index|app)\.[cm]?[jt]sx?)$/i.test(path),
+  );
+}
+
+/** Fast, deterministic (non-security) signature used only to detect a no-op response. */
+export function workspaceGenerationSignature(files: FileMap | undefined): string {
+  const entries = normalizedFileEntries(files);
+
+  let hash = 0x811c9dc5;
+
+  for (const [path, content] of entries) {
+    const value = `${path}\0${content}\0`;
+
+    for (let index = 0; index < value.length; index += 1) {
+      hash = Math.imul(hash ^ value.charCodeAt(index), 0x01000193);
+    }
+  }
+
+  return `${entries.length}:${(hash >>> 0).toString(16).padStart(8, '0')}`;
 }
 
 /**
  * Decide whether a project's queued generation prompt (`pendingPrompt`) should be
  * cleared after a generation attempt.
  *
- * The pending prompt is the project's ONLY retry handle: a project created from a
- * prompt is seeded with just a README, and the agent is expected to generate the
- * real app on first open. The previous code cleared the prompt the instant it was
- * sent, so any failure (provider error, the runtime not yet attachable, a truncated
- * response that wrote nothing) left the project permanently stuck with just its
- * README and no way to regenerate. Keep the prompt unless the agent actually wrote
- * at least one new file, so a failed attempt retries on the next open instead.
+ * The pending prompt is the project's ONLY retry handle. New projects start with a
+ * runnable but explicitly pending Vite shell, and the agent replaces that shell on
+ * first open. The previous code cleared the prompt based only on file count, so an
+ * in-place replacement was indistinguishable from a no-op while partial/non-runnable
+ * output could be mistaken for success. Clear only after a changed, startable,
+ * non-shell workspace; provider/stream failure always keeps the prompt.
  */
 export function resolvePendingPrompt(outcome: GenerationOutcome): 'keep' | 'clear' {
   if (outcome.errored) {
     return 'keep';
+  }
+
+  if (outcome.finalFiles) {
+    if (!hasRunnableWorkspace(outcome.finalFiles) || isAiGenerationScaffold(outcome.finalFiles)) {
+      return 'keep';
+    }
+
+    if (
+      outcome.baselineSignature !== undefined &&
+      workspaceGenerationSignature(outcome.finalFiles) === outcome.baselineSignature
+    ) {
+      return 'keep';
+    }
+
+    return 'clear';
   }
 
   return outcome.finalFileCount > outcome.baselineFileCount ? 'clear' : 'keep';
@@ -41,16 +144,19 @@ export function countWorkspaceFiles(files: FileMap | undefined): number {
 }
 
 /**
- * A project is "ungenerated" when its only real files are docs/config scaffolding
- * (README, .gitignore) — i.e. the agent never produced the app. Used to surface a
- * "Generate app" CTA so the user can (re)trigger generation instead of staring at
- * an empty workspace.
+ * A project is "ungenerated" when it is the marked runnable AI shell or its only
+ * real files are legacy docs/config scaffolding (README, .gitignore). Used by the
+ * pending-prompt replay gate and the legacy "Generate app" recovery CTA.
  */
 const SCAFFOLD_FILE_PATTERN = /(^|\/)(readme(\.md)?|\.gitignore|license(\.md|\.txt)?)$/i;
 
 export function isUngeneratedProject(files: FileMap | undefined): boolean {
   if (!files) {
     return false;
+  }
+
+  if (isAiGenerationScaffold(files)) {
+    return true;
   }
 
   const realFiles = Object.entries(files).filter(([, entry]) => entry?.type === 'file');

@@ -1,16 +1,51 @@
 import { describe, expect, it } from 'vitest';
 import {
+  AI_GENERATION_SCAFFOLD_MARKER,
   countWorkspaceFiles,
   decidePendingPromptReplay,
   extractGenerationPrompt,
+  hasRunnableWorkspace,
+  isAiGenerationScaffold,
   isUngeneratedProject,
   resolvePendingPrompt,
   shouldReplayPendingPrompt,
+  workspaceGenerationSignature,
 } from './pending-generation';
 import type { FileMap } from '~/lib/stores/files';
 
 const aiReadme = (prompt: string) =>
   `# Todo App\n\nThis project was created from an AI prompt. Application files are intentionally left for the IDE agent to produce as real generated output.\n\nGeneration context:\n\nArtifact type: web\n\nPrompt:\n\n${prompt}\n`;
+
+const runnableAiScaffold = (): FileMap => ({
+  '/home/project/README.md': {
+    type: 'file',
+    content: `# Pending app\n\n<!-- ${AI_GENERATION_SCAFFOLD_MARKER} -->\n`,
+    isBinary: false,
+  },
+  '/home/project/package.json': {
+    type: 'file',
+    content: JSON.stringify({
+      scripts: { dev: 'vite' },
+      ecode: { generationScaffold: AI_GENERATION_SCAFFOLD_MARKER },
+    }),
+    isBinary: false,
+  },
+  '/home/project/index.html': {
+    type: 'file',
+    content: '<div id="root"></div><script type="module" src="/src/main.tsx"></script>',
+    isBinary: false,
+  },
+  '/home/project/src/main.tsx': {
+    type: 'file',
+    content: `/* ${AI_GENERATION_SCAFFOLD_MARKER} */\nimport App from './App';`,
+    isBinary: false,
+  },
+  '/home/project/src/App.tsx': {
+    type: 'file',
+    content: `/* ${AI_GENERATION_SCAFFOLD_MARKER} */\nexport default function App(){return <p>Generation pending</p>}`,
+    isBinary: false,
+  },
+});
 
 describe('resolvePendingPrompt', () => {
   it('KEEPS the prompt when the generation wrote no files (failed/empty attempt)', () => {
@@ -33,6 +68,178 @@ describe('resolvePendingPrompt', () => {
 
   it('KEEPS when the count somehow shrank (never treat that as success)', () => {
     expect(resolvePendingPrompt({ baselineFileCount: 3, finalFileCount: 2, errored: false })).toBe('keep');
+  });
+
+  it('KEEPS the runnable AI shell after a clean but empty provider response', () => {
+    const files = runnableAiScaffold();
+
+    expect(
+      resolvePendingPrompt({
+        baselineFileCount: 5,
+        finalFileCount: 5,
+        baselineSignature: workspaceGenerationSignature(files),
+        finalFiles: files,
+        errored: false,
+      }),
+    ).toBe('keep');
+  });
+
+  it('CLEARS after the agent replaces the visible shell in place with a runnable app', () => {
+    const before = runnableAiScaffold();
+
+    const after = {
+      ...before,
+      '/home/project/src/App.tsx': {
+        type: 'file' as const,
+        content: 'export default function App(){return <main>Real generated application</main>}',
+        isBinary: false,
+      },
+    };
+
+    expect(countWorkspaceFiles(after)).toBe(countWorkspaceFiles(before));
+    expect(
+      resolvePendingPrompt({
+        baselineFileCount: 5,
+        finalFileCount: 5,
+        baselineSignature: workspaceGenerationSignature(before),
+        finalFiles: after,
+        errored: false,
+      }),
+    ).toBe('clear');
+  });
+
+  it('KEEPS the prompt on a total provider failure even if a partial file arrived', () => {
+    const before = runnableAiScaffold();
+
+    const partial = {
+      ...before,
+      '/home/project/src/partial.ts': {
+        type: 'file' as const,
+        content: 'export const partial = true;',
+        isBinary: false,
+      },
+    };
+
+    expect(
+      resolvePendingPrompt({
+        baselineFileCount: 5,
+        finalFileCount: 6,
+        baselineSignature: workspaceGenerationSignature(before),
+        finalFiles: partial,
+        errored: true,
+      }),
+    ).toBe('keep');
+  });
+
+  it('preserves the intention through a total failure and clears only after a successful Retry', () => {
+    const before = runnableAiScaffold();
+
+    const afterFailure = {
+      ...before,
+      '/home/project/src/partial.ts': {
+        type: 'file' as const,
+        content: 'export const interrupted = true;',
+        isBinary: false,
+      },
+    };
+
+    const failedAttempt = resolvePendingPrompt({
+      baselineFileCount: countWorkspaceFiles(before),
+      finalFileCount: countWorkspaceFiles(afterFailure),
+      baselineSignature: workspaceGenerationSignature(before),
+      finalFiles: afterFailure,
+      errored: true,
+    });
+
+    expect(failedAttempt).toBe('keep');
+    expect(decidePendingPromptReplay(afterFailure, true)).toBe('replay');
+
+    const afterRetry = {
+      ...afterFailure,
+      '/home/project/src/App.tsx': {
+        type: 'file' as const,
+        content: 'export default function App(){return <main>Recovered application</main>}',
+        isBinary: false,
+      },
+    };
+
+    expect(
+      resolvePendingPrompt({
+        baselineFileCount: countWorkspaceFiles(afterFailure),
+        finalFileCount: countWorkspaceFiles(afterRetry),
+        baselineSignature: workspaceGenerationSignature(afterFailure),
+        finalFiles: afterRetry,
+        errored: false,
+      }),
+    ).toBe('clear');
+  });
+
+  it('KEEPS a changed response that still has no startable dev command', () => {
+    const files = runnableAiScaffold();
+    files['/home/project/package.json'] = {
+      type: 'file',
+      content: JSON.stringify({ scripts: { build: 'vite build' } }),
+      isBinary: false,
+    };
+
+    expect(
+      resolvePendingPrompt({
+        baselineFileCount: 5,
+        finalFileCount: 5,
+        baselineSignature: 'different',
+        finalFiles: files,
+        errored: false,
+      }),
+    ).toBe('keep');
+  });
+});
+
+describe('runnable AI generation scaffold', () => {
+  it('is runnable but remains classified as pending generation', () => {
+    const files = runnableAiScaffold();
+
+    expect(hasRunnableWorkspace(files)).toBe(true);
+    expect(isAiGenerationScaffold(files)).toBe(true);
+    expect(isUngeneratedProject(files)).toBe(true);
+    expect(shouldReplayPendingPrompt(files)).toBe(true);
+  });
+
+  it('stays pending when a truncated response only adds helper files', () => {
+    const files = runnableAiScaffold();
+    files['/home/project/src/helper.ts'] = {
+      type: 'file',
+      content: 'export const helper = true;',
+      isBinary: false,
+    };
+
+    expect(isAiGenerationScaffold(files)).toBe(true);
+    expect(shouldReplayPendingPrompt(files)).toBe(true);
+  });
+
+  it('stops matching once the runtime entry is replaced by generated output', () => {
+    const files = runnableAiScaffold();
+    files['/home/project/src/App.tsx'] = {
+      type: 'file',
+      content: 'export default function App(){return <main>Generated</main>}',
+      isBinary: false,
+    };
+
+    expect(isAiGenerationScaffold(files)).toBe(false);
+    expect(shouldReplayPendingPrompt(files)).toBe(false);
+  });
+
+  it('uses a stable content signature and detects in-place replacement', () => {
+    const before = runnableAiScaffold();
+    const same = runnableAiScaffold();
+    const after = runnableAiScaffold();
+    after['/home/project/src/App.tsx'] = {
+      type: 'file',
+      content: 'export default () => null;',
+      isBinary: false,
+    };
+
+    expect(workspaceGenerationSignature(same)).toBe(workspaceGenerationSignature(before));
+    expect(workspaceGenerationSignature(after)).not.toBe(workspaceGenerationSignature(before));
   });
 });
 
@@ -63,6 +270,10 @@ describe('isUngeneratedProject', () => {
     expect(isUngeneratedProject(files)).toBe(true);
   });
 
+  it('is true for the runnable, explicitly pending AI scaffold', () => {
+    expect(isUngeneratedProject(runnableAiScaffold())).toBe(true);
+  });
+
   it('is false once the agent has produced real app files', () => {
     const files: FileMap = {
       '/home/project/README.md': { type: 'file', content: '', isBinary: false },
@@ -85,6 +296,10 @@ describe('shouldReplayPendingPrompt', () => {
       '/home/project/.gitignore': { type: 'file', content: '', isBinary: false },
     };
     expect(shouldReplayPendingPrompt(files)).toBe(true);
+  });
+
+  it('replays the prompt for the runnable AI generation shell', () => {
+    expect(shouldReplayPendingPrompt(runnableAiScaffold())).toBe(true);
   });
 
   it('replays the prompt for an empty workspace (runtime not yet attached)', () => {

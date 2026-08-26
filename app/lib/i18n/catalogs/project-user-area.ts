@@ -206,7 +206,8 @@ export const projectUserAreaEn = {
         projectQuota:
           'Your workspace has reached its project limit. Upgrade the plan or ask an admin for a quota override before creating another project.',
         projectNameRequired: 'Project name is required',
-        aiGenerationFailed: 'AI generation failed',
+        aiGenerationFailed:
+          'Project creation could not be confirmed, so no empty fallback was created. Your prompt is still here—try again.',
         promptQueueFailed: 'Unable to queue the initial prompt',
         modelsLoadFailed: 'The available AI models could not be loaded. Please try again.',
         shellAuth: 'Sign in to create a project.',
@@ -584,7 +585,8 @@ export const projectUserAreaFr = {
         projectQuota:
           'Votre espace de travail a atteint sa limite de projets. Passez à une offre supérieure ou demandez une dérogation de quota à un administrateur avant de créer un autre projet.',
         projectNameRequired: 'Le nom du projet est obligatoire',
-        aiGenerationFailed: 'La génération par IA a échoué',
+        aiGenerationFailed:
+          'La création du projet n’a pas pu être confirmée : aucun projet vide de secours n’a été créé. Votre prompt est toujours ici ; réessayez.',
         promptQueueFailed: 'Impossible de mettre le prompt initial en file d’attente',
         modelsLoadFailed: 'Impossible de charger les modèles d’IA disponibles. Veuillez réessayer.',
         shellAuth: 'Connectez-vous pour créer un projet.',

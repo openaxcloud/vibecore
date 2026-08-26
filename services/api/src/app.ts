@@ -793,6 +793,7 @@ const createProjectFromAiSchema = z.object({
   artifactType: z.string().min(1).max(80).optional(),
   framework: z.string().min(1).max(120).optional(),
   model: z.string().min(1).max(120).optional(),
+  provider: z.string().min(1).max(120).optional(),
 });
 const githubImportSchema = z.object({
   /*
@@ -6095,7 +6096,7 @@ function bootstrapPlatformAdmin(email: string) {
   return admins.includes(email.toLowerCase());
 }
 
-function starterFiles(input: {
+export function starterFiles(input: {
   sourceType: ProjectRecord['sourceType'];
   name: string;
   templateName?: string;
@@ -6149,12 +6150,38 @@ function starterFiles(input: {
      * IDE already reads (`Chat.client.tsx` → `memory.chat?.pendingPrompt`).
      * `extractGenerationPrompt` keeps its README fallback so projects created
      * BEFORE this change stay recoverable.
+     *
+     * BUG-TPL-002. A README-only project cannot start a runtime, so Preview was
+     * blank until the first model response happened to finish. Seed a real,
+     * minimal Vite application instead. Every runtime-critical seed carries the
+     * public scaffold marker: the IDE recognises it as TRANSIENT and still sends
+     * pendingPrompt automatically. As soon as the agent replaces the entry/app,
+     * the workspace stops matching the scaffold and is treated as generated.
+     * The screen deliberately says generation is pending; it is never presented
+     * as the requested application or as a completed model result.
      */
+    /*
+     * Keep the transitional files independent from BOTH private inputs. A
+     * caller may provide an explicit project name containing a credential or
+     * customer identifier; the project record may display that user-chosen
+     * name, but export/git/deploy files must remain a public, generic shell.
+     */
+    const publicScaffoldName = appPublicCopy('PROJECT_STARTER_AI_DEFAULT_NAME', locale);
+
     return [
       {
         path: 'README.md',
-        content: `# ${input.name}\n\n${appPublicCopy('PROJECT_STARTER_AI_DESCRIPTION', locale)}\n`,
+        content: `# ${publicScaffoldName}\n\n${appPublicCopy('PROJECT_STARTER_AI_DESCRIPTION', locale)}\n\n<!-- ${AI_GENERATION_SCAFFOLD_MARKER} -->\n`,
       },
+      { path: 'package.json', content: vitePackageJson(publicScaffoldName, true) },
+      { path: 'vite.config.ts', content: viteConfigTs(true) },
+      { path: 'index.html', content: viteIndexHtml(publicScaffoldName, locale, true) },
+      { path: 'src/main.tsx', content: viteMainTsx(true) },
+      {
+        path: 'src/App.tsx',
+        content: viteAppTsx(publicScaffoldName, appPublicCopy('PROJECT_STARTER_AI_DESCRIPTION', locale), locale, true),
+      },
+      { path: 'src/styles.css', content: viteStylesCss(true) },
     ];
   }
 
@@ -6248,7 +6275,13 @@ async function commitInitialScaffold(gitProvider: GitProvider, projectId: string
   });
 }
 
-function vitePackageJson(name: string) {
+/**
+ * Public marker shared by the API seed and the IDE's pending-generation gate.
+ * It contains no prompt/model/provider data and is safe in export/git/deploy.
+ */
+export const AI_GENERATION_SCAFFOLD_MARKER = '@vibecore-ai-generation-scaffold:v1';
+
+function vitePackageJson(name: string, generationScaffold = false) {
   return `${JSON.stringify(
     {
       name:
@@ -6274,14 +6307,21 @@ function vitePackageJson(name: string) {
         'react-router-dom': '^6.28.2',
       },
       devDependencies: {},
+      ...(generationScaffold
+        ? {
+            ecode: {
+              generationScaffold: AI_GENERATION_SCAFFOLD_MARKER,
+            },
+          }
+        : {}),
     },
     null,
     2,
   )}\n`;
 }
 
-function viteConfigTs() {
-  return `import { defineConfig } from 'vite';
+function viteConfigTs(generationScaffold = false) {
+  return `${generationScaffold ? `/* ${AI_GENERATION_SCAFFOLD_MARKER} */\n` : ''}import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 // Behind the E-Code preview proxy the dev server is reached over TLS, so Vite's
@@ -6314,9 +6354,9 @@ export default defineConfig({
 `;
 }
 
-function viteIndexHtml(name: string, locale: TransactionalLocale) {
+function viteIndexHtml(name: string, locale: TransactionalLocale, generationScaffold = false) {
   return `<!doctype html>
-<html lang="${locale}">
+${generationScaffold ? `<!-- ${AI_GENERATION_SCAFFOLD_MARKER} -->\n` : ''}<html lang="${locale}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -6330,8 +6370,8 @@ function viteIndexHtml(name: string, locale: TransactionalLocale) {
 `;
 }
 
-function viteMainTsx() {
-  return `import React from 'react';
+function viteMainTsx(generationScaffold = false) {
+  return `${generationScaffold ? `/* ${AI_GENERATION_SCAFFOLD_MARKER} */\n` : ''}import React from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App';
 import './styles.css';
@@ -6344,10 +6384,10 @@ createRoot(document.getElementById('root')!).render(
 `;
 }
 
-function viteAppTsx(name: string, prompt: string, locale: TransactionalLocale) {
+function viteAppTsx(name: string, prompt: string, locale: TransactionalLocale, generationScaffold = false) {
   const eyebrow = appPublicCopy('PROJECT_STARTER_EYEBROW', locale);
 
-  return `export default function App() {
+  return `${generationScaffold ? `/* ${AI_GENERATION_SCAFFOLD_MARKER} */\n` : ''}export default function App() {
   return (
     <main className="app-shell">
       <section className="hero">
@@ -6375,8 +6415,8 @@ function projectProductName(name: string, prompt: string) {
   return cleaned || 'E-Code';
 }
 
-function viteStylesCss() {
-  return `:root {
+function viteStylesCss(generationScaffold = false) {
+  return `${generationScaffold ? `/* ${AI_GENERATION_SCAFFOLD_MARKER} */\n` : ''}:root {
   color: #f5f9fc;
   background: #0a0f1c;
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -20188,7 +20228,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
 
-    const name = body.name ?? body.prompt.slice(0, 60);
+    const locale = transactionalLocaleForRequest(request);
+
+    /*
+     * Project names are delivered into README/index/git/deploy metadata. Never
+     * derive one from the private prompt: its prefix can itself be a secret.
+     */
+    const name = body.name ?? appPublicCopy('PROJECT_STARTER_AI_DEFAULT_NAME', locale);
 
     // Serialize quota + create (projects.count TOCTOU).
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
@@ -20210,7 +20256,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         artifactType: body.artifactType,
         framework: body.framework,
         model: body.model,
-        locale: transactionalLocaleForRequest(request),
+        locale,
       }),
     );
     await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
@@ -20230,6 +20276,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             id: randomUUID(),
             prompt: body.prompt,
             ...(body.model ? { model: body.model } : {}),
+            ...(body.provider ? { provider: body.provider } : {}),
             ...(body.framework ? { framework: body.framework } : {}),
             ...(body.artifactType ? { artifactType: body.artifactType } : {}),
             createdAt: new Date().toISOString(),

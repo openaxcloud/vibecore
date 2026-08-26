@@ -268,17 +268,6 @@ const heroAttachShortcuts: ReadonlyArray<{
   },
 ];
 
-function projectNameFromPrompt(prompt: string, fallbackName: string) {
-  const normalized = prompt
-    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
-    .trim()
-    .split(/\s+/)
-    .slice(0, 5)
-    .join(' ');
-
-  return normalized || fallbackName;
-}
-
 function localizedPromptIssue(
   code: PromptValidationErrorCode | PromptValidationWarningCode,
   copy: ProjectCreationCopy,
@@ -588,7 +577,13 @@ export async function action({ request, context }: EnterpriseActionArgs) {
       : '';
 
   const generationPrompt = prompt ? `${languagePrefix}${projectPromptForArtifact(prompt, artifactCategory)}` : '';
-  const name = body.name?.trim() || (prompt ? projectNameFromPrompt(prompt, copy.defaultProjectName) : '');
+
+  /*
+   * Do not derive the platform/deployment project name from the private prompt:
+   * even a five-word prefix can contain an API token or customer identifier. An
+   * explicit name is user intent; otherwise use the localized neutral name.
+   */
+  const name = body.name?.trim() || (prompt ? copy.defaultProjectName : '');
 
   if (!name) {
     return { error: copy.errors.projectNameRequired };
@@ -597,15 +592,6 @@ export async function action({ request, context }: EnterpriseActionArgs) {
   let result: ProjectCreationResult;
   let aiGenerationFailed = false;
   let aiGenerationError: string | undefined;
-
-  /*
-   * True only when AI generation failed AND we could not recover the
-   * server-committed project, so we created an EMPTY project as a fallback. This
-   * (not aiGenerationFailed alone) is what the IDE surfaces as a visible warning
-   * toast — a recovered project still has its generated content and shouldn't be
-   * labelled "created empty".
-   */
-  let createdEmptyAiFallback = false;
 
   if (prompt) {
     const attemptStartedAt = Date.now();
@@ -632,7 +618,7 @@ export async function action({ request, context }: EnterpriseActionArgs) {
       result = created.result;
     } catch (error) {
       aiGenerationFailed = true;
-      console.error('AI project generation failed:', error);
+      console.error('AI project creation failed:', error);
       aiGenerationError = copy.errors.aiGenerationFailed;
 
       /*
@@ -650,20 +636,15 @@ export async function action({ request, context }: EnterpriseActionArgs) {
       if (recovered) {
         result = { project: recovered };
       } else {
-        // Fall back to creating an empty project so the user keeps their prompt and can retry inside the IDE.
-        const created = await createProjectOrReturnQuotaError(
-          request,
-          `/orgs/${organization.id}/projects`,
-          { name },
-          copy,
-        );
-
-        if (!created.ok) {
-          return projectCreateActionError(created);
-        }
-
-        result = created.result;
-        createdEmptyAiFallback = true;
+        /*
+         * Fail closed. The former fallback created a normal blank Vite project,
+         * queued the AI prompt, then the IDE correctly saw "real app files" and
+         * cleared that prompt without generating anything. The user landed on a
+         * generic app that looked complete and the org was charged for an orphan.
+         * Keep the prompt in the submitted form and return an actionable inline
+         * error instead; an ambiguous lost response is still recovered above.
+         */
+        return { error: copy.errors.aiGenerationFailed };
       }
     }
   } else {
@@ -701,20 +682,6 @@ export async function action({ request, context }: EnterpriseActionArgs) {
 
   if (promptQueueError) {
     ideParams.set('promptQueueError', promptQueueError.slice(0, 240));
-  }
-
-  /*
-   * Surface AI-generation failure to the user: without these params the empty
-   * fallback project loads silently and the user never learns generation failed
-   * (they just see an empty IDE). Chat.client.tsx reads aiFallback/aiFallbackReason
-   * and shows a warning toast on IDE mount.
-   */
-  if (createdEmptyAiFallback) {
-    ideParams.set('aiFallback', 'true');
-
-    if (aiGenerationError) {
-      ideParams.set('aiFallbackReason', aiGenerationError.slice(0, 240));
-    }
   }
 
   const ideUrl = projectIdePath(
