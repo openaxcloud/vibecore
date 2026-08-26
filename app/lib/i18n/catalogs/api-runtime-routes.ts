@@ -142,6 +142,8 @@ export const apiRuntimeRoutesEn = {
   'apiRuntime.panel.packageOutdated': '{manager} outdated check',
   'apiRuntime.panel.packageAdd': '{manager} add package',
   'apiRuntime.panel.packageInstall': '{manager} install',
+  'apiRuntime.panel.packageRunFailed':
+    'The package action failed (exit {exitCode}). Review the recorded output, correct the issue, and try again.',
   'apiRuntime.panel.securityDependencyAudit': 'Security dependency audit',
   'apiRuntime.panel.securitySecretScan': 'Security secret scan',
   'apiRuntime.panel.securityStaticScan': 'Security static code scan',
@@ -316,6 +318,8 @@ export const apiRuntimeRoutesFr: ApiRuntimeRoutesCopy = {
   'apiRuntime.panel.packageOutdated': 'Vérification des paquets obsolètes avec {manager}',
   'apiRuntime.panel.packageAdd': 'Ajout de paquet avec {manager}',
   'apiRuntime.panel.packageInstall': 'Installation avec {manager}',
+  'apiRuntime.panel.packageRunFailed':
+    'L’action sur les paquets a échoué (code {exitCode}). Consultez la sortie enregistrée, corrigez le problème, puis réessayez.',
   'apiRuntime.panel.securityDependencyAudit': 'Audit de sécurité des dépendances',
   'apiRuntime.panel.securitySecretScan': 'Analyse de sécurité des secrets',
   'apiRuntime.panel.securityStaticScan': 'Analyse statique de sécurité du code',

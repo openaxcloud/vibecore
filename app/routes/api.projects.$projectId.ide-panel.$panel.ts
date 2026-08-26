@@ -2273,6 +2273,33 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       method: 'PUT',
       body: JSON.stringify({ key: PACKAGES_STATE_ENV_KEY, value: JSON.stringify(normalizePackagesState(state)) }),
     });
+
+    /*
+     * A package command is an operation, not a fire-and-forget request. Keep the
+     * failed run in the durable panel history above, but never acknowledge it as
+     * `{ ok: true }`: the shared panel action client renders this structured
+     * non-2xx response in its inline alert and leaves the submitted values in
+     * place for correction. Do not echo `run.output` here; it can contain package
+     * registry details or command diagnostics and is already available through
+     * the authenticated panel loader.
+     */
+    if (run.status === 'failed' || run.exitCode !== 0) {
+      return json(
+        {
+          ok: false,
+          code: 'PACKAGE_RUN_FAILED',
+          error: formatApiRuntimeRoutesCopy(copy['apiRuntime.panel.packageRunFailed'], {
+            exitCode: run.exitCode,
+          }),
+          run: {
+            id: run.id,
+            status: 'failed',
+            exitCode: run.exitCode,
+          },
+        },
+        { status: 422 },
+      );
+    }
   } else if (panel === 'extensions') {
     /*
      * Extensions are MCP marketplace servers. Each action maps to a real
