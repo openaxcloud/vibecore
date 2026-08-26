@@ -163,18 +163,21 @@ describe('database point-in-time rollback routes (Phase-1 scaffold)', () => {
     expect(snap.statusCode).toBe(404);
   });
 
-  it('provisions a (dormant) instance row, then takes a manual snapshot', async () => {
+  it('fails closed without a real provisioner and leaves no PROVISIONING row', async () => {
     process.env.DB_ROLLBACK_ENABLED = 'true';
 
     const { app, store, project } = await setup();
 
     const prov = await app.inject({ method: 'POST', url: `/projects/${project.id}/database/provision`, headers: auth });
-    expect(prov.statusCode).toBe(202);
-    expect(prov.json().created).toBe(true);
+    expect(prov.statusCode).toBe(503);
+    expect(prov.json()).toMatchObject({
+      code: 'DATABASE_PROVISION_UNAVAILABLE',
+      reason: 'DATABASE_PROVISIONER_UNAVAILABLE',
+    });
 
-    // No provisioner port/bucket configured → no real Postgres, just the row.
+    // A feature flag without its backend is not a provisioning request.
     const instance = await store.getDatabaseInstanceByProject(project.id);
-    expect(instance?.status).toBe('PROVISIONING');
+    expect(instance).toBeUndefined();
 
     const snap = await app.inject({
       method: 'POST',
@@ -182,9 +185,8 @@ describe('database point-in-time rollback routes (Phase-1 scaffold)', () => {
       headers: auth,
       payload: { label: 'before migration' },
     });
-    expect(snap.statusCode).toBe(202);
-    expect(snap.json().snapshot.kind).toBe('manual');
-    expect(await store.listDatabaseSnapshots(instance!.id)).toHaveLength(1);
+    expect(snap.statusCode).toBe(409);
+    expect(snap.json().code).toBe('NO_DATABASE');
   });
 });
 

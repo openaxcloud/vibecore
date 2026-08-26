@@ -72,6 +72,12 @@ export const databaseStudioEn = {
   'databaseWorkbench.creating': 'Creating database…',
   'databaseWorkbench.create': 'Create database',
   'databaseWorkbench.provisionFailed': 'Could not create the database. Try again.',
+  'databaseWorkbench.provisionUnavailable':
+    'Managed databases are not configured for this environment. Contact your workspace administrator.',
+  'databaseWorkbench.provisionTimedOut': 'Database creation did not finish in time. Retry the request.',
+  'databaseWorkbench.retryProvision': 'Retry database creation',
+  'databaseWorkbench.development': 'Development database',
+  'databaseWorkbench.production': 'Production database',
   'databaseWorkbench.status.connected': 'Connected',
   'databaseWorkbench.status.provisioning': 'Provisioning',
   'databaseWorkbench.status.unavailable': 'Unavailable',
@@ -166,6 +172,13 @@ export const databaseStudioFr: DatabaseStudioCopy = {
   'databaseWorkbench.creating': 'Création de la base de données…',
   'databaseWorkbench.create': 'Créer une base de données',
   'databaseWorkbench.provisionFailed': 'Impossible de créer la base de données. Réessayez.',
+  'databaseWorkbench.provisionUnavailable':
+    'Les bases de données managées ne sont pas configurées pour cet environnement. Contactez l’administrateur de votre espace.',
+  'databaseWorkbench.provisionTimedOut':
+    'La création de la base de données n’a pas abouti dans le délai prévu. Relancez la demande.',
+  'databaseWorkbench.retryProvision': 'Relancer la création de la base',
+  'databaseWorkbench.development': 'Base de données de développement',
+  'databaseWorkbench.production': 'Base de données de production',
   'databaseWorkbench.status.connected': 'Connectée',
   'databaseWorkbench.status.provisioning': 'Création en cours',
   'databaseWorkbench.status.unavailable': 'Indisponible',

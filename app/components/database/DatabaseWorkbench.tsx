@@ -23,7 +23,16 @@ import { classNames } from '~/utils/classNames';
 
 type Tab = 'overview' | 'mydata' | 'settings';
 
-type DbEnv = { name: string; key: string; usedBytes?: number; quotaBytes?: number; status?: string };
+type DbEnv = {
+  name: string;
+  key: string;
+  environment?: string;
+  managed?: boolean;
+  usedBytes?: number;
+  quotaBytes?: number;
+  status?: string;
+  lastErrorCode?: string;
+};
 
 function asArray(v: unknown): unknown[] {
   return Array.isArray(v) ? v : [];
@@ -37,34 +46,51 @@ function container(data: unknown): Record<string, unknown> {
 
 function readEnvironments(data: unknown): DbEnv[] {
   const c = container(data);
-  const raw = asArray(c.environments ?? c.databases ?? c.connections);
-  const envs: DbEnv[] = [];
 
-  for (const d of raw) {
-    const o = (d && typeof d === 'object' ? d : {}) as Record<string, unknown>;
-    const key = String(o.key ?? o.connectionKey ?? o.id ?? o.name ?? '');
+  let envs: DbEnv[] = [];
 
-    if (!key) {
-      continue;
+  for (const raw of [asArray(c.environments), asArray(c.databases), asArray(c.connections)]) {
+    const parsed: DbEnv[] = [];
+
+    for (const d of raw) {
+      const o = (d && typeof d === 'object' ? d : {}) as Record<string, unknown>;
+      const key = String(o.key ?? o.connectionKey ?? o.id ?? o.name ?? '');
+
+      if (!key) {
+        continue;
+      }
+
+      const env: DbEnv = {
+        key,
+        name: String(o.name ?? o.label ?? o.displayName ?? key),
+        ...(typeof o.environment === 'string' ? { environment: o.environment } : {}),
+        ...(typeof o.managed === 'boolean' ? { managed: o.managed } : {}),
+        ...(typeof o.lastErrorCode === 'string' ? { lastErrorCode: o.lastErrorCode } : {}),
+      };
+
+      if (typeof o.usedBytes === 'number') {
+        env.usedBytes = o.usedBytes;
+      } else if (typeof o.sizeBytes === 'number') {
+        env.usedBytes = o.sizeBytes;
+      }
+
+      if (typeof o.quotaBytes === 'number') {
+        env.quotaBytes = o.quotaBytes;
+      }
+
+      if (o.status) {
+        env.status = String(o.status);
+      } else if (c.connections === raw) {
+        env.status = 'ACTIVE';
+      }
+
+      parsed.push(env);
     }
 
-    const env: DbEnv = { key, name: String(o.name ?? o.label ?? o.displayName ?? key) };
-
-    if (typeof o.usedBytes === 'number') {
-      env.usedBytes = o.usedBytes;
-    } else if (typeof o.sizeBytes === 'number') {
-      env.usedBytes = o.sizeBytes;
+    if (parsed.length > 0) {
+      envs = parsed;
+      break;
     }
-
-    if (typeof o.quotaBytes === 'number') {
-      env.quotaBytes = o.quotaBytes;
-    }
-
-    if (o.status) {
-      env.status = String(o.status);
-    }
-
-    envs.push(env);
   }
 
   /*
@@ -109,6 +135,45 @@ function localizedStatus(copy: DatabaseStudioCopy, status?: string): string {
   }
 }
 
+function databaseEnvironmentName(copy: DatabaseStudioCopy, env: DbEnv): string {
+  if (env.environment === 'development' && env.managed) {
+    return copy['databaseWorkbench.development'];
+  }
+
+  if (env.environment === 'production' && env.managed) {
+    return copy['databaseWorkbench.production'];
+  }
+
+  return env.name;
+}
+
+function provisioningFailureCopy(copy: DatabaseStudioCopy, code?: string): string {
+  if (code === 'DATABASE_PROVISION_TIMED_OUT') {
+    return copy['databaseWorkbench.provisionTimedOut'];
+  }
+
+  if (code === 'DATABASE_PROVISIONER_UNAVAILABLE' || code === 'SHARED_TENANT_UNAVAILABLE') {
+    return copy['databaseWorkbench.provisionUnavailable'];
+  }
+
+  return copy['databaseWorkbench.provisionFailed'];
+}
+
+function canOpenDatabase(env: DbEnv): boolean {
+  return ['active', 'connected', 'ready'].includes(env.status?.trim().toLowerCase() ?? '');
+}
+
+function panelResponseFailed(data: unknown): boolean {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+
+  const root = data as Record<string, unknown>;
+  const inner = container(data);
+
+  return root.ok === false || root.status === 'error' || Boolean(root.error) || Boolean(inner.error);
+}
+
 function UsageCard({
   env,
   onOpen,
@@ -122,16 +187,18 @@ function UsageCard({
 }) {
   const used = formatDatabaseSettingsBytes(env.usedBytes, language);
   const quota = formatDatabaseSettingsBytes(env.quotaBytes, language);
+  const canOpen = canOpenDatabase(env);
 
   return (
     <button
       type="button"
       onClick={onOpen}
+      disabled={!canOpen}
       className="flex min-h-11 min-w-0 items-center justify-between gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-left hover:border-bolt-elements-item-contentAccent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)]"
     >
       <div className="min-w-0">
         <div className="break-words text-[14px] font-medium text-bolt-elements-textPrimary [overflow-wrap:anywhere]">
-          {env.name}
+          {databaseEnvironmentName(copy, env)}
         </div>
         <div className="mt-1 break-words text-[12px] text-bolt-elements-textSecondary [overflow-wrap:anywhere]">
           {used ? `${used}${quota ? ` / ${quota}` : ''}` : localizedStatus(copy, env.status)}
@@ -148,7 +215,15 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
   const copy = getDatabaseStudioCopy(language);
   const base = `/api/projects/${encodeURIComponent(projectId)}/ide-panel/database`;
   const fetcher = useFetcher();
-  const provisionFetcher = useFetcher<{ ok?: boolean; instance?: unknown; error?: string }>();
+
+  const provisionFetcher = useFetcher<{
+    ok?: boolean;
+    instance?: unknown;
+    error?: string;
+    code?: string;
+    reason?: string;
+  }>();
+
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('overview');
 
@@ -200,7 +275,11 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
   const provisioning = provisionFetcher.state !== 'idle';
 
   const environments = useMemo(() => readEnvironments(fetcher.data), [fetcher.data]);
-  const active = environments.find((e) => e.key === openKey) ?? null;
+  const failedEnvironment = environments.find((environment) => environment.status?.toUpperCase() === 'FAILED');
+
+  const active =
+    environments.find((environment) => environment.key === openKey && canOpenDatabase(environment)) ?? null;
+
   const loading = fetcher.state !== 'idle';
 
   /*
@@ -225,8 +304,7 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
    */
   const loadFailed =
     fetcher.state === 'idle' &&
-    ((Boolean(fetcher.data) && typeof container(fetcher.data).error === 'string' && environments.length === 0) ||
-      (loadAttempted && fetcher.data === undefined));
+    ((panelResponseFailed(fetcher.data) && environments.length === 0) || (loadAttempted && fetcher.data === undefined));
 
   // Root view — Dev/Prod usage cards.
   if (!active) {
@@ -289,6 +367,29 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
               {copy['databaseWorkbench.retry']}
             </button>
           </div>
+        ) : failedEnvironment ? (
+          <div
+            className="flex min-w-0 flex-col items-start gap-3 rounded-lg border border-red-500/40 bg-red-500/5 p-4"
+            role="alert"
+            aria-live="polite"
+          >
+            <p className="break-words text-[13px] text-red-500 [overflow-wrap:anywhere]">
+              {provisioningFailureCopy(copy, failedEnvironment.lastErrorCode)}
+            </p>
+            <button
+              type="button"
+              disabled={provisioning}
+              onClick={() =>
+                provisionFetcher.submit(
+                  { intent: 'provision', environment: failedEnvironment.environment ?? 'development' },
+                  { method: 'post', action: base },
+                )
+              }
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-md bg-bolt-elements-button-primary-background px-3 py-2 text-center text-[13px] font-medium text-bolt-elements-button-primary-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ecode-accent)] disabled:opacity-60 sm:w-auto"
+            >
+              {provisioning ? copy['databaseWorkbench.creating'] : copy['databaseWorkbench.retryProvision']}
+            </button>
+          </div>
         ) : environments.length === 0 && !loading ? (
           <div className="flex min-w-0 flex-col items-start gap-3 rounded-lg border border-dashed border-bolt-elements-borderColor p-4">
             <div className="min-w-0">
@@ -309,7 +410,7 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
             </button>
             {provisionFetcher.data?.error ? (
               <p className="break-words text-[12px] text-red-500 [overflow-wrap:anywhere]" role="alert">
-                {copy['databaseWorkbench.provisionFailed']}
+                {provisioningFailureCopy(copy, provisionFetcher.data.reason ?? provisionFetcher.data.code)}
               </p>
             ) : null}
           </div>
@@ -341,7 +442,7 @@ export function DatabaseWorkbench({ projectId }: { projectId: string }) {
           onChange={(e) => setOpenKey(e.target.value)}
           className="min-h-11 min-w-0 max-w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-2 text-[13px] font-medium text-bolt-elements-textPrimary"
         >
-          {environments.map((env) => (
+          {environments.filter(canOpenDatabase).map((env) => (
             <option key={env.key} value={env.key}>
               {env.name}
             </option>

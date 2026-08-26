@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DatabaseWorkbench } from './DatabaseWorkbench';
 
@@ -77,5 +77,68 @@ describe('DatabaseWorkbench i18n', () => {
     expect(screen.getByRole('heading', { name: 'All databases' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Create database' })).toBeTruthy();
     expect(screen.getByRole('alert').textContent).toContain('Could not create the database. Try again.');
+  });
+
+  it('falls back to real connections when a legacy static environments list is present', () => {
+    fetchers = [
+      makeFetcher({
+        environments: ['development', 'preview', 'production'],
+        connections: [{ key: 'DATABASE_URL', name: 'DATABASE_URL', environment: 'development', status: 'ACTIVE' }],
+      }),
+      makeFetcher(),
+    ];
+
+    render(<DatabaseWorkbench projectId="project-1" />);
+
+    expect(screen.getByRole('button', { name: /DATABASE_URL/ })).toBeTruthy();
+    expect(screen.queryByText('Aucune base de données pour le moment')).toBeNull();
+  });
+
+  it('renders a recoverable load error for an IDE-panel error envelope', () => {
+    fetchers = [
+      makeFetcher({
+        status: 'error',
+        data: null,
+        error: { code: 'PANEL_BACKEND_UNAVAILABLE', message: 'indisponible', retryable: true },
+      }),
+      makeFetcher(),
+    ];
+
+    render(<DatabaseWorkbench projectId="project-1" />);
+
+    expect(screen.getByRole('alert').textContent).toContain('Impossible de charger les bases de données');
+    expect(screen.getByRole('button', { name: 'Réessayer' })).toBeTruthy();
+    expect(screen.queryByText('Aucune base de données pour le moment')).toBeNull();
+  });
+
+  it('shows a durable timeout with an accessible retry that keeps the environment scope', () => {
+    const provision = makeFetcher();
+    fetchers = [
+      makeFetcher({
+        environments: [
+          {
+            key: 'DATABASE_URL',
+            name: 'development',
+            environment: 'development',
+            managed: true,
+            status: 'FAILED',
+            lastErrorCode: 'DATABASE_PROVISION_TIMED_OUT',
+          },
+        ],
+      }),
+      provision,
+    ];
+
+    render(<DatabaseWorkbench projectId="project-1" />);
+
+    expect(screen.getByRole('alert').textContent).toContain('n’a pas abouti dans le délai prévu');
+
+    const retry = screen.getByRole('button', { name: 'Relancer la création de la base' });
+
+    fireEvent.click(retry);
+    expect(provision.submit).toHaveBeenCalledWith(
+      { intent: 'provision', environment: 'development' },
+      { method: 'post', action: '/api/projects/project-1/ide-panel/database' },
+    );
   });
 });

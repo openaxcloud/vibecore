@@ -2171,6 +2171,7 @@ enum DatabaseInstanceStatus {
   PROVISIONING
   ACTIVE
   SUSPENDED
+  FAILED
   DELETED
 }
 
@@ -2193,6 +2194,12 @@ model DatabaseInstance {
   sizeBytes      BigInt                 @default(0)
   retentionDays  Int                    @default(7)
   pitrEnabled    Boolean                @default(false)
+  // Durable provisioning lifecycle. A request is never allowed to remain
+  // PROVISIONING past this deadline; FAILED keeps a stable, non-secret reason
+  // and can be atomically claimed for a retry.
+  provisioningDeadlineAt DateTime?
+  lastErrorCode           String?
+  lastErrorAt             DateTime?
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
   project        Project                @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -2202,6 +2209,7 @@ model DatabaseInstance {
   @@unique([projectId, environment])
   @@index([organizationId])
   @@index([status])
+  @@index([status, provisioningDeadlineAt])
 }
 
 /// A recovery point for a DatabaseInstance — either a scheduled automatic

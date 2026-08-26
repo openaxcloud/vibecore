@@ -1849,6 +1849,7 @@ export class TestApiStore implements ApiStore {
     retentionDays: number;
     region?: string;
     environment?: string;
+    provisioningDeadlineAt?: string;
   }) {
     const instance: DatabaseInstanceRecord = {
       id: id('database_instance'),
@@ -1861,6 +1862,7 @@ export class TestApiStore implements ApiStore {
       sizeBytes: 0,
       retentionDays: input.retentionDays,
       pitrEnabled: input.retentionDays > 0,
+      provisioningDeadlineAt: input.provisioningDeadlineAt,
       createdAt: now(),
       updatedAt: now(),
     };
@@ -1869,9 +1871,111 @@ export class TestApiStore implements ApiStore {
     return instance;
   }
 
+  async acquireDatabaseProvisioning(input: {
+    projectId: string;
+    organizationId: string;
+    retentionDays: number;
+    region?: string;
+    environment?: string;
+    provisioningDeadlineAt: string;
+  }) {
+    const environment = input.environment === 'production' ? 'production' : 'development';
+    // Deliberately inspect and mutate the in-memory record without an await in
+    // between. This mirrors the single-row conditional UPDATE used by the
+    // Prisma store, so concurrency tests cannot grant two retry claims merely
+    // because this test double yielded at the wrong point.
+    const existing = Array.from(this.databaseInstances.values()).find(
+      (row) => row.projectId === input.projectId && row.environment === environment,
+    );
+
+    if (!existing) {
+      const instance = await this.createDatabaseInstance({ ...input, environment });
+
+      return { instance, acquired: true, created: true };
+    }
+
+    if (existing.status !== 'FAILED') {
+      return { instance: existing, acquired: false, created: false };
+    }
+
+    const instance: DatabaseInstanceRecord = {
+      ...existing,
+      status: 'PROVISIONING',
+      provisioningDeadlineAt: input.provisioningDeadlineAt,
+      lastErrorCode: undefined,
+      lastErrorAt: undefined,
+      updatedAt: now(),
+    };
+    this.databaseInstances.set(instance.id, instance);
+
+    return { instance, acquired: true, created: false };
+  }
+
+  async completeDatabaseProvisioning(
+    instanceId: string,
+    connection: { projectId: string; key: string; valueEncrypted: string },
+  ) {
+    const instance = this.databaseInstances.get(instanceId);
+
+    if (!instance || instance.projectId !== connection.projectId || instance.status !== 'PROVISIONING') {
+      return undefined;
+    }
+
+    const updated: DatabaseInstanceRecord = {
+      ...instance,
+      status: 'ACTIVE',
+      provisioningDeadlineAt: undefined,
+      lastErrorCode: undefined,
+      lastErrorAt: undefined,
+      updatedAt: now(),
+    };
+    await this.upsertProjectSecret(connection);
+    this.databaseInstances.set(instanceId, updated);
+
+    return updated;
+  }
+
+  async failDatabaseProvisioning(
+    instanceId: string,
+    input: { errorCode: string; failedAt: string; deadlineBefore?: string },
+  ) {
+    const instance = this.databaseInstances.get(instanceId);
+
+    if (
+      !instance ||
+      instance.status !== 'PROVISIONING' ||
+      (input.deadlineBefore &&
+        (!instance.provisioningDeadlineAt || instance.provisioningDeadlineAt > input.deadlineBefore))
+    ) {
+      return undefined;
+    }
+
+    const updated: DatabaseInstanceRecord = {
+      ...instance,
+      status: 'FAILED',
+      lastErrorCode: input.errorCode,
+      lastErrorAt: input.failedAt,
+      updatedAt: now(),
+    };
+    this.databaseInstances.set(instanceId, updated);
+
+    return updated;
+  }
+
   async updateDatabaseInstance(
     instanceId: string,
-    patch: Partial<Pick<DatabaseInstanceRecord, 'status' | 'sizeBytes' | 'pitrEnabled' | 'region'>>,
+    patch: Partial<
+      Pick<
+        DatabaseInstanceRecord,
+        | 'status'
+        | 'sizeBytes'
+        | 'pitrEnabled'
+        | 'region'
+        | 'provisioningDeadlineAt'
+        | 'lastErrorCode'
+        | 'lastErrorAt'
+      >
+    >,
   ) {
     const instance = this.databaseInstances.get(instanceId);
 
@@ -1938,6 +2042,13 @@ export class TestApiStore implements ApiStore {
 
   async listActiveDatabaseInstances(take = 500) {
     return [...this.databaseInstances.values()].filter((i) => i.status === 'ACTIVE').slice(0, take);
+  }
+
+  async listProvisioningDatabaseInstances(take = 500) {
+    return [...this.databaseInstances.values()]
+      .filter((i) => i.status === 'PROVISIONING')
+      .sort((a, b) => (a.provisioningDeadlineAt ?? '').localeCompare(b.provisioningDeadlineAt ?? ''))
+      .slice(0, take);
   }
 
   async listPendingDatabaseRestores(take = 100) {

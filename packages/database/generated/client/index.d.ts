@@ -883,6 +883,7 @@ export const DatabaseInstanceStatus: {
   PROVISIONING: 'PROVISIONING',
   ACTIVE: 'ACTIVE',
   SUSPENDED: 'SUSPENDED',
+  FAILED: 'FAILED',
   DELETED: 'DELETED'
 };
 
@@ -133390,6 +133391,9 @@ export namespace Prisma {
     sizeBytes: bigint | null
     retentionDays: number | null
     pitrEnabled: boolean | null
+    provisioningDeadlineAt: Date | null
+    lastErrorCode: string | null
+    lastErrorAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -133405,6 +133409,9 @@ export namespace Prisma {
     sizeBytes: bigint | null
     retentionDays: number | null
     pitrEnabled: boolean | null
+    provisioningDeadlineAt: Date | null
+    lastErrorCode: string | null
+    lastErrorAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -133420,6 +133427,9 @@ export namespace Prisma {
     sizeBytes: number
     retentionDays: number
     pitrEnabled: number
+    provisioningDeadlineAt: number
+    lastErrorCode: number
+    lastErrorAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -133447,6 +133457,9 @@ export namespace Prisma {
     sizeBytes?: true
     retentionDays?: true
     pitrEnabled?: true
+    provisioningDeadlineAt?: true
+    lastErrorCode?: true
+    lastErrorAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -133462,6 +133475,9 @@ export namespace Prisma {
     sizeBytes?: true
     retentionDays?: true
     pitrEnabled?: true
+    provisioningDeadlineAt?: true
+    lastErrorCode?: true
+    lastErrorAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -133477,6 +133493,9 @@ export namespace Prisma {
     sizeBytes?: true
     retentionDays?: true
     pitrEnabled?: true
+    provisioningDeadlineAt?: true
+    lastErrorCode?: true
+    lastErrorAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -133579,6 +133598,9 @@ export namespace Prisma {
     sizeBytes: bigint
     retentionDays: number
     pitrEnabled: boolean
+    provisioningDeadlineAt: Date | null
+    lastErrorCode: string | null
+    lastErrorAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: DatabaseInstanceCountAggregateOutputType | null
@@ -133613,6 +133635,9 @@ export namespace Prisma {
     sizeBytes?: boolean
     retentionDays?: boolean
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: boolean
+    lastErrorCode?: boolean
+    lastErrorAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -133632,6 +133657,9 @@ export namespace Prisma {
     sizeBytes?: boolean
     retentionDays?: boolean
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: boolean
+    lastErrorCode?: boolean
+    lastErrorAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -133648,6 +133676,9 @@ export namespace Prisma {
     sizeBytes?: boolean
     retentionDays?: boolean
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: boolean
+    lastErrorCode?: boolean
+    lastErrorAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     project?: boolean | ProjectDefaultArgs<ExtArgs>
@@ -133664,11 +133695,14 @@ export namespace Prisma {
     sizeBytes?: boolean
     retentionDays?: boolean
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: boolean
+    lastErrorCode?: boolean
+    lastErrorAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type DatabaseInstanceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "environment" | "status" | "engine" | "region" | "sizeBytes" | "retentionDays" | "pitrEnabled" | "createdAt" | "updatedAt", ExtArgs["result"]["databaseInstance"]>
+  export type DatabaseInstanceOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "organizationId" | "environment" | "status" | "engine" | "region" | "sizeBytes" | "retentionDays" | "pitrEnabled" | "provisioningDeadlineAt" | "lastErrorCode" | "lastErrorAt" | "createdAt" | "updatedAt", ExtArgs["result"]["databaseInstance"]>
   export type DatabaseInstanceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     project?: boolean | ProjectDefaultArgs<ExtArgs>
     snapshots?: boolean | DatabaseInstance$snapshotsArgs<ExtArgs>
@@ -133700,6 +133734,9 @@ export namespace Prisma {
       sizeBytes: bigint
       retentionDays: number
       pitrEnabled: boolean
+      provisioningDeadlineAt: Date | null
+      lastErrorCode: string | null
+      lastErrorAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["databaseInstance"]>
@@ -134138,6 +134175,9 @@ export namespace Prisma {
     readonly sizeBytes: FieldRef<"DatabaseInstance", 'BigInt'>
     readonly retentionDays: FieldRef<"DatabaseInstance", 'Int'>
     readonly pitrEnabled: FieldRef<"DatabaseInstance", 'Boolean'>
+    readonly provisioningDeadlineAt: FieldRef<"DatabaseInstance", 'DateTime'>
+    readonly lastErrorCode: FieldRef<"DatabaseInstance", 'String'>
+    readonly lastErrorAt: FieldRef<"DatabaseInstance", 'DateTime'>
     readonly createdAt: FieldRef<"DatabaseInstance", 'DateTime'>
     readonly updatedAt: FieldRef<"DatabaseInstance", 'DateTime'>
   }
@@ -157585,6 +157625,9 @@ export namespace Prisma {
     sizeBytes: 'sizeBytes',
     retentionDays: 'retentionDays',
     pitrEnabled: 'pitrEnabled',
+    provisioningDeadlineAt: 'provisioningDeadlineAt',
+    lastErrorCode: 'lastErrorCode',
+    lastErrorAt: 'lastErrorAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -166634,6 +166677,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFilter<"DatabaseInstance"> | bigint | number
     retentionDays?: IntFilter<"DatabaseInstance"> | number
     pitrEnabled?: BoolFilter<"DatabaseInstance"> | boolean
+    provisioningDeadlineAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
+    lastErrorCode?: StringNullableFilter<"DatabaseInstance"> | string | null
+    lastErrorAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
     createdAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
     updatedAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
@@ -166652,6 +166698,9 @@ export namespace Prisma {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
     pitrEnabled?: SortOrder
+    provisioningDeadlineAt?: SortOrderInput | SortOrder
+    lastErrorCode?: SortOrderInput | SortOrder
+    lastErrorAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     project?: ProjectOrderByWithRelationInput
@@ -166674,6 +166723,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFilter<"DatabaseInstance"> | bigint | number
     retentionDays?: IntFilter<"DatabaseInstance"> | number
     pitrEnabled?: BoolFilter<"DatabaseInstance"> | boolean
+    provisioningDeadlineAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
+    lastErrorCode?: StringNullableFilter<"DatabaseInstance"> | string | null
+    lastErrorAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
     createdAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
     updatedAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
     project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
@@ -166692,6 +166744,9 @@ export namespace Prisma {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
     pitrEnabled?: SortOrder
+    provisioningDeadlineAt?: SortOrderInput | SortOrder
+    lastErrorCode?: SortOrderInput | SortOrder
+    lastErrorAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: DatabaseInstanceCountOrderByAggregateInput
@@ -166715,6 +166770,9 @@ export namespace Prisma {
     sizeBytes?: BigIntWithAggregatesFilter<"DatabaseInstance"> | bigint | number
     retentionDays?: IntWithAggregatesFilter<"DatabaseInstance"> | number
     pitrEnabled?: BoolWithAggregatesFilter<"DatabaseInstance"> | boolean
+    provisioningDeadlineAt?: DateTimeNullableWithAggregatesFilter<"DatabaseInstance"> | Date | string | null
+    lastErrorCode?: StringNullableWithAggregatesFilter<"DatabaseInstance"> | string | null
+    lastErrorAt?: DateTimeNullableWithAggregatesFilter<"DatabaseInstance"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"DatabaseInstance"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"DatabaseInstance"> | Date | string
   }
@@ -177432,6 +177490,9 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
@@ -177450,6 +177511,9 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
@@ -177466,6 +177530,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
@@ -177484,6 +177551,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
@@ -177501,6 +177571,9 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -177515,6 +177588,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -177530,6 +177606,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -185097,6 +185176,9 @@ export namespace Prisma {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
     pitrEnabled?: SortOrder
+    provisioningDeadlineAt?: SortOrder
+    lastErrorCode?: SortOrder
+    lastErrorAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -185117,6 +185199,9 @@ export namespace Prisma {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
     pitrEnabled?: SortOrder
+    provisioningDeadlineAt?: SortOrder
+    lastErrorCode?: SortOrder
+    lastErrorAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -185132,6 +185217,9 @@ export namespace Prisma {
     sizeBytes?: SortOrder
     retentionDays?: SortOrder
     pitrEnabled?: SortOrder
+    provisioningDeadlineAt?: SortOrder
+    lastErrorCode?: SortOrder
+    lastErrorAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -200503,6 +200591,9 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotCreateNestedManyWithoutDatabaseInstanceInput
@@ -200519,6 +200610,9 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
@@ -201254,6 +201348,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFilter<"DatabaseInstance"> | bigint | number
     retentionDays?: IntFilter<"DatabaseInstance"> | number
     pitrEnabled?: BoolFilter<"DatabaseInstance"> | boolean
+    provisioningDeadlineAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
+    lastErrorCode?: StringNullableFilter<"DatabaseInstance"> | string | null
+    lastErrorAt?: DateTimeNullableFilter<"DatabaseInstance"> | Date | string | null
     createdAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
     updatedAt?: DateTimeFilter<"DatabaseInstance"> | Date | string
   }
@@ -220801,6 +220898,9 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
@@ -220818,6 +220918,9 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     restores?: DatabaseRestoreUncheckedCreateNestedManyWithoutDatabaseInstanceInput
@@ -220849,6 +220952,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
@@ -220866,6 +220972,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     restores?: DatabaseRestoreUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
@@ -220881,6 +220990,9 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     project: ProjectCreateNestedOneWithoutDatabaseInstancesInput
@@ -220898,6 +221010,9 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     snapshots?: DatabaseSnapshotUncheckedCreateNestedManyWithoutDatabaseInstanceInput
@@ -220929,6 +221044,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     project?: ProjectUpdateOneRequiredWithoutDatabaseInstancesNestedInput
@@ -220946,6 +221064,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
@@ -225631,6 +225752,9 @@ export namespace Prisma {
     sizeBytes?: bigint | number
     retentionDays?: number
     pitrEnabled?: boolean
+    provisioningDeadlineAt?: Date | string | null
+    lastErrorCode?: string | null
+    lastErrorAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -226451,6 +226575,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUpdateManyWithoutDatabaseInstanceNestedInput
@@ -226467,6 +226594,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     snapshots?: DatabaseSnapshotUncheckedUpdateManyWithoutDatabaseInstanceNestedInput
@@ -226483,6 +226613,9 @@ export namespace Prisma {
     sizeBytes?: BigIntFieldUpdateOperationsInput | bigint | number
     retentionDays?: IntFieldUpdateOperationsInput | number
     pitrEnabled?: BoolFieldUpdateOperationsInput | boolean
+    provisioningDeadlineAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    lastErrorCode?: NullableStringFieldUpdateOperationsInput | string | null
+    lastErrorAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

@@ -116,7 +116,8 @@ describe('tiered routing (v3)', () => {
 describe('provisioner dispatch + DATABASE_URL resolution', () => {
   it('isolated tier: applies a dedicated Cluster and reads the -app uri once present', async () => {
     const k8s = new FakeK8s();
-    const p = new CnpgProvisioner(k8s, 'bkt');
+    const sql = new FakeTenantSqlExecutor();
+    const p = new CnpgProvisioner(k8s, 'bkt', undefined, sql);
 
     const res = await p.provisionInstance({ projectId: 'p1', retentionDays: 28, tier: 'isolated' });
     expect(res.clusterName).toBe(clusterName('p1'));
@@ -125,7 +126,24 @@ describe('provisioner dispatch + DATABASE_URL resolution', () => {
     expect(await p.getConnectionUri({ projectId: 'p1', tier: 'isolated' })).toBeUndefined();
 
     k8s.secrets.set(`${clusterName('p1')}-app`, { uri: 'postgres://u:pw@db-p1-rw:5432/app' });
+    // A Secret can exist before a CNPG cluster is actually ready: still pending.
+    expect(await p.getConnectionUri({ projectId: 'p1', tier: 'isolated' })).toBeUndefined();
+
+    k8s.clusters.set(`Cluster/${clusterName('p1')}`, {
+      status: { phase: 'Cluster in healthy state', readyInstances: 1 },
+    });
     expect(await p.getConnectionUri({ projectId: 'p1', tier: 'isolated' })).toBe('postgres://u:pw@db-p1-rw:5432/app');
+    expect(sql.verificationCalls).toEqual([{ uri: 'postgres://u:pw@db-p1-rw:5432/app' }]);
+  });
+
+  it('propagates an authenticated readiness-probe failure for actionable reconciliation logs', async () => {
+    const k8s = new FakeK8s();
+    k8s.get = async () => {
+      throw new Error('manager RBAC denied');
+    };
+    const p = new CnpgProvisioner(k8s, 'bkt', undefined, new FakeTenantSqlExecutor());
+
+    await expect(p.getConnectionUri({ projectId: 'p1', tier: 'isolated' })).rejects.toThrow('manager RBAC denied');
   });
 
   it('shared tier: applies a Pooler + Database CRD (no dedicated Cluster)', async () => {
@@ -184,9 +202,16 @@ describe('provisioner dispatch + DATABASE_URL resolution', () => {
 
 class FakeTenantSqlExecutor implements TenantSqlExecutor {
   calls: Array<{ adminUri: string; role: string; db: string; password: string }> = [];
+  verificationCalls: Array<{ uri: string; expectedRole?: string; expectedDatabase?: string }> = [];
 
   async provisionTenant(input: { adminUri: string; role: string; db: string; password: string }) {
     this.calls.push(input);
+  }
+
+  async verifyConnection(input: { uri: string; expectedRole?: string; expectedDatabase?: string }) {
+    this.verificationCalls.push(input);
+
+    return true;
   }
 }
 
@@ -229,6 +254,46 @@ describe('PgTenantSqlExecutor SQL sequence', () => {
     expect(statements.some((s) => /GRANT "t_p1" TO CURRENT_USER/.test(s))).toBe(false);
     // isolation grants are always reconciled
     expect(statements.some((s) => /REVOKE CONNECT ON DATABASE "proj_p1" FROM PUBLIC/.test(s))).toBe(true);
+  });
+
+  it('declares readiness only after SQL succeeds as the expected tenant and database', async () => {
+    let ended = false;
+    const exec = new PgTenantSqlExecutor(() => ({
+      async connect() {},
+      async end() {
+        ended = true;
+      },
+      async query() {
+        return { rowCount: 1, rows: [{ user: 't_p1', database: 'proj_p1' }] };
+      },
+    }));
+
+    await expect(
+      exec.verifyConnection({
+        uri: 'postgresql://t_p1:secret@pooler/proj_p1',
+        expectedRole: 't_p1',
+        expectedDatabase: 'proj_p1',
+      }),
+    ).resolves.toBe(true);
+    expect(ended).toBe(true);
+  });
+
+  it('refuses a reachable URI that resolves to another tenant', async () => {
+    const exec = new PgTenantSqlExecutor(() => ({
+      async connect() {},
+      async end() {},
+      async query() {
+        return { rowCount: 1, rows: [{ user: 'other_role', database: 'other_db' }] };
+      },
+    }));
+
+    await expect(
+      exec.verifyConnection({
+        uri: 'postgresql://t_p1:secret@pooler/proj_p1',
+        expectedRole: 't_p1',
+        expectedDatabase: 'proj_p1',
+      }),
+    ).resolves.toBe(false);
   });
 });
 
@@ -278,7 +343,7 @@ describe('shared-tier tenant provisioning (admin-SQL slice)', () => {
   });
 
   it('getConnectionUri(shared) returns the pooled tenant DATABASE_URL', async () => {
-    const { prov } = sharedSetup();
+    const { prov, sql } = sharedSetup();
 
     const uri = await prov.getConnectionUri({ projectId: 'abc123', tier: 'shared', sharedClusterName: 'shared-pg-0' });
     expect(uri).toBe(
@@ -288,6 +353,10 @@ describe('shared-tier tenant provisioning (admin-SQL slice)', () => {
         sharedClusterName: 'shared-pg-0',
       }),
     );
+    expect(sql.verificationCalls[0]).toMatchObject({
+      expectedRole: tenantRoleName('abc123'),
+      expectedDatabase: sharedDbName('abc123'),
+    });
   });
 
   it('degrades to inert (no SQL, undefined URI) when the tenant secret is unset', async () => {
@@ -499,12 +568,19 @@ describe('P2d isolated tier (paid) — dedicated per-project dev + prod clusters
 
   it('getConnectionUri(isolated, production) reads the -prod cluster app secret', async () => {
     const k8s = new FakeK8s();
+    const sql = new FakeTenantSqlExecutor();
     k8s.secrets.set('db-abc123-prod-app', { uri: 'postgresql://app:pw@db-abc123-prod-rw:5432/app' });
-    const prov = new CnpgProvisioner(k8s, 'bkt');
+    k8s.clusters.set('Cluster/db-abc123-prod', {
+      status: { phase: 'Cluster in healthy state', readyInstances: 1 },
+    });
+    const prov = new CnpgProvisioner(k8s, 'bkt', undefined, sql);
 
     expect(await prov.getConnectionUri({ projectId: 'abc123', tier: 'isolated', environment: 'production' })).toBe(
       'postgresql://app:pw@db-abc123-prod-rw:5432/app',
     );
+    expect(sql.verificationCalls).toEqual([
+      { uri: 'postgresql://app:pw@db-abc123-prod-rw:5432/app' },
+    ]);
     // development reads the un-suffixed secret (and is undefined here)
     expect(await prov.getConnectionUri({ projectId: 'abc123', tier: 'isolated', environment: 'development' })).toBeUndefined();
   });

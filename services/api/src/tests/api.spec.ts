@@ -5082,6 +5082,14 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       source: 'secret',
       environment: 'production',
     });
+    expect(databases.json().environments).toEqual([
+      expect.objectContaining({
+        key: 'PRODUCTION_DATABASE_URL',
+        environment: 'production',
+        managed: false,
+        status: 'ACTIVE',
+      }),
+    ]);
     expect(JSON.stringify(databases.json())).not.toContain('super-secret');
 
     /*
