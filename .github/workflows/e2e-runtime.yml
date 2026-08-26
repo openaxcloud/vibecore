@@ -122,6 +122,12 @@ jobs:
           PLAYWRIGHT_BASE_URL=http://127.0.0.1:5173 SAAS_API_URL=http://127.0.0.1:3001 pnpm run ide:panel-audit
           pnpm run ide:panel-audit:validate
 
+      - name: Collect local stack diagnostics
+        if: always()
+        run: |
+          docker compose --env-file .env -f docker-compose.dev.yml ps > /tmp/vibecore-e2e-runtime-dependencies.log 2>&1 || true
+          docker compose --env-file .env -f docker-compose.dev.yml logs --no-color postgres redis mailpit >> /tmp/vibecore-e2e-runtime-dependencies.log 2>&1 || true
+
       - name: Upload E2E traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -132,4 +138,5 @@ jobs:
             test-results
             /tmp/vibecore-api.log
             /tmp/vibecore-web.log
+            /tmp/vibecore-e2e-runtime-dependencies.log
           if-no-files-found: ignore

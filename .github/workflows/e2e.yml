@@ -140,6 +140,15 @@ jobs:
       - name: Playwright mobile viewport tests
         run: pnpm exec playwright test tests/e2e/responsive-ide.spec.ts --project=chromium --grep-invert @runtime
 
+      # Preserve the state that matters when setup fails before Playwright can
+      # create `test-results`. Console-only `docker compose logs` made the
+      # original BUG-CI-008 startup failures hard to compare across attempts.
+      - name: Collect local stack diagnostics
+        if: always()
+        run: |
+          docker compose --env-file .env -f docker-compose.dev.yml ps > /tmp/vibecore-e2e-dependencies.log 2>&1 || true
+          docker compose --env-file .env -f docker-compose.dev.yml logs --no-color postgres redis mailpit >> /tmp/vibecore-e2e-dependencies.log 2>&1 || true
+
       - name: Upload E2E traces
         if: always()
         uses: actions/upload-artifact@v4
@@ -152,4 +161,5 @@ jobs:
             tmp/ide-panel-audit.json
             /tmp/vibecore-api.log
             /tmp/vibecore-web.log
+            /tmp/vibecore-e2e-dependencies.log
           if-no-files-found: ignore
