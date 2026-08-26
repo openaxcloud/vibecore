@@ -9,6 +9,28 @@ spec:
     - Ingress
     - Egress
 ---
+# DNS by ClusterIP for datapaths that enforce NetworkPolicy before Service
+# DNAT. The namespaceSelector DNS rule below remains useful post-DNAT; this
+# companion rule is deliberately limited to the exact Service IP and port 53.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-clusterip
+  namespace: {{ .Values.namespace }}
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
+  egress:
+    - to:
+        - ipBlock:
+            cidr: {{ .Values.network.dnsServiceCidr | default "10.52.0.10/32" | quote }}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

@@ -395,6 +395,9 @@ networkPolicy:
   ingressControllerNamespaceSelector:
     kubernetes.io/metadata.name: ingress-nginx
     app.kubernetes.io/name: ingress-nginx
+  # Exact kube-dns ClusterIP in the app-services range. Kept explicit in prod
+  # because NetworkPolicy can be evaluated before ClusterIP DNAT.
+  dnsServiceCidr: 10.30.0.10/32
   # PINNED to the EXACT ranges the live cluster uses (Cloud SQL 10.237.1.2 ∈
   # 10.237.1.0/24:5432, Memorystore Redis 10.237.0.4 ∈ 10.237.0.0/24:6379).
   # Previously prod relied on the chart's inline staging defaults; a fresh/DR

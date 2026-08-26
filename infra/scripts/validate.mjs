@@ -43,6 +43,27 @@ function assertIncludes(content, needle, description) {
   }
 }
 
+function renderedResource(content, name) {
+  const resource = content.split(/^---\s*$/m).find((document) => document.includes(`name: ${name}\n`));
+
+  if (!resource) {
+    throw new Error(`Missing rendered resource: ${name}`);
+  }
+
+  return resource;
+}
+
+function assertDnsClusterIpPolicy(content, name, cidr, description) {
+  const policy = renderedResource(content, name);
+  assertIncludes(policy, cidr, `${description} CIDR`);
+  assertIncludes(policy, 'protocol: UDP\n          port: 53', `${description} UDP/53`);
+  assertIncludes(policy, 'protocol: TCP\n          port: 53', `${description} TCP/53`);
+
+  if (/port:\s*(?!53\b)\d+/.test(policy)) {
+    throw new Error(`${description} opens a non-DNS port`);
+  }
+}
+
 for (const path of [
   '../apps',
   '../services',
@@ -89,6 +110,8 @@ const defaultPlatform = helmTemplate();
  * deleted, colliding files (which made `pnpm infra:validate` permanently red).
  */
 assertIncludes(defaultPlatform, 'name: deny-all-default', 'platform default-deny policy');
+assertIncludes(defaultPlatform, 'name: allow-dns-clusterip', 'platform DNS ClusterIP policy');
+assertDnsClusterIpPolicy(defaultPlatform, 'allow-dns-clusterip', '10.30.0.10/32', 'platform DNS policy');
 assertIncludes(defaultPlatform, 'name: allow-platform-required-egress', 'platform required-egress policy');
 assertIncludes(defaultPlatform, '169.254.169.254/32', 'platform metadata-server egress block');
 assertIncludes(defaultPlatform, 'app.kubernetes.io/name: "ingress-nginx"', 'default ingress controller app label');
@@ -100,9 +123,17 @@ assertIncludes(
 
 const defaultWorkspaces = workspaceHelmTemplate();
 assertIncludes(defaultWorkspaces, 'name: workspace-default-deny', 'workspace default-deny policy');
+assertIncludes(defaultWorkspaces, 'name: allow-dns-clusterip', 'workspace DNS ClusterIP policy');
+assertDnsClusterIpPolicy(defaultWorkspaces, 'allow-dns-clusterip', '10.52.0.10/32', 'workspace DNS policy');
 assertIncludes(defaultWorkspaces, 'name: workspace-controlled-egress', 'workspace controlled-egress policy');
 assertIncludes(defaultWorkspaces, 'name: workspace-manager-preview-ingress', 'workspace platform-ingress policy');
 assertIncludes(defaultWorkspaces, '169.254.169.254/32', 'workspace metadata-server egress block');
+
+const overriddenDnsPlatform = helmTemplate(['--set', 'networkPolicy.dnsServiceCidr=10.99.0.53/32']);
+assertIncludes(overriddenDnsPlatform, '10.99.0.53/32', 'overridden platform DNS ClusterIP allow-list');
+
+const overriddenDnsWorkspaces = workspaceHelmTemplate(['--set', 'network.dnsServiceCidr=10.98.0.53/32']);
+assertIncludes(overriddenDnsWorkspaces, '10.98.0.53/32', 'overridden workspace DNS ClusterIP allow-list');
 
 const overriddenPlatform = helmTemplate([
   '--set-json',

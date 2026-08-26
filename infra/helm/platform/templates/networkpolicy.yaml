@@ -8,6 +8,29 @@ spec:
   podSelector: {}
   policyTypes: ["Ingress", "Egress"]
 ---
+# DNS by ClusterIP. On policy engines that evaluate a Service destination
+# before kube-proxy/DNAT, the kube-system namespace selector below cannot match:
+# the packet still targets the Service IP. Keep this narrow to the exact DNS
+# ClusterIP and ports 53/UDP+TCP; it does not open arbitrary DNS egress.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-dns-clusterip
+  labels:
+    app.kubernetes.io/part-of: vibecore
+spec:
+  podSelector: {}
+  policyTypes: ["Egress"]
+  egress:
+    - to:
+        - ipBlock:
+            cidr: {{ .Values.networkPolicy.dnsServiceCidr | default "10.30.0.10/32" | quote }}
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:

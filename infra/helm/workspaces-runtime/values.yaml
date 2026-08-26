@@ -55,6 +55,9 @@ limitRange:
 
 network:
   packageRegistryCidr: 0.0.0.0/0
+  # kube-dns ClusterIP in the workspace-services (10.52.0.0/20) secondary
+  # range. Required on datapaths that enforce egress before Service DNAT.
+  dnsServiceCidr: 10.52.0.10/32
   blockedCidrs:
     - 169.254.169.254/32
     - 10.0.0.0/8

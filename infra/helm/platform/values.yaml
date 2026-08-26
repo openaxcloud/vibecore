@@ -320,6 +320,10 @@ networkPolicy:
   ingressControllerNamespaceSelector:
     kubernetes.io/metadata.name: ingress-nginx
     app.kubernetes.io/name: ingress-nginx
+  # GKE app-services secondary range starts at 10.30.0.0/20; kube-dns owns the
+  # conventional .10 ClusterIP. Some NetworkPolicy datapaths evaluate egress
+  # before Service DNAT, so namespace/pod selectors alone do not match DNS.
+  dnsServiceCidr: 10.30.0.10/32
   # Egress allow-list for the private-VPC Cloud SQL (Postgres) and Memorystore
   # (Redis) endpoints. deny-all-default blocks these otherwise. Override the
   # CIDRs to match your VPC's private-service-access ranges.
