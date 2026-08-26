@@ -1,6 +1,17 @@
 {
   "extends": "./tsconfig.package.node.json",
-  "include": ["playwright.config.ts", "playwright.config.preview.ts", "scripts/**/*.ts"],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": { "~/*": ["app/*"] }
+  },
+  "include": [
+    "playwright.config.ts",
+    "playwright.config.preview.ts",
+    "playwright.tpl-proof.config.ts",
+    "scripts/**/*.ts",
+    "app/lib/qa/tpl-proof-contract.spec.ts",
+    "tests/e2e/tpl-proof-live.spec.ts"
+  ],
   "exclude": [
     "**/.claude",
     "**/.claude/**",

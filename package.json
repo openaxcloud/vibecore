@@ -65,6 +65,7 @@
     "test": "vitest --run",
     "test:agent-memory:pgvector": "node scripts/run-agent-memory-pgvector-test.mjs",
     "test:e2e": "playwright test",
+    "test:e2e:tpl-proof": "playwright test --config=playwright.tpl-proof.config.ts",
     "test:e2e:i18n": "I18N_FULL_LIVE_AUDIT=1 I18N_CAPTURE_ALL=1 playwright test --config=playwright.i18n.config.ts tests/e2e/i18n-french-live.spec.ts",
     "i18n:validate": "node scripts/i18n/validate-catalogs.mjs",
     "i18n:scan:source": "node scripts/i18n/scan-source.mjs --check",
