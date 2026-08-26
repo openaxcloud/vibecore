@@ -49,16 +49,32 @@ resource "google_container_cluster" "app" {
 }
 
 resource "google_container_node_pool" "system" {
+  # The prefix lets Terraform create the replacement pool BEFORE draining and
+  # removing the old one whenever an immutable node setting changes. A fixed
+  # name cannot coexist with its replacement, which made a disk-size correction
+  # inherently disruptive. Nothing schedules against the generated GKE pool
+  # name; workloads use the stable `vibecore.ai/node-pool=app-system` label.
+  #
   # Renamed system -> system-std when the boot disks were moved off pd-ssd. The
   # regional SSD_TOTAL_GB quota counts pd-ssd AND pd-balanced; the platform
   # services here are stateless (data lives on the RWX Filestore PVC), so their
   # node boot disks do not need SSD. Using small pd-standard disks keeps the SSD
   # quota free for the gVisor workspace pool's pd-balanced disks (otherwise the
   # workspace autoscaler is blocked at the quota and workspaces go Pending).
-  name       = "system-std"
-  location   = var.region
-  cluster    = google_container_cluster.app.name
-  node_count = 1 # per zone (regional) => 3 nodes total
+  name_prefix = "system-std-"
+  location    = var.region
+  cluster     = google_container_cluster.app.name
+  node_count  = 1 # per zone (regional) => 3 nodes total
+
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  upgrade_settings {
+    strategy        = "SURGE"
+    max_surge       = 1
+    max_unavailable = 0
+  }
 
   autoscaling {
     min_node_count = 1
@@ -66,9 +82,13 @@ resource "google_container_node_pool" "system" {
   }
 
   node_config {
-    machine_type    = "e2-standard-4"
-    disk_type       = "pd-standard"
-    disk_size_gb    = 50
+    machine_type = "e2-standard-4"
+    disk_type    = "pd-standard"
+    # 50 GiB oscillated into DiskPressure during a seven-image rollout and
+    # evicted 28 workspace-manager pods. 200 GiB matches the measured platform
+    # footprint with enough headroom for the old and new image generations
+    # while kubelet garbage collection catches up.
+    disk_size_gb    = 200
     service_account = var.service_account_email
     oauth_scopes    = ["https://www.googleapis.com/auth/cloud-platform"]
     labels          = merge(var.labels, { "vibecore.ai/node-pool" = "app-system" })

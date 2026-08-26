@@ -36,7 +36,7 @@ config:
   resourceFiltersIncludeNamespaces:
     - vibecore
 
-# HA across the three system-std nodes. Signature verification sits on the pod
+# HA across the three app-system nodes. Signature verification sits on the pod
 # creation path for the platform namespace, so a single replica would make
 # Kyverno a availability single point of failure for deploys.
 admissionController:

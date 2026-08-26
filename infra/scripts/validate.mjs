@@ -72,6 +72,7 @@ for (const path of [
   'helm/platform/Chart.yaml',
   'terraform/envs/staging/main.tf',
   'terraform/envs/prod/main.tf',
+  'terraform/modules/gke-app/main.tf',
   'terraform/modules/gke-workspaces/main.tf',
   'terraform/modules/cloud-sql/main.tf',
   'terraform/modules/redis/main.tf',
@@ -93,6 +94,22 @@ requiredContent(
   'gVisor runtime class',
 );
 requiredContent('kubernetes/examples/workspace-pod.yaml', /runtimeClassName:\s*gvisor/, 'gVisor runtime class');
+requiredContent(
+  'terraform/modules/gke-app/main.tf',
+  /name_prefix\s*=\s*"system-std-"/,
+  'replaceable GKE system node-pool name prefix',
+);
+requiredContent(
+  'terraform/modules/gke-app/main.tf',
+  /create_before_destroy\s*=\s*true/,
+  'zero-capacity-gap GKE system node-pool replacement',
+);
+requiredContent(
+  'terraform/modules/gke-app/main.tf',
+  /max_unavailable\s*=\s*0/,
+  'zero-unavailable GKE system node-pool upgrades',
+);
+requiredContent('terraform/modules/gke-app/main.tf', /disk_size_gb\s*=\s*200/, '200 GiB GKE system boot disk');
 requiredContent('terraform/modules/gke-workspaces/main.tf', /sandbox_config/, 'GKE sandbox config');
 requiredContent('terraform/modules/cloud-sql/main.tf', /ipv4_enabled\s*=\s*false/, 'Cloud SQL private IP only');
 requiredContent('terraform/modules/redis/main.tf', /STANDARD_HA/, 'Redis STANDARD_HA');
