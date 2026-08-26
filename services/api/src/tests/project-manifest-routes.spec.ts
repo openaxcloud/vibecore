@@ -127,6 +127,7 @@ async function setup(options: { asyncDeploy?: boolean } = {}) {
     store,
     buildCalls,
     queuedJobs,
+    user,
     organization,
     project,
     auth: { authorization: 'Bearer manifest-owner-token' },
@@ -150,14 +151,150 @@ function nextManifest(current: ProjectManifest, suffix = 'api'): ProjectManifest
 }
 
 describe('ProjectManifest API and deployment binding', () => {
+  it('detaches tenant references and permanently revokes access grants when a project changes organization', async () => {
+    const { app, store, user, organization, project, auth } = await setup();
+    const target = await store.createOrganization({
+      name: 'Manifest transfer target',
+      slug: 'manifest-transfer-target',
+      ownerUserId: user.id,
+    });
+    const initial = await app.inject({ method: 'GET', url: `/projects/${project.id}/manifest`, headers: auth });
+    const manifest: ProjectManifest = {
+      ...nextManifest(initial.json().manifest as ProjectManifest, 'transfer'),
+      sharedBackendBinding: { bindingId: 'backend', componentIds: ['transfer'] },
+      sharedDataBindings: [
+        { bindingId: 'database', resourceRef: 'database:source', access: 'READ_WRITE', componentIds: ['transfer'] },
+      ],
+      sharedStorageBindings: [
+        { bindingId: 'storage', resourceRef: 'bucket:source', access: 'READ_ONLY', componentIds: ['transfer'] },
+      ],
+      entitlementsRef: 'entitlements:source',
+    };
+    expect(
+      (
+        await app.inject({
+          method: 'PUT',
+          url: `/projects/${project.id}/manifest`,
+          headers: auth,
+          payload: { expectedDigest: initial.json().digest, manifest },
+        })
+      ).statusCode,
+    ).toBe(200);
+
+    const activeGrant = await store.createResourceAccessGrant({
+      organizationId: organization.id,
+      subjectType: 'USER',
+      subjectUserId: user.id,
+      resourceType: 'PROJECT',
+      resourceId: project.id,
+      roleKey: 'viewer',
+      status: 'ACTIVE',
+      expiresAt: new Date(Date.now() + 60_000),
+      acceptedAt: new Date(),
+      consentVersion: 'project-access-consent-v1',
+      grantedByUserId: user.id,
+      idempotencyKey: 'manifest-transfer-active',
+      requestHash: 'manifest-transfer-active',
+    });
+    const pendingUser = await store.createUser({
+      email: 'manifest-transfer-pending@example.test',
+      passwordHash: hashPassword('correct horse battery staple'),
+    });
+    await store.addMember({ organizationId: organization.id, userId: pendingUser.id, roleKey: 'member' });
+    const pendingGrant = await store.createResourceAccessGrant({
+      organizationId: organization.id,
+      subjectType: 'USER',
+      subjectUserId: pendingUser.id,
+      resourceType: 'PROJECT',
+      resourceId: project.id,
+      roleKey: 'viewer',
+      status: 'PENDING_CONSENT',
+      expiresAt: new Date(Date.now() + 60_000),
+      grantedByUserId: user.id,
+      idempotencyKey: 'manifest-transfer-pending',
+      requestHash: 'manifest-transfer-pending',
+    });
+    expect(activeGrant.ok && pendingGrant.ok).toBe(true);
+
+    const moved = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/transfer`,
+      headers: auth,
+      payload: { targetOrganizationId: target.id },
+    });
+    expect(moved.statusCode).toBe(200);
+    const movedManifest = verifyStoredProjectManifestRevision(
+      (await store.getLatestProjectManifest(project.id))!,
+      project.id,
+    );
+    expect(movedManifest).not.toHaveProperty('sharedBackendBinding');
+    expect(movedManifest).not.toHaveProperty('sharedDataBindings');
+    expect(movedManifest).not.toHaveProperty('sharedStorageBindings');
+    expect(movedManifest).not.toHaveProperty('entitlementsRef');
+    expect([...store.resourceAccessGrants.values()].map((grant) => grant.status)).toEqual(['REVOKED', 'REVOKED']);
+
+    const movedBack = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/transfer`,
+      headers: auth,
+      payload: { targetOrganizationId: organization.id },
+    });
+    expect(movedBack.statusCode).toBe(200);
+    expect([...store.resourceAccessGrants.values()].map((grant) => grant.status)).toEqual(['REVOKED', 'REVOKED']);
+  });
+
+  it('refuses an ordinary tenant transfer before any mutation when a managed resource remains attached', async () => {
+    const { app, store, user, organization, project, auth } = await setup();
+    const target = await store.createOrganization({
+      name: 'Managed transfer target',
+      slug: 'managed-transfer-target',
+      ownerUserId: user.id,
+    });
+    await store.createDatabaseInstance({
+      projectId: project.id,
+      organizationId: organization.id,
+      retentionDays: 7,
+    });
+    const before = await store.getLatestProjectManifest(project.id);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/transfer`,
+      headers: auth,
+      payload: { targetOrganizationId: target.id },
+    });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().code).toBe('PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE');
+    expect((await store.getProject(project.id))?.organizationId).toBe(organization.id);
+    expect(await store.getLatestProjectManifest(project.id)).toEqual(before);
+  });
+
   it('recreates a detached target manifest when a remix resumes after the target row committed', async () => {
     const { store, project, organization } = await setup();
+    const pinnedRevision = (await store.getLatestProjectManifest(project.id))!;
+    const pinnedManifest = verifyStoredProjectManifestRevision(pinnedRevision, project.id);
+    const snapshot = await store.createSnapshot({
+      projectId: project.id,
+      kind: 'manual',
+      manifest: { files: [] },
+    });
+    const changedAfterPin = nextManifest(pinnedManifest, 'changed-after-pin');
+    await store.createProjectManifestRevision({
+      projectId: project.id,
+      schemaVersion: changedAfterPin.schemaVersion,
+      manifestVersion: changedAfterPin.manifestVersion,
+      digest: projectManifestDigest(changedAfterPin),
+      expectedDigest: pinnedRevision.digest,
+      manifest: changedAfterPin,
+    });
     const created = await store.createRemixJob({
       sourceProjectId: project.id,
       organizationId: organization.id,
       storagePolicy: 'DETACH',
       idempotencyKey: 'manifest-crash-window',
       requestHash: 'a'.repeat(64),
+      sourceSnapshotId: snapshot.id,
     });
     const claimed = await store.claimRemixJob({
       id: created.job.id,
@@ -186,10 +323,14 @@ describe('ProjectManifest API and deployment binding', () => {
     const revision = await store.getLatestProjectManifest(target.id);
 
     expect(replay.id).toBe(target.id);
-    expect(verifyStoredProjectManifestRevision(revision!, target.id)).toMatchObject({
+    const replayedManifest = verifyStoredProjectManifestRevision(revision!, target.id);
+    expect(replayedManifest).toMatchObject({
       projectId: target.id,
       manifestVersion: 1,
+      artifacts: pinnedManifest.artifacts,
+      scopes: pinnedManifest.scopes,
     });
+    expect(replayedManifest.artifacts).not.toEqual(changedAfterPin.artifacts);
   });
 
   it('materializes one deterministic v1 revision for concurrent reads of a legacy project', async () => {

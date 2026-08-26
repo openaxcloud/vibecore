@@ -7,6 +7,11 @@ import { buildApiApp } from '../app.js';
 import type { DatabaseProvisioner } from '../database-provisioner.js';
 import { sha256, type MigrationTargetInspection, type SqlApplier } from '../db-migration-execution.js';
 import type { EmailProvider } from '../email.js';
+import {
+  projectManifestDigest,
+  verifyStoredProjectManifestRevision,
+  type ProjectManifest,
+} from '../project-manifest.js';
 import type { ProjectFile, ProjectStorage } from '../project-storage.js';
 import { TestApiStore } from './test-api-store.js';
 
@@ -163,7 +168,8 @@ async function setup(
     organizationId: org.id,
     environment: 'preview',
     status: 'READY',
-    provider: 'server',
+    /* This suite isolates schema migration semantics from OCI promotion. */
+    provider: 'vercel',
   } as any);
 
   return { app, store, projectStorage, project, deployment, migrationApplier };
@@ -255,6 +261,89 @@ describe('schema migration before publish route', () => {
     expect((await publish(run.app, run.project.id, run.deployment.id)).statusCode).toBe(201);
     expect(run.migrationApplier.calls).toBe(1);
     expect(run.store.migrationExecutions.size).toBe(1);
+  });
+
+  it('applies the immutable migration plan pinned to the deployment, never later workspace SQL', async () => {
+    const run = await setup();
+    const pinnedFiles = await run.projectStorage.listFiles(run.project.id);
+    const pinnedMigrations = ['001_init.sql', '002_add.sql'].map((name) => {
+      const sql = pinnedFiles.find((file) => file.path === `migrations/${name}`)?.content;
+      if (!sql) throw new Error(`missing pinned migration fixture: ${name}`);
+      return { name, sql, sha256: sha256(sql) };
+    });
+    await run.store.updateDeployment(run.project.id, run.deployment.id, {
+      metadata: {
+        publishMigrationPlan: {
+          migrations: pinnedMigrations,
+          backwardCompatible: true,
+          forwardCompatible: false,
+        },
+      },
+    });
+
+    const laterSql = 'CREATE TABLE later_workspace_change (id bigint PRIMARY KEY);';
+    await run.projectStorage.writeFiles(run.project.id, [
+      { path: 'migrations/003_later.sql', content: laterSql },
+      {
+        path: 'migrations/ecode.publish.json',
+        content: JSON.stringify({
+          schemaVersion: 1,
+          mode: 'expand',
+          backwardCompatible: true,
+          forwardCompatible: false,
+          migrations: [{ name: '003_later.sql', sha256: sha256(laterSql) }],
+        }),
+      },
+    ]);
+
+    expect((await publish(run.app, run.project.id, run.deployment.id)).statusCode).toBe(201);
+    expect([...run.migrationApplier.ledger.keys()]).toEqual(['001_init.sql', '002_add.sql']);
+    expect(run.migrationApplier.ledger.has('003_later.sql')).toBe(false);
+  });
+
+  it('refuses a corrupted pinned migration plan before touching the production target', async () => {
+    const run = await setup();
+    await run.store.updateDeployment(run.project.id, run.deployment.id, {
+      metadata: {
+        publishMigrationPlan: {
+          migrations: [{ name: '001_init.sql', sql: 'CREATE TABLE pinned (id bigint);', sha256: '0'.repeat(64) }],
+          backwardCompatible: true,
+          forwardCompatible: false,
+        },
+      },
+    });
+
+    const response = await publish(run.app, run.project.id, run.deployment.id);
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({ code: 'MIGRATION_MANIFEST_INVALID' });
+    expect(run.migrationApplier.calls).toBe(0);
+  });
+
+  it('invalidates a deployment when the project manifest changes after the build was bound', async () => {
+    const run = await setup();
+    const revision = (await run.store.getLatestProjectManifest(run.project.id))!;
+    const manifest = verifyStoredProjectManifestRevision(revision, run.project.id);
+    await run.store.updateDeployment(run.project.id, run.deployment.id, {
+      metadata: { projectManifestDigest: revision.digest, publishMigrationPlan: null },
+    });
+    const changedManifest: ProjectManifest = {
+      ...manifest,
+      manifestVersion: manifest.manifestVersion + 1,
+      scopes: ['deploy:changed-after-build'],
+    };
+    await run.store.createProjectManifestRevision({
+      projectId: run.project.id,
+      schemaVersion: changedManifest.schemaVersion,
+      manifestVersion: changedManifest.manifestVersion,
+      digest: projectManifestDigest(changedManifest),
+      expectedDigest: revision.digest,
+      manifest: changedManifest,
+    });
+
+    const response = await publish(run.app, run.project.id, run.deployment.id);
+    expect(response.statusCode).toBe(409);
+    expect(response.json()).toMatchObject({ code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH' });
+    expect(run.migrationApplier.calls).toBe(0);
   });
 
   it('refuses unmanifested SQL before touching the target', async () => {

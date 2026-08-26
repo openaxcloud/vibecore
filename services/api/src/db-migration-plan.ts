@@ -19,6 +19,77 @@ export interface CollectedPublishMigrationPlan {
   forwardCompatible: boolean;
 }
 
+/**
+ * Re-validate the immutable plan stored on a Deployment row. Deployment
+ * metadata is persisted JSON and must be treated as untrusted on read; this
+ * parser repeats the size/hash/expand-only checks before production SQL runs.
+ * `null` is the explicit, pinned "no migrations" value for post-pin rows.
+ */
+export function parsePinnedPublishMigrationPlan(value: unknown): CollectedPublishMigrationPlan | undefined {
+  if (value === null) {
+    return undefined;
+  }
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new MigrationManifestError('MIGRATION_MANIFEST_INVALID');
+  }
+
+  const record = value as Record<string, unknown>;
+
+  if (
+    record.backwardCompatible !== true ||
+    typeof record.forwardCompatible !== 'boolean' ||
+    !Array.isArray(record.migrations) ||
+    record.migrations.length === 0 ||
+    record.migrations.length > MAX_MIGRATIONS
+  ) {
+    throw new MigrationManifestError('MIGRATION_MANIFEST_INVALID');
+  }
+
+  let totalBytes = 0;
+
+  const names = new Set<string>();
+
+  const migrations = record.migrations.map((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new MigrationManifestError('MIGRATION_MANIFEST_INVALID');
+    }
+
+    const item = entry as Record<string, unknown>;
+
+    if (
+      typeof item.name !== 'string' ||
+      !MIGRATION_NAME_PATTERN.test(item.name) ||
+      names.has(item.name) ||
+      typeof item.sql !== 'string' ||
+      typeof item.sha256 !== 'string' ||
+      !SHA256_PATTERN.test(item.sha256)
+    ) {
+      throw new MigrationManifestError('MIGRATION_MANIFEST_INVALID');
+    }
+
+    names.add(item.name);
+
+    const bytes = Buffer.byteLength(item.sql, 'utf8');
+    totalBytes += bytes;
+
+    if (
+      item.sql.trim().length === 0 ||
+      bytes > MAX_MIGRATION_BYTES ||
+      totalBytes > MAX_PLAN_BYTES ||
+      sha256(item.sql) !== item.sha256
+    ) {
+      throw new MigrationManifestError('MIGRATION_MANIFEST_INVALID');
+    }
+
+    assertExpandOnlySql(item.sql);
+
+    return { name: item.name, sql: item.sql, sha256: item.sha256 };
+  });
+
+  return { migrations, backwardCompatible: true, forwardCompatible: record.forwardCompatible };
+}
+
 interface ParsedManifest {
   schemaVersion: 1;
   mode: 'expand';

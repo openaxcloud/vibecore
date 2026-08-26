@@ -8,9 +8,12 @@ import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from './server-image-promotion.js';
 import {
+  canonicalizeProjectManifest,
   createDefaultProjectManifest,
+  projectManifestSnapshotPin,
   projectManifestForClone,
   projectManifestDigest,
+  readProjectManifestSnapshotPin,
   verifyStoredProjectManifestRevision,
   type ProjectManifest,
   type ProjectManifestCloneMode,
@@ -165,6 +168,14 @@ async function databaseNow(tx: Prisma.TransactionClient): Promise<Date> {
 function databaseLeaseExpiry(now: Date, durationMs: number): Date {
   const bounded = Math.max(1_000, Math.min(Math.trunc(durationMs), 30 * 60_000));
   return new Date(now.getTime() + bounded);
+}
+
+function databaseDeadline(now: Date, durationMs: number, maximumMs = 24 * 60 * 60_000): Date {
+  if (!Number.isFinite(durationMs) || durationMs < 1_000 || durationMs > maximumMs) {
+    throw new TypeError('INVALID_DATABASE_DEADLINE_DURATION');
+  }
+
+  return new Date(now.getTime() + Math.trunc(durationMs));
 }
 
 type DatabaseMigrationRow = {
@@ -1411,18 +1422,36 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async countProjects(organizationId: string) {
-    const [visible, partial] = await Promise.all([
-      this.prisma.project.count({ where: { organizationId, deletedAt: null } }),
-      this.prisma.remixJob.count({
-        where: {
-          organizationId,
-          targetProjectId: { not: null },
-          state: { notIn: ['COMPLETED', 'FAILED'] },
-        },
-      }),
-    ]);
+    /*
+     * Partial remix/import targets are intentionally soft-hidden until their
+     * durable workflow commits. They still consume the project quota: omitting
+     * them lets several concurrent imports each observe the same free slot and
+     * all reveal afterwards. This MUST be one PostgreSQL statement: a finalize
+     * between separate visible/job reads could otherwise disappear from both
+     * snapshots and undercount the tenant by one.
+     */
+    const rows = await this.prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
+      SELECT COUNT(DISTINCT p."id")::int AS "count"
+      FROM "Project" p
+      WHERE p."organizationId" = ${organizationId}
+        AND (
+          p."deletedAt" IS NULL
+          OR EXISTS (
+            SELECT 1 FROM "RemixJob" r
+            WHERE r."organizationId" = ${organizationId}
+              AND r."targetProjectId" = p."id"
+              AND r."state" NOT IN ('COMPLETED', 'FAILED')
+          )
+          OR EXISTS (
+            SELECT 1 FROM "ImportJob" i
+            WHERE i."organizationId" = ${organizationId}
+              AND i."targetProjectId" = p."id"
+              AND i."state" NOT IN ('COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED')
+          )
+        )
+    `);
 
-    return visible + partial;
+    return rows[0]?.count ?? 0;
   }
 
   async subscribeNewsletter(input: { email: string; source?: string }) {
@@ -1484,70 +1513,209 @@ export class PrismaApiStore implements ApiStore {
     return mapProject(await this.prisma.project.delete({ where: { id: projectId } }));
   }
 
-  async transferProject(input: { projectId: string; targetOrganizationId: string }) {
-    const current = assertFound(
-      await this.prisma.project.findUnique({ where: { id: input.projectId }, select: { slug: true } }),
-      'Project not found',
-      'PROJECT_NOT_FOUND',
-    );
+  async transferProject(input: { projectId: string; targetOrganizationId: string; actorUserId?: string }) {
+    return this.withSerializedMutation(`project-manifest:${input.projectId}`, async () => {
+      const current = assertFound(
+        await this.prisma.project.findUnique({ where: { id: input.projectId } }),
+        'Project not found',
+        'PROJECT_NOT_FOUND',
+      );
 
-    /*
-     * The slug is only unique within an org, so the target org may already have a
-     * project with this slug — a bare update would then violate
-     * @@unique([organizationId, slug]) with an unhandled P2002 (500). Re-allocate
-     * a free slug in the target org and retry on the race, like createProject.
-     * The persistentVolumeClaim is intentionally left unchanged: it references an
-     * existing physical volume holding the project's data, so renaming it would
-     * orphan that volume.
-     */
-    for (let attempt = 0; ; attempt += 1) {
-      const slug = await this.nextProjectSlug(input.targetOrganizationId, current.slug);
+      if (current.organizationId === input.targetOrganizationId) {
+        return mapProject(current);
+      }
 
-      try {
-        return await this.prisma.$transaction(async (tx) => {
-          /*
-           * Revoke all explicit ProjectCollaborator grants on transfer. They were
-           * issued to the SOURCE org's users; leaving them in place after the
-           * project moves to a different org keeps those (now cross-org) users with
-           * access to a project they no longer belong to. The target org's members
-           * get access via org membership; collaborators must be re-invited.
-           */
-          await tx.projectCollaborator.deleteMany({ where: { projectId: input.projectId } });
+      /*
+       * The slug is only unique within an org, so the target org may already have a
+       * project with this slug — a bare update would then violate
+       * @@unique([organizationId, slug]) with an unhandled P2002 (500). Re-allocate
+       * a free slug in the target org and retry on the race, like createProject.
+       * The persistentVolumeClaim is intentionally left unchanged: it references an
+       * existing physical volume holding the project's data, so renaming it would
+       * orphan that volume.
+       */
+      for (let attempt = 0; ; attempt += 1) {
+        const slug = await this.nextProjectSlug(input.targetOrganizationId, current.slug);
 
-          /*
-           * Share links are bearer capability tokens minted for the SOURCE org.
-           * GET /collaboration/share-links/:token resolves them by token alone
-           * (only revokedAt/expiry, not org) and mints a fresh collaborator grant,
-           * so a leaked/outstanding link would re-grant cross-org access after the
-           * project moves. Revoke them all on transfer (target org re-issues).
-           */
-          await tx.projectShareLink.deleteMany({ where: { projectId: input.projectId } });
+        try {
+          return await this.prisma.$transaction(async (tx) => {
+            await tx.$executeRaw(
+              Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint:${input.projectId}`}, 0))`,
+            );
+            await tx.$queryRawUnsafe('SELECT "id" FROM "Project" WHERE "id" = $1 FOR UPDATE', input.projectId);
+            const locked = assertFound(
+              await tx.project.findUnique({ where: { id: input.projectId } }),
+              'Project not found',
+              'PROJECT_NOT_FOUND',
+            );
+            if (locked.organizationId === input.targetOrganizationId) {
+              return mapProject(locked);
+            }
 
-          /*
-           * Chat shares are bearer-token snapshots of the project's AI
-           * conversations, minted under the SOURCE org. findChatShareByTokenHash
-           * resolves them by token alone (no org check), so an outstanding link
-           * would keep leaking the source org's conversation data after the
-           * project moves to a different org. Revoke them all on transfer; the
-           * target org re-shares as needed.
-           */
-          await tx.chatShare.deleteMany({ where: { projectId: input.projectId } });
+            const checkpointBarrier = await tx.projectCheckpoint.findFirst({
+              where: {
+                projectId: input.projectId,
+                barrierProjectId: input.projectId,
+                barrierExpiresAt: { gt: await databaseNow(tx) },
+              },
+              select: { id: true },
+            });
+            if (checkpointBarrier) {
+              throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
+                statusCode: 423,
+                code: 'CHECKPOINT_BARRIER_ACTIVE',
+              });
+            }
 
-          return mapProject(
-            await tx.project.update({
+            /*
+             * A plain Organization reassignment cannot safely move resources
+             * whose ownership is enforced by another control plane. Relabeling
+             * the Project would leave CNPG metering on the source tenant, a GCP
+             * binding owned by the source CloudTenant, or a live schema migration
+             * crossing the boundary. Those moves must use the dedicated durable
+             * tenant/resource transfer workflow; fail before revoking grants or
+             * appending a manifest revision so this operation is all-or-nothing.
+             */
+            const [
+              managedDatabaseCount,
+              cloudBindingCount,
+              activeMigrationCount,
+              activeImportCount,
+              activeRemixCount,
+              activeStorageShareCount,
+              readyDeploymentCount,
+              releaseManifestCount,
+            ] = await Promise.all([
+              tx.databaseInstance.count({ where: { projectId: input.projectId, status: { not: 'DELETED' } } }),
+              tx.cloudProjectBinding.count({ where: { projectId: input.projectId } }),
+              tx.dBMigrationExecution.count({
+                where: {
+                  projectId: input.projectId,
+                  state: {
+                    in: ['LOCK_ACQUIRED', 'BACKUP_VERIFIED', 'APPLYING', 'VALIDATING', 'RECOVERING', 'MANUAL_RECOVERY'],
+                  },
+                },
+              }),
+              tx.importJob.count({
+                where: {
+                  targetProjectId: input.projectId,
+                  state: { notIn: ['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED'] },
+                },
+              }),
+              tx.remixJob.count({
+                where: {
+                  OR: [{ sourceProjectId: input.projectId }, { targetProjectId: input.projectId }],
+                  state: { notIn: ['COMPLETED', 'FAILED'] },
+                },
+              }),
+              tx.remixStorageShare.count({
+                where: {
+                  state: 'ACTIVE',
+                  OR: [{ sourceProjectId: input.projectId }, { targetProjectId: input.projectId }],
+                },
+              }),
+              tx.deployment.count({ where: { projectId: input.projectId, status: 'READY' } }),
+              tx.releaseManifest.count({ where: { projectId: input.projectId } }),
+            ]);
+
+            if (
+              managedDatabaseCount +
+                cloudBindingCount +
+                activeMigrationCount +
+                activeImportCount +
+                activeRemixCount +
+                activeStorageShareCount +
+                readyDeploymentCount +
+                releaseManifestCount >
+              0
+            ) {
+              throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE')), {
+                statusCode: 409,
+                code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE',
+              });
+            }
+            const sourceRevisionRow = await tx.projectManifestRevision.findFirst({
+              where: { projectId: input.projectId },
+              orderBy: { manifestVersion: 'desc' },
+            });
+            const sourceManifest = sourceRevisionRow
+              ? verifyStoredProjectManifestRevision(mapProjectManifestRevision(sourceRevisionRow), input.projectId)
+              : createDefaultProjectManifest(input.projectId);
+            const detachedSeed = projectManifestForClone(sourceManifest, input.projectId, 'DETACH_EXTERNALS');
+            const detachedManifest = canonicalizeProjectManifest({
+              ...detachedSeed,
+              manifestVersion: (sourceRevisionRow?.manifestVersion ?? 0) + 1,
+            });
+
+            /*
+             * Revoke all explicit ProjectCollaborator grants on transfer. They were
+             * issued to the SOURCE org's users; leaving them in place after the
+             * project moves to a different org keeps those (now cross-org) users with
+             * access to a project they no longer belong to. The target org's members
+             * get access via org membership; collaborators must be re-invited.
+             */
+            await tx.projectCollaborator.deleteMany({ where: { projectId: input.projectId } });
+
+            /*
+             * Share links are bearer capability tokens minted for the SOURCE org.
+             * GET /collaboration/share-links/:token resolves them by token alone
+             * (only revokedAt/expiry, not org) and mints a fresh collaborator grant,
+             * so a leaked/outstanding link would re-grant cross-org access after the
+             * project moves. Revoke them all on transfer (target org re-issues).
+             */
+            await tx.projectShareLink.deleteMany({ where: { projectId: input.projectId } });
+
+            /*
+             * Chat shares are bearer-token snapshots of the project's AI
+             * conversations, minted under the SOURCE org. findChatShareByTokenHash
+             * resolves them by token alone (no org check), so an outstanding link
+             * would keep leaking the source org's conversation data after the
+             * project moves to a different org. Revoke them all on transfer; the
+             * target org re-shares as needed.
+             */
+            await tx.chatShare.deleteMany({ where: { projectId: input.projectId } });
+
+            const revokedAt = await databaseNow(tx);
+            await tx.resourceAccessGrant.updateMany({
+              where: {
+                resourceType: 'PROJECT',
+                resourceId: input.projectId,
+                status: { in: ['PENDING_CONSENT', 'ACTIVE'] },
+              },
+              data: {
+                status: 'REVOKED',
+                revokedAt,
+                revokedByUserId: input.actorUserId,
+                revocationReason: 'PROJECT_TRANSFERRED',
+              },
+            });
+
+            const transferred = await tx.project.update({
               where: { id: input.projectId },
               data: { organizationId: input.targetOrganizationId, slug },
-            }),
-          );
-        });
-      } catch (error) {
-        if (isPrismaKnownRequestError(error) && error.code === 'P2002' && attempt < 5) {
-          continue;
-        }
+            });
+            await tx.projectManifestRevision.create({
+              data: {
+                projectId: input.projectId,
+                schemaVersion: detachedManifest.schemaVersion,
+                manifestVersion: detachedManifest.manifestVersion,
+                digest: projectManifestDigest(detachedManifest),
+                manifest: detachedManifest as Prisma.InputJsonValue,
+                createdByUserId: input.actorUserId,
+              },
+            });
 
-        throw error;
+            return mapProject(transferred);
+          });
+        } catch (error) {
+          if (isPrismaKnownRequestError(error) && error.code === 'P2002' && attempt < 5) {
+            continue;
+          }
+
+          throw error;
+        }
       }
-    }
+    });
   }
 
   async duplicateProject(input: {
@@ -2207,13 +2375,20 @@ export class PrismaApiStore implements ApiStore {
         appPublicEnglish('PROJECT_NOT_FOUND'),
         'PROJECT_NOT_FOUND',
       );
-      const sourceRevisionRow = await tx.projectManifestRevision.findFirst({
-        where: { projectId: source.id },
-        orderBy: { manifestVersion: 'desc' },
-      });
-      const sourceManifest = sourceRevisionRow
-        ? verifyStoredProjectManifestRevision(mapProjectManifestRevision(sourceRevisionRow), source.id)
-        : createDefaultProjectManifest(source.id);
+      const sourceSnapshot = job.sourceSnapshotId
+        ? await tx.projectSnapshot.findFirst({ where: { id: job.sourceSnapshotId, projectId: source.id } })
+        : undefined;
+      if (!sourceSnapshot) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_SNAPSHOT_UNPINNED')), {
+          statusCode: 409,
+          code: 'PROJECT_MANIFEST_SNAPSHOT_UNPINNED',
+        });
+      }
+      /*
+       * Clone the manifest embedded in the immutable source snapshot, never the
+       * latest live revision. Files v1 + topology v2 is not a valid remix.
+       */
+      const sourceManifest = readProjectManifestSnapshotPin(sourceSnapshot.manifest, source.id).manifest;
       const ensureDetachedTargetManifest = async (targetProjectId: string) => {
         const existingRevisionRow = await tx.projectManifestRevision.findFirst({
           where: { projectId: targetProjectId },
@@ -2799,19 +2974,26 @@ export class PrismaApiStore implements ApiStore {
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
+    expiresInMs?: number;
     idempotencyKey: string;
     requestHash: string;
     reservedCredits: number;
   }) {
     try {
       const created = await this.prisma.$transaction(async (tx) => {
+        const now = await databaseNow(tx);
         const job = await tx.importJob.create({
           data: {
             organizationId: input.organizationId,
             actorUserId: input.actorUserId ?? null,
             provider: input.provider,
             sourceRef: input.sourceRef ?? null,
-            expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+            expiresAt:
+              input.expiresInMs !== undefined
+                ? databaseDeadline(now, input.expiresInMs)
+                : input.expiresAt
+                  ? new Date(input.expiresAt)
+                  : null,
             idempotencyKey: input.idempotencyKey,
             requestHash: input.requestHash,
             state: 'RECEIVED',
@@ -2892,7 +3074,41 @@ export class PrismaApiStore implements ApiStore {
     expectedStates: string[];
     state: string;
     patch?: ImportJobTransitionPatch;
+    operationLeaseDurationMs?: number;
   }) {
+    const operationLeaseDurationMs = input.operationLeaseDurationMs;
+    if (operationLeaseDurationMs !== undefined) {
+      return this.prisma.$transaction(async (tx) => {
+        await tx.$queryRawUnsafe(
+          'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+          input.id,
+          input.organizationId,
+        );
+        const now = await databaseNow(tx);
+        const row = await tx.importJob.findFirst({
+          where: {
+            id: input.id,
+            organizationId: input.organizationId,
+            version: input.expectedVersion,
+            state: { in: input.expectedStates },
+          },
+        });
+        if (!row) return undefined;
+
+        return mapImportJob(
+          await tx.importJob.update({
+            where: { id: row.id },
+            data: {
+              state: input.state,
+              version: { increment: 1 },
+              ...importTransitionData(input.patch),
+              operationExpiresAt: databaseLeaseExpiry(now, operationLeaseDurationMs),
+            },
+          }),
+        );
+      });
+    }
+
     const updated = await this.prisma.importJob.updateMany({
       where: {
         id: input.id,
@@ -2916,6 +3132,65 @@ export class PrismaApiStore implements ApiStore {
     });
 
     return row ? mapImportJob(row) : undefined;
+  }
+
+  async renewImportJobLease(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+    expectedStates: string[];
+    leaseDurationMs: number;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.id,
+        input.organizationId,
+      );
+      const now = await databaseNow(tx);
+      const row = await tx.importJob.findFirst({
+        where: {
+          id: input.id,
+          organizationId: input.organizationId,
+          state: { in: input.expectedStates },
+          operationToken: input.operationToken,
+          operationExpiresAt: { gt: now },
+        },
+      });
+      if (!row) return undefined;
+
+      return mapImportJob(
+        await tx.importJob.update({
+          where: { id: row.id },
+          data: {
+            operationExpiresAt: databaseLeaseExpiry(now, input.leaseDurationMs),
+            version: { increment: 1 },
+          },
+        }),
+      );
+    });
+  }
+
+  async validateImportJobLease(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+    expectedStates: string[];
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const now = await databaseNow(tx);
+      const count = await tx.importJob.count({
+        where: {
+          id: input.id,
+          organizationId: input.organizationId,
+          state: { in: input.expectedStates },
+          operationToken: input.operationToken,
+          operationExpiresAt: { gt: now },
+        },
+      });
+
+      return count === 1;
+    });
   }
 
   async createClaimedImportProject(input: {
@@ -2992,6 +3267,9 @@ export class PrismaApiStore implements ApiStore {
           slug: input.slug,
           sourceType: input.sourceType,
           persistentVolumeClaim: `pvc-${input.organizationId}-${input.slug}`,
+          // Hidden until files, file manifest, billing settlement and import
+          // state commit succeed atomically in finalizeImportCommit.
+          deletedAt: now,
         },
       });
       await ensureDefaultManifest(project.id);
@@ -3040,8 +3318,17 @@ export class PrismaApiStore implements ApiStore {
         job.targetProjectId !== input.targetProjectId ||
         job.operationToken !== input.operationToken ||
         !job.operationExpiresAt ||
-        job.operationExpiresAt.getTime() <= Date.now()
+        job.operationExpiresAt <= (await databaseNow(tx))
       ) {
+        return undefined;
+      }
+
+      await tx.$queryRawUnsafe('SELECT "id" FROM "Project" WHERE "id" = $1 FOR UPDATE', input.targetProjectId);
+      const target = await tx.project.findFirst({
+        where: { id: input.targetProjectId, organizationId: input.organizationId },
+        select: { id: true },
+      });
+      if (!target) {
         return undefined;
       }
 
@@ -3055,8 +3342,18 @@ export class PrismaApiStore implements ApiStore {
       });
 
       if (settled.count !== 1) {
-        return undefined;
+        throw Object.assign(new Error(appPublicEnglish('IMPORT_COMMIT_OWNERSHIP_LOST')), {
+          statusCode: 409,
+          code: 'IMPORT_RESERVATION_SETTLEMENT_FAILED',
+        });
       }
+
+      /*
+       * Reveal in the same transaction as SETTLED + COMMITTED. Updating an
+       * already-visible legacy partial target is intentionally supported during
+       * rolling upgrades; all targets created by this release start hidden.
+       */
+      await tx.project.update({ where: { id: target.id }, data: { deletedAt: null } });
 
       const committed = await tx.importJob.update({
         where: { id: job.id },
@@ -3094,11 +3391,12 @@ export class PrismaApiStore implements ApiStore {
       const job = await tx.importJob.findFirst({
         where: { id: input.importJobId, organizationId: input.organizationId },
       });
+      const now = await databaseNow(tx);
       const activeOtherOwner =
         job?.operationToken &&
         job.operationToken !== input.operationToken &&
         job.operationExpiresAt &&
-        job.operationExpiresAt.getTime() > Date.now();
+        job.operationExpiresAt > now;
 
       if (!job || !input.expectedStates.includes(job.state) || activeOtherOwner) {
         return undefined;
@@ -3119,6 +3417,13 @@ export class PrismaApiStore implements ApiStore {
         });
       }
 
+      if (job.targetProjectId) {
+        await tx.project.updateMany({
+          where: { id: job.targetProjectId, organizationId: input.organizationId },
+          data: { deletedAt: now },
+        });
+      }
+
       return mapImportJob(
         await tx.importJob.update({
           where: { id: job.id },
@@ -3127,7 +3432,7 @@ export class PrismaApiStore implements ApiStore {
             stagedFiles: Prisma.DbNull,
             connectorPreview: Prisma.DbNull,
             operationToken: input.operationToken,
-            operationExpiresAt: new Date(Date.now() + 5 * 60_000),
+            operationExpiresAt: databaseLeaseExpiry(now, 5 * 60_000),
             cleanupTerminalState: input.terminalState,
             error: input.error ?? null,
             version: { increment: 1 },
@@ -3156,7 +3461,7 @@ export class PrismaApiStore implements ApiStore {
           state: 'CLEANUP_PENDING',
           operationToken: input.operationToken,
           targetProjectId: input.targetProjectId,
-          operationExpiresAt: { gt: new Date() },
+          operationExpiresAt: { gt: await databaseNow(tx) },
         },
       });
 
@@ -3164,56 +3469,52 @@ export class PrismaApiStore implements ApiStore {
         return false;
       }
 
-      await tx.project.deleteMany({
-        where: { id: input.targetProjectId, organizationId: input.organizationId },
+      const deleted = await tx.project.deleteMany({
+        where: { id: input.targetProjectId, organizationId: input.organizationId, deletedAt: { not: null } },
       });
 
-      return true;
+      return deleted.count === 1;
     });
   }
 
   async finishImportCleanup(input: { importJobId: string; organizationId: string; operationToken: string }) {
-    const row = await this.prisma.importJob.findFirst({
-      where: {
-        id: input.importJobId,
-        organizationId: input.organizationId,
-        state: 'CLEANUP_PENDING',
-        operationToken: input.operationToken,
-        operationExpiresAt: { gt: new Date() },
-      },
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.importJobId,
+        input.organizationId,
+      );
+      const now = await databaseNow(tx);
+      const row = await tx.importJob.findFirst({
+        where: {
+          id: input.importJobId,
+          organizationId: input.organizationId,
+          state: 'CLEANUP_PENDING',
+          operationToken: input.operationToken,
+          operationExpiresAt: { gt: now },
+          targetProjectId: null,
+        },
+      });
+      const terminal = row?.cleanupTerminalState;
+
+      if (!row || !terminal || !['ROLLING_BACK', 'EXPIRED', 'FAILED'].includes(terminal)) {
+        return undefined;
+      }
+
+      return mapImportJob(
+        await tx.importJob.update({
+          where: { id: row.id },
+          data: {
+            state: terminal,
+            targetProjectId: null,
+            operationToken: null,
+            operationExpiresAt: null,
+            cleanupTerminalState: null,
+            version: { increment: 1 },
+          },
+        }),
+      );
     });
-    const terminal = row?.cleanupTerminalState;
-
-    if (!row || !terminal || !['ROLLING_BACK', 'EXPIRED', 'FAILED'].includes(terminal)) {
-      return undefined;
-    }
-
-    const updated = await this.prisma.importJob.updateMany({
-      where: {
-        id: row.id,
-        organizationId: input.organizationId,
-        state: 'CLEANUP_PENDING',
-        version: row.version,
-        operationToken: input.operationToken,
-        operationExpiresAt: { gt: new Date() },
-      },
-      data: {
-        state: terminal,
-        targetProjectId: null,
-        operationToken: null,
-        operationExpiresAt: null,
-        cleanupTerminalState: null,
-        version: { increment: 1 },
-      },
-    });
-
-    if (updated.count !== 1) {
-      return undefined;
-    }
-
-    const finished = await this.prisma.importJob.findUnique({ where: { id: row.id } });
-
-    return finished ? mapImportJob(finished) : undefined;
   }
 
   async cancelImportJob(importJobId: string, organizationId: string) {
@@ -3273,66 +3574,82 @@ export class PrismaApiStore implements ApiStore {
     return mapImportJob(row);
   }
 
-  async reapExpiredImportJobs(nowIso: string): Promise<string[]> {
-    const now = new Date(nowIso);
-    const stale = await this.prisma.importJob.findMany({
-      where: {
-        OR: [
-          {
-            state: {
-              in: [
-                'RECEIVED',
-                'STAGING_ISOLATED',
-                'SCANNING',
-                'QUARANTINED',
-                'AWAITING_USER_ACTION',
-                'RESCANNING',
-                'READY_TO_COMMIT',
-              ],
-            },
-            expiresAt: { not: null, lt: now },
-          },
-          {
-            state: { in: ['COMMITTING', 'CLEANUP_PENDING'] },
-            operationExpiresAt: { not: null, lt: now },
-          },
-        ],
-      },
-      select: { id: true, version: true },
-      take: 100,
-    });
+  async reapExpiredImportJobs(_nowIso?: string): Promise<string[]> {
+    /*
+     * PostgreSQL is the sole clock authority. The legacy optional argument is
+     * retained only for interface compatibility with deterministic in-memory
+     * tests; production never lets a fast/slow API pod choose what is expired.
+     */
+    const stale = await this.prisma.$queryRaw<Array<{ id: string; targetProjectId: string | null }>>(Prisma.sql`
+      SELECT "id", "targetProjectId"
+      FROM "ImportJob"
+      WHERE (
+          "state" IN (
+            'RECEIVED', 'STAGING_ISOLATED', 'SCANNING', 'QUARANTINED',
+            'AWAITING_USER_ACTION', 'RESCANNING', 'READY_TO_COMMIT'
+          )
+          AND "expiresAt" IS NOT NULL
+          AND "expiresAt" <= clock_timestamp()
+        ) OR (
+          "state" IN ('COMMITTING', 'CLEANUP_PENDING')
+          AND "operationExpiresAt" IS NOT NULL
+          AND "operationExpiresAt" <= clock_timestamp()
+        )
+      ORDER BY "createdAt" ASC
+      LIMIT 100
+    `);
     const claimed: string[] = [];
 
     for (const candidate of stale) {
       const won = await this.prisma.$transaction(async (tx) => {
-        const job = await tx.importJob.findFirst({ where: { id: candidate.id, version: candidate.version } });
+        /*
+         * Same distributed effect lock as the writer/cleaner. Acquire it before
+         * the ImportJob row lock to avoid a job-row ↔ effect-lock deadlock with
+         * finalize. If the target changed since the scan, skip and let the next
+         * sweep retry with the correct lock key.
+         */
+        if (candidate.targetProjectId) {
+          await tx.$executeRawUnsafe(
+            'SELECT pg_advisory_xact_lock(hashtext($1))',
+            `import-target-effect:${candidate.targetProjectId}`,
+          );
+        }
+        await tx.$queryRawUnsafe('SELECT "id" FROM "ImportJob" WHERE "id" = $1 FOR UPDATE', candidate.id);
+        const job = await tx.importJob.findUnique({ where: { id: candidate.id } });
 
-        if (!job) {
+        if (!job || job.targetProjectId !== candidate.targetProjectId) {
           return false;
         }
 
-        const operationActive = job.operationExpiresAt && job.operationExpiresAt.getTime() > now.getTime();
+        const now = await databaseNow(tx);
+        const operationExpired =
+          ['COMMITTING', 'CLEANUP_PENDING'].includes(job.state) &&
+          Boolean(job.operationExpiresAt && job.operationExpiresAt <= now);
         const preCommitExpired =
-          !['COMMITTING', 'CLEANUP_PENDING'].includes(job.state) &&
-          job.expiresAt &&
-          job.expiresAt.getTime() < now.getTime();
+          !['COMMITTING', 'CLEANUP_PENDING'].includes(job.state) && Boolean(job.expiresAt && job.expiresAt <= now);
 
         if (
-          (!preCommitExpired && operationActive) ||
+          (!preCommitExpired && !operationExpired) ||
           ['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED'].includes(job.state)
         ) {
           return false;
         }
 
         const token = randomUUID();
-        const update = await tx.importJob.updateMany({
-          where: { id: job.id, version: job.version, state: job.state },
+        if (job.targetProjectId) {
+          await tx.project.updateMany({
+            where: { id: job.targetProjectId, organizationId: job.organizationId },
+            data: { deletedAt: now },
+          });
+        }
+        await tx.importJob.update({
+          where: { id: job.id },
           data: job.targetProjectId
             ? {
                 state: 'CLEANUP_PENDING',
                 cleanupTerminalState: 'EXPIRED',
                 operationToken: token,
-                operationExpiresAt: new Date(now.getTime() + 5 * 60_000),
+                operationExpiresAt: databaseLeaseExpiry(now, 5 * 60_000),
                 stagedFiles: Prisma.DbNull,
                 connectorPreview: Prisma.DbNull,
                 error: appPublicEnglish('IMPORT_STAGING_EXPIRED'),
@@ -3349,10 +3666,6 @@ export class PrismaApiStore implements ApiStore {
                 version: { increment: 1 },
               },
         });
-
-        if (update.count !== 1) {
-          return false;
-        }
 
         await tx.importCreditReservation.updateMany({
           where: { importJobId: job.id, organizationId: job.organizationId, state: 'RESERVED' },
@@ -3784,30 +4097,48 @@ export class PrismaApiStore implements ApiStore {
     idempotencyKey?: string;
     requestHash: string;
   }) {
-    if (input.idempotencyKey) {
-      const replay = await this.prisma.resourceAccessGrant.findUnique({
-        where: {
-          organizationId_idempotencyKey: {
-            organizationId: input.organizationId,
-            idempotencyKey: input.idempotencyKey,
-          },
-        },
-      });
-
-      if (replay) {
-        return replay.requestHash === input.requestHash
-          ? { ok: true as const, grant: mapResourceAccessGrant(replay), replayed: true }
-          : { ok: false as const, reason: COLLABORATION_REASON.idempotencyConflict };
+    return this.prisma.$transaction(async (tx) => {
+      /*
+       * Project transfer takes this same row FOR UPDATE. Lock and revalidate the
+       * tenant before any idempotency replay or insert so a grant cannot read
+       * org A, wait behind A→B, then land afterwards and silently reactivate if
+       * the project ever returns to A.
+       */
+      if (input.resourceType === 'PROJECT') {
+        await tx.$queryRawUnsafe('SELECT "id" FROM "Project" WHERE "id" = $1 FOR UPDATE', input.resourceId);
+        const project = await tx.project.findUnique({
+          where: { id: input.resourceId },
+          select: { organizationId: true },
+        });
+        if (!project || project.organizationId !== input.organizationId) {
+          return { ok: false as const, reason: COLLABORATION_REASON.activeGrantConflict };
+        }
       }
-    }
 
-    /*
-     * PostgreSQL cannot use CURRENT_TIMESTAMP in a partial-index predicate.
-     * Close any expired predecessor with the database clock before attempting
-     * the live-subject unique insert; concurrent creators still serialize on
-     * ResourceAccessGrant_live_subject_resource_key and exactly one wins.
-     */
-    await this.prisma.$executeRaw`
+      if (input.idempotencyKey) {
+        const replay = await tx.resourceAccessGrant.findUnique({
+          where: {
+            organizationId_idempotencyKey: {
+              organizationId: input.organizationId,
+              idempotencyKey: input.idempotencyKey,
+            },
+          },
+        });
+
+        if (replay) {
+          return replay.requestHash === input.requestHash
+            ? { ok: true as const, grant: mapResourceAccessGrant(replay), replayed: true }
+            : { ok: false as const, reason: COLLABORATION_REASON.idempotencyConflict };
+        }
+      }
+
+      /*
+       * PostgreSQL cannot use CURRENT_TIMESTAMP in a partial-index predicate.
+       * Close any expired predecessor with the database clock before attempting
+       * the live-subject unique insert; concurrent creators still serialize on
+       * ResourceAccessGrant_live_subject_resource_key and exactly one wins.
+       */
+      await tx.$executeRaw`
       UPDATE "ResourceAccessGrant"
       SET "status" = 'REVOKED',
           "revokedAt" = CURRENT_TIMESTAMP,
@@ -3823,13 +4154,13 @@ export class PrismaApiStore implements ApiStore {
         AND "expiresAt" <= CURRENT_TIMESTAMP
     `;
 
-    /*
-     * DO NOTHING is intentional: expected retry/concurrency conflicts are
-     * control flow, not exceptions that should pollute production error logs.
-     * With no conflict target PostgreSQL protects both the idempotency key and
-     * the partial live-subject/resource unique index atomically.
-     */
-    const inserted = await this.prisma.$queryRaw<any[]>`
+      /*
+       * DO NOTHING is intentional: expected retry/concurrency conflicts are
+       * control flow, not exceptions that should pollute production error logs.
+       * With no conflict target PostgreSQL protects both the idempotency key and
+       * the partial live-subject/resource unique index atomically.
+       */
+      const inserted = await tx.$queryRaw<any[]>`
       INSERT INTO "ResourceAccessGrant" (
         "id", "organizationId", "subjectType", "subjectUserId", "subjectGroupId",
         "resourceType", "resourceId", "roleKey", "status", "expiresAt",
@@ -3858,44 +4189,45 @@ export class PrismaApiStore implements ApiStore {
       RETURNING *
     `;
 
-    if (inserted.length === 1) {
-      return { ok: true as const, grant: mapResourceAccessGrant(inserted[0]) };
-    }
+      if (inserted.length === 1) {
+        return { ok: true as const, grant: mapResourceAccessGrant(inserted[0]) };
+      }
 
-    const existing = await this.prisma.resourceAccessGrant.findFirst({
-      where: {
-        organizationId: input.organizationId,
-        subjectType: input.subjectType,
-        subjectUserId: input.subjectUserId ?? null,
-        subjectGroupId: input.subjectGroupId ?? null,
-        resourceType: input.resourceType,
-        resourceId: input.resourceId,
-        status: { not: 'REVOKED' },
-      },
-    });
-
-    if (existing?.requestHash === input.requestHash) {
-      return { ok: true as const, grant: mapResourceAccessGrant(existing), replayed: true };
-    }
-
-    if (input.idempotencyKey) {
-      const replay = await this.prisma.resourceAccessGrant.findUnique({
+      const existing = await tx.resourceAccessGrant.findFirst({
         where: {
-          organizationId_idempotencyKey: {
-            organizationId: input.organizationId,
-            idempotencyKey: input.idempotencyKey,
-          },
+          organizationId: input.organizationId,
+          subjectType: input.subjectType,
+          subjectUserId: input.subjectUserId ?? null,
+          subjectGroupId: input.subjectGroupId ?? null,
+          resourceType: input.resourceType,
+          resourceId: input.resourceId,
+          status: { not: 'REVOKED' },
         },
       });
 
-      if (replay) {
-        return replay.requestHash === input.requestHash
-          ? { ok: true as const, grant: mapResourceAccessGrant(replay), replayed: true }
-          : { ok: false as const, reason: COLLABORATION_REASON.idempotencyConflict };
+      if (existing?.requestHash === input.requestHash) {
+        return { ok: true as const, grant: mapResourceAccessGrant(existing), replayed: true };
       }
-    }
 
-    return { ok: false as const, reason: COLLABORATION_REASON.activeGrantConflict };
+      if (input.idempotencyKey) {
+        const replay = await tx.resourceAccessGrant.findUnique({
+          where: {
+            organizationId_idempotencyKey: {
+              organizationId: input.organizationId,
+              idempotencyKey: input.idempotencyKey,
+            },
+          },
+        });
+
+        if (replay) {
+          return replay.requestHash === input.requestHash
+            ? { ok: true as const, grant: mapResourceAccessGrant(replay), replayed: true }
+            : { ok: false as const, reason: COLLABORATION_REASON.idempotencyConflict };
+        }
+      }
+
+      return { ok: false as const, reason: COLLABORATION_REASON.activeGrantConflict };
+    });
   }
 
   async getResourceAccessGrant(grantId: string) {
@@ -5074,12 +5406,34 @@ export class PrismaApiStore implements ApiStore {
     conversationId?: string;
     turnIndex?: number;
   }) {
+    let latestManifest = await this.getLatestProjectManifest(input.projectId);
+    if (!latestManifest && (await this.prisma.project.count({ where: { id: input.projectId } })) === 1) {
+      const initial = createDefaultProjectManifest(input.projectId);
+      latestManifest = await this.createProjectManifestRevision({
+        projectId: input.projectId,
+        schemaVersion: initial.schemaVersion,
+        manifestVersion: initial.manifestVersion,
+        digest: projectManifestDigest(initial),
+        manifest: initial,
+        createdByUserId: input.createdByUserId,
+      });
+    }
+    const manifestBase =
+      input.manifest && typeof input.manifest === 'object' && !Array.isArray(input.manifest)
+        ? (input.manifest as Record<string, unknown>)
+        : { snapshotData: input.manifest };
+    const snapshotManifest = latestManifest
+      ? {
+          ...manifestBase,
+          projectManifest: projectManifestSnapshotPin(latestManifest, input.projectId),
+        }
+      : manifestBase;
     const data = {
       ...(input.id ? { id: input.id } : {}),
       projectId: input.projectId,
       label: input.label,
       kind: input.kind ?? 'manual',
-      manifest: input.manifest as any,
+      manifest: snapshotManifest as Prisma.InputJsonValue,
       storageKey: input.storageKey,
       byteLength: input.byteLength,
       createdByUserId: input.createdByUserId,
@@ -5990,38 +6344,62 @@ export class PrismaApiStore implements ApiStore {
     const manifest = verifyStoredProjectManifestRevision(input, input.projectId);
 
     return this.withSerializedMutation(`project-manifest:${input.projectId}`, async () => {
-      const latest = await this.prisma.projectManifestRevision.findFirst({
-        where: { projectId: input.projectId },
-        orderBy: { manifestVersion: 'desc' },
-      });
+      return this.prisma.$transaction(async (tx) => {
+        /*
+         * The checkpoint barrier and manifest append share this PostgreSQL lock.
+         * A route-level preflight alone has a check→barrier→insert race; under
+         * this lock we either append before the checkpoint pins, or observe its
+         * durable live barrier and refuse the write.
+         */
+        await tx.$executeRaw`
+          SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint:${input.projectId}`}, 0))
+        `;
+        const activeBarrier = await tx.$queryRaw<Array<{ id: string }>>`
+          SELECT "id" FROM "ProjectCheckpoint"
+          WHERE "barrierProjectId" = ${input.projectId}
+            AND "barrierExpiresAt" > clock_timestamp()
+          LIMIT 1
+        `;
+        if (activeBarrier[0]) {
+          throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
+            code: 'CHECKPOINT_BARRIER_ACTIVE',
+            statusCode: 423,
+          });
+        }
 
-      /* Exact replay after the first response was lost: return the winning row. */
-      if (latest?.digest === input.digest && latest.manifestVersion === input.manifestVersion) {
-        return mapProjectManifestRevision(latest);
-      }
-
-      const expectedMatches = latest ? input.expectedDigest === latest.digest : input.expectedDigest === undefined;
-      const nextVersion = (latest?.manifestVersion ?? 0) + 1;
-
-      if (!expectedMatches || input.manifestVersion !== nextVersion) {
-        throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_VERSION_CONFLICT')), {
-          code: 'PROJECT_MANIFEST_VERSION_CONFLICT',
-          statusCode: 409,
+        const latest = await tx.projectManifestRevision.findFirst({
+          where: { projectId: input.projectId },
+          orderBy: { manifestVersion: 'desc' },
         });
-      }
 
-      return mapProjectManifestRevision(
-        await this.prisma.projectManifestRevision.create({
-          data: {
-            projectId: input.projectId,
-            schemaVersion: input.schemaVersion,
-            manifestVersion: input.manifestVersion,
-            digest: input.digest,
-            manifest: manifest as Prisma.InputJsonValue,
-            createdByUserId: input.createdByUserId ?? null,
-          },
-        }),
-      );
+        /* Exact replay after the first response was lost: return the winning row. */
+        if (latest?.digest === input.digest && latest.manifestVersion === input.manifestVersion) {
+          return mapProjectManifestRevision(latest);
+        }
+
+        const expectedMatches = latest ? input.expectedDigest === latest.digest : input.expectedDigest === undefined;
+        const nextVersion = (latest?.manifestVersion ?? 0) + 1;
+
+        if (!expectedMatches || input.manifestVersion !== nextVersion) {
+          throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_VERSION_CONFLICT')), {
+            code: 'PROJECT_MANIFEST_VERSION_CONFLICT',
+            statusCode: 409,
+          });
+        }
+
+        return mapProjectManifestRevision(
+          await tx.projectManifestRevision.create({
+            data: {
+              projectId: input.projectId,
+              schemaVersion: input.schemaVersion,
+              manifestVersion: input.manifestVersion,
+              digest: input.digest,
+              manifest: manifest as Prisma.InputJsonValue,
+              createdByUserId: input.createdByUserId ?? null,
+            },
+          }),
+        );
+      });
     });
   }
 

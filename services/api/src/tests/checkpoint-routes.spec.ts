@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { buildApiApp } from '../app.js';
 import type { EmailProvider } from '../email.js';
 import { projectCheckpointAdmissible } from '../lifecycle-state-machines.js';
+import type { ProjectManifest } from '../project-manifest.js';
 import type { ProjectFile, ProjectStorage } from '../project-storage.js';
 import { TestApiStore } from './test-api-store.js';
 
@@ -138,6 +139,11 @@ describe('Checkpoint PROJET coordonné — câblage réel (plan §15, CTR-CHECKP
     expect(manifest.logicalBarrierId).toBe(ckpt.logicalBarrierId);
     expect(manifest.contentHashes.files).toMatch(/^[0-9a-f]{64}$/);
     expect(manifest.restoreCompatibility.files).toBe('project-files-v1');
+    expect(manifest.projectManifest).toEqual({
+      schemaVersion: 1,
+      manifestVersion: 1,
+      digest: (await store.getLatestProjectManifest(project.id))?.digest,
+    });
     expect(new Date(manifest.expiresAt).getTime()).toBeGreaterThan(Date.now());
     const filesComp = manifest.components.find((c: { componentKind: string }) => c.componentKind === 'FILES');
     expect(filesComp.verified).toBe(true);
@@ -155,6 +161,16 @@ describe('Checkpoint PROJET coordonné — câblage réel (plan §15, CTR-CHECKP
 
   it('GÈLE les écritures pendant la barrière (423) et les DÉGÈLE après', async () => {
     const { app, projectStorage, project } = await setup();
+    const currentManifest = await app.inject({
+      method: 'GET',
+      url: `/projects/${project.id}/manifest`,
+      headers: auth('ckpt-token'),
+    });
+    const nextManifest = {
+      ...(currentManifest.json().manifest as ProjectManifest),
+      manifestVersion: 2,
+      scopes: ['checkpoint:race'],
+    };
 
     // Retenir le snapshot en vol pour observer la barrière active.
     let release!: () => void;
@@ -178,6 +194,14 @@ describe('Checkpoint PROJET coordonné — câblage réel (plan §15, CTR-CHECKP
     });
     expect(during.statusCode).toBe(423);
     expect(during.json().code).toBe('CHECKPOINT_BARRIER_ACTIVE');
+    const manifestWrite = await app.inject({
+      method: 'PUT',
+      url: `/projects/${project.id}/manifest`,
+      headers: auth('ckpt-token'),
+      payload: { expectedDigest: currentManifest.json().digest, manifest: nextManifest },
+    });
+    expect(manifestWrite.statusCode).toBe(423);
+    expect(manifestWrite.json().code).toBe('CHECKPOINT_BARRIER_ACTIVE');
 
     release();
     projectStorage.snapshotGate = null;
@@ -245,6 +269,44 @@ describe('Checkpoint PROJET coordonné — câblage réel (plan §15, CTR-CHECKP
     // Le projet jetable contient la version DU CHECKPOINT (V=1), pas la V=999.
     const restored = await projectStorage.listFiles(body.targetProjectId);
     expect(restored.find((f) => f.path === 'src/app.ts')?.content).toContain('V = 1');
+  });
+
+  it('refuse un restore si la topologie du ProjectManifest a changé après le checkpoint', async () => {
+    const { app, store, project } = await setup();
+    const created = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/checkpoints`,
+      headers: auth('ckpt-token'),
+    });
+    expect(created.statusCode).toBe(201);
+    const checkpoint = created.json().checkpoint;
+    const current = await app.inject({
+      method: 'GET',
+      url: `/projects/${project.id}/manifest`,
+      headers: auth('ckpt-token'),
+    });
+    const changed = {
+      ...(current.json().manifest as ProjectManifest),
+      manifestVersion: 2,
+      scopes: ['api:changed-after-checkpoint'],
+    };
+    const update = await app.inject({
+      method: 'PUT',
+      url: `/projects/${project.id}/manifest`,
+      headers: auth('ckpt-token'),
+      payload: { expectedDigest: current.json().digest, manifest: changed },
+    });
+    expect(update.statusCode).toBe(200);
+    const projectCount = store.projects.size;
+
+    const restore = await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/checkpoints/${checkpoint.id}/restore-verify`,
+      headers: auth('ckpt-token'),
+    });
+    expect(restore.statusCode).toBe(409);
+    expect(restore.json().code).toBe('CHECKPOINT_PROJECT_MANIFEST_CHANGED');
+    expect(store.projects.size).toBe(projectCount);
   });
 
   it("un snapshot de POD seul n'est JAMAIS un checkpoint projet (admissibilité)", () => {

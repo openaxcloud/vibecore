@@ -516,3 +516,84 @@ export function verifyStoredProjectManifestRevision(
     publicMessage: appPublicEnglish('PROJECT_MANIFEST_CORRUPTED'),
   });
 }
+
+export type ProjectManifestSnapshotPin = {
+  schemaVersion: number;
+  manifestVersion: number;
+  digest: string;
+  manifest: ProjectManifest;
+};
+
+/**
+ * Embed a self-verifying manifest revision in an immutable ProjectSnapshot.
+ * Keeping the canonical document (not only its digest) lets a later remix
+ * reproduce the exact topology even if the live source advances meanwhile.
+ */
+export function projectManifestSnapshotPin(
+  record: {
+    projectId: string;
+    schemaVersion: number;
+    manifestVersion: number;
+    digest: string;
+    manifest: unknown;
+  },
+  expectedProjectId: string,
+): ProjectManifestSnapshotPin {
+  const manifest = verifyStoredProjectManifestRevision(record, expectedProjectId);
+  return {
+    schemaVersion: manifest.schemaVersion,
+    manifestVersion: manifest.manifestVersion,
+    digest: record.digest,
+    manifest,
+  };
+}
+
+/** Fail closed for legacy/corrupt snapshots: never substitute the live latest. */
+export function readProjectManifestSnapshotPin(
+  snapshotManifest: unknown,
+  expectedProjectId: string,
+): ProjectManifestSnapshotPin {
+  if (!snapshotManifest || typeof snapshotManifest !== 'object' || Array.isArray(snapshotManifest)) {
+    throw new ProjectManifestError({
+      code: 'PROJECT_MANIFEST_SNAPSHOT_UNPINNED',
+      statusCode: 409,
+      publicMessage: appPublicEnglish('PROJECT_MANIFEST_SNAPSHOT_UNPINNED'),
+    });
+  }
+
+  const pin = (snapshotManifest as Record<string, unknown>).projectManifest;
+  if (!pin || typeof pin !== 'object' || Array.isArray(pin)) {
+    throw new ProjectManifestError({
+      code: 'PROJECT_MANIFEST_SNAPSHOT_UNPINNED',
+      statusCode: 409,
+      publicMessage: appPublicEnglish('PROJECT_MANIFEST_SNAPSHOT_UNPINNED'),
+    });
+  }
+
+  try {
+    const record = pin as Record<string, unknown>;
+    const manifest = verifyStoredProjectManifestRevision(
+      {
+        projectId: expectedProjectId,
+        schemaVersion: record.schemaVersion as number,
+        manifestVersion: record.manifestVersion as number,
+        digest: record.digest as string,
+        manifest: record.manifest,
+      },
+      expectedProjectId,
+    );
+    return {
+      schemaVersion: manifest.schemaVersion,
+      manifestVersion: manifest.manifestVersion,
+      digest: record.digest as string,
+      manifest,
+    };
+  } catch (error) {
+    if (error instanceof ProjectManifestError && error.code === 'PROJECT_MANIFEST_SNAPSHOT_UNPINNED') throw error;
+    throw new ProjectManifestError({
+      code: 'PROJECT_MANIFEST_SNAPSHOT_CORRUPTED',
+      statusCode: 409,
+      publicMessage: appPublicEnglish('PROJECT_MANIFEST_SNAPSHOT_CORRUPTED'),
+    });
+  }
+}

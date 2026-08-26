@@ -84,7 +84,6 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
 
       const tokenA = `claim-a-${suffix}`;
       const tokenB = `claim-b-${suffix}`;
-      const expires = new Date(Date.now() + 600_000).toISOString();
       const [claimA, claimB] = await Promise.all([
         storeA.transitionImportJob({
           id: job.id,
@@ -92,7 +91,8 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
           expectedVersion: job.version,
           expectedStates: ['READY_TO_COMMIT'],
           state: 'COMMITTING',
-          patch: { operationToken: tokenA, operationExpiresAt: expires },
+          patch: { operationToken: tokenA, operationExpiresAt: '2100-01-01T00:00:00.000Z' },
+          operationLeaseDurationMs: 600_000,
         }),
         storeB.transitionImportJob({
           id: job.id,
@@ -100,13 +100,20 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
           expectedVersion: job.version,
           expectedStates: ['READY_TO_COMMIT'],
           state: 'COMMITTING',
-          patch: { operationToken: tokenB, operationExpiresAt: expires },
+          patch: { operationToken: tokenB, operationExpiresAt: '2100-01-01T00:00:00.000Z' },
+          operationLeaseDurationMs: 600_000,
         }),
       ]);
 
       expect([claimA, claimB].filter(Boolean)).toHaveLength(1);
       const winnerStore = claimA ? storeA : storeB;
       const winnerToken = claimA ? tokenA : tokenB;
+      const lease = await prismaA.$queryRawUnsafe<Array<{ remainingSeconds: number }>>(
+        'SELECT EXTRACT(EPOCH FROM ("operationExpiresAt" - clock_timestamp()))::float8 AS "remainingSeconds" FROM "ImportJob" WHERE "id" = $1',
+        job.id,
+      );
+      expect(lease[0]!.remainingSeconds).toBeGreaterThan(540);
+      expect(lease[0]!.remainingSeconds).toBeLessThanOrEqual(600);
       const project = await winnerStore.createClaimedImportProject({
         importJobId: job.id,
         organizationId: organization.id,
@@ -115,11 +122,16 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
         slug: `imported-once-${suffix}`,
         sourceType: 'zip',
       });
+      expect(project.deletedAt).toBeDefined();
+      expect(await winnerStore.countProjects(organization.id)).toBe(1);
+      expect(
+        await winnerStore.getProjectBySlugs({ organizationSlug: organization.slug, projectSlug: project.slug }),
+      ).toBeUndefined();
       expect(await prismaA.projectManifestRevision.count({ where: { projectId: project.id } })).toBe(1);
 
-      // Crash-window mutation: a replay that finds the claimed Project row must
-      // restore its v1 manifest before exposing or finalizing that project.
-      await prismaA.projectManifestRevision.deleteMany({ where: { projectId: project.id } });
+      // Crash-window replay: Project + manifest were committed atomically. The
+      // append-only trigger intentionally forbids simulating corruption by
+      // deleting v1; replay must return the same target without adding a v2.
       const replayedProject = await winnerStore.createClaimedImportProject({
         importJobId: job.id,
         organizationId: organization.id,
@@ -141,6 +153,7 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
 
       expect(finalized?.job.state).toBe('COMMITTED');
       expect(finalized?.reservation).toMatchObject({ state: 'SETTLED', debitedCredits: 1 });
+      expect((await prismaA.project.findUniqueOrThrow({ where: { id: project.id } })).deletedAt).toBeNull();
       expect(await prismaA.project.count({ where: { organizationId: organization.id } })).toBe(1);
       expect(await prismaA.importCreditReservation.findUnique({ where: { importJobId: job.id } })).toMatchObject({
         state: 'SETTLED',
@@ -333,6 +346,98 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
         expiredJob.id,
       );
       expect(nulls).toEqual([{ staged: true, preview: true }]);
+    } finally {
+      if (organizationId) {
+        await prismaA.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
+      }
+      await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
+    }
+  });
+
+  it('serializes an expired reaper behind the exact target-effect lock held by the writer', async () => {
+    const prismaA = createDatabaseClient();
+    const prismaB = createDatabaseClient();
+    let organizationId: string | undefined;
+
+    try {
+      const suffix = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      const organization = await prismaA.organization.create({
+        data: { name: `Import effect lock ${suffix}`, slug: `import-effect-lock-${suffix}` },
+      });
+      organizationId = organization.id;
+      const storeA = new PrismaApiStore(prismaA);
+      const storeB = new PrismaApiStore(prismaB);
+      let job = (
+        await storeA.createImportJob({
+          organizationId: organization.id,
+          provider: 'zip',
+          idempotencyKey: `effect-lock-${suffix}`,
+          requestHash: 'e'.repeat(64),
+          reservedCredits: 1,
+          expiresAt: new Date(Date.now() + 60_000).toISOString(),
+        })
+      ).job;
+      job = await advance(storeA, job, 'STAGING_ISOLATED', {
+        stagedFiles: [{ path: 'locked.txt', content: 'locked' }],
+        stagedFileCount: 1,
+      });
+      job = await advance(storeA, job, 'SCANNING');
+      job = await advance(storeA, job, 'READY_TO_COMMIT');
+      const token = `effect-owner-${suffix}`;
+      job = (await storeA.transitionImportJob({
+        id: job.id,
+        organizationId: organization.id,
+        expectedVersion: job.version,
+        expectedStates: ['READY_TO_COMMIT'],
+        state: 'COMMITTING',
+        patch: { operationToken: token },
+        operationLeaseDurationMs: 60_000,
+      }))!;
+      const project = await storeA.createClaimedImportProject({
+        importJobId: job.id,
+        organizationId: organization.id,
+        operationToken: token,
+        name: 'Locked target',
+        slug: `locked-target-${suffix}`,
+        sourceType: 'zip',
+      });
+      await prismaA.importJob.update({
+        where: { id: job.id },
+        data: { operationExpiresAt: new Date(Date.now() - 60_000) },
+      });
+
+      let releaseLock!: () => void;
+      let lockAcquired!: () => void;
+      const acquired = new Promise<void>((resolve) => {
+        lockAcquired = resolve;
+      });
+      const release = new Promise<void>((resolve) => {
+        releaseLock = resolve;
+      });
+      const writer = storeA.withSerializedMutation(
+        `import-target-effect:${project.id}`,
+        async () => {
+          lockAcquired();
+          await release;
+        },
+        { transactionTimeoutMs: 30_000 },
+      );
+      await acquired;
+      let reaperSettled = false;
+      const reaper = storeB.reapExpiredImportJobs().then((ids) => {
+        reaperSettled = true;
+        return ids;
+      });
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      expect(reaperSettled).toBe(false);
+
+      releaseLock();
+      await writer;
+      expect(await reaper).toContain(job.id);
+      expect(await prismaA.importJob.findUniqueOrThrow({ where: { id: job.id } })).toMatchObject({
+        state: 'CLEANUP_PENDING',
+        targetProjectId: project.id,
+      });
     } finally {
       if (organizationId) {
         await prismaA.organization.delete({ where: { id: organizationId } }).catch(() => undefined);

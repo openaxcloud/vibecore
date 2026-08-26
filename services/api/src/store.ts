@@ -1713,7 +1713,11 @@ export interface ApiStore {
    * softDeleteProject, which is the recoverable "Archive" state.
    */
   hardDeleteProject(projectId: string): Promise<ProjectRecord>;
-  transferProject(input: { projectId: string; targetOrganizationId: string }): Promise<ProjectRecord>;
+  transferProject(input: {
+    projectId: string;
+    targetOrganizationId: string;
+    actorUserId?: string;
+  }): Promise<ProjectRecord>;
   duplicateProject(input: {
     projectId: string;
     name: string;
@@ -1916,8 +1920,6 @@ export interface ApiStore {
     operationToken: string;
   }): Promise<RemixJobRecord | undefined>;
   getRemixJob(id: string, organizationId?: string): Promise<RemixJobRecord | undefined>;
-  /** Authoritative timestamp for PITR pins; Prisma implementations use PostgreSQL CURRENT_TIMESTAMP. */
-  getDatabaseTime(): Promise<string>;
   createRemixStorageShare(input: {
     sourceProjectId: string;
     targetProjectId: string;
@@ -1988,6 +1990,8 @@ export interface ApiStore {
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
+    /** Prefer this in production so the store derives the deadline from DB time. */
+    expiresInMs?: number;
     idempotencyKey: string;
     requestHash: string;
     reservedCredits: number;
@@ -2019,7 +2023,26 @@ export interface ApiStore {
     expectedStates: string[];
     state: string;
     patch?: ImportJobTransitionPatch;
+    /** If set, operationExpiresAt is derived atomically from the store clock. */
+    operationLeaseDurationMs?: number;
   }): Promise<ImportJobRecord | undefined>;
+
+  /** Renew a still-live import operation lease. A dead lease is never resurrected. */
+  renewImportJobLease(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+    expectedStates: string[];
+    leaseDurationMs: number;
+  }): Promise<ImportJobRecord | undefined>;
+
+  /** Revalidate ownership immediately before an irreversible physical effect. */
+  validateImportJobLease(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+    expectedStates: string[];
+  }): Promise<boolean>;
 
   /**
    * Under the COMMITTING fencing token, create the target Project and attach it
@@ -2078,7 +2101,7 @@ export interface ApiStore {
    * before publishing a terminal state; target-less jobs expire and compensate
    * atomically in storage.
    */
-  reapExpiredImportJobs(nowIso: string): Promise<string[]>;
+  reapExpiredImportJobs(nowIso?: string): Promise<string[]>;
   deleteProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
   addProjectCollaborator(input: {
     projectId: string;

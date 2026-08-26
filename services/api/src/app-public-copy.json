@@ -2835,6 +2835,14 @@
     "en": "Automatic publish migrations require PostgreSQL transactional DDL. Nothing was published.",
     "fr": "Les migrations automatiques à la publication exigent le DDL transactionnel de PostgreSQL. Aucune publication n’a été créée."
   },
+  "CHECKPOINT_PROJECT_MANIFEST_UNPINNED": {
+    "en": "This checkpoint predates versioned project manifests and cannot be restored safely.",
+    "fr": "Ce point de contrôle est antérieur aux manifestes de projet versionnés et ne peut pas être restauré de manière sûre."
+  },
+  "CHECKPOINT_PROJECT_MANIFEST_CHANGED": {
+    "en": "The project manifest changed after this checkpoint. Restore was refused to avoid combining incompatible files and configuration.",
+    "fr": "Le manifeste du projet a changé après ce point de contrôle. La restauration a été refusée pour éviter de combiner des fichiers et une configuration incompatibles."
+  },
   "PROJECT_MANIFEST_INVALID": {
     "en": "The project manifest is invalid. Review its fields and references before trying again.",
     "fr": "Le manifeste du projet est invalide. Vérifiez ses champs et ses références avant de réessayer."
@@ -2859,8 +2867,28 @@
     "en": "The stored project manifest failed its integrity check. No deployment was started.",
     "fr": "Le contrôle d’intégrité du manifeste de projet enregistré a échoué. Aucun déploiement n’a été lancé."
   },
+  "PROJECT_MANIFEST_SNAPSHOT_UNPINNED": {
+    "en": "This snapshot does not pin a verifiable project manifest and cannot be remixed safely. Create a new snapshot first.",
+    "fr": "Cet instantané ne référence pas un manifeste de projet vérifiable et ne peut pas être remixé en toute sécurité. Créez d’abord un nouvel instantané."
+  },
+  "PROJECT_MANIFEST_SNAPSHOT_CORRUPTED": {
+    "en": "The project manifest pinned to this snapshot failed its integrity check. No remix was created.",
+    "fr": "Le contrôle d’intégrité du manifeste de projet lié à cet instantané a échoué. Aucun remix n’a été créé."
+  },
+  "IMPORT_CLEANUP_FILES_REMAIN": {
+    "en": "Import cleanup could not verify that all target files were removed. Cleanup remains pending and will be retried.",
+    "fr": "Le nettoyage de l’import n’a pas pu vérifier la suppression de tous les fichiers cibles. Il reste en attente et sera réessayé."
+  },
   "PROJECT_MANIFEST_CHANGED_BEFORE_DEPLOY": {
     "en": "The project manifest changed after this deployment was queued. Start a new deployment from the current manifest.",
     "fr": "Le manifeste du projet a changé après la mise en file de ce déploiement. Lancez un nouveau déploiement depuis le manifeste actuel."
+  },
+  "PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH": {
+    "en": "This deployment was built from an older project manifest and cannot be published, redeployed, or rolled back. Start a new deployment from the current manifest.",
+    "fr": "Ce déploiement a été construit depuis un ancien manifeste de projet et ne peut pas être publié, redéployé ni restauré. Lancez un nouveau déploiement depuis le manifeste actuel."
+  },
+  "PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE": {
+    "en": "This project still owns managed database, cloud, or migration resources. Move those resources with the tenant transfer workflow before transferring the project.",
+    "fr": "Ce projet possède encore des ressources gérées de base de données, de cloud ou de migration. Déplacez-les avec le workflow de transfert de tenant avant de transférer le projet."
   }
 }

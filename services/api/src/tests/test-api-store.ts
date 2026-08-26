@@ -7,8 +7,10 @@ import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from '../server-image-promotion.js';
 import {
   createDefaultProjectManifest,
+  projectManifestSnapshotPin,
   projectManifestForClone,
   projectManifestDigest,
+  readProjectManifestSnapshotPin,
   verifyStoredProjectManifestRevision,
   type ProjectManifest,
   type ProjectManifestCloneMode,
@@ -153,6 +155,8 @@ export class TestApiStore implements ApiStore {
   readonly databaseInstances = new Map<string, DatabaseInstanceRecord>();
   readonly databaseSnapshots = new Map<string, DatabaseSnapshotRecord>();
   readonly databaseRestores = new Map<string, DatabaseRestoreRecord>();
+  /** Models the separate CloudGovernance store's durable Project binding. */
+  readonly cloudProjectBindingProjectIds = new Set<string>();
   readonly projectEnvVars = new Map<string, ProjectEnvironmentRecord>();
   readonly projectSecrets = new Map<string, ProjectSecretRecord>();
   readonly projectCollaborators = new Map<string, ProjectCollaboratorRecord>();
@@ -879,10 +883,28 @@ export class TestApiStore implements ApiStore {
 
   async countProjects(organizationId: string) {
     const visible = await this.listProjects(organizationId);
-    const partial = [...this.remixJobs.values()].filter(
-      (job) =>
-        job.organizationId === organizationId && job.targetProjectId && !['COMPLETED', 'FAILED'].includes(job.state),
-    ).length;
+    const partialTargetIds = new Set([
+      ...[...this.remixJobs.values()]
+        .filter(
+          (job) =>
+            job.organizationId === organizationId &&
+            job.targetProjectId &&
+            !['COMPLETED', 'FAILED'].includes(job.state),
+        )
+        .map((job) => job.targetProjectId!),
+      ...[...this.importJobs.values()]
+        .filter(
+          (job) =>
+            job.organizationId === organizationId &&
+            job.targetProjectId &&
+            !['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED'].includes(job.state),
+        )
+        .map((job) => job.targetProjectId!),
+    ]);
+    const partial = [...partialTargetIds].filter((projectId) => {
+      const project = this.projects.get(projectId);
+      return project?.organizationId === organizationId && Boolean(project.deletedAt);
+    }).length;
 
     return visible.length + partial;
   }
@@ -951,12 +973,107 @@ export class TestApiStore implements ApiStore {
     return project;
   }
 
-  async transferProject(input: { projectId: string; targetOrganizationId: string }) {
-    const project = await this.updateProject({ projectId: input.projectId });
-    project.organizationId = input.targetOrganizationId;
-    project.updatedAt = now();
+  async transferProject(input: { projectId: string; targetOrganizationId: string; actorUserId?: string }) {
+    return this.withSerializedMutation(`project-manifest:${input.projectId}`, async () => {
+      const project = await this.updateProject({ projectId: input.projectId });
+      if (project.organizationId === input.targetOrganizationId) return project;
 
-    return project;
+      if (await this.getActiveCheckpointBarrier(project.id)) {
+        throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
+          statusCode: 423,
+          code: 'CHECKPOINT_BARRIER_ACTIVE',
+        });
+      }
+
+      const hasManagedDatabase = [...this.databaseInstances.values()].some(
+        (instance) => instance.projectId === project.id && instance.status !== 'DELETED',
+      );
+      const hasActiveMigration = [...this.migrationExecutions.values()].some(
+        (execution) =>
+          execution.projectId === project.id &&
+          ['LOCK_ACQUIRED', 'BACKUP_VERIFIED', 'APPLYING', 'VALIDATING', 'RECOVERING', 'MANUAL_RECOVERY'].includes(
+            execution.state,
+          ),
+      );
+      const hasActiveImport = [...this.importJobs.values()].some(
+        (job) =>
+          job.targetProjectId === project.id &&
+          !['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED'].includes(job.state),
+      );
+      const hasActiveRemix = [...this.remixJobs.values()].some(
+        (job) =>
+          (job.sourceProjectId === project.id || job.targetProjectId === project.id) &&
+          !['COMPLETED', 'FAILED'].includes(job.state),
+      );
+      const hasActiveStorageShare = [...this.remixStorageShares.values()].some(
+        (share) =>
+          share.state === 'ACTIVE' && (share.sourceProjectId === project.id || share.targetProjectId === project.id),
+      );
+      const hasReadyDeployment = [...this.deployments.values()].some(
+        (deployment) => deployment.projectId === project.id && deployment.status === 'READY',
+      );
+      const hasReleaseManifest = this.releaseManifests.some((manifest) => manifest.projectId === project.id);
+      if (
+        hasManagedDatabase ||
+        hasActiveMigration ||
+        hasActiveImport ||
+        hasActiveRemix ||
+        hasActiveStorageShare ||
+        hasReadyDeployment ||
+        hasReleaseManifest ||
+        this.cloudProjectBindingProjectIds.has(project.id)
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE')), {
+          statusCode: 409,
+          code: 'PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE',
+        });
+      }
+
+      const sourceRevision = await this.getLatestProjectManifest(project.id);
+      const sourceManifest = sourceRevision
+        ? verifyStoredProjectManifestRevision(sourceRevision, project.id)
+        : createDefaultProjectManifest(project.id);
+      const detachedSeed = projectManifestForClone(sourceManifest, project.id, 'DETACH_EXTERNALS');
+      const detachedManifest = {
+        ...detachedSeed,
+        manifestVersion: (sourceRevision?.manifestVersion ?? 0) + 1,
+      } satisfies ProjectManifest;
+
+      for (const [grantId, grant] of this.resourceAccessGrants) {
+        if (
+          grant.resourceType === 'PROJECT' &&
+          grant.resourceId === project.id &&
+          ['PENDING_CONSENT', 'ACTIVE'].includes(grant.status)
+        ) {
+          this.resourceAccessGrants.set(grantId, {
+            ...grant,
+            status: 'REVOKED',
+            revokedAt: now(),
+            revokedByUserId: input.actorUserId,
+            revocationReason: 'PROJECT_TRANSFERRED',
+            updatedAt: now(),
+          });
+        }
+      }
+
+      project.organizationId = input.targetOrganizationId;
+      project.updatedAt = now();
+      const revision: ProjectManifestRevisionRecord = {
+        id: id('project_manifest'),
+        projectId: project.id,
+        schemaVersion: detachedManifest.schemaVersion,
+        manifestVersion: detachedManifest.manifestVersion,
+        digest: projectManifestDigest(detachedManifest),
+        manifest: detachedManifest,
+        createdByUserId: input.actorUserId,
+        createdAt: now(),
+      };
+      const revisions = this.projectManifestRevisions.get(project.id) ?? [];
+      revisions.push(revision);
+      this.projectManifestRevisions.set(project.id, revisions);
+
+      return project;
+    });
   }
 
   async duplicateProject(input: {
@@ -2444,8 +2561,27 @@ export class TestApiStore implements ApiStore {
         return existing;
       }
     }
+    let latestManifest = await this.getLatestProjectManifest(input.projectId);
+    if (!latestManifest && this.projects.has(input.projectId)) {
+      const initial = createDefaultProjectManifest(input.projectId);
+      latestManifest = await this.createProjectManifestRevision({
+        projectId: input.projectId,
+        schemaVersion: initial.schemaVersion,
+        manifestVersion: initial.manifestVersion,
+        digest: projectManifestDigest(initial),
+        manifest: initial,
+        createdByUserId: input.createdByUserId,
+      });
+    }
+    const manifestBase =
+      input.manifest && typeof input.manifest === 'object' && !Array.isArray(input.manifest)
+        ? (input.manifest as Record<string, unknown>)
+        : { snapshotData: input.manifest };
     const snapshot: SnapshotRecord = {
       ...input,
+      manifest: latestManifest
+        ? { ...manifestBase, projectManifest: projectManifestSnapshotPin(latestManifest, input.projectId) }
+        : manifestBase,
       id: input.id ?? id('snapshot'),
       kind: input.kind ?? 'manual',
       createdAt: now(),
@@ -3207,6 +3343,12 @@ export class TestApiStore implements ApiStore {
     const manifest = verifyStoredProjectManifestRevision(input, input.projectId);
 
     return this.withSerializedMutation(`project-manifest:${input.projectId}`, async () => {
+      if (await this.getActiveCheckpointBarrier(input.projectId)) {
+        throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE')), {
+          code: 'CHECKPOINT_BARRIER_ACTIVE',
+          statusCode: 423,
+        });
+      }
       const rows = this.projectManifestRevisions.get(input.projectId) ?? [];
       const latest = [...rows].sort((left, right) => right.manifestVersion - left.manifestVersion)[0];
 
@@ -3682,10 +3824,14 @@ export class TestApiStore implements ApiStore {
 
     const source = this.projects.get(job.sourceProjectId);
     if (!source) throw new Error('Project not found');
-    const sourceRevision = await this.getLatestProjectManifest(source.id);
-    const sourceManifest = sourceRevision
-      ? verifyStoredProjectManifestRevision(sourceRevision, source.id)
-      : createDefaultProjectManifest(source.id);
+    const sourceSnapshot = job.sourceSnapshotId ? this.snapshots.get(job.sourceSnapshotId) : undefined;
+    if (!sourceSnapshot || sourceSnapshot.projectId !== source.id) {
+      throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_SNAPSHOT_UNPINNED')), {
+        statusCode: 409,
+        code: 'PROJECT_MANIFEST_SNAPSHOT_UNPINNED',
+      });
+    }
+    const sourceManifest = readProjectManifestSnapshotPin(sourceSnapshot.manifest, source.id).manifest;
     if (job.targetProjectId) {
       const existing = this.projects.get(job.targetProjectId);
       if (existing) {
@@ -4057,6 +4203,7 @@ export class TestApiStore implements ApiStore {
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
+    expiresInMs?: number;
     idempotencyKey: string;
     requestHash: string;
     reservedCredits: number;
@@ -4094,7 +4241,8 @@ export class TestApiStore implements ApiStore {
       redactedCount: 0,
       creditsReserved: true,
       version: 0,
-      expiresAt: input.expiresAt,
+      expiresAt:
+        input.expiresInMs !== undefined ? new Date(Date.now() + input.expiresInMs).toISOString() : input.expiresAt,
       createdAt: timestamp,
       updatedAt: timestamp,
     };
@@ -4134,6 +4282,7 @@ export class TestApiStore implements ApiStore {
     expectedStates: string[];
     state: string;
     patch?: ImportJobTransitionPatch;
+    operationLeaseDurationMs?: number;
   }) {
     const row = this.importJobs.get(input.id);
 
@@ -4146,7 +4295,14 @@ export class TestApiStore implements ApiStore {
       return undefined;
     }
 
-    Object.assign(row, input.patch, { state: input.state, version: row.version + 1, updatedAt: now() });
+    Object.assign(row, input.patch, {
+      state: input.state,
+      version: row.version + 1,
+      updatedAt: now(),
+      ...(input.operationLeaseDurationMs !== undefined
+        ? { operationExpiresAt: new Date(Date.now() + input.operationLeaseDurationMs).toISOString() }
+        : {}),
+    });
 
     if (input.patch?.targetProjectId === null) row.targetProjectId = undefined;
     if (input.patch?.operationToken === null) row.operationToken = undefined;
@@ -4155,6 +4311,48 @@ export class TestApiStore implements ApiStore {
     if (input.patch?.error === null) row.error = undefined;
 
     return row;
+  }
+
+  async renewImportJobLease(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+    expectedStates: string[];
+    leaseDurationMs: number;
+  }) {
+    const row = this.importJobs.get(input.id);
+    if (
+      !row ||
+      row.organizationId !== input.organizationId ||
+      row.operationToken !== input.operationToken ||
+      !input.expectedStates.includes(row.state) ||
+      !row.operationExpiresAt ||
+      new Date(row.operationExpiresAt).getTime() <= Date.now()
+    ) {
+      return undefined;
+    }
+
+    row.operationExpiresAt = new Date(Date.now() + input.leaseDurationMs).toISOString();
+    row.version += 1;
+    row.updatedAt = now();
+    return row;
+  }
+
+  async validateImportJobLease(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+    expectedStates: string[];
+  }) {
+    const row = this.importJobs.get(input.id);
+    return Boolean(
+      row &&
+        row.organizationId === input.organizationId &&
+        row.operationToken === input.operationToken &&
+        input.expectedStates.includes(row.state) &&
+        row.operationExpiresAt &&
+        new Date(row.operationExpiresAt).getTime() > Date.now(),
+    );
   }
 
   async createClaimedImportProject(input: {
@@ -4213,6 +4411,7 @@ export class TestApiStore implements ApiStore {
       slug: input.slug,
       sourceType: input.sourceType,
     });
+    project.deletedAt = now();
     job.targetProjectId = project.id;
     job.version += 1;
     job.updatedAt = now();
@@ -4237,14 +4436,22 @@ export class TestApiStore implements ApiStore {
       job.state !== 'COMMITTING' ||
       job.targetProjectId !== input.targetProjectId ||
       job.operationToken !== input.operationToken ||
+      !job.operationExpiresAt ||
+      new Date(job.operationExpiresAt).getTime() <= Date.now() ||
       reservation.state !== 'RESERVED'
     ) {
       return undefined;
     }
 
+    const target = this.projects.get(input.targetProjectId);
+    if (!target || target.organizationId !== input.organizationId) {
+      return undefined;
+    }
     reservation.state = 'SETTLED';
     reservation.debitedCredits = input.actualCredits;
     reservation.version += 1;
+    target.deletedAt = undefined;
+    target.updatedAt = now();
     Object.assign(job, {
       state: 'COMMITTED',
       stagedFiles: undefined,
@@ -4291,6 +4498,10 @@ export class TestApiStore implements ApiStore {
       reservation.debitedCredits = 0;
       reservation.version += 1;
     }
+    if (job.targetProjectId) {
+      const target = this.projects.get(job.targetProjectId);
+      if (target?.organizationId === input.organizationId) target.deletedAt = now();
+    }
     Object.assign(job, {
       state: 'CLEANUP_PENDING',
       stagedFiles: undefined,
@@ -4319,13 +4530,18 @@ export class TestApiStore implements ApiStore {
       job.organizationId !== input.organizationId ||
       job.state !== 'CLEANUP_PENDING' ||
       job.operationToken !== input.operationToken ||
-      job.targetProjectId !== input.targetProjectId
+      job.targetProjectId !== input.targetProjectId ||
+      !job.operationExpiresAt ||
+      new Date(job.operationExpiresAt).getTime() <= Date.now()
     ) {
       return false;
     }
 
+    const target = this.projects.get(input.targetProjectId);
+    if (!target || target.organizationId !== input.organizationId || !target.deletedAt) return false;
     this.projects.delete(input.targetProjectId);
     this.projectIdeStates.delete(input.targetProjectId);
+    job.targetProjectId = undefined;
 
     return true;
   }
@@ -4338,7 +4554,10 @@ export class TestApiStore implements ApiStore {
       job.organizationId !== input.organizationId ||
       job.state !== 'CLEANUP_PENDING' ||
       job.operationToken !== input.operationToken ||
-      !job.cleanupTerminalState
+      !job.cleanupTerminalState ||
+      job.targetProjectId ||
+      !job.operationExpiresAt ||
+      new Date(job.operationExpiresAt).getTime() <= Date.now()
     ) {
       return undefined;
     }
@@ -4386,7 +4605,7 @@ export class TestApiStore implements ApiStore {
     return this.importJobs.get(id);
   }
 
-  async reapExpiredImportJobs(nowIso: string): Promise<string[]> {
+  async reapExpiredImportJobs(nowIso = new Date().toISOString()): Promise<string[]> {
     const now = new Date(nowIso).getTime();
     const terminal = new Set(['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED']);
     const ids: string[] = [];
@@ -4396,6 +4615,10 @@ export class TestApiStore implements ApiStore {
       const stagingExpired = row.expiresAt && new Date(row.expiresAt).getTime() < now;
 
       if (!terminal.has(row.state) && (operationExpired || stagingExpired)) {
+        if (row.targetProjectId) {
+          const target = this.projects.get(row.targetProjectId);
+          if (target?.organizationId === row.organizationId) target.deletedAt = new Date(now).toISOString();
+        }
         row.state = row.targetProjectId ? 'CLEANUP_PENDING' : 'EXPIRED';
         row.error = 'Import staging expired before it was committed.';
         row.stagedFiles = undefined;

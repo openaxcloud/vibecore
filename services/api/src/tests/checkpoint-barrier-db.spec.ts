@@ -3,6 +3,11 @@ import { describe, expect, it } from 'vitest';
 
 // eslint-disable-next-line no-restricted-imports -- API tsconfig has no ~/ path alias.
 import { PrismaApiStore } from '../prisma-store.js';
+import {
+  canonicalizeProjectManifest,
+  createDefaultProjectManifest,
+  projectManifestDigest,
+} from '../project-manifest.js';
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) {
@@ -41,6 +46,84 @@ async function seedProject(prisma: ReturnType<typeof createDatabaseClient>) {
 }
 
 runDbTests('project checkpoint barrier — real PostgreSQL fencing', () => {
+  it('serializes ProjectManifest appends with the durable checkpoint barrier across clients', async () => {
+    const prismaA = createDatabaseClient();
+    const prismaB = createDatabaseClient();
+    let organizationId: string | undefined;
+    let transferTargetId: string | undefined;
+
+    try {
+      const { organization, project } = await seedProject(prismaA);
+      organizationId = organization.id;
+      const storeA = new PrismaApiStore(prismaA);
+      const storeB = new PrismaApiStore(prismaB);
+      const initial = createDefaultProjectManifest(project.id);
+      const revision = await storeA.createProjectManifestRevision({
+        projectId: project.id,
+        schemaVersion: initial.schemaVersion,
+        manifestVersion: initial.manifestVersion,
+        digest: projectManifestDigest(initial),
+        manifest: initial,
+      });
+      const checkpoint = await storeA.createProjectCheckpoint({ projectId: project.id });
+      const transferTarget = await prismaA.organization.create({
+        data: { name: `Checkpoint transfer ${suffix()}`, slug: `checkpoint-transfer-${suffix()}` },
+      });
+      transferTargetId = transferTarget.id;
+      const lease = await storeA.acquireProjectCheckpointBarrier({
+        checkpointId: checkpoint.id,
+        projectId: project.id,
+        barrierId: `bar-manifest-${suffix()}`,
+        ownerToken: `owner-manifest-${suffix()}`,
+        ttlSeconds: 60,
+      });
+      expect(lease).toBeDefined();
+      const next = canonicalizeProjectManifest({ ...initial, manifestVersion: 2, scopes: ['checkpoint:blocked'] });
+
+      await expect(
+        storeB.createProjectManifestRevision({
+          projectId: project.id,
+          schemaVersion: next.schemaVersion,
+          manifestVersion: next.manifestVersion,
+          digest: projectManifestDigest(next),
+          manifest: next,
+          expectedDigest: revision.digest,
+        }),
+      ).rejects.toMatchObject({ statusCode: 423, code: 'CHECKPOINT_BARRIER_ACTIVE' });
+      expect(await prismaA.projectManifestRevision.count({ where: { projectId: project.id } })).toBe(1);
+      await expect(
+        storeB.transferProject({ projectId: project.id, targetOrganizationId: transferTarget.id }),
+      ).rejects.toMatchObject({ statusCode: 423, code: 'CHECKPOINT_BARRIER_ACTIVE' });
+      await expect(prismaA.project.findUniqueOrThrow({ where: { id: project.id } })).resolves.toMatchObject({
+        organizationId: organization.id,
+      });
+
+      await storeA.releaseProjectCheckpointBarrier({
+        checkpointId: checkpoint.id,
+        ownerToken: lease!.ownerToken,
+        fence: lease!.fence,
+      });
+      await expect(
+        storeB.createProjectManifestRevision({
+          projectId: project.id,
+          schemaVersion: next.schemaVersion,
+          manifestVersion: next.manifestVersion,
+          digest: projectManifestDigest(next),
+          manifest: next,
+          expectedDigest: revision.digest,
+        }),
+      ).resolves.toMatchObject({ manifestVersion: 2 });
+    } finally {
+      if (organizationId) {
+        await prismaA.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
+      }
+      if (transferTargetId) {
+        await prismaA.organization.delete({ where: { id: transferTargetId } }).catch(() => undefined);
+      }
+      await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
+    }
+  });
+
   it('grants one cross-replica project singleton and keeps idempotency scoped to the exact request', async () => {
     const prismaA = createDatabaseClient();
     const prismaB = createDatabaseClient();

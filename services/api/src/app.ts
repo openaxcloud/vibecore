@@ -204,7 +204,11 @@ import {
   runPublishMigration,
   type SqlApplier,
 } from './db-migration-execution.js';
-import { collectPublishMigrationPlan, MigrationManifestError } from './db-migration-plan.js';
+import {
+  collectPublishMigrationPlan,
+  MigrationManifestError,
+  parsePinnedPublishMigrationPlan,
+} from './db-migration-plan.js';
 import {
   DATABASE_PROVISION_FAILURE,
   databaseProvisionDeadline,
@@ -224,6 +228,7 @@ import {
   type ImportState,
 } from './import-pipeline.js';
 import { estimateImportReservation } from './import-billing.js';
+import { ImportOperationLeaseManager } from './import-operation-lease.js';
 import {
   assertCheckpointTransition,
   checkpointManifestVisible,
@@ -378,6 +383,7 @@ import {
   PROJECT_MANIFEST_DIGEST_PATTERN,
   ProjectManifestError,
   projectManifestDigest,
+  readProjectManifestSnapshotPin,
   verifyStoredProjectManifestRevision,
   type ProjectManifest,
 } from './project-manifest.js';
@@ -1935,6 +1941,18 @@ async function currentProjectManifest(
     manifest: verifyStoredProjectManifestRevision(revision, project.id),
     digest: revision.digest,
   };
+}
+
+async function deploymentProjectManifestIsCurrent(
+  store: ApiStore,
+  project: Pick<ProjectRecord, 'id'>,
+  deployment: Pick<DeploymentRecord, 'metadata'>,
+): Promise<boolean> {
+  const boundDigest = (deployment.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
+  /* Pre-0092 rows have no binding and retain their legacy compatibility path. */
+  if (typeof boundDigest !== 'string') return true;
+  if (!PROJECT_MANIFEST_DIGEST_PATTERN.test(boundDigest)) return false;
+  return (await currentProjectManifest(store, project)).digest === boundDigest;
 }
 
 function aiTranscriptMessageId(conversationId: string, clientId: string) {
@@ -20669,7 +20687,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     consent: z.record(z.string(), z.enum(['keep', 'redact'])).default({}),
   });
 
-  const IMPORT_OPERATION_LEASE_MS = 30 * 60_000;
+  const IMPORT_OPERATION_LEASE_MS = 5 * 60_000;
+  const IMPORT_OPERATION_RENEW_MS = 30_000;
 
   /**
    * Finish a durable cleanup claim. Physical files are removed first, then the
@@ -20682,27 +20701,60 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return false;
     }
 
-    if (job.targetProjectId) {
-      await projectStorage.deleteProjectFiles(job.targetProjectId);
-      const deleted = await store.deleteClaimedImportProject({
-        importJobId: job.id,
+    const leaseManager = new ImportOperationLeaseManager(
+      store,
+      {
+        id: job.id,
         organizationId: job.organizationId,
         operationToken: job.operationToken,
-        targetProjectId: job.targetProjectId,
-      });
-
-      if (!deleted) {
-        return false;
-      }
-    }
-
-    return Boolean(
-      await store.finishImportCleanup({
-        importJobId: job.id,
-        organizationId: job.organizationId,
-        operationToken: job.operationToken,
-      }),
+        state: 'CLEANUP_PENDING',
+      },
+      IMPORT_OPERATION_LEASE_MS,
+      IMPORT_OPERATION_RENEW_MS,
+      'IMPORT_CLEANUP_OWNERSHIP_LOST',
     );
+    leaseManager.start();
+
+    const executeCleanup = async () => {
+      await leaseManager.guard();
+      if (job.targetProjectId) {
+        await projectStorage.deleteProjectFiles(job.targetProjectId, () => leaseManager.guard());
+        await leaseManager.guard();
+        if ((await projectStorage.listFiles(job.targetProjectId)).length !== 0) {
+          throw Object.assign(new Error(appPublicEnglish('IMPORT_CLEANUP_FILES_REMAIN')), {
+            statusCode: 409,
+            code: 'IMPORT_CLEANUP_FILES_REMAIN',
+          });
+        }
+        const deleted = await store.deleteClaimedImportProject({
+          importJobId: job.id,
+          organizationId: job.organizationId,
+          operationToken: job.operationToken!,
+          targetProjectId: job.targetProjectId,
+        });
+
+        if (!deleted) return false;
+      }
+
+      await leaseManager.guard();
+      return Boolean(
+        await store.finishImportCleanup({
+          importJobId: job.id,
+          organizationId: job.organizationId,
+          operationToken: job.operationToken!,
+        }),
+      );
+    };
+
+    try {
+      return job.targetProjectId
+        ? await store.withSerializedMutation(`import-target-effect:${job.targetProjectId}`, executeCleanup, {
+            transactionTimeoutMs: 2 * 60 * 60_000,
+          })
+        : await executeCleanup();
+    } finally {
+      await leaseManager.stop();
+    }
   };
 
   const cleanupImport = async (input: {
@@ -20741,8 +20793,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * CLEANUP_PENDING and is physically deleted here before a terminal state is
    * published. Exposed for tests and driven by a periodic production timer.
    */
-  const reapExpiredImports = async (nowIso: string = new Date().toISOString()): Promise<string[]> => {
-    const claimed = await store.reapExpiredImportJobs(nowIso).catch((): string[] => []);
+  const reapExpiredImports = async (testNowIso?: string): Promise<string[]> => {
+    /*
+     * The optional value exists only for the deterministic in-memory store used
+     * by route tests. PrismaApiStore deliberately ignores it and arbitrates
+     * expiry with PostgreSQL clock_timestamp(), so no API pod clock can reap a
+     * live production owner.
+     */
+    const claimed = await store.reapExpiredImportJobs(testNowIso).catch((): string[] => []);
 
     for (const id of claimed) {
       const job = await store.getImportJob(id);
@@ -20797,14 +20855,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       )
       .digest('hex');
 
-    // Staging expires (idle) — the durable sweeper / timeout path uses this.
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
     const created = await store.createImportJob({
       organizationId: orgId,
       actorUserId: request.currentUser?.id,
       provider: body.provider,
       sourceRef: body.sourceRef,
-      expiresAt,
+      // Store derives the absolute deadline from PostgreSQL time.
+      expiresInMs: 60 * 60_000,
       idempotencyKey: body.idempotencyKey,
       requestHash,
       reservedCredits: estimateImportReservation(inputFiles.length),
@@ -20832,7 +20889,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let current = created.job;
     let state = current.state as ImportState;
 
-    const advance = async (to: ImportState, patch: Parameters<ApiStore['transitionImportJob']>[0]['patch'] = {}) => {
+    const advance = async (
+      to: ImportState,
+      patch: Parameters<ApiStore['transitionImportJob']>[0]['patch'] = {},
+      operationLeaseDurationMs?: number,
+    ) => {
       assertImportTransition(state, to);
       const updated = await store.transitionImportJob({
         id: current.id,
@@ -20841,6 +20902,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         expectedStates: [state],
         state: to,
         patch,
+        operationLeaseDurationMs,
       });
 
       if (!updated) {
@@ -21139,7 +21201,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     let current = job;
     let state = current.state as ImportState;
 
-    const advance = async (to: ImportState, patch: Parameters<ApiStore['transitionImportJob']>[0]['patch'] = {}) => {
+    const advance = async (
+      to: ImportState,
+      patch: Parameters<ApiStore['transitionImportJob']>[0]['patch'] = {},
+      operationLeaseDurationMs?: number,
+    ) => {
       assertImportTransition(state, to);
       const updated = await store.transitionImportJob({
         id: importJobId,
@@ -21148,6 +21214,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         expectedStates: [state],
         state: to,
         patch,
+        operationLeaseDurationMs,
       });
 
       if (!updated) {
@@ -21159,6 +21226,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     };
 
     let operationToken: string | undefined;
+    let operationLeaseManager: ImportOperationLeaseManager | undefined;
 
     try {
       // Apply ONLY consented redactions (never silent).
@@ -21197,12 +21265,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       // PostgreSQL CAS is the commit point: exactly one replica receives this
       // fencing token. A loser never creates a project or writes target files.
       operationToken = randomUUID();
-      await advance('COMMITTING', {
-        consent,
-        redactedCount: redacted.length,
-        operationToken,
-        operationExpiresAt: new Date(Date.now() + IMPORT_OPERATION_LEASE_MS).toISOString(),
-      });
+      await advance(
+        'COMMITTING',
+        {
+          consent,
+          redactedCount: redacted.length,
+          operationToken,
+        },
+        IMPORT_OPERATION_LEASE_MS,
+      );
+      operationLeaseManager = new ImportOperationLeaseManager(
+        store,
+        { id: importJobId, organizationId: orgId, operationToken, state: 'COMMITTING' },
+        IMPORT_OPERATION_LEASE_MS,
+        IMPORT_OPERATION_RENEW_MS,
+        'IMPORT_COMMIT_OWNERSHIP_LOST',
+      );
+      operationLeaseManager.start();
+      await operationLeaseManager.guard();
 
       // Atomic target write — the first and only touch of a target project.
       const name =
@@ -21218,6 +21298,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         ? (current.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'vercel' | 'figma' | 'claude')
         : ('blank' as const);
       const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
+        await operationLeaseManager!.guard();
         await ensureQuota(request, orgId, 'projects.count');
         return store.createClaimedImportProject({
           importJobId,
@@ -21229,18 +21310,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       });
 
-      const written = await projectStorage.writeFiles(
-        project.id,
-        finalFiles.map((file) => ({ path: file.path, content: file.content })),
+      const finalized = await store.withSerializedMutation(
+        `import-target-effect:${project.id}`,
+        async () => {
+          await operationLeaseManager!.guard();
+          const written = await projectStorage.writeFiles(
+            project.id,
+            finalFiles.map((file) => ({ path: file.path, content: file.content })),
+            undefined,
+            () => operationLeaseManager!.guard(),
+          );
+          await operationLeaseManager!.guard();
+          await persistProjectFileManifest(store, project.id, written, request.currentUser!.id);
+          await operationLeaseManager!.guard();
+          return store.finalizeImportCommit({
+            importJobId,
+            organizationId: orgId,
+            operationToken: operationToken!,
+            targetProjectId: project.id,
+            actualCredits: estimateImportReservation(finalFiles.length),
+          });
+        },
+        { transactionTimeoutMs: 2 * 60 * 60_000 },
       );
-      await persistProjectFileManifest(store, project.id, written, request.currentUser!.id);
-      const finalized = await store.finalizeImportCommit({
-        importJobId,
-        organizationId: orgId,
-        operationToken,
-        targetProjectId: project.id,
-        actualCredits: estimateImportReservation(finalFiles.length),
-      });
 
       if (!finalized) {
         throw Object.assign(new Error(appPublicEnglish('IMPORT_COMMIT_OWNERSHIP_LOST')), {
@@ -21251,6 +21343,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       current = finalized.job;
       state = 'COMMITTED';
+      await operationLeaseManager.stop();
+      operationLeaseManager = undefined;
       request.log?.info?.(
         {
           event: 'import.billing.settle',
@@ -21289,6 +21383,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
 
+      await operationLeaseManager?.stop();
+      operationLeaseManager = undefined;
+
       if (operationToken && current.state !== 'COMMITTED') {
         const cleaned = await cleanupImport({
           importJobId,
@@ -21308,6 +21405,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       throw error;
+    } finally {
+      await operationLeaseManager?.stop();
     }
   });
 
@@ -21651,6 +21750,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+    if (await rejectIfCheckpointBarrier(reply, project.id)) {
+      return reply;
+    }
     const body = parse(projectManifestUpdateSchema, request.body ?? {});
     const manifest = canonicalizeProjectManifest(body.manifest);
 
@@ -24685,6 +24787,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return store.transferProject({
         projectId: project.id,
         targetOrganizationId: body.targetOrganizationId,
+        actorUserId: request.currentUser!.id,
       });
     });
     await store.recordProjectActivity({
@@ -24735,6 +24838,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return false;
   };
 
+  const requireCheckpointProjectManifestCurrent = async (
+    project: ProjectRecord,
+    checkpointManifest: Record<string, unknown>,
+  ) => {
+    const value = checkpointManifest.projectManifest;
+    const pin = value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null;
+
+    if (
+      !pin ||
+      typeof pin.digest !== 'string' ||
+      !PROJECT_MANIFEST_DIGEST_PATTERN.test(pin.digest) ||
+      !Number.isInteger(pin.schemaVersion) ||
+      !Number.isInteger(pin.manifestVersion)
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_PROJECT_MANIFEST_UNPINNED')), {
+        statusCode: 409,
+        code: 'CHECKPOINT_PROJECT_MANIFEST_UNPINNED',
+      });
+    }
+
+    const current = await currentProjectManifest(store, project);
+    if (
+      current.digest !== pin.digest ||
+      current.manifest.schemaVersion !== pin.schemaVersion ||
+      current.manifest.manifestVersion !== pin.manifestVersion
+    ) {
+      throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_PROJECT_MANIFEST_CHANGED')), {
+        statusCode: 409,
+        code: 'CHECKPOINT_PROJECT_MANIFEST_CHANGED',
+      });
+    }
+
+    return current;
+  };
+
   const CHECKPOINT_LEASE_TTL_SECONDS = 60;
   const CHECKPOINT_LEASE_RENEW_MS = 10_000;
   const CHECKPOINT_RETENTION_SECONDS = 30 * 86_400;
@@ -24762,6 +24900,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const requestHash = createHash('sha256')
       .update(JSON.stringify({ projectId, includePod: params.includePod === true }))
       .digest('hex');
+    /*
+     * Materialize the legacy/default manifest before the checkpoint barrier is
+     * acquired. Manifest appends and barrier acquisition share the same DB
+     * serialization key; trying to bootstrap v1 after acquisition would either
+     * violate the freeze or deadlock the orchestrator against its own barrier.
+     * The manifest is read again after acquisition and that second value is the
+     * one pinned in the checkpoint.
+     */
+    const checkpointProject = await store.getProject(projectId);
+    if (!checkpointProject) {
+      return { ok: false, code: 'PROJECT_NOT_FOUND', error: appPublicEnglish('PROJECT_NOT_FOUND') };
+    }
+    await currentProjectManifest(store, checkpointProject);
+
     const ckpt = await store.createProjectCheckpoint({
       projectId,
       createdByUserId: request.currentUser?.id,
@@ -24858,6 +25010,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     try {
       const startedAt = await store.getDatabaseTime();
+      await leaseManager.guard();
+      const pinnedProjectManifest = await currentProjectManifest(store, checkpointProject);
+      await leaseManager.guard();
       const components: CheckpointComponentSnapshot[] = [];
       /*
        * Portée RÉELLE de la barrière, source unique du niveau annoncé (P0-V3-09).
@@ -25026,6 +25181,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         },
         components,
         bestEffortComponents,
+        projectManifest: {
+          schemaVersion: pinnedProjectManifest.manifest.schemaVersion,
+          manifestVersion: pinnedProjectManifest.manifest.manifestVersion,
+          digest: pinnedProjectManifest.digest,
+        },
         contentHashes: { files: filesHash },
         restoreCompatibility: { files: 'project-files-v1', database: databaseProvisioned ? 'cnpg-pitr-v1' : 'n/a' },
         dependenciesDeclared: databaseDependencyDeclared
@@ -25158,7 +25318,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const manifest = ckpt.manifest as {
       components: Array<{ componentKind: string; snapshotId: string }>;
       contentHashes: { files: string };
+      projectManifest?: unknown;
     };
+    const pinnedProjectManifest = await requireCheckpointProjectManifestCurrent(
+      project,
+      manifest as unknown as Record<string, unknown>,
+    );
     const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
 
     if (!filesComponent) {
@@ -25180,11 +25345,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     // Restore effectif dans un projet jetable (preuve de restaurabilité).
     const target = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
       await ensureQuota(request, project.organizationId, 'projects.count');
-      return store.duplicateProject({
-        projectId: project.id,
+      return store.createProject({
         organizationId: project.organizationId,
         name: `${project.name} (restore-verify)`,
         slug: `restore-verify-${Date.now().toString(36)}`,
+        description: project.description,
+        sourceType: 'duplicate',
+        templateName: project.templateName,
+        gitRepositoryUrl: project.gitRepositoryUrl,
+        gitDefaultBranch: project.gitDefaultBranch,
+        initialManifest: pinnedProjectManifest.manifest,
       });
     });
     await projectStorage.writeFiles(target.id, files);
@@ -25243,7 +25413,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       components: Array<{ componentKind: string; snapshotId: string }>;
       contentHashes: { files: string };
       dependenciesDeclared?: string[];
+      projectManifest?: unknown;
     };
+    await requireCheckpointProjectManifestCurrent(project, manifest as unknown as Record<string, unknown>);
     const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
 
     if (!filesComponent) {
@@ -25311,6 +25483,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         })
         .catch(() => false);
     };
+    /*
+     * The first manifest check happened before the safety checkpoint acquired
+     * its retained barrier. Revalidate now, while that barrier is the shared DB
+     * serialization authority for manifest appends and transfers. A concurrent
+     * change can therefore only linearize before the safety pin (and be
+     * rejected here) or after the barrier is released (after restore).
+     */
+    try {
+      await safetyLeaseManager.guard();
+      await requireCheckpointProjectManifestCurrent(project, manifest as unknown as Record<string, unknown>);
+    } catch (error) {
+      await releaseSafetyBarrier();
+      return reply.status(409).send({
+        error: error instanceof Error ? error.message : appPublicEnglish('CHECKPOINT_PROJECT_MANIFEST_CHANGED'),
+        code: (error as { code?: string }).code ?? 'CHECKPOINT_PROJECT_MANIFEST_CHANGED',
+      });
+    }
     const safetyFilesComponent = safetyManifest.components.find((component) => component.componentKind === 'FILES');
     let safetyFiles: ProjectFile[];
 
@@ -25560,6 +25749,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 'REMIX_SNAPSHOT_CONFLICT',
               );
             }
+            readProjectManifestSnapshotPin(existing.manifest, sourceProjectId);
             return { snapshotId: existing.id, snapshotHash: manifest.snapshotHash };
           }
           const archive = await projectStorage.createSnapshot({
@@ -25596,6 +25786,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           if (!snapshot || snapshot.projectId !== sourceProjectId) {
             throw new RemixInvariantError('Pinned source snapshot is unavailable', 'REMIX_SNAPSHOT_MISSING');
           }
+
+          readProjectManifestSnapshotPin(snapshot.manifest, sourceProjectId);
 
           return getSnapshotFiles(snapshot);
         },
@@ -35319,6 +35511,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const secondaryWorkspaceId = await resolveGitWorkspaceId(store, project.id, body.workspaceId);
     const persistedWorkspaceId = body.workspaceId ?? undefined;
+    let boundMigrationPlan: Awaited<ReturnType<typeof collectPublishMigrationPlan>>;
+    try {
+      boundMigrationPlan = await collectPublishMigrationPlan(projectStorage, project.id, secondaryWorkspaceId);
+    } catch (error) {
+      const code = error instanceof MigrationManifestError ? error.code : 'MIGRATION_TARGET_UNAVAILABLE';
+      return reply.code(error instanceof MigrationManifestError ? 409 : 503).send({
+        error: appPublicCopy(
+          code === 'MIGRATION_UNSAFE_PLAN' ? 'MIGRATION_UNSAFE_PLAN' : 'MIGRATION_MANIFEST_INVALID',
+          transactionalLocaleForRequest(request),
+        ),
+        code,
+        retryable: !(error instanceof MigrationManifestError),
+      });
+    }
 
     /*
      * Serialize the deploy quota check + in-flight guard + create at the ORG
@@ -35354,6 +35560,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             projectManifestDigest: boundProjectManifest.digest,
             projectManifestVersion: boundProjectManifest.manifest.manifestVersion,
             projectManifestSchemaVersion: boundProjectManifest.manifest.schemaVersion,
+            /* Immutable SQL plan bound to this deployment; null pins "none". */
+            publishMigrationPlan: boundMigrationPlan ?? null,
             previewDeployment: body.previewDeployment,
             timeoutSeconds: body.timeoutSeconds,
             artifactSizeLimitMb: body.artifactSizeLimitMb,
@@ -36223,6 +36431,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
+    if (!(await deploymentProjectManifestIsCurrent(store, project, source))) {
+      return reply.code(409).send({
+        error: appPublicCopy('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH', locale),
+        code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+      });
+    }
+
     const check = canPublishDeployment(source);
 
     if (!check.ok) {
@@ -36308,7 +36523,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     let migrationPlan: Awaited<ReturnType<typeof collectPublishMigrationPlan>>;
     try {
-      migrationPlan = await collectPublishMigrationPlan(projectStorage, project.id, source.workspaceId);
+      const sourceMetadata = (source.metadata ?? {}) as Record<string, unknown>;
+      migrationPlan = Object.prototype.hasOwnProperty.call(sourceMetadata, 'publishMigrationPlan')
+        ? parsePinnedPublishMigrationPlan(sourceMetadata.publishMigrationPlan)
+        : await collectPublishMigrationPlan(projectStorage, project.id, source.workspaceId);
     } catch (error) {
       const code = error instanceof MigrationManifestError ? error.code : 'MIGRATION_TARGET_UNAVAILABLE';
       request.log?.warn?.({ err: error, projectId: project.id, code }, 'publish migration plan refused');
@@ -36786,6 +37004,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
+    if (!(await deploymentProjectManifestIsCurrent(store, project, source))) {
+      return reply.code(409).send({
+        error: appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH'),
+        code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+      });
+    }
+
     // A suspended org must not queue new builds (matches the create route).
     await requireOrganizationNotSuspended(store, project.organizationId);
 
@@ -36837,6 +37062,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * could never run.
      */
     const secondaryWorkspaceId = await resolveGitWorkspaceId(store, project.id, source.workspaceId ?? undefined);
+    let redeployMigrationPlan: Awaited<ReturnType<typeof collectPublishMigrationPlan>>;
+    try {
+      redeployMigrationPlan = await collectPublishMigrationPlan(projectStorage, project.id, secondaryWorkspaceId);
+    } catch (error) {
+      const code = error instanceof MigrationManifestError ? error.code : 'MIGRATION_TARGET_UNAVAILABLE';
+      return reply.code(error instanceof MigrationManifestError ? 409 : 503).send({
+        error: appPublicCopy(
+          code === 'MIGRATION_UNSAFE_PLAN' ? 'MIGRATION_UNSAFE_PLAN' : 'MIGRATION_MANIFEST_INVALID',
+          transactionalLocaleForRequest(request),
+        ),
+        code,
+        retryable: !(error instanceof MigrationManifestError),
+      });
+    }
 
     /*
      * Serialize quota + in-flight guard + create at the ORG level, identical to
@@ -36869,7 +37108,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
           // A redeploy runs on the SAME machine the original was priced for.
           machineSize: source.machineSize,
-          metadata: { ...source.metadata, redeployedFromId: source.id },
+          metadata: {
+            ...source.metadata,
+            publishMigrationPlan: redeployMigrationPlan ?? null,
+            redeployedFromId: source.id,
+          },
           startedAt: new Date().toISOString(),
           logs: [
             {
@@ -37186,6 +37429,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       throw error;
+    }
+
+    const previousDeploymentForManifest = await store.getDeployment(project.id, previous.deploymentId);
+    if (
+      previousDeploymentForManifest &&
+      !(await deploymentProjectManifestIsCurrent(store, project, previousDeploymentForManifest))
+    ) {
+      return reply.code(409).send({
+        error: appPublicCopy('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH', locale),
+        code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+      });
     }
 
     const appendRollbackManifest = async (
@@ -37526,6 +37780,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!target) {
       return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    if (!(await deploymentProjectManifestIsCurrent(store, project, target))) {
+      return reply.code(409).send({
+        error: appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH'),
+        code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+      });
     }
 
     if (target.status !== 'READY') {
