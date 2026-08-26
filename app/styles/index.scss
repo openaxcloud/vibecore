@@ -16459,6 +16459,7 @@ button.bolt-project-statusbar-pill:focus-visible,
   z-index: 120;
   max-width: min(380px, calc(100vw - 32px));
   color: var(--vc-ide-text-primary);
+  pointer-events: none;
 }
 
 .bolt-project-guided-tour-card {
@@ -16470,6 +16471,7 @@ button.bolt-project-statusbar-pill:focus-visible,
     var(--vc-ide-bg-card);
   box-shadow: var(--vc-ui-shadow-xl);
   padding: 16px;
+  pointer-events: none;
 }
 
 .bolt-project-guided-tour-kicker {
@@ -16553,12 +16555,14 @@ button.bolt-project-statusbar-pill:focus-visible,
 }
 
 .bolt-project-guided-tour-card button {
-  min-height: 32px;
+  min-height: 44px;
   border-radius: 8px;
   padding: 0 10px;
   color: var(--vc-ide-text-secondary);
   font-size: 12px !important;
   font-weight: 750;
+  pointer-events: auto;
+  touch-action: manipulation;
 }
 
 .bolt-project-guided-tour-card button:hover,
@@ -21572,8 +21576,8 @@ body:has(.bolt-project-statusbar) .Toastify__toast-container {
      * viewport visuel rétrécit.
      */
     max-height: calc(
-      var(--vc-mobile-visual-viewport-height, 100dvh) - var(--vc-ide-topbar-height, 48px) - 20px -
-        env(safe-area-inset-top, 0px)
+      var(--vc-mobile-visual-viewport-height, 100dvh) - var(--vc-ide-topbar-height, 48px) -
+        20px - env(safe-area-inset-top, 0px)
     );
     overflow-y: auto;
     overscroll-behavior: contain;
