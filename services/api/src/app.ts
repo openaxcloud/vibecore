@@ -763,7 +763,28 @@ const createProjectSchema = z.object({
   description: z.string().optional(),
 });
 
-const createProjectFromTemplateSchema = createProjectSchema.extend({ templateName: z.string().min(1) });
+const catalogTemplateNameSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .transform((templateName, context) => {
+    const template = getGalleryDemoApp(templateName);
+
+    if (!template) {
+      context.addIssue({
+        code: 'custom',
+        message: appPublicEnglish('VALIDATION_VALUE_INVALID'),
+      });
+
+      return z.NEVER;
+    }
+
+    /* Persist the stable catalog id even when a catalog key or slug is supplied. */
+    return template.id;
+  });
+
+const createProjectFromTemplateSchema = createProjectSchema.extend({ templateName: catalogTemplateNameSchema });
 
 const createProjectFromAiSchema = z.object({
   prompt: z.string().min(1),
@@ -6094,9 +6115,9 @@ function starterFiles(input: {
      * @vibecore/template-catalog (the same source the Gallery demo apps ship
      * from). Use those exact files so every template scaffolds its OWN app —
      * not the identical generic Vite shell every template produced before this
-     * fix. A templateName with no catalog entry (e.g. a browse-only framework
-     * starter that isn't wired to from-template) falls through to the generic
-     * but still-runnable Vite scaffold below, so a project is never empty.
+     * fix. The route schema rejects unknown catalog identifiers before any
+     * project is persisted; keep this service boundary fail-closed as defence in
+     * depth instead of silently substituting an unrelated generic application.
      */
     const demoApp = templateName ? getGalleryDemoApp(templateName) : undefined;
 
@@ -6104,25 +6125,9 @@ function starterFiles(input: {
       return demoApp.files.map((demoFile) => ({ path: demoFile.path, content: demoFile.content }));
     }
 
-    return [
-      {
-        path: 'README.md',
-        content: `# ${input.name}\n\n${appPublicCopy('PROJECT_STARTER_TEMPLATE_README', locale, { templateName })}\n`,
-      },
-      { path: 'package.json', content: vitePackageJson(input.name) },
-      { path: 'vite.config.ts', content: viteConfigTs() },
-      { path: 'index.html', content: viteIndexHtml(input.name, locale) },
-      { path: 'src/main.tsx', content: viteMainTsx() },
-      {
-        path: 'src/App.tsx',
-        content: viteAppTsx(
-          input.name,
-          appPublicCopy('PROJECT_STARTER_TEMPLATE_PROMPT', locale, { templateName }),
-          locale,
-        ),
-      },
-      { path: 'src/styles.css', content: viteStylesCss() },
-    ];
+    throw Object.assign(new Error('PROJECT_TEMPLATE_CATALOG_INVARIANT'), {
+      code: 'PROJECT_TEMPLATE_CATALOG_INVARIANT',
+    });
   }
 
   if (input.sourceType === 'ai') {
@@ -20109,6 +20114,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrg(request, store, orgId, 'projects:write');
     await requireOrganizationNotSuspended(store, orgId);
 
+    /*
+     * Materialize the selected catalog scaffold before the database mutation.
+     * This makes the validation/store boundary atomic from the caller's point of
+     * view: a catalog invariant failure can never leave an empty project row.
+     */
+    const templateFiles = starterFiles({
+      sourceType: 'template',
+      name: body.name,
+      templateName: body.templateName,
+      locale: transactionalLocaleForRequest(request),
+    });
+
     // Serialize quota + create (projects.count TOCTOU).
     const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
       await ensureQuota(request, orgId, 'projects.count');
@@ -20122,15 +20139,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         templateName: body.templateName,
       });
     });
-    const files = await projectStorage.writeFiles(
-      project.id,
-      starterFiles({
-        sourceType: 'template',
-        name: project.name,
-        templateName: body.templateName,
-        locale: transactionalLocaleForRequest(request),
-      }),
-    );
+    const files = await projectStorage.writeFiles(project.id, templateFiles);
     await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
