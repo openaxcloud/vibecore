@@ -2890,5 +2890,37 @@
   "PROJECT_TRANSFER_MANAGED_RESOURCES_ACTIVE": {
     "en": "This project still owns managed database, cloud, or migration resources. Move those resources with the tenant transfer workflow before transferring the project.",
     "fr": "Ce projet possède encore des ressources gérées de base de données, de cloud ou de migration. Déplacez-les avec le workflow de transfert de tenant avant de transférer le projet."
+  },
+  "TENANT_GUARDRAIL_UNAVAILABLE": {
+    "en": "This organization’s capacity could not be verified right now. Try again in a moment — nothing was created.",
+    "fr": "Impossible de vérifier la capacité de cette organisation pour le moment. Réessayez dans un instant — aucune ressource n’a été créée."
+  },
+  "TENANT_BILLING_ACCOUNT_REQUIRED": {
+    "en": "Connect a valid billing account before starting this operation.",
+    "fr": "Associez un compte de facturation valide avant de lancer cette opération."
+  },
+  "TENANT_BILLING_ACCOUNT_DELINQUENT": {
+    "en": "Resolve the outstanding balance before creating more resources.",
+    "fr": "Réglez le solde impayé avant de créer de nouvelles ressources."
+  },
+  "TENANT_BILLING_ACCOUNT_REVOKED": {
+    "en": "This organization’s billing authorization has been revoked. Contact support before creating more resources.",
+    "fr": "L’autorisation de facturation de cette organisation a été révoquée. Contactez l’assistance avant de créer de nouvelles ressources."
+  },
+  "TENANT_CAP_EXCEEDED": {
+    "en": "This organization has reached its current capacity limit.",
+    "fr": "Cette organisation a atteint sa limite de capacité actuelle."
+  },
+  "TENANT_BURST_EXCEEDED": {
+    "en": "Too many resources were created recently. Try again later.",
+    "fr": "Trop de ressources ont été créées récemment. Réessayez plus tard."
+  },
+  "TENANT_PROVIDER_NOT_ALLOWED": {
+    "en": "This deployment provider is not available for this organization’s trust level.",
+    "fr": "Ce fournisseur de déploiement n’est pas disponible pour le niveau de confiance de cette organisation."
+  },
+  "TENANT_RESOURCE_LIMIT_EXCEEDED": {
+    "en": "The requested resources exceed this organization’s current safety limit.",
+    "fr": "Les ressources demandées dépassent la limite de sécurité actuelle de cette organisation."
   }
 }

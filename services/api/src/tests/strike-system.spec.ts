@@ -7,6 +7,7 @@ import {
   STRIKE_EXPIRY_DAYS,
   WARNING_THRESHOLD,
   consequenceForStrikeCount,
+  countActiveModerationStrikes,
   countActiveStrikes,
   describeConsequence,
   escalate,
@@ -89,6 +90,28 @@ describe('countActiveStrikes', () => {
     expect(countActiveStrikes(null as unknown as StrikeRecordLike[], NOW)).toBe(0);
     expect(countActiveStrikes([strike(daysAgo(1)), null as unknown as StrikeRecordLike], NOW)).toBe(1);
     expect(countActiveStrikes([strike('not-a-date')], NOW)).toBe(1);
+  });
+});
+
+describe('countActiveModerationStrikes', () => {
+  it('counts the preferences representation and expires old entries', () => {
+    expect(
+      countActiveModerationStrikes(
+        {
+          moderationStrikes: [
+            { severity: 'minor', createdAt: new Date(daysAgo(1)).toISOString() },
+            { severity: 'major', createdAt: new Date(daysAgo(STRIKE_EXPIRY_DAYS + 1)).toISOString() },
+          ],
+        },
+        NOW,
+      ),
+    ).toBe(1);
+  });
+
+  it('fails closed for a present malformed strike collection or entry', () => {
+    expect(countActiveModerationStrikes({ moderationStrikes: 'corrupt' }, NOW)).toBe(1);
+    expect(countActiveModerationStrikes({ moderationStrikes: [null] }, NOW)).toBe(1);
+    expect(() => countActiveModerationStrikes({}, Number.NaN)).toThrow(/clock/);
   });
 });
 

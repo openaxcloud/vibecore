@@ -2,7 +2,7 @@
 # (P0-A2-01 / P0-LS-16). Ne jamais éditer à la main — drift-check en CI. Le
 # champ validation reflète le dernier run du validateur sur l'arbre.
 schemaVersion: 1
-fileCount: 173
+fileCount: 174
 generatedAt: "2026-08-25T16:49:56Z"
 generatedFromCommit: b96fb728b15f422ab5d8f4b4fbe53e6e970709d1
 mergedCommit: b96fb728b15f422ab5d8f4b4fbe53e6e970709d1
@@ -202,6 +202,11 @@ documents:
     sha256: "67224839b661ba12e988c773f2cbd3c479c30066f1feea0c18addc1f10ab402d"
     schemaVersion: 1
     repoCommit: d56931bd
+    reviewer: UNKNOWN
+  - file: MULTI_TENANT_GUARDRAILS_CONTRACT.md
+    sha256: "e40ea2602ff11961bbf392067107b29faf1786794b667ffcd0f52cfe7d4d4acb"
+    schemaVersion: 1
+    repoCommit: null
     reviewer: UNKNOWN
   - file: OBSERVATION_REGISTRY.yaml
     sha256: "ad945a0972dc6c630fc5e83bd6776d5819a911fa1eccedc5beb355edf440e3ff"

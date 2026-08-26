@@ -15,6 +15,7 @@ import {
   type ProjectManifest,
   type ProjectManifestCloneMode,
 } from '../project-manifest.js';
+import { countActiveModerationStrikes } from '../strike-system.js';
 import type {
   EnvVarScope,
   AbuseEventRecord,
@@ -881,8 +882,11 @@ export class TestApiStore implements ApiStore {
     );
   }
 
-  async countProjects(organizationId: string) {
-    const visible = await this.listProjects(organizationId);
+  async countProjects(organizationId: string, options: { since?: Date } = {}) {
+    const sinceMs = options.since?.getTime();
+    const visible = (await this.listProjects(organizationId)).filter(
+      (project) => sinceMs === undefined || new Date(project.createdAt).getTime() >= sinceMs,
+    );
     const partialTargetIds = new Set([
       ...[...this.remixJobs.values()]
         .filter(
@@ -903,10 +907,50 @@ export class TestApiStore implements ApiStore {
     ]);
     const partial = [...partialTargetIds].filter((projectId) => {
       const project = this.projects.get(projectId);
-      return project?.organizationId === organizationId && Boolean(project.deletedAt);
+      return (
+        project?.organizationId === organizationId &&
+        Boolean(project.deletedAt) &&
+        (sinceMs === undefined || new Date(project.createdAt).getTime() >= sinceMs)
+      );
     }).length;
 
     return visible.length + partial;
+  }
+
+  async countOrganizationActiveStrikes(organizationId: string, nowMs: number) {
+    const memberUserIds = new Set(
+      [...this.memberships.values()]
+        .filter((membership) => membership.organizationId === organizationId)
+        .map((membership) => membership.userId),
+    );
+
+    return [...memberUserIds].reduce(
+      (total, userId) => total + countActiveModerationStrikes(this.users.get(userId)?.preferences, nowMs),
+      0,
+    );
+  }
+
+  async countRecentSevereAbuseEvents(organizationId: string, since: Date) {
+    const sinceMs = since.getTime();
+
+    if (!organizationId || !Number.isFinite(sinceMs)) {
+      throw new TypeError('TENANT_GUARDRAIL_ABUSE_COUNTER_CONTEXT_INVALID');
+    }
+
+    return [...this.abuseEvents.values()].filter((event) => {
+      if (
+        event.organizationId !== organizationId ||
+        !['high', 'critical'].includes(event.severity) ||
+        event.disposition === 'dismissed'
+      ) {
+        return false;
+      }
+
+      const createdAtMs = Date.parse(event.createdAt);
+
+      /* Malformed authoritative timestamps are suspicious and demote. */
+      return !Number.isFinite(createdAtMs) || createdAtMs >= sinceMs;
+    }).length;
   }
 
   newsletterSubscribers = new Map<string, { email: string; source: string; unsubscribedAt: string | null }>();
@@ -2394,6 +2438,7 @@ export class TestApiStore implements ApiStore {
     name: string;
     runtimeMode: string;
     environment?: string;
+    initialStatus?: WorkspaceRecord['status'];
   }) {
     const workspaceId = input.id ?? id('workspace');
 
@@ -2402,7 +2447,7 @@ export class TestApiStore implements ApiStore {
       projectId: input.projectId,
       name: input.name,
       runtimeMode: input.runtimeMode,
-      status: 'PENDING',
+      status: input.initialStatus ?? 'PENDING',
       gitPath: `.vibecore-workspaces/${workspaceId}`,
       environment: input.environment ?? 'development',
       createdAt: now(),

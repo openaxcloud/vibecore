@@ -19,6 +19,7 @@ import {
   type ProjectManifestCloneMode,
 } from './project-manifest.js';
 import { slugify } from './slugify.js';
+import { countActiveModerationStrikes } from './strike-system.js';
 import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
 import type {
   AbuseEventRecord,
@@ -644,6 +645,13 @@ export class PrismaApiStore implements ApiStore {
   }
 
   #lockClient?: DatabaseClient;
+
+  /** Release both pools during controlled shutdowns and real-Postgres tests. */
+  async disconnect(): Promise<void> {
+    const clients = [this.prisma, this.#lockClient].filter(Boolean) as DatabaseClient[];
+    this.#lockClient = undefined;
+    await Promise.all(clients.map((client) => client.$disconnect()));
+  }
 
   async createUser(input: {
     email: string;
@@ -1421,7 +1429,7 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapProject);
   }
 
-  async countProjects(organizationId: string) {
+  async countProjects(organizationId: string, options: { since?: Date } = {}) {
     /*
      * Partial remix/import targets are intentionally soft-hidden until their
      * durable workflow commits. They still consume the project quota: omitting
@@ -1430,6 +1438,7 @@ export class PrismaApiStore implements ApiStore {
      * between separate visible/job reads could otherwise disappear from both
      * snapshots and undercount the tenant by one.
      */
+    const createdAtFilter = options.since ? Prisma.sql`AND p."createdAt" >= ${options.since}` : Prisma.empty;
     const rows = await this.prisma.$queryRaw<Array<{ count: number }>>(Prisma.sql`
       SELECT COUNT(DISTINCT p."id")::int AS "count"
       FROM "Project" p
@@ -1449,9 +1458,51 @@ export class PrismaApiStore implements ApiStore {
               AND i."state" NOT IN ('COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED')
           )
         )
+        ${createdAtFilter}
     `);
 
     return rows[0]?.count ?? 0;
+  }
+
+  async countOrganizationActiveStrikes(organizationId: string, nowMs: number) {
+    const memberships = await this.prisma.organizationMember.findMany({
+      where: { organizationId },
+      select: { user: { select: { preferences: true } } },
+    });
+
+    return memberships.reduce(
+      (total, membership) => total + countActiveModerationStrikes(membership.user.preferences, nowMs),
+      0,
+    );
+  }
+
+  async countRecentSevereAbuseEvents(organizationId: string, since: Date) {
+    if (!organizationId || !Number.isFinite(since.getTime())) {
+      throw new TypeError('TENANT_GUARDRAIL_ABUSE_COUNTER_CONTEXT_INVALID');
+    }
+
+    /*
+     * One aggregate query is the security boundary. In particular, do not reuse
+     * listAbuseEvents(): its intentional display/hot-path cap would let an
+     * attacker push a severe event out of the first page with harmless rows.
+     * IS DISTINCT FROM includes legacy NULL metadata while excluding incidents
+     * an operator explicitly dismissed.
+     */
+    const [row] = await this.prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+      SELECT COUNT(*)::bigint AS "count"
+      FROM "AbuseEvent"
+      WHERE "organizationId" = ${organizationId}
+        AND "severity" IN ('high', 'critical')
+        AND "createdAt" >= ${since}
+        AND ("metadata"->>'disposition') IS DISTINCT FROM 'dismissed'
+    `);
+    const count = Number(row?.count ?? 0n);
+
+    if (!Number.isSafeInteger(count) || count < 0) {
+      throw new RangeError('TENANT_GUARDRAIL_ABUSE_COUNTER_INVALID');
+    }
+
+    return count;
   }
 
   async subscribeNewsletter(input: { email: string; source?: string }) {
@@ -5205,6 +5256,7 @@ export class PrismaApiStore implements ApiStore {
     name: string;
     runtimeMode: string;
     environment?: string;
+    initialStatus?: WorkspaceRecord['status'];
   }) {
     /*
      * Persist the created workspace first so Prisma can mint the id when the
@@ -5214,8 +5266,9 @@ export class PrismaApiStore implements ApiStore {
      * so a crash between them can never leave a row with a null gitPath.
      */
     const updated = await this.prisma.$transaction(async (tx) => {
+      const { initialStatus, ...data } = input;
       const created = await tx.workspace.create({
-        data: { ...input, status: 'PENDING' },
+        data: { ...data, status: initialStatus ?? 'PENDING' },
       });
 
       const gitPath = workspaceRelativeGitPath(created.id);

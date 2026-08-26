@@ -118,6 +118,14 @@ data:
   # ECODE_PARALLEL_SUBAGENTS_ENABLED note below.
   BILLING_CREDITS_SHADOW: "true"
 
+  # Multi-tenant anti-abuse guardrails (P0-A2-14 — ReputationTier /
+  # BillingAccountBinding / provider allowlists / cost + burst ceilings).
+  # Security default is ENFORCED; only an explicit emergency change to "false"
+  # enters observe-only mode, and every would-be refusal stays audited/metriced.
+  # Hardcoded literal (NOT a values key) for the same --reuse-values reason as
+  # BILLING_CREDITS_SHADOW above.
+  TENANT_GUARDRAILS_ENABLED: "true"
+
   # Replit-parity managed model registry, read-through. "true" makes
   # GET /orgs/:id/ai/models return the admin-owned provider/model registry
   # (seeded enabled-by-default at API boot — seedProviderRegistry, app.ts:5722)
