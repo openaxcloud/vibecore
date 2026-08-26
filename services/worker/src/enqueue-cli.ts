@@ -16,6 +16,12 @@ import { Redis } from 'ioredis';
 
 const KNOWN_QUEUES = new Set(['workspace-jobs', 'enterprise-jobs', 'deploy-jobs']);
 
+function assertKnownQueue(queue: string): void {
+  if (!KNOWN_QUEUES.has(queue)) {
+    throw new Error(`Unknown queue '${queue}'. Known queues: ${[...KNOWN_QUEUES].join(', ')}`);
+  }
+}
+
 interface Parsed {
   queue: string;
   job: string;
@@ -58,14 +64,20 @@ function parseArgs(argv: string[]): Parsed {
     throw new Error('--job is required');
   }
 
-  if (!KNOWN_QUEUES.has(queue)) {
-    throw new Error(`Unknown queue '${queue}'. Known queues: ${[...KNOWN_QUEUES].join(', ')}`);
-  }
+  assertKnownQueue(queue);
 
   return { queue, job, data };
 }
 
 export async function enqueue(parsed: Parsed): Promise<string> {
+  /*
+   * Defense in depth: enqueue() is exported and can be called by tests, future
+   * schedulers or operational code without going through parseArgs(). A typo
+   * must fail before allocating Redis/BullMQ resources instead of silently
+   * creating an orphan queue that no worker consumes.
+   */
+  assertKnownQueue(parsed.queue);
+
   const url = process.env.REDIS_URL;
 
   if (!url) {

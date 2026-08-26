@@ -31,7 +31,7 @@ describe('enqueue-cli arg parsing', () => {
 
     await expect(
       enqueue({ queue: 'imaginary-queue', job: 'whatever', data: {} } as Parameters<typeof enqueue>[0]),
-    ).rejects.toThrow();
+    ).rejects.toThrow("Unknown queue 'imaginary-queue'. Known queues: workspace-jobs, enterprise-jobs, deploy-jobs");
   });
 
   it('throws when REDIS_URL is missing', async () => {
