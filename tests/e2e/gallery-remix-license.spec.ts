@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
+import { assertIbanWasMasked } from '~/lib/qa/tpl-proof-contract.js';
 
 /**
  * Screen-level proof of P0-V3-05 (I-RMX-3): versioned license + explicit
@@ -32,6 +33,8 @@ const PII_NAME = 'Jane Doe';
 const PII_IBAN = 'FR76 3000 6000 0112 3456 7890 189';
 const PII_CARD = '4242 4242 4242 4242';
 const LICENSE_TEXT = 'MIT License\n\nPermission is hereby granted, free of charge, to any person…';
+const SOURCE_CUSTOMERS_CSV = `name,email,phone,iban,card\n${PII_NAME},${PII_EMAIL},${PII_PHONE},${PII_IBAN},${PII_CARD}\n`;
+const SOURCE_PRODUCTS_CSV = 'name,price,stock\nDesk Lamp,4200,7\n';
 
 type Api = import('@playwright/test').APIRequestContext;
 
@@ -107,13 +110,10 @@ test('gallery remix shows the versioned license, requires explicit consent, and 
   const sourceProjectId = ((await createProject.json()) as { project: { id: string } }).project.id;
 
   const zip = new JSZip();
-  zip.file(
-    'seed/customers.csv',
-    `name,email,phone,iban,card\n${PII_NAME},${PII_EMAIL},${PII_PHONE},${PII_IBAN},${PII_CARD}\n`,
-  );
+  zip.file('seed/customers.csv', SOURCE_CUSTOMERS_CSV);
 
   // Catalogue produit : NE DOIT PAS être masqué (name+price+stock ≠ personnes).
-  zip.file('data/products.csv', 'name,price,stock\nDesk Lamp,4200,7\n');
+  zip.file('data/products.csv', SOURCE_PRODUCTS_CSV);
   zip.file('README.md', '# Licensed CRM\nContact: support@example.com\n');
 
   const writeFiles = await api.post(`${API_BASE_URL}/projects/${sourceProjectId}/files/import/zip`, {
@@ -242,8 +242,19 @@ test('gallery remix shows the versioned license, requires explicit consent, and 
     expect(allText, marker).toContain(`[PII:${marker} masked on remix]`);
   }
 
-  // Aucun FRAGMENT résiduel : le dernier groupe de l'IBAN ne doit pas survivre.
-  expect(allText).not.toContain('189');
+  /*
+   * TPL-02.6: a true before/after. The helper refuses the old false-positive
+   * shape where the clone merely lacks an arbitrary value: it first proves the
+   * source fixture contains the complete IBAN and a safe release marker, then
+   * requires the explicit mask marker and rejects the terminal group too.
+   */
+  assertIbanWasMasked({
+    sourceText: `${SOURCE_CUSTOMERS_CSV}\n${SOURCE_PRODUCTS_CSV}`,
+    cloneText: allText,
+    fullIban: PII_IBAN,
+    trailingFragment: '189',
+    safeMarker: 'Desk Lamp',
+  });
 
   expect(allText).toContain('support@example.com'); // RFC 2606 fixture kept
   // Non-régression : le catalogue produit traverse le remix intact.
