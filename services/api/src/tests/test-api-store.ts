@@ -74,6 +74,8 @@ import type {
   DatabaseInstanceRecord,
   DatabaseSnapshotRecord,
   DatabaseRestoreRecord,
+  DatabaseMigrationExecutionRecord,
+  DatabaseMigrationState,
   GalleryListingRecord,
   ProjectTemplateRecord,
   RecoveryCodeRecord,
@@ -1813,6 +1815,168 @@ export class TestApiStore implements ApiStore {
     }
 
     return undefined;
+  }
+
+  migrationExecutions = new Map<string, DatabaseMigrationExecutionRecord>();
+
+  async acquireDatabaseMigrationExecution(input: {
+    projectId: string;
+    organizationId: string;
+    environment: string;
+    idempotencyKey: string;
+    requestHash: string;
+    ownerToken: string;
+    ttlMs: number;
+    plan: Array<{ name: string; sha256: string }>;
+    statementsSha256: string;
+    backwardCompatible: boolean;
+    forwardCompatible: boolean;
+    deploymentId?: string;
+    createdByUserId?: string;
+  }) {
+    const timestamp = Date.now();
+    const activeLock = `${input.projectId}:${input.environment}`;
+    let row = [...this.migrationExecutions.values()].find(
+      (entry) => entry.projectId === input.projectId && entry.idempotencyKey === input.idempotencyKey,
+    );
+    if (row) {
+      if (row.requestHash !== input.requestHash) return { kind: 'IDEMPOTENCY_COLLISION' as const, execution: row };
+      if (row.state === 'COMMITTED') return { kind: 'REPLAYED' as const, execution: row };
+      if (row.state === 'FAILED_SAFE') return { kind: 'FAILED' as const, execution: row };
+      if (row.leaseExpiresAt && new Date(row.leaseExpiresAt).getTime() > timestamp) {
+        return { kind: 'BLOCKED' as const, execution: row };
+      }
+    } else {
+      row = [...this.migrationExecutions.values()].find((entry) => entry.activeLock === activeLock);
+      if (row?.leaseExpiresAt && new Date(row.leaseExpiresAt).getTime() > timestamp) {
+        return { kind: 'BLOCKED' as const, execution: row };
+      }
+    }
+    if (row) {
+      const claimed: DatabaseMigrationExecutionRecord = {
+        ...row,
+        state: 'RECOVERING',
+        ownerToken: input.ownerToken,
+        version: row.version + 1,
+        attempt: row.attempt + 1,
+        leaseExpiresAt: new Date(timestamp + input.ttlMs).toISOString(),
+      };
+      this.migrationExecutions.set(row.id, claimed);
+      return { kind: 'RECOVERY' as const, execution: claimed };
+    }
+
+    const created: DatabaseMigrationExecutionRecord = {
+      id: id('dbmig'),
+      projectId: input.projectId,
+      organizationId: input.organizationId,
+      environment: input.environment,
+      state: 'LOCK_ACQUIRED',
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
+      activeLock,
+      ownerToken: input.ownerToken,
+      version: 0,
+      leaseExpiresAt: new Date(timestamp + input.ttlMs).toISOString(),
+      attempt: 1,
+      plan: input.plan,
+      statementsSha256: input.statementsSha256,
+      statementCount: input.plan.length,
+      appliedStatements: 0,
+      backwardCompatible: input.backwardCompatible,
+      forwardCompatible: input.forwardCompatible,
+      deploymentId: input.deploymentId,
+      createdByUserId: input.createdByUserId,
+      startedAt: now(),
+    };
+    this.migrationExecutions.set(created.id, created);
+    return { kind: 'ACQUIRED' as const, execution: created };
+  }
+
+  async renewDatabaseMigrationLease(input: {
+    id: string;
+    ownerToken: string;
+    version: number;
+    state: DatabaseMigrationState;
+    ttlMs: number;
+  }) {
+    const row = this.migrationExecutions.get(input.id);
+    const timestamp = Date.now();
+    if (
+      !row ||
+      row.ownerToken !== input.ownerToken ||
+      row.version !== input.version ||
+      row.state !== input.state ||
+      !row.activeLock ||
+      !row.leaseExpiresAt ||
+      new Date(row.leaseExpiresAt).getTime() <= timestamp
+    )
+      return undefined;
+    const renewed = {
+      ...row,
+      version: row.version + 1,
+      leaseExpiresAt: new Date(timestamp + input.ttlMs).toISOString(),
+    };
+    this.migrationExecutions.set(row.id, renewed);
+    return renewed;
+  }
+
+  async validateDatabaseMigrationLease(input: {
+    id: string;
+    ownerToken: string;
+    version: number;
+    state: DatabaseMigrationState;
+  }) {
+    const row = this.migrationExecutions.get(input.id);
+    return Boolean(
+      row &&
+        row.ownerToken === input.ownerToken &&
+        row.version === input.version &&
+        row.state === input.state &&
+        row.activeLock &&
+        row.leaseExpiresAt &&
+        new Date(row.leaseExpiresAt).getTime() > Date.now(),
+    );
+  }
+
+  async transitionDatabaseMigrationExecution(input: {
+    id: string;
+    ownerToken: string;
+    version: number;
+    expectedState: DatabaseMigrationState;
+    nextState: DatabaseMigrationState;
+    ttlMs: number;
+    release?: boolean;
+    retainLock?: boolean;
+    backupId?: string;
+    backupVerificationMethod?: string;
+    appliedStatements?: number;
+    errorCode?: string;
+  }) {
+    const row = this.migrationExecutions.get(input.id);
+    if (!(await this.validateDatabaseMigrationLease({ ...input, state: input.expectedState }))) return undefined;
+    const release = input.release === true;
+    const retainLock = input.retainLock === true;
+    if (release && retainLock) throw new TypeError('migration transition cannot release and retain its lock');
+    const transitioned: DatabaseMigrationExecutionRecord = {
+      ...row!,
+      state: input.nextState,
+      version: row!.version + 1,
+      ownerToken: release || retainLock ? undefined : row!.ownerToken,
+      activeLock: release ? undefined : row!.activeLock,
+      leaseExpiresAt: release || retainLock ? undefined : new Date(Date.now() + input.ttlMs).toISOString(),
+      completedAt: release ? now() : row!.completedAt,
+      ...(input.backupId
+        ? {
+            backupId: input.backupId,
+            backupVerifiedAt: now(),
+          }
+        : {}),
+      ...(input.backupVerificationMethod ? { backupVerificationMethod: input.backupVerificationMethod } : {}),
+      ...(input.appliedStatements !== undefined ? { appliedStatements: input.appliedStatements } : {}),
+      ...(input.errorCode ? { errorCode: input.errorCode } : {}),
+    };
+    this.migrationExecutions.set(row!.id, transitioned);
+    return transitioned;
   }
 
   async listDatabaseSnapshots(databaseInstanceId: string) {

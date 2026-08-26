@@ -76,6 +76,8 @@ import type {
   DatabaseInstanceRecord,
   DatabaseSnapshotRecord,
   DatabaseRestoreRecord,
+  DatabaseMigrationExecutionRecord,
+  DatabaseMigrationState,
   GalleryListingRecord,
   RecoveryCodeRecord,
   RuntimeWebSocketTicketRecord,
@@ -106,6 +108,9 @@ import type {
 } from './store.js';
 
 const RUNTIME_WEBSOCKET_TICKET_INSERT_EMPTY = 'RUNTIME_WEBSOCKET_TICKET_INSERT_EMPTY';
+const DB_MIGRATION_STATE_CORRUPT = 'DB_MIGRATION_STATE_CORRUPT';
+const DB_MIGRATION_PLAN_CORRUPT = 'DB_MIGRATION_PLAN_CORRUPT';
+const DB_MIGRATION_EXECUTION_INSERT_EMPTY = 'DB_MIGRATION_EXECUTION_INSERT_EMPTY';
 
 function now() {
   return new Date().toISOString();
@@ -113,6 +118,94 @@ function now() {
 
 function toIso(value: Date | string | null | undefined) {
   return value ? new Date(value).toISOString() : undefined;
+}
+
+type DatabaseMigrationRow = {
+  id: string;
+  projectId: string;
+  organizationId: string;
+  environment: string;
+  state: string;
+  idempotencyKey: string;
+  requestHash: string;
+  activeLock: string | null;
+  ownerToken: string | null;
+  version: number;
+  leaseExpiresAt: Date | null;
+  attempt: number;
+  plan: unknown;
+  statementsSha256: string;
+  statementCount: number;
+  appliedStatements: number;
+  backwardCompatible: boolean;
+  forwardCompatible: boolean;
+  backupId: string | null;
+  backupVerifiedAt: Date | null;
+  backupVerificationMethod: string | null;
+  deploymentId: string | null;
+  createdByUserId: string | null;
+  errorCode: string | null;
+  startedAt: Date;
+  completedAt: Date | null;
+  leaseLive?: boolean;
+};
+
+const DATABASE_MIGRATION_STATES = new Set<DatabaseMigrationState>([
+  'LOCK_ACQUIRED',
+  'BACKUP_VERIFIED',
+  'APPLYING',
+  'VALIDATING',
+  'RECOVERING',
+  'COMMITTED',
+  'FAILED_SAFE',
+  'MANUAL_RECOVERY',
+]);
+
+function mapDatabaseMigrationExecution(row: DatabaseMigrationRow): DatabaseMigrationExecutionRecord {
+  if (!DATABASE_MIGRATION_STATES.has(row.state as DatabaseMigrationState)) {
+    throw new Error(DB_MIGRATION_STATE_CORRUPT);
+  }
+  if (!Array.isArray(row.plan) || row.plan.length !== row.statementCount) {
+    throw new Error(DB_MIGRATION_PLAN_CORRUPT);
+  }
+  const plan = row.plan.map((entry) => {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) {
+      throw new Error(DB_MIGRATION_PLAN_CORRUPT);
+    }
+    const item = entry as Record<string, unknown>;
+    if (typeof item.name !== 'string' || typeof item.sha256 !== 'string' || !/^[a-f0-9]{64}$/.test(item.sha256)) {
+      throw new Error(DB_MIGRATION_PLAN_CORRUPT);
+    }
+    return { name: item.name, sha256: item.sha256 };
+  });
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    organizationId: row.organizationId,
+    environment: row.environment,
+    state: row.state as DatabaseMigrationState,
+    idempotencyKey: row.idempotencyKey,
+    requestHash: row.requestHash,
+    activeLock: row.activeLock ?? undefined,
+    ownerToken: row.ownerToken ?? undefined,
+    version: row.version,
+    leaseExpiresAt: toIso(row.leaseExpiresAt),
+    attempt: row.attempt,
+    plan,
+    statementsSha256: row.statementsSha256,
+    statementCount: row.statementCount,
+    appliedStatements: row.appliedStatements,
+    backwardCompatible: row.backwardCompatible,
+    forwardCompatible: row.forwardCompatible,
+    backupId: row.backupId ?? undefined,
+    backupVerifiedAt: toIso(row.backupVerifiedAt),
+    backupVerificationMethod: row.backupVerificationMethod ?? undefined,
+    deploymentId: row.deploymentId ?? undefined,
+    createdByUserId: row.createdByUserId ?? undefined,
+    errorCode: row.errorCode ?? undefined,
+    startedAt: row.startedAt.toISOString(),
+    completedAt: toIso(row.completedAt),
+  };
 }
 
 /** Parse a JSON column that should hold an array; tolerate null/garbage → []. */
@@ -3308,6 +3401,167 @@ export class PrismaApiStore implements ApiStore {
     });
 
     return row ? mapDatabaseInstance(row) : undefined;
+  }
+
+  async acquireDatabaseMigrationExecution(input: {
+    projectId: string;
+    organizationId: string;
+    environment: string;
+    idempotencyKey: string;
+    requestHash: string;
+    ownerToken: string;
+    ttlMs: number;
+    plan: Array<{ name: string; sha256: string }>;
+    statementsSha256: string;
+    backwardCompatible: boolean;
+    forwardCompatible: boolean;
+    deploymentId?: string;
+    createdByUserId?: string;
+  }) {
+    if (!Number.isFinite(input.ttlMs) || input.ttlMs < 1) throw new TypeError('invalid migration lease TTL');
+    const activeLock = `${input.projectId}:${input.environment}`;
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw(
+        Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`db-migration:${activeLock}`}, 0))`,
+      );
+      const selectByIdempotency = async () =>
+        (
+          await tx.$queryRaw<DatabaseMigrationRow[]>(Prisma.sql`
+            SELECT *, ("leaseExpiresAt" > CURRENT_TIMESTAMP) AS "leaseLive"
+            FROM "DBMigrationExecution"
+            WHERE "projectId" = ${input.projectId} AND "idempotencyKey" = ${input.idempotencyKey}
+            FOR UPDATE
+          `)
+        )[0];
+      let row = await selectByIdempotency();
+      if (row) {
+        const execution = mapDatabaseMigrationExecution(row);
+        if (row.requestHash !== input.requestHash) return { kind: 'IDEMPOTENCY_COLLISION' as const, execution };
+        if (row.state === 'COMMITTED') return { kind: 'REPLAYED' as const, execution };
+        if (row.state === 'FAILED_SAFE') return { kind: 'FAILED' as const, execution };
+        if (row.leaseLive) return { kind: 'BLOCKED' as const, execution };
+      } else {
+        row = (
+          await tx.$queryRaw<DatabaseMigrationRow[]>(Prisma.sql`
+            SELECT *, ("leaseExpiresAt" > CURRENT_TIMESTAMP) AS "leaseLive"
+            FROM "DBMigrationExecution"
+            WHERE "activeLock" = ${activeLock}
+            FOR UPDATE
+          `)
+        )[0];
+        if (row?.leaseLive) return { kind: 'BLOCKED' as const, execution: mapDatabaseMigrationExecution(row) };
+      }
+
+      if (row) {
+        const [claimed] = await tx.$queryRaw<DatabaseMigrationRow[]>(Prisma.sql`
+          UPDATE "DBMigrationExecution"
+          SET "state" = 'RECOVERING', "ownerToken" = ${input.ownerToken},
+              "version" = "version" + 1, "attempt" = "attempt" + 1,
+              "leaseExpiresAt" = CURRENT_TIMESTAMP + (${Math.floor(input.ttlMs)} * INTERVAL '1 millisecond'),
+              "updatedAt" = CURRENT_TIMESTAMP
+          WHERE "id" = ${row.id} AND ("leaseExpiresAt" IS NULL OR "leaseExpiresAt" <= CURRENT_TIMESTAMP)
+          RETURNING *
+        `);
+        if (!claimed) return { kind: 'BLOCKED' as const, execution: mapDatabaseMigrationExecution(row) };
+        return { kind: 'RECOVERY' as const, execution: mapDatabaseMigrationExecution(claimed) };
+      }
+
+      const [created] = await tx.$queryRaw<DatabaseMigrationRow[]>(Prisma.sql`
+        INSERT INTO "DBMigrationExecution" (
+          "id", "projectId", "organizationId", "environment", "state", "idempotencyKey",
+          "requestHash", "activeLock", "ownerToken", "leaseExpiresAt", "plan",
+          "statementsSha256", "statementCount", "backwardCompatible", "forwardCompatible",
+          "deploymentId", "createdByUserId", "updatedAt"
+        ) VALUES (
+          ${`dbmig_${randomUUID()}`}, ${input.projectId}, ${input.organizationId}, ${input.environment},
+          'LOCK_ACQUIRED', ${input.idempotencyKey}, ${input.requestHash}, ${activeLock}, ${input.ownerToken},
+          CURRENT_TIMESTAMP + (${Math.floor(input.ttlMs)} * INTERVAL '1 millisecond'),
+          ${JSON.stringify(input.plan)}::jsonb, ${input.statementsSha256}, ${input.plan.length},
+          ${input.backwardCompatible}, ${input.forwardCompatible}, ${input.deploymentId ?? null},
+          ${input.createdByUserId ?? null}, CURRENT_TIMESTAMP
+        ) RETURNING *
+      `);
+      if (!created) throw new Error(DB_MIGRATION_EXECUTION_INSERT_EMPTY);
+      return { kind: 'ACQUIRED' as const, execution: mapDatabaseMigrationExecution(created) };
+    });
+  }
+
+  async renewDatabaseMigrationLease(input: {
+    id: string;
+    ownerToken: string;
+    version: number;
+    state: DatabaseMigrationState;
+    ttlMs: number;
+  }) {
+    const [row] = await this.prisma.$queryRaw<DatabaseMigrationRow[]>(Prisma.sql`
+      UPDATE "DBMigrationExecution"
+      SET "version" = "version" + 1,
+          "leaseExpiresAt" = CURRENT_TIMESTAMP + (${Math.floor(input.ttlMs)} * INTERVAL '1 millisecond'),
+          "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = ${input.id} AND "ownerToken" = ${input.ownerToken}
+        AND "version" = ${input.version} AND "state" = ${input.state}
+        AND "leaseExpiresAt" > CURRENT_TIMESTAMP AND "activeLock" IS NOT NULL
+      RETURNING *
+    `);
+    return row ? mapDatabaseMigrationExecution(row) : undefined;
+  }
+
+  async validateDatabaseMigrationLease(input: {
+    id: string;
+    ownerToken: string;
+    version: number;
+    state: DatabaseMigrationState;
+  }) {
+    const [row] = await this.prisma.$queryRaw<Array<{ live: boolean }>>(Prisma.sql`
+      SELECT EXISTS(
+        SELECT 1 FROM "DBMigrationExecution"
+        WHERE "id" = ${input.id} AND "ownerToken" = ${input.ownerToken}
+          AND "version" = ${input.version} AND "state" = ${input.state}
+          AND "leaseExpiresAt" > CURRENT_TIMESTAMP AND "activeLock" IS NOT NULL
+      ) AS live
+    `);
+    return row?.live === true;
+  }
+
+  async transitionDatabaseMigrationExecution(input: {
+    id: string;
+    ownerToken: string;
+    version: number;
+    expectedState: DatabaseMigrationState;
+    nextState: DatabaseMigrationState;
+    ttlMs: number;
+    release?: boolean;
+    retainLock?: boolean;
+    backupId?: string;
+    backupVerificationMethod?: string;
+    appliedStatements?: number;
+    errorCode?: string;
+  }) {
+    const release = input.release === true;
+    const retainLock = input.retainLock === true;
+    if (release && retainLock) throw new TypeError('migration transition cannot release and retain its lock');
+    const [row] = await this.prisma.$queryRaw<DatabaseMigrationRow[]>(Prisma.sql`
+      UPDATE "DBMigrationExecution"
+      SET "state" = ${input.nextState}, "version" = "version" + 1,
+          "ownerToken" = CASE WHEN ${release || retainLock} THEN NULL ELSE "ownerToken" END,
+          "activeLock" = CASE WHEN ${release} THEN NULL ELSE "activeLock" END,
+          "leaseExpiresAt" = CASE WHEN ${release || retainLock} THEN NULL
+            ELSE CURRENT_TIMESTAMP + (${Math.floor(input.ttlMs)} * INTERVAL '1 millisecond') END,
+          "backupId" = CASE WHEN ${input.backupId !== undefined} THEN ${input.backupId ?? null} ELSE "backupId" END,
+          "backupVerifiedAt" = CASE WHEN ${input.backupId !== undefined} THEN CURRENT_TIMESTAMP ELSE "backupVerifiedAt" END,
+          "backupVerificationMethod" = CASE WHEN ${input.backupVerificationMethod !== undefined}
+            THEN ${input.backupVerificationMethod ?? null} ELSE "backupVerificationMethod" END,
+          "appliedStatements" = CASE WHEN ${input.appliedStatements !== undefined}
+            THEN ${input.appliedStatements ?? 0} ELSE "appliedStatements" END,
+          "errorCode" = CASE WHEN ${input.errorCode !== undefined} THEN ${input.errorCode ?? null} ELSE "errorCode" END,
+          "completedAt" = CASE WHEN ${release} THEN CURRENT_TIMESTAMP ELSE "completedAt" END,
+          "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = ${input.id} AND "ownerToken" = ${input.ownerToken}
+        AND "version" = ${input.version} AND "state" = ${input.expectedState}
+        AND "leaseExpiresAt" > CURRENT_TIMESTAMP AND "activeLock" IS NOT NULL
+      RETURNING *
+    `);
+    return row ? mapDatabaseMigrationExecution(row) : undefined;
   }
 
   async listDatabaseSnapshots(databaseInstanceId: string): Promise<DatabaseSnapshotRecord[]> {

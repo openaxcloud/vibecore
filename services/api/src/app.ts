@@ -188,8 +188,17 @@ import {
   clusterName,
   resolveDatabaseTier,
   resolveDefaultDatabaseProvisioner,
+  type DatabaseProvisioner,
   type ProvisionResult,
 } from './database-provisioner.js';
+import { createPostgresMigrationApplier } from './db-migration-applier.js';
+import {
+  hashStatements,
+  migrationRequestHash,
+  runPublishMigration,
+  type SqlApplier,
+} from './db-migration-execution.js';
+import { collectPublishMigrationPlan, MigrationManifestError } from './db-migration-plan.js';
 import {
   DATABASE_PROVISION_FAILURE,
   databaseProvisionDeadline,
@@ -499,6 +508,10 @@ export interface ApiAppOptions {
   agentMemory?: AgentMemoryService;
   mcpMarketplace?: McpMarketplaceService;
   projectStorage?: ProjectStorage;
+  /** Production defaults to CNPG; injected only for deterministic migration tests. */
+  databaseProvisioner?: DatabaseProvisioner;
+  /** Production defaults to the real transactional PostgreSQL applicator. */
+  migrationApplier?: SqlApplier;
 
   /**
    * Storage for cron-scheduled tasks. Defaults to Postgres when the store is
@@ -8481,6 +8494,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const diagnosticsDb = store instanceof PrismaApiStore ? store.prisma : undefined;
 
   const projectStorage = options.projectStorage ?? new LocalProjectStorage();
+  const databaseProvisioner = options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner();
+  const migrationApplier = options.migrationApplier ?? createPostgresMigrationApplier();
   const gitProvider = options.gitProvider ?? new GitCliProvider();
   const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
 
@@ -34819,6 +34834,177 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
+    type PublishGate = { ok: true } | { ok: false; response: Record<string, unknown>; status: number };
+    const evaluatePublishGate = async (): Promise<PublishGate> => {
+      try {
+        const publications = await store.listPublishedProjects(project.organizationId);
+        const entitlementPlanKey = (await billingState(project.organizationId))?.plan.key;
+        assertPublishEntitlement({
+          planKey: entitlementPlanKey,
+          targetProjectId: project.id,
+          publications: publications.map((publication) => ({
+            projectId: publication.projectId,
+            publishedAt: new Date(publication.publishedAt),
+          })),
+        });
+        return { ok: true };
+      } catch (error) {
+        if (error instanceof EntitlementError) {
+          return {
+            ok: false,
+            status: error.statusCode,
+            response: { error: error.message, code: error.code, ...error.details },
+          };
+        }
+        request.log?.error?.(
+          { err: error, organizationId: project.organizationId },
+          'publish entitlement precheck failed — refusing (fail-closed)',
+        );
+        return {
+          ok: false,
+          status: 503,
+          response: {
+            error: appPublicCopy('ENTITLEMENT_CHECK_UNAVAILABLE', locale),
+            code: 'ENTITLEMENT_CHECK_UNAVAILABLE',
+            retryable: true,
+          },
+        };
+      }
+    };
+
+    /*
+     * Preflight before schema mutation. The authoritative check still runs
+     * under the org lock below, but a known quota refusal must never mutate the
+     * production schema first. Expand-only compatibility makes a race between
+     * the two checks safe for the currently served release.
+     */
+    const preliminaryGate = await evaluatePublishGate();
+    if (!preliminaryGate.ok) {
+      const refusal = preliminaryGate.response;
+      const cap = Number(refusal.cap);
+      if (preliminaryGate.status === 402) {
+        await audit(request, store, {
+          organizationId: project.organizationId,
+          action: 'entitlement.refused',
+          resourceType: 'deployment',
+          resourceId: deploymentId,
+          metadata: refusal,
+        });
+      }
+      return reply.code(preliminaryGate.status).send({
+        ...refusal,
+        ...(preliminaryGate.status === 402
+          ? {
+              error: appPublicCopy(
+                cap === 1 ? 'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_ONE' : 'PLAN_ACTIVE_PUBLISHED_PROJECT_LIMIT_OTHER',
+                locale,
+                { cap },
+              ),
+            }
+          : {}),
+      });
+    }
+
+    let migrationPlan: Awaited<ReturnType<typeof collectPublishMigrationPlan>>;
+    try {
+      migrationPlan = await collectPublishMigrationPlan(projectStorage, project.id, source.workspaceId);
+    } catch (error) {
+      const code = error instanceof MigrationManifestError ? error.code : 'MIGRATION_TARGET_UNAVAILABLE';
+      request.log?.warn?.({ err: error, projectId: project.id, code }, 'publish migration plan refused');
+      return reply.code(error instanceof MigrationManifestError ? 409 : 503).send({
+        error: appPublicCopy(
+          code === 'MIGRATION_UNSAFE_PLAN' ? 'MIGRATION_UNSAFE_PLAN' : 'MIGRATION_MANIFEST_INVALID',
+          locale,
+        ),
+        code,
+        retryable: !(error instanceof MigrationManifestError),
+      });
+    }
+
+    if (migrationPlan) {
+      let productionConnection: DatabaseConnectionCandidate | undefined;
+      try {
+        productionConnection = (await listDatabaseConnections(store, project.id)).find(
+          (connection) => connection.key === 'PROD_DATABASE_URL',
+        );
+      } catch (error) {
+        request.log?.error?.(
+          { err: error, projectId: project.id },
+          'production database target lookup failed — refusing publish',
+        );
+        return reply.code(503).send({
+          error: appPublicCopy('MIGRATION_TARGET_UNAVAILABLE', locale),
+          code: 'MIGRATION_TARGET_UNAVAILABLE',
+          retryable: true,
+        });
+      }
+      if (!productionConnection) {
+        return reply.code(409).send({
+          error: appPublicCopy('MIGRATION_TARGET_UNAVAILABLE', locale),
+          code: 'MIGRATION_TARGET_UNAVAILABLE',
+          retryable: true,
+        });
+      }
+      const statementsSha256 = hashStatements(migrationPlan.migrations);
+      const requestHash = migrationRequestHash({
+        projectId: project.id,
+        organizationId: project.organizationId,
+        environment: 'production',
+        deploymentId: source.id,
+        statementsSha256,
+        backwardCompatible: migrationPlan.backwardCompatible,
+        forwardCompatible: migrationPlan.forwardCompatible,
+      });
+      const migrationOutcome = await runPublishMigration({
+        store,
+        provisioner: databaseProvisioner,
+        applier: migrationApplier,
+        projectId: project.id,
+        organizationId: project.organizationId,
+        environment: 'production',
+        idempotencyKey: `publish:${source.id}:${statementsSha256.slice(0, 20)}`,
+        requestHash,
+        migrations: migrationPlan.migrations,
+        connectionString: productionConnection.value,
+        engine: productionConnection.kind,
+        deploymentId: source.id,
+        createdByUserId: request.currentUser?.id,
+        backwardCompatible: migrationPlan.backwardCompatible,
+        forwardCompatible: migrationPlan.forwardCompatible,
+      });
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'database.migration.publish',
+        resourceType: 'projectDatabase',
+        resourceId: project.id,
+        metadata: {
+          ok: migrationOutcome.ok,
+          code: migrationOutcome.ok ? 'COMMITTED' : migrationOutcome.code,
+          executionId: migrationOutcome.executionId,
+          statementsSha256,
+        },
+      });
+      if (!migrationOutcome.ok) {
+        const copyKey =
+          migrationOutcome.code === 'MIGRATION_LOCK_HELD' || migrationOutcome.code === 'MIGRATION_LEASE_LOST'
+            ? 'MIGRATION_LOCK_HELD'
+            : migrationOutcome.code === 'MIGRATION_MANUAL_RECOVERY'
+              ? 'MIGRATION_MANUAL_RECOVERY'
+              : migrationOutcome.code === 'MIGRATION_BACKUP_UNVERIFIED'
+                ? 'MIGRATION_BACKUP_UNVERIFIED'
+                : migrationOutcome.code === 'MIGRATION_ENGINE_UNSUPPORTED'
+                  ? 'MIGRATION_ENGINE_UNSUPPORTED'
+                  : 'MIGRATION_FAILED_SAFE';
+        return reply.code(409).send({
+          error: appPublicCopy(copyKey, locale),
+          code: migrationOutcome.code,
+          executionId: migrationOutcome.executionId,
+          state: migrationOutcome.state,
+          retryable: migrationOutcome.retryable,
+        });
+      }
+    }
+
     /*
      * ---- Contrat Starter : projets publiés ACTIFS (pas « déploiements ») ----
      *
@@ -34846,46 +35032,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         | { ok: true; deployment: Awaited<ReturnType<typeof store.createDeployment>> }
         | { ok: false; response: unknown; status: number }
       > => {
-        let publications: Array<{ projectId: string; publishedAt: string }>;
-        let entitlementPlanKey: string | undefined;
-
-        try {
-          publications = await store.listPublishedProjects(project.organizationId);
-          entitlementPlanKey = (await billingState(project.organizationId))?.plan.key;
-        } catch (error) {
-          request.log?.error?.(
-            { err: error, organizationId: project.organizationId },
-            'publish entitlement precheck failed — refusing (fail-closed)',
-          );
-
-          return {
-            ok: false,
-            status: 503,
-            response: {
-              error: appPublicCopy('ENTITLEMENT_CHECK_UNAVAILABLE', locale),
-              code: 'ENTITLEMENT_CHECK_UNAVAILABLE',
-              retryable: true,
-            },
-          };
-        }
-
-        try {
-          assertPublishEntitlement({
-            planKey: entitlementPlanKey,
-            targetProjectId: project.id,
-            publications: publications.map((p) => ({ projectId: p.projectId, publishedAt: new Date(p.publishedAt) })),
-          });
-        } catch (error) {
-          if (error instanceof EntitlementError) {
-            return {
-              ok: false,
-              status: error.statusCode,
-              response: { error: error.message, code: error.code, ...error.details },
-            };
-          }
-
-          throw error;
-        }
+        const gate = await evaluatePublishGate();
+        if (!gate.ok) return gate;
 
         // Création DANS la section critique : c'est elle qui rend le plafond réel.
         const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);

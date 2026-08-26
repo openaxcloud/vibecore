@@ -7,12 +7,14 @@ import {
   type TenantSqlClient,
   buildClusterManifest,
   buildDatabaseCrManifest,
+  buildOnDemandBackupManifest,
   buildPoolerManifest,
   buildRestoreClusterManifest,
   buildScheduledBackupManifest,
   buildSharedTenantUri,
   buildTenantProvisionSql,
   clusterName,
+  onDemandBackupName,
   resolveDatabaseProvisioner,
   resolveDatabaseTier,
   sharedDbName,
@@ -235,7 +237,12 @@ describe('PgTenantSqlExecutor SQL sequence', () => {
     const { client, statements } = fakeClient({ role: false, db: false });
     const exec = new PgTenantSqlExecutor(() => client);
 
-    await exec.provisionTenant({ adminUri: 'postgresql://app:x@h:5432/app', role: 't_p1', db: 'proj_p1', password: 'pw' });
+    await exec.provisionTenant({
+      adminUri: 'postgresql://app:x@h:5432/app',
+      role: 't_p1',
+      db: 'proj_p1',
+      password: 'pw',
+    });
 
     const grantIdx = statements.findIndex((s) => /GRANT "t_p1" TO CURRENT_USER/.test(s));
     const createDbIdx = statements.findIndex((s) => /CREATE DATABASE "proj_p1" OWNER "t_p1"/.test(s));
@@ -248,7 +255,12 @@ describe('PgTenantSqlExecutor SQL sequence', () => {
     const { client, statements } = fakeClient({ role: true, db: true });
     const exec = new PgTenantSqlExecutor(() => client);
 
-    await exec.provisionTenant({ adminUri: 'postgresql://app:x@h:5432/app', role: 't_p1', db: 'proj_p1', password: 'pw' });
+    await exec.provisionTenant({
+      adminUri: 'postgresql://app:x@h:5432/app',
+      role: 't_p1',
+      db: 'proj_p1',
+      password: 'pw',
+    });
 
     expect(statements.some((s) => /CREATE DATABASE/.test(s))).toBe(false);
     expect(statements.some((s) => /GRANT "t_p1" TO CURRENT_USER/.test(s))).toBe(false);
@@ -334,7 +346,12 @@ describe('shared-tier tenant provisioning (admin-SQL slice)', () => {
   it('provisionInstance(shared) creates the tenant via the SQL executor with cuid-safe ids', async () => {
     const { sql, prov } = sharedSetup();
 
-    await prov.provisionInstance({ projectId: 'abc123', retentionDays: 7, tier: 'shared', sharedClusterName: 'shared-pg-0' });
+    await prov.provisionInstance({
+      projectId: 'abc123',
+      retentionDays: 7,
+      tier: 'shared',
+      sharedClusterName: 'shared-pg-0',
+    });
 
     expect(sql.calls).toHaveLength(1);
     expect(sql.calls[0]).toMatchObject({ role: tenantRoleName('abc123'), db: sharedDbName('abc123') });
@@ -452,6 +469,37 @@ describe('CnpgProvisioner', () => {
     expect((await prov.restoreProgress({ projectId: 'p1', restoreId: 'r1' })).ready).toBe(true);
   });
 
+  it('verifies the exact environment-scoped Backup CR before reporting completion', async () => {
+    const k8s = new FakeK8s();
+    const prov = new CnpgProvisioner(k8s, 'bkt');
+    const input = { projectId: 'p1', snapshotId: 'migration-1', environment: 'production' as const };
+    const name = onDemandBackupName(input.projectId, input.snapshotId, input.environment);
+
+    await expect(prov.backupStatus(input)).resolves.toMatchObject({
+      found: false,
+      completed: false,
+      error: 'BACKUP_RESOURCE_NOT_FOUND',
+    });
+
+    k8s.clusters.set(`Backup/${name}`, { status: { phase: 'running' } });
+    await expect(prov.backupStatus(input)).resolves.toMatchObject({
+      found: true,
+      phase: 'running',
+      completed: false,
+    });
+
+    k8s.clusters.set(`Backup/${name}`, { status: { phase: 'completed' } });
+    await expect(prov.backupStatus(input)).resolves.toMatchObject({
+      found: true,
+      phase: 'completed',
+      completed: true,
+    });
+    expect(buildOnDemandBackupManifest(input.projectId, input.snapshotId, input.environment)).toMatchObject({
+      metadata: { name },
+      spec: { cluster: { name: clusterName(input.projectId, input.environment) } },
+    });
+  });
+
   it('deletes the cluster + scheduled backup on teardown', async () => {
     const k8s = new FakeK8s();
     const prov = new CnpgProvisioner(k8s, 'bkt');
@@ -535,7 +583,12 @@ describe('P2d dev/prod split (environment-scoped naming)', () => {
   });
 
   it('isolated production cluster gets the -prod name', () => {
-    const m = buildClusterManifest({ projectId: 'abc123', backupBucket: 'bkt', retentionDays: 28, environment: 'production' });
+    const m = buildClusterManifest({
+      projectId: 'abc123',
+      backupBucket: 'bkt',
+      retentionDays: 28,
+      environment: 'production',
+    });
     expect(m.metadata.name).toBe('db-abc123-prod');
   });
 });
@@ -545,7 +598,12 @@ describe('P2d isolated tier (paid) — dedicated per-project dev + prod clusters
     const k8s = new FakeK8s();
     const prov = new CnpgProvisioner(k8s, 'bkt');
 
-    await prov.provisionInstance({ projectId: 'abc123', retentionDays: 28, tier: 'isolated', environment: 'production' });
+    await prov.provisionInstance({
+      projectId: 'abc123',
+      retentionDays: 28,
+      tier: 'isolated',
+      environment: 'production',
+    });
 
     const cluster = k8s.applied.find((m) => m.kind === 'Cluster');
     const backup = k8s.applied.find((m) => m.kind === 'ScheduledBackup');
@@ -559,8 +617,18 @@ describe('P2d isolated tier (paid) — dedicated per-project dev + prod clusters
     const k8s = new FakeK8s();
     const prov = new CnpgProvisioner(k8s, 'bkt');
 
-    await prov.provisionInstance({ projectId: 'abc123', retentionDays: 28, tier: 'isolated', environment: 'development' });
-    await prov.provisionInstance({ projectId: 'abc123', retentionDays: 28, tier: 'isolated', environment: 'production' });
+    await prov.provisionInstance({
+      projectId: 'abc123',
+      retentionDays: 28,
+      tier: 'isolated',
+      environment: 'development',
+    });
+    await prov.provisionInstance({
+      projectId: 'abc123',
+      retentionDays: 28,
+      tier: 'isolated',
+      environment: 'production',
+    });
 
     const clusters = k8s.applied.filter((m) => m.kind === 'Cluster').map((m) => m.metadata.name);
     expect(clusters).toEqual(['db-abc123', 'db-abc123-prod']);
@@ -578,11 +646,11 @@ describe('P2d isolated tier (paid) — dedicated per-project dev + prod clusters
     expect(await prov.getConnectionUri({ projectId: 'abc123', tier: 'isolated', environment: 'production' })).toBe(
       'postgresql://app:pw@db-abc123-prod-rw:5432/app',
     );
-    expect(sql.verificationCalls).toEqual([
-      { uri: 'postgresql://app:pw@db-abc123-prod-rw:5432/app' },
-    ]);
+    expect(sql.verificationCalls).toEqual([{ uri: 'postgresql://app:pw@db-abc123-prod-rw:5432/app' }]);
     // development reads the un-suffixed secret (and is undefined here)
-    expect(await prov.getConnectionUri({ projectId: 'abc123', tier: 'isolated', environment: 'development' })).toBeUndefined();
+    expect(
+      await prov.getConnectionUri({ projectId: 'abc123', tier: 'isolated', environment: 'development' }),
+    ).toBeUndefined();
   });
 
   it('teardown removes BOTH dev and prod isolated clusters', async () => {

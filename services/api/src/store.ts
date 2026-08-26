@@ -332,6 +332,45 @@ export interface DatabaseRestoreRecord {
   completedAt?: string;
 }
 
+export type DatabaseMigrationState =
+  | 'LOCK_ACQUIRED'
+  | 'BACKUP_VERIFIED'
+  | 'APPLYING'
+  | 'VALIDATING'
+  | 'RECOVERING'
+  | 'COMMITTED'
+  | 'FAILED_SAFE'
+  | 'MANUAL_RECOVERY';
+
+export interface DatabaseMigrationExecutionRecord {
+  id: string;
+  projectId: string;
+  organizationId: string;
+  environment: string;
+  state: DatabaseMigrationState;
+  idempotencyKey: string;
+  requestHash: string;
+  activeLock?: string;
+  ownerToken?: string;
+  version: number;
+  leaseExpiresAt?: string;
+  attempt: number;
+  plan: Array<{ name: string; sha256: string }>;
+  statementsSha256: string;
+  statementCount: number;
+  appliedStatements: number;
+  backwardCompatible: boolean;
+  forwardCompatible: boolean;
+  backupId?: string;
+  backupVerifiedAt?: string;
+  backupVerificationMethod?: string;
+  deploymentId?: string;
+  createdByUserId?: string;
+  errorCode?: string;
+  startedAt: string;
+  completedAt?: string;
+}
+
 /**
  * Deployment scope an environment variable applies to. A single key can carry a
  * different value per scope (e.g. a development vs production DATABASE_URL).
@@ -1986,6 +2025,55 @@ export interface ApiStore {
    * database-rollback-service.ts + migration 0040.
    */
   getDatabaseInstanceByProject(projectId: string, environment?: string): Promise<DatabaseInstanceRecord | undefined>;
+  /** Acquire/recover the singleton migration under a DB-clock lease. */
+  acquireDatabaseMigrationExecution(input: {
+    projectId: string;
+    organizationId: string;
+    environment: string;
+    idempotencyKey: string;
+    requestHash: string;
+    ownerToken: string;
+    ttlMs: number;
+    plan: Array<{ name: string; sha256: string }>;
+    statementsSha256: string;
+    backwardCompatible: boolean;
+    forwardCompatible: boolean;
+    deploymentId?: string;
+    createdByUserId?: string;
+  }): Promise<
+    | { kind: 'ACQUIRED' | 'RECOVERY'; execution: DatabaseMigrationExecutionRecord }
+    | {
+        kind: 'REPLAYED' | 'BLOCKED' | 'FAILED' | 'MANUAL_RECOVERY' | 'IDEMPOTENCY_COLLISION';
+        execution: DatabaseMigrationExecutionRecord;
+      }
+  >;
+  renewDatabaseMigrationLease(input: {
+    id: string;
+    ownerToken: string;
+    version: number;
+    state: DatabaseMigrationState;
+    ttlMs: number;
+  }): Promise<DatabaseMigrationExecutionRecord | undefined>;
+  validateDatabaseMigrationLease(input: {
+    id: string;
+    ownerToken: string;
+    version: number;
+    state: DatabaseMigrationState;
+  }): Promise<boolean>;
+  transitionDatabaseMigrationExecution(input: {
+    id: string;
+    ownerToken: string;
+    version: number;
+    expectedState: DatabaseMigrationState;
+    nextState: DatabaseMigrationState;
+    ttlMs: number;
+    release?: boolean;
+    retainLock?: boolean;
+    backupId?: string;
+    backupVerificationMethod?: string;
+    appliedStatements?: number;
+    errorCode?: string;
+  }): Promise<DatabaseMigrationExecutionRecord | undefined>;
   listDatabaseSnapshots(databaseInstanceId: string): Promise<DatabaseSnapshotRecord[]>;
   listDatabaseRestores(databaseInstanceId: string): Promise<DatabaseRestoreRecord[]>;
   createDatabaseRestore(input: {

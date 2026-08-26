@@ -2578,5 +2578,37 @@
   "DATABASE_PROVISION_UNAVAILABLE": {
     "en": "The managed database could not be provisioned, so nothing was created. This is usually temporary — try again in a moment.",
     "fr": "La base de données managée n'a pas pu être provisionnée, rien n'a donc été créé. C'est généralement temporaire : réessayez dans un instant."
+  },
+  "MIGRATION_MANIFEST_INVALID": {
+    "en": "The publish migration manifest is missing, invalid, or does not match the SQL files. Nothing was published.",
+    "fr": "Le manifeste de migration de publication est absent, invalide ou ne correspond pas aux fichiers SQL. Aucune publication n’a été créée."
+  },
+  "MIGRATION_UNSAFE_PLAN": {
+    "en": "Only explicitly declared, backward-compatible expand migrations can run automatically at publish time.",
+    "fr": "Seules les migrations d’extension explicitement déclarées et rétrocompatibles peuvent s’exécuter automatiquement lors de la publication."
+  },
+  "MIGRATION_TARGET_UNAVAILABLE": {
+    "en": "The production database is not ready for a verified migration. Nothing was published; try again when it is available.",
+    "fr": "La base de production n’est pas prête pour une migration vérifiée. Aucune publication n’a été créée ; réessayez lorsqu’elle sera disponible."
+  },
+  "MIGRATION_LOCK_HELD": {
+    "en": "A database migration is already running or being recovered. Nothing was published; try again shortly.",
+    "fr": "Une migration de base est déjà en cours ou en reprise. Aucune publication n’a été créée ; réessayez sous peu."
+  },
+  "MIGRATION_BACKUP_UNVERIFIED": {
+    "en": "The pre-migration backup could not be verified, so the migration and publish were refused.",
+    "fr": "La sauvegarde préalable n’a pas pu être vérifiée ; la migration et la publication ont donc été refusées."
+  },
+  "MIGRATION_FAILED_SAFE": {
+    "en": "The database migration was not completed. The publish was refused and the target requires a reviewed retry.",
+    "fr": "La migration de base n’a pas abouti. La publication a été refusée et la cible nécessite une nouvelle tentative contrôlée."
+  },
+  "MIGRATION_MANUAL_RECOVERY": {
+    "en": "The database migration outcome is uncertain. Publishing is blocked until an operator verifies and reconciles the target.",
+    "fr": "Le résultat de la migration est incertain. La publication reste bloquée jusqu’à la vérification et la réconciliation de la cible par un opérateur."
+  },
+  "MIGRATION_ENGINE_UNSUPPORTED": {
+    "en": "Automatic publish migrations require PostgreSQL transactional DDL. Nothing was published.",
+    "fr": "Les migrations automatiques à la publication exigent le DDL transactionnel de PostgreSQL. Aucune publication n’a été créée."
   }
 }
