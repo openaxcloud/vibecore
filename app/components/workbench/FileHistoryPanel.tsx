@@ -194,6 +194,31 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
     [goNext, goPrev, onClose],
   );
 
+  /*
+   * The history surface is modal, but keyboard focus is not forcibly trapped:
+   * Monaco, a split editor, or a screen-reader virtual cursor can still own the
+   * focused node while the overlay is visible. A React handler on the panel
+   * therefore cannot be the only Escape path. Listen at window capture while
+   * this mounted (open) panel exists so Escape always closes the top modal and
+   * cannot fall through to unrelated IDE shortcuts such as stopping an agent
+   * run. Arrow-key navigation remains scoped to the panel above.
+   */
+  useEffect(() => {
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      onClose();
+    };
+
+    window.addEventListener('keydown', closeOnEscape, true);
+
+    return () => window.removeEventListener('keydown', closeOnEscape, true);
+  }, [onClose]);
+
   const handleRestore = useCallback(async () => {
     if (!selectedVersion) {
       return;

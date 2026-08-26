@@ -120,14 +120,25 @@ describe('FileHistoryPanel', () => {
     expect(play.getAttribute('aria-pressed')).toBe('true');
   });
 
-  it('closes on Escape', async () => {
+  it('closes on Escape even when focus is outside the modal panel', async () => {
     await seed('p-esc', ['a', 'b']);
 
     const onClose = vi.fn();
-    render(<FileHistoryPanel filePath={FILE} currentContent="b" onClose={onClose} />);
+    render(
+      <>
+        <button type="button" data-testid="outside-history-panel">
+          Editor focus sentinel
+        </button>
+        <FileHistoryPanel filePath={FILE} currentContent="b" onClose={onClose} />
+      </>,
+    );
     await screen.findByText('Version 2 / 2');
 
-    fireEvent.keyDown(screen.getByTestId('file-history-panel'), { key: 'Escape' });
+    const outside = screen.getByTestId('outside-history-panel');
+    outside.focus();
+    expect(document.activeElement).toBe(outside);
+
+    fireEvent.keyDown(outside, { key: 'Escape' });
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
