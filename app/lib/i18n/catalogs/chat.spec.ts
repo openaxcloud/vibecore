@@ -8,9 +8,9 @@ const interpolationTokens = (value: string) =>
   [...value.matchAll(/\{([a-zA-Z0-9_]+)\}/gu)].map((match) => match[1]).sort();
 
 const approvedFrenchIdentity = [
-  /^(?:Agent|Anthropic|BYOK|CI\/CD|DevOps|Git|GitHub OAuth|Google|Google Pub\/Sub|OpenAI|OpenRouter|QA|UTC)$/u,
+  /^(?:Agent|Anthropic|BYOK|CI\/CD|DevOps|Git|GitHub OAuth|Google|Google Pub\/Sub|OpenAI|OpenRouter|Production|QA|UTC)$/u,
   /^(?:Bucket|Description|Quorum|Type|Webhooks)(?: \(\{value0\}\))?$/u,
-  /^(?:cron|dev|prod \/|rsa)$/u,
+  /^(?:cron|dev|main|prod \/|rsa)$/u,
   /^(?:app\.use|auth\.\*|deploy\.|git@|https?:\/\/|npm |postgresql:\/\/|src\/|user\.|var\(--|~\/workspace)/u,
   /^(?:--port|\/bucket|\/min|@scope\/|· v)/u,
   /^(?:[A-Z][A-Z0-9_]*(?:[=,].*)?)$/u,
@@ -49,6 +49,14 @@ describe('BaseChat EN/FR catalog', () => {
     expect(chatFr['chat.copy.workspaceBash_f04a2ba1']).toBe('~/workspace: bash');
     expect(chatFr['chat.copy.projectAssistant_2b677b08']).toBe('Assistant de projet');
     expect(chatEn['chat.copy.projectAssistant_2b677b08']).toBe('Project assistant');
+  });
+
+  it('keeps deployment environments domain-correct and Git branch names literal', () => {
+    expect(chatFr['chat.copy.staging_c9fb656c']).toBe('Préproduction');
+    expect(chatFr['chat.copy.production_df70fc79']).toBe('Production');
+
+    // `main` is a real Git ref, not user-facing prose that can be translated.
+    expect(chatFr['chat.copy.main_b28b7af6']).toBe('main');
   });
 
   it('leaves no residual English in the strengthened AST scan', async () => {
