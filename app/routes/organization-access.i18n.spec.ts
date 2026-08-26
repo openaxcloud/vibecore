@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { action as invitationAction } from './organization-invitations';
+import {
+  action as invitationAction,
+  loader as invitationLoader,
+  organizationInvitationsLocation,
+} from './organization-invitations';
 import { action as organizationRolesAction } from './organization-roles';
 import { action as simpleRolesAction } from './roles-and-permissions';
 import {
@@ -43,7 +47,7 @@ describe('organization access i18n', () => {
     expect(permissionLabel('custom:release', 'en')).toBe('Unknown permission');
   });
 
-  it('returns French validation errors from every organization-access action', async () => {
+  it('returns French validation errors from the organization-access actions', async () => {
     const organizationRolesResponse = (await organizationRolesAction({
       request: frenchRequest('/organization-roles', { orgId: 'org-1' }),
       params: {},
@@ -54,20 +58,32 @@ describe('organization access i18n', () => {
       params: {},
       context: {},
     } as never)) as { data: { error?: string } };
-    const invitationResponse = (await invitationAction({
-      request: frenchRequest('/organization-invitations', { orgId: 'org-1' }),
-      params: {},
-      context: {},
-    } as never)) as { data: { error?: string } };
-
     expect(organizationRolesResponse.data).toMatchObject({
       error: 'Saisissez un nom pour le rôle.',
     });
     expect(simpleRolesResponse.data).toMatchObject({
       error: 'Votre organisation est indisponible. Rechargez la page, puis réessayez.',
     });
-    expect(invitationResponse.data).toMatchObject({
-      error: 'Une adresse e-mail est requise.',
-    });
+  });
+
+  it('routes legacy invitation GET and POST requests to the canonical workspace without replaying mutations', async () => {
+    const location = organizationInvitationsLocation('https://app.test/organization-invitations?orgId=org-1&lang=fr');
+
+    const response = (await invitationLoader({
+      request: new Request(`https://app.test/organization-invitations?orgId=org-1&lang=fr`),
+      params: {},
+      context: {},
+    } as never)) as Response;
+    const actionResponse = (await invitationAction({
+      request: frenchRequest('/organization-invitations?lang=fr', { orgId: 'org-1', intent: 'expire' }),
+      params: {},
+      context: {},
+    } as never)) as Response;
+
+    expect(location).toBe('/invitations?orgId=org-1&lang=fr');
+    expect(response.status).toBe(308);
+    expect(response.headers.get('location')).toBe('/invitations?orgId=org-1&lang=fr');
+    expect(actionResponse.status).toBe(303);
+    expect(actionResponse.headers.get('location')).toBe('/invitations?lang=fr&orgId=org-1');
   });
 });

@@ -2,10 +2,9 @@ import * as RadixDialog from '@radix-ui/react-dialog';
 import { useState } from 'react';
 import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation, useRevalidator, useSubmit } from 'react-router';
+import { organizationInvitationsLocation } from './organization-invitations';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
-import { PendingInvitationsSection, type PendingInvitation } from '~/components/dashboard/PendingInvitationsSection';
-import { AppShell } from '~/components/dashboard/SaaSLayout';
-import { PrimaryButton, SelectField, TextField } from '~/components/enterprise/EnterpriseFormPage';
+import { AppShell, LinkButton } from '~/components/dashboard/SaaSLayout';
 import { ConfirmationDialog, Dialog, DialogTitle } from '~/components/ui/Dialog';
 import {
   apiRequest,
@@ -13,6 +12,7 @@ import {
   formObject,
   isForbiddenApiResponse,
   json,
+  redirect,
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
@@ -43,7 +43,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   }
 
   try {
-    const [membersResult, rolesResult, orgResult, invitesResult] = await Promise.all([
+    const [membersResult, rolesResult, orgResult] = await Promise.all([
       apiRequest<{
         memberships: Array<{ id: string; userId: string; roleKey: string; userName?: string; userEmail?: string }>;
       }>(request, `/orgs/${organization.id}/memberships`),
@@ -54,7 +54,6 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
       // Org name feeds the type-to-confirm check in the transfer-ownership dialog.
       apiRequest<{ organization: { id: string; name: string } | null }>(request, `/orgs/${organization.id}`),
-      apiRequest<{ invitations: PendingInvitation[] }>(request, `/orgs/${organization.id}/invitations`),
     ]);
 
     return json({
@@ -65,7 +64,6 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       orgId: organization.id,
       orgName: orgResult.organization?.name ?? copy['organizationMembers.defaultOrganization'],
       memberships: membersResult.memberships,
-      invitations: invitesResult.invitations,
       roles: [
         { key: 'viewer', name: copy['organizationMembers.role.viewer'] },
         { key: 'member', name: copy['organizationMembers.role.member'] },
@@ -98,7 +96,6 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
           userName?: string;
           userEmail?: string;
         }>,
-        invitations: [] as PendingInvitation[],
         roles: [] as Array<{ key: string; name: string }>,
       });
     }
@@ -117,13 +114,13 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         userName?: string;
         userEmail?: string;
       }>,
-      invitations: [] as PendingInvitation[],
       roles: [] as Array<{ key: string; name: string }>,
     });
   }
 }
 
-export async function action({ request }: EnterpriseActionArgs) {
+export async function action(args: EnterpriseActionArgs) {
+  const { request } = args;
   const copy = getOrganizationMembersCopy(resolveRequestLocale(request).language);
 
   const body = formObject(await request.formData()) as {
@@ -135,63 +132,12 @@ export async function action({ request }: EnterpriseActionArgs) {
     inviteId?: string;
   };
 
-  // Invite a new member by email — creates a pending invitation + sends the email.
-  if (body.intent === 'invite') {
-    if (!body.orgId || !body.email) {
-      return json({ error: copy['organizationMembers.errors.emailRequired'] }, { status: 400 });
-    }
-
-    try {
-      await apiRequest(request, `/orgs/${body.orgId}/invitations`, {
-        method: 'POST',
-        body: JSON.stringify({ email: body.email, roleKey: body.roleKey ?? 'member' }),
-      });
-
-      return json({
-        status: formatOrganizationMembersCopy(copy['organizationMembers.success.invited'], { email: body.email }),
-      });
-    } catch (error) {
-      if (isReauthRedirect(error)) {
-        throw error;
-      }
-
-      if (error instanceof Response) {
-        return json({ error: copy['organizationMembers.errors.invitationFailed'] }, { status: error.status });
-      }
-
-      throw error;
-    }
-  }
-
-  // Invitation intents carry an inviteId (no userId) — handle them first.
-  if (body.intent === 'invite-resend' || body.intent === 'invite-revoke') {
-    if (!body.orgId || !body.inviteId) {
-      return json({ error: copy['organizationMembers.errors.invitationRequired'] }, { status: 400 });
-    }
-
-    try {
-      if (body.intent === 'invite-resend') {
-        await apiRequest(request, `/orgs/${body.orgId}/invitations/${body.inviteId}/resend`, { method: 'POST' });
-
-        return json({ status: copy['organizationMembers.success.inviteResent'] });
-      }
-
-      // Revoke = the API's expire endpoint: the invitation link stops working.
-      await apiRequest(request, `/orgs/${body.orgId}/invitations/${body.inviteId}/expire`, { method: 'POST' });
-
-      return json({ status: copy['organizationMembers.success.inviteRevoked'] });
-    } catch (error) {
-      if (isReauthRedirect(error)) {
-        throw error;
-      }
-
-      // Surface API errors (403, the 429 resend throttle, 404…) as a banner.
-      if (error instanceof Response) {
-        return json({ error: copy['organizationMembers.errors.invitationAction'] }, { status: error.status });
-      }
-
-      throw error;
-    }
+  if (body.intent === 'invite' || body.intent === 'invite-resend' || body.intent === 'invite-revoke') {
+    /*
+     * Old tabs may still submit these forms after deploy. Route them to the
+     * canonical screen without silently replaying a create/resend/revoke.
+     */
+    return redirect(organizationInvitationsLocation(request.url, body.orgId), 303);
   }
 
   if (!body.orgId || !body.userId) {
@@ -244,7 +190,6 @@ export default function OrganizationMembersPage() {
     orgId,
     orgName,
     memberships,
-    invitations,
     roles,
     loadError,
     loadErrorKind,
@@ -331,36 +276,29 @@ export default function OrganizationMembersPage() {
     <AppShell title={copy['organizationMembers.title']} description={copy['organizationMembers.description']}>
       <div className="grid gap-6">
         <section className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-sm sm:p-6">
-          {actionData?.status ? (
-            <p className="mb-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textSecondary">
-              {actionData.status}
-            </p>
-          ) : null}
-          {actionData?.error ? (
-            <p className="mb-4 rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]">
-              {actionData.error}
-            </p>
-          ) : null}
-          <Form method="post" className="grid gap-4 lg:grid-cols-[1fr_220px_auto] lg:items-end">
-            <input type="hidden" name="intent" value="invite" />
-            <input type="hidden" name="orgId" value={orgId} />
-            <TextField
-              label={copy['organizationMembers.invite.email']}
-              name="email"
-              type="email"
-              placeholder={copy['organizationMembers.invite.emailPlaceholder']}
-              required
-            />
-            <SelectField
-              label={copy['organizationMembers.invite.role']}
-              name="roleKey"
-              defaultValue="member"
-              options={roles.map((role) => ({ value: role.key, label: role.name }))}
-            />
-            <PrimaryButton>{copy['organizationMembers.invite.send']}</PrimaryButton>
-          </Form>
-          <p className="mt-2 text-xs text-bolt-elements-textSecondary">{copy['organizationMembers.invite.help']}</p>
+          <h2 className="font-semibold text-bolt-elements-textPrimary">
+            {copy['organizationMembers.invitations.title']}
+          </h2>
+          <p className="mt-1 max-w-2xl text-sm leading-relaxed text-bolt-elements-textSecondary">
+            {copy['organizationMembers.invitations.description']}
+          </p>
+          <div className="mt-4">
+            <LinkButton to={`/invitations?orgId=${encodeURIComponent(orgId)}`}>
+              {copy['organizationMembers.invitations.manage']}
+            </LinkButton>
+          </div>
         </section>
+
+        {actionData?.status ? (
+          <p className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm text-bolt-elements-textSecondary">
+            {actionData.status}
+          </p>
+        ) : null}
+        {actionData?.error ? (
+          <p className="rounded-md border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-3 py-2 text-sm text-[var(--status-error-text)]">
+            {actionData.error}
+          </p>
+        ) : null}
 
         <section className="overflow-hidden rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 text-sm shadow-sm">
           <div className="border-b border-bolt-elements-borderColor px-4 py-3">
@@ -487,8 +425,6 @@ export default function OrganizationMembersPage() {
             <div className="p-4 text-bolt-elements-textSecondary">{copy['organizationMembers.members.empty']}</div>
           )}
         </section>
-
-        <PendingInvitationsSection orgId={orgId} invitations={invitations} />
       </div>
 
       <RadixDialog.Root open={transferTarget !== null} onOpenChange={(open) => !open && closeTransferDialog()}>

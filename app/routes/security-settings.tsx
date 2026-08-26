@@ -159,7 +159,7 @@ export default function SecuritySettingsPage() {
             <LinkButton to="/organization-roles" variant="outline">
               {copy['securitySettings.enterprise.roles']}
             </LinkButton>
-            <LinkButton to="/organization-invitations" variant="outline">
+            <LinkButton to="/invitations" variant="outline">
               {copy['securitySettings.enterprise.invitations']}
             </LinkButton>
             <LinkButton to="/audit-logs" variant="outline">

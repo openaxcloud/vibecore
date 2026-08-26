@@ -295,14 +295,13 @@ describe('auth (/login, /register) et pages enterprise', () => {
   });
 });
 
-describe('invitations (les 3 surfaces)', () => {
-  it('organization-invitations : Renvoyer/Expirer atteignent 44px (30px avant) et l’email reste lisible (break-all)', () => {
-    const source = read('app/routes/organization-invitations.tsx');
-    expect(
-      source.match(/inline-flex min-h-\[44px\] items-center justify-center whitespace-normal rounded-md border/g),
-    ).toHaveLength(2);
-    expect(source).toContain('break-all font-medium text-bolt-elements-textPrimary">{invite.email}');
-    expect(source).not.toContain('truncate font-medium text-bolt-elements-textPrimary">{invite.email}');
+describe('invitations (surface canonique)', () => {
+  it('redirige l’ancienne URL vers /invitations en préservant la requête', () => {
+    const legacy = read('app/routes/organization-invitations.tsx');
+    expect(legacy).toContain("new URL('/invitations', source.origin)");
+    expect(legacy).toContain('organizationInvitationsLocation(request.url, organizationId)');
+    expect(legacy).toContain('Never replay a mutation implicitly');
+    expect(legacy).not.toContain('/orgs/${organization.id}/invitations');
   });
 
   it('PendingInvitationsSection : email en break-all, pastille « expiré » via Badge (style inline avant)', () => {
@@ -314,10 +313,11 @@ describe('invitations (les 3 surfaces)', () => {
     );
   });
 
-  it('les trois états vides passent par EmptyState (3 rendus différents avant)', () => {
+  it('ne rend l’état vide que dans le workspace canonique', () => {
     expect(read('app/routes/invitations.tsx')).toContain('icon={Mail}');
-    expect(read('app/routes/organization-invitations.tsx')).toContain('icon={Mail}');
-    expect(read('app/components/dashboard/PendingInvitationsSection.tsx')).toContain('icon={Mail}');
+    expect(read('app/routes/organization-invitations.tsx')).not.toContain('icon={Mail}');
+    expect(read('app/routes/organization-members.tsx')).not.toContain('<PendingInvitationsSection');
+    expect(read('app/routes/organization-members.tsx')).toContain('/invitations?orgId=');
   });
 
   it('invitations : la carte formulaire suit p-5 sm:p-6', () => {

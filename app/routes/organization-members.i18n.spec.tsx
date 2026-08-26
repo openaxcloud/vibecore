@@ -67,6 +67,7 @@ vi.mock('~/components/dashboard/SaaSLayout', () => ({
       {children}
     </main>
   ),
+  LinkButton: ({ to, children }: { to: string; children: ReactNode }) => <a href={to}>{children}</a>,
 }));
 
 vi.mock('~/components/dashboard/AsyncPanelState', () => ({
@@ -168,7 +169,7 @@ function renderPage(loaderData: unknown, actionData?: unknown) {
 }
 
 async function runAction(fields: Record<string, string>) {
-  return (await action({
+  return action({
     request: new Request('https://e-code.ai/organization-members?lang=fr', {
       method: 'POST',
       headers: { 'content-type': 'application/x-www-form-urlencoded' },
@@ -176,7 +177,7 @@ async function runAction(fields: Record<string, string>) {
     }),
     params: {},
     context: {},
-  })) as { data: { status?: string; error?: string }; init?: { status?: number } };
+  });
 }
 
 const loaderData = {
@@ -208,15 +209,6 @@ const loaderData = {
       userEmail: 'melanie@acme.example',
     },
   ],
-  invitations: [
-    {
-      id: 'invite-1',
-      email: 'future@acme.example',
-      roleKey: 'viewer',
-      expiresAt: '2099-08-04T12:00:00.000Z',
-      createdAt: '2026-08-04T12:00:00.000Z',
-    },
-  ],
 };
 
 afterEach(() => {
@@ -241,19 +233,16 @@ describe('organization members i18n', () => {
     );
   });
 
-  it('renders the complete member and invitation surfaces in French while preserving user data', () => {
+  it('renders member management and links to the single invitation workspace in French', () => {
     renderPage(loaderData);
 
     expect(screen.getByRole('heading', { name: 'Membres de l’organisation' })).toBeTruthy();
-    expect(screen.getByLabelText('Inviter par e-mail')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Envoyer l’invitation' })).toBeTruthy();
     expect(screen.getByText('Avi Cohen')).toBeTruthy();
     expect(screen.getByText('Mélanie Durand')).toBeTruthy();
-    expect(screen.getByText('future@acme.example')).toBeTruthy();
-    expect(screen.getByText('Invité le')).toBeTruthy();
-    expect(screen.getByText('Expire le')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Renvoyer l’invitation à future@acme.example' })).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Révoquer l’invitation de future@acme.example' })).toBeTruthy();
+    expect(screen.getByRole('link', { name: 'Gérer les invitations' }).getAttribute('href')).toBe(
+      '/invitations?orgId=org-1',
+    );
+    expect(screen.queryByLabelText('Inviter par e-mail')).toBeNull();
     expect(screen.getByRole('button', { name: 'Transférer la propriété à Mélanie Durand' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Retirer Mélanie Durand' })).toBeTruthy();
     expect(screen.queryByText('Pending invitations')).toBeNull();
@@ -279,32 +268,23 @@ describe('organization members i18n', () => {
   });
 
   it('renders a French recoverable error instead of a false empty member list', () => {
-    renderPage({ ...loaderData, memberships: [], invitations: [], loadError: true, loadErrorKind: 'temporary' });
+    renderPage({ ...loaderData, memberships: [], loadError: true, loadErrorKind: 'temporary' });
 
     expect(screen.getByRole('heading', { name: 'Impossible de charger les membres' })).toBeTruthy();
     expect(screen.queryByText('Aucun membre trouvé.')).toBeNull();
   });
 
-  it('returns localized action validation and masks raw upstream prose', async () => {
-    const missingEmail = await runAction({ intent: 'invite', orgId: 'org-1' });
-    expect(missingEmail.data.error).toBe('Saisissez une adresse e-mail pour envoyer une invitation.');
-    expect(missingEmail.init?.status).toBe(400);
-
-    apiRequestMock.mockRejectedValueOnce(
-      new Response(JSON.stringify({ error: 'Invitation service exploded' }), {
-        status: 409,
-        headers: { 'content-type': 'application/json' },
-      }),
-    );
-
-    const failedInvite = await runAction({
+  it('redirects stale invitation forms to the canonical workspace without mutating access', async () => {
+    const response = (await runAction({
       intent: 'invite',
       orgId: 'org-1',
       email: 'new@acme.example',
       roleKey: 'member',
-    });
-    expect(failedInvite.data.error).toBe('Impossible d’envoyer l’invitation.');
-    expect(failedInvite.data.error).not.toContain('exploded');
+    })) as Response;
+
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe('/invitations?lang=fr&orgId=org-1');
+    expect(apiRequestMock).not.toHaveBeenCalled();
   });
 
   it('detects French in the loader and serves localized route metadata', async () => {
@@ -312,8 +292,7 @@ describe('organization members i18n', () => {
     apiRequestMock
       .mockResolvedValueOnce({ memberships: [] })
       .mockResolvedValueOnce({ roles: [] })
-      .mockResolvedValueOnce({ organization: { id: 'org-1', name: 'Acme France' } })
-      .mockResolvedValueOnce({ invitations: [] });
+      .mockResolvedValueOnce({ organization: { id: 'org-1', name: 'Acme France' } });
 
     const result = (await loader({
       request: new Request('https://e-code.ai/organization-members', {

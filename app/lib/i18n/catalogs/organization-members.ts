@@ -29,6 +29,10 @@ export const organizationMembersEn = {
     "Your role cannot manage this organization's members. Invitations and member controls are hidden.",
   'organizationMembers.load.errorDescription':
     'Member and invitation controls are hidden because the latest request failed. No access was changed.',
+  'organizationMembers.invitations.title': 'Invitations',
+  'organizationMembers.invitations.description':
+    'Create, resend and expire invitations from the organization’s single invitation workspace.',
+  'organizationMembers.invitations.manage': 'Manage invitations',
   'organizationMembers.invite.email': 'Invite by email',
   'organizationMembers.invite.emailPlaceholder': 'teammate@company.com',
   'organizationMembers.invite.role': 'Role',
@@ -116,6 +120,10 @@ export const organizationMembersFr: OrganizationMembersCopy = {
     'Votre rôle ne permet pas de gérer les membres de cette organisation. Les invitations et les commandes des membres sont masquées.',
   'organizationMembers.load.errorDescription':
     'Les commandes des membres et des invitations sont masquées, car la dernière demande a échoué. Aucun accès n’a été modifié.',
+  'organizationMembers.invitations.title': 'Invitations',
+  'organizationMembers.invitations.description':
+    'Créez, renvoyez et expirez les invitations depuis l’espace unique de gestion des invitations de l’organisation.',
+  'organizationMembers.invitations.manage': 'Gérer les invitations',
   'organizationMembers.invite.email': 'Inviter par e-mail',
   'organizationMembers.invite.emailPlaceholder': 'coequipier@entreprise.fr',
   'organizationMembers.invite.role': 'Rôle',

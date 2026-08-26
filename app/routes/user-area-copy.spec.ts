@@ -15,6 +15,7 @@ describe('user-area product vocabulary', () => {
     const supportTicket = source('app/routes/support_.$id.tsx');
     const organizationMembers = source('app/routes/organization-members.tsx');
     const organizationInvitations = source('app/routes/organization-invitations.tsx');
+    const invitations = source('app/routes/invitations.tsx');
     const pendingInvitations = source('app/components/dashboard/PendingInvitationsSection.tsx');
 
     expect(usage).toContain("label(quota, 'billing.label.planAllowance')");
@@ -27,7 +28,8 @@ describe('user-area product vocabulary', () => {
     expect(supportTicket).toContain('supportTicketDetailStatusLabel(ticket.status, language)');
     expect(organizationMembers).toContain('{memberRoleLabel}');
     expect(organizationMembers).not.toContain('\n                    {member.roleKey}\n');
-    expect(organizationInvitations).toContain('{roleLabel(invite.roleKey)}');
+    expect(invitations).toContain('invitationRoleLabel(invite.roleKey, roles, language)');
+    expect(organizationInvitations).toContain("new URL('/invitations', source.origin)");
     expect(pendingInvitations).toContain('organizationMemberRoleLabel(invite.roleKey, undefined, copy)');
   });
 
