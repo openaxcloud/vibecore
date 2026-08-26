@@ -1345,15 +1345,18 @@ async function loaderHandler({ request, params }: EnterpriseLoaderArgs) {
  * into a structured `{ enabled: false }` payload so the IDE panel can render a
  * clear "not enabled" state instead of a 502; any other error is re-thrown.
  */
-async function objectStorageResultOrDisabled(error: unknown): Promise<ReturnType<typeof json>> {
+async function objectStorageResultOrDisabled(
+  error: unknown,
+  disabledPayload: Record<string, unknown> = { enabled: false, objects: [], folders: [] },
+): Promise<ReturnType<typeof json>> {
   if (error instanceof Response && error.status === 404) {
     const payload = (await error
       .clone()
       .json()
       .catch(() => ({}))) as { code?: string };
 
-    if (payload.code === 'FEATURE_NOT_ENABLED' || payload.code === undefined) {
-      return json({ enabled: false, objects: [], folders: [] });
+    if (payload.code === 'FEATURE_NOT_ENABLED') {
+      return json(disabledPayload);
     }
   }
 
@@ -2011,18 +2014,15 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
   } else if (panel === 'object-storage') {
     if (intent === 'status') {
       /*
-       * Per-project provisioning status. 404 (flag off) => not enabled; on =>
-       * { enabled, provisioned } so the panel can offer the "Enable" CTA.
+       * Per-project provisioning status. Only the backend's explicit
+       * FEATURE_NOT_ENABLED response means "not enabled"; an unrelated 404 must
+       * remain a real failure instead of lying about the feature flag.
        */
       try {
         const result = await apiRequest(request, `/projects/${projectId}/object-storage/status`);
         return json({ enabled: true, provisioned: false, ...(result as any) });
       } catch (error) {
-        if (error instanceof Response && error.status === 404) {
-          return json({ enabled: false, provisioned: false });
-        }
-
-        throw error;
+        return objectStorageResultOrDisabled(error, { enabled: false, provisioned: false });
       }
     } else if (intent === 'list') {
       const search = new URLSearchParams({ delimiter: '/' });

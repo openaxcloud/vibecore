@@ -149,6 +149,26 @@ describe('ide-panel object-storage action (functional browser round-trip)', () =
     expect(body).toEqual({ enabled: false, objects: [], folders: [] });
   });
 
+  it('list: an unclassified 404 surfaces as a panel failure instead of a disabled feature', async () => {
+    const upstream = new Response(JSON.stringify({ error: 'bucket missing' }), {
+      status: 404,
+      headers: { 'content-type': 'application/json' },
+    });
+    apiRequest.mockRejectedValueOnce(upstream);
+
+    const { action } = await import('./api.projects.$projectId.ide-panel.$panel');
+
+    const thrown = await action(actionArgs({ intent: 'list' })).then(
+      () => null,
+      (error: unknown) => error,
+    );
+
+    expect((thrown as any)?.init?.status).toBe(404);
+    expect((thrown as any)?.data).toMatchObject({ code: 'PANEL_REQUEST_FAILED' });
+    expect((thrown as any)?.data?.error).toMatch(/not found/i);
+    expect((thrown as any)?.data).not.toMatchObject({ enabled: false });
+  });
+
   it('status: reports { enabled, provisioned } from the project-scoped status endpoint', async () => {
     apiRequest.mockResolvedValueOnce({ enabled: true, provisioned: false });
 
@@ -159,12 +179,28 @@ describe('ide-panel object-storage action (functional browser round-trip)', () =
     expect(body).toEqual({ enabled: true, provisioned: false });
   });
 
-  it('status: a flag-off backend (404) degrades to { enabled: false, provisioned: false }', async () => {
+  it('status: FEATURE_NOT_ENABLED degrades to { enabled: false, provisioned: false }', async () => {
     apiRequest.mockRejectedValueOnce(apiNotFound('FEATURE_NOT_ENABLED'));
 
     const { action } = await import('./api.projects.$projectId.ide-panel.$panel');
     const body = readJson(await action(actionArgs({ intent: 'status' })));
 
     expect(body).toEqual({ enabled: false, provisioned: false });
+  });
+
+  it('status: an unrelated 404 remains an honest panel failure', async () => {
+    apiRequest.mockRejectedValueOnce(apiNotFound('BUCKET_NOT_FOUND'));
+
+    const { action } = await import('./api.projects.$projectId.ide-panel.$panel');
+
+    const thrown = await action(actionArgs({ intent: 'status' })).then(
+      () => null,
+      (error: unknown) => error,
+    );
+
+    expect((thrown as any)?.init?.status).toBe(404);
+    expect((thrown as any)?.data).toMatchObject({ code: 'PANEL_REQUEST_FAILED' });
+    expect((thrown as any)?.data?.error).toMatch(/not found/i);
+    expect((thrown as any)?.data).not.toMatchObject({ enabled: false });
   });
 });
