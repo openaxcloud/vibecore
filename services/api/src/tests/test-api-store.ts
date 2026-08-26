@@ -28,6 +28,9 @@ import type {
   ImportJobRecord,
   ImportJobTransitionPatch,
   ImportStagedFile,
+  RemixJobRecord,
+  RemixJobTransitionPatch,
+  RemixStorageShareRecord,
   AiMessageFeedbackRecord,
   AiMessageFeedbackVote,
   NotificationRecord,
@@ -779,13 +782,32 @@ export class TestApiStore implements ApiStore {
   }
 
   async listProjects(organizationId: string, options: { includeArchived?: boolean } = {}) {
+    const partialTargets = new Set(
+      [...this.remixJobs.values()]
+        .filter(
+          (job) =>
+            job.organizationId === organizationId &&
+            job.targetProjectId &&
+            !['COMPLETED', 'FAILED'].includes(job.state),
+        )
+        .map((job) => job.targetProjectId!),
+    );
+
     return [...this.projects.values()].filter(
-      (project) => project.organizationId === organizationId && (options.includeArchived || !project.deletedAt),
+      (project) =>
+        project.organizationId === organizationId &&
+        (options.includeArchived ? !partialTargets.has(project.id) : !project.deletedAt),
     );
   }
 
   async countProjects(organizationId: string) {
-    return (await this.listProjects(organizationId)).length;
+    const visible = await this.listProjects(organizationId);
+    const partial = [...this.remixJobs.values()].filter(
+      (job) =>
+        job.organizationId === organizationId && job.targetProjectId && !['COMPLETED', 'FAILED'].includes(job.state),
+    ).length;
+
+    return visible.length + partial;
   }
 
   newsletterSubscribers = new Map<string, { email: string; source: string; unsubscribedAt: string | null }>();
@@ -1737,6 +1759,7 @@ export class TestApiStore implements ApiStore {
   }
 
   async createSnapshot(input: {
+    id?: string;
     projectId: string;
     label?: string;
     kind?: SnapshotRecord['kind'];
@@ -1747,7 +1770,24 @@ export class TestApiStore implements ApiStore {
     conversationId?: string;
     turnIndex?: number;
   }) {
-    const snapshot: SnapshotRecord = { id: id('snapshot'), ...input, kind: input.kind ?? 'manual', createdAt: now() };
+    if (input.id) {
+      const existing = this.snapshots.get(input.id);
+      if (existing) {
+        if (existing.projectId !== input.projectId || existing.storageKey !== input.storageKey) {
+          throw Object.assign(new Error('Snapshot idempotency key conflicts with another snapshot'), {
+            statusCode: 409,
+            code: 'SNAPSHOT_IDEMPOTENCY_CONFLICT',
+          });
+        }
+        return existing;
+      }
+    }
+    const snapshot: SnapshotRecord = {
+      ...input,
+      id: input.id ?? id('snapshot'),
+      kind: input.kind ?? 'manual',
+      createdAt: now(),
+    };
     this.snapshots.set(snapshot.id, snapshot);
 
     return snapshot;
@@ -2269,46 +2309,49 @@ export class TestApiStore implements ApiStore {
     return active ? { version: active.version, data: active.data } : undefined;
   }
 
-  remixJobs = new Map<
-    string,
-    {
-      id: string;
-      sourceProjectId: string;
-      targetProjectId?: string;
-      organizationId: string;
-      state: string;
-      detachedKeys?: unknown;
-      storagePolicy: string;
-      scanFindings?: unknown;
-      scrubbedCount: number;
-      dbForked: boolean;
-      error?: string;
-      sourceSnapshotId?: string;
-      sourceListingId?: string;
-      licenseSnapshot?: unknown;
-      consentVersion?: string;
-      piiFindings?: unknown;
-      piiMaskedCount: number;
-      createdAt: string;
-    }
-  >();
+  remixJobs = new Map<string, RemixJobRecord>();
+  remixStorageShares = new Map<string, RemixStorageShareRecord>();
 
   async createRemixJob(input: {
     sourceProjectId: string;
     organizationId: string;
     actorUserId?: string;
     storagePolicy: string;
+    idempotencyKey: string;
+    requestHash: string;
+    storageConsentVersion?: string;
     sourceSnapshotId?: string;
     sourceListingId?: string;
     licenseSnapshot?: unknown;
     consentVersion?: string;
   }) {
-    const row = {
+    const existing = [...this.remixJobs.values()].find(
+      (job) => job.organizationId === input.organizationId && job.idempotencyKey === input.idempotencyKey,
+    );
+
+    if (existing) {
+      if (existing.requestHash !== input.requestHash) {
+        throw Object.assign(new Error('Idempotency key already used for another remix request'), {
+          statusCode: 409,
+          code: 'REMIX_IDEMPOTENCY_CONFLICT',
+        });
+      }
+
+      return { job: existing, replayed: true };
+    }
+
+    const timestamp = now();
+    const row: RemixJobRecord = {
       id: id('remix'),
       sourceProjectId: input.sourceProjectId,
       organizationId: input.organizationId,
-      state: 'SNAPSHOT_PINNED',
+      actorUserId: input.actorUserId,
+      state: 'PENDING',
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
+      version: 0,
       storagePolicy: input.storagePolicy,
+      storageConsentVersion: input.storageConsentVersion,
       scrubbedCount: 0,
       dbForked: false,
       sourceSnapshotId: input.sourceSnapshotId,
@@ -2316,38 +2359,339 @@ export class TestApiStore implements ApiStore {
       licenseSnapshot: input.licenseSnapshot,
       consentVersion: input.consentVersion,
       piiMaskedCount: 0,
-      createdAt: now(),
+      createdAt: timestamp,
+      updatedAt: timestamp,
     };
     this.remixJobs.set(row.id, row);
 
-    return { id: row.id, state: row.state };
+    return { job: row, replayed: false };
   }
 
-  async updateRemixJob(
-    id: string,
-    patch: {
-      state?: string;
-      targetProjectId?: string;
-      detachedKeys?: unknown;
-      scanFindings?: unknown;
-      scrubbedCount?: number;
-      dbForked?: boolean;
-      error?: string;
-      sourceSnapshotId?: string;
-      sourceListingId?: string;
-      piiFindings?: unknown;
-      piiMaskedCount?: number;
-    },
-  ) {
-    const row = this.remixJobs.get(id);
+  async claimRemixJob(input: { id: string; organizationId: string; operationToken: string; leaseDurationMs: number }) {
+    const row = this.remixJobs.get(input.id);
 
-    if (row) {
-      Object.assign(row, patch);
+    if (!row || row.organizationId !== input.organizationId || ['COMPLETED', 'FAILED'].includes(row.state)) {
+      return undefined;
     }
+
+    if (
+      row.operationToken &&
+      row.operationToken !== input.operationToken &&
+      row.operationExpiresAt &&
+      Date.parse(row.operationExpiresAt) > Date.now()
+    ) {
+      return undefined;
+    }
+
+    Object.assign(row, {
+      operationToken: input.operationToken,
+      operationExpiresAt: new Date(Date.now() + input.leaseDurationMs).toISOString(),
+      version: row.version + 1,
+      updatedAt: now(),
+    });
+    return row;
   }
 
-  async getRemixJob(id: string) {
-    return this.remixJobs.get(id);
+  async renewRemixJobLease(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+    expectedVersion: number;
+    leaseDurationMs: number;
+  }) {
+    const row = this.remixJobs.get(input.id);
+
+    if (
+      !row ||
+      row.organizationId !== input.organizationId ||
+      row.operationToken !== input.operationToken ||
+      row.version !== input.expectedVersion ||
+      ['COMPLETED', 'FAILED'].includes(row.state) ||
+      !row.operationExpiresAt ||
+      Date.parse(row.operationExpiresAt) <= Date.now()
+    ) {
+      return undefined;
+    }
+
+    row.operationExpiresAt = new Date(Date.now() + input.leaseDurationMs).toISOString();
+    row.version += 1;
+    row.updatedAt = now();
+    return row;
+  }
+
+  async transitionRemixJob(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+    expectedVersion: number;
+    expectedStates: string[];
+    state: string;
+    patch?: RemixJobTransitionPatch;
+  }) {
+    const row = this.remixJobs.get(input.id);
+
+    if (
+      !row ||
+      row.organizationId !== input.organizationId ||
+      row.operationToken !== input.operationToken ||
+      row.version !== input.expectedVersion ||
+      !input.expectedStates.includes(row.state) ||
+      !row.operationExpiresAt ||
+      Date.parse(row.operationExpiresAt) <= Date.now()
+    ) {
+      return undefined;
+    }
+
+    Object.assign(row, input.patch ?? {}, { state: input.state, version: row.version + 1, updatedAt: now() });
+    return row;
+  }
+
+  async releaseRemixJobLease(input: { id: string; organizationId: string; operationToken: string }) {
+    const row = this.remixJobs.get(input.id);
+
+    if (!row || row.organizationId !== input.organizationId || row.operationToken !== input.operationToken) {
+      return undefined;
+    }
+
+    row.operationToken = undefined;
+    row.operationExpiresAt = undefined;
+    row.version += 1;
+    row.updatedAt = now();
+    return row;
+  }
+
+  async createClaimedRemixProject(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    name: string;
+    slug: string;
+  }) {
+    const job = this.remixJobs.get(input.remixJobId);
+
+    if (
+      !job ||
+      job.organizationId !== input.organizationId ||
+      job.operationToken !== input.operationToken ||
+      !job.operationExpiresAt ||
+      Date.parse(job.operationExpiresAt) <= Date.now()
+    ) {
+      throw Object.assign(new Error('Remix ownership lost'), { statusCode: 409, code: 'REMIX_OWNERSHIP_LOST' });
+    }
+
+    if (job.targetProjectId) {
+      const existing = this.projects.get(job.targetProjectId);
+      if (existing) return existing;
+    }
+
+    const source = this.projects.get(job.sourceProjectId);
+    if (!source) throw new Error('Project not found');
+    const project = await this.createProject({
+      organizationId: input.organizationId,
+      name: input.name,
+      slug: input.slug,
+      description: source.description,
+      sourceType: 'duplicate',
+      templateName: source.templateName,
+      gitRepositoryUrl: source.gitRepositoryUrl,
+      gitDefaultBranch: source.gitDefaultBranch,
+    });
+    project.deletedAt = now();
+    job.targetProjectId = project.id;
+    job.version += 1;
+    job.updatedAt = now();
+    return project;
+  }
+
+  async completeClaimedRemixDatabase(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    databaseInstanceId: string;
+    projectId: string;
+    valueEncrypted: string;
+  }) {
+    const job = this.remixJobs.get(input.remixJobId);
+    const instance = this.databaseInstances.get(input.databaseInstanceId);
+
+    if (
+      !job ||
+      job.state !== 'DB_FORKING' ||
+      job.organizationId !== input.organizationId ||
+      job.operationToken !== input.operationToken ||
+      job.targetProjectId !== input.projectId ||
+      job.targetDatabaseInstanceId !== input.databaseInstanceId ||
+      !instance ||
+      instance.status !== 'PROVISIONING'
+    ) {
+      return undefined;
+    }
+
+    instance.status = 'ACTIVE';
+    instance.pitrEnabled = true;
+    await this.upsertProjectSecret({
+      projectId: input.projectId,
+      key: 'DATABASE_URL',
+      valueEncrypted: input.valueEncrypted,
+    });
+    job.state = 'INDEXING';
+    job.dbForked = true;
+    job.version += 1;
+    job.updatedAt = now();
+    return job;
+  }
+
+  async finalizeClaimedRemix(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+  }) {
+    const job = this.remixJobs.get(input.remixJobId);
+    const project = this.projects.get(input.targetProjectId);
+
+    if (
+      !job ||
+      job.state !== 'INDEXING' ||
+      job.organizationId !== input.organizationId ||
+      job.operationToken !== input.operationToken ||
+      job.targetProjectId !== input.targetProjectId ||
+      !project
+    ) {
+      return undefined;
+    }
+
+    project.deletedAt = undefined;
+    job.state = 'COMPLETED';
+    job.operationToken = undefined;
+    job.operationExpiresAt = undefined;
+    job.version += 1;
+    job.updatedAt = now();
+    return job;
+  }
+
+  async beginRemixCleanup(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    terminalState: 'FAILED';
+    errorCode: string;
+    error: string;
+  }) {
+    const job = this.remixJobs.get(input.remixJobId);
+
+    if (!job || job.organizationId !== input.organizationId || job.state === 'COMPLETED') return undefined;
+    Object.assign(job, {
+      state: 'CLEANUP_PENDING',
+      cleanupTerminalState: input.terminalState,
+      errorCode: input.errorCode,
+      error: input.error,
+      operationToken: input.operationToken,
+      operationExpiresAt: new Date(Date.now() + 300_000).toISOString(),
+      version: job.version + 1,
+      updatedAt: now(),
+    });
+    return job;
+  }
+
+  async deleteClaimedRemixProject(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+  }) {
+    const job = this.remixJobs.get(input.remixJobId);
+    if (!job || job.state !== 'CLEANUP_PENDING' || job.operationToken !== input.operationToken) return false;
+    this.projects.delete(input.targetProjectId);
+    job.targetProjectId = undefined;
+    return true;
+  }
+
+  async finishRemixCleanup(input: { remixJobId: string; organizationId: string; operationToken: string }) {
+    const job = this.remixJobs.get(input.remixJobId);
+    if (!job || job.state !== 'CLEANUP_PENDING' || job.operationToken !== input.operationToken || job.targetProjectId) {
+      return undefined;
+    }
+    job.state = 'FAILED';
+    job.operationToken = undefined;
+    job.operationExpiresAt = undefined;
+    job.cleanupTerminalState = undefined;
+    job.storageShareId = undefined;
+    job.targetDatabaseInstanceId = undefined;
+    job.version += 1;
+    job.updatedAt = now();
+    return job;
+  }
+
+  async getRemixJob(id: string, organizationId?: string) {
+    const row = this.remixJobs.get(id);
+    return row && (!organizationId || row.organizationId === organizationId) ? row : undefined;
+  }
+
+  async getDatabaseTime() {
+    return new Date().toISOString();
+  }
+
+  async createRemixStorageShare(input: {
+    sourceProjectId: string;
+    targetProjectId: string;
+    sourceOrganizationId: string;
+    targetOrganizationId: string;
+    consentVersion: string;
+    consentedByUserId?: string;
+    sourceInventory: unknown;
+  }) {
+    const existing = this.remixStorageShares.get(input.targetProjectId);
+    if (existing) return existing;
+    const row: RemixStorageShareRecord = {
+      id: id('remix-share'),
+      ...input,
+      consentedAt: now(),
+      state: 'ACTIVE',
+    };
+    this.remixStorageShares.set(input.targetProjectId, row);
+    return row;
+  }
+
+  async getRemixStorageShareByTarget(targetProjectId: string) {
+    const row = this.remixStorageShares.get(targetProjectId);
+    return row?.state === 'ACTIVE' ? row : undefined;
+  }
+
+  async revokeRemixStorageShare(input: { targetProjectId: string; targetOrganizationId: string }) {
+    const share = this.remixStorageShares.get(input.targetProjectId);
+    if (!share || share.targetOrganizationId !== input.targetOrganizationId || share.state !== 'ACTIVE') {
+      return undefined;
+    }
+
+    const revoked: RemixStorageShareRecord = {
+      ...share,
+      state: 'REVOKED',
+      revokedAt: now(),
+    };
+    this.remixStorageShares.set(input.targetProjectId, revoked);
+    return revoked;
+  }
+
+  async deleteClaimedRemixStorageShare(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+  }) {
+    const job = this.remixJobs.get(input.remixJobId);
+    if (
+      !job ||
+      job.organizationId !== input.organizationId ||
+      job.state !== 'CLEANUP_PENDING' ||
+      job.operationToken !== input.operationToken ||
+      !job.operationExpiresAt ||
+      Date.parse(job.operationExpiresAt) <= Date.now() ||
+      job.targetProjectId !== input.targetProjectId
+    ) {
+      return false;
+    }
+    return this.remixStorageShares.delete(input.targetProjectId);
   }
 
   galleryListings = new Map<string, GalleryListingRecord>();

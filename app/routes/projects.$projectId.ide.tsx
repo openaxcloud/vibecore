@@ -43,7 +43,14 @@ import { buildIdeNotifications, restartWorkspace, type IdeNotificationKind } fro
 import { shouldRevalidateProjectIde } from './projects.$projectId.ide.revalidate';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
-import { ConfirmationDialog } from '~/components/ui/Dialog';
+import {
+  ConfirmationDialog,
+  Dialog,
+  DialogButton,
+  DialogDescription,
+  DialogRoot,
+  DialogTitle,
+} from '~/components/ui/Dialog';
 import { InputDialog } from '~/components/ui/InputDialog';
 import { ZoneErrorBoundary } from '~/components/ui/PanelBoundary';
 import { configuredToast } from '~/components/ui/use-toast';
@@ -865,19 +872,152 @@ function ProjectMenuAction({
   const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
     formatProjectIdeCopy(template, values);
 
+  type RemixPolicy = 'DETACH' | 'CLONE' | 'SHARE_WITH_CONSENT';
+  type RemixContract = { policies: RemixPolicy[]; storageConsentVersion: string };
+  type PendingRemixRequest = {
+    idempotencyKey: string;
+    storagePolicy: RemixPolicy;
+    storageConsentVersion?: string;
+  };
+
   const [busy, setBusy] = useState(false);
+  const remixRequest = useRef<PendingRemixRequest | null>(null);
+  const remixStorageKey = `vibecore:pending-remix:${action}`;
+
+  const readRememberedRemix = (): PendingRemixRequest | null => {
+    try {
+      const parsed = JSON.parse(
+        globalThis.localStorage.getItem(remixStorageKey) ?? 'null',
+      ) as Partial<PendingRemixRequest> | null;
+
+      const storagePolicy = parsed?.storagePolicy;
+
+      if (
+        !parsed ||
+        typeof parsed.idempotencyKey !== 'string' ||
+        parsed.idempotencyKey.length < 8 ||
+        parsed.idempotencyKey.length > 200 ||
+        !storagePolicy ||
+        !['DETACH', 'CLONE', 'SHARE_WITH_CONSENT'].includes(storagePolicy) ||
+        (storagePolicy === 'SHARE_WITH_CONSENT' && typeof parsed.storageConsentVersion !== 'string')
+      ) {
+        return null;
+      }
+
+      return {
+        idempotencyKey: parsed.idempotencyKey,
+        storagePolicy,
+        ...(typeof parsed.storageConsentVersion === 'string'
+          ? { storageConsentVersion: parsed.storageConsentVersion }
+          : {}),
+      };
+    } catch {
+      return null;
+    }
+  };
+
+  const rememberRemix = (request: PendingRemixRequest | null) => {
+    try {
+      if (request) {
+        globalThis.localStorage.setItem(remixStorageKey, JSON.stringify(request));
+      } else {
+        globalThis.localStorage.removeItem(remixStorageKey);
+      }
+    } catch {
+      /*
+       * Storage can be unavailable in hardened/private browser contexts. The
+       * in-memory request still preserves idempotency for this page lifetime.
+       */
+    }
+  };
 
   // G5: delete confirm / rename prompt now use token-styled dialogs.
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
+  const [forkOpen, setForkOpen] = useState(false);
+  const [forkPolicy, setForkPolicy] = useState<RemixPolicy>('DETACH');
+  const [shareConsent, setShareConsent] = useState(false);
+  const [remixContract, setRemixContract] = useState<RemixContract | null>(null);
+  const [remixContractState, setRemixContractState] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [remixContractAttempt, setRemixContractAttempt] = useState(0);
 
-  const runAction = async (name?: string) => {
+  useEffect(() => {
+    if (intent !== 'fork' || !forkOpen || remixContract) {
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    setRemixContractState('loading');
+
+    void fetch(`${action}?intent=remix-policy`, {
+      credentials: 'include',
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        const result = (await response.json().catch(() => ({}))) as Partial<RemixContract> & { ok?: boolean };
+
+        if (
+          !response.ok ||
+          result.ok === false ||
+          !Array.isArray(result.policies) ||
+          typeof result.storageConsentVersion !== 'string'
+        ) {
+          throw new Error(copy['projectIde.fork.error']);
+        }
+
+        const policies = result.policies.filter((policy): policy is RemixPolicy =>
+          ['DETACH', 'CLONE', 'SHARE_WITH_CONSENT'].includes(policy),
+        );
+
+        if (policies.length === 0) {
+          throw new Error(copy['projectIde.fork.error']);
+        }
+
+        setRemixContract({ policies, storageConsentVersion: result.storageConsentVersion });
+        setForkPolicy(policies.includes('DETACH') ? 'DETACH' : policies[0]);
+        setRemixContractState('idle');
+      })
+      .catch((error) => {
+        if ((error as Error).name !== 'AbortError') {
+          setRemixContractState('error');
+        }
+      });
+
+    return () => controller.abort();
+  }, [action, forkOpen, intent, remixContract, remixContractAttempt]);
+
+  const runAction = async (
+    name?: string,
+    forkOptions?: { storagePolicy: RemixPolicy; storageConsentVersion?: string },
+  ) => {
     setBusy(true);
 
     try {
       const form = new FormData();
       form.set('intent', intent);
       form.set('projectName', projectName);
+
+      if (intent === 'fork') {
+        if (!remixRequest.current) {
+          if (!forkOptions) {
+            return;
+          }
+
+          const request = {
+            idempotencyKey: globalThis.crypto.randomUUID(),
+            ...forkOptions,
+          };
+          remixRequest.current = request;
+          rememberRemix(request);
+        }
+
+        form.set('idempotencyKey', remixRequest.current.idempotencyKey);
+        form.set('storagePolicy', remixRequest.current.storagePolicy);
+
+        if (remixRequest.current.storageConsentVersion) {
+          form.set('storageConsentVersion', remixRequest.current.storageConsentVersion);
+        }
+      }
 
       if (intent === 'rename') {
         if (!name) {
@@ -892,6 +1032,7 @@ function ProjectMenuAction({
 
       const result = (await response.json().catch(() => ({}))) as {
         project?: { project?: { id?: string }; id?: string };
+        pending?: boolean;
         error?: string;
       };
 
@@ -912,17 +1053,39 @@ function ProjectMenuAction({
                 : copy['projectIde.action.fork'];
 
         configuredToast.error(text(copy['projectIde.action.failed'], { action: localizedAction }));
+
+        if (intent === 'fork' && response.status < 500) {
+          remixRequest.current = null;
+          rememberRemix(null);
+        }
       } else if (intent === 'delete') {
         window.location.href = '/projects';
       } else if (intent === 'duplicate' || intent === 'fork') {
         const nextProjectId = result.project?.project?.id ?? result.project?.id;
 
         if (nextProjectId) {
+          if (intent === 'fork') {
+            remixRequest.current = null;
+            rememberRemix(null);
+          }
+
           window.location.href = `/projects/${nextProjectId}/ide`;
+        } else if (intent === 'fork' && result.pending) {
+          configuredToast.info(copy['projectIde.action.forkPending']);
         }
       } else if (intent === 'rename') {
         window.location.reload();
       }
+    } catch {
+      const localizedAction =
+        intent === 'delete'
+          ? copy['projectIde.action.delete']
+          : intent === 'rename'
+            ? copy['projectIde.action.rename']
+            : intent === 'duplicate'
+              ? copy['projectIde.action.duplicate']
+              : copy['projectIde.action.fork'];
+      configuredToast.error(text(copy['projectIde.action.failed'], { action: localizedAction }));
     } finally {
       setBusy(false);
     }
@@ -942,6 +1105,20 @@ function ProjectMenuAction({
 
           if (intent === 'rename') {
             setRenameOpen(true);
+            return;
+          }
+
+          if (intent === 'fork') {
+            const pending = remixRequest.current ?? readRememberedRemix();
+
+            if (pending) {
+              remixRequest.current = pending;
+              void runAction(undefined, pending);
+            } else {
+              setShareConsent(false);
+              setForkOpen(true);
+            }
+
             return;
           }
 
@@ -979,6 +1156,129 @@ function ProjectMenuAction({
           confirmLabel={copy['projectIde.rename.confirm']}
           validate={(value) => (value.trim() ? undefined : copy['projectIde.rename.required'])}
         />
+      ) : null}
+      {intent === 'fork' ? (
+        <DialogRoot open={forkOpen} onOpenChange={(open) => !open && !busy && setForkOpen(false)}>
+          <Dialog onClose={() => setForkOpen(false)} onBackdrop={() => !busy && setForkOpen(false)}>
+            <div className="flex min-h-0 flex-col gap-4 p-5 sm:p-6">
+              <div className="pr-9">
+                <DialogTitle>{copy['projectIde.fork.title']}</DialogTitle>
+                <DialogDescription>{copy['projectIde.fork.description']}</DialogDescription>
+              </div>
+
+              {remixContractState === 'loading' ? (
+                <div className="grid gap-2" aria-busy="true" aria-label={copy['projectIde.fork.loading']}>
+                  {[0, 1, 2].map((item) => (
+                    <div
+                      key={item}
+                      className="h-16 animate-pulse rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3"
+                    />
+                  ))}
+                </div>
+              ) : remixContractState === 'error' ? (
+                <div
+                  role="alert"
+                  className="rounded-lg border border-red-500/35 bg-red-500/10 p-3 text-sm text-bolt-elements-textPrimary"
+                >
+                  <p>{copy['projectIde.fork.error']}</p>
+                  <button
+                    type="button"
+                    className="mt-2 rounded-md border border-bolt-elements-borderColor px-3 py-1.5 font-medium hover:bg-bolt-elements-background-depth-3"
+                    onClick={() => {
+                      setRemixContractState('idle');
+                      setRemixContractAttempt((value) => value + 1);
+                    }}
+                  >
+                    {copy['projectIde.fork.retry']}
+                  </button>
+                </div>
+              ) : remixContract ? (
+                <div className="grid gap-2" role="radiogroup" aria-label={copy['projectIde.fork.policyLabel']}>
+                  {remixContract.policies.map((policy) => {
+                    const key = policy === 'DETACH' ? 'detach' : policy === 'CLONE' ? 'clone' : 'share';
+                    const selected = forkPolicy === policy;
+
+                    return (
+                      <label
+                        key={policy}
+                        className={`flex cursor-pointer gap-3 rounded-lg border p-3 transition-colors ${
+                          selected
+                            ? 'border-[var(--vc-action-primary)] bg-[var(--vc-action-primary)]/10'
+                            : 'border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="remix-storage-policy"
+                          value={policy}
+                          checked={selected}
+                          onChange={() => {
+                            setForkPolicy(policy);
+
+                            if (policy !== 'SHARE_WITH_CONSENT') {
+                              setShareConsent(false);
+                            }
+                          }}
+                          className="mt-1 accent-[var(--vc-action-primary)]"
+                        />
+                        <span className="min-w-0">
+                          <span className="block text-sm font-semibold text-bolt-elements-textPrimary">
+                            {copy[`projectIde.fork.policy.${key}.title`]}
+                          </span>
+                          <span className="mt-0.5 block text-xs leading-5 text-bolt-elements-textSecondary">
+                            {copy[`projectIde.fork.policy.${key}.description`]}
+                          </span>
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {remixContract && forkPolicy === 'SHARE_WITH_CONSENT' ? (
+                <label className="flex gap-3 rounded-lg border border-amber-500/35 bg-amber-500/10 p-3 text-sm text-bolt-elements-textPrimary">
+                  <input
+                    type="checkbox"
+                    checked={shareConsent}
+                    onChange={(event) => setShareConsent(event.currentTarget.checked)}
+                    className="mt-1 accent-[var(--vc-action-primary)]"
+                  />
+                  <span>{copy['projectIde.fork.shareConsent']}</span>
+                </label>
+              ) : null}
+
+              <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <DialogButton type="secondary" disabled={busy} onClick={() => setForkOpen(false)}>
+                  {copy['projectIde.fork.cancel']}
+                </DialogButton>
+                <DialogButton
+                  type="primary"
+                  disabled={
+                    busy ||
+                    !remixContract ||
+                    remixContractState !== 'idle' ||
+                    (forkPolicy === 'SHARE_WITH_CONSENT' && !shareConsent)
+                  }
+                  onClick={() => {
+                    if (!remixContract) {
+                      return;
+                    }
+
+                    setForkOpen(false);
+                    void runAction(undefined, {
+                      storagePolicy: forkPolicy,
+                      ...(forkPolicy === 'SHARE_WITH_CONSENT'
+                        ? { storageConsentVersion: remixContract.storageConsentVersion }
+                        : {}),
+                    });
+                  }}
+                >
+                  {busy ? copy['projectIde.action.working'] : copy['projectIde.fork.confirm']}
+                </DialogButton>
+              </div>
+            </div>
+          </Dialog>
+        </DialogRoot>
       ) : null}
     </>
   );

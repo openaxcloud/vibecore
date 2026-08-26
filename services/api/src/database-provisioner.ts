@@ -17,6 +17,8 @@ import { createHmac } from 'node:crypto';
 
 import { Client as PgClient } from 'pg';
 
+import { appPublicEnglish } from './app-public-copy.js';
+
 /** Minimal manifest shape (structurally compatible with k8s-client's K8sObject). */
 export interface K8sManifest {
   apiVersion: string;
@@ -98,7 +100,10 @@ export function resolveDatabaseTier(planKey: string | undefined): DatabaseTier {
 
 /** Safe Postgres identifier derived from a (cuid) project id. */
 function pgIdent(prefix: string, projectId: string): string {
-  const safe = projectId.toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 40);
+  const safe = projectId
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 40);
 
   return `${prefix}${safe}`;
 }
@@ -254,18 +259,12 @@ export class PgTenantSqlExecutor implements TenantSqlExecutor {
     }
   }
 
-  async verifyConnection(input: {
-    uri: string;
-    expectedRole?: string;
-    expectedDatabase?: string;
-  }): Promise<boolean> {
+  async verifyConnection(input: { uri: string; expectedRole?: string; expectedDatabase?: string }): Promise<boolean> {
     const client = this.createClient(input.uri);
     await client.connect();
 
     try {
-      const result = await client.query(
-        'SELECT current_user::text AS "user", current_database()::text AS "database"',
-      );
+      const result = await client.query('SELECT current_user::text AS "user", current_database()::text AS "database"');
       const row = result.rows?.[0];
 
       if (!row) {
@@ -459,6 +458,63 @@ export function buildRestoreClusterManifest(input: {
   };
 }
 
+/**
+ * Isolated database fork for a project remix. The target gets its OWN CNPG
+ * Cluster and backup path; only bootstrap reads the source project's archived
+ * WAL/base backups at the pinned recovery timestamp. No source connection URI,
+ * role or Secret is copied into the target.
+ */
+export function buildDatabaseForkClusterManifest(input: {
+  sourceProjectId: string;
+  targetProjectId: string;
+  targetOrganizationId: string;
+  targetTimeIso: string;
+  backupBucket: string;
+  retentionDays: number;
+  storageGi?: number;
+  backupServiceAccount?: string;
+}): K8sManifest {
+  const sourceName = `${clusterName(input.sourceProjectId)}-remix-source`;
+  const sat = serviceAccountTemplate(input.backupServiceAccount);
+
+  return {
+    apiVersion: CNPG_API,
+    kind: 'Cluster',
+    metadata: {
+      name: clusterName(input.targetProjectId),
+      namespace: DB_NAMESPACE,
+      labels: {
+        ...dbLabels(input.targetProjectId, input.targetOrganizationId),
+        'vibecore.ai/remix-source-project-id': input.sourceProjectId,
+      },
+    },
+    spec: {
+      instances: 1,
+      storage: { size: `${Math.max(1, input.storageGi ?? 1)}Gi` },
+      ...(sat ? { serviceAccountTemplate: sat } : {}),
+      bootstrap: {
+        recovery: {
+          source: sourceName,
+          recoveryTarget: { targetTime: input.targetTimeIso },
+        },
+      },
+      externalClusters: [
+        {
+          name: sourceName,
+          barmanObjectStore: buildBarmanObjectStore(input.sourceProjectId, input.backupBucket),
+        },
+      ],
+      // Once recovery completes, new WAL/base backups belong exclusively to the
+      // target project. Compensation can delete this cluster without touching
+      // the source archive prefix.
+      backup: {
+        barmanObjectStore: buildBarmanObjectStore(input.targetProjectId, input.backupBucket),
+        retentionPolicy: `${Math.max(1, input.retentionDays)}d`,
+      },
+    },
+  };
+}
+
 export interface ProvisionResult {
   clusterName: string;
   applied: boolean;
@@ -512,6 +568,18 @@ export interface DatabaseProvisioner {
     retentionDays: number;
   }): Promise<{ applied: boolean; clusterName: string }>;
   restoreProgress(input: { projectId: string; restoreId: string }): Promise<RestoreProgress>;
+  forkInstance(input: {
+    sourceProjectId: string;
+    targetProjectId: string;
+    targetOrganizationId: string;
+    targetTimeIso: string;
+    retentionDays: number;
+    guard?: () => Promise<void>;
+  }): Promise<ProvisionResult>;
+  /** Returns the target-only application URI once the recovered cluster is ready. */
+  forkProgress(input: { targetProjectId: string }): Promise<{ ready: boolean; connectionUri?: string }>;
+  /** Strict target-only cleanup + absence verification used by remix compensation. */
+  teardownFork(input: { targetProjectId: string; guard?: () => Promise<void> }): Promise<void>;
   teardown(input: { projectId: string }): Promise<void>;
 }
 
@@ -544,6 +612,23 @@ export class NoopProvisioner implements DatabaseProvisioner {
   async restoreProgress(input: { projectId: string; restoreId: string }): Promise<RestoreProgress> {
     return { ready: false, clusterName: restoreClusterName(input.projectId, input.restoreId) };
   }
+
+  async forkInstance(input: {
+    sourceProjectId: string;
+    targetProjectId: string;
+    targetOrganizationId: string;
+    targetTimeIso: string;
+    retentionDays: number;
+    guard?: () => Promise<void>;
+  }): Promise<ProvisionResult> {
+    return { clusterName: clusterName(input.targetProjectId), applied: false };
+  }
+
+  async forkProgress(): Promise<{ ready: boolean; connectionUri?: string }> {
+    return { ready: false };
+  }
+
+  async teardownFork(): Promise<void> {}
 
   async teardown(): Promise<void> {}
 }
@@ -752,6 +837,50 @@ export class CnpgProvisioner implements DatabaseProvisioner {
     return { ready, clusterName: name };
   }
 
+  async forkInstance(input: {
+    sourceProjectId: string;
+    targetProjectId: string;
+    targetOrganizationId: string;
+    targetTimeIso: string;
+    retentionDays: number;
+    guard?: () => Promise<void>;
+  }): Promise<ProvisionResult> {
+    const manifest = buildDatabaseForkClusterManifest({
+      ...input,
+      backupBucket: this.backupBucket,
+      backupServiceAccount: this.backupServiceAccount,
+    });
+    await input.guard?.();
+    await this.k8s.apply(manifest);
+    await input.guard?.();
+    await this.k8s.apply(buildScheduledBackupManifest(input.targetProjectId));
+
+    return { clusterName: manifest.metadata.name, applied: true };
+  }
+
+  async forkProgress(input: { targetProjectId: string }): Promise<{ ready: boolean; connectionUri?: string }> {
+    const connectionUri = await this.getConnectionUri({ projectId: input.targetProjectId, tier: 'isolated' });
+
+    return connectionUri ? { ready: true, connectionUri } : { ready: false };
+  }
+
+  async teardownFork(input: { targetProjectId: string; guard?: () => Promise<void> }): Promise<void> {
+    const cluster = clusterName(input.targetProjectId);
+    await input.guard?.();
+    await this.k8s.delete('ScheduledBackup', DB_NAMESPACE, `${cluster}-daily`);
+    await input.guard?.();
+    await this.k8s.delete('Cluster', DB_NAMESPACE, cluster);
+
+    const [clusterAfter, backupAfter] = await Promise.all([
+      this.k8s.get('Cluster', DB_NAMESPACE, cluster),
+      this.k8s.get('ScheduledBackup', DB_NAMESPACE, `${cluster}-daily`),
+    ]);
+
+    if (clusterAfter || backupAfter) {
+      throw new Error(appPublicEnglish('REMIX_DATABASE_CLEANUP_INCOMPLETE'));
+    }
+  }
+
   async teardown(input: { projectId: string }): Promise<void> {
     // Tear down BOTH environments' isolated clusters (dev + prod) so deleting a
     // project leaves no orphaned production database behind.
@@ -822,6 +951,10 @@ export class ManagerK8sPort implements K8sApplyPort {
       `/databases/resource?kind=${encodeURIComponent(kind)}&namespace=${encodeURIComponent(namespace)}&name=${encodeURIComponent(name)}`,
     );
     await res.body?.cancel().catch(() => {});
+
+    if (!res.ok && res.status !== 404) {
+      throw new Error(appPublicEnglish('DATABASE_MANAGER_DELETE_FAILED', { status: res.status }));
+    }
   }
 
   async getSecret(namespace: string, name: string): Promise<Record<string, string> | undefined> {

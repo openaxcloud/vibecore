@@ -65,6 +65,8 @@ export const publicGalleryEn = {
   'publicGallery.detail.acceptLicense':
     'I accept the license terms above and the data-handling policy (consent {version}).',
   'publicGallery.detail.remixing': 'Remixing…',
+  'publicGallery.detail.remixPending':
+    'The isolated database copy is still being prepared. Select Remix again to resume the same operation.',
   'publicGallery.detail.remix': 'Remix this app',
   'publicGallery.detail.remixDisabled': 'The author has not allowed this app to be remixed.',
   'publicGallery.detail.viewApp': 'View app',
@@ -178,6 +180,8 @@ export const publicGalleryFr: PublicGalleryCopy = {
   'publicGallery.detail.acceptLicense':
     'J’accepte les conditions de licence ci-dessus et la politique de traitement des données (consentement {version}).',
   'publicGallery.detail.remixing': 'Remix en cours…',
+  'publicGallery.detail.remixPending':
+    'La copie isolée de la base est encore en préparation. Sélectionnez à nouveau Remix pour reprendre la même opération.',
   'publicGallery.detail.remix': 'Remixer cette application',
   'publicGallery.detail.remixDisabled': 'L’auteur n’autorise pas le remix de cette application.',
   'publicGallery.detail.viewApp': 'Ouvrir l’application',

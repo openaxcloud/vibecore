@@ -23,6 +23,7 @@ import {
   maskPiiInFiles,
   scanClonedFilesForSecrets,
   scanFilesForPii,
+  scrubCredentialAssignments,
   scrubSecretsFromFiles,
 } from './remix-pipeline.js';
 
@@ -131,6 +132,31 @@ describe('scrubSecretsFromFiles — CLONING strips materialized values', () => {
     const { files, removed } = scrubSecretsFromFiles(input, [{ key: 'K', value: 'unusedLongValue123' }]);
     expect(removed).toEqual([]);
     expect(files).toEqual(input);
+  });
+});
+
+describe('scrubCredentialAssignments — fail closed without readable values', () => {
+  it('blanks dotenv, YAML and JSON assignments by pinned credential key', () => {
+    const result = scrubCredentialAssignments(
+      [
+        { path: '.env', content: 'SHORT_TOKEN=abc\nSAFE=true\n' },
+        { path: 'config.yml', content: 'DATABASE_URL: postgres://raw\n' },
+        { path: 'config.json', content: '  "API_KEY": "materialized",\n' },
+      ],
+      ['SHORT_TOKEN', 'DATABASE_URL', 'API_KEY'],
+    );
+
+    expect(result.files[0].content).toContain('SHORT_TOKEN= # detached on remix');
+    expect(result.files[0].content).toContain('SAFE=true');
+    expect(result.files[1].content).toContain('DATABASE_URL: "" # detached on remix');
+    expect(result.files[2].content).toContain('"API_KEY": "",');
+    expect(JSON.stringify(result.files)).not.toMatch(/abc|postgres:\/\/raw|materialized/);
+    expect(result.removed.map(({ secretKey }) => secretKey).sort()).toEqual(['API_KEY', 'DATABASE_URL', 'SHORT_TOKEN']);
+  });
+
+  it('mutation guard: removing the key match would leak an unreadable short secret', () => {
+    const result = scrubCredentialAssignments([{ path: '.env', content: 'TOKEN=abc\n' }], ['TOKEN']);
+    expect(result.files[0].content).not.toContain('abc');
   });
 });
 

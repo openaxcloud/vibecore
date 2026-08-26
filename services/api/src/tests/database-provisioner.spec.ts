@@ -6,6 +6,7 @@ import {
   PgTenantSqlExecutor,
   type TenantSqlClient,
   buildClusterManifest,
+  buildDatabaseForkClusterManifest,
   buildDatabaseCrManifest,
   buildPoolerManifest,
   buildRestoreClusterManifest,
@@ -55,6 +56,7 @@ class FakeK8s implements K8sApplyPort {
 
   async delete(kind: string, _ns: string, name: string) {
     this.deleted.push(`${kind}/${name}`);
+    this.clusters.delete(`${kind}/${name}`);
   }
 
   secrets = new Map<string, Record<string, string>>();
@@ -235,7 +237,12 @@ describe('PgTenantSqlExecutor SQL sequence', () => {
     const { client, statements } = fakeClient({ role: false, db: false });
     const exec = new PgTenantSqlExecutor(() => client);
 
-    await exec.provisionTenant({ adminUri: 'postgresql://app:x@h:5432/app', role: 't_p1', db: 'proj_p1', password: 'pw' });
+    await exec.provisionTenant({
+      adminUri: 'postgresql://app:x@h:5432/app',
+      role: 't_p1',
+      db: 'proj_p1',
+      password: 'pw',
+    });
 
     const grantIdx = statements.findIndex((s) => /GRANT "t_p1" TO CURRENT_USER/.test(s));
     const createDbIdx = statements.findIndex((s) => /CREATE DATABASE "proj_p1" OWNER "t_p1"/.test(s));
@@ -248,7 +255,12 @@ describe('PgTenantSqlExecutor SQL sequence', () => {
     const { client, statements } = fakeClient({ role: true, db: true });
     const exec = new PgTenantSqlExecutor(() => client);
 
-    await exec.provisionTenant({ adminUri: 'postgresql://app:x@h:5432/app', role: 't_p1', db: 'proj_p1', password: 'pw' });
+    await exec.provisionTenant({
+      adminUri: 'postgresql://app:x@h:5432/app',
+      role: 't_p1',
+      db: 'proj_p1',
+      password: 'pw',
+    });
 
     expect(statements.some((s) => /CREATE DATABASE/.test(s))).toBe(false);
     expect(statements.some((s) => /GRANT "t_p1" TO CURRENT_USER/.test(s))).toBe(false);
@@ -334,7 +346,12 @@ describe('shared-tier tenant provisioning (admin-SQL slice)', () => {
   it('provisionInstance(shared) creates the tenant via the SQL executor with cuid-safe ids', async () => {
     const { sql, prov } = sharedSetup();
 
-    await prov.provisionInstance({ projectId: 'abc123', retentionDays: 7, tier: 'shared', sharedClusterName: 'shared-pg-0' });
+    await prov.provisionInstance({
+      projectId: 'abc123',
+      retentionDays: 7,
+      tier: 'shared',
+      sharedClusterName: 'shared-pg-0',
+    });
 
     expect(sql.calls).toHaveLength(1);
     expect(sql.calls[0]).toMatchObject({ role: tenantRoleName('abc123'), db: sharedDbName('abc123') });
@@ -460,6 +477,113 @@ describe('CnpgProvisioner', () => {
   });
 });
 
+describe('physical remix database fork', () => {
+  it('builds an isolated target cluster that reads only the pinned source backup prefix', () => {
+    const manifest = buildDatabaseForkClusterManifest({
+      sourceProjectId: 'source-1',
+      targetProjectId: 'target-1',
+      targetOrganizationId: 'org-target',
+      targetTimeIso: '2026-08-26T10:15:00.000Z',
+      backupBucket: 'backup-bucket',
+      retentionDays: 14,
+    });
+    const spec = manifest.spec as any;
+
+    expect(manifest.metadata.name).toBe(clusterName('target-1'));
+    expect(manifest.metadata.labels?.['vibecore.ai/project-id']).toBe('target-1');
+    expect(spec.bootstrap.recovery.recoveryTarget.targetTime).toBe('2026-08-26T10:15:00.000Z');
+    expect(spec.externalClusters[0].barmanObjectStore.destinationPath).toBe('gs://backup-bucket/db/source-1');
+    expect(spec.backup.barmanObjectStore.destinationPath).toBe('gs://backup-bucket/db/target-1');
+    expect(JSON.stringify(manifest)).not.toContain('DATABASE_URL');
+  });
+
+  it('applies, verifies and compensates only target CNPG resources', async () => {
+    const k8s = new FakeK8s();
+    const sql = new FakeTenantSqlExecutor();
+    const provisioner = new CnpgProvisioner(k8s, 'backup-bucket', undefined, sql);
+
+    const started = await provisioner.forkInstance({
+      sourceProjectId: 'source-1',
+      targetProjectId: 'target-1',
+      targetOrganizationId: 'org-target',
+      targetTimeIso: '2026-08-26T10:15:00.000Z',
+      retentionDays: 14,
+    });
+    expect(started).toMatchObject({ applied: true, clusterName: clusterName('target-1') });
+    expect(k8s.applied.map((manifest) => `${manifest.kind}/${manifest.metadata.name}`)).toEqual([
+      `Cluster/${clusterName('target-1')}`,
+      `ScheduledBackup/${clusterName('target-1')}-daily`,
+    ]);
+
+    k8s.clusters.set(`Cluster/${clusterName('source-1')}`, {
+      status: { phase: 'Cluster in healthy state', readyInstances: 1 },
+    });
+    k8s.clusters.set(`Cluster/${clusterName('target-1')}`, {
+      status: { phase: 'Cluster in healthy state', readyInstances: 1 },
+    });
+    k8s.secrets.set(`${clusterName('target-1')}-app`, { uri: 'postgresql://target-only' });
+    await expect(provisioner.forkProgress({ targetProjectId: 'target-1' })).resolves.toMatchObject({ ready: true });
+
+    await provisioner.teardownFork({ targetProjectId: 'target-1' });
+    expect(k8s.deleted).toEqual([
+      `ScheduledBackup/${clusterName('target-1')}-daily`,
+      `Cluster/${clusterName('target-1')}`,
+    ]);
+    // Mutation discriminator: substituting sourceProjectId in teardown would fail here.
+    expect(k8s.clusters.has(`Cluster/${clusterName('source-1')}`)).toBe(true);
+  });
+
+  it('revalidates the durable owner between the target cluster and backup mutations', async () => {
+    const k8s = new FakeK8s();
+    const provisioner = new CnpgProvisioner(k8s, 'backup-bucket', undefined, new FakeTenantSqlExecutor());
+    let guardCalls = 0;
+
+    await expect(
+      provisioner.forkInstance({
+        sourceProjectId: 'source-guard',
+        targetProjectId: 'target-guard',
+        targetOrganizationId: 'org-target',
+        targetTimeIso: '2026-08-26T10:15:00.000Z',
+        retentionDays: 14,
+        guard: async () => {
+          guardCalls += 1;
+
+          if (guardCalls === 2) {
+            throw Object.assign(new Error('lease lost'), { code: 'REMIX_OWNERSHIP_LOST' });
+          }
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'REMIX_OWNERSHIP_LOST' });
+
+    expect(k8s.applied.map((manifest) => manifest.kind)).toEqual(['Cluster']);
+  });
+
+  it('revalidates cleanup ownership between target backup and cluster deletion', async () => {
+    const k8s = new FakeK8s();
+    const targetCluster = clusterName('cleanup-guard');
+    k8s.clusters.set(`Cluster/${targetCluster}`, {});
+    k8s.clusters.set(`ScheduledBackup/${targetCluster}-daily`, {});
+    const provisioner = new CnpgProvisioner(k8s, 'backup-bucket', undefined, new FakeTenantSqlExecutor());
+    let guardCalls = 0;
+
+    await expect(
+      provisioner.teardownFork({
+        targetProjectId: 'cleanup-guard',
+        guard: async () => {
+          guardCalls += 1;
+
+          if (guardCalls === 2) {
+            throw Object.assign(new Error('lease lost'), { code: 'REMIX_OWNERSHIP_LOST' });
+          }
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'REMIX_OWNERSHIP_LOST' });
+
+    expect(k8s.deleted).toEqual([`ScheduledBackup/${targetCluster}-daily`]);
+    expect(k8s.clusters.has(`Cluster/${targetCluster}`)).toBe(true);
+  });
+});
+
 describe('resolveDatabaseProvisioner (dormancy)', () => {
   it('is Noop when the flag is off', () => {
     delete (process.env as Record<string, string | undefined>).DB_ROLLBACK_ENABLED;
@@ -535,7 +659,12 @@ describe('P2d dev/prod split (environment-scoped naming)', () => {
   });
 
   it('isolated production cluster gets the -prod name', () => {
-    const m = buildClusterManifest({ projectId: 'abc123', backupBucket: 'bkt', retentionDays: 28, environment: 'production' });
+    const m = buildClusterManifest({
+      projectId: 'abc123',
+      backupBucket: 'bkt',
+      retentionDays: 28,
+      environment: 'production',
+    });
     expect(m.metadata.name).toBe('db-abc123-prod');
   });
 });
@@ -545,7 +674,12 @@ describe('P2d isolated tier (paid) — dedicated per-project dev + prod clusters
     const k8s = new FakeK8s();
     const prov = new CnpgProvisioner(k8s, 'bkt');
 
-    await prov.provisionInstance({ projectId: 'abc123', retentionDays: 28, tier: 'isolated', environment: 'production' });
+    await prov.provisionInstance({
+      projectId: 'abc123',
+      retentionDays: 28,
+      tier: 'isolated',
+      environment: 'production',
+    });
 
     const cluster = k8s.applied.find((m) => m.kind === 'Cluster');
     const backup = k8s.applied.find((m) => m.kind === 'ScheduledBackup');
@@ -559,8 +693,18 @@ describe('P2d isolated tier (paid) — dedicated per-project dev + prod clusters
     const k8s = new FakeK8s();
     const prov = new CnpgProvisioner(k8s, 'bkt');
 
-    await prov.provisionInstance({ projectId: 'abc123', retentionDays: 28, tier: 'isolated', environment: 'development' });
-    await prov.provisionInstance({ projectId: 'abc123', retentionDays: 28, tier: 'isolated', environment: 'production' });
+    await prov.provisionInstance({
+      projectId: 'abc123',
+      retentionDays: 28,
+      tier: 'isolated',
+      environment: 'development',
+    });
+    await prov.provisionInstance({
+      projectId: 'abc123',
+      retentionDays: 28,
+      tier: 'isolated',
+      environment: 'production',
+    });
 
     const clusters = k8s.applied.filter((m) => m.kind === 'Cluster').map((m) => m.metadata.name);
     expect(clusters).toEqual(['db-abc123', 'db-abc123-prod']);
@@ -578,11 +722,11 @@ describe('P2d isolated tier (paid) — dedicated per-project dev + prod clusters
     expect(await prov.getConnectionUri({ projectId: 'abc123', tier: 'isolated', environment: 'production' })).toBe(
       'postgresql://app:pw@db-abc123-prod-rw:5432/app',
     );
-    expect(sql.verificationCalls).toEqual([
-      { uri: 'postgresql://app:pw@db-abc123-prod-rw:5432/app' },
-    ]);
+    expect(sql.verificationCalls).toEqual([{ uri: 'postgresql://app:pw@db-abc123-prod-rw:5432/app' }]);
     // development reads the un-suffixed secret (and is undefined here)
-    expect(await prov.getConnectionUri({ projectId: 'abc123', tier: 'isolated', environment: 'development' })).toBeUndefined();
+    expect(
+      await prov.getConnectionUri({ projectId: 'abc123', tier: 'isolated', environment: 'development' }),
+    ).toBeUndefined();
   });
 
   it('teardown removes BOTH dev and prod isolated clusters', async () => {

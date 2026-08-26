@@ -13,6 +13,8 @@
  */
 import { Storage } from '@google-cloud/storage';
 
+import { appPublicEnglish } from './app-public-copy.js';
+
 /** Master kill-switch. Until this is `true` no object-storage endpoint does anything. */
 export function isObjectStorageEnabled(): boolean {
   return process.env.OBJECT_STORAGE_ENABLED === 'true';
@@ -95,6 +97,52 @@ export interface StoredObject {
   updated: string | null;
   contentType: string | null;
   etag: string | null;
+  /** Immutable source generation used to pin a server-side clone. */
+  generation: string | null;
+  /** Provider checksum (md5 preferred, crc32c fallback); never object content. */
+  contentHash: string | null;
+}
+
+export interface ObjectStorageInventoryEntry {
+  key: string;
+  size: number;
+  generation: string | null;
+  contentHash: string | null;
+}
+
+export interface ObjectStorageInventory {
+  bucketExists: boolean;
+  objects: ObjectStorageInventoryEntry[];
+}
+
+/** Validate the durable JSON boundary before using it as a physical-data authority. */
+export function parseObjectStorageInventory(value: unknown): ObjectStorageInventory | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
+  const record = value as { bucketExists?: unknown; objects?: unknown };
+  if (typeof record.bucketExists !== 'boolean' || !Array.isArray(record.objects)) return undefined;
+
+  const objects: ObjectStorageInventoryEntry[] = [];
+
+  for (const raw of record.objects) {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return undefined;
+    const object = raw as Record<string, unknown>;
+    if (
+      typeof object.key !== 'string' ||
+      typeof object.size !== 'number' ||
+      !(typeof object.generation === 'string' || object.generation === null) ||
+      !(typeof object.contentHash === 'string' || object.contentHash === null)
+    ) {
+      return undefined;
+    }
+    objects.push({
+      key: object.key,
+      size: object.size,
+      generation: object.generation,
+      contentHash: object.contentHash,
+    });
+  }
+
+  return { bucketExists: record.bucketExists, objects };
 }
 
 export interface ListObjectsResult {
@@ -102,6 +150,43 @@ export interface ListObjectsResult {
 
   /** Folder prefixes (when a delimiter is supplied), e.g. `src/`. */
   folders: string[];
+}
+
+/** Render only the immutable objects consented in a stored share inventory. */
+export function listPinnedInventoryObjects(
+  inventory: ObjectStorageInventory,
+  opts: { prefix?: string; delimiter?: string } = {},
+): ListObjectsResult {
+  const prefix = opts.prefix ?? '';
+  const delimiter = opts.delimiter;
+  const folders = new Set<string>();
+  const objects: StoredObject[] = [];
+
+  for (const object of inventory.objects) {
+    if (!object.key.startsWith(prefix)) continue;
+    const remainder = object.key.slice(prefix.length);
+    const separatorAt = delimiter ? remainder.indexOf(delimiter) : -1;
+
+    if (delimiter && separatorAt >= 0) {
+      folders.add(prefix + remainder.slice(0, separatorAt + delimiter.length));
+      continue;
+    }
+
+    objects.push({
+      key: object.key,
+      size: object.size,
+      updated: null,
+      contentType: null,
+      etag: null,
+      generation: object.generation,
+      contentHash: object.contentHash,
+    });
+  }
+
+  return {
+    objects: objects.sort((left, right) => left.key.localeCompare(right.key)),
+    folders: [...folders].sort(),
+  };
 }
 
 export interface SignedUrlResult {
@@ -117,7 +202,10 @@ export interface UploadUrlResult extends SignedUrlResult {
 export interface ObjectStorage {
   /** Whether the service is wired to a real backend (false = inert/disabled). */
   readonly active: boolean;
-  ensureBucket(projectId: string): Promise<{ bucket: string; created: boolean; location: string }>;
+  ensureBucket(
+    projectId: string,
+    guard?: () => Promise<void>,
+  ): Promise<{ bucket: string; created: boolean; location: string }>;
 
   /**
    * Whether THIS project's bucket already exists — the per-project "provisioned"
@@ -128,7 +216,7 @@ export interface ObjectStorage {
   bucketExists(projectId: string): Promise<boolean>;
   listObjects(projectId: string, opts?: { prefix?: string; delimiter?: string }): Promise<ListObjectsResult>;
   createUploadUrl(projectId: string, input: { key: string; contentType?: string }): Promise<UploadUrlResult>;
-  createDownloadUrl(projectId: string, input: { key: string }): Promise<SignedUrlResult>;
+  createDownloadUrl(projectId: string, input: { key: string; generation?: string }): Promise<SignedUrlResult>;
 
   /**
    * Server-side direct write (bytes originate on the server, e.g. an automatic
@@ -142,7 +230,16 @@ export interface ObjectStorage {
   moveObject(projectId: string, input: { from: string; to: string }): Promise<{ moved: boolean; key: string }>;
   deleteObject(projectId: string, input: { key: string }): Promise<{ deleted: boolean; count: number }>;
   deletePrefix(projectId: string, input: { prefix: string }): Promise<{ deleted: boolean; count: number }>;
-  deleteBucket(projectId: string): Promise<{ deleted: boolean; bucket: string }>;
+  deleteBucket(projectId: string, guard?: () => Promise<void>): Promise<{ deleted: boolean; bucket: string }>;
+  /** Complete, generation-pinned inventory for a physical-data remix. */
+  inventoryProjectObjects(projectId: string): Promise<ObjectStorageInventory>;
+  /** Server-side copy followed by an exact per-object checksum verification. */
+  cloneProjectObjects(
+    sourceProjectId: string,
+    targetProjectId: string,
+    inventory: ObjectStorageInventory,
+    guard?: () => Promise<void>,
+  ): Promise<ObjectStorageInventory>;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -152,10 +249,18 @@ export interface ObjectStorage {
 
 export interface FileLike {
   name: string;
-  metadata?: { size?: string | number; updated?: string; contentType?: string; etag?: string };
+  metadata?: {
+    size?: string | number;
+    updated?: string;
+    contentType?: string;
+    etag?: string;
+    generation?: string | number;
+    md5Hash?: string;
+    crc32c?: string;
+  };
   getSignedUrl(opts: Record<string, unknown>): Promise<[string]>;
   save(data: Uint8Array | Buffer | string, opts?: Record<string, unknown>): Promise<unknown>;
-  copy(destination: FileLike): Promise<unknown>;
+  copy(destination: FileLike, opts?: Record<string, unknown>): Promise<unknown>;
   delete(): Promise<unknown>;
 }
 
@@ -164,7 +269,7 @@ export interface BucketLike {
   create(opts: Record<string, unknown>): Promise<unknown>;
   setMetadata(metadata: Record<string, unknown>): Promise<unknown>;
   getFiles(query: Record<string, unknown>): Promise<[FileLike[], unknown, { prefixes?: string[] } | undefined]>;
-  file(name: string): FileLike;
+  file(name: string, opts?: { generation?: string | number }): FileLike;
   deleteFiles(opts: Record<string, unknown>): Promise<unknown>;
   delete(): Promise<unknown>;
 }
@@ -177,7 +282,7 @@ export interface StorageLike {
 export class NoopObjectStorage implements ObjectStorage {
   readonly active = false;
 
-  async ensureBucket(projectId: string) {
+  async ensureBucket(projectId: string, _guard?: () => Promise<void>) {
     return { bucket: projectBucketName(projectId), created: false, location: OBJECT_STORAGE_LOCATION };
   }
 
@@ -213,8 +318,16 @@ export class NoopObjectStorage implements ObjectStorage {
     return { deleted: false, count: 0 };
   }
 
-  async deleteBucket(projectId: string) {
+  async deleteBucket(projectId: string, _guard?: () => Promise<void>) {
     return { deleted: false, bucket: projectBucketName(projectId) };
+  }
+
+  async inventoryProjectObjects(): Promise<ObjectStorageInventory> {
+    return { bucketExists: false, objects: [] };
+  }
+
+  async cloneProjectObjects(): Promise<ObjectStorageInventory> {
+    throw new ObjectStorageError('A real object-storage backend is required for a physical clone', 'BACKEND_REQUIRED');
   }
 }
 
@@ -224,7 +337,7 @@ export class GcsObjectStorage implements ObjectStorage {
 
   constructor(private readonly _storage: StorageLike) {}
 
-  async ensureBucket(projectId: string) {
+  async ensureBucket(projectId: string, guard?: () => Promise<void>) {
     const name = projectBucketName(projectId);
     const bucket = this._storage.bucket(name);
     const [exists] = await bucket.exists();
@@ -233,6 +346,9 @@ export class GcsObjectStorage implements ObjectStorage {
       return { bucket: name, created: false, location: OBJECT_STORAGE_LOCATION };
     }
 
+    // The provider existence read is not the mutation point. Revalidate the
+    // durable owner after that read and immediately before bucket creation.
+    await guard?.();
     await bucket.create({
       location: OBJECT_STORAGE_LOCATION,
       uniformBucketLevelAccess: true,
@@ -260,8 +376,9 @@ export class GcsObjectStorage implements ObjectStorage {
     const [files, , apiResponse] = await bucket.getFiles({
       prefix: opts.prefix || undefined,
       delimiter: opts.delimiter || undefined,
-      autoPaginate: false,
-      maxResults: 1000,
+      // A remix inventory must be exhaustive. The previous one-page/1000-object
+      // browser listing is not a safe primitive for a physical clone.
+      autoPaginate: true,
     });
 
     const objects: StoredObject[] = files
@@ -273,6 +390,12 @@ export class GcsObjectStorage implements ObjectStorage {
         updated: file.metadata?.updated ?? null,
         contentType: file.metadata?.contentType ?? null,
         etag: file.metadata?.etag ?? null,
+        generation: file.metadata?.generation === undefined ? null : String(file.metadata.generation),
+        contentHash: file.metadata?.md5Hash
+          ? `md5:${file.metadata.md5Hash}`
+          : file.metadata?.crc32c
+            ? `crc32c:${file.metadata.crc32c}`
+            : null,
       }));
 
     const folders = (apiResponse?.prefixes ?? []).slice().sort();
@@ -298,13 +421,13 @@ export class GcsObjectStorage implements ObjectStorage {
     };
   }
 
-  async createDownloadUrl(projectId: string, input: { key: string }): Promise<SignedUrlResult> {
+  async createDownloadUrl(projectId: string, input: { key: string; generation?: string }): Promise<SignedUrlResult> {
     const key = assertValidObjectKey(input.key);
     const expiresMs = Date.now() + SIGNED_URL_TTL_MS;
 
     const [url] = await this._storage
       .bucket(projectBucketName(projectId))
-      .file(key)
+      .file(key, input.generation ? { generation: input.generation } : undefined)
       .getSignedUrl({ version: 'v4', action: 'read', expires: expiresMs });
 
     return { url, expiresAt: new Date(expiresMs).toISOString() };
@@ -318,10 +441,7 @@ export class GcsObjectStorage implements ObjectStorage {
     const contentType = input.contentType || 'application/octet-stream';
     const body = Buffer.from(input.body);
 
-    await this._storage
-      .bucket(projectBucketName(projectId))
-      .file(key)
-      .save(body, { contentType, resumable: false });
+    await this._storage.bucket(projectBucketName(projectId)).file(key).save(body, { contentType, resumable: false });
 
     return { key, size: body.byteLength };
   }
@@ -355,7 +475,7 @@ export class GcsObjectStorage implements ObjectStorage {
     return { deleted: true, count: files.length };
   }
 
-  async deleteBucket(projectId: string) {
+  async deleteBucket(projectId: string, guard?: () => Promise<void>) {
     const name = projectBucketName(projectId);
     const bucket = this._storage.bucket(name);
     const [exists] = await bucket.exists();
@@ -368,11 +488,139 @@ export class GcsObjectStorage implements ObjectStorage {
      * GCS refuses to delete a non-empty bucket, so purge objects first (force
      * ignores per-object failures), then remove the bucket itself.
      */
+    await guard?.();
     await bucket.deleteFiles({ force: true });
+    await guard?.();
     await bucket.delete();
 
     return { deleted: true, bucket: name };
   }
+
+  async inventoryProjectObjects(projectId: string): Promise<ObjectStorageInventory> {
+    if (!(await this.bucketExists(projectId))) {
+      return { bucketExists: false, objects: [] };
+    }
+
+    const { objects } = await this.listObjects(projectId);
+
+    return {
+      bucketExists: true,
+      objects: objects
+        .map((object) => ({
+          key: object.key,
+          size: object.size,
+          generation: object.generation,
+          contentHash: object.contentHash,
+        }))
+        .sort((left, right) => left.key.localeCompare(right.key)),
+    };
+  }
+
+  async cloneProjectObjects(
+    sourceProjectId: string,
+    targetProjectId: string,
+    inventory: ObjectStorageInventory,
+    guard?: () => Promise<void>,
+  ): Promise<ObjectStorageInventory> {
+    if (!inventory.bucketExists) {
+      return { bucketExists: false, objects: [] };
+    }
+
+    if (inventory.objects.some((object) => object.generation === null)) {
+      throw new ObjectStorageError('A source object has no immutable provider generation', 'SOURCE_UNPINNABLE');
+    }
+
+    await this.ensureBucket(targetProjectId, guard);
+    const source = this._storage.bucket(projectBucketName(sourceProjectId));
+    const target = this._storage.bucket(projectBucketName(targetProjectId));
+
+    for (const object of inventory.objects) {
+      await guard?.();
+      const sourceFile = source.file(object.key, { generation: object.generation! });
+      await sourceFile.copy(target.file(object.key), {
+        preconditionOpts: { ifSourceGenerationMatch: object.generation },
+      });
+    }
+
+    await guard?.();
+    const verified = await this.inventoryProjectObjects(targetProjectId);
+    const expected = inventory.objects.map(({ key, size, contentHash }) => ({ key, size, contentHash }));
+    const actual = verified.objects.map(({ key, size, contentHash }) => ({ key, size, contentHash }));
+
+    if (
+      expected.length !== actual.length ||
+      expected.some((entry, index) => {
+        const copied = actual[index];
+
+        return (
+          !copied ||
+          entry.key !== copied.key ||
+          entry.size !== copied.size ||
+          (entry.contentHash !== null && entry.contentHash !== copied.contentHash)
+        );
+      })
+    ) {
+      throw new ObjectStorageError('Physical object clone verification failed', 'CLONE_VERIFICATION_FAILED');
+    }
+
+    return verified;
+  }
+}
+
+/**
+ * Block every mutation for a read-only shared target, including background
+ * thumbnail writers. The physical remix service receives the raw adapter, so
+ * target-only clone/compensation operations are not accidentally blocked.
+ */
+export function guardSharedObjectStorageWrites(
+  storage: ObjectStorage,
+  isSharedReadOnly: (projectId: string) => Promise<boolean>,
+): ObjectStorage {
+  const guard = async (projectId: string) => {
+    if (await isSharedReadOnly(projectId)) {
+      throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY'), 'SHARED_READ_ONLY');
+    }
+  };
+
+  return {
+    active: storage.active,
+    bucketExists: (projectId) => storage.bucketExists(projectId),
+    listObjects: (projectId, opts) => storage.listObjects(projectId, opts),
+    createDownloadUrl: (projectId, input) => storage.createDownloadUrl(projectId, input),
+    inventoryProjectObjects: (projectId) => storage.inventoryProjectObjects(projectId),
+    ensureBucket: async (projectId) => {
+      await guard(projectId);
+      return storage.ensureBucket(projectId);
+    },
+    createUploadUrl: async (projectId, input) => {
+      await guard(projectId);
+      return storage.createUploadUrl(projectId, input);
+    },
+    putObject: async (projectId, input) => {
+      await guard(projectId);
+      return storage.putObject(projectId, input);
+    },
+    moveObject: async (projectId, input) => {
+      await guard(projectId);
+      return storage.moveObject(projectId, input);
+    },
+    deleteObject: async (projectId, input) => {
+      await guard(projectId);
+      return storage.deleteObject(projectId, input);
+    },
+    deletePrefix: async (projectId, input) => {
+      await guard(projectId);
+      return storage.deletePrefix(projectId, input);
+    },
+    deleteBucket: async (projectId) => {
+      await guard(projectId);
+      return storage.deleteBucket(projectId);
+    },
+    cloneProjectObjects: async (sourceProjectId, targetProjectId, inventory, leaseGuard) => {
+      await guard(targetProjectId);
+      return storage.cloneProjectObjects(sourceProjectId, targetProjectId, inventory, leaseGuard);
+    },
+  };
 }
 
 let cachedStorage: ObjectStorage | undefined;

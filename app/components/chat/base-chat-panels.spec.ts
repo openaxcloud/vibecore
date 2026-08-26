@@ -5,6 +5,7 @@ import {
   isPanelAuthError,
   panelAuthRedirectTarget,
   shouldAutoLoadDatabaseSchema,
+  shouldShowObjectStorageProvisioningCta,
   shouldSuppressAutoApplyFailureToast,
   type AutoApplyProposalSnapshot,
 } from './base-chat-panels';
@@ -98,6 +99,14 @@ describe('shouldAutoLoadDatabaseSchema', () => {
   it('does not load with no connections', () => {
     expect(shouldAutoLoadDatabaseSchema({ connectionKey: undefined, schema: undefined })).toBe(false);
     expect(shouldAutoLoadDatabaseSchema({ connectionKey: '', schema: undefined })).toBe(false);
+  });
+});
+
+describe('shouldShowObjectStorageProvisioningCta', () => {
+  it('keeps the revoke surface visible for an explicitly shared but empty source bucket', () => {
+    expect(shouldShowObjectStorageProvisioningCta(false, 'SHARED_READ_ONLY')).toBe(false);
+    expect(shouldShowObjectStorageProvisioningCta(false, 'OWNED')).toBe(true);
+    expect(shouldShowObjectStorageProvisioningCta(null, null)).toBe(false);
   });
 });
 

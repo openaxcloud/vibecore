@@ -188,6 +188,7 @@ import {
   clusterName,
   resolveDatabaseTier,
   resolveDefaultDatabaseProvisioner,
+  type DatabaseProvisioner,
   type ProvisionResult,
 } from './database-provisioner.js';
 import {
@@ -211,6 +212,8 @@ import {
 import { estimateImportReservation } from './import-billing.js';
 import {
   REMIX_CONSENT_VERSION,
+  REMIX_STORAGE_CONSENT_VERSION,
+  REMIX_STORAGE_POLICIES,
   RemixInvariantError,
   assertRemixTransition,
   detachCredentials,
@@ -323,7 +326,10 @@ import {
   meterWorkspaceCompute,
 } from './metering-service.js';
 import {
+  guardSharedObjectStorageWrites,
+  listPinnedInventoryObjects,
   ObjectStorageError,
+  parseObjectStorageInventory,
   type ObjectStorage,
   isObjectStorageEnabled,
   PROJECT_THUMBNAIL_KEY,
@@ -372,6 +378,7 @@ import {
   selectPreviousRelease,
 } from './release-manifest.js';
 import { recordIbanMasked, recordUnknownIbanCountry, shouldLogUnknownIbanCountry } from './remix-pii-metrics.js';
+import { executePhysicalRemix, remixFileSnapshotHash } from './remix-physical-service.js';
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { aggregatePreviewReadiness } from './runtime-readiness.js';
 import { flattenRuntimeTreeFilePaths, normalizeRuntimePath, persistedFileContentMatches } from './runtime-reseed.js';
@@ -509,6 +516,9 @@ export interface ApiAppOptions {
 
   /** Override the per-project object storage backend (tests inject a fake). */
   objectStorage?: ObjectStorage;
+
+  /** Override the CNPG adapter for deterministic remix/provisioning tests. */
+  databaseProvisioner?: DatabaseProvisioner;
 
   /** Injectable for tests; defaults to an env-configured (inert-unless-set) capturer. */
   thumbnailCapturer?: ThumbnailCapturer;
@@ -15292,7 +15302,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const reconcileManagedDatabase = async (
     instance: DatabaseInstanceRecord,
-    options: { planKey?: string; nowMs?: number; warn?: (context: Record<string, unknown>, message: string) => void } = {},
+    options: {
+      planKey?: string;
+      nowMs?: number;
+      warn?: (context: Record<string, unknown>, message: string) => void;
+    } = {},
   ) => {
     const provisioner = resolveDefaultDatabaseProvisioner();
     const result = await reconcileDatabaseProvisioning({
@@ -22851,10 +22865,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             planKey: billing?.plan.key,
             warn: (context, message) => request.log?.warn?.(context, message),
           }).catch((error) => {
-            request.log?.warn?.(
-              { err: error, databaseInstanceId: instance.id },
-              'managed database reconcile failed',
-            );
+            request.log?.warn?.({ err: error, databaseInstanceId: instance.id }, 'managed database reconcile failed');
 
             return instance;
           });
@@ -24200,285 +24211,201 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   const remixSchema = z.object({
-    name: z.string().min(1),
-    slug: z.string().min(2).optional(),
+    name: z.string().trim().min(1).max(120),
+    slug: z.string().trim().min(2).max(120).optional(),
     storagePolicy: z.enum(['DETACH', 'CLONE', 'SHARE_WITH_CONSENT']).default('DETACH'),
+    idempotencyKey: z.string().trim().min(8).max(200).optional(),
+    storageConsent: z
+      .object({
+        granted: z.literal(true),
+        version: z.literal(REMIX_STORAGE_CONSENT_VERSION),
+      })
+      .optional(),
   });
 
-  /*
-   * Shared secure-remix orchestrator. The credentials-detached-BEFORE-cloning
-   * invariant and the secret-scrub/scan proof live here in ONE place, so the
-   * project-to-project remix and the gallery remix cannot drift apart on the
-   * security-critical path. The caller resolves the source file set (live files
-   * for a plain remix, or a PINNED snapshot archive for a gallery remix) and the
-   * target org (same org for a plain remix, the remixer's org for a gallery
-   * remix); everything downstream — detach, clone, scrub, scan — is identical.
-   *
-   * Returns a discriminated result: `{ ok: false }` carries the SCANNING
-   * quarantine findings (key + location only, never a value) so the caller can
-   * answer 409 REMIX_SECRET_LEAK without this helper owning the reply.
-   */
+  app.get('/projects/:projectId/remix-policy', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    await requireOrg(request, store, project.organizationId, 'projects:read');
+
+    return {
+      policies: REMIX_STORAGE_POLICIES,
+      storageConsentVersion: REMIX_STORAGE_CONSENT_VERSION,
+    };
+  });
+
+  const remixRequestKey = (request: FastifyRequest, body: { idempotencyKey?: string }, requestHash: string): string => {
+    const header = request.headers['idempotency-key'];
+    const explicit = (Array.isArray(header) ? header[0] : header)?.trim() || body.idempotencyKey?.trim();
+
+    // Idempotent retries require a caller-owned key. Legacy callers without one
+    // still work, but receive a fresh operation instead of being permanently
+    // collapsed onto every identical remix request made in the future.
+    return explicit || `generated:${requestHash}:${randomUUID()}`;
+  };
+
+  const remixRequestDigest = (input: Record<string, unknown>) =>
+    createHash('sha256').update(JSON.stringify(input)).digest('hex');
+
+  const publicRemixJob = (job: Awaited<ReturnType<typeof store.getRemixJob>>) => {
+    if (!job) return undefined;
+
+    return {
+      id: job.id,
+      sourceProjectId: job.sourceProjectId,
+      // A partially provisioned target is soft-hidden and its identifier is an
+      // internal cleanup capability. Expose it only after the atomic finalize.
+      targetProjectId: job.state === 'COMPLETED' ? (job.targetProjectId ?? null) : null,
+      organizationId: job.organizationId,
+      state: job.state,
+      storagePolicy: job.storagePolicy,
+      sourceSnapshotId: job.sourceSnapshotId ?? null,
+      sourceListingId: job.sourceListingId ?? null,
+      dbForked: job.dbForked,
+      scrubbedCount: job.scrubbedCount,
+      piiMaskedCount: job.piiMaskedCount,
+      errorCode: job.errorCode ?? null,
+      error: job.error ?? null,
+      createdAt: job.createdAt,
+      updatedAt: job.updatedAt,
+    };
+  };
+
   const runSecureRemixClone = async (params: {
     request: FastifyRequest;
     sourceProject: { id: string; organizationId: string };
     targetOrganizationId: string;
     storagePolicy: RemixStoragePolicy;
+    storageConsentVersion?: string;
     name: string;
     slug?: string;
-    sourceFiles: ProjectFile[];
+    idempotencyKey: string;
+    requestHash: string;
+    sourceFiles?: ProjectFile[];
     sourceSnapshotId?: string;
     sourceListingId?: string;
-
-    /*
-     * License + consent (I-RMX-3, P0-V3-05). A gallery remix passes the
-     * VERSIONED license captured from the listing plus the consent version the
-     * remixer accepted; a same-org self-remix passes neither (owner forking
-     * their own data is not a cross-user license/PII flow).
-     */
     licenseSnapshot?: RemixLicenseSnapshot;
     consentVersion?: string;
-
-    /** Mask PII in the source files before cloning (cross-user remix only). */
     sanitizePii?: boolean;
-
-    /** Author's explicit versioned PII consent — skips masking, recorded. */
     piiConsentVersion?: string;
-  }): Promise<
-    | {
-        ok: true;
-        duplicate: Awaited<ReturnType<typeof store.duplicateProject>>;
-        jobId: string;
-        state: RemixState;
-        detached: ReturnType<typeof detachCredentials>;
-        scrubbedValueLines: number;
-        piiMaskedCount: number;
-      }
-    | { ok: false; findings: ReturnType<typeof scanClonedFilesForSecrets>; remixJobId: string }
-  > => {
-    const { request, sourceProject, targetOrganizationId, storagePolicy } = params;
+  }) => {
+    const databaseProvisioner = options.databaseProvisioner ?? resolveDefaultDatabaseProvisioner();
 
-    const job = await store.createRemixJob({
-      sourceProjectId: sourceProject.id,
-      organizationId: targetOrganizationId,
-      actorUserId: request.currentUser?.id,
-      storagePolicy,
-      sourceSnapshotId: params.sourceSnapshotId,
-      sourceListingId: params.sourceListingId,
-      licenseSnapshot: params.licenseSnapshot,
-      consentVersion: params.consentVersion,
-    });
-
-    let state: RemixState = 'SNAPSHOT_PINNED';
-
-    const advance = async (to: RemixState, patch: Record<string, unknown> = {}) => {
-      assertRemixTransition(state, to);
-      state = to;
-      await store.updateRemixJob(job.id, { state: to, ...patch });
-    };
-
-    try {
-      /*
-       * (1) SNAPSHOT_PINNED — the caller already resolved & pinned the source
-       * file set (live or a snapshot archive); nothing to read here.
-       */
-      const sourceFiles = params.sourceFiles;
-
-      // (2) CREDENTIALS_DETACHED — references (keys) only, recorded BEFORE any clone.
-      const sourceSecrets = await store.listProjectSecrets(sourceProject.id);
-      const sourceEnvVars = await store.listProjectEnvVars(sourceProject.id);
-      const detached = detachCredentials(sourceSecrets, sourceEnvVars);
-      await advance('CREDENTIALS_DETACHED', { detachedKeys: detached });
-
-      /*
-       * Resolve the source's actual secret VALUES — used ONLY in-memory to scrub
-       * any materialized copy out of the clone files. Never persisted onto the clone.
-       */
-      const materializedValues: Array<{ key: string; value: string }> = [];
-
-      for (const ref of detached.secretKeys) {
-        const full = await store.getProjectSecret(sourceProject.id, ref);
-
-        if (full?.valueEncrypted) {
-          try {
-            materializedValues.push({ key: ref, value: decryptJson<{ value: string }>(full.valueEncrypted).value });
-          } catch {
-            // undecryptable ciphertext — nothing to scrub for this key
+    return executePhysicalRemix(
+      {
+        store,
+        projectStorage,
+        // The orchestrator needs the raw adapter for target-only clone and
+        // compensation. User/background write surfaces use the guarded wrapper.
+        objectStorage: resolveRawObjectStorage(),
+        databaseProvisioner,
+        ensureProjectQuota: (organizationId) => ensureQuota(params.request, organizationId, 'projects.count'),
+        createSourceSnapshot: async ({ remixJobId, sourceProjectId, files, actorUserId, guard }) => {
+          const snapshotHash = remixFileSnapshotHash(files);
+          // Stable target names make every retry overwrite/replay the same two
+          // records. A crash between archive write, DB object upsert and job CAS
+          // cannot accumulate unbounded orphan archives or snapshot rows.
+          const snapshotId = `remix-${remixJobId}`;
+          const storageKey = `snapshots/${sourceProjectId}/${snapshotId}.zip`;
+          const existing = await store.getSnapshot(snapshotId);
+          if (existing) {
+            const manifest = existing.manifest as { snapshotHash?: unknown };
+            if (
+              existing.projectId !== sourceProjectId ||
+              existing.storageKey !== storageKey ||
+              typeof manifest.snapshotHash !== 'string'
+            ) {
+              throw new RemixInvariantError(
+                'Pinned source snapshot conflicts with the remix job',
+                'REMIX_SNAPSHOT_CONFLICT',
+              );
+            }
+            return { snapshotId: existing.id, snapshotHash: manifest.snapshotHash };
           }
-        }
-      }
+          const archive = await projectStorage.createSnapshot({
+            projectId: sourceProjectId,
+            label: appPublicEnglish('REMIX_SOURCE_PIN_STORAGE_LABEL'),
+            files,
+            storageKey,
+            guard,
+          });
+          await guard();
+          await persistProjectArchiveObject(archive, { projectId: sourceProjectId, kind: 'snapshot' });
+          await guard();
+          const snapshot = await store.createSnapshot({
+            id: snapshotId,
+            projectId: sourceProjectId,
+            label: appPublicEnglish('REMIX_SOURCE_PIN_LABEL'),
+            kind: 'manual',
+            manifest: {
+              remixJobId,
+              fileCount: files.length,
+              snapshotHash,
+              excludesRuntimeSecrets: true,
+            },
+            storageKey: archive.storageKey,
+            byteLength: archive.byteLength,
+            createdByUserId: actorUserId,
+          });
 
-      for (const envVar of sourceEnvVars) {
-        if (typeof envVar.value === 'string' && envVar.value.length > 0) {
-          materializedValues.push({ key: envVar.key, value: envVar.value });
-        }
-      }
-
-      /*
-       * (3) SOURCE_SANITIZED (I-RMX-3) — PII masked before anything is cloned,
-       * UNLESS the source author gave an explicit versioned consent (recorded,
-       * never silent). The masked output is re-scanned: a survivor is a defect
-       * and fails the remix rather than shipping someone's data.
-       */
-      let sanitizedFiles = params.sourceFiles;
-      let piiMaskedCount = 0;
-
-      if (params.sanitizePii && !params.piiConsentVersion) {
-        const remixFiles = sanitizedFiles.map((file) => ({
-          path: file.path,
-          content: file.content,
-          encoding: file.encoding,
-        }));
-
-        const { files: maskedFiles, masked, observations } = maskPiiInFiles(remixFiles);
-
-        /*
-         * Observabilité du masquage IBAN (politique du 2026-08-05) : le checksum
-         * MOD-97 ne conditionne PAS le masquage, il l'étiquette. Un code pays hors
-         * registre ISO 13616 n'est PAS masqué — on le journalise et on le compte
-         * pour qu'un nouveau pays devienne visible et que la table soit mise à
-         * jour, plutôt que la fuite passe inaperçue.
-         */
-        for (let n = 0; n < observations.ibanMaskedChecksumValid; n += 1) {
-          recordIbanMasked(true);
-        }
-
-        for (let n = 0; n < observations.ibanMaskedChecksumInvalid; n += 1) {
-          recordIbanMasked(false);
-        }
-
-        /*
-         * La MÉTRIQUE compte CHAQUE candidat ; le LOG est ÉCHANTILLONNÉ (1er par
-         * code pays et par fenêtre, cardinalité bornée) et ne porte qu'un
-         * spécimen TRONQUÉ — jamais l'IBAN en clair.
-         */
-        for (const candidate of observations.ibanUnknownCandidates) {
-          recordUnknownIbanCountry(candidate.countryCode);
-
-          if (shouldLogUnknownIbanCountry(candidate.countryCode)) {
-            /*
-             * Le log ne porte AUCUN fragment du candidat — pas même tronqué :
-             * ni corps, ni clé de contrôle, ni préfixe. Code pays, longueur,
-             * catégorie de décision et identifiant de job suffisent à agir.
-             */
-            request.log.warn(
-              {
-                countryCode: candidate.countryCode,
-                normalizedLength: candidate.normalizedLength,
-                decision: candidate.decision,
-                remixJobId: job.id,
-              },
-              'remix PII: IBAN-shaped value whose country code is absent from the ISO 13616 table — NOT masked; update IBAN_LENGTH_BY_COUNTRY (no candidate value is logged; further occurrences of this country are not logged)',
-            );
-          }
-        }
-
-        const residual = scanFilesForPii(maskedFiles);
-
-        if (residual.length > 0) {
-          throw new RemixInvariantError(
-            `SOURCE_SANITIZED left ${residual.length} PII span(s) unmasked`,
-            'REMIX_PII_RESIDUAL',
-          );
-        }
-
-        sanitizedFiles = sanitizedFiles.map((file, index) => ({ ...file, content: maskedFiles[index].content }));
-        piiMaskedCount = masked.length;
-        await advance('SOURCE_SANITIZED', { piiFindings: masked, piiMaskedCount });
-      } else {
-        /*
-         * Owner self-remix, or author consent on file — nothing masked, and the
-         * job says WHY (consent version or absence of a cross-user flow).
-         */
-        await advance('SOURCE_SANITIZED', { piiFindings: [], piiMaskedCount: 0 });
-      }
-
-      // (4) CLONING — new project (metadata only) in the TARGET org + files scrubbed.
-      const duplicate = await store.withSerializedMutation(`projects:${targetOrganizationId}`, async () => {
-        await ensureQuota(request, targetOrganizationId, 'projects.count');
-        return store.duplicateProject({
-          projectId: sourceProject.id,
-          organizationId: targetOrganizationId,
-          name: params.name,
-          slug: params.slug ?? params.name.toLowerCase().replace(/[^a-z0-9]+/g, '-'),
-        });
-      });
-
-      const { files: scrubbedFiles, removed } = scrubSecretsFromFiles(
-        sanitizedFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
-        materializedValues,
-      );
-      const writtenFiles = await projectStorage.writeFiles(
-        duplicate.id,
-        scrubbedFiles.map((file, index) => ({ ...sanitizedFiles[index], content: file.content })),
-      );
-      await persistProjectFileManifest(store, duplicate.id, writtenFiles, request.currentUser!.id);
-      await advance('CLONING', { targetProjectId: duplicate.id, scrubbedCount: removed.length });
-
-      // (5) DB_FORKING — isolation, not copy (honest marker; no source DATABASE_URL carried).
-      await advance('DB_FORKING', { dbForked: false });
-
-      // (6) STORAGE_POLICY_APPLIED — clone gets its own bucket ref; CLONE/SHARE deferred.
-      await advance('STORAGE_POLICY_APPLIED');
-
-      // (7) SCANNING — re-verify NO materialized secret value survived into the clone.
-      const findings = scanClonedFilesForSecrets(
-        scrubbedFiles.map((file) => ({ path: file.path, content: file.content, encoding: file.encoding })),
-        materializedValues,
-      );
-
-      if (findings.length > 0) {
-        await store.updateRemixJob(job.id, {
-          state: 'FAILED',
-          scanFindings: findings,
-          error: appPublicEnglish('REMIX_SCAN_MATERIALIZED_SECRETS', { value1: findings.length }),
-        });
-        return { ok: false, findings, remixJobId: job.id };
-      }
-
-      await advance('SCANNING', { scanFindings: [] });
-
-      // (8) INDEXING — honest completion marker (project code index does not exist yet).
-      await advance('INDEXING');
-      await advance('COMPLETED');
-
-      await audit(request, store, {
-        organizationId: duplicate.organizationId,
-        action: 'project.remix',
-        resourceType: 'project',
-        resourceId: duplicate.id,
-        metadata: {
-          sourceProjectId: sourceProject.id,
-          remixJobId: job.id,
-          sourceSnapshotId: params.sourceSnapshotId ?? null,
-          sourceListingId: params.sourceListingId ?? null,
-          detachedSecretKeys: detached.secretKeys.length,
-          detachedEnvVarKeys: detached.envVarKeys.length,
-          scrubbedValueLines: removed.length,
-          storagePolicy,
-          piiMaskedCount,
-          piiConsentVersion: params.piiConsentVersion ?? null,
-          consentVersion: params.consentVersion ?? null,
-          licenseId: params.licenseSnapshot?.licenseId ?? null,
-          licenseTextSha256: params.licenseSnapshot?.licenseTextSha256 ?? null,
+          return { snapshotId: snapshot.id, snapshotHash };
         },
-      });
+        loadSourceSnapshot: async (snapshotId, sourceProjectId) => {
+          const snapshot = await store.getSnapshot(snapshotId);
 
-      return {
-        ok: true,
-        duplicate,
-        jobId: job.id,
-        state,
-        detached,
-        scrubbedValueLines: removed.length,
-        piiMaskedCount,
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      await store.updateRemixJob(job.id, { state: 'FAILED', error: message }).catch(() => undefined);
-      throw error;
-    }
+          if (!snapshot || snapshot.projectId !== sourceProjectId) {
+            throw new RemixInvariantError('Pinned source snapshot is unavailable', 'REMIX_SNAPSHOT_MISSING');
+          }
+
+          return getSnapshotFiles(snapshot);
+        },
+        persistTargetManifest: (projectId, files, actorUserId) =>
+          persistProjectFileManifest(store, projectId, files, actorUserId),
+        recordCompleted: async ({ job, targetProject }) => {
+          await audit(params.request, store, {
+            organizationId: targetProject.organizationId,
+            action: 'project.remix',
+            resourceType: 'project',
+            resourceId: targetProject.id,
+            metadata: {
+              sourceProjectId: job.sourceProjectId,
+              remixJobId: job.id,
+              sourceSnapshotId: job.sourceSnapshotId ?? null,
+              sourceListingId: job.sourceListingId ?? null,
+              storagePolicy: job.storagePolicy,
+              storageConsentVersion: job.storageConsentVersion ?? null,
+              dbForked: job.dbForked,
+              scrubbedValueLines: job.scrubbedCount,
+              piiMaskedCount: job.piiMaskedCount,
+            },
+          });
+        },
+        warn: (context, message) => params.request.log.warn(context, message),
+      },
+      {
+        sourceProject: params.sourceProject,
+        targetOrganizationId: params.targetOrganizationId,
+        actorUserId: params.request.currentUser?.id,
+        idempotencyKey: params.idempotencyKey,
+        requestHash: params.requestHash,
+        storagePolicy: params.storagePolicy,
+        storageConsentVersion: params.storageConsentVersion,
+        name: params.name,
+        slug: params.slug,
+        sourceFiles: params.sourceFiles,
+        sourceSnapshotId: params.sourceSnapshotId,
+        sourceListingId: params.sourceListingId,
+        licenseSnapshot: params.licenseSnapshot,
+        consentVersion: params.consentVersion,
+        sanitizePii: params.sanitizePii,
+        piiConsentVersion: params.piiConsentVersion,
+      },
+    );
   };
-
   /*
    * Secure project remix (DOMAIN_MODEL §1). Runs the normative state machine
    * server-side with the credentials-detached-before-cloning invariant enforced
@@ -24500,6 +24427,25 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(remixSchema, request.body);
     const storagePolicy = body.storagePolicy as RemixStoragePolicy;
 
+    if (storagePolicy === 'SHARE_WITH_CONSENT' && !body.storageConsent) {
+      return reply.status(400).send({
+        error: appPublicEnglish('REMIX_STORAGE_CONSENT_REQUIRED'),
+        code: 'REMIX_STORAGE_CONSENT_REQUIRED',
+        consentVersion: REMIX_STORAGE_CONSENT_VERSION,
+      });
+    }
+
+    const requestHash = remixRequestDigest({
+      actorUserId: request.currentUser!.id,
+      sourceProjectId: project.id,
+      targetOrganizationId: project.organizationId,
+      name: body.name,
+      slug: body.slug ?? null,
+      storagePolicy,
+      storageConsentVersion: body.storageConsent?.version ?? null,
+    });
+    const idempotencyKey = remixRequestKey(request, body, requestHash);
+
     try {
       /*
        * Plain project-to-project remix: pin the LIVE source file set, clone into
@@ -24513,8 +24459,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         sourceProject: project,
         targetOrganizationId: project.organizationId,
         storagePolicy,
+        storageConsentVersion: body.storageConsent?.version,
         name: body.name,
         slug: body.slug,
+        idempotencyKey,
+        requestHash,
         sourceFiles,
 
         /*
@@ -24524,22 +24473,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         sanitizePii: false,
       });
 
-      if (!result.ok) {
+      if (result.kind === 'failed') {
         return reply.status(409).send({
-          error: appPublicEnglish('REMIX_MATERIALIZED_SECRET_BLOCKED'),
-          code: 'REMIX_SECRET_LEAK',
-          findings: result.findings, // key + location only, never the value
-          remixJobId: result.remixJobId,
+          error: result.error,
+          code: result.code,
+          remixJobId: result.job.id,
+        });
+      }
+
+      if (result.kind !== 'completed') {
+        return reply.code(202).send({
+          project: null,
+          remix: publicRemixJob(result.job),
+          retryAfterMs: result.kind === 'busy' ? 1_000 : 2_000,
         });
       }
 
       return reply.code(201).send({
-        project: result.duplicate,
+        project: result.project,
         remix: {
-          remixJobId: result.jobId,
-          state: result.state,
-          detachedKeys: result.detached,
-          scrubbedValueLines: result.scrubbedValueLines,
+          ...publicRemixJob(result.job),
+          remixJobId: result.job.id,
+          detachedKeys: result.job.detachedKeys,
+          scrubbedValueLines: result.job.scrubbedCount,
           storagePolicy,
         },
       });
@@ -24565,7 +24521,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .min(1)
       .parse((request.params as { remixJobId: string }).remixJobId);
 
-    const job = await store.getRemixJob(remixJobId);
+    const job = await store.getRemixJob(remixJobId, project.organizationId);
 
     if (!job || job.sourceProjectId !== project.id) {
       throw Object.assign(new Error(appPublicEnglish('REMIX_JOB_NOT_FOUND')), {
@@ -24574,7 +24530,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    return { remix: job };
+    return { remix: publicRemixJob(job) };
   });
 
   /*
@@ -24714,6 +24670,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     organizationId: z.string().min(1),
     name: z.string().min(1).optional(),
     slug: z.string().min(2).optional(),
+    idempotencyKey: z.string().trim().min(8).max(200).optional(),
 
     /*
      * Explicit, versioned acceptance (I-RMX-3). The UI sends acceptLicense
@@ -24833,6 +24790,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       sourceListingId: listing.id,
       capturedAt: new Date().toISOString(),
     };
+    const requestHash = remixRequestDigest({
+      actorUserId: request.currentUser!.id,
+      sourceListingId: listing.id,
+      sourceSnapshotId: listing.sourceSnapshotId,
+      targetOrganizationId: body.organizationId,
+      name: body.name ?? listing.title,
+      slug: body.slug ?? null,
+      licenseId: licenseSnapshot.licenseId,
+      licenseTextSha256: licenseSnapshot.licenseTextSha256,
+      consentVersion: REMIX_CONSENT_VERSION,
+    });
+    const idempotencyKey = remixRequestKey(request, body, requestHash);
 
     try {
       const result = await runSecureRemixClone({
@@ -24842,6 +24811,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         storagePolicy: 'DETACH',
         name: body.name ?? listing.title,
         slug: body.slug,
+        idempotencyKey,
+        requestHash,
         sourceFiles,
         sourceSnapshotId: listing.sourceSnapshotId,
         sourceListingId: listing.id,
@@ -24853,27 +24824,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         piiConsentVersion: listing.piiConsentVersion,
       });
 
-      if (!result.ok) {
+      if (result.kind === 'failed') {
         return reply.status(409).send({
-          error: appPublicEnglish('REMIX_MATERIALIZED_SECRET_BLOCKED'),
-          code: 'REMIX_SECRET_LEAK',
-          findings: result.findings,
-          remixJobId: result.remixJobId,
+          error: result.error,
+          code: result.code,
+          remixJobId: result.job.id,
+        });
+      }
+
+      if (result.kind !== 'completed') {
+        return reply.code(202).send({
+          project: null,
+          remix: publicRemixJob(result.job),
+          retryAfterMs: result.kind === 'busy' ? 1_000 : 2_000,
         });
       }
 
       // Successful fork counts as a "use" (the "Used N times" public stat).
-      await store.incrementGalleryListingUses(listing.id).catch(() => undefined);
+      if (result.fresh) {
+        await store.incrementGalleryListingUses(listing.id).catch(() => undefined);
+      }
 
       return reply.code(201).send({
-        project: result.duplicate,
+        project: result.project,
         remix: {
-          remixJobId: result.jobId,
-          state: result.state,
+          ...publicRemixJob(result.job),
+          remixJobId: result.job.id,
           sourceSnapshotId: listing.sourceSnapshotId,
           sourceListingId: listing.id,
-          scrubbedValueLines: result.scrubbedValueLines,
-          piiMaskedCount: result.piiMaskedCount,
+          scrubbedValueLines: result.job.scrubbedCount,
+          piiMaskedCount: result.job.piiMaskedCount,
           licenseSnapshot,
           consentVersion: REMIX_CONSENT_VERSION,
         },
@@ -32192,16 +32172,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { environment, tier, retry: !acquisition.created },
     });
 
-    return reply
-      .code(202)
-      .send({
-        instance: acquisition.instance,
-        created: acquisition.created,
-        retried: !acquisition.created,
-        clusterName: outcome.clusterName || clusterName(project.id, environment),
-        tier,
-        environment,
-      });
+    return reply.code(202).send({
+      instance: acquisition.instance,
+      created: acquisition.created,
+      retried: !acquisition.created,
+      clusterName: outcome.clusterName || clusterName(project.id, environment),
+      tier,
+      environment,
+    });
   });
 
   /** Take a manual snapshot of a project's database (Phase 2, dormant). */
@@ -32442,7 +32420,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   /* -------- Object Storage (GCS, per-project) — dormant unless OBJECT_STORAGE_ENABLED -------- */
   const sendObjectStorageError = (reply: FastifyReply, error: unknown) => {
     if (error instanceof ObjectStorageError) {
-      const status = error.code === 'INVALID_KEY' ? 400 : error.code === 'FEATURE_NOT_ENABLED' ? 404 : 422;
+      const status =
+        error.code === 'INVALID_KEY'
+          ? 400
+          : error.code === 'FEATURE_NOT_ENABLED' || error.code === 'OBJECT_NOT_IN_SHARE'
+            ? 404
+            : error.code === 'SHARED_READ_ONLY' || error.code === 'SHARE_INVALID'
+              ? 409
+              : 422;
 
       return reply.code(status).send({ error: error.message, code: error.code });
     }
@@ -32450,7 +32435,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     throw error;
   };
 
-  const resolveObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
+  const resolveRawObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
+  let guardedObjectStorage: ObjectStorage | undefined;
+  const resolveObjectStorage = (): ObjectStorage => {
+    guardedObjectStorage ??= guardSharedObjectStorageWrites(resolveRawObjectStorage(), async (projectId) =>
+      Boolean(await store.getRemixStorageShareByTarget(projectId)),
+    );
+    return guardedObjectStorage;
+  };
 
   /*
    * P11 automatic thumbnails. Inert unless SCREENSHOTTER_URL is set, so this is a
@@ -32486,6 +32478,28 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return requireProject(request, store, projectId, permission);
   };
 
+  const resolveStorageReadAuthority = async (project: ProjectRecord) => {
+    const share = await store.getRemixStorageShareByTarget(project.id);
+
+    if (!share) {
+      return { sourceProjectId: project.id };
+    }
+
+    const source = await store.getProject(share.sourceProjectId);
+    const inventory = parseObjectStorageInventory(share.sourceInventory);
+    if (
+      !source ||
+      source.organizationId !== share.sourceOrganizationId ||
+      project.organizationId !== share.targetOrganizationId ||
+      share.targetProjectId !== project.id ||
+      !inventory
+    ) {
+      throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARE_INVALID'), 'SHARE_INVALID');
+    }
+
+    return { sourceProjectId: source.id, inventory, share };
+  };
+
   /*
    * Per-project storage status. When the platform flag is off this 404s like the
    * other routes (→ the panel's "ask an admin" state). When on, it reports whether
@@ -32500,10 +32514,46 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const project = await requireObjectStorageProject(request, 'projects:read');
 
     try {
-      return reply.send({ enabled: true, provisioned: await resolveObjectStorage().bucketExists(project.id) });
+      const authority = await resolveStorageReadAuthority(project);
+      return reply.send({
+        enabled: true,
+        provisioned: authority.inventory
+          ? authority.inventory.bucketExists
+          : await resolveObjectStorage().bucketExists(project.id),
+        mode: authority.inventory ? 'SHARED_READ_ONLY' : 'OWNED',
+      });
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
+  });
+
+  app.delete('/projects/:projectId/object-storage/share', async (request, reply) => {
+    const project = await requireObjectStorageProject(request, 'projects:write');
+    const share = await store.revokeRemixStorageShare({
+      targetProjectId: project.id,
+      targetOrganizationId: project.organizationId,
+    });
+
+    if (!share) {
+      return reply.code(404).send({
+        error: appPublicEnglish('OBJECT_STORAGE_SHARE_NOT_FOUND'),
+        code: 'OBJECT_STORAGE_SHARE_NOT_FOUND',
+      });
+    }
+
+    await audit(request, store, {
+      organizationId: project.organizationId,
+      action: 'project.remix_storage_share_revoked',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: {
+        shareId: share.id,
+        sourceProjectId: share.sourceProjectId,
+        consentVersion: share.consentVersion,
+      },
+    });
+
+    return reply.send({ revoked: true, revokedAt: share.revokedAt });
   });
 
   app.post('/projects/:projectId/object-storage/bucket', async (request, reply) => {
@@ -32547,7 +32597,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     try {
-      return reply.send(await resolveObjectStorage().listObjects(project.id, query));
+      const authority = await resolveStorageReadAuthority(project);
+      return reply.send(
+        authority.inventory
+          ? listPinnedInventoryObjects(authority.inventory, query)
+          : await resolveObjectStorage().listObjects(project.id, query),
+      );
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -32581,7 +32636,22 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const query = parse(z.object({ key: z.string().min(1).max(1024) }), request.query ?? {});
 
     try {
-      return reply.send(await resolveObjectStorage().createDownloadUrl(project.id, query));
+      const authority = await resolveStorageReadAuthority(project);
+      if (!authority.inventory) {
+        return reply.send(await resolveObjectStorage().createDownloadUrl(project.id, query));
+      }
+
+      const pinned = authority.inventory.objects.find((object) => object.key === query.key);
+      if (!pinned?.generation) {
+        throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_OBJECT_NOT_FOUND'), 'OBJECT_NOT_IN_SHARE');
+      }
+
+      return reply.send(
+        await resolveObjectStorage().createDownloadUrl(authority.sourceProjectId, {
+          key: pinned.key,
+          generation: pinned.generation,
+        }),
+      );
     } catch (error) {
       return sendObjectStorageError(reply, error);
     }
@@ -34892,7 +34962,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * is enabled, and a no-op once the production instance already exists. The
      * production DATABASE_URL is reconciled+stored (as PROD_DATABASE_URL) by
      * GET /projects/:id/database?environment=production.
-    */
+     */
     if (isDatabaseRollbackEnabled()) {
       let acquiredProdInstanceId: string | undefined;
 

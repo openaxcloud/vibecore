@@ -435,6 +435,86 @@
     "en": "Remix job not found",
     "fr": "Tâche de remix introuvable."
   },
+  "REMIX_PHYSICAL_DATA_FAILED": {
+    "en": "The remix could not finish its isolated data copy. The partial target was not published; retry the same operation.",
+    "fr": "Le remix n’a pas pu terminer la copie isolée des données. La cible partielle n’a pas été publiée ; reprenez la même opération."
+  },
+  "REMIX_OWNERSHIP_LOST": {
+    "en": "Another worker owns this remix operation. Retry with the same idempotency key.",
+    "fr": "Un autre worker possède cette opération de remix. Réessayez avec la même clé d’idempotence."
+  },
+  "REMIX_CLEANUP_INCOMPLETE": {
+    "en": "The partial remix target is still being cleaned up. Retry the same operation shortly.",
+    "fr": "La cible partielle du remix est encore en cours de nettoyage. Reprenez la même opération dans quelques instants."
+  },
+  "REMIX_IDEMPOTENCY_CONFLICT": {
+    "en": "This idempotency key was already used for a different remix request.",
+    "fr": "Cette clé d’idempotence a déjà été utilisée pour une autre demande de remix."
+  },
+  "REMIX_STORAGE_CONSENT_REQUIRED": {
+    "en": "Sharing source object storage requires explicit, versioned consent.",
+    "fr": "Le partage du stockage objet source exige un consentement explicite et versionné."
+  },
+  "REMIX_STORAGE_SHARE_CONFLICT": {
+    "en": "This remix target already has a different object-storage share.",
+    "fr": "Cette cible de remix possède déjà un autre partage de stockage objet."
+  },
+  "REMIX_DATABASE_BACKEND_REQUIRED": {
+    "en": "The isolated database fork backend is unavailable.",
+    "fr": "Le service de duplication isolée de base de données est indisponible."
+  },
+  "REMIX_DATABASE_FORK_REJECTED": {
+    "en": "The isolated database fork could not be started.",
+    "fr": "La duplication isolée de la base de données n’a pas pu démarrer."
+  },
+  "REMIX_DATABASE_CLEANUP_UNAVAILABLE": {
+    "en": "The isolated database cleanup backend is unavailable.",
+    "fr": "Le service de nettoyage de la base de données isolée est indisponible."
+  },
+  "REMIX_DATABASE_CLEANUP_INCOMPLETE": {
+    "en": "Target database resources remain after remix cleanup.",
+    "fr": "Des ressources de la base de données cible subsistent après le nettoyage du remix."
+  },
+  "REMIX_FILES_CLEANUP_INCOMPLETE": {
+    "en": "Target files remain after remix cleanup.",
+    "fr": "Des fichiers cibles subsistent après le nettoyage du remix."
+  },
+  "REMIX_SOURCE_PIN_STORAGE_LABEL": {
+    "en": "remix-source-pin",
+    "fr": "remix-source-pin"
+  },
+  "REMIX_SOURCE_PIN_LABEL": {
+    "en": "Remix source pin",
+    "fr": "Instantané source du remix"
+  },
+  "DATABASE_TIME_UNAVAILABLE": {
+    "en": "PostgreSQL did not return an authoritative timestamp.",
+    "fr": "PostgreSQL n’a pas renvoyé d’horodatage faisant autorité."
+  },
+  "DATABASE_MANAGER_DELETE_FAILED": {
+    "en": "Database manager deletion failed with status {status}.",
+    "fr": "La suppression par le gestionnaire de base de données a échoué avec le statut {status}."
+  },
+  "SNAPSHOT_IDEMPOTENCY_CONFLICT": {
+    "en": "This snapshot idempotency key belongs to another snapshot.",
+    "fr": "Cette clé d’idempotence d’instantané appartient à un autre instantané."
+  },
+  "OBJECT_STORAGE_SHARED_READ_ONLY": {
+    "en": "This remix uses a consented, read-only object-storage snapshot. Clone the data before modifying it.",
+    "fr": "Ce remix utilise un instantané de stockage objet consenti et en lecture seule. Clonez les données avant de les modifier."
+  },
+  "OBJECT_STORAGE_SHARE_INVALID": {
+    "en": "The consented object-storage share is invalid or no longer available.",
+    "fr": "Le partage consenti du stockage objet est invalide ou n’est plus disponible."
+  },
+  "OBJECT_STORAGE_SHARED_OBJECT_NOT_FOUND": {
+    "en": "That object is not part of the consented storage snapshot.",
+    "fr": "Cet objet ne fait pas partie de l’instantané de stockage consenti."
+  },
+  "OBJECT_STORAGE_SHARE_NOT_FOUND": {
+    "en": "This project has no active object-storage share.",
+    "fr": "Ce projet ne possède aucun partage actif de stockage objet."
+  },
   "THUMBNAIL_URL_INVALID": {
     "en": "thumbnailUrl must be an https URL or a root-relative /path",
     "fr": "thumbnailUrl doit être une URL HTTPS ou un chemin / relatif à la racine."

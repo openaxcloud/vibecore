@@ -125,6 +125,56 @@ describe('binary file preservation (#16/#38)', () => {
   });
 });
 
+describe('LocalProjectStorage remix ownership guards', () => {
+  it('stops a multi-file target write before the next mutation after ownership is lost', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'vc-remix-write-guard-'));
+    process.env.PROJECT_STORAGE_DIR = dir;
+    const storage = new LocalProjectStorage();
+    let guardCalls = 0;
+
+    await expect(
+      storage.writeFiles(
+        'guarded-target',
+        [
+          { path: 'first.txt', content: 'first' },
+          { path: 'second.txt', content: 'second' },
+        ],
+        undefined,
+        async () => {
+          guardCalls += 1;
+
+          if (guardCalls === 3) {
+            throw Object.assign(new Error('lease lost'), { code: 'REMIX_OWNERSHIP_LOST' });
+          }
+        },
+      ),
+    ).rejects.toMatchObject({ code: 'REMIX_OWNERSHIP_LOST' });
+
+    expect(await pathExists(join(dir, 'guarded-target', 'first.txt'))).toBe(true);
+    expect(await pathExists(join(dir, 'guarded-target', 'second.txt'))).toBe(false);
+  });
+
+  it('does not materialize a source archive when the durable owner is already lost', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'vc-remix-snapshot-guard-'));
+    process.env.PROJECT_STORAGE_DIR = dir;
+    const storage = new LocalProjectStorage();
+    const storageKey = 'snapshots/source/remix-job.zip';
+
+    await expect(
+      storage.createSnapshot({
+        projectId: 'source',
+        files: [{ path: 'index.ts', content: 'export {};', updatedAt: new Date().toISOString() }],
+        storageKey,
+        guard: async () => {
+          throw Object.assign(new Error('lease lost'), { code: 'REMIX_OWNERSHIP_LOST' });
+        },
+      }),
+    ).rejects.toMatchObject({ code: 'REMIX_OWNERSHIP_LOST' });
+
+    expect(await pathExists(join(dir, '_objects', storageKey))).toBe(false);
+  });
+});
+
 describe('LocalProjectStorage.restoreSnapshot preserves secondary workspaces', () => {
   it('keeps `.vibecore-workspaces/<id>/` intact when the primary tree is restored', async () => {
     const parent = await mkdtemp(join(tmpdir(), 'vibecore-restore-snapshot-'));

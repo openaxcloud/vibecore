@@ -92,6 +92,28 @@ export const projectIdeEn = {
   'projectIde.action.rename': 'rename',
   'projectIde.action.duplicate': 'duplicate',
   'projectIde.action.fork': 'fork',
+  'projectIde.action.forkPending':
+    'The isolated data copy is still being prepared. Choose Fork again to resume this same operation.',
+  'projectIde.fork.title': 'Fork project data',
+  'projectIde.fork.description':
+    'Choose how Object Storage is handled. Project files are pinned and credentials are always detached; an eligible database is copied into an isolated database.',
+  'projectIde.fork.loading': 'Loading available data policies',
+  'projectIde.fork.error': 'Data policies could not be loaded. No fork has been started.',
+  'projectIde.fork.retry': 'Try again',
+  'projectIde.fork.policyLabel': 'Object Storage policy',
+  'projectIde.fork.policy.detach.title': 'Start with empty storage',
+  'projectIde.fork.policy.detach.description':
+    'Do not copy or link source objects. This is the safest choice when stored data is not needed.',
+  'projectIde.fork.policy.clone.title': 'Copy storage objects',
+  'projectIde.fork.policy.clone.description':
+    'Create a separate target bucket and verify every generation-pinned object. The source stays untouched.',
+  'projectIde.fork.policy.share.title': 'Share a read-only snapshot',
+  'projectIde.fork.policy.share.description':
+    'Keep objects in the source bucket and grant this fork read-only access only to the pinned generations.',
+  'projectIde.fork.shareConsent':
+    'I explicitly consent to this versioned, read-only storage share. I understand it can be revoked from the target project.',
+  'projectIde.fork.cancel': 'Cancel',
+  'projectIde.fork.confirm': 'Create isolated fork',
   'projectIde.delete.title': 'Delete {project}?',
   'projectIde.delete.description': 'The project and its workspace data will be deleted. This cannot be undone.',
   'projectIde.delete.confirm': 'Delete project',
@@ -219,6 +241,28 @@ export const projectIdeFr: ProjectIdeCopy = {
   'projectIde.action.rename': 'renommer',
   'projectIde.action.duplicate': 'dupliquer',
   'projectIde.action.fork': 'dupliquer',
+  'projectIde.action.forkPending':
+    'La copie isolée des données est encore en préparation. Choisissez à nouveau Dupliquer pour reprendre la même opération.',
+  'projectIde.fork.title': 'Dupliquer les données du projet',
+  'projectIde.fork.description':
+    'Choisissez le traitement du stockage d’objets. Les fichiers sont figés et les identifiants toujours détachés ; une base éligible est copiée dans une base isolée.',
+  'projectIde.fork.loading': 'Chargement des politiques de données disponibles',
+  'projectIde.fork.error': 'Impossible de charger les politiques de données. Aucune duplication n’a été lancée.',
+  'projectIde.fork.retry': 'Réessayer',
+  'projectIde.fork.policyLabel': 'Politique de stockage d’objets',
+  'projectIde.fork.policy.detach.title': 'Démarrer avec un stockage vide',
+  'projectIde.fork.policy.detach.description':
+    'Ne copiez ni ne liez les objets source. C’est le choix le plus sûr lorsque ces données ne sont pas nécessaires.',
+  'projectIde.fork.policy.clone.title': 'Copier les objets du stockage',
+  'projectIde.fork.policy.clone.description':
+    'Créez un bucket cible séparé et vérifiez chaque objet figé par génération. La source reste intacte.',
+  'projectIde.fork.policy.share.title': 'Partager un instantané en lecture seule',
+  'projectIde.fork.policy.share.description':
+    'Conservez les objets dans le bucket source et accordez à cette copie un accès en lecture seule aux seules générations figées.',
+  'projectIde.fork.shareConsent':
+    'Je consens explicitement à ce partage versionné en lecture seule. Je comprends qu’il peut être révoqué depuis le projet cible.',
+  'projectIde.fork.cancel': 'Annuler',
+  'projectIde.fork.confirm': 'Créer la copie isolée',
   'projectIde.delete.title': 'Supprimer {project} ?',
   'projectIde.delete.description':
     'Le projet et les données de son espace de travail seront supprimés. Cette action est irréversible.',
