@@ -112,6 +112,13 @@ platformEnv:
   # Comma-separated emails. PlatformAdmin grants global console access
   # (services/api/src/app.ts:2224). Edit cautiously.
   platformAdminEmails: 'avi@snatchbot.me,groupequaliwatt@gmail.com'
+  # Deliberately dark until a least-privilege API GSA is bound through
+  # global.workloadIdentity.api and the production folder allowlist is set.
+  # Enabling without both makes helm template fail; no ADC key secret exists.
+  cloudTenantFactoryEnabled: 'false'
+  cloudTenantAllowedParentFolders: ''
+  cloudOperationWorker: 'off'
+  cloudOperationWorkerIntervalMs: '5000'
   # Fastify must trust X-Forwarded-* headers because traffic arrives via the
   # GKE ingress (ingress-nginx). Without this, request.ip is always the proxy
   # pod IP, breaking audit logs, rate-limits, and OAuth callback origin checks.

@@ -54,6 +54,13 @@ platformEnv:
   # so legacy releases upgraded with --reuse-values receive a safe value too.
   apiCorsOrigins: ''
   platformAdminEmails: ''
+  # CloudTenant / Project Factory is fail-closed until an API Workload
+  # Identity and an explicit folder allowlist are supplied. No JSON key is
+  # accepted by the application.
+  cloudTenantFactoryEnabled: 'false'
+  cloudTenantAllowedParentFolders: ''
+  cloudOperationWorker: 'off'
+  cloudOperationWorkerIntervalMs: '5000'
   # Set to 'true' to make the ai-gateway REQUIRE the shared-secret bearer on
   # /chat/completions. Leave empty until the secret is confirmed present on both
   # the api and ai-gateway pods (it is provisioned by templates/ai-gateway-auth-secret.yaml

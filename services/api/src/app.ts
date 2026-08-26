@@ -291,6 +291,10 @@ import {
   type ConnectorProvider,
 } from './integrations/providers/types.js';
 import { vercelConnector } from './integrations/providers/vercel.js';
+import { registerCloudGovernanceRoutes } from './cloud-governance-routes.js';
+import { CloudGovernanceService } from './cloud-governance-service.js';
+import { PrismaCloudGovernanceStore } from './cloud-governance-store.js';
+import { RestGcpCloudClient } from './gcp-cloud-client.js';
 import {
   McpMarketplaceService,
   McpMarketplaceError,
@@ -557,6 +561,9 @@ export interface ApiAppOptions {
    * assert the `/admin/platform-metrics` JSON reflects them.
    */
   metricsRegistry?: ReturnType<typeof createPrometheusRegistry>;
+
+  /** Injectable CloudTenant control plane; production builds it on Prisma + ADC/WI. */
+  cloudGovernanceService?: CloudGovernanceService;
 }
 
 function createDefaultStore() {
@@ -36413,6 +36420,58 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     app.addHook('onClose', async () => {
       scheduler.stop();
     });
+  }
+
+  const cloudGovernanceService =
+    options.cloudGovernanceService ??
+    (store instanceof PrismaApiStore
+      ? new CloudGovernanceService(new PrismaCloudGovernanceStore(store.prisma), new RestGcpCloudClient())
+      : undefined);
+
+  registerCloudGovernanceRoutes(app, {
+    service: cloudGovernanceService,
+    guardAdmin: async (request, guard) => {
+      await requirePlatformAdmin(request);
+      if (guard.reauth) await requireRecentAdminReauth(request);
+    },
+    audit: async (request, entry) => {
+      await store.recordAdminAudit({
+        actorUserId: request.currentUser?.id,
+        action: entry.action,
+        metadata: {
+          resourceType: 'cloudGovernance',
+          resourceId: entry.resourceId,
+          ...(entry.metadata ?? {}),
+        },
+        ipAddress: request.ip,
+      });
+    },
+  });
+
+  if (
+    cloudGovernanceService &&
+    process.env.CLOUD_TENANT_FACTORY_ENABLED === 'true' &&
+    process.env.NODE_ENV !== 'test' &&
+    process.env.CLOUD_OPERATION_WORKER !== 'off'
+  ) {
+    const parsedInterval = Number(process.env.CLOUD_OPERATION_WORKER_INTERVAL_MS ?? 5_000);
+    const intervalMs = Number.isFinite(parsedInterval) ? Math.max(1_000, Math.min(60_000, parsedInterval)) : 5_000;
+    let running = false;
+    const tick = async () => {
+      if (running) return;
+      running = true;
+      try {
+        await cloudGovernanceService.executeDueOperations(25);
+      } catch (error) {
+        app.log.error({ err: error }, 'cloud operation scheduler tick failed');
+      } finally {
+        running = false;
+      }
+    };
+    const timer = setInterval(() => void tick(), intervalMs);
+    timer.unref();
+    void tick();
+    app.addHook('onClose', async () => clearInterval(timer));
   }
 
   return app;

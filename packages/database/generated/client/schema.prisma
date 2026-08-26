@@ -103,6 +103,7 @@ model User {
   agentRoutingCards           AgentRoutingCard[]             @relation("AgentRoutingCardAuthor")
   runtimeWebSocketTickets     RuntimeWebSocketTicket[]
   importJobs                  ImportJob[]                    @relation("ImportJobActor")
+  cloudOperations             CloudOperation[]
 }
 
 model Account {
@@ -180,6 +181,7 @@ model Organization {
   agentCheckpoints           AgentCheckpoint[]
   userSpendLimits            UserSpendLimit[]
   importJobs                 ImportJob[]
+  cloudTenant                CloudTenant?
 }
 
 model OrganizationMember {
@@ -282,6 +284,7 @@ model Project {
   slugRedirects           ProjectSlugRedirect[]
   runtimeWebSocketTickets RuntimeWebSocketTicket[]
   importJobs              ImportJob[]              @relation("ImportJobTarget")
+  cloudBinding            CloudProjectBinding?
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -2833,4 +2836,333 @@ model WorkspacePostMortem {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, capturedAt])
+}
+
+// ─── CloudTenant / Project Factory / Platform IAM ────────────────────────────
+// These rows are the durable control-plane record. External GCP effects are
+// always driven through CloudOperation, whose DB-clock lease and fencing token
+// make retries and takeover safe across API replicas.
+
+enum CloudTenantBoundaryType {
+  PERSON
+  WORKSPACE
+  LEGAL_ENTITY
+  BILLING_ACCOUNT
+}
+
+enum CloudTenantLifecycle {
+  PROVISIONING
+  ACTIVE
+  SUSPENDED
+  MERGED
+  CLOSED
+}
+
+enum CloudProjectBindingRole {
+  PRIMARY
+  REGION_SHARD
+  QUOTA_SHARD
+  MIGRATION_TARGET
+}
+
+enum CloudProjectBindingState {
+  REQUESTED
+  CREATING
+  BILLING_LINKED
+  APIS_ENABLING
+  SERVICE_AGENTS_READY
+  IAM_BOUND
+  EDGE_READY
+  ACTIVE
+  BILLING_SUSPENDED
+  QUOTA_EXHAUSTED
+  DRIFT_DETECTED
+  DELETE_REQUESTED
+  RECOVERY_WINDOW
+  RESTORING
+  PURGING
+  PURGED
+}
+
+enum CloudTenantTransferState {
+  REQUESTED
+  REVOKING
+  REVOKED
+  REGRANTING
+  COMPLETED
+  FAILED
+}
+
+enum CloudOperationKind {
+  TENANT_CREATE
+  PROJECT_BIND
+  TENANT_SUSPEND
+  TENANT_RESTORE
+  TENANT_MERGE
+  TENANT_SPLIT
+  TENANT_TRANSFER
+  PROJECT_ADVANCE
+  TEARDOWN_REQUEST
+  TEARDOWN_EXECUTE
+  TEARDOWN_VERIFY
+  PROJECT_RESTORE
+  PROJECT_PURGE
+  IAM_ENSURE
+}
+
+enum CloudOperationStatus {
+  PENDING
+  RUNNING
+  WAITING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+}
+
+enum CloudTeardownStatus {
+  INVENTORYING
+  DELETING
+  VERIFYING
+  COMPLETE
+  ORPHANS_DETECTED
+  FAILED
+}
+
+enum PlatformIamIdentityKind {
+  BUILD
+  PROMOTION
+  RUNTIME
+}
+
+enum PlatformIamComplianceStatus {
+  UNKNOWN
+  COMPLIANT
+  KEY_DRIFT
+  DISABLED
+}
+
+model CloudTenant {
+  id                   String                  @id @default(cuid())
+  // Direct product-domain link. Null is reserved for platform/system tenants;
+  // customer tenants are created with an Organization id by the admin API.
+  organizationId       String?                 @unique
+  customerBoundaryType CloudTenantBoundaryType
+  ownerPrincipalId     String
+  billingPrincipalId   String
+  billingAccountId     String
+  legalEntityId        String?
+  residencyPolicy      String                  @default("eu")
+  lifecycle            CloudTenantLifecycle    @default(ACTIVE)
+  suspensionReason     String?
+  suspensionEvidence   Json?
+  // Version fences every topology mutation; ownershipVersion changes only
+  // when ownership itself changes (transfer/merge/split provenance).
+  version              Int                     @default(1)
+  ownershipVersion     Int                     @default(1)
+  mergedIntoTenantId   String?
+  splitFromTenantId    String?
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
+
+  organization      Organization?         @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  mergedInto        CloudTenant?          @relation("CloudTenantMerge", fields: [mergedIntoTenantId], references: [id], onDelete: Restrict)
+  mergedSources     CloudTenant[]         @relation("CloudTenantMerge")
+  splitFrom         CloudTenant?          @relation("CloudTenantSplit", fields: [splitFromTenantId], references: [id], onDelete: Restrict)
+  splitChildren     CloudTenant[]         @relation("CloudTenantSplit")
+  bindings          CloudProjectBinding[]
+  transfers         CloudTenantTransfer[]
+  operations        CloudOperation[]      @relation("CloudOperationTenant")
+  relatedOperations CloudOperation[]      @relation("CloudOperationRelatedTenant")
+
+  @@index([lifecycle])
+  @@index([ownerPrincipalId])
+}
+
+model CloudProjectBinding {
+  id                   String                   @id @default(cuid())
+  cloudTenantId        String
+  // Optional direct link to the published Vibecore project. A project can be
+  // attached to at most one GCP binding, and the service verifies that its
+  // Organization matches the tenant before committing the link.
+  projectId            String?                  @unique
+  gcpProjectId         String                   @unique
+  gcpProjectNumber     String?                  @unique
+  role                 CloudProjectBindingRole
+  region               String
+  state                CloudProjectBindingState @default(REQUESTED)
+  parentFolderId       String?
+  quotas               Json?
+  billingLabels        Json?
+  capacityPolicy       Json?
+  reconciliationStatus String                   @default("UNKNOWN")
+  recoveryWindowEndsAt DateTime?
+  version              Int                      @default(1)
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  tenant     CloudTenant                @relation(fields: [cloudTenantId], references: [id], onDelete: Restrict)
+  project    Project?                   @relation(fields: [projectId], references: [id], onDelete: Restrict)
+  events     CloudProjectFactoryEvent[]
+  teardowns  CloudTeardownRecord[]
+  identities PlatformIamIdentity[]
+  operations CloudOperation[]
+
+  @@index([cloudTenantId, state])
+  @@index([state])
+  @@index([parentFolderId])
+}
+
+model CloudProjectFactoryEvent {
+  id          String   @id @default(cuid())
+  bindingId   String
+  operationId String?
+  fromState   String?
+  toState     String
+  actorUserId String?
+  detail      Json?
+  createdAt   DateTime @default(now())
+
+  binding   CloudProjectBinding @relation(fields: [bindingId], references: [id], onDelete: Restrict)
+  operation CloudOperation?     @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@index([bindingId, createdAt])
+  @@index([operationId])
+}
+
+model CloudOperation {
+  id                String               @id @default(cuid())
+  idempotencyKey    String               @unique
+  requestHash       String
+  kind              CloudOperationKind
+  status            CloudOperationStatus @default(PENDING)
+  tenantId          String?
+  relatedTenantId   String?
+  bindingId         String?
+  actorUserId       String?
+  reauthenticatedAt DateTime?
+  step              String               @default("REQUESTED")
+  payload           Json
+  checkpoint        Json?
+  result            Json?
+  leaseOwner        String?
+  leaseExpiresAt    DateTime?
+  fence             Int                  @default(0)
+  version           Int                  @default(0)
+  attempts          Int                  @default(0)
+  nextAttemptAt     DateTime             @default(now())
+  lastErrorCode     String?
+  lastErrorMessage  String?
+  completedAt       DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+
+  tenant            CloudTenant?               @relation("CloudOperationTenant", fields: [tenantId], references: [id], onDelete: Restrict)
+  relatedTenant     CloudTenant?               @relation("CloudOperationRelatedTenant", fields: [relatedTenantId], references: [id], onDelete: Restrict)
+  binding           CloudProjectBinding?       @relation(fields: [bindingId], references: [id], onDelete: Restrict)
+  actor             User?                      @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+  events            CloudOperationEvent[]
+  transfer          CloudTenantTransfer?
+  factoryEvents     CloudProjectFactoryEvent[]
+  requestedTeardown CloudTeardownRecord?
+
+  @@index([status, nextAttemptAt])
+  @@index([tenantId, createdAt])
+  @@index([relatedTenantId, createdAt])
+  @@index([bindingId, createdAt])
+}
+
+model CloudOperationEvent {
+  id          String   @id @default(cuid())
+  operationId String
+  fence       Int
+  type        String
+  detail      Json?
+  createdAt   DateTime @default(now())
+
+  operation CloudOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+
+  @@index([operationId, createdAt])
+}
+
+model CloudTenantTransfer {
+  id                       String                   @id @default(cuid())
+  operationId              String                   @unique
+  cloudTenantId            String
+  expectedOwnershipVersion Int
+  fromPrincipalId          String
+  toPrincipalId            String
+  grantRoles               Json
+  state                    CloudTenantTransferState @default(REQUESTED)
+  revokeEvidence           Json?
+  revokeVerifiedAt         DateTime?
+  regrantEvidence          Json?
+  version                  Int                      @default(0)
+  errorCode                String?
+  errorMessage             String?
+  completedAt              DateTime?
+  createdAt                DateTime                 @default(now())
+  updatedAt                DateTime                 @updatedAt
+
+  operation CloudOperation @relation(fields: [operationId], references: [id], onDelete: Restrict)
+  tenant    CloudTenant    @relation(fields: [cloudTenantId], references: [id], onDelete: Restrict)
+
+  @@index([cloudTenantId, createdAt])
+  @@index([state])
+}
+
+model CloudTeardownRecord {
+  id                 String              @id @default(cuid())
+  bindingId          String
+  requestOperationId String              @unique
+  status             CloudTeardownStatus @default(INVENTORYING)
+  resourceInventory  Json?
+  erasureProof       Json?
+  orphans            Json?
+  version            Int                 @default(0)
+  startedAt          DateTime            @default(now())
+  completedAt        DateTime?
+
+  binding          CloudProjectBinding @relation(fields: [bindingId], references: [id], onDelete: Restrict)
+  requestOperation CloudOperation      @relation(fields: [requestOperationId], references: [id], onDelete: Restrict)
+
+  @@index([bindingId, startedAt])
+}
+
+model PlatformIamIdentity {
+  id                     String                      @id @default(cuid())
+  bindingId              String?
+  kind                   PlatformIamIdentityKind
+  app                    String                      @default("")
+  environment            String                      @default("")
+  privilegeBoundary      String
+  gcpProjectId           String
+  gcpServiceAccountEmail String                      @unique
+  persistentKeys         Int                         @default(0)
+  complianceStatus       PlatformIamComplianceStatus @default(UNKNOWN)
+  revisionsServed        Int                         @default(0)
+  version                Int                         @default(0)
+  lastRotatedAt          DateTime?
+  lastUsedAt             DateTime?
+  createdAt              DateTime                    @default(now())
+  updatedAt              DateTime                    @updatedAt
+
+  binding        CloudProjectBinding?            @relation(fields: [bindingId], references: [id], onDelete: Restrict)
+  impersonations PlatformIamImpersonationAudit[]
+
+  @@unique([kind, app, environment, privilegeBoundary, gcpProjectId])
+  @@index([gcpProjectId, kind])
+  @@index([bindingId])
+}
+
+model PlatformIamImpersonationAudit {
+  id                   String   @id @default(cuid())
+  identityId           String
+  actorPrincipal       String
+  purpose              String
+  tokenLifetimeSeconds Int
+  createdAt            DateTime @default(now())
+
+  identity PlatformIamIdentity @relation(fields: [identityId], references: [id], onDelete: Restrict)
+
+  @@index([identityId, createdAt])
 }
