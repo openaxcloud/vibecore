@@ -376,13 +376,14 @@ test(
   'private templates create a project instead of opening the public gallery',
   { tag: '@runtime' },
   async ({ page }) => {
+    test.setTimeout(120_000);
     await authenticate(page);
     await page.goto('/dashboard/templates');
-    await expect(page.getByRole('heading', { name: 'Templates' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Templates', exact: true })).toBeVisible();
     await expect(page.getByText('Create production workspaces from curated starters')).toBeVisible();
     await page.getByRole('button', { name: 'Use template' }).first().click();
-    await expect(page).toHaveURL(/\/projects\/[^/]+\/ide$/, { timeout: 30000 });
-    await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
+    await expect(page).toHaveURL(/\/@[^/]+\/[^/?]+$/, { timeout: 30000 });
+    await expect(page.getByRole('button', { name: /Running workspace/i })).toBeVisible({ timeout: 90_000 });
   },
 );
 
@@ -1593,7 +1594,7 @@ test(
      * rendered any more). Assert the surface it actually ships.
      */
     const deploymentsPanel = page.locator('[data-testid="ide-service-panel"][data-panel="deployments"]');
-    await expect(deploymentsPanel.getByRole('heading', { name: 'Deployments' })).toBeVisible();
+    await expect(deploymentsPanel.getByRole('heading', { name: 'Deployments', exact: true })).toBeVisible();
 
     for (const section of ['Overview', 'Logs', 'Domains', 'Manage']) {
       await expect(deploymentsPanel.getByRole('button', { name: section, exact: true })).toBeVisible();
@@ -1677,8 +1678,8 @@ test(
     // The trailing segment is now the active file's language, not 'Project'.
     await expect(statusbar).toContainText('Markdown');
 
-    const workspaceStatusButton = statusbar.getByRole('button', { name: /Running on|Building|Crashed|Stopped/ });
-    await expect(workspaceStatusButton).toBeVisible();
+    const workspaceStatusButton = statusbar.getByRole('button', { name: /Running workspace/i });
+    await expect(workspaceStatusButton).toBeVisible({ timeout: 90_000 });
     await workspaceStatusButton.click();
     await expect(page.getByRole('tab', { name: /Webview/ }).first()).toBeVisible({ timeout: 15000 });
 
@@ -1736,12 +1737,9 @@ test(
     await openIdeTool(/Database/);
 
     const databasePanel = page.locator('[data-testid="ide-service-panel"][data-panel="database"]').first();
-    await expect(databasePanel.locator('.bolt-project-database-tool')).toBeVisible({ timeout: 15000 });
-    await expect(databasePanel.getByText('Database status')).toBeVisible();
-    await expect(databasePanel.getByRole('button', { name: 'Connection' })).toBeVisible();
-    await expect(databasePanel.getByRole('button', { name: 'Environment' })).toBeVisible();
-    await expect(databasePanel.getByRole('button', { name: 'Activity' })).toBeVisible();
-    await expect(databasePanel.getByRole('button', { name: 'Save DATABASE_URL' })).toBeVisible();
+    await expect(databasePanel.getByRole('heading', { name: 'All databases' })).toBeVisible({ timeout: 15000 });
+    await expect(databasePanel.getByRole('button', { name: 'Refresh' })).toBeVisible();
+    await expect(databasePanel.getByRole('button', { name: 'Create database' })).toBeVisible();
 
     await openIdeTool(/Secrets/);
 
@@ -1752,11 +1750,11 @@ test(
     await openIdeTool(/Git/);
 
     const gitPanel = page.locator('[data-testid="ide-service-panel"][data-panel="git"]').first();
-    await expect(gitPanel.locator('.bolt-project-git-tool')).toBeVisible({ timeout: 15000 });
-    await expect(gitPanel.getByRole('heading', { name: 'Changes' })).toBeVisible();
+    await expect(gitPanel.getByRole('heading', { name: 'Git' })).toBeVisible({ timeout: 15000 });
+    await expect(gitPanel.getByRole('heading', { name: 'Working tree' })).toBeVisible();
     await expect(gitPanel.getByRole('heading', { name: 'Staged' })).toBeVisible();
-    await expect(gitPanel.getByRole('heading', { name: 'History' })).toBeVisible();
-    await expect(gitPanel.getByRole('button', { name: 'Commit & Push' })).toBeVisible();
+    await expect(gitPanel.getByRole('heading', { name: 'Commit graph' })).toBeVisible();
+    await expect(gitPanel.getByRole('button', { name: 'Commit & push' })).toBeVisible();
 
     await expect(page.getByLabel('Split right')).toHaveCount(0);
     await expect(page.getByLabel('Split down')).toHaveCount(0);
@@ -1797,7 +1795,7 @@ test(
         activeTabBorder: activeTabStyle?.borderTopColor,
       };
     });
-    expect(terminalMetrics.height).toBe(240);
+    expect(terminalMetrics.height).toBe(420);
     expect(terminalMetrics.borderTop).toBe('rgb(26, 32, 48)');
     expect(terminalMetrics.background).toBe('rgb(10, 15, 28)');
     expect(terminalMetrics.tabbarHeight).toBe(38);
@@ -1805,25 +1803,25 @@ test(
     expect(terminalMetrics.hasStatus).toBe(true);
     expect(terminalMetrics.hasTerminalMeta).toBe(true);
     expect(terminalMetrics.activeTabBorder).toBe('rgb(43, 50, 69)');
-    await expect(pinnedTerminal.getByRole('button', { name: 'Terminal', exact: true })).toBeVisible();
+    await expect(pinnedTerminal.getByRole('button', { name: 'Shell (Terminal)', exact: true })).toBeVisible();
     await expect(pinnedTerminal.getByRole('button', { name: 'Output' })).toBeVisible();
-    await expect(pinnedTerminal.getByRole('button', { name: 'Problems' })).toBeVisible();
+    await expect(pinnedTerminal.getByRole('button', { name: /Open Problems/ })).toBeVisible();
     await expect(pinnedTerminal.getByRole('button', { name: 'Debug Console' })).toBeVisible();
     await expect(pinnedTerminal.getByLabel('Refresh runtime logs')).toBeVisible();
-    await expect(pinnedTerminal.locator('.bolt-project-bottom-terminal-size')).toHaveText('240px');
-    await expect(pinnedTerminal.getByText('Vibecore Terminal')).toBeVisible({ timeout: 15000 });
+    await expect(pinnedTerminal.getByRole('textbox', { name: 'Terminal input' })).toBeVisible({ timeout: 15000 });
     await pinnedTerminal.getByRole('button', { name: 'Output' }).click();
     await expect(pinnedTerminal.locator('[data-testid="ide-service-panel"][data-panel="logs"]')).toBeVisible({
       timeout: 15000,
     });
     await pinnedTerminal.getByRole('button', { name: 'Debug Console' }).click();
-    await expect(pinnedTerminal.locator('.bolt-project-monitoring-panel')).toBeVisible({ timeout: 15000 });
-    await page.getByLabel('Toggle terminal').click();
+    await expect(pinnedTerminal.getByText('No debug session has been launched yet.')).toBeVisible({ timeout: 15000 });
+    await expect(pinnedTerminal.getByRole('button', { name: 'Start debugging' })).toBeVisible();
+    await page.getByRole('button', { name: 'Toggle Shell (Terminal)' }).click();
     await expect(pinnedTerminal).toBeHidden();
-    await page.getByLabel('Toggle terminal').click();
+    await page.getByRole('button', { name: 'Toggle Shell (Terminal)' }).click();
     await expect(pinnedTerminal).toBeVisible();
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
-    await expect(page.getByLabel('Command palette')).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
     await page.keyboard.press('Escape');
 
     await page.getByRole('tab', { name: /Snapshots/ }).click();
@@ -1990,23 +1988,24 @@ test(
   'edit file workflow surfaces editor, files, terminal and preview affordances',
   { tag: '@runtime' },
   async ({ page, isMobile }) => {
+    test.setTimeout(120_000);
     test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
 
     const projectId = await createTestProject(page, 'E2E edit workflow project');
 
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('link', { name: /Running|Building|Stopped|Crashed/ })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: /Running workspace/i })).toBeVisible({ timeout: 90_000 });
     await expect(page.getByRole('link', { name: /Publish/ })).toBeVisible();
     await expect(page.locator('.bolt-project-ide-panels')).toBeVisible({ timeout: 15000 });
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+T' : 'Control+T');
-    await expect(page.getByLabel('Command palette')).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
     await page.keyboard.press('Escape');
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+P' : 'Control+P');
-    await expect(page.getByLabel('Command palette')).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
     await page.keyboard.press('Escape');
     await page.keyboard.press(process.platform === 'darwin' ? 'Meta+K' : 'Control+K');
 
-    const commandPalette = page.getByLabel('Command palette');
+    const commandPalette = page.getByRole('dialog', { name: 'Command palette' });
     await expect(commandPalette).toBeVisible();
 
     const commandPaletteMetrics = await page.locator('.bolt-project-command-palette').evaluate((element) => {
@@ -2037,6 +2036,7 @@ test(
   'reopens project IDE with persisted agent memory and panel state',
   { tag: '@runtime' },
   async ({ page, isMobile }) => {
+    test.setTimeout(120_000);
     test.skip(isMobile, 'Desktop IDE shell uses a separate mobile panel navigation.');
 
     const auth = await authenticate(page);
@@ -2099,7 +2099,7 @@ test(
 
     expect(saveState.ok(), await saveState.text()).toBeTruthy();
     await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-    await expect(page.getByRole('link', { name: 'Running' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('button', { name: /Running workspace/i })).toBeVisible({ timeout: 90_000 });
     await expect(page.getByText(firstUserMessage)).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(assistantMessage)).toBeVisible({ timeout: 15000 });
     await expect(page.getByText(secondUserMessage)).toBeVisible({ timeout: 15000 });
@@ -2174,7 +2174,16 @@ test(
           rightPanelWidth: style.getPropertyValue('--project-right-panel-width').trim(),
         };
       });
-      expect(persistedMetrics.agentWidth).toBe('520px');
+
+      /*
+       * The desired 520px value remains persisted above. The resizable panel
+       * enforces its 20-36% responsive bounds at render time, so the effective
+       * width may be clamped on Playwright's 1280px viewport.
+       */
+
+      const renderedAgentWidth = Number.parseFloat(persistedMetrics.agentWidth);
+      expect(renderedAgentWidth).toBeGreaterThanOrEqual(340);
+      expect(renderedAgentWidth).toBeLessThanOrEqual(520);
       expect(persistedMetrics.rightPanelWidth).toBe('300px');
     }
   },

@@ -1,6 +1,6 @@
 # Découpage de la suite E2E — `Production E2E` vs `E2E Runtime`
 
-**Date :** 2026-08-13
+**Date :** 2026-08-17
 **Contexte :** `Production E2E` (`.github/workflows/e2e.yml`) n'avait **jamais été vert**.
 Mesure sur l'historique complet du workflow :
 
@@ -41,42 +41,66 @@ Tag Playwright `@runtime` sur les tests concernés, et non un déplacement de
 fichiers : les specs partagent leurs helpers, et un tag garde la couverture
 lisible au même endroit.
 
-| Workflow | Commande | Rôle |
-|---|---|---|
-| `Production E2E` (`e2e.yml`) | `playwright test tests/e2e --project=chromium --grep-invert @runtime` | **bloquant** |
-| `E2E Runtime` (`e2e-runtime.yml`) | `playwright test tests/e2e --project=chromium --grep @runtime` | **non bloquant** (nightly + `workflow_dispatch`, `continue-on-error: true`) |
+| Workflow                          | Commande                                                              | Rôle                                               |
+| --------------------------------- | --------------------------------------------------------------------- | -------------------------------------------------- |
+| `Production E2E` (`e2e.yml`)      | `playwright test tests/e2e --project=chromium --grep-invert @runtime` | **bloquant**                                       |
+| `E2E Runtime` (`e2e-runtime.yml`) | `scripts/run-e2e-runtime-playwright.sh` (`--grep @runtime`)           | **bloquant** sur PR/push `main`, manuel et nightly |
 
-## Tests tagués `@runtime` (14)
+## Tests tagués `@runtime` (17)
 
-| Spec | Tests | Dépendance |
-|---|---|---|
-| `critical-paths.spec.ts` | 1 | workspace running + iframe de preview |
-| `preview-runtime.spec.ts` | 5 | workspace running + dev server booté |
-| `mobile-device-matrix.spec.ts` | 5 (« nonblank preview ») | preview non blanche |
-| `responsive-ide.spec.ts` | 3 (desktop Run / terminal) | bouton Run + panneau terminal issus du workspace |
-| `dashboard.spec.ts` | 3 | template -> workspace running, lien de statut de déploiement |
-| étape `IDE panel live audit` | — | audite les panneaux contre de vraies données projet (« The requested panel data was not found. » sur 16 panneaux dans le stack du gate) |
+| Spec                           | Tests                      | Dépendance                                                                                                                              |
+| ------------------------------ | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `critical-paths.spec.ts`       | 1                          | workspace running + iframe de preview                                                                                                   |
+| `preview-runtime.spec.ts`      | 4                          | workspace running + dev server booté                                                                                                    |
+| `mobile-device-matrix.spec.ts` | 5 (« nonblank preview »)   | preview non blanche                                                                                                                     |
+| `responsive-ide.spec.ts`       | 3 (desktop Run / terminal) | bouton Run + panneau terminal issus du workspace                                                                                        |
+| `dashboard.spec.ts`            | 4                          | template -> workspace running, panneaux IDE et état persisté                                                                            |
+| étape `IDE panel live audit`   | —                          | audite les panneaux contre de vraies données projet (« The requested panel data was not found. » sur 16 panneaux dans le stack du gate) |
 
 Ce qui **reste dans le gate** pour ces mêmes specs : toute la couverture
 responsive/layout (les 7 profils `adapts to …` de la matrice mobile, les
 assertions de shell compacte, la palette d'outils), c'est-à-dire ce que
 `Production E2E` peut réellement vérifier.
 
+## Infrastructure réelle du gate runtime
+
+Le workflow crée un cluster **kind éphémère par run**, construit l'image
+`workspace-agent` taguée avec le SHA Git complet, la charge dans kind puis lance
+le workspace-manager, l'API et le preview-proxy réels. Un bridge CI limité au
+contexte kind ouvre des `kubectl port-forward` vers les Services des workspaces ;
+HTTP et WebSocket traversent donc les mêmes API runtime que le navigateur.
+
+Avant Playwright, `runtime:validate:api-kubernetes` prouve sur un pod réel :
+création projet/workspace, fichiers, patch, commande, terminal WebSocket, port
+utilisateur, preview proxifiée, snapshot, export/import ZIP et arrêt. Les specs
+sont ensuite exécutées emplacement Playwright par emplacement Playwright ; les
+ressources workspace sont purgées entre emplacements distincts pour borner la
+pression pod/PVC et le dernier workspace reste observable pour le manifeste de
+preuve.
+
+Le job ne reçoit aucun secret cloud ou fournisseur IA. Tous les appels
+`kubectl` et port-forward sont liés au kubeconfig et au contexte kind exacts.
+Les services Docker utilisent un nom de projet Compose propre au run. Le
+teardown s'exécute avec `if: always()`, supprime le cluster par son nom exact,
+vérifie son absence, puis détruit les volumes Docker éphémères. Les logs, les
+ressources Kubernetes, l'imageID, les PVC et la preuve de disparition sont
+conservés 14 jours.
+
+Limite explicitement hors preuve : kind est lancé sans gVisor
+(`WORKSPACE_DISABLE_SANDBOX_SCHEDULING=1`). Ce gate prouve le contrat
+UI/API/manager/agent/Kubernetes et le cycle de vie éphémère ; l'isolation gVisor
+reste une preuve cluster dédiée distincte.
+
 ## Ce que ce découpage n'est PAS
 
-Ce n'est pas un waiver : aucun test n'est ignoré ni supprimé. Les 14 tests
-tournent tous les jours et publient leurs traces. Ce qui change, c'est qu'ils ne
-bloquent plus un gate qu'ils ne peuvent pas satisfaire.
+Ce n'est pas un waiver : aucun test runtime n'est ignoré ni supprimé. Les 17
+tests sont dans un gate réellement provisionné et bloquant. Un test qui dépend
+d'un fournisseur IA externe n'est pas classé `@runtime` : il appartient à une
+suite fournisseur avec ses propres credentials et n'est pas simulé ici.
 
-## Remise en position bloquante
+## Critère de signature
 
-Condition : provisionner un runtime de workspace dans la CI. Le code a un chemin
-local (`WORKSPACE_DEFAULT_RUNTIME_MODE ?? 'docker'`,
-`WORKSPACE_LOCAL_RUNTIME_ROOT ?? '.vibecore/local-runtime'`) mais il n'est pas
-exercé par le stack e2e — pendant l'ouverture de l'IDE, le log de l'API ne
-montre **aucun** appel de provisioning. Le diagnostic de cause racine reste à
-faire.
-
-Estimation : **3–5 j** d'ingénierie, plus une dégradation de la durée du gate
-(un conteneur par workspace × ~14 tests, sur les 29 min actuelles). À faire, mais
-pas au prix de garder le gate rouge en attendant.
+Le câblage et les tests unitaires ne suffisent pas. Le lot reste
+`IMPLEMENTED_UNPROVEN` tant qu'un run du workflow exact-SHA n'a pas terminé avec
+les 17 tests verts, un manifeste kind contenant au moins un pod workspace
+`Running/Ready` sur l'image attendue et une preuve de disparition du cluster.

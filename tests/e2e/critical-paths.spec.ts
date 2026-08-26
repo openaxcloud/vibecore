@@ -69,7 +69,13 @@ test('critical path: preview iframe loads imported app content', { tag: '@runtim
   expect(importFiles.ok(), await importFiles.text()).toBeTruthy();
 
   await page.goto(`/projects/${projectId}/ide`, { waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('button', { name: /Workspace:\s*running/i })).toBeVisible({ timeout: 30_000 });
+
+  /*
+   * The current status-bar contract exposes "Running workspace | N runtime
+   * log lines" (not the removed "Workspace: running" label). A fresh kind pod
+   * can legitimately need more than 30s to provision on an uncached runner.
+   */
+  await expect(page.getByRole('button', { name: /Running workspace/i })).toBeVisible({ timeout: 90_000 });
   await page.getByRole('button', { name: 'Webview' }).click();
 
   const previewIframe = page.locator('iframe[title="preview"]').first();

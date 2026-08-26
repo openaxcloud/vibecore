@@ -19,6 +19,14 @@ const webServer = process.env.PLAYWRIGHT_SKIP_WEB_SERVER
 
 export default defineConfig({
   testDir: './tests/e2e',
+
+  /*
+   * The TPL proof suite has an explicit destructive/live opt-in contract and a
+   * dedicated playwright.tpl-proof.config.ts. Importing it through the default
+   * config throws before grep/tag filtering, which would make every ordinary
+   * E2E workflow (including the runtime gate) fail during discovery.
+   */
+  testIgnore: /tpl-proof-live\.spec\.ts/,
   timeout: 30_000,
   expect: { timeout: 5_000 },
   fullyParallel: false,
