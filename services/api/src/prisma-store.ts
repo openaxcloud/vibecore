@@ -26,6 +26,10 @@ import type {
   AiCostLedgerRecord,
   AiConversationRecord,
   IntegrationFeatureRequestRecord,
+  ImportCreditReservationRecord,
+  ImportJobRecord,
+  ImportJobTransitionPatch,
+  ImportStagedFile,
   AiMessageFeedbackRecord,
   AiMessageFeedbackVote,
   NotificationRecord,
@@ -136,6 +140,99 @@ type PrismaKnownRequestError = Error & { readonly code: string };
  */
 function isPrismaKnownRequestError(error: unknown): error is PrismaKnownRequestError {
   return error instanceof Prisma.PrismaClientKnownRequestError;
+}
+
+function mapImportJob(row: any): ImportJobRecord {
+  return {
+    id: row.id,
+    organizationId: row.organizationId,
+    actorUserId: row.actorUserId ?? undefined,
+    provider: row.provider,
+    state: row.state,
+    sourceRef: row.sourceRef ?? undefined,
+    idempotencyKey: row.idempotencyKey,
+    requestHash: row.requestHash,
+    findings: row.findings ?? undefined,
+    consent: row.consent ?? undefined,
+    targetProjectId: row.targetProjectId ?? undefined,
+    stagedFileCount: row.stagedFileCount,
+    redactedCount: row.redactedCount,
+    creditsReserved: row.creditsReserved,
+    version: row.version,
+    operationToken: row.operationToken ?? undefined,
+    operationExpiresAt: toIso(row.operationExpiresAt),
+    cleanupTerminalState: row.cleanupTerminalState ?? undefined,
+    error: row.error ?? undefined,
+    expiresAt: toIso(row.expiresAt),
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
+  };
+}
+
+function mapImportReservation(row: any): ImportCreditReservationRecord {
+  return {
+    key: row.key,
+    organizationId: row.organizationId,
+    importJobId: row.importJobId,
+    reservedCredits: row.reservedCredits,
+    debitedCredits: row.debitedCredits,
+    state: row.state as ImportCreditReservationRecord['state'],
+    version: row.version,
+  };
+}
+
+function importStagedFiles(value: unknown): ImportStagedFile[] | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  const files: ImportStagedFile[] = [];
+
+  for (const item of value) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) {
+      return undefined;
+    }
+
+    const record = item as Record<string, unknown>;
+
+    if (typeof record.path !== 'string' || typeof record.content !== 'string') {
+      return undefined;
+    }
+
+    files.push({
+      path: record.path,
+      content: record.content,
+      ...(typeof record.encoding === 'string' ? { encoding: record.encoding } : {}),
+    });
+  }
+
+  return files;
+}
+
+function importTransitionData(patch: ImportJobTransitionPatch | undefined): Prisma.ImportJobUpdateManyMutationInput {
+  if (!patch) {
+    return {};
+  }
+
+  return {
+    ...(patch.sourceRef !== undefined ? { sourceRef: patch.sourceRef } : {}),
+    ...(patch.findings !== undefined ? { findings: patch.findings as Prisma.InputJsonValue } : {}),
+    ...(patch.consent !== undefined ? { consent: patch.consent as Prisma.InputJsonValue } : {}),
+    ...(patch.targetProjectId !== undefined ? { targetProjectId: patch.targetProjectId } : {}),
+    ...(patch.stagedFiles !== undefined ? { stagedFiles: patch.stagedFiles as unknown as Prisma.InputJsonValue } : {}),
+    ...(patch.connectorPreview !== undefined
+      ? { connectorPreview: patch.connectorPreview as Prisma.InputJsonValue }
+      : {}),
+    ...(patch.stagedFileCount !== undefined ? { stagedFileCount: patch.stagedFileCount } : {}),
+    ...(patch.redactedCount !== undefined ? { redactedCount: patch.redactedCount } : {}),
+    ...(patch.creditsReserved !== undefined ? { creditsReserved: patch.creditsReserved } : {}),
+    ...(patch.operationToken !== undefined ? { operationToken: patch.operationToken } : {}),
+    ...(patch.operationExpiresAt !== undefined
+      ? { operationExpiresAt: patch.operationExpiresAt ? new Date(patch.operationExpiresAt) : null }
+      : {}),
+    ...(patch.cleanupTerminalState !== undefined ? { cleanupTerminalState: patch.cleanupTerminalState } : {}),
+    ...(patch.error !== undefined ? { error: patch.error } : {}),
+  };
 }
 
 // Database point-in-time rollback (Phase-1 scaffold) row → record mappers.
@@ -1549,48 +1646,440 @@ export class PrismaApiStore implements ApiStore {
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
+    idempotencyKey: string;
+    requestHash: string;
+    reservedCredits: number;
   }) {
-    const row = await this.prisma.importJob.create({
-      data: {
+    try {
+      const created = await this.prisma.$transaction(async (tx) => {
+        const job = await tx.importJob.create({
+          data: {
+            organizationId: input.organizationId,
+            actorUserId: input.actorUserId ?? null,
+            provider: input.provider,
+            sourceRef: input.sourceRef ?? null,
+            expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
+            idempotencyKey: input.idempotencyKey,
+            requestHash: input.requestHash,
+            state: 'RECEIVED',
+            creditsReserved: true,
+          },
+        });
+        const reservation = await tx.importCreditReservation.create({
+          data: {
+            organizationId: input.organizationId,
+            key: input.idempotencyKey,
+            importJobId: job.id,
+            reservedCredits: input.reservedCredits,
+          },
+        });
+
+        return { job, reservation };
+      });
+
+      return {
+        job: mapImportJob(created.job),
+        reservation: mapImportReservation(created.reservation),
+        replayed: false,
+      };
+    } catch (error) {
+      if (!isPrismaKnownRequestError(error) || error.code !== 'P2002') {
+        throw error;
+      }
+
+      const existing = await this.prisma.importJob.findUnique({
+        where: {
+          organizationId_idempotencyKey: {
+            organizationId: input.organizationId,
+            idempotencyKey: input.idempotencyKey,
+          },
+        },
+        include: { reservation: true },
+      });
+
+      if (!existing || !existing.reservation || existing.requestHash !== input.requestHash) {
+        throw Object.assign(new Error(appPublicEnglish('IMPORT_IDEMPOTENCY_CONFLICT')), {
+          statusCode: 409,
+          code: 'IMPORT_IDEMPOTENCY_CONFLICT',
+        });
+      }
+
+      return {
+        job: mapImportJob(existing),
+        reservation: mapImportReservation(existing.reservation),
+        replayed: true,
+      };
+    }
+  }
+
+  async getImportStaging(id: string, organizationId: string) {
+    const row = await this.prisma.importJob.findFirst({
+      where: { id, organizationId },
+      select: { stagedFiles: true, connectorPreview: true },
+    });
+    const files = importStagedFiles(row?.stagedFiles);
+
+    if (!row || !files) {
+      return undefined;
+    }
+
+    return { files, preview: row.connectorPreview ?? undefined };
+  }
+
+  async getImportReservationByJob(importJobId: string, organizationId: string) {
+    const row = await this.prisma.importCreditReservation.findFirst({ where: { importJobId, organizationId } });
+
+    return row ? mapImportReservation(row) : undefined;
+  }
+
+  async transitionImportJob(input: {
+    id: string;
+    organizationId: string;
+    expectedVersion: number;
+    expectedStates: string[];
+    state: string;
+    patch?: ImportJobTransitionPatch;
+  }) {
+    const updated = await this.prisma.importJob.updateMany({
+      where: {
+        id: input.id,
         organizationId: input.organizationId,
-        actorUserId: input.actorUserId ?? null,
-        provider: input.provider,
-        sourceRef: input.sourceRef ?? null,
-        expiresAt: input.expiresAt ? new Date(input.expiresAt) : null,
-        state: 'RECEIVED',
+        version: input.expectedVersion,
+        state: { in: input.expectedStates },
+      },
+      data: {
+        state: input.state,
+        version: { increment: 1 },
+        ...importTransitionData(input.patch),
       },
     });
 
-    return { id: row.id, state: row.state };
+    if (updated.count !== 1) {
+      return undefined;
+    }
+
+    const row = await this.prisma.importJob.findFirst({
+      where: { id: input.id, organizationId: input.organizationId },
+    });
+
+    return row ? mapImportJob(row) : undefined;
   }
 
-  async updateImportJob(
-    id: string,
-    patch: {
-      state?: string;
-      sourceRef?: string;
-      findings?: unknown;
-      consent?: unknown;
-      targetProjectId?: string;
-      stagedFileCount?: number;
-      redactedCount?: number;
-      creditsReserved?: boolean;
-      error?: string;
-    },
-  ) {
-    await this.prisma.importJob.update({
-      where: { id },
-      data: {
-        ...(patch.state !== undefined ? { state: patch.state } : {}),
-        ...(patch.sourceRef !== undefined ? { sourceRef: patch.sourceRef } : {}),
-        ...(patch.findings !== undefined ? { findings: patch.findings as object } : {}),
-        ...(patch.consent !== undefined ? { consent: patch.consent as object } : {}),
-        ...(patch.targetProjectId !== undefined ? { targetProjectId: patch.targetProjectId } : {}),
-        ...(patch.stagedFileCount !== undefined ? { stagedFileCount: patch.stagedFileCount } : {}),
-        ...(patch.redactedCount !== undefined ? { redactedCount: patch.redactedCount } : {}),
-        ...(patch.creditsReserved !== undefined ? { creditsReserved: patch.creditsReserved } : {}),
-        ...(patch.error !== undefined ? { error: patch.error } : {}),
+  async createClaimedImportProject(input: {
+    importJobId: string;
+    organizationId: string;
+    operationToken: string;
+    name: string;
+    slug: string;
+    sourceType: ProjectRecord['sourceType'];
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.importJobId,
+        input.organizationId,
+      );
+      const job = await tx.importJob.findFirst({
+        where: { id: input.importJobId, organizationId: input.organizationId },
+      });
+
+      if (
+        !job ||
+        job.state !== 'COMMITTING' ||
+        job.operationToken !== input.operationToken ||
+        !job.operationExpiresAt ||
+        job.operationExpiresAt.getTime() <= Date.now()
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('IMPORT_COMMIT_OWNERSHIP_LOST')), {
+          statusCode: 409,
+          code: 'IMPORT_COMMIT_OWNERSHIP_LOST',
+        });
+      }
+
+      if (job.targetProjectId) {
+        const existing = await tx.project.findFirst({
+          where: { id: job.targetProjectId, organizationId: input.organizationId },
+        });
+
+        if (existing) {
+          return mapProject(existing);
+        }
+      }
+
+      const project = await tx.project.create({
+        data: {
+          organizationId: input.organizationId,
+          name: input.name,
+          slug: input.slug,
+          sourceType: input.sourceType,
+          persistentVolumeClaim: `pvc-${input.organizationId}-${input.slug}`,
+        },
+      });
+      await tx.importJob.update({
+        where: { id: job.id },
+        data: { targetProjectId: project.id, version: { increment: 1 } },
+      });
+
+      return mapProject(project);
+    });
+  }
+
+  async finalizeImportCommit(input: {
+    importJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+    actualCredits: number;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.importJobId,
+        input.organizationId,
+      );
+      const job = await tx.importJob.findFirst({
+        where: { id: input.importJobId, organizationId: input.organizationId },
+      });
+
+      if (!job) {
+        return undefined;
+      }
+
+      if (job.state === 'COMMITTED' && job.targetProjectId === input.targetProjectId) {
+        const existingReservation = await tx.importCreditReservation.findFirst({
+          where: { importJobId: job.id, organizationId: input.organizationId, state: 'SETTLED' },
+        });
+
+        return existingReservation
+          ? { job: mapImportJob(job), reservation: mapImportReservation(existingReservation) }
+          : undefined;
+      }
+
+      if (
+        job.state !== 'COMMITTING' ||
+        job.targetProjectId !== input.targetProjectId ||
+        job.operationToken !== input.operationToken ||
+        !job.operationExpiresAt ||
+        job.operationExpiresAt.getTime() <= Date.now()
+      ) {
+        return undefined;
+      }
+
+      const settled = await tx.importCreditReservation.updateMany({
+        where: { importJobId: job.id, organizationId: input.organizationId, state: 'RESERVED' },
+        data: {
+          state: 'SETTLED',
+          debitedCredits: input.actualCredits,
+          version: { increment: 1 },
+        },
+      });
+
+      if (settled.count !== 1) {
+        return undefined;
+      }
+
+      const committed = await tx.importJob.update({
+        where: { id: job.id },
+        data: {
+          state: 'COMMITTED',
+          stagedFiles: Prisma.DbNull,
+          connectorPreview: Prisma.DbNull,
+          operationToken: null,
+          operationExpiresAt: null,
+          cleanupTerminalState: null,
+          error: null,
+          version: { increment: 1 },
+        },
+      });
+      const reservation = await tx.importCreditReservation.findUniqueOrThrow({ where: { importJobId: job.id } });
+
+      return { job: mapImportJob(committed), reservation: mapImportReservation(reservation) };
+    });
+  }
+
+  async beginImportCleanup(input: {
+    importJobId: string;
+    organizationId: string;
+    operationToken: string;
+    expectedStates: string[];
+    terminalState: 'ROLLING_BACK' | 'EXPIRED' | 'FAILED';
+    error?: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.importJobId,
+        input.organizationId,
+      );
+      const job = await tx.importJob.findFirst({
+        where: { id: input.importJobId, organizationId: input.organizationId },
+      });
+      const activeOtherOwner =
+        job?.operationToken &&
+        job.operationToken !== input.operationToken &&
+        job.operationExpiresAt &&
+        job.operationExpiresAt.getTime() > Date.now();
+
+      if (!job || !input.expectedStates.includes(job.state) || activeOtherOwner) {
+        return undefined;
+      }
+
+      const reservation = await tx.importCreditReservation.findFirst({
+        where: { importJobId: job.id, organizationId: input.organizationId },
+      });
+
+      if (reservation?.state === 'SETTLED') {
+        return undefined;
+      }
+
+      if (reservation?.state === 'RESERVED') {
+        await tx.importCreditReservation.update({
+          where: { id: reservation.id },
+          data: { state: 'COMPENSATED', debitedCredits: 0, version: { increment: 1 } },
+        });
+      }
+
+      return mapImportJob(
+        await tx.importJob.update({
+          where: { id: job.id },
+          data: {
+            state: 'CLEANUP_PENDING',
+            stagedFiles: Prisma.DbNull,
+            connectorPreview: Prisma.DbNull,
+            operationToken: input.operationToken,
+            operationExpiresAt: new Date(Date.now() + 5 * 60_000),
+            cleanupTerminalState: input.terminalState,
+            error: input.error ?? null,
+            version: { increment: 1 },
+          },
+        }),
+      );
+    });
+  }
+
+  async deleteClaimedImportProject(input: {
+    importJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.importJobId,
+        input.organizationId,
+      );
+      const job = await tx.importJob.findFirst({
+        where: {
+          id: input.importJobId,
+          organizationId: input.organizationId,
+          state: 'CLEANUP_PENDING',
+          operationToken: input.operationToken,
+          targetProjectId: input.targetProjectId,
+          operationExpiresAt: { gt: new Date() },
+        },
+      });
+
+      if (!job) {
+        return false;
+      }
+
+      await tx.project.deleteMany({
+        where: { id: input.targetProjectId, organizationId: input.organizationId },
+      });
+
+      return true;
+    });
+  }
+
+  async finishImportCleanup(input: { importJobId: string; organizationId: string; operationToken: string }) {
+    const row = await this.prisma.importJob.findFirst({
+      where: {
+        id: input.importJobId,
+        organizationId: input.organizationId,
+        state: 'CLEANUP_PENDING',
+        operationToken: input.operationToken,
+        operationExpiresAt: { gt: new Date() },
       },
+    });
+    const terminal = row?.cleanupTerminalState;
+
+    if (!row || !terminal || !['ROLLING_BACK', 'EXPIRED', 'FAILED'].includes(terminal)) {
+      return undefined;
+    }
+
+    const updated = await this.prisma.importJob.updateMany({
+      where: {
+        id: row.id,
+        organizationId: input.organizationId,
+        state: 'CLEANUP_PENDING',
+        version: row.version,
+        operationToken: input.operationToken,
+        operationExpiresAt: { gt: new Date() },
+      },
+      data: {
+        state: terminal,
+        targetProjectId: null,
+        operationToken: null,
+        operationExpiresAt: null,
+        cleanupTerminalState: null,
+        version: { increment: 1 },
+      },
+    });
+
+    if (updated.count !== 1) {
+      return undefined;
+    }
+
+    const finished = await this.prisma.importJob.findUnique({ where: { id: row.id } });
+
+    return finished ? mapImportJob(finished) : undefined;
+  }
+
+  async cancelImportJob(importJobId: string, organizationId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "ImportJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        importJobId,
+        organizationId,
+      );
+      const job = await tx.importJob.findFirst({ where: { id: importJobId, organizationId } });
+
+      if (!job) {
+        return undefined;
+      }
+
+      if (job.state === 'CANCELLED') {
+        return mapImportJob(job);
+      }
+
+      if (['COMMITTED', 'COMMITTING', 'CLEANUP_PENDING', 'ROLLING_BACK', 'EXPIRED', 'FAILED'].includes(job.state)) {
+        return undefined;
+      }
+
+      const reservation = await tx.importCreditReservation.findFirst({ where: { importJobId, organizationId } });
+
+      if (reservation?.state === 'RESERVED') {
+        await tx.importCreditReservation.update({
+          where: { id: reservation.id },
+          data: { state: 'COMPENSATED', debitedCredits: 0, version: { increment: 1 } },
+        });
+      }
+
+      return mapImportJob(
+        await tx.importJob.update({
+          where: { id: job.id },
+          data: {
+            state: 'CANCELLED',
+            stagedFiles: Prisma.DbNull,
+            connectorPreview: Prisma.DbNull,
+            operationToken: null,
+            operationExpiresAt: null,
+            cleanupTerminalState: null,
+            version: { increment: 1 },
+          },
+        }),
+      );
     });
   }
 
@@ -1601,47 +2090,104 @@ export class PrismaApiStore implements ApiStore {
       return undefined;
     }
 
-    return {
-      id: row.id,
-      organizationId: row.organizationId,
-      provider: row.provider,
-      state: row.state,
-      sourceRef: row.sourceRef ?? undefined,
-      findings: row.findings as unknown,
-      consent: row.consent as unknown,
-      targetProjectId: row.targetProjectId ?? undefined,
-      stagedFileCount: row.stagedFileCount,
-      redactedCount: row.redactedCount,
-      creditsReserved: row.creditsReserved,
-      error: row.error ?? undefined,
-      expiresAt: row.expiresAt?.toISOString(),
-      createdAt: row.createdAt.toISOString(),
-    };
+    return mapImportJob(row);
   }
 
   async reapExpiredImportJobs(nowIso: string): Promise<string[]> {
     const now = new Date(nowIso);
-    // Non-terminal jobs only: COMMITTED/ROLLING_BACK/EXPIRED/CANCELLED are done.
     const stale = await this.prisma.importJob.findMany({
       where: {
-        state: { notIn: ['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED'] },
-        expiresAt: { not: null, lt: now },
+        OR: [
+          {
+            state: {
+              in: [
+                'RECEIVED',
+                'STAGING_ISOLATED',
+                'SCANNING',
+                'QUARANTINED',
+                'AWAITING_USER_ACTION',
+                'RESCANNING',
+                'READY_TO_COMMIT',
+              ],
+            },
+            expiresAt: { not: null, lt: now },
+          },
+          {
+            state: { in: ['COMMITTING', 'CLEANUP_PENDING'] },
+            operationExpiresAt: { not: null, lt: now },
+          },
+        ],
       },
-      select: { id: true },
+      select: { id: true, version: true },
+      take: 100,
     });
+    const claimed: string[] = [];
 
-    if (stale.length === 0) {
-      return [];
+    for (const candidate of stale) {
+      const won = await this.prisma.$transaction(async (tx) => {
+        const job = await tx.importJob.findFirst({ where: { id: candidate.id, version: candidate.version } });
+
+        if (!job) {
+          return false;
+        }
+
+        const operationActive = job.operationExpiresAt && job.operationExpiresAt.getTime() > now.getTime();
+        const preCommitExpired =
+          !['COMMITTING', 'CLEANUP_PENDING'].includes(job.state) &&
+          job.expiresAt &&
+          job.expiresAt.getTime() < now.getTime();
+
+        if (
+          (!preCommitExpired && operationActive) ||
+          ['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED'].includes(job.state)
+        ) {
+          return false;
+        }
+
+        const token = randomUUID();
+        const update = await tx.importJob.updateMany({
+          where: { id: job.id, version: job.version, state: job.state },
+          data: job.targetProjectId
+            ? {
+                state: 'CLEANUP_PENDING',
+                cleanupTerminalState: 'EXPIRED',
+                operationToken: token,
+                operationExpiresAt: new Date(now.getTime() + 5 * 60_000),
+                stagedFiles: Prisma.DbNull,
+                connectorPreview: Prisma.DbNull,
+                error: appPublicEnglish('IMPORT_STAGING_EXPIRED'),
+                version: { increment: 1 },
+              }
+            : {
+                state: 'EXPIRED',
+                operationToken: null,
+                operationExpiresAt: null,
+                cleanupTerminalState: null,
+                stagedFiles: Prisma.DbNull,
+                connectorPreview: Prisma.DbNull,
+                error: appPublicEnglish('IMPORT_STAGING_EXPIRED'),
+                version: { increment: 1 },
+              },
+        });
+
+        if (update.count !== 1) {
+          return false;
+        }
+
+        await tx.importCreditReservation.updateMany({
+          where: { importJobId: job.id, organizationId: job.organizationId, state: 'RESERVED' },
+          data: { state: 'COMPENSATED', debitedCredits: 0, version: { increment: 1 } },
+        });
+
+        return true;
+      });
+
+      if (won) {
+        claimed.push(candidate.id);
+      }
     }
 
-    const ids = stale.map((row) => row.id);
-    // updateMany never sets targetProjectId — the target stays unmounted.
-    await this.prisma.importJob.updateMany({
-      where: { id: { in: ids } },
-      data: { state: 'EXPIRED', error: appPublicEnglish('IMPORT_STAGING_EXPIRED') },
-    });
-
-    return ids;
+    return claimed;
   }
 
   async deleteProjectSecret(projectId: string, key: string) {
@@ -2816,9 +3362,7 @@ export class PrismaApiStore implements ApiStore {
         retentionDays: input.retentionDays,
         region: input.region ?? null,
         pitrEnabled: input.retentionDays > 0,
-        provisioningDeadlineAt: input.provisioningDeadlineAt
-          ? new Date(input.provisioningDeadlineAt)
-          : null,
+        provisioningDeadlineAt: input.provisioningDeadlineAt ? new Date(input.provisioningDeadlineAt) : null,
       },
     });
 
@@ -2912,9 +3456,7 @@ export class PrismaApiStore implements ApiStore {
       where: {
         id,
         status: 'PROVISIONING',
-        ...(input.deadlineBefore
-          ? { provisioningDeadlineAt: { not: null, lte: new Date(input.deadlineBefore) } }
-          : {}),
+        ...(input.deadlineBefore ? { provisioningDeadlineAt: { not: null, lte: new Date(input.deadlineBefore) } } : {}),
       },
       data: {
         status: 'FAILED',
@@ -2937,13 +3479,7 @@ export class PrismaApiStore implements ApiStore {
     patch: Partial<
       Pick<
         DatabaseInstanceRecord,
-        | 'status'
-        | 'sizeBytes'
-        | 'pitrEnabled'
-        | 'region'
-        | 'provisioningDeadlineAt'
-        | 'lastErrorCode'
-        | 'lastErrorAt'
+        'status' | 'sizeBytes' | 'pitrEnabled' | 'region' | 'provisioningDeadlineAt' | 'lastErrorCode' | 'lastErrorAt'
       >
     >,
   ): Promise<DatabaseInstanceRecord | undefined> {

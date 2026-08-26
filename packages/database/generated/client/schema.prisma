@@ -102,6 +102,7 @@ model User {
   spendLimits                 UserSpendLimit[]
   agentRoutingCards           AgentRoutingCard[]             @relation("AgentRoutingCardAuthor")
   runtimeWebSocketTickets     RuntimeWebSocketTicket[]
+  importJobs                  ImportJob[]                    @relation("ImportJobActor")
 }
 
 model Account {
@@ -178,6 +179,7 @@ model Organization {
   creditPacks                CreditPack[]
   agentCheckpoints           AgentCheckpoint[]
   userSpendLimits            UserSpendLimit[]
+  importJobs                 ImportJob[]
 }
 
 model OrganizationMember {
@@ -279,6 +281,7 @@ model Project {
   repairEvents            AgentRepairEvent[]
   slugRedirects           ProjectSlugRedirect[]
   runtimeWebSocketTickets RuntimeWebSocketTicket[]
+  importJobs              ImportJob[]              @relation("ImportJobTarget")
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -2480,33 +2483,78 @@ model RemixJob {
 /// AWAITING_USER_ACTION → COMMITTING → COMMITTED, with ROLLING_BACK / EXPIRED /
 /// CANCELLED cleanup branches). `findings` holds REDACTED secret findings only
 /// (never a raw value); `consent` records the per-finding keep/redact decision.
-/// `targetProjectId` is set ONLY at the atomic COMMIT — it is null on every
-/// non-committed terminal state (proving the target was never touched).
+/// `targetProjectId` is assigned while the unique COMMITTING claimant creates
+/// its target. It may therefore identify a partial target while cleanup is
+/// pending; COMMITTED is the only state in which that target is user-visible.
 model ImportJob {
+  id                   String    @id @default(cuid())
+  organizationId       String
+  actorUserId          String?
+  /// Client key, unique inside its tenant. This is the durable create authority.
+  idempotencyKey       String
+  /// SHA-256 of the non-secret request shape. Rejects key reuse for another input.
+  requestHash          String
+  /// One of the 12 hub tiles (github|bitbucket|vercel|figma|claude|bolt|lovable|base44|zip|spreadsheet|previous-agent-export|empty)
+  provider             String
+  state                String    @default("RECEIVED")
+  sourceRef            String?
+  /// ImportSecretFinding[] { path, line, kind, preview } — redacted, no value.
+  findings             Json?
+  /// ConsentDecision { "path:line": "keep"|"redact" }.
+  consent              Json?
+  /// Set by the COMMITTING claimant; cleared after verified rollback cleanup.
+  targetProjectId      String?
+  /// Disposable, server-only staging. Never returned by the public job endpoint.
+  stagedFiles          Json?
+  /// Whitelisted connector facts only; credentials and tokens are never stored.
+  connectorPreview     Json?
+  stagedFileCount      Int       @default(0)
+  redactedCount        Int       @default(0)
+  /// E-CODE DECISION (not Replit parity): idempotent credit reservation marker.
+  creditsReserved      Boolean   @default(false)
+  /// Optimistic concurrency fence for every state transition.
+  version              Int       @default(0)
+  /// Fencing token held by a commit/cleanup claimant across replicas.
+  operationToken       String?
+  /// Reaper may steal an orphaned claim only after this durable lease expires.
+  operationExpiresAt   DateTime?
+  /// Terminal state to publish after CLEANUP_PENDING has really removed its target.
+  cleanupTerminalState String?
+  error                String?
+  expiresAt            DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  organization  Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actor         User?                    @relation("ImportJobActor", fields: [actorUserId], references: [id], onDelete: SetNull)
+  targetProject Project?                 @relation("ImportJobTarget", fields: [targetProjectId], references: [id], onDelete: SetNull)
+  reservation   ImportCreditReservation?
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, createdAt])
+  @@index([targetProjectId])
+  @@index([state])
+}
+
+/// Durable import credit hold. The FK makes job + reservation one lifecycle;
+/// SETTLED is written in the same transaction as COMMITTED, while every
+/// non-committed terminal path writes COMPENSATED with a zero debit.
+model ImportCreditReservation {
   id              String    @id @default(cuid())
   organizationId  String
-  actorUserId     String?
-  /// One of the 12 hub tiles (github|bitbucket|vercel|figma|claude|bolt|lovable|base44|zip|spreadsheet|previous-agent-export|empty)
-  provider        String
-  state           String    @default("RECEIVED")
-  sourceRef       String?
-  /// ImportSecretFinding[] { path, line, kind, preview } — redacted, no value.
-  findings        Json?
-  /// ConsentDecision { "path:line": "keep"|"redact" }.
-  consent         Json?
-  /// Set only at COMMITTED. Null everywhere else = target never mounted.
-  targetProjectId String?
-  stagedFileCount Int       @default(0)
-  redactedCount   Int       @default(0)
-  /// E-CODE DECISION (not Replit parity): idempotent credit reservation marker.
-  creditsReserved Boolean   @default(false)
-  error           String?
-  expiresAt       DateTime?
+  key             String
+  importJobId     String    @unique
+  reservedCredits Int
+  debitedCredits  Int       @default(0)
+  /// RESERVED | SETTLED | COMPENSATED
+  state           String    @default("RESERVED")
+  version         Int       @default(0)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  importJob       ImportJob @relation(fields: [importJobId], references: [id], onDelete: Cascade)
 
-  @@index([organizationId, createdAt])
-  @@index([state])
+  @@unique([organizationId, key])
+  @@index([organizationId])
 }
 
 /// A curated public Gallery listing (TPL-02). Mirrors the CONFIRMED

@@ -664,10 +664,18 @@ export type RemixJob = $Result.DefaultSelection<Prisma.$RemixJobPayload>
  * AWAITING_USER_ACTION → COMMITTING → COMMITTED, with ROLLING_BACK / EXPIRED /
  * CANCELLED cleanup branches). `findings` holds REDACTED secret findings only
  * (never a raw value); `consent` records the per-finding keep/redact decision.
- * `targetProjectId` is set ONLY at the atomic COMMIT — it is null on every
- * non-committed terminal state (proving the target was never touched).
+ * `targetProjectId` is assigned while the unique COMMITTING claimant creates
+ * its target. It may therefore identify a partial target while cleanup is
+ * pending; COMMITTED is the only state in which that target is user-visible.
  */
 export type ImportJob = $Result.DefaultSelection<Prisma.$ImportJobPayload>
+/**
+ * Model ImportCreditReservation
+ * Durable import credit hold. The FK makes job + reservation one lifecycle;
+ * SETTLED is written in the same transaction as COMMITTED, while every
+ * non-committed terminal path writes COMPENSATED with a zero debit.
+ */
+export type ImportCreditReservation = $Result.DefaultSelection<Prisma.$ImportCreditReservationPayload>
 /**
  * Model GalleryListing
  * A curated public Gallery listing (TPL-02). Mirrors the CONFIRMED
@@ -2295,6 +2303,16 @@ export class PrismaClient<
   get importJob(): Prisma.ImportJobDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.importCreditReservation`: Exposes CRUD operations for the **ImportCreditReservation** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ImportCreditReservations
+    * const importCreditReservations = await prisma.importCreditReservation.findMany()
+    * ```
+    */
+  get importCreditReservation(): Prisma.ImportCreditReservationDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.galleryListing`: Exposes CRUD operations for the **GalleryListing** model.
     * Example usage:
     * ```ts
@@ -2940,6 +2958,7 @@ export namespace Prisma {
     AgentCallLog: 'AgentCallLog',
     RemixJob: 'RemixJob',
     ImportJob: 'ImportJob',
+    ImportCreditReservation: 'ImportCreditReservation',
     GalleryListing: 'GalleryListing',
     LedgerAccount: 'LedgerAccount',
     LedgerTransaction: 'LedgerTransaction',
@@ -2965,7 +2984,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -11315,6 +11334,80 @@ export namespace Prisma {
           }
         }
       }
+      ImportCreditReservation: {
+        payload: Prisma.$ImportCreditReservationPayload<ExtArgs>
+        fields: Prisma.ImportCreditReservationFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ImportCreditReservationFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ImportCreditReservationFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>
+          }
+          findFirst: {
+            args: Prisma.ImportCreditReservationFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ImportCreditReservationFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>
+          }
+          findMany: {
+            args: Prisma.ImportCreditReservationFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>[]
+          }
+          create: {
+            args: Prisma.ImportCreditReservationCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>
+          }
+          createMany: {
+            args: Prisma.ImportCreditReservationCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ImportCreditReservationCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>[]
+          }
+          delete: {
+            args: Prisma.ImportCreditReservationDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>
+          }
+          update: {
+            args: Prisma.ImportCreditReservationUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>
+          }
+          deleteMany: {
+            args: Prisma.ImportCreditReservationDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ImportCreditReservationUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ImportCreditReservationUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>[]
+          }
+          upsert: {
+            args: Prisma.ImportCreditReservationUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ImportCreditReservationPayload>
+          }
+          aggregate: {
+            args: Prisma.ImportCreditReservationAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateImportCreditReservation>
+          }
+          groupBy: {
+            args: Prisma.ImportCreditReservationGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ImportCreditReservationGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ImportCreditReservationCountArgs<ExtArgs>
+            result: $Utils.Optional<ImportCreditReservationCountAggregateOutputType> | number
+          }
+        }
+      }
       GalleryListing: {
         payload: Prisma.$GalleryListingPayload<ExtArgs>
         fields: Prisma.GalleryListingFieldRefs
@@ -12276,6 +12369,7 @@ export namespace Prisma {
     agentCallLog?: AgentCallLogOmit
     remixJob?: RemixJobOmit
     importJob?: ImportJobOmit
+    importCreditReservation?: ImportCreditReservationOmit
     galleryListing?: GalleryListingOmit
     ledgerAccount?: LedgerAccountOmit
     ledgerTransaction?: LedgerTransactionOmit
@@ -12399,6 +12493,7 @@ export namespace Prisma {
     spendLimits: number
     agentRoutingCards: number
     runtimeWebSocketTickets: number
+    importJobs: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -12435,6 +12530,7 @@ export namespace Prisma {
     spendLimits?: boolean | UserCountOutputTypeCountSpendLimitsArgs
     agentRoutingCards?: boolean | UserCountOutputTypeCountAgentRoutingCardsArgs
     runtimeWebSocketTickets?: boolean | UserCountOutputTypeCountRuntimeWebSocketTicketsArgs
+    importJobs?: boolean | UserCountOutputTypeCountImportJobsArgs
   }
 
   // Custom InputTypes
@@ -12679,6 +12775,13 @@ export namespace Prisma {
     where?: RuntimeWebSocketTicketWhereInput
   }
 
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountImportJobsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportJobWhereInput
+  }
+
 
   /**
    * Count Type OrganizationCountOutputType
@@ -12716,6 +12819,7 @@ export namespace Prisma {
     creditPacks: number
     agentCheckpoints: number
     userSpendLimits: number
+    importJobs: number
   }
 
   export type OrganizationCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -12750,6 +12854,7 @@ export namespace Prisma {
     creditPacks?: boolean | OrganizationCountOutputTypeCountCreditPacksArgs
     agentCheckpoints?: boolean | OrganizationCountOutputTypeCountAgentCheckpointsArgs
     userSpendLimits?: boolean | OrganizationCountOutputTypeCountUserSpendLimitsArgs
+    importJobs?: boolean | OrganizationCountOutputTypeCountImportJobsArgs
   }
 
   // Custom InputTypes
@@ -12980,6 +13085,13 @@ export namespace Prisma {
     where?: UserSpendLimitWhereInput
   }
 
+  /**
+   * OrganizationCountOutputType without action
+   */
+  export type OrganizationCountOutputTypeCountImportJobsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportJobWhereInput
+  }
+
 
   /**
    * Count Type RoleCountOutputType
@@ -13091,6 +13203,7 @@ export namespace Prisma {
     repairEvents: number
     slugRedirects: number
     runtimeWebSocketTickets: number
+    importJobs: number
   }
 
   export type ProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -13119,6 +13232,7 @@ export namespace Prisma {
     repairEvents?: boolean | ProjectCountOutputTypeCountRepairEventsArgs
     slugRedirects?: boolean | ProjectCountOutputTypeCountSlugRedirectsArgs
     runtimeWebSocketTickets?: boolean | ProjectCountOutputTypeCountRuntimeWebSocketTicketsArgs
+    importJobs?: boolean | ProjectCountOutputTypeCountImportJobsArgs
   }
 
   // Custom InputTypes
@@ -13305,6 +13419,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountRuntimeWebSocketTicketsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: RuntimeWebSocketTicketWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountImportJobsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportJobWhereInput
   }
 
 
@@ -14146,6 +14267,7 @@ export namespace Prisma {
     spendLimits?: boolean | User$spendLimitsArgs<ExtArgs>
     agentRoutingCards?: boolean | User$agentRoutingCardsArgs<ExtArgs>
     runtimeWebSocketTickets?: boolean | User$runtimeWebSocketTicketsArgs<ExtArgs>
+    importJobs?: boolean | User$importJobsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -14236,6 +14358,7 @@ export namespace Prisma {
     spendLimits?: boolean | User$spendLimitsArgs<ExtArgs>
     agentRoutingCards?: boolean | User$agentRoutingCardsArgs<ExtArgs>
     runtimeWebSocketTickets?: boolean | User$runtimeWebSocketTicketsArgs<ExtArgs>
+    importJobs?: boolean | User$importJobsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -14278,6 +14401,7 @@ export namespace Prisma {
       spendLimits: Prisma.$UserSpendLimitPayload<ExtArgs>[]
       agentRoutingCards: Prisma.$AgentRoutingCardPayload<ExtArgs>[]
       runtimeWebSocketTickets: Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>[]
+      importJobs: Prisma.$ImportJobPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -14722,6 +14846,7 @@ export namespace Prisma {
     spendLimits<T extends User$spendLimitsArgs<ExtArgs> = {}>(args?: Subset<T, User$spendLimitsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentRoutingCards<T extends User$agentRoutingCardsArgs<ExtArgs> = {}>(args?: Subset<T, User$agentRoutingCardsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     runtimeWebSocketTickets<T extends User$runtimeWebSocketTicketsArgs<ExtArgs> = {}>(args?: Subset<T, User$runtimeWebSocketTicketsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    importJobs<T extends User$importJobsArgs<ExtArgs> = {}>(args?: Subset<T, User$importJobsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -15966,6 +16091,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: RuntimeWebSocketTicketScalarFieldEnum | RuntimeWebSocketTicketScalarFieldEnum[]
+  }
+
+  /**
+   * User.importJobs
+   */
+  export type User$importJobsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    where?: ImportJobWhereInput
+    orderBy?: ImportJobOrderByWithRelationInput | ImportJobOrderByWithRelationInput[]
+    cursor?: ImportJobWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ImportJobScalarFieldEnum | ImportJobScalarFieldEnum[]
   }
 
   /**
@@ -18410,6 +18559,7 @@ export namespace Prisma {
     creditPacks?: boolean | Organization$creditPacksArgs<ExtArgs>
     agentCheckpoints?: boolean | Organization$agentCheckpointsArgs<ExtArgs>
     userSpendLimits?: boolean | Organization$userSpendLimitsArgs<ExtArgs>
+    importJobs?: boolean | Organization$importJobsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["organization"]>
 
@@ -18476,6 +18626,7 @@ export namespace Prisma {
     creditPacks?: boolean | Organization$creditPacksArgs<ExtArgs>
     agentCheckpoints?: boolean | Organization$agentCheckpointsArgs<ExtArgs>
     userSpendLimits?: boolean | Organization$userSpendLimitsArgs<ExtArgs>
+    importJobs?: boolean | Organization$importJobsArgs<ExtArgs>
     _count?: boolean | OrganizationCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type OrganizationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -18518,6 +18669,7 @@ export namespace Prisma {
       creditPacks: Prisma.$CreditPackPayload<ExtArgs>[]
       agentCheckpoints: Prisma.$AgentCheckpointPayload<ExtArgs>[]
       userSpendLimits: Prisma.$UserSpendLimitPayload<ExtArgs>[]
+      importJobs: Prisma.$ImportJobPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -18957,6 +19109,7 @@ export namespace Prisma {
     creditPacks<T extends Organization$creditPacksArgs<ExtArgs> = {}>(args?: Subset<T, Organization$creditPacksArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CreditPackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentCheckpoints<T extends Organization$agentCheckpointsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$agentCheckpointsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     userSpendLimits<T extends Organization$userSpendLimitsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$userSpendLimitsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    importJobs<T extends Organization$importJobsArgs<ExtArgs> = {}>(args?: Subset<T, Organization$importJobsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -20183,6 +20336,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: UserSpendLimitScalarFieldEnum | UserSpendLimitScalarFieldEnum[]
+  }
+
+  /**
+   * Organization.importJobs
+   */
+  export type Organization$importJobsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    where?: ImportJobWhereInput
+    orderBy?: ImportJobOrderByWithRelationInput | ImportJobOrderByWithRelationInput[]
+    cursor?: ImportJobWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ImportJobScalarFieldEnum | ImportJobScalarFieldEnum[]
   }
 
   /**
@@ -25863,6 +26040,7 @@ export namespace Prisma {
     repairEvents?: boolean | Project$repairEventsArgs<ExtArgs>
     slugRedirects?: boolean | Project$slugRedirectsArgs<ExtArgs>
     runtimeWebSocketTickets?: boolean | Project$runtimeWebSocketTicketsArgs<ExtArgs>
+    importJobs?: boolean | Project$importJobsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -25951,6 +26129,7 @@ export namespace Prisma {
     repairEvents?: boolean | Project$repairEventsArgs<ExtArgs>
     slugRedirects?: boolean | Project$slugRedirectsArgs<ExtArgs>
     runtimeWebSocketTickets?: boolean | Project$runtimeWebSocketTicketsArgs<ExtArgs>
+    importJobs?: boolean | Project$importJobsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -25990,6 +26169,7 @@ export namespace Prisma {
       repairEvents: Prisma.$AgentRepairEventPayload<ExtArgs>[]
       slugRedirects: Prisma.$ProjectSlugRedirectPayload<ExtArgs>[]
       runtimeWebSocketTickets: Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>[]
+      importJobs: Prisma.$ImportJobPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -26428,6 +26608,7 @@ export namespace Prisma {
     repairEvents<T extends Project$repairEventsArgs<ExtArgs> = {}>(args?: Subset<T, Project$repairEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     slugRedirects<T extends Project$slugRedirectsArgs<ExtArgs> = {}>(args?: Subset<T, Project$slugRedirectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     runtimeWebSocketTickets<T extends Project$runtimeWebSocketTicketsArgs<ExtArgs> = {}>(args?: Subset<T, Project$runtimeWebSocketTicketsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    importJobs<T extends Project$importJobsArgs<ExtArgs> = {}>(args?: Subset<T, Project$importJobsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -27489,6 +27670,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: RuntimeWebSocketTicketScalarFieldEnum | RuntimeWebSocketTicketScalarFieldEnum[]
+  }
+
+  /**
+   * Project.importJobs
+   */
+  export type Project$importJobsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportJob
+     */
+    select?: ImportJobSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportJob
+     */
+    omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    where?: ImportJobWhereInput
+    orderBy?: ImportJobOrderByWithRelationInput | ImportJobOrderByWithRelationInput[]
+    cursor?: ImportJobWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ImportJobScalarFieldEnum | ImportJobScalarFieldEnum[]
   }
 
   /**
@@ -143293,17 +143498,21 @@ export namespace Prisma {
   export type ImportJobAvgAggregateOutputType = {
     stagedFileCount: number | null
     redactedCount: number | null
+    version: number | null
   }
 
   export type ImportJobSumAggregateOutputType = {
     stagedFileCount: number | null
     redactedCount: number | null
+    version: number | null
   }
 
   export type ImportJobMinAggregateOutputType = {
     id: string | null
     organizationId: string | null
     actorUserId: string | null
+    idempotencyKey: string | null
+    requestHash: string | null
     provider: string | null
     state: string | null
     sourceRef: string | null
@@ -143311,6 +143520,10 @@ export namespace Prisma {
     stagedFileCount: number | null
     redactedCount: number | null
     creditsReserved: boolean | null
+    version: number | null
+    operationToken: string | null
+    operationExpiresAt: Date | null
+    cleanupTerminalState: string | null
     error: string | null
     expiresAt: Date | null
     createdAt: Date | null
@@ -143321,6 +143534,8 @@ export namespace Prisma {
     id: string | null
     organizationId: string | null
     actorUserId: string | null
+    idempotencyKey: string | null
+    requestHash: string | null
     provider: string | null
     state: string | null
     sourceRef: string | null
@@ -143328,6 +143543,10 @@ export namespace Prisma {
     stagedFileCount: number | null
     redactedCount: number | null
     creditsReserved: boolean | null
+    version: number | null
+    operationToken: string | null
+    operationExpiresAt: Date | null
+    cleanupTerminalState: string | null
     error: string | null
     expiresAt: Date | null
     createdAt: Date | null
@@ -143338,15 +143557,23 @@ export namespace Prisma {
     id: number
     organizationId: number
     actorUserId: number
+    idempotencyKey: number
+    requestHash: number
     provider: number
     state: number
     sourceRef: number
     findings: number
     consent: number
     targetProjectId: number
+    stagedFiles: number
+    connectorPreview: number
     stagedFileCount: number
     redactedCount: number
     creditsReserved: number
+    version: number
+    operationToken: number
+    operationExpiresAt: number
+    cleanupTerminalState: number
     error: number
     expiresAt: number
     createdAt: number
@@ -143358,17 +143585,21 @@ export namespace Prisma {
   export type ImportJobAvgAggregateInputType = {
     stagedFileCount?: true
     redactedCount?: true
+    version?: true
   }
 
   export type ImportJobSumAggregateInputType = {
     stagedFileCount?: true
     redactedCount?: true
+    version?: true
   }
 
   export type ImportJobMinAggregateInputType = {
     id?: true
     organizationId?: true
     actorUserId?: true
+    idempotencyKey?: true
+    requestHash?: true
     provider?: true
     state?: true
     sourceRef?: true
@@ -143376,6 +143607,10 @@ export namespace Prisma {
     stagedFileCount?: true
     redactedCount?: true
     creditsReserved?: true
+    version?: true
+    operationToken?: true
+    operationExpiresAt?: true
+    cleanupTerminalState?: true
     error?: true
     expiresAt?: true
     createdAt?: true
@@ -143386,6 +143621,8 @@ export namespace Prisma {
     id?: true
     organizationId?: true
     actorUserId?: true
+    idempotencyKey?: true
+    requestHash?: true
     provider?: true
     state?: true
     sourceRef?: true
@@ -143393,6 +143630,10 @@ export namespace Prisma {
     stagedFileCount?: true
     redactedCount?: true
     creditsReserved?: true
+    version?: true
+    operationToken?: true
+    operationExpiresAt?: true
+    cleanupTerminalState?: true
     error?: true
     expiresAt?: true
     createdAt?: true
@@ -143403,15 +143644,23 @@ export namespace Prisma {
     id?: true
     organizationId?: true
     actorUserId?: true
+    idempotencyKey?: true
+    requestHash?: true
     provider?: true
     state?: true
     sourceRef?: true
     findings?: true
     consent?: true
     targetProjectId?: true
+    stagedFiles?: true
+    connectorPreview?: true
     stagedFileCount?: true
     redactedCount?: true
     creditsReserved?: true
+    version?: true
+    operationToken?: true
+    operationExpiresAt?: true
+    cleanupTerminalState?: true
     error?: true
     expiresAt?: true
     createdAt?: true
@@ -143509,15 +143758,23 @@ export namespace Prisma {
     id: string
     organizationId: string
     actorUserId: string | null
+    idempotencyKey: string
+    requestHash: string
     provider: string
     state: string
     sourceRef: string | null
     findings: JsonValue | null
     consent: JsonValue | null
     targetProjectId: string | null
+    stagedFiles: JsonValue | null
+    connectorPreview: JsonValue | null
     stagedFileCount: number
     redactedCount: number
     creditsReserved: boolean
+    version: number
+    operationToken: string | null
+    operationExpiresAt: Date | null
+    cleanupTerminalState: string | null
     error: string | null
     expiresAt: Date | null
     createdAt: Date
@@ -143547,87 +143804,158 @@ export namespace Prisma {
     id?: boolean
     organizationId?: boolean
     actorUserId?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
     provider?: boolean
     state?: boolean
     sourceRef?: boolean
     findings?: boolean
     consent?: boolean
     targetProjectId?: boolean
+    stagedFiles?: boolean
+    connectorPreview?: boolean
     stagedFileCount?: boolean
     redactedCount?: boolean
     creditsReserved?: boolean
+    version?: boolean
+    operationToken?: boolean
+    operationExpiresAt?: boolean
+    cleanupTerminalState?: boolean
     error?: boolean
     expiresAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    actor?: boolean | ImportJob$actorArgs<ExtArgs>
+    targetProject?: boolean | ImportJob$targetProjectArgs<ExtArgs>
+    reservation?: boolean | ImportJob$reservationArgs<ExtArgs>
   }, ExtArgs["result"]["importJob"]>
 
   export type ImportJobSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     organizationId?: boolean
     actorUserId?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
     provider?: boolean
     state?: boolean
     sourceRef?: boolean
     findings?: boolean
     consent?: boolean
     targetProjectId?: boolean
+    stagedFiles?: boolean
+    connectorPreview?: boolean
     stagedFileCount?: boolean
     redactedCount?: boolean
     creditsReserved?: boolean
+    version?: boolean
+    operationToken?: boolean
+    operationExpiresAt?: boolean
+    cleanupTerminalState?: boolean
     error?: boolean
     expiresAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    actor?: boolean | ImportJob$actorArgs<ExtArgs>
+    targetProject?: boolean | ImportJob$targetProjectArgs<ExtArgs>
   }, ExtArgs["result"]["importJob"]>
 
   export type ImportJobSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     organizationId?: boolean
     actorUserId?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
     provider?: boolean
     state?: boolean
     sourceRef?: boolean
     findings?: boolean
     consent?: boolean
     targetProjectId?: boolean
+    stagedFiles?: boolean
+    connectorPreview?: boolean
     stagedFileCount?: boolean
     redactedCount?: boolean
     creditsReserved?: boolean
+    version?: boolean
+    operationToken?: boolean
+    operationExpiresAt?: boolean
+    cleanupTerminalState?: boolean
     error?: boolean
     expiresAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    actor?: boolean | ImportJob$actorArgs<ExtArgs>
+    targetProject?: boolean | ImportJob$targetProjectArgs<ExtArgs>
   }, ExtArgs["result"]["importJob"]>
 
   export type ImportJobSelectScalar = {
     id?: boolean
     organizationId?: boolean
     actorUserId?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
     provider?: boolean
     state?: boolean
     sourceRef?: boolean
     findings?: boolean
     consent?: boolean
     targetProjectId?: boolean
+    stagedFiles?: boolean
+    connectorPreview?: boolean
     stagedFileCount?: boolean
     redactedCount?: boolean
     creditsReserved?: boolean
+    version?: boolean
+    operationToken?: boolean
+    operationExpiresAt?: boolean
+    cleanupTerminalState?: boolean
     error?: boolean
     expiresAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ImportJobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "actorUserId" | "provider" | "state" | "sourceRef" | "findings" | "consent" | "targetProjectId" | "stagedFileCount" | "redactedCount" | "creditsReserved" | "error" | "expiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["importJob"]>
+  export type ImportJobOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "actorUserId" | "idempotencyKey" | "requestHash" | "provider" | "state" | "sourceRef" | "findings" | "consent" | "targetProjectId" | "stagedFiles" | "connectorPreview" | "stagedFileCount" | "redactedCount" | "creditsReserved" | "version" | "operationToken" | "operationExpiresAt" | "cleanupTerminalState" | "error" | "expiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["importJob"]>
+  export type ImportJobInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    actor?: boolean | ImportJob$actorArgs<ExtArgs>
+    targetProject?: boolean | ImportJob$targetProjectArgs<ExtArgs>
+    reservation?: boolean | ImportJob$reservationArgs<ExtArgs>
+  }
+  export type ImportJobIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    actor?: boolean | ImportJob$actorArgs<ExtArgs>
+    targetProject?: boolean | ImportJob$targetProjectArgs<ExtArgs>
+  }
+  export type ImportJobIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    organization?: boolean | OrganizationDefaultArgs<ExtArgs>
+    actor?: boolean | ImportJob$actorArgs<ExtArgs>
+    targetProject?: boolean | ImportJob$targetProjectArgs<ExtArgs>
+  }
 
   export type $ImportJobPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "ImportJob"
-    objects: {}
+    objects: {
+      organization: Prisma.$OrganizationPayload<ExtArgs>
+      actor: Prisma.$UserPayload<ExtArgs> | null
+      targetProject: Prisma.$ProjectPayload<ExtArgs> | null
+      reservation: Prisma.$ImportCreditReservationPayload<ExtArgs> | null
+    }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       organizationId: string
       actorUserId: string | null
+      /**
+       * Client key, unique inside its tenant. This is the durable create authority.
+       */
+      idempotencyKey: string
+      /**
+       * SHA-256 of the non-secret request shape. Rejects key reuse for another input.
+       */
+      requestHash: string
       /**
        * One of the 12 hub tiles (github|bitbucket|vercel|figma|claude|bolt|lovable|base44|zip|spreadsheet|previous-agent-export|empty)
        */
@@ -143643,15 +143971,39 @@ export namespace Prisma {
        */
       consent: Prisma.JsonValue | null
       /**
-       * Set only at COMMITTED. Null everywhere else = target never mounted.
+       * Set by the COMMITTING claimant; cleared after verified rollback cleanup.
        */
       targetProjectId: string | null
+      /**
+       * Disposable, server-only staging. Never returned by the public job endpoint.
+       */
+      stagedFiles: Prisma.JsonValue | null
+      /**
+       * Whitelisted connector facts only; credentials and tokens are never stored.
+       */
+      connectorPreview: Prisma.JsonValue | null
       stagedFileCount: number
       redactedCount: number
       /**
        * E-CODE DECISION (not Replit parity): idempotent credit reservation marker.
        */
       creditsReserved: boolean
+      /**
+       * Optimistic concurrency fence for every state transition.
+       */
+      version: number
+      /**
+       * Fencing token held by a commit/cleanup claimant across replicas.
+       */
+      operationToken: string | null
+      /**
+       * Reaper may steal an orphaned claim only after this durable lease expires.
+       */
+      operationExpiresAt: Date | null
+      /**
+       * Terminal state to publish after CLEANUP_PENDING has really removed its target.
+       */
+      cleanupTerminalState: string | null
       error: string | null
       expiresAt: Date | null
       createdAt: Date
@@ -144050,6 +144402,10 @@ export namespace Prisma {
    */
   export interface Prisma__ImportJobClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    organization<T extends OrganizationDefaultArgs<ExtArgs> = {}>(args?: Subset<T, OrganizationDefaultArgs<ExtArgs>>): Prisma__OrganizationClient<$Result.GetResult<Prisma.$OrganizationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    actor<T extends ImportJob$actorArgs<ExtArgs> = {}>(args?: Subset<T, ImportJob$actorArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    targetProject<T extends ImportJob$targetProjectArgs<ExtArgs> = {}>(args?: Subset<T, ImportJob$targetProjectArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    reservation<T extends ImportJob$reservationArgs<ExtArgs> = {}>(args?: Subset<T, ImportJob$reservationArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -144082,15 +144438,23 @@ export namespace Prisma {
     readonly id: FieldRef<"ImportJob", 'String'>
     readonly organizationId: FieldRef<"ImportJob", 'String'>
     readonly actorUserId: FieldRef<"ImportJob", 'String'>
+    readonly idempotencyKey: FieldRef<"ImportJob", 'String'>
+    readonly requestHash: FieldRef<"ImportJob", 'String'>
     readonly provider: FieldRef<"ImportJob", 'String'>
     readonly state: FieldRef<"ImportJob", 'String'>
     readonly sourceRef: FieldRef<"ImportJob", 'String'>
     readonly findings: FieldRef<"ImportJob", 'Json'>
     readonly consent: FieldRef<"ImportJob", 'Json'>
     readonly targetProjectId: FieldRef<"ImportJob", 'String'>
+    readonly stagedFiles: FieldRef<"ImportJob", 'Json'>
+    readonly connectorPreview: FieldRef<"ImportJob", 'Json'>
     readonly stagedFileCount: FieldRef<"ImportJob", 'Int'>
     readonly redactedCount: FieldRef<"ImportJob", 'Int'>
     readonly creditsReserved: FieldRef<"ImportJob", 'Boolean'>
+    readonly version: FieldRef<"ImportJob", 'Int'>
+    readonly operationToken: FieldRef<"ImportJob", 'String'>
+    readonly operationExpiresAt: FieldRef<"ImportJob", 'DateTime'>
+    readonly cleanupTerminalState: FieldRef<"ImportJob", 'String'>
     readonly error: FieldRef<"ImportJob", 'String'>
     readonly expiresAt: FieldRef<"ImportJob", 'DateTime'>
     readonly createdAt: FieldRef<"ImportJob", 'DateTime'>
@@ -144112,6 +144476,10 @@ export namespace Prisma {
      */
     omit?: ImportJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    /**
      * Filter, which ImportJob to fetch.
      */
     where: ImportJobWhereUniqueInput
@@ -144130,6 +144498,10 @@ export namespace Prisma {
      */
     omit?: ImportJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    /**
      * Filter, which ImportJob to fetch.
      */
     where: ImportJobWhereUniqueInput
@@ -144147,6 +144519,10 @@ export namespace Prisma {
      * Omit specific fields from the ImportJob
      */
     omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
     /**
      * Filter, which ImportJob to fetch.
      */
@@ -144196,6 +144572,10 @@ export namespace Prisma {
      */
     omit?: ImportJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    /**
      * Filter, which ImportJob to fetch.
      */
     where?: ImportJobWhereInput
@@ -144243,6 +144623,10 @@ export namespace Prisma {
      * Omit specific fields from the ImportJob
      */
     omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
     /**
      * Filter, which ImportJobs to fetch.
      */
@@ -144292,6 +144676,10 @@ export namespace Prisma {
      */
     omit?: ImportJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    /**
      * The data needed to create a ImportJob.
      */
     data: XOR<ImportJobCreateInput, ImportJobUncheckedCreateInput>
@@ -144325,6 +144713,10 @@ export namespace Prisma {
      */
     data: ImportJobCreateManyInput | ImportJobCreateManyInput[]
     skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -144339,6 +144731,10 @@ export namespace Prisma {
      * Omit specific fields from the ImportJob
      */
     omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
     /**
      * The data needed to update a ImportJob.
      */
@@ -144391,6 +144787,10 @@ export namespace Prisma {
      * Limit how many ImportJobs to update.
      */
     limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobIncludeUpdateManyAndReturn<ExtArgs> | null
   }
 
   /**
@@ -144405,6 +144805,10 @@ export namespace Prisma {
      * Omit specific fields from the ImportJob
      */
     omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
     /**
      * The filter to search for the ImportJob to update in case it exists.
      */
@@ -144432,6 +144836,10 @@ export namespace Prisma {
      */
     omit?: ImportJobOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+    /**
      * Filter which ImportJob to delete.
      */
     where: ImportJobWhereUniqueInput
@@ -144452,6 +144860,63 @@ export namespace Prisma {
   }
 
   /**
+   * ImportJob.actor
+   */
+  export type ImportJob$actorArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * ImportJob.targetProject
+   */
+  export type ImportJob$targetProjectArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Project
+     */
+    select?: ProjectSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the Project
+     */
+    omit?: ProjectOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectInclude<ExtArgs> | null
+    where?: ProjectWhereInput
+  }
+
+  /**
+   * ImportJob.reservation
+   */
+  export type ImportJob$reservationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportCreditReservationInclude<ExtArgs> | null
+    where?: ImportCreditReservationWhereInput
+  }
+
+  /**
    * ImportJob without action
    */
   export type ImportJobDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -144463,6 +144928,1183 @@ export namespace Prisma {
      * Omit specific fields from the ImportJob
      */
     omit?: ImportJobOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportJobInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ImportCreditReservation
+   */
+
+  export type AggregateImportCreditReservation = {
+    _count: ImportCreditReservationCountAggregateOutputType | null
+    _avg: ImportCreditReservationAvgAggregateOutputType | null
+    _sum: ImportCreditReservationSumAggregateOutputType | null
+    _min: ImportCreditReservationMinAggregateOutputType | null
+    _max: ImportCreditReservationMaxAggregateOutputType | null
+  }
+
+  export type ImportCreditReservationAvgAggregateOutputType = {
+    reservedCredits: number | null
+    debitedCredits: number | null
+    version: number | null
+  }
+
+  export type ImportCreditReservationSumAggregateOutputType = {
+    reservedCredits: number | null
+    debitedCredits: number | null
+    version: number | null
+  }
+
+  export type ImportCreditReservationMinAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    key: string | null
+    importJobId: string | null
+    reservedCredits: number | null
+    debitedCredits: number | null
+    state: string | null
+    version: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ImportCreditReservationMaxAggregateOutputType = {
+    id: string | null
+    organizationId: string | null
+    key: string | null
+    importJobId: string | null
+    reservedCredits: number | null
+    debitedCredits: number | null
+    state: string | null
+    version: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ImportCreditReservationCountAggregateOutputType = {
+    id: number
+    organizationId: number
+    key: number
+    importJobId: number
+    reservedCredits: number
+    debitedCredits: number
+    state: number
+    version: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ImportCreditReservationAvgAggregateInputType = {
+    reservedCredits?: true
+    debitedCredits?: true
+    version?: true
+  }
+
+  export type ImportCreditReservationSumAggregateInputType = {
+    reservedCredits?: true
+    debitedCredits?: true
+    version?: true
+  }
+
+  export type ImportCreditReservationMinAggregateInputType = {
+    id?: true
+    organizationId?: true
+    key?: true
+    importJobId?: true
+    reservedCredits?: true
+    debitedCredits?: true
+    state?: true
+    version?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ImportCreditReservationMaxAggregateInputType = {
+    id?: true
+    organizationId?: true
+    key?: true
+    importJobId?: true
+    reservedCredits?: true
+    debitedCredits?: true
+    state?: true
+    version?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ImportCreditReservationCountAggregateInputType = {
+    id?: true
+    organizationId?: true
+    key?: true
+    importJobId?: true
+    reservedCredits?: true
+    debitedCredits?: true
+    state?: true
+    version?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ImportCreditReservationAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportCreditReservation to aggregate.
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportCreditReservations to fetch.
+     */
+    orderBy?: ImportCreditReservationOrderByWithRelationInput | ImportCreditReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ImportCreditReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportCreditReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportCreditReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ImportCreditReservations
+    **/
+    _count?: true | ImportCreditReservationCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ImportCreditReservationAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ImportCreditReservationSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ImportCreditReservationMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ImportCreditReservationMaxAggregateInputType
+  }
+
+  export type GetImportCreditReservationAggregateType<T extends ImportCreditReservationAggregateArgs> = {
+        [P in keyof T & keyof AggregateImportCreditReservation]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateImportCreditReservation[P]>
+      : GetScalarType<T[P], AggregateImportCreditReservation[P]>
+  }
+
+
+
+
+  export type ImportCreditReservationGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ImportCreditReservationWhereInput
+    orderBy?: ImportCreditReservationOrderByWithAggregationInput | ImportCreditReservationOrderByWithAggregationInput[]
+    by: ImportCreditReservationScalarFieldEnum[] | ImportCreditReservationScalarFieldEnum
+    having?: ImportCreditReservationScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ImportCreditReservationCountAggregateInputType | true
+    _avg?: ImportCreditReservationAvgAggregateInputType
+    _sum?: ImportCreditReservationSumAggregateInputType
+    _min?: ImportCreditReservationMinAggregateInputType
+    _max?: ImportCreditReservationMaxAggregateInputType
+  }
+
+  export type ImportCreditReservationGroupByOutputType = {
+    id: string
+    organizationId: string
+    key: string
+    importJobId: string
+    reservedCredits: number
+    debitedCredits: number
+    state: string
+    version: number
+    createdAt: Date
+    updatedAt: Date
+    _count: ImportCreditReservationCountAggregateOutputType | null
+    _avg: ImportCreditReservationAvgAggregateOutputType | null
+    _sum: ImportCreditReservationSumAggregateOutputType | null
+    _min: ImportCreditReservationMinAggregateOutputType | null
+    _max: ImportCreditReservationMaxAggregateOutputType | null
+  }
+
+  type GetImportCreditReservationGroupByPayload<T extends ImportCreditReservationGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ImportCreditReservationGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ImportCreditReservationGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ImportCreditReservationGroupByOutputType[P]>
+            : GetScalarType<T[P], ImportCreditReservationGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ImportCreditReservationSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    key?: boolean
+    importJobId?: boolean
+    reservedCredits?: boolean
+    debitedCredits?: boolean
+    state?: boolean
+    version?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    importJob?: boolean | ImportJobDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importCreditReservation"]>
+
+  export type ImportCreditReservationSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    key?: boolean
+    importJobId?: boolean
+    reservedCredits?: boolean
+    debitedCredits?: boolean
+    state?: boolean
+    version?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    importJob?: boolean | ImportJobDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importCreditReservation"]>
+
+  export type ImportCreditReservationSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    organizationId?: boolean
+    key?: boolean
+    importJobId?: boolean
+    reservedCredits?: boolean
+    debitedCredits?: boolean
+    state?: boolean
+    version?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    importJob?: boolean | ImportJobDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["importCreditReservation"]>
+
+  export type ImportCreditReservationSelectScalar = {
+    id?: boolean
+    organizationId?: boolean
+    key?: boolean
+    importJobId?: boolean
+    reservedCredits?: boolean
+    debitedCredits?: boolean
+    state?: boolean
+    version?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ImportCreditReservationOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "organizationId" | "key" | "importJobId" | "reservedCredits" | "debitedCredits" | "state" | "version" | "createdAt" | "updatedAt", ExtArgs["result"]["importCreditReservation"]>
+  export type ImportCreditReservationInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    importJob?: boolean | ImportJobDefaultArgs<ExtArgs>
+  }
+  export type ImportCreditReservationIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    importJob?: boolean | ImportJobDefaultArgs<ExtArgs>
+  }
+  export type ImportCreditReservationIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    importJob?: boolean | ImportJobDefaultArgs<ExtArgs>
+  }
+
+  export type $ImportCreditReservationPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ImportCreditReservation"
+    objects: {
+      importJob: Prisma.$ImportJobPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      organizationId: string
+      key: string
+      importJobId: string
+      reservedCredits: number
+      debitedCredits: number
+      /**
+       * RESERVED | SETTLED | COMPENSATED
+       */
+      state: string
+      version: number
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["importCreditReservation"]>
+    composites: {}
+  }
+
+  type ImportCreditReservationGetPayload<S extends boolean | null | undefined | ImportCreditReservationDefaultArgs> = $Result.GetResult<Prisma.$ImportCreditReservationPayload, S>
+
+  type ImportCreditReservationCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ImportCreditReservationFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ImportCreditReservationCountAggregateInputType | true
+    }
+
+  export interface ImportCreditReservationDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ImportCreditReservation'], meta: { name: 'ImportCreditReservation' } }
+    /**
+     * Find zero or one ImportCreditReservation that matches the filter.
+     * @param {ImportCreditReservationFindUniqueArgs} args - Arguments to find a ImportCreditReservation
+     * @example
+     * // Get one ImportCreditReservation
+     * const importCreditReservation = await prisma.importCreditReservation.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ImportCreditReservationFindUniqueArgs>(args: SelectSubset<T, ImportCreditReservationFindUniqueArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ImportCreditReservation that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ImportCreditReservationFindUniqueOrThrowArgs} args - Arguments to find a ImportCreditReservation
+     * @example
+     * // Get one ImportCreditReservation
+     * const importCreditReservation = await prisma.importCreditReservation.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ImportCreditReservationFindUniqueOrThrowArgs>(args: SelectSubset<T, ImportCreditReservationFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportCreditReservation that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationFindFirstArgs} args - Arguments to find a ImportCreditReservation
+     * @example
+     * // Get one ImportCreditReservation
+     * const importCreditReservation = await prisma.importCreditReservation.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ImportCreditReservationFindFirstArgs>(args?: SelectSubset<T, ImportCreditReservationFindFirstArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ImportCreditReservation that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationFindFirstOrThrowArgs} args - Arguments to find a ImportCreditReservation
+     * @example
+     * // Get one ImportCreditReservation
+     * const importCreditReservation = await prisma.importCreditReservation.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ImportCreditReservationFindFirstOrThrowArgs>(args?: SelectSubset<T, ImportCreditReservationFindFirstOrThrowArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ImportCreditReservations that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ImportCreditReservations
+     * const importCreditReservations = await prisma.importCreditReservation.findMany()
+     * 
+     * // Get first 10 ImportCreditReservations
+     * const importCreditReservations = await prisma.importCreditReservation.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const importCreditReservationWithIdOnly = await prisma.importCreditReservation.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ImportCreditReservationFindManyArgs>(args?: SelectSubset<T, ImportCreditReservationFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ImportCreditReservation.
+     * @param {ImportCreditReservationCreateArgs} args - Arguments to create a ImportCreditReservation.
+     * @example
+     * // Create one ImportCreditReservation
+     * const ImportCreditReservation = await prisma.importCreditReservation.create({
+     *   data: {
+     *     // ... data to create a ImportCreditReservation
+     *   }
+     * })
+     * 
+     */
+    create<T extends ImportCreditReservationCreateArgs>(args: SelectSubset<T, ImportCreditReservationCreateArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ImportCreditReservations.
+     * @param {ImportCreditReservationCreateManyArgs} args - Arguments to create many ImportCreditReservations.
+     * @example
+     * // Create many ImportCreditReservations
+     * const importCreditReservation = await prisma.importCreditReservation.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ImportCreditReservationCreateManyArgs>(args?: SelectSubset<T, ImportCreditReservationCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ImportCreditReservations and returns the data saved in the database.
+     * @param {ImportCreditReservationCreateManyAndReturnArgs} args - Arguments to create many ImportCreditReservations.
+     * @example
+     * // Create many ImportCreditReservations
+     * const importCreditReservation = await prisma.importCreditReservation.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ImportCreditReservations and only return the `id`
+     * const importCreditReservationWithIdOnly = await prisma.importCreditReservation.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ImportCreditReservationCreateManyAndReturnArgs>(args?: SelectSubset<T, ImportCreditReservationCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ImportCreditReservation.
+     * @param {ImportCreditReservationDeleteArgs} args - Arguments to delete one ImportCreditReservation.
+     * @example
+     * // Delete one ImportCreditReservation
+     * const ImportCreditReservation = await prisma.importCreditReservation.delete({
+     *   where: {
+     *     // ... filter to delete one ImportCreditReservation
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ImportCreditReservationDeleteArgs>(args: SelectSubset<T, ImportCreditReservationDeleteArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ImportCreditReservation.
+     * @param {ImportCreditReservationUpdateArgs} args - Arguments to update one ImportCreditReservation.
+     * @example
+     * // Update one ImportCreditReservation
+     * const importCreditReservation = await prisma.importCreditReservation.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ImportCreditReservationUpdateArgs>(args: SelectSubset<T, ImportCreditReservationUpdateArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ImportCreditReservations.
+     * @param {ImportCreditReservationDeleteManyArgs} args - Arguments to filter ImportCreditReservations to delete.
+     * @example
+     * // Delete a few ImportCreditReservations
+     * const { count } = await prisma.importCreditReservation.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ImportCreditReservationDeleteManyArgs>(args?: SelectSubset<T, ImportCreditReservationDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportCreditReservations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ImportCreditReservations
+     * const importCreditReservation = await prisma.importCreditReservation.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ImportCreditReservationUpdateManyArgs>(args: SelectSubset<T, ImportCreditReservationUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ImportCreditReservations and returns the data updated in the database.
+     * @param {ImportCreditReservationUpdateManyAndReturnArgs} args - Arguments to update many ImportCreditReservations.
+     * @example
+     * // Update many ImportCreditReservations
+     * const importCreditReservation = await prisma.importCreditReservation.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ImportCreditReservations and only return the `id`
+     * const importCreditReservationWithIdOnly = await prisma.importCreditReservation.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ImportCreditReservationUpdateManyAndReturnArgs>(args: SelectSubset<T, ImportCreditReservationUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ImportCreditReservation.
+     * @param {ImportCreditReservationUpsertArgs} args - Arguments to update or create a ImportCreditReservation.
+     * @example
+     * // Update or create a ImportCreditReservation
+     * const importCreditReservation = await prisma.importCreditReservation.upsert({
+     *   create: {
+     *     // ... data to create a ImportCreditReservation
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ImportCreditReservation we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ImportCreditReservationUpsertArgs>(args: SelectSubset<T, ImportCreditReservationUpsertArgs<ExtArgs>>): Prisma__ImportCreditReservationClient<$Result.GetResult<Prisma.$ImportCreditReservationPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ImportCreditReservations.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationCountArgs} args - Arguments to filter ImportCreditReservations to count.
+     * @example
+     * // Count the number of ImportCreditReservations
+     * const count = await prisma.importCreditReservation.count({
+     *   where: {
+     *     // ... the filter for the ImportCreditReservations we want to count
+     *   }
+     * })
+    **/
+    count<T extends ImportCreditReservationCountArgs>(
+      args?: Subset<T, ImportCreditReservationCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ImportCreditReservationCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ImportCreditReservation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ImportCreditReservationAggregateArgs>(args: Subset<T, ImportCreditReservationAggregateArgs>): Prisma.PrismaPromise<GetImportCreditReservationAggregateType<T>>
+
+    /**
+     * Group by ImportCreditReservation.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ImportCreditReservationGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ImportCreditReservationGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ImportCreditReservationGroupByArgs['orderBy'] }
+        : { orderBy?: ImportCreditReservationGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ImportCreditReservationGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetImportCreditReservationGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ImportCreditReservation model
+   */
+  readonly fields: ImportCreditReservationFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ImportCreditReservation.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ImportCreditReservationClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    importJob<T extends ImportJobDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ImportJobDefaultArgs<ExtArgs>>): Prisma__ImportJobClient<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ImportCreditReservation model
+   */
+  interface ImportCreditReservationFieldRefs {
+    readonly id: FieldRef<"ImportCreditReservation", 'String'>
+    readonly organizationId: FieldRef<"ImportCreditReservation", 'String'>
+    readonly key: FieldRef<"ImportCreditReservation", 'String'>
+    readonly importJobId: FieldRef<"ImportCreditReservation", 'String'>
+    readonly reservedCredits: FieldRef<"ImportCreditReservation", 'Int'>
+    readonly debitedCredits: FieldRef<"ImportCreditReservation", 'Int'>
+    readonly state: FieldRef<"ImportCreditReservation", 'String'>
+    readonly version: FieldRef<"ImportCreditReservation", 'Int'>
+    readonly createdAt: FieldRef<"ImportCreditReservation", 'DateTime'>
+    readonly updatedAt: FieldRef<"ImportCreditReservation", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ImportCreditReservation findUnique
+   */
+  export type ImportCreditReservationFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportCreditReservationInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportCreditReservation to fetch.
+     */
+    where: ImportCreditReservationWhereUniqueInput
+  }
+
+  /**
+   * ImportCreditReservation findUniqueOrThrow
+   */
+  export type ImportCreditReservationFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportCreditReservationInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportCreditReservation to fetch.
+     */
+    where: ImportCreditReservationWhereUniqueInput
+  }
+
+  /**
+   * ImportCreditReservation findFirst
+   */
+  export type ImportCreditReservationFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportCreditReservationInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportCreditReservation to fetch.
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportCreditReservations to fetch.
+     */
+    orderBy?: ImportCreditReservationOrderByWithRelationInput | ImportCreditReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportCreditReservations.
+     */
+    cursor?: ImportCreditReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportCreditReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportCreditReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportCreditReservations.
+     */
+    distinct?: ImportCreditReservationScalarFieldEnum | ImportCreditReservationScalarFieldEnum[]
+  }
+
+  /**
+   * ImportCreditReservation findFirstOrThrow
+   */
+  export type ImportCreditReservationFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportCreditReservationInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportCreditReservation to fetch.
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportCreditReservations to fetch.
+     */
+    orderBy?: ImportCreditReservationOrderByWithRelationInput | ImportCreditReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ImportCreditReservations.
+     */
+    cursor?: ImportCreditReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportCreditReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportCreditReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportCreditReservations.
+     */
+    distinct?: ImportCreditReservationScalarFieldEnum | ImportCreditReservationScalarFieldEnum[]
+  }
+
+  /**
+   * ImportCreditReservation findMany
+   */
+  export type ImportCreditReservationFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportCreditReservationInclude<ExtArgs> | null
+    /**
+     * Filter, which ImportCreditReservations to fetch.
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ImportCreditReservations to fetch.
+     */
+    orderBy?: ImportCreditReservationOrderByWithRelationInput | ImportCreditReservationOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ImportCreditReservations.
+     */
+    cursor?: ImportCreditReservationWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ImportCreditReservations from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ImportCreditReservations.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ImportCreditReservations.
+     */
+    distinct?: ImportCreditReservationScalarFieldEnum | ImportCreditReservationScalarFieldEnum[]
+  }
+
+  /**
+   * ImportCreditReservation create
+   */
+  export type ImportCreditReservationCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportCreditReservationInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ImportCreditReservation.
+     */
+    data: XOR<ImportCreditReservationCreateInput, ImportCreditReservationUncheckedCreateInput>
+  }
+
+  /**
+   * ImportCreditReservation createMany
+   */
+  export type ImportCreditReservationCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ImportCreditReservations.
+     */
+    data: ImportCreditReservationCreateManyInput | ImportCreditReservationCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ImportCreditReservation createManyAndReturn
+   */
+  export type ImportCreditReservationCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * The data used to create many ImportCreditReservations.
+     */
+    data: ImportCreditReservationCreateManyInput | ImportCreditReservationCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportCreditReservationIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ImportCreditReservation update
+   */
+  export type ImportCreditReservationUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportCreditReservationInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ImportCreditReservation.
+     */
+    data: XOR<ImportCreditReservationUpdateInput, ImportCreditReservationUncheckedUpdateInput>
+    /**
+     * Choose, which ImportCreditReservation to update.
+     */
+    where: ImportCreditReservationWhereUniqueInput
+  }
+
+  /**
+   * ImportCreditReservation updateMany
+   */
+  export type ImportCreditReservationUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ImportCreditReservations.
+     */
+    data: XOR<ImportCreditReservationUpdateManyMutationInput, ImportCreditReservationUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportCreditReservations to update
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * Limit how many ImportCreditReservations to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportCreditReservation updateManyAndReturn
+   */
+  export type ImportCreditReservationUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * The data used to update ImportCreditReservations.
+     */
+    data: XOR<ImportCreditReservationUpdateManyMutationInput, ImportCreditReservationUncheckedUpdateManyInput>
+    /**
+     * Filter which ImportCreditReservations to update
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * Limit how many ImportCreditReservations to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportCreditReservationIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ImportCreditReservation upsert
+   */
+  export type ImportCreditReservationUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportCreditReservationInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ImportCreditReservation to update in case it exists.
+     */
+    where: ImportCreditReservationWhereUniqueInput
+    /**
+     * In case the ImportCreditReservation found by the `where` argument doesn't exist, create a new ImportCreditReservation with this data.
+     */
+    create: XOR<ImportCreditReservationCreateInput, ImportCreditReservationUncheckedCreateInput>
+    /**
+     * In case the ImportCreditReservation was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ImportCreditReservationUpdateInput, ImportCreditReservationUncheckedUpdateInput>
+  }
+
+  /**
+   * ImportCreditReservation delete
+   */
+  export type ImportCreditReservationDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportCreditReservationInclude<ExtArgs> | null
+    /**
+     * Filter which ImportCreditReservation to delete.
+     */
+    where: ImportCreditReservationWhereUniqueInput
+  }
+
+  /**
+   * ImportCreditReservation deleteMany
+   */
+  export type ImportCreditReservationDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ImportCreditReservations to delete
+     */
+    where?: ImportCreditReservationWhereInput
+    /**
+     * Limit how many ImportCreditReservations to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ImportCreditReservation without action
+   */
+  export type ImportCreditReservationDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ImportCreditReservation
+     */
+    select?: ImportCreditReservationSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ImportCreditReservation
+     */
+    omit?: ImportCreditReservationOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ImportCreditReservationInclude<ExtArgs> | null
   }
 
 
@@ -157789,15 +159431,23 @@ export namespace Prisma {
     id: 'id',
     organizationId: 'organizationId',
     actorUserId: 'actorUserId',
+    idempotencyKey: 'idempotencyKey',
+    requestHash: 'requestHash',
     provider: 'provider',
     state: 'state',
     sourceRef: 'sourceRef',
     findings: 'findings',
     consent: 'consent',
     targetProjectId: 'targetProjectId',
+    stagedFiles: 'stagedFiles',
+    connectorPreview: 'connectorPreview',
     stagedFileCount: 'stagedFileCount',
     redactedCount: 'redactedCount',
     creditsReserved: 'creditsReserved',
+    version: 'version',
+    operationToken: 'operationToken',
+    operationExpiresAt: 'operationExpiresAt',
+    cleanupTerminalState: 'cleanupTerminalState',
     error: 'error',
     expiresAt: 'expiresAt',
     createdAt: 'createdAt',
@@ -157805,6 +159455,22 @@ export namespace Prisma {
   };
 
   export type ImportJobScalarFieldEnum = (typeof ImportJobScalarFieldEnum)[keyof typeof ImportJobScalarFieldEnum]
+
+
+  export const ImportCreditReservationScalarFieldEnum: {
+    id: 'id',
+    organizationId: 'organizationId',
+    key: 'key',
+    importJobId: 'importJobId',
+    reservedCredits: 'reservedCredits',
+    debitedCredits: 'debitedCredits',
+    state: 'state',
+    version: 'version',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ImportCreditReservationScalarFieldEnum = (typeof ImportCreditReservationScalarFieldEnum)[keyof typeof ImportCreditReservationScalarFieldEnum]
 
 
   export const GalleryListingScalarFieldEnum: {
@@ -158465,6 +160131,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitListRelationFilter
     agentRoutingCards?: AgentRoutingCardListRelationFilter
     runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
+    importJobs?: ImportJobListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -158516,6 +160183,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitOrderByRelationAggregateInput
     agentRoutingCards?: AgentRoutingCardOrderByRelationAggregateInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketOrderByRelationAggregateInput
+    importJobs?: ImportJobOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -158570,6 +160238,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitListRelationFilter
     agentRoutingCards?: AgentRoutingCardListRelationFilter
     runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
+    importJobs?: ImportJobListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -158802,6 +160471,7 @@ export namespace Prisma {
     creditPacks?: CreditPackListRelationFilter
     agentCheckpoints?: AgentCheckpointListRelationFilter
     userSpendLimits?: UserSpendLimitListRelationFilter
+    importJobs?: ImportJobListRelationFilter
   }
 
   export type OrganizationOrderByWithRelationInput = {
@@ -158845,6 +160515,7 @@ export namespace Prisma {
     creditPacks?: CreditPackOrderByRelationAggregateInput
     agentCheckpoints?: AgentCheckpointOrderByRelationAggregateInput
     userSpendLimits?: UserSpendLimitOrderByRelationAggregateInput
+    importJobs?: ImportJobOrderByRelationAggregateInput
   }
 
   export type OrganizationWhereUniqueInput = Prisma.AtLeast<{
@@ -158891,6 +160562,7 @@ export namespace Prisma {
     creditPacks?: CreditPackListRelationFilter
     agentCheckpoints?: AgentCheckpointListRelationFilter
     userSpendLimits?: UserSpendLimitListRelationFilter
+    importJobs?: ImportJobListRelationFilter
   }, "id" | "slug">
 
   export type OrganizationOrderByWithAggregationInput = {
@@ -159243,6 +160915,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventListRelationFilter
     slugRedirects?: ProjectSlugRedirectListRelationFilter
     runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
+    importJobs?: ImportJobListRelationFilter
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -159288,6 +160961,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventOrderByRelationAggregateInput
     slugRedirects?: ProjectSlugRedirectOrderByRelationAggregateInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketOrderByRelationAggregateInput
+    importJobs?: ImportJobOrderByRelationAggregateInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -159337,6 +161011,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventListRelationFilter
     slugRedirects?: ProjectSlugRedirectListRelationFilter
     runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
+    importJobs?: ImportJobListRelationFilter
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -167541,75 +169216,120 @@ export namespace Prisma {
     id?: StringFilter<"ImportJob"> | string
     organizationId?: StringFilter<"ImportJob"> | string
     actorUserId?: StringNullableFilter<"ImportJob"> | string | null
+    idempotencyKey?: StringFilter<"ImportJob"> | string
+    requestHash?: StringFilter<"ImportJob"> | string
     provider?: StringFilter<"ImportJob"> | string
     state?: StringFilter<"ImportJob"> | string
     sourceRef?: StringNullableFilter<"ImportJob"> | string | null
     findings?: JsonNullableFilter<"ImportJob">
     consent?: JsonNullableFilter<"ImportJob">
     targetProjectId?: StringNullableFilter<"ImportJob"> | string | null
+    stagedFiles?: JsonNullableFilter<"ImportJob">
+    connectorPreview?: JsonNullableFilter<"ImportJob">
     stagedFileCount?: IntFilter<"ImportJob"> | number
     redactedCount?: IntFilter<"ImportJob"> | number
     creditsReserved?: BoolFilter<"ImportJob"> | boolean
+    version?: IntFilter<"ImportJob"> | number
+    operationToken?: StringNullableFilter<"ImportJob"> | string | null
+    operationExpiresAt?: DateTimeNullableFilter<"ImportJob"> | Date | string | null
+    cleanupTerminalState?: StringNullableFilter<"ImportJob"> | string | null
     error?: StringNullableFilter<"ImportJob"> | string | null
     expiresAt?: DateTimeNullableFilter<"ImportJob"> | Date | string | null
     createdAt?: DateTimeFilter<"ImportJob"> | Date | string
     updatedAt?: DateTimeFilter<"ImportJob"> | Date | string
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    actor?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    targetProject?: XOR<ProjectNullableScalarRelationFilter, ProjectWhereInput> | null
+    reservation?: XOR<ImportCreditReservationNullableScalarRelationFilter, ImportCreditReservationWhereInput> | null
   }
 
   export type ImportJobOrderByWithRelationInput = {
     id?: SortOrder
     organizationId?: SortOrder
     actorUserId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
     provider?: SortOrder
     state?: SortOrder
     sourceRef?: SortOrderInput | SortOrder
     findings?: SortOrderInput | SortOrder
     consent?: SortOrderInput | SortOrder
     targetProjectId?: SortOrderInput | SortOrder
+    stagedFiles?: SortOrderInput | SortOrder
+    connectorPreview?: SortOrderInput | SortOrder
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
     creditsReserved?: SortOrder
+    version?: SortOrder
+    operationToken?: SortOrderInput | SortOrder
+    operationExpiresAt?: SortOrderInput | SortOrder
+    cleanupTerminalState?: SortOrderInput | SortOrder
     error?: SortOrderInput | SortOrder
     expiresAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
+    organization?: OrganizationOrderByWithRelationInput
+    actor?: UserOrderByWithRelationInput
+    targetProject?: ProjectOrderByWithRelationInput
+    reservation?: ImportCreditReservationOrderByWithRelationInput
   }
 
   export type ImportJobWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    organizationId_idempotencyKey?: ImportJobOrganizationIdIdempotencyKeyCompoundUniqueInput
     AND?: ImportJobWhereInput | ImportJobWhereInput[]
     OR?: ImportJobWhereInput[]
     NOT?: ImportJobWhereInput | ImportJobWhereInput[]
     organizationId?: StringFilter<"ImportJob"> | string
     actorUserId?: StringNullableFilter<"ImportJob"> | string | null
+    idempotencyKey?: StringFilter<"ImportJob"> | string
+    requestHash?: StringFilter<"ImportJob"> | string
     provider?: StringFilter<"ImportJob"> | string
     state?: StringFilter<"ImportJob"> | string
     sourceRef?: StringNullableFilter<"ImportJob"> | string | null
     findings?: JsonNullableFilter<"ImportJob">
     consent?: JsonNullableFilter<"ImportJob">
     targetProjectId?: StringNullableFilter<"ImportJob"> | string | null
+    stagedFiles?: JsonNullableFilter<"ImportJob">
+    connectorPreview?: JsonNullableFilter<"ImportJob">
     stagedFileCount?: IntFilter<"ImportJob"> | number
     redactedCount?: IntFilter<"ImportJob"> | number
     creditsReserved?: BoolFilter<"ImportJob"> | boolean
+    version?: IntFilter<"ImportJob"> | number
+    operationToken?: StringNullableFilter<"ImportJob"> | string | null
+    operationExpiresAt?: DateTimeNullableFilter<"ImportJob"> | Date | string | null
+    cleanupTerminalState?: StringNullableFilter<"ImportJob"> | string | null
     error?: StringNullableFilter<"ImportJob"> | string | null
     expiresAt?: DateTimeNullableFilter<"ImportJob"> | Date | string | null
     createdAt?: DateTimeFilter<"ImportJob"> | Date | string
     updatedAt?: DateTimeFilter<"ImportJob"> | Date | string
-  }, "id">
+    organization?: XOR<OrganizationScalarRelationFilter, OrganizationWhereInput>
+    actor?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+    targetProject?: XOR<ProjectNullableScalarRelationFilter, ProjectWhereInput> | null
+    reservation?: XOR<ImportCreditReservationNullableScalarRelationFilter, ImportCreditReservationWhereInput> | null
+  }, "id" | "organizationId_idempotencyKey">
 
   export type ImportJobOrderByWithAggregationInput = {
     id?: SortOrder
     organizationId?: SortOrder
     actorUserId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
     provider?: SortOrder
     state?: SortOrder
     sourceRef?: SortOrderInput | SortOrder
     findings?: SortOrderInput | SortOrder
     consent?: SortOrderInput | SortOrder
     targetProjectId?: SortOrderInput | SortOrder
+    stagedFiles?: SortOrderInput | SortOrder
+    connectorPreview?: SortOrderInput | SortOrder
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
     creditsReserved?: SortOrder
+    version?: SortOrder
+    operationToken?: SortOrderInput | SortOrder
+    operationExpiresAt?: SortOrderInput | SortOrder
+    cleanupTerminalState?: SortOrderInput | SortOrder
     error?: SortOrderInput | SortOrder
     expiresAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
@@ -167628,19 +169348,110 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"ImportJob"> | string
     organizationId?: StringWithAggregatesFilter<"ImportJob"> | string
     actorUserId?: StringNullableWithAggregatesFilter<"ImportJob"> | string | null
+    idempotencyKey?: StringWithAggregatesFilter<"ImportJob"> | string
+    requestHash?: StringWithAggregatesFilter<"ImportJob"> | string
     provider?: StringWithAggregatesFilter<"ImportJob"> | string
     state?: StringWithAggregatesFilter<"ImportJob"> | string
     sourceRef?: StringNullableWithAggregatesFilter<"ImportJob"> | string | null
     findings?: JsonNullableWithAggregatesFilter<"ImportJob">
     consent?: JsonNullableWithAggregatesFilter<"ImportJob">
     targetProjectId?: StringNullableWithAggregatesFilter<"ImportJob"> | string | null
+    stagedFiles?: JsonNullableWithAggregatesFilter<"ImportJob">
+    connectorPreview?: JsonNullableWithAggregatesFilter<"ImportJob">
     stagedFileCount?: IntWithAggregatesFilter<"ImportJob"> | number
     redactedCount?: IntWithAggregatesFilter<"ImportJob"> | number
     creditsReserved?: BoolWithAggregatesFilter<"ImportJob"> | boolean
+    version?: IntWithAggregatesFilter<"ImportJob"> | number
+    operationToken?: StringNullableWithAggregatesFilter<"ImportJob"> | string | null
+    operationExpiresAt?: DateTimeNullableWithAggregatesFilter<"ImportJob"> | Date | string | null
+    cleanupTerminalState?: StringNullableWithAggregatesFilter<"ImportJob"> | string | null
     error?: StringNullableWithAggregatesFilter<"ImportJob"> | string | null
     expiresAt?: DateTimeNullableWithAggregatesFilter<"ImportJob"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"ImportJob"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"ImportJob"> | Date | string
+  }
+
+  export type ImportCreditReservationWhereInput = {
+    AND?: ImportCreditReservationWhereInput | ImportCreditReservationWhereInput[]
+    OR?: ImportCreditReservationWhereInput[]
+    NOT?: ImportCreditReservationWhereInput | ImportCreditReservationWhereInput[]
+    id?: StringFilter<"ImportCreditReservation"> | string
+    organizationId?: StringFilter<"ImportCreditReservation"> | string
+    key?: StringFilter<"ImportCreditReservation"> | string
+    importJobId?: StringFilter<"ImportCreditReservation"> | string
+    reservedCredits?: IntFilter<"ImportCreditReservation"> | number
+    debitedCredits?: IntFilter<"ImportCreditReservation"> | number
+    state?: StringFilter<"ImportCreditReservation"> | string
+    version?: IntFilter<"ImportCreditReservation"> | number
+    createdAt?: DateTimeFilter<"ImportCreditReservation"> | Date | string
+    updatedAt?: DateTimeFilter<"ImportCreditReservation"> | Date | string
+    importJob?: XOR<ImportJobScalarRelationFilter, ImportJobWhereInput>
+  }
+
+  export type ImportCreditReservationOrderByWithRelationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    importJobId?: SortOrder
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
+    state?: SortOrder
+    version?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    importJob?: ImportJobOrderByWithRelationInput
+  }
+
+  export type ImportCreditReservationWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    importJobId?: string
+    organizationId_key?: ImportCreditReservationOrganizationIdKeyCompoundUniqueInput
+    AND?: ImportCreditReservationWhereInput | ImportCreditReservationWhereInput[]
+    OR?: ImportCreditReservationWhereInput[]
+    NOT?: ImportCreditReservationWhereInput | ImportCreditReservationWhereInput[]
+    organizationId?: StringFilter<"ImportCreditReservation"> | string
+    key?: StringFilter<"ImportCreditReservation"> | string
+    reservedCredits?: IntFilter<"ImportCreditReservation"> | number
+    debitedCredits?: IntFilter<"ImportCreditReservation"> | number
+    state?: StringFilter<"ImportCreditReservation"> | string
+    version?: IntFilter<"ImportCreditReservation"> | number
+    createdAt?: DateTimeFilter<"ImportCreditReservation"> | Date | string
+    updatedAt?: DateTimeFilter<"ImportCreditReservation"> | Date | string
+    importJob?: XOR<ImportJobScalarRelationFilter, ImportJobWhereInput>
+  }, "id" | "importJobId" | "organizationId_key">
+
+  export type ImportCreditReservationOrderByWithAggregationInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    importJobId?: SortOrder
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
+    state?: SortOrder
+    version?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ImportCreditReservationCountOrderByAggregateInput
+    _avg?: ImportCreditReservationAvgOrderByAggregateInput
+    _max?: ImportCreditReservationMaxOrderByAggregateInput
+    _min?: ImportCreditReservationMinOrderByAggregateInput
+    _sum?: ImportCreditReservationSumOrderByAggregateInput
+  }
+
+  export type ImportCreditReservationScalarWhereWithAggregatesInput = {
+    AND?: ImportCreditReservationScalarWhereWithAggregatesInput | ImportCreditReservationScalarWhereWithAggregatesInput[]
+    OR?: ImportCreditReservationScalarWhereWithAggregatesInput[]
+    NOT?: ImportCreditReservationScalarWhereWithAggregatesInput | ImportCreditReservationScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ImportCreditReservation"> | string
+    organizationId?: StringWithAggregatesFilter<"ImportCreditReservation"> | string
+    key?: StringWithAggregatesFilter<"ImportCreditReservation"> | string
+    importJobId?: StringWithAggregatesFilter<"ImportCreditReservation"> | string
+    reservedCredits?: IntWithAggregatesFilter<"ImportCreditReservation"> | number
+    debitedCredits?: IntWithAggregatesFilter<"ImportCreditReservation"> | number
+    state?: StringWithAggregatesFilter<"ImportCreditReservation"> | string
+    version?: IntWithAggregatesFilter<"ImportCreditReservation"> | number
+    createdAt?: DateTimeWithAggregatesFilter<"ImportCreditReservation"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ImportCreditReservation"> | Date | string
   }
 
   export type GalleryListingWhereInput = {
@@ -168538,6 +170349,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -168589,6 +170401,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserUpdateInput = {
@@ -168640,6 +170453,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -168691,6 +170505,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -168944,6 +170759,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateInput = {
@@ -168987,6 +170803,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUpdateInput = {
@@ -169030,6 +170847,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateInput = {
@@ -169073,6 +170891,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateManyInput = {
@@ -169413,6 +171232,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -169457,6 +171277,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -169501,6 +171322,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -169545,6 +171367,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -178518,93 +180341,137 @@ export namespace Prisma {
 
   export type ImportJobCreateInput = {
     id?: string
-    organizationId: string
-    actorUserId?: string | null
+    idempotencyKey: string
+    requestHash: string
     provider: string
     state?: string
     sourceRef?: string | null
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
-    targetProjectId?: string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: number
     redactedCount?: number
     creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
     error?: string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutImportJobsInput
+    actor?: UserCreateNestedOneWithoutImportJobsInput
+    targetProject?: ProjectCreateNestedOneWithoutImportJobsInput
+    reservation?: ImportCreditReservationCreateNestedOneWithoutImportJobInput
   }
 
   export type ImportJobUncheckedCreateInput = {
     id?: string
     organizationId: string
     actorUserId?: string | null
+    idempotencyKey: string
+    requestHash: string
     provider: string
     state?: string
     sourceRef?: string | null
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
     targetProjectId?: string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: number
     redactedCount?: number
     creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
     error?: string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
+    reservation?: ImportCreditReservationUncheckedCreateNestedOneWithoutImportJobInput
   }
 
   export type ImportJobUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    organizationId?: StringFieldUpdateOperationsInput | string
-    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
     provider?: StringFieldUpdateOperationsInput | string
     state?: StringFieldUpdateOperationsInput | string
     sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
-    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: IntFieldUpdateOperationsInput | number
     redactedCount?: IntFieldUpdateOperationsInput | number
     creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
     error?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutImportJobsNestedInput
+    actor?: UserUpdateOneWithoutImportJobsNestedInput
+    targetProject?: ProjectUpdateOneWithoutImportJobsNestedInput
+    reservation?: ImportCreditReservationUpdateOneWithoutImportJobNestedInput
   }
 
   export type ImportJobUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
     provider?: StringFieldUpdateOperationsInput | string
     state?: StringFieldUpdateOperationsInput | string
     sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
     targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: IntFieldUpdateOperationsInput | number
     redactedCount?: IntFieldUpdateOperationsInput | number
     creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
     error?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reservation?: ImportCreditReservationUncheckedUpdateOneWithoutImportJobNestedInput
   }
 
   export type ImportJobCreateManyInput = {
     id?: string
     organizationId: string
     actorUserId?: string | null
+    idempotencyKey: string
+    requestHash: string
     provider: string
     state?: string
     sourceRef?: string | null
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
     targetProjectId?: string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: number
     redactedCount?: number
     creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
     error?: string | null
     expiresAt?: Date | string | null
     createdAt?: Date | string
@@ -178613,17 +180480,22 @@ export namespace Prisma {
 
   export type ImportJobUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    organizationId?: StringFieldUpdateOperationsInput | string
-    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
     provider?: StringFieldUpdateOperationsInput | string
     state?: StringFieldUpdateOperationsInput | string
     sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
-    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: IntFieldUpdateOperationsInput | number
     redactedCount?: IntFieldUpdateOperationsInput | number
     creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
     error?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -178634,17 +180506,115 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     organizationId?: StringFieldUpdateOperationsInput | string
     actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
     provider?: StringFieldUpdateOperationsInput | string
     state?: StringFieldUpdateOperationsInput | string
     sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
     findings?: NullableJsonNullValueInput | InputJsonValue
     consent?: NullableJsonNullValueInput | InputJsonValue
     targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
     stagedFileCount?: IntFieldUpdateOperationsInput | number
     redactedCount?: IntFieldUpdateOperationsInput | number
     creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
     error?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportCreditReservationCreateInput = {
+    id?: string
+    organizationId: string
+    key: string
+    reservedCredits: number
+    debitedCredits?: number
+    state?: string
+    version?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    importJob: ImportJobCreateNestedOneWithoutReservationInput
+  }
+
+  export type ImportCreditReservationUncheckedCreateInput = {
+    id?: string
+    organizationId: string
+    key: string
+    importJobId: string
+    reservedCredits: number
+    debitedCredits?: number
+    state?: string
+    version?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportCreditReservationUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    reservedCredits?: IntFieldUpdateOperationsInput | number
+    debitedCredits?: IntFieldUpdateOperationsInput | number
+    state?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    importJob?: ImportJobUpdateOneRequiredWithoutReservationNestedInput
+  }
+
+  export type ImportCreditReservationUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    importJobId?: StringFieldUpdateOperationsInput | string
+    reservedCredits?: IntFieldUpdateOperationsInput | number
+    debitedCredits?: IntFieldUpdateOperationsInput | number
+    state?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportCreditReservationCreateManyInput = {
+    id?: string
+    organizationId: string
+    key: string
+    importJobId: string
+    reservedCredits: number
+    debitedCredits?: number
+    state?: string
+    version?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportCreditReservationUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    reservedCredits?: IntFieldUpdateOperationsInput | number
+    debitedCredits?: IntFieldUpdateOperationsInput | number
+    state?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportCreditReservationUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    importJobId?: StringFieldUpdateOperationsInput | string
+    reservedCredits?: IntFieldUpdateOperationsInput | number
+    debitedCredits?: IntFieldUpdateOperationsInput | number
+    state?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -179881,6 +181851,12 @@ export namespace Prisma {
     none?: RuntimeWebSocketTicketWhereInput
   }
 
+  export type ImportJobListRelationFilter = {
+    every?: ImportJobWhereInput
+    some?: ImportJobWhereInput
+    none?: ImportJobWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -180015,6 +181991,10 @@ export namespace Prisma {
   }
 
   export type RuntimeWebSocketTicketOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ImportJobOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -185808,19 +187788,37 @@ export namespace Prisma {
     piiMaskedCount?: SortOrder
   }
 
+  export type ImportCreditReservationNullableScalarRelationFilter = {
+    is?: ImportCreditReservationWhereInput | null
+    isNot?: ImportCreditReservationWhereInput | null
+  }
+
+  export type ImportJobOrganizationIdIdempotencyKeyCompoundUniqueInput = {
+    organizationId: string
+    idempotencyKey: string
+  }
+
   export type ImportJobCountOrderByAggregateInput = {
     id?: SortOrder
     organizationId?: SortOrder
     actorUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
     provider?: SortOrder
     state?: SortOrder
     sourceRef?: SortOrder
     findings?: SortOrder
     consent?: SortOrder
     targetProjectId?: SortOrder
+    stagedFiles?: SortOrder
+    connectorPreview?: SortOrder
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
     creditsReserved?: SortOrder
+    version?: SortOrder
+    operationToken?: SortOrder
+    operationExpiresAt?: SortOrder
+    cleanupTerminalState?: SortOrder
     error?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
@@ -185830,12 +187828,15 @@ export namespace Prisma {
   export type ImportJobAvgOrderByAggregateInput = {
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
+    version?: SortOrder
   }
 
   export type ImportJobMaxOrderByAggregateInput = {
     id?: SortOrder
     organizationId?: SortOrder
     actorUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
     provider?: SortOrder
     state?: SortOrder
     sourceRef?: SortOrder
@@ -185843,6 +187844,10 @@ export namespace Prisma {
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
     creditsReserved?: SortOrder
+    version?: SortOrder
+    operationToken?: SortOrder
+    operationExpiresAt?: SortOrder
+    cleanupTerminalState?: SortOrder
     error?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
@@ -185853,6 +187858,8 @@ export namespace Prisma {
     id?: SortOrder
     organizationId?: SortOrder
     actorUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
     provider?: SortOrder
     state?: SortOrder
     sourceRef?: SortOrder
@@ -185860,6 +187867,10 @@ export namespace Prisma {
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
     creditsReserved?: SortOrder
+    version?: SortOrder
+    operationToken?: SortOrder
+    operationExpiresAt?: SortOrder
+    cleanupTerminalState?: SortOrder
     error?: SortOrder
     expiresAt?: SortOrder
     createdAt?: SortOrder
@@ -185869,6 +187880,68 @@ export namespace Prisma {
   export type ImportJobSumOrderByAggregateInput = {
     stagedFileCount?: SortOrder
     redactedCount?: SortOrder
+    version?: SortOrder
+  }
+
+  export type ImportJobScalarRelationFilter = {
+    is?: ImportJobWhereInput
+    isNot?: ImportJobWhereInput
+  }
+
+  export type ImportCreditReservationOrganizationIdKeyCompoundUniqueInput = {
+    organizationId: string
+    key: string
+  }
+
+  export type ImportCreditReservationCountOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    importJobId?: SortOrder
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
+    state?: SortOrder
+    version?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportCreditReservationAvgOrderByAggregateInput = {
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
+    version?: SortOrder
+  }
+
+  export type ImportCreditReservationMaxOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    importJobId?: SortOrder
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
+    state?: SortOrder
+    version?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportCreditReservationMinOrderByAggregateInput = {
+    id?: SortOrder
+    organizationId?: SortOrder
+    key?: SortOrder
+    importJobId?: SortOrder
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
+    state?: SortOrder
+    version?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ImportCreditReservationSumOrderByAggregateInput = {
+    reservedCredits?: SortOrder
+    debitedCredits?: SortOrder
+    version?: SortOrder
   }
 
   export type GalleryListingCountOrderByAggregateInput = {
@@ -186707,6 +188780,13 @@ export namespace Prisma {
     connect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
   }
 
+  export type ImportJobCreateNestedManyWithoutActorInput = {
+    create?: XOR<ImportJobCreateWithoutActorInput, ImportJobUncheckedCreateWithoutActorInput> | ImportJobCreateWithoutActorInput[] | ImportJobUncheckedCreateWithoutActorInput[]
+    connectOrCreate?: ImportJobCreateOrConnectWithoutActorInput | ImportJobCreateOrConnectWithoutActorInput[]
+    createMany?: ImportJobCreateManyActorInputEnvelope
+    connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -186939,6 +189019,13 @@ export namespace Prisma {
     connectOrCreate?: RuntimeWebSocketTicketCreateOrConnectWithoutUserInput | RuntimeWebSocketTicketCreateOrConnectWithoutUserInput[]
     createMany?: RuntimeWebSocketTicketCreateManyUserInputEnvelope
     connect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+  }
+
+  export type ImportJobUncheckedCreateNestedManyWithoutActorInput = {
+    create?: XOR<ImportJobCreateWithoutActorInput, ImportJobUncheckedCreateWithoutActorInput> | ImportJobCreateWithoutActorInput[] | ImportJobUncheckedCreateWithoutActorInput[]
+    connectOrCreate?: ImportJobCreateOrConnectWithoutActorInput | ImportJobCreateOrConnectWithoutActorInput[]
+    createMany?: ImportJobCreateManyActorInputEnvelope
+    connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -187429,6 +189516,20 @@ export namespace Prisma {
     deleteMany?: RuntimeWebSocketTicketScalarWhereInput | RuntimeWebSocketTicketScalarWhereInput[]
   }
 
+  export type ImportJobUpdateManyWithoutActorNestedInput = {
+    create?: XOR<ImportJobCreateWithoutActorInput, ImportJobUncheckedCreateWithoutActorInput> | ImportJobCreateWithoutActorInput[] | ImportJobUncheckedCreateWithoutActorInput[]
+    connectOrCreate?: ImportJobCreateOrConnectWithoutActorInput | ImportJobCreateOrConnectWithoutActorInput[]
+    upsert?: ImportJobUpsertWithWhereUniqueWithoutActorInput | ImportJobUpsertWithWhereUniqueWithoutActorInput[]
+    createMany?: ImportJobCreateManyActorInputEnvelope
+    set?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    disconnect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    delete?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    update?: ImportJobUpdateWithWhereUniqueWithoutActorInput | ImportJobUpdateWithWhereUniqueWithoutActorInput[]
+    updateMany?: ImportJobUpdateManyWithWhereWithoutActorInput | ImportJobUpdateManyWithWhereWithoutActorInput[]
+    deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -187897,6 +189998,20 @@ export namespace Prisma {
     deleteMany?: RuntimeWebSocketTicketScalarWhereInput | RuntimeWebSocketTicketScalarWhereInput[]
   }
 
+  export type ImportJobUncheckedUpdateManyWithoutActorNestedInput = {
+    create?: XOR<ImportJobCreateWithoutActorInput, ImportJobUncheckedCreateWithoutActorInput> | ImportJobCreateWithoutActorInput[] | ImportJobUncheckedCreateWithoutActorInput[]
+    connectOrCreate?: ImportJobCreateOrConnectWithoutActorInput | ImportJobCreateOrConnectWithoutActorInput[]
+    upsert?: ImportJobUpsertWithWhereUniqueWithoutActorInput | ImportJobUpsertWithWhereUniqueWithoutActorInput[]
+    createMany?: ImportJobCreateManyActorInputEnvelope
+    set?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    disconnect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    delete?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    update?: ImportJobUpdateWithWhereUniqueWithoutActorInput | ImportJobUpdateWithWhereUniqueWithoutActorInput[]
+    updateMany?: ImportJobUpdateManyWithWhereWithoutActorInput | ImportJobUpdateManyWithWhereWithoutActorInput[]
+    deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+  }
+
   export type UserCreateNestedOneWithoutAccountsInput = {
     create?: XOR<UserCreateWithoutAccountsInput, UserUncheckedCreateWithoutAccountsInput>
     connectOrCreate?: UserCreateOrConnectWithoutAccountsInput
@@ -188157,6 +190272,13 @@ export namespace Prisma {
     connect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
   }
 
+  export type ImportJobCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<ImportJobCreateWithoutOrganizationInput, ImportJobUncheckedCreateWithoutOrganizationInput> | ImportJobCreateWithoutOrganizationInput[] | ImportJobUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: ImportJobCreateOrConnectWithoutOrganizationInput | ImportJobCreateOrConnectWithoutOrganizationInput[]
+    createMany?: ImportJobCreateManyOrganizationInputEnvelope
+    connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+  }
+
   export type OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput = {
     create?: XOR<OrganizationMemberCreateWithoutOrganizationInput, OrganizationMemberUncheckedCreateWithoutOrganizationInput> | OrganizationMemberCreateWithoutOrganizationInput[] | OrganizationMemberUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: OrganizationMemberCreateOrConnectWithoutOrganizationInput | OrganizationMemberCreateOrConnectWithoutOrganizationInput[]
@@ -188387,6 +190509,13 @@ export namespace Prisma {
     connectOrCreate?: UserSpendLimitCreateOrConnectWithoutOrganizationInput | UserSpendLimitCreateOrConnectWithoutOrganizationInput[]
     createMany?: UserSpendLimitCreateManyOrganizationInputEnvelope
     connect?: UserSpendLimitWhereUniqueInput | UserSpendLimitWhereUniqueInput[]
+  }
+
+  export type ImportJobUncheckedCreateNestedManyWithoutOrganizationInput = {
+    create?: XOR<ImportJobCreateWithoutOrganizationInput, ImportJobUncheckedCreateWithoutOrganizationInput> | ImportJobCreateWithoutOrganizationInput[] | ImportJobUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: ImportJobCreateOrConnectWithoutOrganizationInput | ImportJobCreateOrConnectWithoutOrganizationInput[]
+    createMany?: ImportJobCreateManyOrganizationInputEnvelope
+    connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
   }
 
   export type OrganizationMemberUpdateManyWithoutOrganizationNestedInput = {
@@ -188849,6 +190978,20 @@ export namespace Prisma {
     deleteMany?: UserSpendLimitScalarWhereInput | UserSpendLimitScalarWhereInput[]
   }
 
+  export type ImportJobUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<ImportJobCreateWithoutOrganizationInput, ImportJobUncheckedCreateWithoutOrganizationInput> | ImportJobCreateWithoutOrganizationInput[] | ImportJobUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: ImportJobCreateOrConnectWithoutOrganizationInput | ImportJobCreateOrConnectWithoutOrganizationInput[]
+    upsert?: ImportJobUpsertWithWhereUniqueWithoutOrganizationInput | ImportJobUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: ImportJobCreateManyOrganizationInputEnvelope
+    set?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    disconnect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    delete?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    update?: ImportJobUpdateWithWhereUniqueWithoutOrganizationInput | ImportJobUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: ImportJobUpdateManyWithWhereWithoutOrganizationInput | ImportJobUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+  }
+
   export type OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput = {
     create?: XOR<OrganizationMemberCreateWithoutOrganizationInput, OrganizationMemberUncheckedCreateWithoutOrganizationInput> | OrganizationMemberCreateWithoutOrganizationInput[] | OrganizationMemberUncheckedCreateWithoutOrganizationInput[]
     connectOrCreate?: OrganizationMemberCreateOrConnectWithoutOrganizationInput | OrganizationMemberCreateOrConnectWithoutOrganizationInput[]
@@ -189309,6 +191452,20 @@ export namespace Prisma {
     deleteMany?: UserSpendLimitScalarWhereInput | UserSpendLimitScalarWhereInput[]
   }
 
+  export type ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput = {
+    create?: XOR<ImportJobCreateWithoutOrganizationInput, ImportJobUncheckedCreateWithoutOrganizationInput> | ImportJobCreateWithoutOrganizationInput[] | ImportJobUncheckedCreateWithoutOrganizationInput[]
+    connectOrCreate?: ImportJobCreateOrConnectWithoutOrganizationInput | ImportJobCreateOrConnectWithoutOrganizationInput[]
+    upsert?: ImportJobUpsertWithWhereUniqueWithoutOrganizationInput | ImportJobUpsertWithWhereUniqueWithoutOrganizationInput[]
+    createMany?: ImportJobCreateManyOrganizationInputEnvelope
+    set?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    disconnect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    delete?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    update?: ImportJobUpdateWithWhereUniqueWithoutOrganizationInput | ImportJobUpdateWithWhereUniqueWithoutOrganizationInput[]
+    updateMany?: ImportJobUpdateManyWithWhereWithoutOrganizationInput | ImportJobUpdateManyWithWhereWithoutOrganizationInput[]
+    deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+  }
+
   export type OrganizationCreateNestedOneWithoutMembersInput = {
     create?: XOR<OrganizationCreateWithoutMembersInput, OrganizationUncheckedCreateWithoutMembersInput>
     connectOrCreate?: OrganizationCreateOrConnectWithoutMembersInput
@@ -189759,6 +191916,13 @@ export namespace Prisma {
     connect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
   }
 
+  export type ImportJobCreateNestedManyWithoutTargetProjectInput = {
+    create?: XOR<ImportJobCreateWithoutTargetProjectInput, ImportJobUncheckedCreateWithoutTargetProjectInput> | ImportJobCreateWithoutTargetProjectInput[] | ImportJobUncheckedCreateWithoutTargetProjectInput[]
+    connectOrCreate?: ImportJobCreateOrConnectWithoutTargetProjectInput | ImportJobCreateOrConnectWithoutTargetProjectInput[]
+    createMany?: ImportJobCreateManyTargetProjectInputEnvelope
+    connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -189935,6 +192099,13 @@ export namespace Prisma {
     connectOrCreate?: RuntimeWebSocketTicketCreateOrConnectWithoutProjectInput | RuntimeWebSocketTicketCreateOrConnectWithoutProjectInput[]
     createMany?: RuntimeWebSocketTicketCreateManyProjectInputEnvelope
     connect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+  }
+
+  export type ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput = {
+    create?: XOR<ImportJobCreateWithoutTargetProjectInput, ImportJobUncheckedCreateWithoutTargetProjectInput> | ImportJobCreateWithoutTargetProjectInput[] | ImportJobUncheckedCreateWithoutTargetProjectInput[]
+    connectOrCreate?: ImportJobCreateOrConnectWithoutTargetProjectInput | ImportJobCreateOrConnectWithoutTargetProjectInput[]
+    createMany?: ImportJobCreateManyTargetProjectInputEnvelope
+    connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -190301,6 +192472,20 @@ export namespace Prisma {
     deleteMany?: RuntimeWebSocketTicketScalarWhereInput | RuntimeWebSocketTicketScalarWhereInput[]
   }
 
+  export type ImportJobUpdateManyWithoutTargetProjectNestedInput = {
+    create?: XOR<ImportJobCreateWithoutTargetProjectInput, ImportJobUncheckedCreateWithoutTargetProjectInput> | ImportJobCreateWithoutTargetProjectInput[] | ImportJobUncheckedCreateWithoutTargetProjectInput[]
+    connectOrCreate?: ImportJobCreateOrConnectWithoutTargetProjectInput | ImportJobCreateOrConnectWithoutTargetProjectInput[]
+    upsert?: ImportJobUpsertWithWhereUniqueWithoutTargetProjectInput | ImportJobUpsertWithWhereUniqueWithoutTargetProjectInput[]
+    createMany?: ImportJobCreateManyTargetProjectInputEnvelope
+    set?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    disconnect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    delete?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    update?: ImportJobUpdateWithWhereUniqueWithoutTargetProjectInput | ImportJobUpdateWithWhereUniqueWithoutTargetProjectInput[]
+    updateMany?: ImportJobUpdateManyWithWhereWithoutTargetProjectInput | ImportJobUpdateManyWithWhereWithoutTargetProjectInput[]
+    deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -190655,6 +192840,20 @@ export namespace Prisma {
     update?: RuntimeWebSocketTicketUpdateWithWhereUniqueWithoutProjectInput | RuntimeWebSocketTicketUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: RuntimeWebSocketTicketUpdateManyWithWhereWithoutProjectInput | RuntimeWebSocketTicketUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: RuntimeWebSocketTicketScalarWhereInput | RuntimeWebSocketTicketScalarWhereInput[]
+  }
+
+  export type ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput = {
+    create?: XOR<ImportJobCreateWithoutTargetProjectInput, ImportJobUncheckedCreateWithoutTargetProjectInput> | ImportJobCreateWithoutTargetProjectInput[] | ImportJobUncheckedCreateWithoutTargetProjectInput[]
+    connectOrCreate?: ImportJobCreateOrConnectWithoutTargetProjectInput | ImportJobCreateOrConnectWithoutTargetProjectInput[]
+    upsert?: ImportJobUpsertWithWhereUniqueWithoutTargetProjectInput | ImportJobUpsertWithWhereUniqueWithoutTargetProjectInput[]
+    createMany?: ImportJobCreateManyTargetProjectInputEnvelope
+    set?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    disconnect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    delete?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+    update?: ImportJobUpdateWithWhereUniqueWithoutTargetProjectInput | ImportJobUpdateWithWhereUniqueWithoutTargetProjectInput[]
+    updateMany?: ImportJobUpdateManyWithWhereWithoutTargetProjectInput | ImportJobUpdateManyWithWhereWithoutTargetProjectInput[]
+    deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
   }
 
   export type ProjectCreateNestedOneWithoutSlugRedirectsInput = {
@@ -193397,6 +195596,98 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAgentRoutingCardsInput, UserUpdateWithoutAgentRoutingCardsInput>, UserUncheckedUpdateWithoutAgentRoutingCardsInput>
   }
 
+  export type OrganizationCreateNestedOneWithoutImportJobsInput = {
+    create?: XOR<OrganizationCreateWithoutImportJobsInput, OrganizationUncheckedCreateWithoutImportJobsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutImportJobsInput
+    connect?: OrganizationWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutImportJobsInput = {
+    create?: XOR<UserCreateWithoutImportJobsInput, UserUncheckedCreateWithoutImportJobsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutImportJobsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type ProjectCreateNestedOneWithoutImportJobsInput = {
+    create?: XOR<ProjectCreateWithoutImportJobsInput, ProjectUncheckedCreateWithoutImportJobsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutImportJobsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type ImportCreditReservationCreateNestedOneWithoutImportJobInput = {
+    create?: XOR<ImportCreditReservationCreateWithoutImportJobInput, ImportCreditReservationUncheckedCreateWithoutImportJobInput>
+    connectOrCreate?: ImportCreditReservationCreateOrConnectWithoutImportJobInput
+    connect?: ImportCreditReservationWhereUniqueInput
+  }
+
+  export type ImportCreditReservationUncheckedCreateNestedOneWithoutImportJobInput = {
+    create?: XOR<ImportCreditReservationCreateWithoutImportJobInput, ImportCreditReservationUncheckedCreateWithoutImportJobInput>
+    connectOrCreate?: ImportCreditReservationCreateOrConnectWithoutImportJobInput
+    connect?: ImportCreditReservationWhereUniqueInput
+  }
+
+  export type OrganizationUpdateOneRequiredWithoutImportJobsNestedInput = {
+    create?: XOR<OrganizationCreateWithoutImportJobsInput, OrganizationUncheckedCreateWithoutImportJobsInput>
+    connectOrCreate?: OrganizationCreateOrConnectWithoutImportJobsInput
+    upsert?: OrganizationUpsertWithoutImportJobsInput
+    connect?: OrganizationWhereUniqueInput
+    update?: XOR<XOR<OrganizationUpdateToOneWithWhereWithoutImportJobsInput, OrganizationUpdateWithoutImportJobsInput>, OrganizationUncheckedUpdateWithoutImportJobsInput>
+  }
+
+  export type UserUpdateOneWithoutImportJobsNestedInput = {
+    create?: XOR<UserCreateWithoutImportJobsInput, UserUncheckedCreateWithoutImportJobsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutImportJobsInput
+    upsert?: UserUpsertWithoutImportJobsInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutImportJobsInput, UserUpdateWithoutImportJobsInput>, UserUncheckedUpdateWithoutImportJobsInput>
+  }
+
+  export type ProjectUpdateOneWithoutImportJobsNestedInput = {
+    create?: XOR<ProjectCreateWithoutImportJobsInput, ProjectUncheckedCreateWithoutImportJobsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutImportJobsInput
+    upsert?: ProjectUpsertWithoutImportJobsInput
+    disconnect?: ProjectWhereInput | boolean
+    delete?: ProjectWhereInput | boolean
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutImportJobsInput, ProjectUpdateWithoutImportJobsInput>, ProjectUncheckedUpdateWithoutImportJobsInput>
+  }
+
+  export type ImportCreditReservationUpdateOneWithoutImportJobNestedInput = {
+    create?: XOR<ImportCreditReservationCreateWithoutImportJobInput, ImportCreditReservationUncheckedCreateWithoutImportJobInput>
+    connectOrCreate?: ImportCreditReservationCreateOrConnectWithoutImportJobInput
+    upsert?: ImportCreditReservationUpsertWithoutImportJobInput
+    disconnect?: ImportCreditReservationWhereInput | boolean
+    delete?: ImportCreditReservationWhereInput | boolean
+    connect?: ImportCreditReservationWhereUniqueInput
+    update?: XOR<XOR<ImportCreditReservationUpdateToOneWithWhereWithoutImportJobInput, ImportCreditReservationUpdateWithoutImportJobInput>, ImportCreditReservationUncheckedUpdateWithoutImportJobInput>
+  }
+
+  export type ImportCreditReservationUncheckedUpdateOneWithoutImportJobNestedInput = {
+    create?: XOR<ImportCreditReservationCreateWithoutImportJobInput, ImportCreditReservationUncheckedCreateWithoutImportJobInput>
+    connectOrCreate?: ImportCreditReservationCreateOrConnectWithoutImportJobInput
+    upsert?: ImportCreditReservationUpsertWithoutImportJobInput
+    disconnect?: ImportCreditReservationWhereInput | boolean
+    delete?: ImportCreditReservationWhereInput | boolean
+    connect?: ImportCreditReservationWhereUniqueInput
+    update?: XOR<XOR<ImportCreditReservationUpdateToOneWithWhereWithoutImportJobInput, ImportCreditReservationUpdateWithoutImportJobInput>, ImportCreditReservationUncheckedUpdateWithoutImportJobInput>
+  }
+
+  export type ImportJobCreateNestedOneWithoutReservationInput = {
+    create?: XOR<ImportJobCreateWithoutReservationInput, ImportJobUncheckedCreateWithoutReservationInput>
+    connectOrCreate?: ImportJobCreateOrConnectWithoutReservationInput
+    connect?: ImportJobWhereUniqueInput
+  }
+
+  export type ImportJobUpdateOneRequiredWithoutReservationNestedInput = {
+    create?: XOR<ImportJobCreateWithoutReservationInput, ImportJobUncheckedCreateWithoutReservationInput>
+    connectOrCreate?: ImportJobCreateOrConnectWithoutReservationInput
+    upsert?: ImportJobUpsertWithoutReservationInput
+    connect?: ImportJobWhereUniqueInput
+    update?: XOR<XOR<ImportJobUpdateToOneWithWhereWithoutReservationInput, ImportJobUpdateWithoutReservationInput>, ImportJobUncheckedUpdateWithoutReservationInput>
+  }
+
   export type GalleryListingCreatetagsInput = {
     set: string[]
   }
@@ -195417,6 +197708,70 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ImportJobCreateWithoutActorInput = {
+    id?: string
+    idempotencyKey: string
+    requestHash: string
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutImportJobsInput
+    targetProject?: ProjectCreateNestedOneWithoutImportJobsInput
+    reservation?: ImportCreditReservationCreateNestedOneWithoutImportJobInput
+  }
+
+  export type ImportJobUncheckedCreateWithoutActorInput = {
+    id?: string
+    organizationId: string
+    idempotencyKey: string
+    requestHash: string
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    reservation?: ImportCreditReservationUncheckedCreateNestedOneWithoutImportJobInput
+  }
+
+  export type ImportJobCreateOrConnectWithoutActorInput = {
+    where: ImportJobWhereUniqueInput
+    create: XOR<ImportJobCreateWithoutActorInput, ImportJobUncheckedCreateWithoutActorInput>
+  }
+
+  export type ImportJobCreateManyActorInputEnvelope = {
+    data: ImportJobCreateManyActorInput | ImportJobCreateManyActorInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
     where: AccountWhereUniqueInput
     update: XOR<AccountUpdateWithoutUserInput, AccountUncheckedUpdateWithoutUserInput>
@@ -196472,6 +198827,52 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"RuntimeWebSocketTicket"> | Date | string
   }
 
+  export type ImportJobUpsertWithWhereUniqueWithoutActorInput = {
+    where: ImportJobWhereUniqueInput
+    update: XOR<ImportJobUpdateWithoutActorInput, ImportJobUncheckedUpdateWithoutActorInput>
+    create: XOR<ImportJobCreateWithoutActorInput, ImportJobUncheckedCreateWithoutActorInput>
+  }
+
+  export type ImportJobUpdateWithWhereUniqueWithoutActorInput = {
+    where: ImportJobWhereUniqueInput
+    data: XOR<ImportJobUpdateWithoutActorInput, ImportJobUncheckedUpdateWithoutActorInput>
+  }
+
+  export type ImportJobUpdateManyWithWhereWithoutActorInput = {
+    where: ImportJobScalarWhereInput
+    data: XOR<ImportJobUpdateManyMutationInput, ImportJobUncheckedUpdateManyWithoutActorInput>
+  }
+
+  export type ImportJobScalarWhereInput = {
+    AND?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+    OR?: ImportJobScalarWhereInput[]
+    NOT?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+    id?: StringFilter<"ImportJob"> | string
+    organizationId?: StringFilter<"ImportJob"> | string
+    actorUserId?: StringNullableFilter<"ImportJob"> | string | null
+    idempotencyKey?: StringFilter<"ImportJob"> | string
+    requestHash?: StringFilter<"ImportJob"> | string
+    provider?: StringFilter<"ImportJob"> | string
+    state?: StringFilter<"ImportJob"> | string
+    sourceRef?: StringNullableFilter<"ImportJob"> | string | null
+    findings?: JsonNullableFilter<"ImportJob">
+    consent?: JsonNullableFilter<"ImportJob">
+    targetProjectId?: StringNullableFilter<"ImportJob"> | string | null
+    stagedFiles?: JsonNullableFilter<"ImportJob">
+    connectorPreview?: JsonNullableFilter<"ImportJob">
+    stagedFileCount?: IntFilter<"ImportJob"> | number
+    redactedCount?: IntFilter<"ImportJob"> | number
+    creditsReserved?: BoolFilter<"ImportJob"> | boolean
+    version?: IntFilter<"ImportJob"> | number
+    operationToken?: StringNullableFilter<"ImportJob"> | string | null
+    operationExpiresAt?: DateTimeNullableFilter<"ImportJob"> | Date | string | null
+    cleanupTerminalState?: StringNullableFilter<"ImportJob"> | string | null
+    error?: StringNullableFilter<"ImportJob"> | string | null
+    expiresAt?: DateTimeNullableFilter<"ImportJob"> | Date | string | null
+    createdAt?: DateTimeFilter<"ImportJob"> | Date | string
+    updatedAt?: DateTimeFilter<"ImportJob"> | Date | string
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     email: string
@@ -196520,6 +198921,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -196570,6 +198972,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -196636,6 +199039,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -196686,6 +199090,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -196736,6 +199141,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -196786,6 +199192,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -196852,6 +199259,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -196902,6 +199310,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type OrganizationMemberCreateWithoutOrganizationInput = {
@@ -196999,6 +199408,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -197042,6 +199452,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -197987,6 +200398,70 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ImportJobCreateWithoutOrganizationInput = {
+    id?: string
+    idempotencyKey: string
+    requestHash: string
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    actor?: UserCreateNestedOneWithoutImportJobsInput
+    targetProject?: ProjectCreateNestedOneWithoutImportJobsInput
+    reservation?: ImportCreditReservationCreateNestedOneWithoutImportJobInput
+  }
+
+  export type ImportJobUncheckedCreateWithoutOrganizationInput = {
+    id?: string
+    actorUserId?: string | null
+    idempotencyKey: string
+    requestHash: string
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    reservation?: ImportCreditReservationUncheckedCreateNestedOneWithoutImportJobInput
+  }
+
+  export type ImportJobCreateOrConnectWithoutOrganizationInput = {
+    where: ImportJobWhereUniqueInput
+    create: XOR<ImportJobCreateWithoutOrganizationInput, ImportJobUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type ImportJobCreateManyOrganizationInputEnvelope = {
+    data: ImportJobCreateManyOrganizationInput | ImportJobCreateManyOrganizationInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationMemberUpsertWithWhereUniqueWithoutOrganizationInput = {
     where: OrganizationMemberWhereUniqueInput
     update: XOR<OrganizationMemberUpdateWithoutOrganizationInput, OrganizationMemberUncheckedUpdateWithoutOrganizationInput>
@@ -198871,6 +201346,22 @@ export namespace Prisma {
     data: XOR<UserSpendLimitUpdateManyMutationInput, UserSpendLimitUncheckedUpdateManyWithoutOrganizationInput>
   }
 
+  export type ImportJobUpsertWithWhereUniqueWithoutOrganizationInput = {
+    where: ImportJobWhereUniqueInput
+    update: XOR<ImportJobUpdateWithoutOrganizationInput, ImportJobUncheckedUpdateWithoutOrganizationInput>
+    create: XOR<ImportJobCreateWithoutOrganizationInput, ImportJobUncheckedCreateWithoutOrganizationInput>
+  }
+
+  export type ImportJobUpdateWithWhereUniqueWithoutOrganizationInput = {
+    where: ImportJobWhereUniqueInput
+    data: XOR<ImportJobUpdateWithoutOrganizationInput, ImportJobUncheckedUpdateWithoutOrganizationInput>
+  }
+
+  export type ImportJobUpdateManyWithWhereWithoutOrganizationInput = {
+    where: ImportJobScalarWhereInput
+    data: XOR<ImportJobUpdateManyMutationInput, ImportJobUncheckedUpdateManyWithoutOrganizationInput>
+  }
+
   export type OrganizationCreateWithoutMembersInput = {
     id?: string
     slug: string
@@ -198911,6 +201402,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutMembersInput = {
@@ -198953,6 +201445,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutMembersInput = {
@@ -199008,6 +201501,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -199058,6 +201552,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -199139,6 +201634,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutMembersInput = {
@@ -199181,6 +201677,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutMembershipsInput = {
@@ -199242,6 +201739,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -199292,6 +201790,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type RoleUpsertWithoutMembersInput = {
@@ -199363,6 +201862,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutInvitesInput = {
@@ -199405,6 +201905,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutInvitesInput = {
@@ -199486,6 +201987,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutInvitesInput = {
@@ -199528,6 +202030,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type RoleUpsertWithoutInvitesInput = {
@@ -199853,6 +202356,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutProjectsInput = {
@@ -199895,6 +202399,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutProjectsInput = {
@@ -200749,6 +203254,70 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ImportJobCreateWithoutTargetProjectInput = {
+    id?: string
+    idempotencyKey: string
+    requestHash: string
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutImportJobsInput
+    actor?: UserCreateNestedOneWithoutImportJobsInput
+    reservation?: ImportCreditReservationCreateNestedOneWithoutImportJobInput
+  }
+
+  export type ImportJobUncheckedCreateWithoutTargetProjectInput = {
+    id?: string
+    organizationId: string
+    actorUserId?: string | null
+    idempotencyKey: string
+    requestHash: string
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    reservation?: ImportCreditReservationUncheckedCreateNestedOneWithoutImportJobInput
+  }
+
+  export type ImportJobCreateOrConnectWithoutTargetProjectInput = {
+    where: ImportJobWhereUniqueInput
+    create: XOR<ImportJobCreateWithoutTargetProjectInput, ImportJobUncheckedCreateWithoutTargetProjectInput>
+  }
+
+  export type ImportJobCreateManyTargetProjectInputEnvelope = {
+    data: ImportJobCreateManyTargetProjectInput | ImportJobCreateManyTargetProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -200800,6 +203369,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutProjectsInput = {
@@ -200842,6 +203412,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectEnvironmentUpsertWithWhereUniqueWithoutProjectInput = {
@@ -201459,6 +204030,22 @@ export namespace Prisma {
     data: XOR<RuntimeWebSocketTicketUpdateManyMutationInput, RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectInput>
   }
 
+  export type ImportJobUpsertWithWhereUniqueWithoutTargetProjectInput = {
+    where: ImportJobWhereUniqueInput
+    update: XOR<ImportJobUpdateWithoutTargetProjectInput, ImportJobUncheckedUpdateWithoutTargetProjectInput>
+    create: XOR<ImportJobCreateWithoutTargetProjectInput, ImportJobUncheckedCreateWithoutTargetProjectInput>
+  }
+
+  export type ImportJobUpdateWithWhereUniqueWithoutTargetProjectInput = {
+    where: ImportJobWhereUniqueInput
+    data: XOR<ImportJobUpdateWithoutTargetProjectInput, ImportJobUncheckedUpdateWithoutTargetProjectInput>
+  }
+
+  export type ImportJobUpdateManyWithWhereWithoutTargetProjectInput = {
+    where: ImportJobScalarWhereInput
+    data: XOR<ImportJobUpdateManyMutationInput, ImportJobUncheckedUpdateManyWithoutTargetProjectInput>
+  }
+
   export type ProjectCreateWithoutSlugRedirectsInput = {
     id?: string
     name: string
@@ -201500,6 +204087,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSlugRedirectsInput = {
@@ -201543,6 +204131,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSlugRedirectsInput = {
@@ -201602,6 +204191,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSlugRedirectsInput = {
@@ -201645,6 +204235,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoriesInput = {
@@ -201695,6 +204286,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoriesInput = {
@@ -201745,6 +204337,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoriesInput = {
@@ -201811,6 +204404,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -201861,6 +204455,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type OrganizationCreateWithoutAgentMemoriesInput = {
@@ -201903,6 +204498,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAgentMemoriesInput = {
@@ -201945,6 +204541,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAgentMemoriesInput = {
@@ -202003,6 +204600,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -202045,6 +204643,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectCreateWithoutAgentMemoriesInput = {
@@ -202088,6 +204687,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
@@ -202131,6 +204731,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -202190,6 +204791,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -202233,6 +204835,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoryPreferencesInput = {
@@ -202283,6 +204886,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -202333,6 +204937,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -202380,6 +204985,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -202422,6 +205028,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -202470,6 +205077,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -202513,6 +205121,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -202579,6 +205188,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -202629,6 +205239,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentMemoryPreferencesInput = {
@@ -202682,6 +205293,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -202724,6 +205336,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectUpsertWithoutAgentMemoryPreferencesInput = {
@@ -202778,6 +205391,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -202821,6 +205435,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
@@ -202864,6 +205479,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -202907,6 +205523,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -202962,6 +205579,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutProjectIdeStateUpdatesInput = {
@@ -203012,6 +205630,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutProjectIdeStateUpdatesInput = {
@@ -203071,6 +205690,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -203114,6 +205734,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -203175,6 +205796,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput = {
@@ -203225,6 +205847,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type ProjectCreateWithoutAgentPatchProposalsInput = {
@@ -203268,6 +205891,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentPatchProposalsInput = {
@@ -203311,6 +205935,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentPatchProposalsInput = {
@@ -203370,6 +205995,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentPatchProposalsInput = {
@@ -203413,6 +206039,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectCreateWithoutRepairEventsInput = {
@@ -203456,6 +206083,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRepairEventsInput = {
@@ -203499,6 +206127,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRepairEventsInput = {
@@ -203558,6 +206187,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRepairEventsInput = {
@@ -203601,6 +206231,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectCreateWithoutSkillsInput = {
@@ -203644,6 +206275,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSkillsInput = {
@@ -203687,6 +206319,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSkillsInput = {
@@ -203746,6 +206379,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSkillsInput = {
@@ -203789,6 +206423,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
@@ -203832,6 +206467,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -203875,6 +206511,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -203934,6 +206571,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -203977,6 +206615,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -204020,6 +206659,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -204063,6 +206703,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -204122,6 +206763,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -204165,6 +206807,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -204208,6 +206851,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -204251,6 +206895,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -204310,6 +206955,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -204353,6 +206999,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -204396,6 +207043,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -204439,6 +207087,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -204494,6 +207143,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutProjectCollaborationsInput = {
@@ -204544,6 +207194,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutProjectCollaborationsInput = {
@@ -204603,6 +207254,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -204646,6 +207298,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -204707,6 +207360,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectCollaborationsInput = {
@@ -204757,6 +207411,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type ProjectCreateWithoutActivityInput = {
@@ -204800,6 +207455,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -204843,6 +207499,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -204898,6 +207555,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutProjectActivityInput = {
@@ -204948,6 +207606,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutProjectActivityInput = {
@@ -205007,6 +207666,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -205050,6 +207710,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -205111,6 +207772,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectActivityInput = {
@@ -205161,6 +207823,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationPresenceInput = {
@@ -205204,6 +207867,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -205247,6 +207911,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -205302,6 +207967,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -205352,6 +208018,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -205411,6 +208078,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -205454,6 +208122,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -205515,6 +208184,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -205565,6 +208235,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationCommentsInput = {
@@ -205608,6 +208279,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -205651,6 +208323,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -205706,6 +208379,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -205756,6 +208430,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -205815,6 +208490,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -205858,6 +208534,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -205919,6 +208596,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -205969,6 +208647,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type ProjectCreateWithoutShareLinksInput = {
@@ -206012,6 +208691,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -206055,6 +208735,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -206110,6 +208791,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationShareLinksInput = {
@@ -206160,6 +208842,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationShareLinksInput = {
@@ -206219,6 +208902,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -206262,6 +208946,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -206323,6 +209008,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationShareLinksInput = {
@@ -206373,6 +209059,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type ProjectCreateWithoutTemplatesInput = {
@@ -206416,6 +209103,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -206459,6 +209147,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -206506,6 +209195,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutProjectTemplatesInput = {
@@ -206548,6 +209238,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutProjectTemplatesInput = {
@@ -206607,6 +209298,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -206650,6 +209342,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -206703,6 +209396,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutProjectTemplatesInput = {
@@ -206745,6 +209439,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectCreateWithoutWorkspacesInput = {
@@ -206788,6 +209483,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -206831,6 +209527,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -207077,6 +209774,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -207120,6 +209818,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -207625,6 +210324,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -207668,6 +210368,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -207770,6 +210471,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -207813,6 +210515,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -207905,6 +210608,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -207948,6 +210652,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -208003,6 +210708,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutProjectSnapshotsInput = {
@@ -208053,6 +210759,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutProjectSnapshotsInput = {
@@ -208112,6 +210819,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -208155,6 +210863,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -208216,6 +210925,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectSnapshotsInput = {
@@ -208266,6 +210976,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type ProjectCreateWithoutStorageObjectsInput = {
@@ -208309,6 +211020,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutStorageObjectsInput = {
@@ -208352,6 +211064,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutStorageObjectsInput = {
@@ -208411,6 +211124,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutStorageObjectsInput = {
@@ -208454,6 +211168,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -208497,6 +211212,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -208540,6 +211256,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -208614,6 +211331,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -208657,6 +211375,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -208804,6 +211523,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAuditLogsInput = {
@@ -208846,6 +211566,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAuditLogsInput = {
@@ -208901,6 +211622,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -208951,6 +211673,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -209009,6 +211732,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAuditLogsInput = {
@@ -209051,6 +211775,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutAuditLogsInput = {
@@ -209112,6 +211837,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -209162,6 +211888,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type UserCreateWithoutAdminAuditLogsInput = {
@@ -209212,6 +211939,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutAdminAuditLogsInput = {
@@ -209262,6 +211990,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutAdminAuditLogsInput = {
@@ -209328,6 +212057,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAdminAuditLogsInput = {
@@ -209378,6 +212108,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type OrganizationCreateWithoutBillingCustomerInput = {
@@ -209420,6 +212151,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutBillingCustomerInput = {
@@ -209462,6 +212194,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutBillingCustomerInput = {
@@ -209520,6 +212253,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutBillingCustomerInput = {
@@ -209562,6 +212296,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSubscriptionsInput = {
@@ -209604,6 +212339,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSubscriptionsInput = {
@@ -209646,6 +212382,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSubscriptionsInput = {
@@ -209737,6 +212474,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSubscriptionsInput = {
@@ -209779,6 +212517,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type PlanUpsertWithoutSubscriptionsInput = {
@@ -209914,6 +212653,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutUsageEventsInput = {
@@ -209956,6 +212696,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutUsageEventsInput = {
@@ -210014,6 +212755,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutUsageEventsInput = {
@@ -210056,6 +212798,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutQuotaLedgerInput = {
@@ -210098,6 +212841,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutQuotaLedgerInput = {
@@ -210140,6 +212884,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutQuotaLedgerInput = {
@@ -210198,6 +212943,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutQuotaLedgerInput = {
@@ -210240,6 +212986,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutQuotaOverridesInput = {
@@ -210282,6 +213029,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutQuotaOverridesInput = {
@@ -210324,6 +213072,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutQuotaOverridesInput = {
@@ -210382,6 +213131,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutQuotaOverridesInput = {
@@ -210424,6 +213174,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutStripeEventsInput = {
@@ -210466,6 +213217,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutStripeEventsInput = {
@@ -210508,6 +213260,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutStripeEventsInput = {
@@ -210566,6 +213319,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutStripeEventsInput = {
@@ -210608,6 +213362,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type ProjectCreateWithoutConversationsInput = {
@@ -210651,6 +213406,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -210694,6 +213450,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -210749,6 +213506,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutConversationsInput = {
@@ -210799,6 +213557,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutConversationsInput = {
@@ -210886,6 +213645,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -210929,6 +213689,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -210990,6 +213751,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationsInput = {
@@ -211040,6 +213802,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type AiMessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -211379,6 +214142,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutAiMessageFeedbackInput = {
@@ -211429,6 +214193,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutAiMessageFeedbackInput = {
@@ -211495,6 +214260,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAiMessageFeedbackInput = {
@@ -211545,6 +214311,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type OrganizationCreateWithoutAiCostLedgerInput = {
@@ -211587,6 +214354,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAiCostLedgerInput = {
@@ -211629,6 +214397,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAiCostLedgerInput = {
@@ -211687,6 +214456,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAiCostLedgerInput = {
@@ -211729,6 +214499,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutAbuseEventsInput = {
@@ -211771,6 +214542,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAbuseEventsInput = {
@@ -211813,6 +214585,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAbuseEventsInput = {
@@ -211871,6 +214644,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAbuseEventsInput = {
@@ -211913,6 +214687,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSupportTicketsInput = {
@@ -211955,6 +214730,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSupportTicketsInput = {
@@ -211997,6 +214773,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSupportTicketsInput = {
@@ -212052,6 +214829,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutSupportTicketsInput = {
@@ -212102,6 +214880,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutSupportTicketsInput = {
@@ -212186,6 +214965,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSupportTicketsInput = {
@@ -212228,6 +215008,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutSupportTicketsInput = {
@@ -212289,6 +215070,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSupportTicketsInput = {
@@ -212339,6 +215121,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type TicketMessageUpsertWithWhereUniqueWithoutTicketInput = {
@@ -212469,6 +215252,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutFeatureFlagsInput = {
@@ -212511,6 +215295,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutFeatureFlagsInput = {
@@ -212569,6 +215354,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutFeatureFlagsInput = {
@@ -212611,6 +215397,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserCreateWithoutEmailVerificationTokensInput = {
@@ -212661,6 +215448,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -212711,6 +215499,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -212777,6 +215566,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -212827,6 +215617,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type UserCreateWithoutRuntimeWebSocketTicketsInput = {
@@ -212877,6 +215668,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutRuntimeWebSocketTicketsInput = {
@@ -212927,6 +215719,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutRuntimeWebSocketTicketsInput = {
@@ -212975,6 +215768,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRuntimeWebSocketTicketsInput = {
@@ -213018,6 +215812,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRuntimeWebSocketTicketsInput = {
@@ -213084,6 +215879,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRuntimeWebSocketTicketsInput = {
@@ -213134,6 +215930,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type ProjectUpsertWithoutRuntimeWebSocketTicketsInput = {
@@ -213188,6 +215985,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRuntimeWebSocketTicketsInput = {
@@ -213231,6 +216029,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -213281,6 +216080,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -213331,6 +216131,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -213397,6 +216198,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -213447,6 +216249,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type UserCreateWithoutRecoveryCodesInput = {
@@ -213497,6 +216300,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutRecoveryCodesInput = {
@@ -213547,6 +216351,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutRecoveryCodesInput = {
@@ -213613,6 +216418,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRecoveryCodesInput = {
@@ -213663,6 +216469,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type OrganizationCreateWithoutEnterpriseSettingsInput = {
@@ -213705,6 +216512,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutEnterpriseSettingsInput = {
@@ -213747,6 +216555,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutEnterpriseSettingsInput = {
@@ -213805,6 +216614,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutEnterpriseSettingsInput = {
@@ -213847,6 +216657,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutDomainsInput = {
@@ -213889,6 +216700,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutDomainsInput = {
@@ -213931,6 +216743,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutDomainsInput = {
@@ -213989,6 +216802,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutDomainsInput = {
@@ -214031,6 +216845,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSsoConfigurationsInput = {
@@ -214073,6 +216888,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSsoConfigurationsInput = {
@@ -214115,6 +216931,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSsoConfigurationsInput = {
@@ -214173,6 +216990,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSsoConfigurationsInput = {
@@ -214215,6 +217033,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutScimTokensInput = {
@@ -214257,6 +217076,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutScimTokensInput = {
@@ -214299,6 +217119,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutScimTokensInput = {
@@ -214357,6 +217178,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutScimTokensInput = {
@@ -214399,6 +217221,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutCustomRolesInput = {
@@ -214441,6 +217264,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutCustomRolesInput = {
@@ -214483,6 +217307,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutCustomRolesInput = {
@@ -214541,6 +217366,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutCustomRolesInput = {
@@ -214583,6 +217409,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutSiemWebhooksInput = {
@@ -214625,6 +217452,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutSiemWebhooksInput = {
@@ -214667,6 +217495,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutSiemWebhooksInput = {
@@ -214725,6 +217554,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutSiemWebhooksInput = {
@@ -214767,6 +217597,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutApiKeysInput = {
@@ -214809,6 +217640,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutApiKeysInput = {
@@ -214851,6 +217683,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutApiKeysInput = {
@@ -214906,6 +217739,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutApiKeysInput = {
@@ -214956,6 +217790,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutApiKeysInput = {
@@ -215014,6 +217849,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutApiKeysInput = {
@@ -215056,6 +217892,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutApiKeysInput = {
@@ -215117,6 +217954,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutApiKeysInput = {
@@ -215167,6 +218005,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type UserCreateWithoutOauthConnectionsInput = {
@@ -215217,6 +218056,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutOauthConnectionsInput = {
@@ -215267,6 +218107,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutOauthConnectionsInput = {
@@ -215333,6 +218174,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOauthConnectionsInput = {
@@ -215383,6 +218225,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type McpInstallCreateWithoutCatalogEntryInput = {
@@ -215540,6 +218383,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutMcpInstallsInput = {
@@ -215590,6 +218434,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutMcpInstallsInput = {
@@ -215637,6 +218482,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutMcpInstallsInput = {
@@ -215679,6 +218525,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutMcpInstallsInput = {
@@ -215810,6 +218657,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpInstallsInput = {
@@ -215860,6 +218708,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type OrganizationUpsertWithoutMcpInstallsInput = {
@@ -215913,6 +218762,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutMcpInstallsInput = {
@@ -215955,6 +218805,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserCreateWithoutMcpUserConfigInput = {
@@ -216005,6 +218856,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutMcpUserConfigInput = {
@@ -216055,6 +218907,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutMcpUserConfigInput = {
@@ -216121,6 +218974,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpUserConfigInput = {
@@ -216171,6 +219025,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type AgentRunResultCreateWithoutRunInput = {
@@ -216292,6 +219147,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutAgentRunsInput = {
@@ -216342,6 +219198,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutAgentRunsInput = {
@@ -216389,6 +219246,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAgentRunsInput = {
@@ -216431,6 +219289,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAgentRunsInput = {
@@ -216570,6 +219429,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRunsInput = {
@@ -216620,6 +219480,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentRunsInput = {
@@ -216673,6 +219534,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAgentRunsInput = {
@@ -216715,6 +219577,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type AgentRunCreateWithoutResultsInput = {
@@ -216925,6 +219788,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutUserConnectionsInput = {
@@ -216975,6 +219839,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutUserConnectionsInput = {
@@ -217128,6 +219993,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutUserConnectionsInput = {
@@ -217178,6 +220044,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type OrganizationOAuthAppOverrideUpsertWithoutUserConnectionsInput = {
@@ -217306,6 +220173,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConnectionLinksInput = {
@@ -217349,6 +220217,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConnectionLinksInput = {
@@ -217457,6 +220326,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutLinkedProjectConnectionsInput = {
@@ -217507,6 +220377,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutLinkedProjectConnectionsInput = {
@@ -217566,6 +220437,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConnectionLinksInput = {
@@ -217609,6 +220481,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type UserConnectionUpsertWithoutProjectLinksInput = {
@@ -217729,6 +220602,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLinkedProjectConnectionsInput = {
@@ -217779,6 +220653,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type OrganizationCreateWithoutOauthAppOverridesInput = {
@@ -217821,6 +220696,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutOauthAppOverridesInput = {
@@ -217863,6 +220739,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutOauthAppOverridesInput = {
@@ -217918,6 +220795,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutConfiguredOauthAppOverridesInput = {
@@ -217968,6 +220846,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutConfiguredOauthAppOverridesInput = {
@@ -218084,6 +220963,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutOauthAppOverridesInput = {
@@ -218126,6 +221006,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutConfiguredOauthAppOverridesInput = {
@@ -218187,6 +221068,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConfiguredOauthAppOverridesInput = {
@@ -218237,6 +221119,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type UserConnectionUpsertWithWhereUniqueWithoutOauthAppOverrideInput = {
@@ -218295,6 +221178,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutConnectorPoliciesInput = {
@@ -218337,6 +221221,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutConnectorPoliciesInput = {
@@ -218395,6 +221280,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutConnectorPoliciesInput = {
@@ -218437,6 +221323,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserConnectionCreateWithoutReconnectionAlertsInput = {
@@ -218599,6 +221486,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -218649,6 +221537,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -218715,6 +221604,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -218765,6 +221655,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type UserCreateWithoutIntegrationFeatureRequestsInput = {
@@ -218815,6 +221706,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutIntegrationFeatureRequestsInput = {
@@ -218865,6 +221757,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutIntegrationFeatureRequestsInput = {
@@ -218912,6 +221805,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutIntegrationFeatureRequestsInput = {
@@ -218954,6 +221848,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutIntegrationFeatureRequestsInput = {
@@ -219020,6 +221915,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutIntegrationFeatureRequestsInput = {
@@ -219070,6 +221966,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type OrganizationUpsertWithoutIntegrationFeatureRequestsInput = {
@@ -219123,6 +222020,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutIntegrationFeatureRequestsInput = {
@@ -219165,6 +222063,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutCreditWalletInput = {
@@ -219207,6 +222106,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutCreditWalletInput = {
@@ -219249,6 +222149,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutCreditWalletInput = {
@@ -219341,6 +222242,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutCreditWalletInput = {
@@ -219383,6 +222285,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type CreditLedgerUpsertWithWhereUniqueWithoutWalletInput = {
@@ -219441,6 +222344,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutCreditPacksInput = {
@@ -219483,6 +222387,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutCreditPacksInput = {
@@ -219541,6 +222446,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutCreditPacksInput = {
@@ -219583,6 +222489,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type CreditWalletCreateWithoutEntriesInput = {
@@ -219658,6 +222565,7 @@ export namespace Prisma {
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutCreditLedgerInput = {
@@ -219700,6 +222608,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutCreditLedgerInput = {
@@ -219797,6 +222706,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutCreditLedgerInput = {
@@ -219839,6 +222749,7 @@ export namespace Prisma {
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutAgentCheckpointsInput = {
@@ -219881,6 +222792,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutAgentCheckpointsInput = {
@@ -219923,6 +222835,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutAgentCheckpointsInput = {
@@ -219981,6 +222894,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutAgentCheckpointsInput = {
@@ -220023,6 +222937,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationCreateWithoutUserSpendLimitsInput = {
@@ -220065,6 +222980,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationUncheckedCreateWithoutUserSpendLimitsInput = {
@@ -220107,6 +223023,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
     creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
     agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutOrganizationInput
   }
 
   export type OrganizationCreateOrConnectWithoutUserSpendLimitsInput = {
@@ -220162,6 +223079,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutSpendLimitsInput = {
@@ -220212,6 +223130,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutSpendLimitsInput = {
@@ -220270,6 +223189,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUpdateManyWithoutOrganizationNestedInput
   }
 
   export type OrganizationUncheckedUpdateWithoutUserSpendLimitsInput = {
@@ -220312,6 +223232,7 @@ export namespace Prisma {
     creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
     creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
     agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutOrganizationNestedInput
   }
 
   export type UserUpsertWithoutSpendLimitsInput = {
@@ -220373,6 +223294,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSpendLimitsInput = {
@@ -220423,6 +223345,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type ModelConfigCreateWithoutProviderConfigInput = {
@@ -220609,6 +223532,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDatabaseInstancesInput = {
@@ -220652,6 +223576,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDatabaseInstancesInput = {
@@ -220779,6 +223704,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDatabaseInstancesInput = {
@@ -220822,6 +223748,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput = {
@@ -221322,6 +224249,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutAgentRoutingCardsInput = {
@@ -221372,6 +224300,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutAgentRoutingCardsInput = {
@@ -221438,6 +224367,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRoutingCardsInput = {
@@ -221488,6 +224418,795 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+  }
+
+  export type OrganizationCreateWithoutImportJobsInput = {
+    id?: string
+    slug: string
+    name: string
+    billingEmail?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationUncheckedCreateWithoutImportJobsInput = {
+    id?: string
+    slug: string
+    name: string
+    billingEmail?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    members?: OrganizationMemberUncheckedCreateNestedManyWithoutOrganizationInput
+    invites?: OrganizationInviteUncheckedCreateNestedManyWithoutOrganizationInput
+    projects?: ProjectUncheckedCreateNestedManyWithoutOrganizationInput
+    billingCustomer?: BillingCustomerUncheckedCreateNestedOneWithoutOrganizationInput
+    subscriptions?: SubscriptionUncheckedCreateNestedManyWithoutOrganizationInput
+    usageEvents?: UsageEventUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaLedger?: QuotaLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    quotaOverrides?: QuotaOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    stripeEvents?: StripeEventUncheckedCreateNestedManyWithoutOrganizationInput
+    aiCostLedger?: AiCostLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutOrganizationInput
+    abuseEvents?: AbuseEventUncheckedCreateNestedManyWithoutOrganizationInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutOrganizationInput
+    featureFlags?: FeatureFlagUncheckedCreateNestedManyWithoutOrganizationInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutOrganizationInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedCreateNestedOneWithoutOrganizationInput
+    domains?: VerifiedDomainUncheckedCreateNestedManyWithoutOrganizationInput
+    ssoConfigurations?: SsoConfigurationUncheckedCreateNestedManyWithoutOrganizationInput
+    scimTokens?: ScimTokenUncheckedCreateNestedManyWithoutOrganizationInput
+    customRoles?: CustomRoleUncheckedCreateNestedManyWithoutOrganizationInput
+    siemWebhooks?: SiemWebhookUncheckedCreateNestedManyWithoutOrganizationInput
+    projectTemplates?: ProjectTemplateUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutOrganizationInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutOrganizationInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutOrganizationInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutOrganizationInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutOrganizationInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedCreateNestedManyWithoutOrganizationInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutOrganizationInput
+    creditWallet?: CreditWalletUncheckedCreateNestedOneWithoutOrganizationInput
+    creditLedger?: CreditLedgerUncheckedCreateNestedManyWithoutOrganizationInput
+    creditPacks?: CreditPackUncheckedCreateNestedManyWithoutOrganizationInput
+    agentCheckpoints?: AgentCheckpointUncheckedCreateNestedManyWithoutOrganizationInput
+    userSpendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutOrganizationInput
+  }
+
+  export type OrganizationCreateOrConnectWithoutImportJobsInput = {
+    where: OrganizationWhereUniqueInput
+    create: XOR<OrganizationCreateWithoutImportJobsInput, OrganizationUncheckedCreateWithoutImportJobsInput>
+  }
+
+  export type UserCreateWithoutImportJobsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutImportJobsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutImportJobsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutImportJobsInput, UserUncheckedCreateWithoutImportJobsInput>
+  }
+
+  export type ProjectCreateWithoutImportJobsInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutImportJobsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutImportJobsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutImportJobsInput, ProjectUncheckedCreateWithoutImportJobsInput>
+  }
+
+  export type ImportCreditReservationCreateWithoutImportJobInput = {
+    id?: string
+    organizationId: string
+    key: string
+    reservedCredits: number
+    debitedCredits?: number
+    state?: string
+    version?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportCreditReservationUncheckedCreateWithoutImportJobInput = {
+    id?: string
+    organizationId: string
+    key: string
+    reservedCredits: number
+    debitedCredits?: number
+    state?: string
+    version?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportCreditReservationCreateOrConnectWithoutImportJobInput = {
+    where: ImportCreditReservationWhereUniqueInput
+    create: XOR<ImportCreditReservationCreateWithoutImportJobInput, ImportCreditReservationUncheckedCreateWithoutImportJobInput>
+  }
+
+  export type OrganizationUpsertWithoutImportJobsInput = {
+    update: XOR<OrganizationUpdateWithoutImportJobsInput, OrganizationUncheckedUpdateWithoutImportJobsInput>
+    create: XOR<OrganizationCreateWithoutImportJobsInput, OrganizationUncheckedCreateWithoutImportJobsInput>
+    where?: OrganizationWhereInput
+  }
+
+  export type OrganizationUpdateToOneWithWhereWithoutImportJobsInput = {
+    where?: OrganizationWhereInput
+    data: XOR<OrganizationUpdateWithoutImportJobsInput, OrganizationUncheckedUpdateWithoutImportJobsInput>
+  }
+
+  export type OrganizationUpdateWithoutImportJobsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    billingEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type OrganizationUncheckedUpdateWithoutImportJobsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    billingEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    members?: OrganizationMemberUncheckedUpdateManyWithoutOrganizationNestedInput
+    invites?: OrganizationInviteUncheckedUpdateManyWithoutOrganizationNestedInput
+    projects?: ProjectUncheckedUpdateManyWithoutOrganizationNestedInput
+    billingCustomer?: BillingCustomerUncheckedUpdateOneWithoutOrganizationNestedInput
+    subscriptions?: SubscriptionUncheckedUpdateManyWithoutOrganizationNestedInput
+    usageEvents?: UsageEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaLedger?: QuotaLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    quotaOverrides?: QuotaOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    stripeEvents?: StripeEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    aiCostLedger?: AiCostLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutOrganizationNestedInput
+    abuseEvents?: AbuseEventUncheckedUpdateManyWithoutOrganizationNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutOrganizationNestedInput
+    featureFlags?: FeatureFlagUncheckedUpdateManyWithoutOrganizationNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutOrganizationNestedInput
+    enterpriseSettings?: EnterpriseOrganizationSettingsUncheckedUpdateOneWithoutOrganizationNestedInput
+    domains?: VerifiedDomainUncheckedUpdateManyWithoutOrganizationNestedInput
+    ssoConfigurations?: SsoConfigurationUncheckedUpdateManyWithoutOrganizationNestedInput
+    scimTokens?: ScimTokenUncheckedUpdateManyWithoutOrganizationNestedInput
+    customRoles?: CustomRoleUncheckedUpdateManyWithoutOrganizationNestedInput
+    siemWebhooks?: SiemWebhookUncheckedUpdateManyWithoutOrganizationNestedInput
+    projectTemplates?: ProjectTemplateUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutOrganizationNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutOrganizationNestedInput
+    oauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutOrganizationNestedInput
+    connectorPolicies?: OrganizationConnectorPolicyUncheckedUpdateManyWithoutOrganizationNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditWallet?: CreditWalletUncheckedUpdateOneWithoutOrganizationNestedInput
+    creditLedger?: CreditLedgerUncheckedUpdateManyWithoutOrganizationNestedInput
+    creditPacks?: CreditPackUncheckedUpdateManyWithoutOrganizationNestedInput
+    agentCheckpoints?: AgentCheckpointUncheckedUpdateManyWithoutOrganizationNestedInput
+    userSpendLimits?: UserSpendLimitUncheckedUpdateManyWithoutOrganizationNestedInput
+  }
+
+  export type UserUpsertWithoutImportJobsInput = {
+    update: XOR<UserUpdateWithoutImportJobsInput, UserUncheckedUpdateWithoutImportJobsInput>
+    create: XOR<UserCreateWithoutImportJobsInput, UserUncheckedCreateWithoutImportJobsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutImportJobsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutImportJobsInput, UserUncheckedUpdateWithoutImportJobsInput>
+  }
+
+  export type UserUpdateWithoutImportJobsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutImportJobsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type ProjectUpsertWithoutImportJobsInput = {
+    update: XOR<ProjectUpdateWithoutImportJobsInput, ProjectUncheckedUpdateWithoutImportJobsInput>
+    create: XOR<ProjectCreateWithoutImportJobsInput, ProjectUncheckedCreateWithoutImportJobsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutImportJobsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutImportJobsInput, ProjectUncheckedUpdateWithoutImportJobsInput>
+  }
+
+  export type ProjectUpdateWithoutImportJobsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutImportJobsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ImportCreditReservationUpsertWithoutImportJobInput = {
+    update: XOR<ImportCreditReservationUpdateWithoutImportJobInput, ImportCreditReservationUncheckedUpdateWithoutImportJobInput>
+    create: XOR<ImportCreditReservationCreateWithoutImportJobInput, ImportCreditReservationUncheckedCreateWithoutImportJobInput>
+    where?: ImportCreditReservationWhereInput
+  }
+
+  export type ImportCreditReservationUpdateToOneWithWhereWithoutImportJobInput = {
+    where?: ImportCreditReservationWhereInput
+    data: XOR<ImportCreditReservationUpdateWithoutImportJobInput, ImportCreditReservationUncheckedUpdateWithoutImportJobInput>
+  }
+
+  export type ImportCreditReservationUpdateWithoutImportJobInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    reservedCredits?: IntFieldUpdateOperationsInput | number
+    debitedCredits?: IntFieldUpdateOperationsInput | number
+    state?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportCreditReservationUncheckedUpdateWithoutImportJobInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    key?: StringFieldUpdateOperationsInput | string
+    reservedCredits?: IntFieldUpdateOperationsInput | number
+    debitedCredits?: IntFieldUpdateOperationsInput | number
+    state?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportJobCreateWithoutReservationInput = {
+    id?: string
+    idempotencyKey: string
+    requestHash: string
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutImportJobsInput
+    actor?: UserCreateNestedOneWithoutImportJobsInput
+    targetProject?: ProjectCreateNestedOneWithoutImportJobsInput
+  }
+
+  export type ImportJobUncheckedCreateWithoutReservationInput = {
+    id?: string
+    organizationId: string
+    actorUserId?: string | null
+    idempotencyKey: string
+    requestHash: string
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ImportJobCreateOrConnectWithoutReservationInput = {
+    where: ImportJobWhereUniqueInput
+    create: XOR<ImportJobCreateWithoutReservationInput, ImportJobUncheckedCreateWithoutReservationInput>
+  }
+
+  export type ImportJobUpsertWithoutReservationInput = {
+    update: XOR<ImportJobUpdateWithoutReservationInput, ImportJobUncheckedUpdateWithoutReservationInput>
+    create: XOR<ImportJobCreateWithoutReservationInput, ImportJobUncheckedCreateWithoutReservationInput>
+    where?: ImportJobWhereInput
+  }
+
+  export type ImportJobUpdateToOneWithWhereWithoutReservationInput = {
+    where?: ImportJobWhereInput
+    data: XOR<ImportJobUpdateWithoutReservationInput, ImportJobUncheckedUpdateWithoutReservationInput>
+  }
+
+  export type ImportJobUpdateWithoutReservationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutImportJobsNestedInput
+    actor?: UserUpdateOneWithoutImportJobsNestedInput
+    targetProject?: ProjectUpdateOneWithoutImportJobsNestedInput
+  }
+
+  export type ImportJobUncheckedUpdateWithoutReservationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type ProjectCreateWithoutGalleryListingsInput = {
@@ -221531,6 +225250,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutGalleryListingsInput = {
@@ -221574,6 +225294,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutGalleryListingsInput = {
@@ -221629,6 +225350,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
   }
 
   export type UserUncheckedCreateWithoutGalleryListingsInput = {
@@ -221679,6 +225401,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
   }
 
   export type UserCreateOrConnectWithoutGalleryListingsInput = {
@@ -221738,6 +225461,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutGalleryListingsInput = {
@@ -221781,6 +225505,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type UserUpsertWithoutGalleryListingsInput = {
@@ -221842,6 +225567,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
   }
 
   export type UserUncheckedUpdateWithoutGalleryListingsInput = {
@@ -221892,6 +225618,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
 
   export type LedgerEntryCreateWithoutAccountInput = {
@@ -222858,6 +226585,32 @@ export namespace Prisma {
     expiresAt: Date | string
     consumedAt?: Date | string | null
     createdAt?: Date | string
+  }
+
+  export type ImportJobCreateManyActorInput = {
+    id?: string
+    organizationId: string
+    idempotencyKey: string
+    requestHash: string
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type AccountUpdateWithoutUserInput = {
@@ -223996,6 +227749,86 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ImportJobUpdateWithoutActorInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutImportJobsNestedInput
+    targetProject?: ProjectUpdateOneWithoutImportJobsNestedInput
+    reservation?: ImportCreditReservationUpdateOneWithoutImportJobNestedInput
+  }
+
+  export type ImportJobUncheckedUpdateWithoutActorInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reservation?: ImportCreditReservationUncheckedUpdateOneWithoutImportJobNestedInput
+  }
+
+  export type ImportJobUncheckedUpdateManyWithoutActorInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type OrganizationMemberCreateManyOrganizationInput = {
     id?: string
     userId: string
@@ -224318,6 +228151,32 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type ImportJobCreateManyOrganizationInput = {
+    id?: string
+    actorUserId?: string | null
+    idempotencyKey: string
+    requestHash: string
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type OrganizationMemberUpdateWithoutOrganizationInput = {
     id?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -224410,6 +228269,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -224453,6 +228313,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -225416,6 +229277,86 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ImportJobUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    actor?: UserUpdateOneWithoutImportJobsNestedInput
+    targetProject?: ProjectUpdateOneWithoutImportJobsNestedInput
+    reservation?: ImportCreditReservationUpdateOneWithoutImportJobNestedInput
+  }
+
+  export type ImportJobUncheckedUpdateWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reservation?: ImportCreditReservationUncheckedUpdateOneWithoutImportJobNestedInput
+  }
+
+  export type ImportJobUncheckedUpdateManyWithoutOrganizationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    targetProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type RolePermissionCreateManyRoleInput = {
     permissionId: string
   }
@@ -225797,6 +229738,32 @@ export namespace Prisma {
     expiresAt: Date | string
     consumedAt?: Date | string | null
     createdAt?: Date | string
+  }
+
+  export type ImportJobCreateManyTargetProjectInput = {
+    id?: string
+    organizationId: string
+    actorUserId?: string | null
+    idempotencyKey: string
+    requestHash: string
+    provider: string
+    state?: string
+    sourceRef?: string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: number
+    redactedCount?: number
+    creditsReserved?: boolean
+    version?: number
+    operationToken?: string | null
+    operationExpiresAt?: Date | string | null
+    cleanupTerminalState?: string | null
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type ProjectEnvironmentUpdateWithoutProjectInput = {
@@ -226738,6 +230705,86 @@ export namespace Prisma {
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ImportJobUpdateWithoutTargetProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutImportJobsNestedInput
+    actor?: UserUpdateOneWithoutImportJobsNestedInput
+    reservation?: ImportCreditReservationUpdateOneWithoutImportJobNestedInput
+  }
+
+  export type ImportJobUncheckedUpdateWithoutTargetProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reservation?: ImportCreditReservationUncheckedUpdateOneWithoutImportJobNestedInput
+  }
+
+  export type ImportJobUncheckedUpdateManyWithoutTargetProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    actorUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: StringFieldUpdateOperationsInput | string
+    requestHash?: StringFieldUpdateOperationsInput | string
+    provider?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    sourceRef?: NullableStringFieldUpdateOperationsInput | string | null
+    findings?: NullableJsonNullValueInput | InputJsonValue
+    consent?: NullableJsonNullValueInput | InputJsonValue
+    stagedFiles?: NullableJsonNullValueInput | InputJsonValue
+    connectorPreview?: NullableJsonNullValueInput | InputJsonValue
+    stagedFileCount?: IntFieldUpdateOperationsInput | number
+    redactedCount?: IntFieldUpdateOperationsInput | number
+    creditsReserved?: BoolFieldUpdateOperationsInput | boolean
+    version?: IntFieldUpdateOperationsInput | number
+    operationToken?: NullableStringFieldUpdateOperationsInput | string | null
+    operationExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type WorkspaceSessionCreateManyWorkspaceInput = {

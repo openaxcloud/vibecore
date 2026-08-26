@@ -391,6 +391,22 @@
     "en": "The import could not be completed. Please try again.",
     "fr": "L’importation n’a pas pu aboutir. Veuillez réessayer."
   },
+  "IMPORT_ARCHIVE_PROVIDER_INVALID": {
+    "en": "This archive payload is not valid for the selected import provider.",
+    "fr": "Cette archive n’est pas valide pour le fournisseur d’importation sélectionné."
+  },
+  "IMPORT_IDEMPOTENCY_CONFLICT": {
+    "en": "This import idempotency key is already bound to another request.",
+    "fr": "Cette clé d’idempotence d’importation est déjà associée à une autre requête."
+  },
+  "IMPORT_COMMIT_OWNERSHIP_LOST": {
+    "en": "Import commit ownership was lost. Retry from the current import state.",
+    "fr": "La propriété du commit d’importation a été perdue. Réessayez depuis l’état actuel de l’importation."
+  },
+  "PROJECT_TEMPLATE_CATALOG_INVARIANT": {
+    "en": "The selected project template is unavailable.",
+    "fr": "Le modèle de projet sélectionné n’est pas disponible."
+  },
   "PROJECT_SLUG_INVALID": {
     "en": "Slug must contain at least one letter or number.",
     "fr": "Le slug doit contenir au moins une lettre ou un chiffre."
