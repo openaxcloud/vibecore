@@ -23,7 +23,7 @@ import {
   type WorkspaceManagerPublicError,
 } from './public-i18n.js';
 
-export type WorkspaceStatus = 'STARTING' | 'RUNNING' | 'STOPPED' | 'FAILED' | 'DELETED';
+export type WorkspaceStatus = 'STARTING' | 'RUNNING' | 'STOPPING' | 'STOPPED' | 'FAILED' | 'DELETED';
 
 /*
  * Activity touches (see WorkspaceManager.touch) are throttled to at most one
@@ -60,6 +60,19 @@ export interface WorkspaceRecord {
 export interface WorkspaceStore {
   create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>): Promise<WorkspaceRecord>;
   update(workspaceId: string, patch: Partial<WorkspaceRecord>): Promise<WorkspaceRecord>;
+
+  /*
+   * Atomic lifecycle compare-and-set. Kubernetes teardown cannot share a
+   * transaction with Postgres, so callers first claim the row with this CAS
+   * before touching the Pod. `lastActiveAt` is part of the expected value: a
+   * concurrent reopen/touch invalidates a stale stop decision even when the
+   * coarse status has not changed yet. Undefined means another owner won.
+   */
+  updateIfUnchanged(
+    workspaceId: string,
+    expected: Pick<WorkspaceRecord, 'status' | 'lastActiveAt'>,
+    patch: Partial<WorkspaceRecord>,
+  ): Promise<WorkspaceRecord | undefined>;
   get(workspaceId: string): Promise<WorkspaceRecord | undefined>;
   list(): Promise<WorkspaceRecord[]>;
 
@@ -114,6 +127,25 @@ export class JsonWorkspaceStore implements WorkspaceStore {
 
     if (!existing) {
       throw workspaceManagerError('workspaceNotFound', { code: 'WORKSPACE_NOT_FOUND', statusCode: 404 });
+    }
+
+    const updated = { ...existing, ...patch };
+    workspaces.set(workspaceId, updated);
+    await this.write(workspaces);
+
+    return updated;
+  }
+
+  async updateIfUnchanged(
+    workspaceId: string,
+    expected: Pick<WorkspaceRecord, 'status' | 'lastActiveAt'>,
+    patch: Partial<WorkspaceRecord>,
+  ) {
+    const workspaces = await this.read();
+    const existing = workspaces.get(workspaceId);
+
+    if (!existing || existing.status !== expected.status || existing.lastActiveAt !== expected.lastActiveAt) {
+      return undefined;
     }
 
     const updated = { ...existing, ...patch };
@@ -597,10 +629,10 @@ export class WorkspaceManager {
       lastMeteredAt: new Date().toISOString(),
     };
 
-    let record;
+    let record: WorkspaceRecord;
 
     if (existing) {
-      record = await this.store.update(input.workspaceId, resetUpdate);
+      record = await this.#claimWorkspaceStart(input.workspaceId, existing, resetUpdate);
     } else {
       try {
         record = await this.store.create(baseRecord);
@@ -613,7 +645,11 @@ export class WorkspaceManager {
          * fall back to the reset update instead of crashing.
          */
         if ((error as { code?: string } | undefined)?.code === 'P2002') {
-          record = await this.store.update(input.workspaceId, resetUpdate);
+          record = await this.#claimWorkspaceStart(
+            input.workspaceId,
+            await this.requireWorkspace(input.workspaceId),
+            resetUpdate,
+          );
         } else {
           throw error;
         }
@@ -666,10 +702,20 @@ export class WorkspaceManager {
        */
       await this.waitForAgentReachable(input.workspaceId, input.namespace);
 
-      const running = await this.store.update(input.workspaceId, {
-        status: 'RUNNING',
-        lastActiveAt: new Date().toISOString(),
-      });
+      const running = await this.store.updateIfUnchanged(
+        input.workspaceId,
+        { status: 'STARTING', lastActiveAt: record.lastActiveAt },
+        { status: 'RUNNING', lastActiveAt: new Date().toISOString() },
+      );
+
+      /*
+       * A concurrent stop may have claimed STOPPING while readiness was being
+       * polled. Never overwrite that claim with RUNNING; the stop owns teardown
+       * and the caller receives the current durable state.
+       */
+      if (!running) {
+        return this.requireWorkspace(input.workspaceId);
+      }
 
       /*
        * The workspace is fully provisioned and committed RUNNING at this point.
@@ -706,33 +752,77 @@ export class WorkspaceManager {
         }),
       );
 
+      const publicKey = (error as WorkspaceManagerPublicError | undefined)?.publicMessageKey ?? 'workspaceStartFailed';
+      const failed = await this.store.updateIfUnchanged(
+        input.workspaceId,
+        { status: 'STARTING', lastActiveAt: record.lastActiveAt },
+        { status: 'FAILED', error: workspaceManagerMessage(publicKey, 'en') },
+      );
+
       /*
-       * Tear down the compute objects we just created so a failed start (e.g. a
-       * readiness timeout) doesn't leave a CrashLooping/Pending Pod and its
-       * Service churning resources until the 24h GC. Best-effort — never let
-       * cleanup errors mask the original failure. The PVC and agent-token Secret
-       * are deliberately KEPT: the PVC may hold the user's existing data (this
-       * path is re-entered on reopen with the same deterministic id), and both
-       * are reused as-is when the deterministic-id start is retried.
-       *
-       * Run this BEFORE the store.update below: if the FAILED-status write throws
-       * (DB error, or the row was concurrently deleted), the cleanup must still
-       * happen — otherwise the Pod/Service leak until GC.
+       * If this start no longer owns STARTING, a stop or a newer start won the
+       * lifecycle CAS. Do not delete that owner's Pod/Service and do not stamp a
+       * stale FAILED over its state.
+       */
+      if (!failed) {
+        return this.requireWorkspace(input.workspaceId);
+      }
+
+      /*
+       * Tear down the compute objects created by THIS failed start. Best-effort
+       * and intentionally Pod/Service-only: the PVC may contain user data and is
+       * preserved for the next retry.
        */
       await Promise.allSettled([
         this.k8s.delete('Pod', input.namespace, record.podName),
         this.k8s.delete('Service', input.namespace, record.serviceName),
       ]);
 
-      const publicKey = (error as WorkspaceManagerPublicError | undefined)?.publicMessageKey ?? 'workspaceStartFailed';
-      const failed = await this.store.update(input.workspaceId, {
-        status: 'FAILED',
-        error: workspaceManagerMessage(publicKey, 'en'),
-      });
-
       await this.publish(failed, 'workspace.failed');
 
       return failed;
+    }
+  }
+
+  /*
+   * Atomically claim STARTING against a concurrent stop. A stop first moves the
+   * row to STOPPING via the same CAS primitive and owns Pod teardown until it
+   * reaches STOPPED. Reopen waits for that short transition instead of
+   * overwriting STOPPING and recreating a Pod that the stop can then kill (or,
+   * in the opposite ordering, letting the stop persist STOPPED over a live Pod).
+   */
+  async #claimWorkspaceStart(
+    workspaceId: string,
+    initial: WorkspaceRecord,
+    patch: Partial<WorkspaceRecord>,
+  ): Promise<WorkspaceRecord> {
+    const parsedTimeout = Number(process.env.WORKSPACE_STOP_SETTLE_TIMEOUT_MS);
+    const timeoutMs = Number.isFinite(parsedTimeout) && parsedTimeout > 0 ? parsedTimeout : 30_000;
+    const deadline = Date.now() + timeoutMs;
+    let observed = initial;
+
+    for (;;) {
+      if (observed.status !== 'STOPPING') {
+        const claimed = await this.store.updateIfUnchanged(
+          workspaceId,
+          { status: observed.status, lastActiveAt: observed.lastActiveAt },
+          patch,
+        );
+
+        if (claimed) {
+          return claimed;
+        }
+      }
+
+      if (Date.now() >= deadline) {
+        throw workspaceManagerError('workspaceStopInProgress', {
+          code: 'WORKSPACE_STOP_IN_PROGRESS',
+          statusCode: 409,
+        });
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      observed = await this.requireWorkspace(workspaceId);
     }
   }
 
@@ -1115,6 +1205,60 @@ export class WorkspaceManager {
       return workspace;
     }
 
+    if (workspace.status === 'DELETED') {
+      return workspace;
+    }
+
+    /*
+     * A STARTING owner may still be between its durable claim and any of the
+     * Kubernetes applies below it (Secret, Pod, Service). Claiming STOPPING here
+     * and deleting the currently-observed Pod is insufficient fencing: the
+     * starter could apply the Pod just after our NotFound verification, leaving
+     * a live Pod behind a STOPPED row. There is no transaction spanning Postgres
+     * and Kubernetes, so fail closed and let the caller retry once STARTING has
+     * committed RUNNING/FAILED. Nothing is deleted, especially not the PVC.
+     */
+    if (workspace.status === 'STARTING') {
+      throw workspaceManagerError('workspaceStartInProgress', {
+        code: 'WORKSPACE_START_IN_PROGRESS',
+        statusCode: 409,
+      });
+    }
+
+    /*
+     * Claim teardown BEFORE touching Kubernetes. This is the cross-replica
+     * linearization point: startWorkspace uses the same CAS to claim STARTING,
+     * therefore a stop and a reopen cannot both own the Pod generation. A
+     * STOPPING row is a recoverable, durable in-flight stop (manager crash or a
+     * prior control-plane error); any later stop/GC pass may resume it.
+     */
+    const stopping =
+      workspace.status === 'STOPPING'
+        ? workspace
+        : await this.store.updateIfUnchanged(
+            workspaceId,
+            { status: workspace.status, lastActiveAt: workspace.lastActiveAt },
+            { status: 'STOPPING', error: undefined },
+          );
+
+    if (!stopping) {
+      const superseding = await this.requireWorkspace(workspaceId);
+
+      console.log(
+        JSON.stringify({
+          level: 'info',
+          service: 'workspace-manager',
+          event: 'workspace.stop.superseded',
+          workspaceId,
+          namespace,
+          observedStatus: workspace.status,
+          currentStatus: superseding.status,
+        }),
+      );
+
+      return superseding;
+    }
+
     /*
      * Meter the active-runtime window on EVERY stop transition, not just the GC
      * path. Runtime compute is metered only at stop (never periodically), so a
@@ -1126,18 +1270,59 @@ export class WorkspaceManager {
      * before calling stopWorkspace advanced the marker, so this re-meter sees a
      * zero-length window and is a no-op rather than a double-charge.
      */
-    await this.#meterRuntimeOnStop(workspace);
+    await this.#meterRuntimeOnStop(stopping);
 
-    await this.k8s.delete('Pod', namespace, workspace.podName);
+    try {
+      await this.k8s.delete('Pod', namespace, stopping.podName);
 
-    const stopped = await this.store.update(workspaceId, { status: 'STOPPED' });
+      /*
+       * Never persist STOPPED merely because kubectl accepted a deletion. Only
+       * an authenticated NotFound is absence; RBAC/network/read failures throw
+       * and leave the durable STOPPING claim for a later retry.
+       */
+      await this.#waitForPodGone(namespace, stopping.podName);
+    } catch (error) {
+      await this.store
+        .updateIfUnchanged(
+          workspaceId,
+          { status: 'STOPPING', lastActiveAt: stopping.lastActiveAt },
+          { error: workspaceManagerMessage('workspaceStopFailed', 'en') },
+        )
+        .catch(() => undefined);
+
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          service: 'workspace-manager',
+          event: 'workspace.stop.failed',
+          workspaceId,
+          namespace,
+          podName: stopping.podName,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
+
+      throw error;
+    }
+
+    const stopped = await this.store.updateIfUnchanged(
+      workspaceId,
+      { status: 'STOPPING', lastActiveAt: stopping.lastActiveAt },
+      { status: 'STOPPED', error: undefined },
+    );
+
+    if (!stopped) {
+      return this.requireWorkspace(workspaceId);
+    }
 
     /*
      * Drop the throttle marker so a later reopen (same deterministic id) touches
      * immediately instead of waiting out a stale window.
      */
     this.lastTouchAt.delete(workspaceId);
-    await this.publish(stopped, 'workspace.stopped');
+    if (workspace.status !== 'STOPPED') {
+      await this.publish(stopped, 'workspace.stopped');
+    }
 
     return stopped;
   }
@@ -1261,6 +1446,43 @@ export class WorkspaceManager {
              * The pod died externally; stopWorkspace meters the consumed runtime
              * window (post-guard) before flipping the row to STOPPED.
              */
+            await this.stopWorkspace(namespace, workspace.id, guard);
+            continue;
+          }
+        }
+
+        /*
+         * Resume a stop interrupted after its durable STOPPING claim. This is
+         * independent of the inactivity window: the user already requested the
+         * stop, and the PVC remains untouched. stopWorkspace is idempotent and
+         * verifies the Pod is truly absent before committing STOPPED.
+         */
+        if (workspace.status === 'STOPPING') {
+          await this.stopWorkspace(namespace, workspace.id, guard);
+          continue;
+        }
+
+        /*
+         * Repair rows produced by pre-CAS manager versions: STOPPED in Postgres
+         * while a same-name bare Pod is still Running. Claim STOPPING atomically
+         * before deleting, so a concurrent reopen either wins STARTING and is
+         * left alone, or waits until this non-destructive Pod-only cleanup ends.
+         * The PVC, Service and secret are deliberately preserved.
+         */
+        if (workspace.status === 'STOPPED') {
+          const leakedPod = await this.k8s.getPod(namespace, workspace.podName);
+
+          if (leakedPod) {
+            console.warn(
+              JSON.stringify({
+                level: 'warn',
+                service: 'workspace-manager',
+                event: 'workspace.gc.reconcile_stopped_pod',
+                workspaceId: workspace.id,
+                namespace,
+                podName: workspace.podName,
+              }),
+            );
             await this.stopWorkspace(namespace, workspace.id, guard);
             continue;
           }
@@ -1492,7 +1714,12 @@ export class WorkspaceManager {
     const startedAt = Date.now();
 
     while (Date.now() - startedAt < timeoutMs) {
-      const pod = await this.k8s.getPod(namespace, podName).catch(() => null);
+      /*
+       * getPod returns undefined ONLY for a real NotFound. Do not turn an RBAC,
+       * API-server or network failure into false absence: stopWorkspace relies
+       * on this postcondition before it is allowed to persist STOPPED.
+       */
+      const pod = await this.k8s.getPod(namespace, podName);
 
       if (!pod) {
         return;

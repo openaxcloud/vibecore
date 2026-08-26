@@ -19,6 +19,7 @@ function toStatus(value: string): WorkspaceStatus {
   switch (value) {
     case 'STARTING':
     case 'RUNNING':
+    case 'STOPPING':
     case 'STOPPED':
     case 'FAILED':
     case 'DELETED':
@@ -64,6 +65,46 @@ function rowToRecord(row: PrismaRuntimeRow): WorkspaceRecord {
   };
 }
 
+function patchToData(patch: Partial<WorkspaceRecord>): Record<string, unknown> {
+  const data: Record<string, unknown> = {};
+
+  if (patch.orgId !== undefined) {
+    data.orgId = patch.orgId;
+  }
+  if (patch.projectId !== undefined) {
+    data.projectId = patch.projectId;
+  }
+  if (patch.plan !== undefined) {
+    data.plan = patch.plan;
+  }
+  if (patch.status !== undefined) {
+    data.status = patch.status;
+  }
+  if (patch.pvcName !== undefined) {
+    data.pvcName = patch.pvcName;
+  }
+  if (patch.podName !== undefined) {
+    data.podName = patch.podName;
+  }
+  if (patch.serviceName !== undefined) {
+    data.serviceName = patch.serviceName;
+  }
+  if (patch.agentTokenSecretName !== undefined) {
+    data.agentTokenSecretName = patch.agentTokenSecretName;
+  }
+  if (patch.lastActiveAt !== undefined) {
+    data.lastActiveAt = new Date(patch.lastActiveAt);
+  }
+  if (patch.lastMeteredAt !== undefined) {
+    data.lastMeteredAt = new Date(patch.lastMeteredAt);
+  }
+  if (Object.prototype.hasOwnProperty.call(patch, 'error')) {
+    data.error = patch.error ?? null;
+  }
+
+  return data;
+}
+
 /**
  * PrismaWorkspaceStore — the production WorkspaceStore.
  *
@@ -105,46 +146,10 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
   }
 
   async update(workspaceId: string, patch: Partial<WorkspaceRecord>): Promise<WorkspaceRecord> {
-    const data: Record<string, unknown> = {};
-
-    if (patch.orgId !== undefined) {
-      data.orgId = patch.orgId;
-    }
-    if (patch.projectId !== undefined) {
-      data.projectId = patch.projectId;
-    }
-    if (patch.plan !== undefined) {
-      data.plan = patch.plan;
-    }
-    if (patch.status !== undefined) {
-      data.status = patch.status;
-    }
-    if (patch.pvcName !== undefined) {
-      data.pvcName = patch.pvcName;
-    }
-    if (patch.podName !== undefined) {
-      data.podName = patch.podName;
-    }
-    if (patch.serviceName !== undefined) {
-      data.serviceName = patch.serviceName;
-    }
-    if (patch.agentTokenSecretName !== undefined) {
-      data.agentTokenSecretName = patch.agentTokenSecretName;
-    }
-    if (patch.lastActiveAt !== undefined) {
-      data.lastActiveAt = new Date(patch.lastActiveAt);
-    }
-    if (patch.lastMeteredAt !== undefined) {
-      data.lastMeteredAt = new Date(patch.lastMeteredAt);
-    }
-    if (Object.prototype.hasOwnProperty.call(patch, 'error')) {
-      data.error = patch.error ?? null;
-    }
-
     try {
       const updated = (await this.prisma.workspaceRuntime.update({
         where: { id: workspaceId },
-        data,
+        data: patchToData(patch),
       })) as PrismaRuntimeRow;
       return rowToRecord(updated);
     } catch (error) {
@@ -160,6 +165,28 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
       }
       throw error;
     }
+  }
+
+  async updateIfUnchanged(
+    workspaceId: string,
+    expected: Pick<WorkspaceRecord, 'status' | 'lastActiveAt'>,
+    patch: Partial<WorkspaceRecord>,
+  ): Promise<WorkspaceRecord | undefined> {
+    /*
+     * One conditional UPDATE ... RETURNING is the cross-replica linearization
+     * point. A read-then-update here would reintroduce the stop/reopen race that
+     * can persist STOPPED while the new Pod is already Running.
+     */
+    const rows = (await this.prisma.workspaceRuntime.updateManyAndReturn({
+      where: {
+        id: workspaceId,
+        status: expected.status,
+        lastActiveAt: new Date(expected.lastActiveAt),
+      },
+      data: patchToData(patch),
+    })) as PrismaRuntimeRow[];
+
+    return rows[0] ? rowToRecord(rows[0]) : undefined;
   }
 
   async claimMeterWindow(workspaceId: string, expected: string | undefined, next: string): Promise<boolean> {

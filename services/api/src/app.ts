@@ -463,7 +463,13 @@ declare module 'fastify' {
 export type WorkspacePodStaticBuild = (
   request: any,
   project: { id: string; organizationId: string },
-  body: { buildCommand: string; outputDirectory: string; timeoutSeconds: number; artifactSizeLimitMb?: number },
+  body: {
+    buildCommand: string;
+    outputDirectory: string;
+    timeoutSeconds: number;
+    artifactSizeLimitMb?: number;
+    workspaceId?: string;
+  },
   deploymentId: string,
   progress?: { onLog?: (log: StaticBuildLog) => void; onPhase?: (phase: string) => void },
 ) => Promise<{ handled: false } | { handled: true; result: RunStaticBuildResult; tempDir: string }>;
@@ -13617,6 +13623,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         /*
+         * BUG-CREATE-005 audit: undici reports a cold Pod as a generic connect
+         * timeout/refusal as well as ENOTFOUND. The transport error alone cannot
+         * distinguish provisioning from a broken RUNNING agent, so ask the
+         * manager for the durable lifecycle state after the retry budget is
+         * exhausted. Only an explicit STARTING is reclassified as the transient
+         * 425 contract; every unknown/RUNNING/manager-failure case remains the
+         * honest 502 below. This is read-only and never retries the project
+         * import or any user mutation.
+         */
+        const managerWorkspace = await managerRequest<{ status?: string } | undefined>(
+          `/workspaces/${workspaceId}`,
+        ).catch(() => undefined);
+
+        if (managerWorkspace?.status === 'STARTING') {
+          throw Object.assign(new Error(appPublicEnglish('WORKSPACE_STARTING')), {
+            statusCode: 425,
+            code: 'WORKSPACE_NOT_STARTED',
+            publicMessage: appPublicEnglish('WORKSPACE_STARTING'),
+            cause: error,
+          });
+        }
+
+        /*
          * The agent pod may not be reachable yet (workspace still provisioning)
          * or may have been reclaimed. Surface the same coded 502 as a non-ok
          * agent response so callers (and the local-runtime fallback) treat it as
@@ -13956,6 +13985,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * server). Removed after the artifact is pulled.
            */
           sandboxDir: `.vibecore-deploy-${deploymentId}`,
+          diagnosticContext: {
+            deploymentId,
+            projectId: project.id,
+            runtimeWorkspaceId: workspaceId,
+            requestedProjectWorkspaceId: body.workspaceId,
+          },
           materializeDir: tempDir,
           maxFileBytes: DEPLOY_MAX_PULL_FILE_BYTES,
           artifactSizeLimitMb: body.artifactSizeLimitMb,
@@ -16025,7 +16060,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       if (diagnosticsDb) {
         void captureStopDiagnostics(authorized.workspaceId, 'start.failed', 'FAILED');
       }
-    } else if (managerWorkspace?.status !== 'STOPPED') {
+    } else if (managerWorkspace?.status === 'STOPPED' || managerWorkspace?.status === 'STOPPING') {
+      /*
+       * The manager may return STOPPING when a concurrent stop owns Pod
+       * teardown. The public Workspace model has no STOPPING value, so persist
+       * the safe terminal projection STOPPED: never claim RUNNING, seed files,
+       * or retain an active-workspace quota slot while no agent is routable.
+       */
+      await store
+        .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'STOPPED' })
+        .catch(() => undefined);
+    } else {
       await store
         .updateWorkspaceStatus({ workspaceId: authorized.workspaceId, status: 'RUNNING' })
         .catch(() => undefined);
@@ -16042,7 +16087,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return runtimeSession(
       authorized.workspaceId,
-      managerWorkspace?.status === 'FAILED' ? 'failed' : managerWorkspace?.status === 'STOPPED' ? 'stopped' : 'running',
+      managerWorkspace?.status === 'FAILED'
+        ? 'failed'
+        : managerWorkspace?.status === 'STOPPED' || managerWorkspace?.status === 'STOPPING'
+          ? 'stopped'
+          : 'running',
       { managerWorkspace },
     );
   });

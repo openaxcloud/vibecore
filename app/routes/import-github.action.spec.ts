@@ -80,6 +80,23 @@ afterEach(() => {
 });
 
 describe('import-github action error handling', () => {
+  it('commits a successful import once and redirects before workspace cold-start work begins', async () => {
+    const fetchSpy = stubFetch(
+      jsonResponse(201, { project: { id: 'project-imported', slug: 'repo-imported' }, files: [] }),
+    );
+    globalThis.fetch = fetchSpy;
+
+    const result = await action({ request: importRequest() } as never);
+
+    expect(result).toBeInstanceOf(Response);
+    expect((result as Response).status).toBe(302);
+    expect((result as Response).headers.get('location')).toBe('/@acme/repo-imported');
+
+    const imported = fetchSpy.mock.calls.filter(([url]) => String(url).includes('/projects/import/github'));
+    expect(imported).toHaveLength(1);
+    expect(fetchSpy.mock.calls.some(([url]) => String(url).includes('/api/runtime/workspaces'))).toBe(false);
+  });
+
   it('returns an inline error (not a thrown Response) when the repo is invalid (400)', async () => {
     globalThis.fetch = stubFetch(jsonResponse(400, { ok: false, error: 'Repository URL is not a valid GitHub repo.' }));
 

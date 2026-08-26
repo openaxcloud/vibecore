@@ -113,6 +113,23 @@ class TestWorkspaceStore implements WorkspaceStore {
     return updated;
   }
 
+  async updateIfUnchanged(
+    workspaceId: string,
+    expected: Pick<WorkspaceRecord, 'status' | 'lastActiveAt'>,
+    patch: Partial<WorkspaceRecord>,
+  ) {
+    const existing = this.workspaces.get(workspaceId);
+
+    if (!existing || existing.status !== expected.status || existing.lastActiveAt !== expected.lastActiveAt) {
+      return undefined;
+    }
+
+    const updated = { ...existing, ...patch };
+    this.workspaces.set(workspaceId, updated);
+
+    return updated;
+  }
+
   async get(workspaceId: string) {
     return this.workspaces.get(workspaceId);
   }
@@ -394,6 +411,214 @@ describe('WorkspaceManager', () => {
     await manager.startWorkspace(input);
     expect((await manager.stopWorkspace('workspaces', input.workspaceId)).status).toBe('STOPPED');
     expect((await manager.restartWorkspace(input)).status).toBe('RUNNING');
+  });
+
+  it('serializes stop against reopen: STOPPING owns teardown, then reopen creates the only live Pod', async () => {
+    let releaseDelete!: () => void;
+    const deleteReleased = new Promise<void>((resolve) => (releaseDelete = resolve));
+    let blockPodDelete = false;
+
+    class BlockingDeleteK8s extends TestWorkspaceK8sClient {
+      override async delete(kind: string, namespace: string, name: string) {
+        if (blockPodDelete && kind === 'Pod' && name === 'workspace-workspace_1') {
+          await deleteReleased;
+          blockPodDelete = false;
+        }
+
+        return super.delete(kind, namespace, name);
+      }
+    }
+
+    const k8s = new BlockingDeleteK8s();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    await manager.startWorkspace(input);
+    blockPodDelete = true;
+
+    const stop = manager.stopWorkspace('workspaces', input.workspaceId);
+
+    await vi.waitFor(() => expect(store.workspaces.get(input.workspaceId)?.status).toBe('STOPPING'));
+
+    /*
+     * Reopen arrives while teardown owns STOPPING. Before the fix it blindly
+     * wrote STARTING/applied a Pod and the old stop later overwrote the row with
+     * STOPPED — exactly BUG-CREATE-003.
+     */
+    const reopen = manager.startWorkspace(input);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(store.workspaces.get(input.workspaceId)?.status).toBe('STOPPING');
+
+    releaseDelete();
+    expect((await stop).status).toBe('STOPPED');
+    expect((await reopen).status).toBe('RUNNING');
+
+    expect(store.workspaces.get(input.workspaceId)?.status).toBe('RUNNING');
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(true);
+  });
+
+  it('fails closed when stop races an in-flight STARTING apply, then stops cleanly after start commits', async () => {
+    let releasePodApply!: () => void;
+    const podApplyReleased = new Promise<void>((resolve) => (releasePodApply = resolve));
+    let podApplyEntered!: () => void;
+    const podApplyStarted = new Promise<void>((resolve) => (podApplyEntered = resolve));
+
+    class BlockingPodApplyK8s extends TestWorkspaceK8sClient {
+      override async apply(object: K8sObject) {
+        if (object.kind === 'Pod' && object.metadata.name === 'workspace-workspace_1') {
+          podApplyEntered();
+          await podApplyReleased;
+        }
+
+        return super.apply(object);
+      }
+    }
+
+    const k8s = new BlockingPodApplyK8s();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+
+    const start = manager.startWorkspace(input);
+    await podApplyStarted;
+    expect(store.workspaces.get(input.workspaceId)?.status).toBe('STARTING');
+
+    /*
+     * The only safe outcome while the starter can still apply Kubernetes
+     * resources is a retryable refusal. The old STOPPING claim could verify
+     * NotFound, persist STOPPED, then let this blocked apply recreate the Pod.
+     */
+    await expect(manager.stopWorkspace('workspaces', input.workspaceId)).rejects.toMatchObject({
+      code: 'WORKSPACE_START_IN_PROGRESS',
+      statusCode: 409,
+    });
+    expect(k8s.events).not.toContain('delete:Pod:workspace-workspace_1');
+    expect(store.workspaces.get(input.workspaceId)?.status).toBe('STARTING');
+
+    releasePodApply();
+    expect((await start).status).toBe('RUNNING');
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(true);
+
+    expect((await manager.stopWorkspace('workspaces', input.workspaceId)).status).toBe('STOPPED');
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(false);
+    expect(k8s.objects.has('workspaces:PersistentVolumeClaim:pvc-workspace_1')).toBe(true);
+  });
+
+  it('does not delete a newly-reopened Pod when STARTING wins the lifecycle CAS', async () => {
+    class ReopenWinsStore extends TestWorkspaceStore {
+      override async updateIfUnchanged(
+        workspaceId: string,
+        expected: Pick<WorkspaceRecord, 'status' | 'lastActiveAt'>,
+        patch: Partial<WorkspaceRecord>,
+      ) {
+        if (patch.status === 'STOPPING') {
+          await super.update(workspaceId, {
+            status: 'STARTING',
+            lastActiveAt: new Date(Date.now() + 1_000).toISOString(),
+          });
+        }
+
+        return super.updateIfUnchanged(workspaceId, expected, patch);
+      }
+    }
+
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new ReopenWinsStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+
+    const result = await manager.stopWorkspace('workspaces', input.workspaceId);
+
+    expect(result.status).toBe('STARTING');
+    expect(k8s.events).not.toContain('delete:Pod:workspace-workspace_1');
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(true);
+  });
+
+  it('keeps STOPPING recoverable when Pod deletion fails, then GC resumes without deleting the PVC', async () => {
+    class FailOnceDeleteK8s extends TestWorkspaceK8sClient {
+      failPodDelete = true;
+
+      override async delete(kind: string, namespace: string, name: string) {
+        if (this.failPodDelete && kind === 'Pod') {
+          this.failPodDelete = false;
+          throw new Error('Kubernetes API unavailable');
+        }
+
+        return super.delete(kind, namespace, name);
+      }
+    }
+
+    const k8s = new FailOnceDeleteK8s();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+
+    await expect(manager.stopWorkspace('workspaces', input.workspaceId)).rejects.toThrow('Kubernetes API unavailable');
+    expect(store.workspaces.get(input.workspaceId)?.status).toBe('STOPPING');
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(true);
+
+    await manager.garbageCollect('workspaces', 5 * 60_000, 30 * 60_000);
+
+    expect(store.workspaces.get(input.workspaceId)?.status).toBe('STOPPED');
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(false);
+    expect(k8s.objects.has('workspaces:PersistentVolumeClaim:pvc-workspace_1')).toBe(true);
+  });
+
+  it('repairs a legacy STOPPED row with a live Pod immediately and preserves all durable resources', async () => {
+    const k8s = new TestWorkspaceK8sClient();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+
+    /* Historical inconsistent state produced by the old delete-then-blind-update race. */
+    await store.update(input.workspaceId, { status: 'STOPPED' });
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(true);
+
+    await manager.garbageCollect('workspaces', 5 * 60_000, 24 * 60 * 60_000);
+
+    expect(store.workspaces.get(input.workspaceId)?.status).toBe('STOPPED');
+    expect(k8s.objects.has('workspaces:Pod:workspace-workspace_1')).toBe(false);
+    expect(k8s.objects.has('workspaces:PersistentVolumeClaim:pvc-workspace_1')).toBe(true);
+    expect(k8s.objects.has('workspaces:Service:workspace-workspace_1')).toBe(true);
+    expect(k8s.objects.has('workspaces:Secret:agent-token-workspace_1')).toBe(true);
+  });
+
+  it('never treats a Pod verification read failure as absence', async () => {
+    class VerificationFailureK8s extends TestWorkspaceK8sClient {
+      failVerification = false;
+      failureInjected = false;
+
+      override async delete(kind: string, namespace: string, name: string) {
+        await super.delete(kind, namespace, name);
+
+        if (kind === 'Pod' && !this.failureInjected) {
+          this.failureInjected = true;
+          this.failVerification = true;
+        }
+      }
+
+      override async getPod(namespace: string, name: string) {
+        if (this.failVerification) {
+          this.failVerification = false;
+          throw new Error('Forbidden: cannot verify Pod absence');
+        }
+
+        return super.getPod(namespace, name);
+      }
+    }
+
+    const k8s = new VerificationFailureK8s();
+    const store = new TestWorkspaceStore();
+    const manager = new WorkspaceManager(store, k8s, new TestEventBus(), 'test-workspace-agent-secret');
+    await manager.startWorkspace(input);
+
+    await expect(manager.stopWorkspace('workspaces', input.workspaceId)).rejects.toThrow(
+      'Forbidden: cannot verify Pod absence',
+    );
+    expect(store.workspaces.get(input.workspaceId)?.status).toBe('STOPPING');
+
+    await manager.garbageCollect('workspaces', 5 * 60_000, 30 * 60_000);
+    expect(store.workspaces.get(input.workspaceId)?.status).toBe('STOPPED');
+    expect(k8s.objects.has('workspaces:PersistentVolumeClaim:pvc-workspace_1')).toBe(true);
   });
 
   it('does NOT idle-stop a RUNNING workspace while the agent is busy (build/install in flight)', async () => {

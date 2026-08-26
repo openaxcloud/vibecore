@@ -558,6 +558,7 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
       !workspace ||
       workspace.status === 'DELETED' ||
       workspace.status === 'FAILED' ||
+      workspace.status === 'STOPPING' ||
       workspace.status === 'STOPPED'
     ) {
       return reply

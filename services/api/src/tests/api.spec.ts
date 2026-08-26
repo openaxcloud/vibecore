@@ -252,8 +252,10 @@ async function startRuntimeServices(
     commandStdout?: string;
     commandStderr?: string;
     agentUnavailable?: boolean;
+    agentConnectionFailure?: boolean;
     managerWorkspaceEmpty?: boolean;
     managerStopNotFound?: boolean;
+    managerStatus?: 'STARTING' | 'RUNNING' | 'STOPPING' | 'STOPPED' | 'FAILED';
   } = {},
 ) {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
@@ -273,6 +275,11 @@ async function startRuntimeServices(
     request.on('end', () => {
       const payload = body ? JSON.parse(body) : {};
       response.setHeader('content-type', 'application/json');
+
+      if (options.agentConnectionFailure) {
+        request.socket.destroy();
+        return;
+      }
 
       if (options.agentUnavailable) {
         response.writeHead(503).end(JSON.stringify({ error: 'workspace_agent_unavailable' }));
@@ -393,7 +400,7 @@ async function startRuntimeServices(
         // Mirror the manager 404 for stopping a workspace it has no record of.
         response.writeHead(404).end(JSON.stringify({ error: 'Workspace not found', code: 'WORKSPACE_NOT_FOUND' }));
       } else {
-        response.end(JSON.stringify({ status: 'RUNNING' }));
+        response.end(JSON.stringify({ status: options.managerStatus ?? 'RUNNING' }));
       }
     });
   });
@@ -5398,6 +5405,81 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       expect(status.statusCode).toBe(200);
       expect(status.json().status).toBe('stopped');
     } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('projects a manager STOPPING state as stopped and releases the active-workspace slot', async () => {
+    const runtime = await startRuntimeServices({ managerStatus: 'STOPPING' });
+    const store = new TestApiStore();
+    const app = await buildTestApiApp({ store });
+    const auth = await register(app, {
+      email: 'runtime-stopping@example.com',
+      organizationName: 'Runtime Stopping Org',
+    });
+
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Stopping Project' },
+    });
+    const projectId = project.json().project.id as string;
+
+    try {
+      const start = await app.inject({
+        method: 'POST',
+        url: '/api/runtime/workspaces',
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { projectId },
+      });
+
+      expect(start.statusCode).toBe(200);
+      expect(start.json().status).toBe('stopped');
+      expect((await store.getWorkspace(start.json().id))?.status).toBe('STOPPED');
+      expect(await store.countActiveWorkspaces(auth.organization.id)).toBe(0);
+    } finally {
+      await runtime.close();
+      await app.close();
+    }
+  });
+
+  it('classifies a connect timeout as transient 425 only while the manager durably reports STARTING', async () => {
+    const previousAttempts = process.env.AGENT_REQUEST_ATTEMPTS;
+    process.env.AGENT_REQUEST_ATTEMPTS = '1';
+    const runtime = await startRuntimeServices({ agentConnectionFailure: true, managerStatus: 'STARTING' });
+    const app = await buildTestApiApp({ store: new TestApiStore() });
+    const auth = await register(app, {
+      email: 'runtime-connect-starting@example.com',
+      organizationName: 'Runtime Connect Starting Org',
+    });
+    const project = await app.inject({
+      method: 'POST',
+      url: `/orgs/${auth.organization.id}/projects`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { name: 'Runtime Connect Starting Project' },
+    });
+    const projectId = project.json().project.id as string;
+    const workspaceId = deterministicRuntimeWorkspaceId(projectId, auth.user.id);
+
+    try {
+      const files = await app.inject({
+        method: 'GET',
+        url: `/api/runtime/workspaces/${projectId}/files`,
+        headers: { authorization: `Bearer ${auth.token}` },
+      });
+
+      expect(files.statusCode).toBe(425);
+      expect(files.json()).toMatchObject({ code: 'WORKSPACE_NOT_STARTED' });
+      expect(runtime.managerCalls.some((call) => call.pathname === `/workspaces/${workspaceId}`)).toBe(true);
+    } finally {
+      if (previousAttempts === undefined) {
+        delete process.env.AGENT_REQUEST_ATTEMPTS;
+      } else {
+        process.env.AGENT_REQUEST_ATTEMPTS = previousAttempts;
+      }
+
       await runtime.close();
       await app.close();
     }

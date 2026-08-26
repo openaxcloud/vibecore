@@ -80,6 +80,18 @@ export interface WorkspaceStaticBuildOptions {
    */
   sandboxDir?: string;
 
+  /**
+   * Non-secret identifiers copied into the persisted build log. They let an
+   * operator correlate the exact deployment, project and runtime workspace
+   * used by `prepare` without inferring a cause from a later npm error.
+   */
+  diagnosticContext?: {
+    deploymentId: string;
+    projectId: string;
+    runtimeWorkspaceId: string;
+    requestedProjectWorkspaceId?: string;
+  };
+
   /** Absolute API-local directory to materialize the pulled artifact into. */
   materializeDir: string;
 
@@ -103,6 +115,10 @@ export interface WorkspaceStaticBuildOptions {
 export type WorkspaceBuildPhase = 'installing' | 'building' | 'deploying';
 
 export type WorkspaceStaticBuildErrorCode =
+  | 'SOURCE_WORKSPACE_EMPTY'
+  | 'SOURCE_PACKAGE_JSON_MISSING'
+  | 'SANDBOX_PREPARE_EMPTY'
+  | 'SANDBOX_PACKAGE_JSON_MISSING'
   | 'INSTALL_FAILED'
   | 'BUILD_FAILED'
   | 'BUILD_TIMEOUT'
@@ -132,6 +148,53 @@ function makeLogger(onLog?: (log: StaticBuildLog) => void) {
   };
 
   return { logs, push };
+}
+
+/* Single-quote one value for the POSIX `sh -c` preparation script. */
+function shellQuote(value: string): string {
+  return `'${value.replace(/'/g, `'"'"'`)}'`;
+}
+
+const PREP_SOURCE_EMPTY = 86;
+const PREP_SOURCE_PACKAGE_JSON_MISSING = 87;
+const PREP_SANDBOX_EMPTY = 88;
+const PREP_SANDBOX_PACKAGE_JSON_MISSING = 89;
+
+function preparationFailure(exitCode: number | null): {
+  code: WorkspaceStaticBuildErrorCode;
+  message: string;
+} {
+  switch (exitCode) {
+    case PREP_SOURCE_EMPTY:
+      return {
+        code: 'SOURCE_WORKSPACE_EMPTY',
+        message:
+          'Workspace deploy audit: the source directory contained no copyable top-level entries; preparation stopped before install.',
+      };
+    case PREP_SOURCE_PACKAGE_JSON_MISSING:
+      return {
+        code: 'SOURCE_PACKAGE_JSON_MISSING',
+        message:
+          'Workspace deploy audit: package.json was absent from the source directory; preparation stopped before install.',
+      };
+    case PREP_SANDBOX_EMPTY:
+      return {
+        code: 'SANDBOX_PREPARE_EMPTY',
+        message:
+          'Workspace deploy audit: the isolated sandbox contained no top-level entries after the copy; install was not started.',
+      };
+    case PREP_SANDBOX_PACKAGE_JSON_MISSING:
+      return {
+        code: 'SANDBOX_PACKAGE_JSON_MISSING',
+        message:
+          'Workspace deploy audit: package.json existed in the source but was absent from the isolated sandbox after the copy; install was not started.',
+      };
+    default:
+      return {
+        code: 'INSTALL_FAILED',
+        message: `Workspace deploy: failed to prepare the isolated build sandbox (exit ${exitCode ?? 'null'}).`,
+      };
+  }
 }
 
 /**
@@ -296,6 +359,16 @@ export async function runWorkspaceStaticBuild(
   const sandbox = options.sandboxDir;
   const cwd = sandbox ?? sourceCwd;
 
+  if (options.diagnosticContext) {
+    const context = options.diagnosticContext;
+    log.push(
+      'info',
+      `Workspace deploy audit: deployment=${context.deploymentId} project=${context.projectId} ` +
+        `runtimeWorkspace=${context.runtimeWorkspaceId} ` +
+        `requestedProjectWorkspace=${context.requestedProjectWorkspaceId ?? 'primary'} sourceCwd=${sourceCwd}`,
+    );
+  }
+
   /*
    * Best-effort teardown of the throwaway sandbox. Runs in a finally so a failed
    * install/build/pull never leaves the copy behind. Never throws.
@@ -326,11 +399,41 @@ export async function runWorkspaceStaticBuild(
 
       const sandboxBase = posix.basename(sandbox);
 
+      /*
+       * BUG-DEPLOY-010 audit: the old `find ... -exec cp` could exit 0 while the
+       * observed build sandbox was empty. Measure BOTH sides in the very same
+       * `sh` process, immediately around the copy. The markers contain counts
+       * and manifest presence only (no file contents or secrets), are persisted
+       * with the normal build log, and deliberately make no claim about cause.
+       *
+       * Fail closed before npm when either side is empty or package.json fails
+       * to cross the boundary. Dedicated exit codes preserve which postcondition
+       * failed; `finally` still removes the throwaway sandbox.
+       */
+      const quotedSource = shellQuote(sourceCwd);
+      const quotedSandbox = shellQuote(sandbox);
+      const quotedSandboxBase = shellQuote(sandboxBase);
+
       const prepScript = [
         'set -e',
-        `rm -rf "${sandbox}"`,
-        `mkdir -p "${sandbox}"`,
-        `find "${sourceCwd}" -mindepth 1 -maxdepth 1 ! -name node_modules ! -name .git ! -name "${sandboxBase}" -exec cp -a {} "${sandbox}/" ';'`,
+        `source_dir=${quotedSource}`,
+        `sandbox_dir=${quotedSandbox}`,
+        `sandbox_base=${quotedSandboxBase}`,
+        'source_entries=$(find "$source_dir" -mindepth 1 -maxdepth 1 ! -name node_modules ! -name .git ! -name "$sandbox_base" -print | wc -l | tr -d "[:space:]")',
+        'source_package_json=false',
+        '[ -f "$source_dir/package.json" ] && source_package_json=true',
+        'printf "[deploy-audit] source entries=%s packageJson=%s\\n" "$source_entries" "$source_package_json"',
+        `[ "$source_entries" -gt 0 ] || exit ${PREP_SOURCE_EMPTY}`,
+        `[ "$source_package_json" = true ] || exit ${PREP_SOURCE_PACKAGE_JSON_MISSING}`,
+        'rm -rf "$sandbox_dir"',
+        'mkdir -p "$sandbox_dir"',
+        'find "$source_dir" -mindepth 1 -maxdepth 1 ! -name node_modules ! -name .git ! -name "$sandbox_base" -exec cp -a {} "$sandbox_dir/" ";"',
+        'sandbox_entries=$(find "$sandbox_dir" -mindepth 1 -maxdepth 1 -print | wc -l | tr -d "[:space:]")',
+        'sandbox_package_json=false',
+        '[ -f "$sandbox_dir/package.json" ] && sandbox_package_json=true',
+        'printf "[deploy-audit] sandbox entries=%s packageJson=%s\\n" "$sandbox_entries" "$sandbox_package_json"',
+        `[ "$sandbox_entries" -gt 0 ] || exit ${PREP_SANDBOX_EMPTY}`,
+        `[ "$sandbox_package_json" = true ] || exit ${PREP_SANDBOX_PACKAGE_JSON_MISSING}`,
       ].join('\n');
 
       const prep = await agent.runStep({
@@ -349,11 +452,9 @@ export async function runWorkspaceStaticBuild(
       }
 
       if (prep.exitCode !== 0) {
-        log.push(
-          'error',
-          `Workspace deploy: failed to prepare the isolated build sandbox (exit ${prep.exitCode ?? 'null'}).`,
-        );
-        return { ok: false, logs: log.logs, error: 'INSTALL_FAILED' };
+        const failure = preparationFailure(prep.exitCode);
+        log.push('error', failure.message);
+        return { ok: false, logs: log.logs, error: failure.code };
       }
     }
 
