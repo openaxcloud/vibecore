@@ -104,6 +104,11 @@ platformEnv:
   screenshotterAllowedHosts: 'preview.e-code.ai'
   screenshotterPreviewProxyUrl: 'http://vibecore-vibecore-platform-preview-proxy.vibecore.svc.cluster.local:3020'
   publicApiBaseUrl: 'https://api.e-code.ai'
+  # Mirrors the allowlist currently serving production. The configmap also
+  # derives this exact value from the persisted ingress hosts under
+  # `helm upgrade --reuse-values`, so a missing newly-added key cannot disable
+  # CORS or fall back to localhost.
+  apiCorsOrigins: 'https://app.e-code.ai,https://e-code.ai,https://www.e-code.ai'
   # Comma-separated emails. PlatformAdmin grants global console access
   # (services/api/src/app.ts:2224). Edit cautiously.
   platformAdminEmails: 'avi@snatchbot.me,groupequaliwatt@gmail.com'

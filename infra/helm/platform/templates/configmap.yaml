@@ -17,6 +17,13 @@ data:
   # set explicitly here so the source of truth is the chart, not the bundle.
   SAAS_API_URL: {{ .Values.platformEnv.saasApiUrl | quote }}
   API_BASE_URL: {{ .Values.platformEnv.apiBaseUrl | quote }}
+  # Browser origins accepted by Fastify CORS. This is public routing metadata,
+  # not a credential: keeping it in the chart prevents a production boot from
+  # depending on an opaque Secret value. If no explicit override is provided,
+  # derive the exact HTTPS allowlist from the app/marketing ingress hosts; the
+  # optional www host is included only when its redirect is actually enabled.
+  # The API still validates every entry and refuses wildcards/non-HTTPS origins.
+  API_CORS_ORIGINS: {{ include "vibecore-platform.apiCorsOrigins" . | quote }}
   {{- with (.Values.platformEnv.apiInternalUrl | default .Values.platformEnv.saasApiUrl) }}
   # URL interne que le WORKER utilise pour déclencher les jobs internes
   # (inactivity.gc, metering.objectStorage, metering.databaseStorage,

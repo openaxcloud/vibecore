@@ -49,6 +49,10 @@ platformEnv:
   apiInternalUrl: ''
   apiBaseUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
   publicApiBaseUrl: ''
+  # Optional explicit comma-separated HTTPS browser-origin allowlist. Empty
+  # derives it from global.appDomain + marketingDomain (+ www when enabled),
+  # so legacy releases upgraded with --reuse-values receive a safe value too.
+  apiCorsOrigins: ''
   platformAdminEmails: ''
   # Set to 'true' to make the ai-gateway REQUIRE the shared-secret bearer on
   # /chat/completions. Leave empty until the secret is confirmed present on both

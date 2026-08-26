@@ -82,6 +82,31 @@ function assertApiMetadataPolicy(content) {
   }
 }
 
+function renderedConfigValue(content, key) {
+  const configMap = renderedResource(content, 'vibecore-vibecore-platform-platform-env');
+  const match = configMap.match(new RegExp(`^  ${key}: ["']?([^"'\\n]+)["']?$`, 'm'));
+
+  if (!match) {
+    throw new Error(`Missing rendered platform config value: ${key}`);
+  }
+
+  return match[1];
+}
+
+function assertStrictCorsOrigins(content, expected, description) {
+  const rendered = renderedConfigValue(content, 'API_CORS_ORIGINS');
+
+  if (rendered !== expected) {
+    throw new Error(`${description} mismatch: expected ${expected}, rendered ${rendered}`);
+  }
+
+  const origins = rendered.split(',');
+
+  if (origins.length === 0 || origins.some((origin) => !/^https:\/\/[a-z0-9.-]+$/i.test(origin))) {
+    throw new Error(`${description} must contain only explicit HTTPS origins: ${rendered}`);
+  }
+}
+
 for (const path of [
   '../apps',
   '../services',
@@ -150,6 +175,7 @@ assertDnsClusterIpPolicy(defaultPlatform, 'allow-dns-clusterip', '10.30.0.10/32'
 assertIncludes(defaultPlatform, 'name: allow-platform-required-egress', 'platform required-egress policy');
 assertIncludes(defaultPlatform, '169.254.169.254/32', 'platform metadata-server egress block');
 assertApiMetadataPolicy(defaultPlatform);
+assertStrictCorsOrigins(defaultPlatform, 'https://staging.example.com', 'default API CORS allowlist');
 assertIncludes(defaultPlatform, 'app.kubernetes.io/name: "ingress-nginx"', 'default ingress controller app label');
 assertIncludes(
   defaultPlatform,
@@ -180,6 +206,27 @@ assertIncludes(
   overriddenPlatform,
   'kubernetes.io/metadata.name: "edge-nginx"',
   'overridden ingress controller namespace label',
+);
+
+const prodPlatform = helmTemplate(['--values', resolve(root, 'helm/platform/values-prod.yaml')]);
+assertStrictCorsOrigins(
+  prodPlatform,
+  'https://app.e-code.ai,https://e-code.ai,https://www.e-code.ai',
+  'production API CORS allowlist',
+);
+
+const derivedWwwCorsPlatform = helmTemplate([
+  '--set',
+  'global.appDomain=app.example.com',
+  '--set',
+  'global.marketingDomain=example.com',
+  '--set',
+  'global.marketingWwwRedirect=true',
+]);
+assertStrictCorsOrigins(
+  derivedWwwCorsPlatform,
+  'https://app.example.com,https://example.com,https://www.example.com',
+  'derived www API CORS allowlist',
 );
 
 console.log('infra scaffold valid');
