@@ -86,6 +86,9 @@ export interface MembershipRecord {
   organizationId: string;
   userId: string;
   roleKey: string;
+  state: 'ACTIVE' | 'SUSPENDED';
+  invitedByUserId?: string;
+  joinedAt: string;
   /**
    * Human-readable identity of the member, populated by listMembers (which joins
    * the user row). Undefined on the single-record add/get paths that don't join.
@@ -484,6 +487,78 @@ export interface ProjectCollaboratorRecord {
   createdAt: string;
 }
 
+export type CollaborationGroupSource = 'MANUAL' | 'SCIM';
+
+export interface CollaborationGroupRecord {
+  id: string;
+  organizationId: string;
+  name: string;
+  source: CollaborationGroupSource;
+  externalId?: string;
+  deletedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CollaborationGroupMemberRecord {
+  id: string;
+  organizationId: string;
+  groupId: string;
+  membershipId: string;
+  userId: string;
+  createdAt: string;
+}
+
+export type AccessGrantSubjectType = 'USER' | 'GROUP';
+export type AccessGrantResourceType = 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET';
+export type AccessGrantStatus = 'PENDING_CONSENT' | 'ACTIVE' | 'REVOKED';
+
+export interface ResourceAccessGrantRecord {
+  id: string;
+  organizationId: string;
+  subjectType: AccessGrantSubjectType;
+  subjectUserId?: string;
+  subjectGroupId?: string;
+  resourceType: AccessGrantResourceType;
+  resourceId: string;
+  roleKey: string;
+  status: AccessGrantStatus;
+  expiresAt: string;
+  acceptedAt?: string;
+  consentVersion?: string;
+  grantedByUserId: string;
+  revokedAt?: string;
+  revokedByUserId?: string;
+  revocationReason?: string;
+  idempotencyKey?: string;
+  requestHash: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CursorPage<T> {
+  items: T[];
+  nextCursor?: string;
+}
+
+export type GroupMemberMutationResult =
+  | { ok: true; member?: CollaborationGroupMemberRecord; removed?: boolean }
+  | { ok: false; reason: 'GROUP_NOT_FOUND' | 'GROUP_SCIM_MANAGED' | 'GROUP_MANUAL_ONLY' | 'MEMBERSHIP_NOT_ACTIVE' };
+
+export type AccessGrantMutationResult =
+  | { ok: true; grant: ResourceAccessGrantRecord; replayed?: boolean }
+  | {
+      ok: false;
+      reason:
+        | 'IDEMPOTENCY_CONFLICT'
+        | 'ACTIVE_GRANT_CONFLICT'
+        | 'GRANT_NOT_FOUND'
+        | 'GRANT_NOT_PENDING'
+        | 'GRANT_NOT_ACTIVE'
+        | 'GRANT_EXPIRED'
+        | 'GRANT_SUBJECT_MISMATCH';
+    };
+
 export interface ProjectActivityRecord {
   id: string;
   projectId: string;
@@ -817,6 +892,7 @@ export interface OrganizationInviteRecord {
   tokenHash: string;
   expiresAt: string;
   acceptedAt?: string;
+  createdByUserId?: string;
   createdAt: string;
 }
 
@@ -1541,7 +1617,12 @@ export interface ApiStore {
   listOrganizations(userId: string): Promise<OrganizationRecord[]>;
   getOrganization(id: string): Promise<OrganizationRecord | undefined>;
   setOrganizationBillingEmail(organizationId: string, email: string | null): Promise<OrganizationRecord>;
-  addMember(input: { organizationId: string; userId: string; roleKey: string }): Promise<MembershipRecord>;
+  addMember(input: {
+    organizationId: string;
+    userId: string;
+    roleKey: string;
+    invitedByUserId?: string;
+  }): Promise<MembershipRecord>;
   getMembership(userId: string, organizationId: string): Promise<MembershipRecord | undefined>;
   listMembers(organizationId: string): Promise<MembershipRecord[]>;
   removeMember(organizationId: string, userId: string): Promise<MembershipRecord | undefined>;
@@ -1989,6 +2070,114 @@ export interface ApiStore {
   }): Promise<ProjectCollaboratorRecord>;
   listProjectCollaborators(projectId: string): Promise<ProjectCollaboratorRecord[]>;
   removeProjectCollaborator(input: { projectId: string; userId: string }): Promise<boolean>;
+  createCollaborationGroup(input: {
+    organizationId: string;
+    name: string;
+    source: CollaborationGroupSource;
+    externalId?: string;
+  }): Promise<CollaborationGroupRecord>;
+  getCollaborationGroup(groupId: string): Promise<CollaborationGroupRecord | undefined>;
+  findScimCollaborationGroup(organizationId: string, externalId: string): Promise<CollaborationGroupRecord | undefined>;
+  updateScimCollaborationGroup(input: {
+    organizationId: string;
+    groupId: string;
+    name: string;
+  }): Promise<CollaborationGroupRecord | undefined>;
+  syncScimCollaborationGroup(input: {
+    organizationId: string;
+    groupId?: string;
+    externalId?: string | null;
+    name: string;
+    userIds: string[];
+  }): Promise<
+    | { ok: true; group: CollaborationGroupRecord; created: boolean }
+    | { ok: false; reason: 'GROUP_NOT_FOUND' | 'GROUP_MANUAL_ONLY' | 'MEMBERSHIP_NOT_ACTIVE' }
+  >;
+  listCollaborationGroups(input: {
+    organizationId: string;
+    cursor?: string;
+    offset?: number;
+    source?: CollaborationGroupSource;
+    limit: number;
+  }): Promise<CursorPage<CollaborationGroupRecord>>;
+  countCollaborationGroups(organizationId: string, source?: CollaborationGroupSource): Promise<number>;
+  archiveCollaborationGroup(input: {
+    organizationId: string;
+    groupId: string;
+    writer: CollaborationGroupSource;
+    actorUserId?: string;
+  }): Promise<GroupMemberMutationResult>;
+  addCollaborationGroupMember(input: {
+    organizationId: string;
+    groupId: string;
+    userId: string;
+    writer: CollaborationGroupSource;
+  }): Promise<GroupMemberMutationResult>;
+  removeCollaborationGroupMember(input: {
+    organizationId: string;
+    groupId: string;
+    userId: string;
+    writer: CollaborationGroupSource;
+  }): Promise<GroupMemberMutationResult>;
+  replaceCollaborationGroupMembers(input: {
+    organizationId: string;
+    groupId: string;
+    userIds: string[];
+    writer: CollaborationGroupSource;
+  }): Promise<GroupMemberMutationResult>;
+  listCollaborationGroupMembers(input: {
+    organizationId: string;
+    groupId: string;
+    cursor?: string;
+    limit: number;
+  }): Promise<CursorPage<CollaborationGroupMemberRecord>>;
+  createResourceAccessGrant(input: {
+    organizationId: string;
+    subjectType: AccessGrantSubjectType;
+    subjectUserId?: string;
+    subjectGroupId?: string;
+    resourceType: AccessGrantResourceType;
+    resourceId: string;
+    roleKey: string;
+    status: Extract<AccessGrantStatus, 'PENDING_CONSENT' | 'ACTIVE'>;
+    expiresAt: Date;
+    acceptedAt?: Date;
+    consentVersion?: string;
+    grantedByUserId: string;
+    idempotencyKey?: string;
+    requestHash: string;
+  }): Promise<AccessGrantMutationResult>;
+  getResourceAccessGrant(grantId: string): Promise<ResourceAccessGrantRecord | undefined>;
+  listResourceAccessGrants(input: {
+    organizationId: string;
+    resourceType: AccessGrantResourceType;
+    resourceId: string;
+    cursor?: string;
+    limit: number;
+  }): Promise<CursorPage<ResourceAccessGrantRecord>>;
+  listUserResourceAccessGrants(input: {
+    userId: string;
+    cursor?: string;
+    limit: number;
+  }): Promise<CursorPage<ResourceAccessGrantRecord>>;
+  acceptResourceAccessGrant(input: {
+    grantId: string;
+    subjectUserId: string;
+    consentVersion: string;
+  }): Promise<AccessGrantMutationResult>;
+  rejectResourceAccessGrant(input: {
+    grantId: string;
+    subjectUserId: string;
+    reason: string;
+  }): Promise<AccessGrantMutationResult>;
+  revokeResourceAccessGrant(input: {
+    organizationId: string;
+    grantId: string;
+    revokedByUserId: string;
+    reason: string;
+  }): Promise<AccessGrantMutationResult>;
+  /** Uses CURRENT_TIMESTAMP in PostgreSQL, never an api-replica clock. */
+  listActiveProjectAccessRoles(projectId: string, userId: string): Promise<string[]>;
   recordProjectActivity(input: {
     projectId: string;
     actorUserId?: string;
@@ -2726,6 +2915,7 @@ export interface ApiStore {
     roleKey: string;
     token: string;
     expiresAt: Date;
+    createdByUserId?: string;
   }): Promise<OrganizationInviteRecord>;
   findOrganizationInviteByToken(token: string): Promise<OrganizationInviteRecord | undefined>;
   consumeOrganizationInvite(token: string, userId: string): Promise<OrganizationInviteRecord | undefined>;

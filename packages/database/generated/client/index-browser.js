@@ -174,6 +174,9 @@ exports.Prisma.OrganizationMemberScalarFieldEnum = {
   organizationId: 'organizationId',
   userId: 'userId',
   roleId: 'roleId',
+  state: 'state',
+  invitedByUserId: 'invitedByUserId',
+  joinedAt: 'joinedAt',
   createdAt: 'createdAt'
 };
 
@@ -185,6 +188,7 @@ exports.Prisma.OrganizationInviteScalarFieldEnum = {
   tokenHash: 'tokenHash',
   expiresAt: 'expiresAt',
   acceptedAt: 'acceptedAt',
+  createdByUserId: 'createdByUserId',
   createdAt: 'createdAt'
 };
 
@@ -435,6 +439,49 @@ exports.Prisma.ProjectShareLinkScalarFieldEnum = {
   createdByUserId: 'createdByUserId',
   revokedAt: 'revokedAt',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.CollaborationGroupScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  name: 'name',
+  normalizedName: 'normalizedName',
+  source: 'source',
+  externalId: 'externalId',
+  deletedAt: 'deletedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.CollaborationGroupMemberScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  groupId: 'groupId',
+  membershipId: 'membershipId',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ResourceAccessGrantScalarFieldEnum = {
+  id: 'id',
+  organizationId: 'organizationId',
+  subjectType: 'subjectType',
+  subjectUserId: 'subjectUserId',
+  subjectGroupId: 'subjectGroupId',
+  resourceType: 'resourceType',
+  resourceId: 'resourceId',
+  roleKey: 'roleKey',
+  status: 'status',
+  expiresAt: 'expiresAt',
+  acceptedAt: 'acceptedAt',
+  consentVersion: 'consentVersion',
+  grantedByUserId: 'grantedByUserId',
+  revokedAt: 'revokedAt',
+  revokedByUserId: 'revokedByUserId',
+  revocationReason: 'revocationReason',
+  idempotencyKey: 'idempotencyKey',
+  requestHash: 'requestHash',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.ProjectTemplateScalarFieldEnum = {
@@ -1943,6 +1990,34 @@ exports.Prisma.NullsOrder = {
   first: 'first',
   last: 'last'
 };
+exports.OrganizationMembershipState = exports.$Enums.OrganizationMembershipState = {
+  ACTIVE: 'ACTIVE',
+  SUSPENDED: 'SUSPENDED'
+};
+
+exports.CollaborationGroupSource = exports.$Enums.CollaborationGroupSource = {
+  MANUAL: 'MANUAL',
+  SCIM: 'SCIM'
+};
+
+exports.AccessGrantSubjectType = exports.$Enums.AccessGrantSubjectType = {
+  USER: 'USER',
+  GROUP: 'GROUP'
+};
+
+exports.AccessGrantResourceType = exports.$Enums.AccessGrantResourceType = {
+  PROJECT: 'PROJECT',
+  ARTIFACT: 'ARTIFACT',
+  DEPLOYMENT: 'DEPLOYMENT',
+  DATASET: 'DATASET'
+};
+
+exports.AccessGrantStatus = exports.$Enums.AccessGrantStatus = {
+  PENDING_CONSENT: 'PENDING_CONSENT',
+  ACTIVE: 'ACTIVE',
+  REVOKED: 'REVOKED'
+};
+
 exports.WorkspaceStatus = exports.$Enums.WorkspaceStatus = {
   PENDING: 'PENDING',
   STARTING: 'STARTING',
@@ -2228,6 +2303,9 @@ exports.Prisma.ModelName = {
   CollaborationPresence: 'CollaborationPresence',
   CollaborationComment: 'CollaborationComment',
   ProjectShareLink: 'ProjectShareLink',
+  CollaborationGroup: 'CollaborationGroup',
+  CollaborationGroupMember: 'CollaborationGroupMember',
+  ResourceAccessGrant: 'ResourceAccessGrant',
   ProjectTemplate: 'ProjectTemplate',
   Workspace: 'Workspace',
   WorkspaceIdeState: 'WorkspaceIdeState',
