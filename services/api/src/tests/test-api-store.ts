@@ -45,6 +45,8 @@ import type {
   ModelConfigRecord,
   ProviderConfigRecord,
   CollaborationCommentRecord,
+  CollaborationGroupMemberRecord,
+  CollaborationGroupRecord,
   CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
@@ -54,6 +56,7 @@ import type {
   EnterpriseSettingsRecord,
   FeatureFlagRecord,
   MembershipRecord,
+  ResourceAccessGrantRecord,
   OAuthConnectionRecord,
   ProjectConnectionLinkRecord,
   ReconnectionAlertRecord,
@@ -140,6 +143,9 @@ export class TestApiStore implements ApiStore {
   readonly collaborationPresence = new Map<string, CollaborationPresenceRecord>();
   readonly collaborationComments = new Map<string, CollaborationCommentRecord>();
   readonly projectShareLinks = new Map<string, ProjectShareLinkRecord>();
+  readonly collaborationGroups = new Map<string, CollaborationGroupRecord>();
+  readonly collaborationGroupMembers = new Map<string, CollaborationGroupMemberRecord>();
+  readonly resourceAccessGrants = new Map<string, ResourceAccessGrantRecord>();
   readonly chatShares = new Map<string, ChatShareRecord>();
   readonly agentPatchProposals = new Map<string, AgentPatchProposalRecord>();
   readonly projectTemplates = new Map<string, ProjectTemplateRecord>();
@@ -560,7 +566,7 @@ export class TestApiStore implements ApiStore {
 
   async listOrganizations(userId: string) {
     const orgIds = [...this.memberships.values()]
-      .filter((member) => member.userId === userId)
+      .filter((member) => member.userId === userId && member.state === 'ACTIVE')
       .map((member) => member.organizationId);
 
     return orgIds.map((orgId) => this.organizations.get(orgId)).filter(Boolean) as OrganizationRecord[];
@@ -582,15 +588,26 @@ export class TestApiStore implements ApiStore {
     return organization;
   }
 
-  async addMember(input: { organizationId: string; userId: string; roleKey: string }) {
+  async addMember(input: { organizationId: string; userId: string; roleKey: string; invitedByUserId?: string }) {
     const existing = await this.getMembership(input.userId, input.organizationId);
 
     if (existing) {
       existing.roleKey = input.roleKey;
+      existing.state = 'ACTIVE';
+
+      if (input.invitedByUserId) {
+        existing.invitedByUserId = input.invitedByUserId;
+      }
+
       return existing;
     }
 
-    const member = { id: id('member'), ...input };
+    const member: MembershipRecord = {
+      id: id('member'),
+      ...input,
+      state: 'ACTIVE',
+      joinedAt: now(),
+    };
     this.memberships.set(member.id, member);
 
     return member;
@@ -598,7 +615,7 @@ export class TestApiStore implements ApiStore {
 
   async getMembership(userId: string, organizationId: string) {
     return [...this.memberships.values()].find(
-      (member) => member.userId === userId && member.organizationId === organizationId,
+      (member) => member.userId === userId && member.organizationId === organizationId && member.state === 'ACTIVE',
     );
   }
 
@@ -610,6 +627,7 @@ export class TestApiStore implements ApiStore {
      */
     return [...this.memberships.values()]
       .filter((member) => member.organizationId === organizationId)
+      .filter((member) => member.state === 'ACTIVE')
       .map((member) => {
         const user = this.users.get(member.userId);
 
@@ -625,6 +643,29 @@ export class TestApiStore implements ApiStore {
     }
 
     this.memberships.delete(membership.id);
+
+    for (const [memberId, groupMember] of this.collaborationGroupMembers) {
+      if (groupMember.membershipId === membership.id) {
+        this.collaborationGroupMembers.delete(memberId);
+      }
+    }
+
+    for (const [grantId, grant] of this.resourceAccessGrants) {
+      if (
+        grant.organizationId === organizationId &&
+        grant.subjectType === 'USER' &&
+        grant.subjectUserId === userId &&
+        grant.status !== 'REVOKED'
+      ) {
+        this.resourceAccessGrants.set(grantId, {
+          ...grant,
+          status: 'REVOKED',
+          revokedAt: now(),
+          revocationReason: 'ORGANIZATION_MEMBERSHIP_REMOVED',
+          updatedAt: now(),
+        });
+      }
+    }
 
     return membership;
   }
@@ -1003,6 +1044,577 @@ export class TestApiStore implements ApiStore {
     this.projectCollaborators.delete(existing.id);
 
     return true;
+  }
+
+  async createCollaborationGroup(input: {
+    organizationId: string;
+    name: string;
+    source: 'MANUAL' | 'SCIM';
+    externalId?: string;
+  }) {
+    const normalizedName = input.name.trim().normalize('NFKC').toLocaleLowerCase('en-US');
+    const duplicate = [...this.collaborationGroups.values()].find(
+      (group) =>
+        group.organizationId === input.organizationId &&
+        !group.deletedAt &&
+        group.name.trim().normalize('NFKC').toLocaleLowerCase('en-US') === normalizedName,
+    );
+
+    if (duplicate) {
+      throw Object.assign(new Error('Duplicate group'), { code: 'P2002' });
+    }
+
+    const timestamp = now();
+    const group: CollaborationGroupRecord = {
+      id: id('group'),
+      organizationId: input.organizationId,
+      name: input.name.trim(),
+      source: input.source,
+      externalId: input.externalId,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.collaborationGroups.set(group.id, group);
+    return group;
+  }
+
+  async getCollaborationGroup(groupId: string) {
+    return this.collaborationGroups.get(groupId);
+  }
+
+  async findScimCollaborationGroup(organizationId: string, externalId: string) {
+    return [...this.collaborationGroups.values()].find(
+      (group) =>
+        group.organizationId === organizationId &&
+        group.externalId === externalId &&
+        group.source === 'SCIM' &&
+        !group.deletedAt,
+    );
+  }
+
+  async updateScimCollaborationGroup(input: { organizationId: string; groupId: string; name: string }) {
+    const group = this.collaborationGroups.get(input.groupId);
+
+    if (!group || group.organizationId !== input.organizationId || group.source !== 'SCIM' || group.deletedAt) {
+      return undefined;
+    }
+
+    group.name = input.name.trim();
+    group.updatedAt = now();
+    return group;
+  }
+
+  async syncScimCollaborationGroup(input: {
+    organizationId: string;
+    groupId?: string;
+    externalId?: string | null;
+    name: string;
+    userIds: string[];
+  }) {
+    const memberships = await Promise.all(
+      [...new Set(input.userIds)].map((userId) => this.getMembership(userId, input.organizationId)),
+    );
+
+    if (memberships.some((membership) => !membership)) {
+      return { ok: false as const, reason: 'MEMBERSHIP_NOT_ACTIVE' as const };
+    }
+
+    const existing = input.groupId
+      ? this.collaborationGroups.get(input.groupId)
+      : input.externalId
+        ? await this.findScimCollaborationGroup(input.organizationId, input.externalId)
+        : undefined;
+
+    if (input.groupId && (!existing || existing.organizationId !== input.organizationId || existing.deletedAt)) {
+      return { ok: false as const, reason: 'GROUP_NOT_FOUND' as const };
+    }
+
+    if (existing && existing.source !== 'SCIM') {
+      return { ok: false as const, reason: 'GROUP_MANUAL_ONLY' as const };
+    }
+
+    const group = existing ?? {
+      id: id('group'),
+      organizationId: input.organizationId,
+      name: input.name.trim(),
+      source: 'SCIM' as const,
+      externalId: input.externalId ?? undefined,
+      createdAt: now(),
+      updatedAt: now(),
+    };
+    group.name = input.name.trim();
+    if (input.externalId !== undefined) {
+      group.externalId = input.externalId ?? undefined;
+    }
+    group.updatedAt = now();
+    this.collaborationGroups.set(group.id, group);
+
+    for (const [memberId, member] of this.collaborationGroupMembers) {
+      if (member.organizationId === input.organizationId && member.groupId === group.id) {
+        this.collaborationGroupMembers.delete(memberId);
+      }
+    }
+
+    for (const membership of memberships as MembershipRecord[]) {
+      const member: CollaborationGroupMemberRecord = {
+        id: id('group_member'),
+        organizationId: input.organizationId,
+        groupId: group.id,
+        membershipId: membership.id,
+        userId: membership.userId,
+        createdAt: now(),
+      };
+      this.collaborationGroupMembers.set(member.id, member);
+    }
+
+    return { ok: true as const, group, created: !existing };
+  }
+
+  async listCollaborationGroups(input: {
+    organizationId: string;
+    cursor?: string;
+    offset?: number;
+    source?: 'MANUAL' | 'SCIM';
+    limit: number;
+  }) {
+    const candidates = [...this.collaborationGroups.values()]
+      .filter((group) => group.organizationId === input.organizationId && !group.deletedAt)
+      .filter((group) => !input.source || group.source === input.source)
+      .filter((group) => !input.cursor || group.id > input.cursor)
+      .sort((left, right) => left.id.localeCompare(right.id));
+    const window = candidates.slice(input.offset ?? 0);
+    const hasMore = window.length > input.limit;
+    const items = window.slice(0, input.limit);
+    return { items, nextCursor: hasMore ? items.at(-1)?.id : undefined };
+  }
+
+  async countCollaborationGroups(organizationId: string, source?: 'MANUAL' | 'SCIM') {
+    return [...this.collaborationGroups.values()].filter(
+      (group) => group.organizationId === organizationId && !group.deletedAt && (!source || group.source === source),
+    ).length;
+  }
+
+  async archiveCollaborationGroup(input: {
+    organizationId: string;
+    groupId: string;
+    writer: 'MANUAL' | 'SCIM';
+    actorUserId?: string;
+  }) {
+    const group = this.collaborationGroups.get(input.groupId);
+
+    if (!group || group.organizationId !== input.organizationId || group.deletedAt) {
+      return { ok: false as const, reason: 'GROUP_NOT_FOUND' as const };
+    }
+
+    if (group.source !== input.writer) {
+      return {
+        ok: false as const,
+        reason: input.writer === 'MANUAL' ? ('GROUP_SCIM_MANAGED' as const) : ('GROUP_MANUAL_ONLY' as const),
+      };
+    }
+
+    group.deletedAt = now();
+    group.updatedAt = group.deletedAt;
+
+    for (const [grantId, grant] of this.resourceAccessGrants) {
+      if (grant.subjectGroupId === group.id && grant.status !== 'REVOKED') {
+        this.resourceAccessGrants.set(grantId, {
+          ...grant,
+          status: 'REVOKED',
+          revokedAt: now(),
+          revokedByUserId: input.actorUserId,
+          revocationReason: 'SUBJECT_GROUP_ARCHIVED',
+          updatedAt: now(),
+        });
+      }
+    }
+
+    return { ok: true as const, removed: true };
+  }
+
+  async addCollaborationGroupMember(input: {
+    organizationId: string;
+    groupId: string;
+    userId: string;
+    writer: 'MANUAL' | 'SCIM';
+  }) {
+    const group = this.collaborationGroups.get(input.groupId);
+
+    if (!group || group.organizationId !== input.organizationId || group.deletedAt) {
+      return { ok: false as const, reason: 'GROUP_NOT_FOUND' as const };
+    }
+
+    if (group.source !== input.writer) {
+      return {
+        ok: false as const,
+        reason: input.writer === 'MANUAL' ? ('GROUP_SCIM_MANAGED' as const) : ('GROUP_MANUAL_ONLY' as const),
+      };
+    }
+
+    const membership = await this.getMembership(input.userId, input.organizationId);
+
+    if (!membership) {
+      return { ok: false as const, reason: 'MEMBERSHIP_NOT_ACTIVE' as const };
+    }
+
+    const existing = [...this.collaborationGroupMembers.values()].find(
+      (member) => member.groupId === group.id && member.membershipId === membership.id,
+    );
+
+    if (existing) {
+      return { ok: true as const, member: existing };
+    }
+
+    const member: CollaborationGroupMemberRecord = {
+      id: id('group_member'),
+      organizationId: input.organizationId,
+      groupId: group.id,
+      membershipId: membership.id,
+      userId: input.userId,
+      createdAt: now(),
+    };
+    this.collaborationGroupMembers.set(member.id, member);
+    return { ok: true as const, member };
+  }
+
+  async removeCollaborationGroupMember(input: {
+    organizationId: string;
+    groupId: string;
+    userId: string;
+    writer: 'MANUAL' | 'SCIM';
+  }) {
+    const group = this.collaborationGroups.get(input.groupId);
+
+    if (!group || group.organizationId !== input.organizationId || group.deletedAt) {
+      return { ok: false as const, reason: 'GROUP_NOT_FOUND' as const };
+    }
+
+    if (group.source !== input.writer) {
+      return {
+        ok: false as const,
+        reason: input.writer === 'MANUAL' ? ('GROUP_SCIM_MANAGED' as const) : ('GROUP_MANUAL_ONLY' as const),
+      };
+    }
+
+    const member = [...this.collaborationGroupMembers.values()].find(
+      (candidate) => candidate.groupId === input.groupId && candidate.userId === input.userId,
+    );
+
+    if (member) {
+      this.collaborationGroupMembers.delete(member.id);
+    }
+
+    return { ok: true as const, removed: Boolean(member) };
+  }
+
+  async replaceCollaborationGroupMembers(input: {
+    organizationId: string;
+    groupId: string;
+    userIds: string[];
+    writer: 'MANUAL' | 'SCIM';
+  }) {
+    const group = this.collaborationGroups.get(input.groupId);
+
+    if (!group || group.organizationId !== input.organizationId || group.deletedAt) {
+      return { ok: false as const, reason: 'GROUP_NOT_FOUND' as const };
+    }
+
+    if (group.source !== input.writer) {
+      return {
+        ok: false as const,
+        reason: input.writer === 'MANUAL' ? ('GROUP_SCIM_MANAGED' as const) : ('GROUP_MANUAL_ONLY' as const),
+      };
+    }
+
+    const memberships = await Promise.all(
+      [...new Set(input.userIds)].map((userId) => this.getMembership(userId, input.organizationId)),
+    );
+
+    if (memberships.some((membership) => !membership)) {
+      return { ok: false as const, reason: 'MEMBERSHIP_NOT_ACTIVE' as const };
+    }
+
+    for (const [memberId, member] of this.collaborationGroupMembers) {
+      if (member.organizationId === input.organizationId && member.groupId === input.groupId) {
+        this.collaborationGroupMembers.delete(memberId);
+      }
+    }
+
+    for (const membership of memberships as MembershipRecord[]) {
+      const member: CollaborationGroupMemberRecord = {
+        id: id('group_member'),
+        organizationId: input.organizationId,
+        groupId: input.groupId,
+        membershipId: membership.id,
+        userId: membership.userId,
+        createdAt: now(),
+      };
+      this.collaborationGroupMembers.set(member.id, member);
+    }
+
+    return { ok: true as const, removed: false };
+  }
+
+  async listCollaborationGroupMembers(input: {
+    organizationId: string;
+    groupId: string;
+    cursor?: string;
+    limit: number;
+  }) {
+    const candidates = [...this.collaborationGroupMembers.values()]
+      .filter((member) => member.organizationId === input.organizationId && member.groupId === input.groupId)
+      .filter((member) => !input.cursor || member.id > input.cursor)
+      .filter((member) => this.memberships.get(member.membershipId)?.state === 'ACTIVE')
+      .sort((left, right) => left.id.localeCompare(right.id));
+    const hasMore = candidates.length > input.limit;
+    const items = candidates.slice(0, input.limit);
+    return { items, nextCursor: hasMore ? items.at(-1)?.id : undefined };
+  }
+
+  async createResourceAccessGrant(input: {
+    organizationId: string;
+    subjectType: 'USER' | 'GROUP';
+    subjectUserId?: string;
+    subjectGroupId?: string;
+    resourceType: 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET';
+    resourceId: string;
+    roleKey: string;
+    status: 'PENDING_CONSENT' | 'ACTIVE';
+    expiresAt: Date;
+    acceptedAt?: Date;
+    consentVersion?: string;
+    grantedByUserId: string;
+    idempotencyKey?: string;
+    requestHash: string;
+  }) {
+    if (input.idempotencyKey) {
+      const replay = [...this.resourceAccessGrants.values()].find(
+        (grant) => grant.organizationId === input.organizationId && grant.idempotencyKey === input.idempotencyKey,
+      );
+
+      if (replay) {
+        return replay.requestHash === input.requestHash
+          ? { ok: true as const, grant: replay, replayed: true }
+          : { ok: false as const, reason: 'IDEMPOTENCY_CONFLICT' as const };
+      }
+    }
+
+    for (const [grantId, grant] of this.resourceAccessGrants) {
+      if (
+        grant.organizationId === input.organizationId &&
+        grant.subjectType === input.subjectType &&
+        grant.subjectUserId === input.subjectUserId &&
+        grant.subjectGroupId === input.subjectGroupId &&
+        grant.resourceType === input.resourceType &&
+        grant.resourceId === input.resourceId &&
+        grant.status !== 'REVOKED' &&
+        new Date(grant.expiresAt).getTime() <= Date.now()
+      ) {
+        this.resourceAccessGrants.set(grantId, {
+          ...grant,
+          status: 'REVOKED',
+          revokedAt: now(),
+          revocationReason: 'EXPIRED_REPLACED',
+          updatedAt: now(),
+        });
+      }
+    }
+
+    const active = [...this.resourceAccessGrants.values()].find(
+      (grant) =>
+        grant.organizationId === input.organizationId &&
+        grant.subjectType === input.subjectType &&
+        grant.subjectUserId === input.subjectUserId &&
+        grant.subjectGroupId === input.subjectGroupId &&
+        grant.resourceType === input.resourceType &&
+        grant.resourceId === input.resourceId &&
+        grant.status !== 'REVOKED',
+    );
+
+    if (active) {
+      return active.requestHash === input.requestHash
+        ? { ok: true as const, grant: active, replayed: true }
+        : { ok: false as const, reason: 'ACTIVE_GRANT_CONFLICT' as const };
+    }
+
+    const timestamp = now();
+    const grant: ResourceAccessGrantRecord = {
+      id: id('access_grant'),
+      organizationId: input.organizationId,
+      subjectType: input.subjectType,
+      subjectUserId: input.subjectUserId,
+      subjectGroupId: input.subjectGroupId,
+      resourceType: input.resourceType,
+      resourceId: input.resourceId,
+      roleKey: input.roleKey,
+      status: input.status,
+      expiresAt: input.expiresAt.toISOString(),
+      acceptedAt: input.acceptedAt?.toISOString(),
+      consentVersion: input.consentVersion,
+      grantedByUserId: input.grantedByUserId,
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    this.resourceAccessGrants.set(grant.id, grant);
+    return { ok: true as const, grant };
+  }
+
+  async getResourceAccessGrant(grantId: string) {
+    return this.resourceAccessGrants.get(grantId);
+  }
+
+  async listResourceAccessGrants(input: {
+    organizationId: string;
+    resourceType: 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET';
+    resourceId: string;
+    cursor?: string;
+    limit: number;
+  }) {
+    const candidates = [...this.resourceAccessGrants.values()]
+      .filter(
+        (grant) =>
+          grant.organizationId === input.organizationId &&
+          grant.resourceType === input.resourceType &&
+          grant.resourceId === input.resourceId,
+      )
+      .filter((grant) => !input.cursor || grant.id > input.cursor)
+      .sort((left, right) => left.id.localeCompare(right.id));
+    const hasMore = candidates.length > input.limit;
+    const items = candidates.slice(0, input.limit);
+    return { items, nextCursor: hasMore ? items.at(-1)?.id : undefined };
+  }
+
+  async listUserResourceAccessGrants(input: { userId: string; cursor?: string; limit: number }) {
+    const candidates = [...this.resourceAccessGrants.values()]
+      .filter((grant) => grant.subjectType === 'USER' && grant.subjectUserId === input.userId)
+      .filter((grant) => !input.cursor || grant.id > input.cursor)
+      .sort((left, right) => left.id.localeCompare(right.id));
+    const hasMore = candidates.length > input.limit;
+    const items = candidates.slice(0, input.limit);
+    return { items, nextCursor: hasMore ? items.at(-1)?.id : undefined };
+  }
+
+  async acceptResourceAccessGrant(input: { grantId: string; subjectUserId: string; consentVersion: string }) {
+    const grant = this.resourceAccessGrants.get(input.grantId);
+    const failure = this.testGrantMutationFailure(grant, input.subjectUserId, 'PENDING_CONSENT');
+
+    if (failure) {
+      return failure;
+    }
+
+    const accepted: ResourceAccessGrantRecord = {
+      ...grant!,
+      status: 'ACTIVE',
+      acceptedAt: now(),
+      consentVersion: input.consentVersion,
+      updatedAt: now(),
+    };
+    this.resourceAccessGrants.set(accepted.id, accepted);
+    return { ok: true as const, grant: accepted };
+  }
+
+  async rejectResourceAccessGrant(input: { grantId: string; subjectUserId: string; reason: string }) {
+    const grant = this.resourceAccessGrants.get(input.grantId);
+    const failure = this.testGrantMutationFailure(grant, input.subjectUserId, 'PENDING_CONSENT', false);
+
+    if (failure) {
+      return failure;
+    }
+
+    const rejected: ResourceAccessGrantRecord = {
+      ...grant!,
+      status: 'REVOKED',
+      revokedAt: now(),
+      revokedByUserId: input.subjectUserId,
+      revocationReason: input.reason,
+      updatedAt: now(),
+    };
+    this.resourceAccessGrants.set(rejected.id, rejected);
+    return { ok: true as const, grant: rejected };
+  }
+
+  async revokeResourceAccessGrant(input: {
+    organizationId: string;
+    grantId: string;
+    revokedByUserId: string;
+    reason: string;
+  }) {
+    const grant = this.resourceAccessGrants.get(input.grantId);
+
+    if (!grant || grant.organizationId !== input.organizationId || grant.status === 'REVOKED') {
+      return { ok: false as const, reason: 'GRANT_NOT_ACTIVE' as const };
+    }
+
+    const revoked: ResourceAccessGrantRecord = {
+      ...grant,
+      status: 'REVOKED',
+      revokedAt: now(),
+      revokedByUserId: input.revokedByUserId,
+      revocationReason: input.reason,
+      updatedAt: now(),
+    };
+    this.resourceAccessGrants.set(revoked.id, revoked);
+    return { ok: true as const, grant: revoked };
+  }
+
+  async listActiveProjectAccessRoles(projectId: string, userId: string) {
+    const current = Date.now();
+    const memberships = [...this.memberships.values()].filter(
+      (membership) => membership.userId === userId && membership.state === 'ACTIVE',
+    );
+    const groupIds = new Set(
+      [...this.collaborationGroupMembers.values()]
+        .filter((member) => memberships.some((membership) => membership.id === member.membershipId))
+        .filter((member) => !this.collaborationGroups.get(member.groupId)?.deletedAt)
+        .map((member) => member.groupId),
+    );
+
+    return [...this.resourceAccessGrants.values()]
+      .filter(
+        (grant) =>
+          grant.resourceType === 'PROJECT' &&
+          grant.resourceId === projectId &&
+          grant.status === 'ACTIVE' &&
+          Boolean(grant.acceptedAt) &&
+          !grant.revokedAt &&
+          new Date(grant.expiresAt).getTime() > current,
+      )
+      .filter(
+        (grant) =>
+          (grant.subjectType === 'USER' && grant.subjectUserId === userId) ||
+          (grant.subjectType === 'GROUP' && Boolean(grant.subjectGroupId && groupIds.has(grant.subjectGroupId))),
+      )
+      .map((grant) => grant.roleKey);
+  }
+
+  private testGrantMutationFailure(
+    grant: ResourceAccessGrantRecord | undefined,
+    userId: string,
+    expectedStatus: 'PENDING_CONSENT' | 'ACTIVE',
+    checkExpiry = true,
+  ) {
+    if (!grant) {
+      return { ok: false as const, reason: 'GRANT_NOT_FOUND' as const };
+    }
+
+    if (grant.subjectType !== 'USER' || grant.subjectUserId !== userId) {
+      return { ok: false as const, reason: 'GRANT_SUBJECT_MISMATCH' as const };
+    }
+
+    if (checkExpiry && new Date(grant.expiresAt).getTime() <= Date.now()) {
+      return { ok: false as const, reason: 'GRANT_EXPIRED' as const };
+    }
+
+    if (grant.status !== expectedStatus) {
+      return {
+        ok: false as const,
+        reason: expectedStatus === 'PENDING_CONSENT' ? ('GRANT_NOT_PENDING' as const) : ('GRANT_NOT_ACTIVE' as const),
+      };
+    }
+
+    return undefined;
   }
 
   async recordProjectActivity(input: {
@@ -3449,6 +4061,7 @@ export class TestApiStore implements ApiStore {
     roleKey: string;
     token: string;
     expiresAt: Date;
+    createdByUserId?: string;
   }) {
     const record: OrganizationInviteRecord = {
       id: id('invite'),
@@ -3457,6 +4070,7 @@ export class TestApiStore implements ApiStore {
       roleKey: input.roleKey,
       tokenHash: hashToken(input.token),
       expiresAt: input.expiresAt.toISOString(),
+      createdByUserId: input.createdByUserId,
       createdAt: now(),
     };
     this.organizationInvites.set(record.id, record);
@@ -3489,7 +4103,12 @@ export class TestApiStore implements ApiStore {
     const existingMembership = await this.getMembership(userId, invite.organizationId);
 
     if (!existingMembership) {
-      await this.addMember({ organizationId: invite.organizationId, userId, roleKey: invite.roleKey });
+      await this.addMember({
+        organizationId: invite.organizationId,
+        userId,
+        roleKey: invite.roleKey,
+        invitedByUserId: invite.createdByUserId,
+      });
     }
 
     return invite;

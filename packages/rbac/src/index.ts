@@ -77,6 +77,9 @@ export const rolePermissions: Record<string, PermissionKey[]> = {
     'usage:read',
   ],
   viewer: ['org:read', 'projects:read', 'workspaces:read', 'support:write', 'usage:read'],
+  // A guest exists only through an explicit resource grant or GUEST
+  // membership. It cannot enumerate the organization or mutate a project.
+  guest: ['projects:read', 'workspaces:read'],
 };
 
 export function hasPermission(roleKey: string, permission: PermissionKey) {

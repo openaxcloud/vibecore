@@ -47,6 +47,8 @@ import type {
   ModelConfigRecord,
   ProviderConfigRecord,
   CollaborationCommentRecord,
+  CollaborationGroupMemberRecord,
+  CollaborationGroupRecord,
   CollaborationPresenceRecord,
   CustomRoleRecord,
   DeploymentRecord,
@@ -56,6 +58,7 @@ import type {
   EnterpriseSettingsRecord,
   FeatureFlagRecord,
   MembershipRecord,
+  ResourceAccessGrantRecord,
   OAuthConnectionRecord,
   OrganizationRecord,
   OrganizationInviteRecord,
@@ -106,6 +109,19 @@ import type {
 } from './store.js';
 
 const RUNTIME_WEBSOCKET_TICKET_INSERT_EMPTY = 'RUNTIME_WEBSOCKET_TICKET_INSERT_EMPTY';
+const COLLABORATION_REASON = {
+  membershipNotActive: 'MEMBERSHIP_NOT_ACTIVE',
+  groupNotFound: 'GROUP_NOT_FOUND',
+  groupManualOnly: 'GROUP_MANUAL_ONLY',
+  groupScimManaged: 'GROUP_SCIM_MANAGED',
+  idempotencyConflict: 'IDEMPOTENCY_CONFLICT',
+  activeGrantConflict: 'ACTIVE_GRANT_CONFLICT',
+  grantNotActive: 'GRANT_NOT_ACTIVE',
+  grantNotFound: 'GRANT_NOT_FOUND',
+  grantSubjectMismatch: 'GRANT_SUBJECT_MISMATCH',
+  grantExpired: 'GRANT_EXPIRED',
+  grantNotPending: 'GRANT_NOT_PENDING',
+} as const;
 
 function now() {
   return new Date().toISOString();
@@ -113,6 +129,10 @@ function now() {
 
 function toIso(value: Date | string | null | undefined) {
   return value ? new Date(value).toISOString() : undefined;
+}
+
+function normalizeCollaborationGroupName(value: string): string {
+  return value.trim().normalize('NFKC').toLocaleLowerCase('en-US');
 }
 
 /** Parse a JSON column that should hold an array; tolerate null/garbage → []. */
@@ -849,7 +869,7 @@ export class PrismaApiStore implements ApiStore {
 
   async listOrganizations(userId: string) {
     const memberships = await this.prisma.organizationMember.findMany({
-      where: { userId },
+      where: { userId, state: 'ACTIVE' },
       include: { organization: true },
       orderBy: { createdAt: 'asc' },
     });
@@ -867,13 +887,23 @@ export class PrismaApiStore implements ApiStore {
     );
   }
 
-  async addMember(input: { organizationId: string; userId: string; roleKey: string }) {
+  async addMember(input: { organizationId: string; userId: string; roleKey: string; invitedByUserId?: string }) {
     const role = await this.ensureRole(input.roleKey);
 
     const membership = await this.prisma.organizationMember.upsert({
       where: { organizationId_userId: { organizationId: input.organizationId, userId: input.userId } },
-      create: { organizationId: input.organizationId, userId: input.userId, roleId: role.id },
-      update: { roleId: role.id },
+      create: {
+        organizationId: input.organizationId,
+        userId: input.userId,
+        roleId: role.id,
+        state: 'ACTIVE',
+        invitedByUserId: input.invitedByUserId,
+      },
+      update: {
+        roleId: role.id,
+        state: 'ACTIVE',
+        ...(input.invitedByUserId ? { invitedByUserId: input.invitedByUserId } : {}),
+      },
       include: { role: true },
     });
 
@@ -881,8 +911,8 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async getMembership(userId: string, organizationId: string) {
-    const membership = await this.prisma.organizationMember.findUnique({
-      where: { organizationId_userId: { organizationId, userId } },
+    const membership = await this.prisma.organizationMember.findFirst({
+      where: { organizationId, userId, state: 'ACTIVE' },
       include: { role: true },
     });
     return membership ? mapMembership(membership) : undefined;
@@ -891,15 +921,15 @@ export class PrismaApiStore implements ApiStore {
   async listMembers(organizationId: string) {
     return (
       await this.prisma.organizationMember.findMany({
-        where: { organizationId },
+        where: { organizationId, state: 'ACTIVE' },
         include: { role: true, user: { select: { name: true, email: true } } },
       })
     ).map(mapMembership);
   }
 
   async removeMember(organizationId: string, userId: string) {
-    const membership = await this.prisma.organizationMember.findUnique({
-      where: { organizationId_userId: { organizationId, userId } },
+    const membership = await this.prisma.organizationMember.findFirst({
+      where: { organizationId, userId, state: 'ACTIVE' },
       include: { role: true },
     });
 
@@ -908,66 +938,36 @@ export class PrismaApiStore implements ApiStore {
     }
 
     /*
-     * Delete via deleteMany gated on count rather than delete({ where: { id } }):
-     * between the lookup above and this write a concurrent removeMember() can
-     * delete the same row, and delete() would then throw an unhandled P2025.
-     * deleteMany returns count 0 in that case, which we surface as "already gone".
+     * Offboarding is one fail-closed transaction. A deleted membership with a
+     * still-live connector/collaborator/AccessGrant is a security incident, so
+     * no cleanup failure is swallowed and no partially-revoked state commits.
      */
-    const deleted = await this.prisma.organizationMember.deleteMany({ where: { id: membership.id } });
-
-    if (deleted.count === 0) {
-      return undefined;
-    }
-
-    /*
-     * Unlink the removed user's connector links for every project in this org,
-     * so the connector-proxy stops serving their OAuth/API credentials to the
-     * org's agents. Without this the ex-member's tokens stay usable indefinitely.
-     */
-    await this.prisma.projectConnectionLink
-      .updateMany({
+    const removed = await this.prisma.$transaction(async (tx) => {
+      await tx.projectConnectionLink.updateMany({
         where: {
           unlinkedAt: null,
           userConnection: { userId },
           project: { organizationId },
         },
         data: { unlinkedAt: new Date() },
-      })
-      .catch((error) => {
-        /*
-         * Don't block membership removal, but DON'T swallow silently: a failed
-         * credential-unlink leaves the ex-member's tokens usable, so it must be
-         * observable for ops to remediate.
-         */
-        console.error('removeMember: failed to unlink connector links during offboarding', {
-          organizationId,
-          userId,
-          error,
-        });
       });
+      await tx.projectCollaborator.deleteMany({ where: { userId, project: { organizationId } } });
+      await tx.$executeRaw`
+        UPDATE "ResourceAccessGrant"
+        SET "status" = 'REVOKED',
+            "revokedAt" = CURRENT_TIMESTAMP,
+            "revocationReason" = 'ORGANIZATION_MEMBERSHIP_REMOVED',
+            "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "organizationId" = ${organizationId}
+          AND "subjectType" = 'USER'
+          AND "subjectUserId" = ${userId}
+          AND "status" <> 'REVOKED'
+      `;
 
-    /*
-     * Revoke the removed user's per-project collaborator grants in this org.
-     * Org membership and project-collaborator access are separate tables, so
-     * without this an ex-member (including SCIM/SAML deprovisioned users) keeps
-     * direct access to every project they were invited to. Scoped to this org's
-     * projects via the relational filter.
-     */
-    await this.prisma.projectCollaborator
-      .deleteMany({ where: { userId, project: { organizationId } } })
-      .catch((error) => {
-        /*
-         * Don't block removal, but surface it: a failed collaborator-grant deletion
-         * leaves the ex-member with direct project access.
-         */
-        console.error('removeMember: failed to revoke collaborator grants during offboarding', {
-          organizationId,
-          userId,
-          error,
-        });
-      });
+      return tx.organizationMember.deleteMany({ where: { id: membership.id, state: 'ACTIVE' } });
+    });
 
-    return mapMembership(membership);
+    return removed.count === 1 ? mapMembership(membership) : undefined;
   }
 
   async createProject(input: {
@@ -2231,6 +2231,678 @@ export class PrismaApiStore implements ApiStore {
     });
 
     return result.count > 0;
+  }
+
+  async createCollaborationGroup(input: {
+    organizationId: string;
+    name: string;
+    source: 'MANUAL' | 'SCIM';
+    externalId?: string;
+  }) {
+    return mapCollaborationGroup(
+      await this.prisma.collaborationGroup.create({
+        data: {
+          organizationId: input.organizationId,
+          name: input.name.trim(),
+          normalizedName: normalizeCollaborationGroupName(input.name),
+          source: input.source,
+          externalId: input.externalId,
+        },
+      }),
+    );
+  }
+
+  async getCollaborationGroup(groupId: string) {
+    const group = await this.prisma.collaborationGroup.findUnique({ where: { id: groupId } });
+    return group ? mapCollaborationGroup(group) : undefined;
+  }
+
+  async findScimCollaborationGroup(organizationId: string, externalId: string) {
+    const group = await this.prisma.collaborationGroup.findFirst({
+      where: { organizationId, externalId, source: 'SCIM', deletedAt: null },
+    });
+    return group ? mapCollaborationGroup(group) : undefined;
+  }
+
+  async updateScimCollaborationGroup(input: { organizationId: string; groupId: string; name: string }) {
+    const updated = await this.prisma.collaborationGroup.updateMany({
+      where: { id: input.groupId, organizationId: input.organizationId, source: 'SCIM', deletedAt: null },
+      data: { name: input.name.trim(), normalizedName: normalizeCollaborationGroupName(input.name) },
+    });
+
+    return updated.count === 1 ? this.getCollaborationGroup(input.groupId) : undefined;
+  }
+
+  async syncScimCollaborationGroup(input: {
+    organizationId: string;
+    groupId?: string;
+    externalId?: string | null;
+    name: string;
+    userIds: string[];
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const uniqueUserIds = [...new Set(input.userIds)];
+      const memberships = await tx.organizationMember.findMany({
+        where: { organizationId: input.organizationId, userId: { in: uniqueUserIds }, state: 'ACTIVE' },
+        select: { id: true },
+      });
+
+      if (memberships.length !== uniqueUserIds.length) {
+        return { ok: false as const, reason: COLLABORATION_REASON.membershipNotActive };
+      }
+
+      const existing = input.groupId
+        ? await tx.collaborationGroup.findFirst({
+            where: { id: input.groupId, organizationId: input.organizationId, deletedAt: null },
+          })
+        : input.externalId
+          ? await tx.collaborationGroup.findFirst({
+              where: { organizationId: input.organizationId, externalId: input.externalId, deletedAt: null },
+            })
+          : undefined;
+
+      if (input.groupId && !existing) {
+        return { ok: false as const, reason: COLLABORATION_REASON.groupNotFound };
+      }
+
+      if (existing && existing.source !== 'SCIM') {
+        return { ok: false as const, reason: COLLABORATION_REASON.groupManualOnly };
+      }
+
+      const group = existing
+        ? await tx.collaborationGroup.update({
+            where: { id: existing.id },
+            data: {
+              name: input.name.trim(),
+              normalizedName: normalizeCollaborationGroupName(input.name),
+              ...(input.externalId !== undefined ? { externalId: input.externalId } : {}),
+            },
+          })
+        : await tx.collaborationGroup.create({
+            data: {
+              organizationId: input.organizationId,
+              name: input.name.trim(),
+              normalizedName: normalizeCollaborationGroupName(input.name),
+              source: 'SCIM',
+              externalId: input.externalId,
+            },
+          });
+
+      await tx.collaborationGroupMember.deleteMany({
+        where: { organizationId: input.organizationId, groupId: group.id },
+      });
+
+      if (memberships.length > 0) {
+        await tx.collaborationGroupMember.createMany({
+          data: memberships.map((membership) => ({
+            organizationId: input.organizationId,
+            groupId: group.id,
+            membershipId: membership.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      return { ok: true as const, group: mapCollaborationGroup(group), created: !existing };
+    });
+  }
+
+  async listCollaborationGroups(input: {
+    organizationId: string;
+    cursor?: string;
+    offset?: number;
+    source?: 'MANUAL' | 'SCIM';
+    limit: number;
+  }) {
+    const groups = await this.prisma.collaborationGroup.findMany({
+      where: {
+        organizationId: input.organizationId,
+        deletedAt: null,
+        ...(input.source ? { source: input.source } : {}),
+        ...(input.cursor ? { id: { gt: input.cursor } } : {}),
+      },
+      orderBy: { id: 'asc' },
+      skip: input.offset,
+      take: input.limit + 1,
+    });
+    const hasMore = groups.length > input.limit;
+    const items = groups.slice(0, input.limit).map(mapCollaborationGroup);
+
+    return { items, nextCursor: hasMore ? items.at(-1)?.id : undefined };
+  }
+
+  async countCollaborationGroups(organizationId: string, source?: 'MANUAL' | 'SCIM') {
+    return this.prisma.collaborationGroup.count({
+      where: { organizationId, deletedAt: null, ...(source ? { source } : {}) },
+    });
+  }
+
+  async archiveCollaborationGroup(input: {
+    organizationId: string;
+    groupId: string;
+    writer: 'MANUAL' | 'SCIM';
+    actorUserId?: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const group = await tx.collaborationGroup.findFirst({
+        where: { id: input.groupId, organizationId: input.organizationId, deletedAt: null },
+      });
+
+      if (!group) {
+        return { ok: false as const, reason: COLLABORATION_REASON.groupNotFound };
+      }
+
+      if (group.source !== input.writer) {
+        return {
+          ok: false as const,
+          reason:
+            input.writer === 'MANUAL' ? COLLABORATION_REASON.groupScimManaged : COLLABORATION_REASON.groupManualOnly,
+        };
+      }
+
+      const archived = await tx.$queryRaw<Array<{ id: string }>>`
+        UPDATE "CollaborationGroup"
+        SET "deletedAt" = CURRENT_TIMESTAMP, "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "id" = ${input.groupId}
+          AND "organizationId" = ${input.organizationId}
+          AND "source" = ${input.writer}::"CollaborationGroupSource"
+          AND "deletedAt" IS NULL
+        RETURNING "id"
+      `;
+
+      if (archived.length !== 1) {
+        return { ok: false as const, reason: COLLABORATION_REASON.groupNotFound };
+      }
+
+      await tx.$executeRaw`
+        UPDATE "ResourceAccessGrant"
+        SET "status" = 'REVOKED',
+            "revokedAt" = CURRENT_TIMESTAMP,
+            "revokedByUserId" = ${input.actorUserId ?? null},
+            "revocationReason" = 'SUBJECT_GROUP_ARCHIVED',
+            "updatedAt" = CURRENT_TIMESTAMP
+        WHERE "organizationId" = ${input.organizationId}
+          AND "subjectType" = 'GROUP'
+          AND "subjectGroupId" = ${input.groupId}
+          AND "status" <> 'REVOKED'
+      `;
+
+      return { ok: true as const, removed: true };
+    });
+  }
+
+  async addCollaborationGroupMember(input: {
+    organizationId: string;
+    groupId: string;
+    userId: string;
+    writer: 'MANUAL' | 'SCIM';
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const group = await tx.collaborationGroup.findFirst({
+        where: { id: input.groupId, organizationId: input.organizationId, deletedAt: null },
+      });
+
+      if (!group) {
+        return { ok: false as const, reason: COLLABORATION_REASON.groupNotFound };
+      }
+
+      if (group.source !== input.writer) {
+        return {
+          ok: false as const,
+          reason:
+            input.writer === 'MANUAL' ? COLLABORATION_REASON.groupScimManaged : COLLABORATION_REASON.groupManualOnly,
+        };
+      }
+
+      const membership = await tx.organizationMember.findFirst({
+        where: { organizationId: input.organizationId, userId: input.userId, state: 'ACTIVE' },
+      });
+
+      if (!membership) {
+        return { ok: false as const, reason: COLLABORATION_REASON.membershipNotActive };
+      }
+
+      const member = await tx.collaborationGroupMember.upsert({
+        where: { groupId_membershipId: { groupId: group.id, membershipId: membership.id } },
+        create: { organizationId: input.organizationId, groupId: group.id, membershipId: membership.id },
+        update: {},
+      });
+
+      return { ok: true as const, member: mapCollaborationGroupMember(member, input.userId) };
+    });
+  }
+
+  async removeCollaborationGroupMember(input: {
+    organizationId: string;
+    groupId: string;
+    userId: string;
+    writer: 'MANUAL' | 'SCIM';
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const group = await tx.collaborationGroup.findFirst({
+        where: { id: input.groupId, organizationId: input.organizationId, deletedAt: null },
+      });
+
+      if (!group) {
+        return { ok: false as const, reason: COLLABORATION_REASON.groupNotFound };
+      }
+
+      if (group.source !== input.writer) {
+        return {
+          ok: false as const,
+          reason:
+            input.writer === 'MANUAL' ? COLLABORATION_REASON.groupScimManaged : COLLABORATION_REASON.groupManualOnly,
+        };
+      }
+
+      const membership = await tx.organizationMember.findFirst({
+        where: { organizationId: input.organizationId, userId: input.userId },
+      });
+
+      if (!membership) {
+        return { ok: false as const, reason: COLLABORATION_REASON.membershipNotActive };
+      }
+
+      const removed = await tx.collaborationGroupMember.deleteMany({
+        where: { organizationId: input.organizationId, groupId: group.id, membershipId: membership.id },
+      });
+
+      return { ok: true as const, removed: removed.count === 1 };
+    });
+  }
+
+  async replaceCollaborationGroupMembers(input: {
+    organizationId: string;
+    groupId: string;
+    userIds: string[];
+    writer: 'MANUAL' | 'SCIM';
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const group = await tx.collaborationGroup.findFirst({
+        where: { id: input.groupId, organizationId: input.organizationId, deletedAt: null },
+      });
+
+      if (!group) {
+        return { ok: false as const, reason: COLLABORATION_REASON.groupNotFound };
+      }
+
+      if (group.source !== input.writer) {
+        return {
+          ok: false as const,
+          reason:
+            input.writer === 'MANUAL' ? COLLABORATION_REASON.groupScimManaged : COLLABORATION_REASON.groupManualOnly,
+        };
+      }
+
+      const uniqueUserIds = [...new Set(input.userIds)];
+      const memberships = await tx.organizationMember.findMany({
+        where: { organizationId: input.organizationId, userId: { in: uniqueUserIds }, state: 'ACTIVE' },
+        select: { id: true, userId: true },
+      });
+
+      if (memberships.length !== uniqueUserIds.length) {
+        return { ok: false as const, reason: COLLABORATION_REASON.membershipNotActive };
+      }
+
+      await tx.collaborationGroupMember.deleteMany({
+        where: { organizationId: input.organizationId, groupId: input.groupId },
+      });
+
+      if (memberships.length > 0) {
+        await tx.collaborationGroupMember.createMany({
+          data: memberships.map((membership) => ({
+            organizationId: input.organizationId,
+            groupId: input.groupId,
+            membershipId: membership.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
+
+      return { ok: true as const, removed: false };
+    });
+  }
+
+  async listCollaborationGroupMembers(input: {
+    organizationId: string;
+    groupId: string;
+    cursor?: string;
+    limit: number;
+  }) {
+    const members = await this.prisma.collaborationGroupMember.findMany({
+      where: {
+        organizationId: input.organizationId,
+        groupId: input.groupId,
+        membership: { state: 'ACTIVE' },
+        ...(input.cursor ? { id: { gt: input.cursor } } : {}),
+      },
+      include: { membership: { select: { userId: true } } },
+      orderBy: { id: 'asc' },
+      take: input.limit + 1,
+    });
+    const hasMore = members.length > input.limit;
+    const items = members
+      .slice(0, input.limit)
+      .map((member) => mapCollaborationGroupMember(member, member.membership.userId));
+
+    return { items, nextCursor: hasMore ? items.at(-1)?.id : undefined };
+  }
+
+  async createResourceAccessGrant(input: {
+    organizationId: string;
+    subjectType: 'USER' | 'GROUP';
+    subjectUserId?: string;
+    subjectGroupId?: string;
+    resourceType: 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET';
+    resourceId: string;
+    roleKey: string;
+    status: 'PENDING_CONSENT' | 'ACTIVE';
+    expiresAt: Date;
+    acceptedAt?: Date;
+    consentVersion?: string;
+    grantedByUserId: string;
+    idempotencyKey?: string;
+    requestHash: string;
+  }) {
+    if (input.idempotencyKey) {
+      const replay = await this.prisma.resourceAccessGrant.findUnique({
+        where: {
+          organizationId_idempotencyKey: {
+            organizationId: input.organizationId,
+            idempotencyKey: input.idempotencyKey,
+          },
+        },
+      });
+
+      if (replay) {
+        return replay.requestHash === input.requestHash
+          ? { ok: true as const, grant: mapResourceAccessGrant(replay), replayed: true }
+          : { ok: false as const, reason: COLLABORATION_REASON.idempotencyConflict };
+      }
+    }
+
+    /*
+     * PostgreSQL cannot use CURRENT_TIMESTAMP in a partial-index predicate.
+     * Close any expired predecessor with the database clock before attempting
+     * the live-subject unique insert; concurrent creators still serialize on
+     * ResourceAccessGrant_live_subject_resource_key and exactly one wins.
+     */
+    await this.prisma.$executeRaw`
+      UPDATE "ResourceAccessGrant"
+      SET "status" = 'REVOKED',
+          "revokedAt" = CURRENT_TIMESTAMP,
+          "revocationReason" = 'EXPIRED_REPLACED',
+          "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "organizationId" = ${input.organizationId}
+        AND "subjectType" = ${input.subjectType}::"AccessGrantSubjectType"
+        AND "subjectUserId" IS NOT DISTINCT FROM ${input.subjectUserId ?? null}
+        AND "subjectGroupId" IS NOT DISTINCT FROM ${input.subjectGroupId ?? null}
+        AND "resourceType" = ${input.resourceType}::"AccessGrantResourceType"
+        AND "resourceId" = ${input.resourceId}
+        AND "status" <> 'REVOKED'
+        AND "expiresAt" <= CURRENT_TIMESTAMP
+    `;
+
+    /*
+     * DO NOTHING is intentional: expected retry/concurrency conflicts are
+     * control flow, not exceptions that should pollute production error logs.
+     * With no conflict target PostgreSQL protects both the idempotency key and
+     * the partial live-subject/resource unique index atomically.
+     */
+    const inserted = await this.prisma.$queryRaw<any[]>`
+      INSERT INTO "ResourceAccessGrant" (
+        "id", "organizationId", "subjectType", "subjectUserId", "subjectGroupId",
+        "resourceType", "resourceId", "roleKey", "status", "expiresAt",
+        "acceptedAt", "consentVersion", "grantedByUserId", "idempotencyKey",
+        "requestHash", "createdAt", "updatedAt"
+      ) VALUES (
+        ${`access_grant_${randomUUID()}`},
+        ${input.organizationId},
+        ${input.subjectType}::"AccessGrantSubjectType",
+        ${input.subjectUserId ?? null},
+        ${input.subjectGroupId ?? null},
+        ${input.resourceType}::"AccessGrantResourceType",
+        ${input.resourceId},
+        ${input.roleKey},
+        ${input.status}::"AccessGrantStatus",
+        ${input.expiresAt},
+        ${input.acceptedAt ?? null},
+        ${input.consentVersion ?? null},
+        ${input.grantedByUserId},
+        ${input.idempotencyKey ?? null},
+        ${input.requestHash},
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+      )
+      ON CONFLICT DO NOTHING
+      RETURNING *
+    `;
+
+    if (inserted.length === 1) {
+      return { ok: true as const, grant: mapResourceAccessGrant(inserted[0]) };
+    }
+
+    const existing = await this.prisma.resourceAccessGrant.findFirst({
+      where: {
+        organizationId: input.organizationId,
+        subjectType: input.subjectType,
+        subjectUserId: input.subjectUserId ?? null,
+        subjectGroupId: input.subjectGroupId ?? null,
+        resourceType: input.resourceType,
+        resourceId: input.resourceId,
+        status: { not: 'REVOKED' },
+      },
+    });
+
+    if (existing?.requestHash === input.requestHash) {
+      return { ok: true as const, grant: mapResourceAccessGrant(existing), replayed: true };
+    }
+
+    if (input.idempotencyKey) {
+      const replay = await this.prisma.resourceAccessGrant.findUnique({
+        where: {
+          organizationId_idempotencyKey: {
+            organizationId: input.organizationId,
+            idempotencyKey: input.idempotencyKey,
+          },
+        },
+      });
+
+      if (replay) {
+        return replay.requestHash === input.requestHash
+          ? { ok: true as const, grant: mapResourceAccessGrant(replay), replayed: true }
+          : { ok: false as const, reason: COLLABORATION_REASON.idempotencyConflict };
+      }
+    }
+
+    return { ok: false as const, reason: COLLABORATION_REASON.activeGrantConflict };
+  }
+
+  async getResourceAccessGrant(grantId: string) {
+    const grant = await this.prisma.resourceAccessGrant.findUnique({ where: { id: grantId } });
+    return grant ? mapResourceAccessGrant(grant) : undefined;
+  }
+
+  async listResourceAccessGrants(input: {
+    organizationId: string;
+    resourceType: 'PROJECT' | 'ARTIFACT' | 'DEPLOYMENT' | 'DATASET';
+    resourceId: string;
+    cursor?: string;
+    limit: number;
+  }) {
+    const grants = await this.prisma.resourceAccessGrant.findMany({
+      where: {
+        organizationId: input.organizationId,
+        resourceType: input.resourceType,
+        resourceId: input.resourceId,
+        ...(input.cursor ? { id: { gt: input.cursor } } : {}),
+      },
+      orderBy: { id: 'asc' },
+      take: input.limit + 1,
+    });
+    const hasMore = grants.length > input.limit;
+    const items = grants.slice(0, input.limit).map(mapResourceAccessGrant);
+
+    return { items, nextCursor: hasMore ? items.at(-1)?.id : undefined };
+  }
+
+  async listUserResourceAccessGrants(input: { userId: string; cursor?: string; limit: number }) {
+    const grants = await this.prisma.resourceAccessGrant.findMany({
+      where: {
+        subjectType: 'USER',
+        subjectUserId: input.userId,
+        ...(input.cursor ? { id: { gt: input.cursor } } : {}),
+      },
+      orderBy: { id: 'asc' },
+      take: input.limit + 1,
+    });
+    const hasMore = grants.length > input.limit;
+    const items = grants.slice(0, input.limit).map(mapResourceAccessGrant);
+
+    return { items, nextCursor: hasMore ? items.at(-1)?.id : undefined };
+  }
+
+  async acceptResourceAccessGrant(input: { grantId: string; subjectUserId: string; consentVersion: string }) {
+    const accepted = await this.prisma.$queryRaw<any[]>`
+      UPDATE "ResourceAccessGrant"
+      SET "status" = 'ACTIVE',
+          "acceptedAt" = CURRENT_TIMESTAMP,
+          "consentVersion" = ${input.consentVersion},
+          "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = ${input.grantId}
+        AND "subjectType" = 'USER'
+        AND "subjectUserId" = ${input.subjectUserId}
+        AND "status" = 'PENDING_CONSENT'
+        AND "revokedAt" IS NULL
+        AND "expiresAt" > CURRENT_TIMESTAMP
+      RETURNING *
+    `;
+
+    if (accepted.length === 1) {
+      return { ok: true as const, grant: mapResourceAccessGrant(accepted[0]) };
+    }
+
+    return this.describeGrantMutationFailure(input.grantId, input.subjectUserId, 'PENDING_CONSENT');
+  }
+
+  async rejectResourceAccessGrant(input: { grantId: string; subjectUserId: string; reason: string }) {
+    const rejected = await this.prisma.$queryRaw<any[]>`
+      UPDATE "ResourceAccessGrant"
+      SET "status" = 'REVOKED',
+          "revokedAt" = CURRENT_TIMESTAMP,
+          "revokedByUserId" = ${input.subjectUserId},
+          "revocationReason" = ${input.reason},
+          "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = ${input.grantId}
+        AND "subjectType" = 'USER'
+        AND "subjectUserId" = ${input.subjectUserId}
+        AND "status" = 'PENDING_CONSENT'
+        AND "revokedAt" IS NULL
+      RETURNING *
+    `;
+
+    if (rejected.length === 1) {
+      return { ok: true as const, grant: mapResourceAccessGrant(rejected[0]) };
+    }
+
+    return this.describeGrantMutationFailure(input.grantId, input.subjectUserId, 'PENDING_CONSENT');
+  }
+
+  async revokeResourceAccessGrant(input: {
+    organizationId: string;
+    grantId: string;
+    revokedByUserId: string;
+    reason: string;
+  }) {
+    const revoked = await this.prisma.$queryRaw<any[]>`
+      UPDATE "ResourceAccessGrant"
+      SET "status" = 'REVOKED',
+          "revokedAt" = CURRENT_TIMESTAMP,
+          "revokedByUserId" = ${input.revokedByUserId},
+          "revocationReason" = ${input.reason},
+          "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = ${input.grantId}
+        AND "organizationId" = ${input.organizationId}
+        AND "status" <> 'REVOKED'
+      RETURNING *
+    `;
+
+    return revoked.length === 1
+      ? { ok: true as const, grant: mapResourceAccessGrant(revoked[0]) }
+      : { ok: false as const, reason: COLLABORATION_REASON.grantNotActive };
+  }
+
+  async listActiveProjectAccessRoles(projectId: string, userId: string) {
+    const rows = await this.prisma.$queryRaw<Array<{ roleKey: string }>>`
+      SELECT DISTINCT access_grant."roleKey"
+      FROM "ResourceAccessGrant" AS access_grant
+      JOIN "Project" AS project
+        ON project."id" = access_grant."resourceId"
+       AND project."organizationId" = access_grant."organizationId"
+      LEFT JOIN "CollaborationGroup" AS subject_group
+        ON subject_group."organizationId" = access_grant."organizationId"
+       AND subject_group."id" = access_grant."subjectGroupId"
+       AND subject_group."deletedAt" IS NULL
+      WHERE access_grant."resourceType" = 'PROJECT'
+        AND access_grant."resourceId" = ${projectId}
+        AND access_grant."status" = 'ACTIVE'
+        AND access_grant."acceptedAt" IS NOT NULL
+        AND access_grant."revokedAt" IS NULL
+        AND access_grant."expiresAt" > CURRENT_TIMESTAMP
+        AND (
+          (access_grant."subjectType" = 'USER' AND access_grant."subjectUserId" = ${userId})
+          OR
+          (
+            access_grant."subjectType" = 'GROUP'
+            AND subject_group."id" IS NOT NULL
+            AND EXISTS (
+              SELECT 1
+              FROM "CollaborationGroupMember" AS group_member
+              JOIN "OrganizationMember" AS membership
+                ON membership."organizationId" = group_member."organizationId"
+               AND membership."id" = group_member."membershipId"
+              WHERE group_member."organizationId" = access_grant."organizationId"
+                AND group_member."groupId" = access_grant."subjectGroupId"
+                AND membership."userId" = ${userId}
+                AND membership."state" = 'ACTIVE'
+            )
+          )
+        )
+    `;
+
+    return rows.map((row) => row.roleKey);
+  }
+
+  private async describeGrantMutationFailure(
+    grantId: string,
+    subjectUserId: string,
+    expectedStatus: 'PENDING_CONSENT' | 'ACTIVE',
+  ) {
+    const grant = await this.prisma.resourceAccessGrant.findUnique({ where: { id: grantId } });
+
+    if (!grant) {
+      return { ok: false as const, reason: COLLABORATION_REASON.grantNotFound };
+    }
+
+    if (grant.subjectType !== 'USER' || grant.subjectUserId !== subjectUserId) {
+      return { ok: false as const, reason: COLLABORATION_REASON.grantSubjectMismatch };
+    }
+
+    const databaseNow = await this.prisma.$queryRaw<Array<{ expired: boolean }>>`
+      SELECT (${grant.expiresAt} <= CURRENT_TIMESTAMP) AS "expired"
+    `;
+
+    if (databaseNow[0]?.expired) {
+      return { ok: false as const, reason: COLLABORATION_REASON.grantExpired };
+    }
+
+    return {
+      ok: false as const,
+      reason:
+        expectedStatus === 'PENDING_CONSENT'
+          ? COLLABORATION_REASON.grantNotPending
+          : COLLABORATION_REASON.grantNotActive,
+    };
   }
 
   async recordProjectActivity(input: {
@@ -4733,6 +5405,7 @@ export class PrismaApiStore implements ApiStore {
     roleKey: string;
     token: string;
     expiresAt: Date;
+    createdByUserId?: string;
   }) {
     const role = await this.ensureRole(input.roleKey);
 
@@ -4743,6 +5416,7 @@ export class PrismaApiStore implements ApiStore {
         roleId: role.id,
         tokenHash: hashToken(input.token),
         expiresAt: input.expiresAt,
+        createdByUserId: input.createdByUserId,
       },
       include: { role: true },
     });
@@ -4791,7 +5465,12 @@ export class PrismaApiStore implements ApiStore {
     const existingMembership = await this.getMembership(userId, invite.organizationId);
 
     if (!existingMembership) {
-      await this.addMember({ organizationId: invite.organizationId, userId, roleKey: invite.role.key });
+      await this.addMember({
+        organizationId: invite.organizationId,
+        userId,
+        roleKey: invite.role.key,
+        invitedByUserId: invite.createdByUserId ?? undefined,
+      });
     }
 
     return mapOrganizationInvite({ ...invite, acceptedAt: consumedAt });
@@ -6819,8 +7498,60 @@ function mapMembership(member: any): MembershipRecord {
     organizationId: member.organizationId,
     userId: member.userId,
     roleKey: member.role?.key ?? member.roleKey ?? 'member',
+    state: member.state ?? 'ACTIVE',
+    invitedByUserId: member.invitedByUserId ?? undefined,
+    joinedAt: toIso(member.joinedAt ?? member.createdAt)!,
     userName: member.user?.name ?? undefined,
     userEmail: member.user?.email ?? undefined,
+  };
+}
+
+function mapCollaborationGroup(group: any): CollaborationGroupRecord {
+  return {
+    id: group.id,
+    organizationId: group.organizationId,
+    name: group.name,
+    source: group.source,
+    externalId: group.externalId ?? undefined,
+    deletedAt: toIso(group.deletedAt),
+    createdAt: toIso(group.createdAt)!,
+    updatedAt: toIso(group.updatedAt)!,
+  };
+}
+
+function mapCollaborationGroupMember(member: any, userId: string): CollaborationGroupMemberRecord {
+  return {
+    id: member.id,
+    organizationId: member.organizationId,
+    groupId: member.groupId,
+    membershipId: member.membershipId,
+    userId,
+    createdAt: toIso(member.createdAt)!,
+  };
+}
+
+function mapResourceAccessGrant(grant: any): ResourceAccessGrantRecord {
+  return {
+    id: grant.id,
+    organizationId: grant.organizationId,
+    subjectType: grant.subjectType,
+    subjectUserId: grant.subjectUserId ?? undefined,
+    subjectGroupId: grant.subjectGroupId ?? undefined,
+    resourceType: grant.resourceType,
+    resourceId: grant.resourceId,
+    roleKey: grant.roleKey,
+    status: grant.status,
+    expiresAt: toIso(grant.expiresAt)!,
+    acceptedAt: toIso(grant.acceptedAt),
+    consentVersion: grant.consentVersion ?? undefined,
+    grantedByUserId: grant.grantedByUserId,
+    revokedAt: toIso(grant.revokedAt),
+    revokedByUserId: grant.revokedByUserId ?? undefined,
+    revocationReason: grant.revocationReason ?? undefined,
+    idempotencyKey: grant.idempotencyKey ?? undefined,
+    requestHash: grant.requestHash,
+    createdAt: toIso(grant.createdAt)!,
+    updatedAt: toIso(grant.updatedAt)!,
   };
 }
 
@@ -7392,6 +8123,7 @@ function mapOrganizationInvite(invite: any): OrganizationInviteRecord {
     tokenHash: invite.tokenHash,
     expiresAt: toIso(invite.expiresAt)!,
     acceptedAt: toIso(invite.acceptedAt),
+    createdByUserId: invite.createdByUserId ?? undefined,
     createdAt: toIso(invite.createdAt)!,
   };
 }

@@ -38,6 +38,34 @@ enum SupportTicketStatus {
   CLOSED
 }
 
+enum OrganizationMembershipState {
+  ACTIVE
+  SUSPENDED
+}
+
+enum CollaborationGroupSource {
+  MANUAL
+  SCIM
+}
+
+enum AccessGrantSubjectType {
+  USER
+  GROUP
+}
+
+enum AccessGrantResourceType {
+  PROJECT
+  ARTIFACT
+  DEPLOYMENT
+  DATASET
+}
+
+enum AccessGrantStatus {
+  PENDING_CONSENT
+  ACTIVE
+  REVOKED
+}
+
 model User {
   id                          String                         @id @default(cuid())
   email                       String                         @unique
@@ -103,6 +131,11 @@ model User {
   agentRoutingCards           AgentRoutingCard[]             @relation("AgentRoutingCardAuthor")
   runtimeWebSocketTickets     RuntimeWebSocketTicket[]
   importJobs                  ImportJob[]                    @relation("ImportJobActor")
+  invitedOrganizationMembers  OrganizationMember[]           @relation("OrganizationMemberInviter")
+  createdOrganizationInvites  OrganizationInvite[]           @relation("OrganizationInviteCreator")
+  accessGrantSubjects         ResourceAccessGrant[]          @relation("AccessGrantSubjectUser")
+  accessGrantsCreated         ResourceAccessGrant[]          @relation("AccessGrantCreator")
+  accessGrantsRevoked         ResourceAccessGrant[]          @relation("AccessGrantRevoker")
 }
 
 model Account {
@@ -180,36 +213,48 @@ model Organization {
   agentCheckpoints           AgentCheckpoint[]
   userSpendLimits            UserSpendLimit[]
   importJobs                 ImportJob[]
+  collaborationGroups        CollaborationGroup[]
+  resourceAccessGrants       ResourceAccessGrant[]
 }
 
 model OrganizationMember {
-  id             String       @id @default(cuid())
-  organizationId String
-  userId         String
-  roleId         String
-  createdAt      DateTime     @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role           Role         @relation(fields: [roleId], references: [id])
+  id               String                      @id @default(cuid())
+  organizationId   String
+  userId           String
+  roleId           String
+  state            OrganizationMembershipState @default(ACTIVE)
+  invitedByUserId  String?
+  joinedAt         DateTime                    @default(now())
+  createdAt        DateTime                    @default(now())
+  organization     Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user             User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitedBy        User?                       @relation("OrganizationMemberInviter", fields: [invitedByUserId], references: [id], onDelete: SetNull)
+  role             Role                        @relation(fields: [roleId], references: [id])
+  groupMemberships CollaborationGroupMember[]
 
   @@unique([organizationId, userId])
+  @@unique([organizationId, id])
   @@index([userId])
   @@index([roleId])
+  @@index([invitedByUserId])
 }
 
 model OrganizationInvite {
-  id             String       @id @default(cuid())
-  organizationId String
-  email          String
-  roleId         String
-  tokenHash      String       @unique
-  expiresAt      DateTime
-  acceptedAt     DateTime?
-  createdAt      DateTime     @default(now())
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  role           Role         @relation(fields: [roleId], references: [id])
+  id              String       @id @default(cuid())
+  organizationId  String
+  email           String
+  roleId          String
+  tokenHash       String       @unique
+  expiresAt       DateTime
+  acceptedAt      DateTime?
+  createdByUserId String?
+  createdAt       DateTime     @default(now())
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  role            Role         @relation(fields: [roleId], references: [id])
+  createdBy       User?        @relation("OrganizationInviteCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   @@index([organizationId])
+  @@index([createdByUserId])
 }
 
 model Role {
@@ -625,6 +670,80 @@ model ProjectShareLink {
   createdBy       User?     @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
 
   @@index([projectId, expiresAt])
+}
+
+/// A tenant-scoped group. SCIM groups are written only through the authenticated
+/// SCIM surface; interactive routes may only create and mutate MANUAL groups.
+/// Deletion is soft so grants and the audit trail remain explainable.
+model CollaborationGroup {
+  id             String                     @id @default(cuid())
+  organizationId String
+  name           String
+  normalizedName String
+  source         CollaborationGroupSource   @default(MANUAL)
+  externalId     String?
+  deletedAt      DateTime?
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+  organization   Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members        CollaborationGroupMember[]
+  accessGrants   ResourceAccessGrant[]
+
+  @@unique([organizationId, id])
+  @@index([organizationId, deletedAt, id])
+}
+
+/// The composite foreign keys make cross-tenant group membership impossible at
+/// the database boundary: both the group and the OrganizationMember must belong
+/// to this exact organization.
+model CollaborationGroupMember {
+  id             String             @id @default(cuid())
+  organizationId String
+  groupId        String
+  membershipId   String
+  createdAt      DateTime           @default(now())
+  group          CollaborationGroup @relation(fields: [organizationId, groupId], references: [organizationId, id], onDelete: Cascade)
+  membership     OrganizationMember @relation(fields: [organizationId, membershipId], references: [organizationId, id], onDelete: Cascade)
+
+  @@unique([groupId, membershipId])
+  @@index([organizationId, membershipId])
+}
+
+/// A resource-scoped authorization edge. External USER subjects start in
+/// PENDING_CONSENT and confer no access until the subject accepts. Every grant
+/// expires, every revocation is retained, and retry identity is request-hashed.
+model ResourceAccessGrant {
+  id               String                  @id @default(cuid())
+  organizationId   String
+  subjectType      AccessGrantSubjectType
+  subjectUserId    String?
+  subjectGroupId   String?
+  resourceType     AccessGrantResourceType
+  resourceId       String
+  roleKey          String
+  status           AccessGrantStatus
+  expiresAt        DateTime
+  acceptedAt       DateTime?
+  consentVersion   String?
+  grantedByUserId  String
+  revokedAt        DateTime?
+  revokedByUserId  String?
+  revocationReason String?
+  idempotencyKey   String?
+  requestHash      String
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+  organization     Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  subjectUser      User?                   @relation("AccessGrantSubjectUser", fields: [subjectUserId], references: [id], onDelete: Cascade)
+  subjectGroup     CollaborationGroup?     @relation(fields: [organizationId, subjectGroupId], references: [organizationId, id], onDelete: Restrict)
+  grantedBy        User                    @relation("AccessGrantCreator", fields: [grantedByUserId], references: [id], onDelete: Restrict)
+  revokedBy        User?                   @relation("AccessGrantRevoker", fields: [revokedByUserId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([resourceType, resourceId, status, expiresAt])
+  @@index([subjectUserId, status, expiresAt])
+  @@index([subjectGroupId, status, expiresAt])
+  @@index([organizationId, createdAt, id])
 }
 
 model ProjectTemplate {

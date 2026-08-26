@@ -313,6 +313,7 @@ import {
   resolveMcpCatalogLocale,
   type McpCatalogLocale,
 } from './mcp-marketplace.js';
+import { registerIdentityCollaborationRoutes } from './identity-collaboration-routes.js';
 import {
   meterAllDatabaseStorage,
   meterAllObjectStorage,
@@ -3879,18 +3880,34 @@ async function requireProject(
    * grant on this project, fall back to collaborator-based authorization for
    * this single project instead of 404-ing them out.
    */
-  const collaboratorRole = await projectCollaborationRole(store, projectId, request.currentUser?.id);
+  const collaborationAccess = await projectCollaborationAccess(store, projectId, request.currentUser?.id);
+  const accessRoles = [
+    ...(collaborationAccess.collaboratorRole ? [collaborationAccess.collaboratorRole] : []),
+    ...collaborationAccess.grantRoles,
+  ];
+  const accessCarriesPermission = (
+    await Promise.all(
+      accessRoles.map(async (roleKey) =>
+        (await permissionsForOrganizationRole(store, project.organizationId, roleKey)).includes(permission),
+      ),
+    )
+  ).some(Boolean);
+  const collaboratorReadOnlyDenial =
+    isWriteProjectPermission(permission) && isReadOnlyProjectRole(collaborationAccess.collaboratorRole);
 
   try {
     await requireOrg(request, store, project.organizationId, permission);
   } catch (error: any) {
     /*
-     * Fall back to collaborator-based authorization only when the sole problem
-     * is that the user isn't an org member but holds a collaborator grant on
-     * this project. Any other failure (401 unauth, 403 for an actual member
-     * lacking the permission) propagates unchanged.
+     * A resource grant may authorize only THIS project. It must actually carry
+     * the requested permission; merely storing an unknown/read-only role is not
+     * a write bypass. Explicit grants may also elevate a low-privilege org role
+     * on this one resource (RBAC_FORBIDDEN), never org-wide.
      */
-    if (error?.code !== 'ORG_NOT_FOUND' || !collaboratorRole) {
+    if (
+      !['ORG_NOT_FOUND', 'RBAC_FORBIDDEN'].includes(error?.code) ||
+      (!accessCarriesPermission && !collaboratorReadOnlyDenial)
+    ) {
       throw error;
     }
   }
@@ -3900,7 +3917,7 @@ async function requireProject(
    * collaborator can never write, even if an org role would otherwise allow it,
    * and a collaborator-only user needs a write-capable role to perform writes.
    */
-  if (isWriteProjectPermission(permission) && isReadOnlyProjectRole(collaboratorRole)) {
+  if (collaboratorReadOnlyDenial) {
     throw Object.assign(new Error(appPublicEnglish('PROJECT_ROLE_READ_ONLY')), {
       statusCode: 403,
       code: 'PROJECT_ROLE_READ_ONLY',
@@ -4144,26 +4161,34 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
 }
 
 async function projectCollaborationRole(store: ApiStore, projectId: string, userId?: string) {
+  const access = await projectCollaborationAccess(store, projectId, userId);
+  const roles = [...(access.collaboratorRole ? [access.collaboratorRole] : []), ...access.grantRoles];
+  const priority = ['owner', 'admin', 'member', 'editor', 'viewer', 'guest'];
+  return roles.sort((left, right) => {
+    const leftPriority = priority.indexOf(left);
+    const rightPriority = priority.indexOf(right);
+    return (
+      (leftPriority === -1 ? priority.length : leftPriority) - (rightPriority === -1 ? priority.length : rightPriority)
+    );
+  })[0];
+}
+
+async function projectCollaborationAccess(store: ApiStore, projectId: string, userId?: string) {
   if (!userId) {
-    return undefined;
+    return { collaboratorRole: undefined, grantRoles: [] as string[] };
   }
 
   const collaborator = (await store.listProjectCollaborators(projectId)).find((entry) => entry.userId === userId);
-
-  if (!collaborator) {
-    return undefined;
-  }
-
-  // An expired grant (e.g. redeemed from a time-limited share link) confers no role.
-  if (collaborator.expiresAt && new Date(collaborator.expiresAt).getTime() <= Date.now()) {
-    return undefined;
-  }
-
-  return collaborator.roleKey;
+  const collaboratorRole =
+    collaborator && !(collaborator.expiresAt && new Date(collaborator.expiresAt).getTime() <= Date.now())
+      ? collaborator.roleKey
+      : undefined;
+  const grantRoles = await store.listActiveProjectAccessRoles(projectId, userId);
+  return { collaboratorRole, grantRoles };
 }
 
 function isReadOnlyProjectRole(role?: string) {
-  return role === 'viewer';
+  return role === 'viewer' || role === 'guest';
 }
 
 function normalizeProjectPath(path?: string) {
@@ -19000,7 +19025,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       membership = await store.withSerializedMutation(`org-members:${orgId}`, async () => {
         await ensureQuota(request, orgId, 'team.members');
 
-        return store.addMember({ organizationId: orgId, userId: body.userId, roleKey: body.roleKey });
+        return store.addMember({
+          organizationId: orgId,
+          userId: body.userId,
+          roleKey: body.roleKey,
+          invitedByUserId: request.currentUser!.id,
+        });
       });
     } else {
       // Existing member, plain role update — no seat consumed.
@@ -19257,6 +19287,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         roleKey,
         token,
         expiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 14),
+        createdByUserId: request.currentUser!.id,
       });
       const invitedUser = await store.findUserByEmail(body.email);
       const invitationContent = invitationEmailContent({
@@ -23915,6 +23946,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     client.onMessage(async (message) => {
       try {
         /*
+         * Revalidate long-lived guest/group authorization for every inbound
+         * frame. Revocation, group removal and expiry therefore cut an already
+         * open session instead of being observed only after a reconnect.
+         */
+        await requireProject(request, store, project.id, 'projects:read');
+
+        /*
          * Bound the inbound payload: cursor/selection are free-form (z.unknown),
          * so without a cap a single authenticated peer could push huge frames
          * that fan out (incl. via Redis) to every other peer in the room.
@@ -24034,6 +24072,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             timestamp: new Date().toISOString(),
           }),
         );
+
+        if (['ORG_NOT_FOUND', 'RBAC_FORBIDDEN', 'PROJECT_ROLE_READ_ONLY'].includes(error?.code)) {
+          client.close();
+        }
       }
     });
 
@@ -24051,6 +24093,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * otherwise they leak per dead client. Mirrors the runtime terminal liveness.
      */
     let awaitingPong = false;
+    let authorizationCheckInFlight = false;
     client.onPong(() => {
       awaitingPong = false;
     });
@@ -24063,6 +24106,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       awaitingPong = true;
       client.ping();
+
+      if (!authorizationCheckInFlight) {
+        authorizationCheckInFlight = true;
+        void requireProject(request, store, project.id, 'projects:read')
+          .catch(() => client.terminate())
+          .finally(() => {
+            authorizationCheckInFlight = false;
+          });
+      }
     }, 15_000);
     (keepAlive as unknown as { unref?: () => void }).unref?.();
   });
@@ -36315,7 +36367,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           return true as const;
         }
 
-        await store.removeMember(orgId, userId).catch(() => undefined);
+        await store.removeMember(orgId, userId);
 
         return false as const;
       });
@@ -36395,6 +36447,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return reply.code(204).send();
+  });
+
+  registerIdentityCollaborationRoutes(app, {
+    store,
+    guardOrg: (request, organizationId, permission) => requireOrg(request, store, organizationId, permission),
+    requireScim: async (request, organizationId) => {
+      const token = bearerToken(request);
+      const scimToken = token ? await store.findScimToken(token) : undefined;
+
+      if (!scimToken || scimToken.organizationId !== organizationId || isScimTokenExpired(scimToken)) {
+        throw Object.assign(new Error(appPublicEnglish('SCIM_TOKEN_INVALID')), {
+          statusCode: 401,
+          code: 'SCIM_AUTH_REQUIRED',
+        });
+      }
+    },
+    audit: (request, entry) => audit(request, store, entry),
   });
 
   /*
