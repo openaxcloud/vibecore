@@ -975,6 +975,42 @@
     "en": "Server deploy: image ready {image} ({size} MB) in {seconds}s",
     "fr": "Déploiement serveur : image {image} prête ({size} Mo) en {seconds} s."
   },
+  "DEPLOY_SERVER_PROMOTION_COMMITTED": {
+    "en": "Server deploy: image and supply-chain evidence promoted to the isolated repository.",
+    "fr": "Déploiement serveur : l’image et ses preuves de chaîne d’approvisionnement ont été promues vers le registre isolé."
+  },
+  "DEPLOY_SERVER_RELEASE_COMMITTED": {
+    "en": "Server deploy: promoted image verified and release manifest committed.",
+    "fr": "Déploiement serveur : image promue vérifiée et manifeste de version validé."
+  },
+  "DEPLOY_SERVER_PROMOTION_CONFIG_REQUIRED": {
+    "en": "Server image publication is unavailable because its isolated registry policy is not configured. Contact your administrator.",
+    "fr": "La publication de l’image serveur est indisponible car la politique de registre isolé n’est pas configurée. Contactez votre administrateur."
+  },
+  "DEPLOY_SERVER_PROMOTION_REQUIRED": {
+    "en": "This server image has no verified promotion evidence and cannot be published or rolled back.",
+    "fr": "Cette image serveur ne dispose d’aucune preuve de promotion vérifiée et ne peut pas être publiée ni restaurée."
+  },
+  "DEPLOY_SERVER_PROMOTION_SOURCE_INCOMPLETE": {
+    "en": "Server image publication was blocked because its signature, SBOM, or provenance is missing.",
+    "fr": "La publication de l’image serveur a été bloquée car sa signature, sa SBOM ou sa provenance est manquante."
+  },
+  "DEPLOY_SERVER_PROMOTION_BINAUTHZ_DENIED": {
+    "en": "Server image publication was denied by Binary Authorization. Retry after the policy evidence is valid.",
+    "fr": "La publication de l’image serveur a été refusée par Binary Authorization. Réessayez une fois les preuves de politique valides."
+  },
+  "DEPLOY_SERVER_PROMOTION_TARGET_UNVERIFIED": {
+    "en": "Server image publication was blocked because the isolated target or its supply-chain evidence could not be verified.",
+    "fr": "La publication de l’image serveur a été bloquée car la cible isolée ou ses preuves de chaîne d’approvisionnement n’ont pas pu être vérifiées."
+  },
+  "DEPLOY_SERVER_PROMOTION_FAILED": {
+    "en": "Server image publication failed before release. No unverified release was created; you can retry.",
+    "fr": "La publication de l’image serveur a échoué avant la mise en ligne. Aucune version non vérifiée n’a été créée ; vous pouvez réessayer."
+  },
+  "DEPLOY_SERVER_RELEASE_COMMIT_FAILED": {
+    "en": "The promoted server image could not be committed as a release. The runtime was stopped; you can retry safely.",
+    "fr": "L’image serveur promue n’a pas pu être validée comme version. L’environnement d’exécution a été arrêté ; vous pouvez réessayer sans risque."
+  },
   "DEPLOY_SERVER_READY": {
     "en": "Server deploy: ready at {url}; active replicas: {replicas}.",
     "fr": "Déploiement serveur : prêt à l’adresse {url} ; instances actives : {replicas}."

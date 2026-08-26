@@ -5,3 +5,11 @@ preview_domain = "preview.example.com"
 labels = {
   owner = "platform"
 }
+
+# Artifact promotion stays OFF until tenant target repositories, a non-empty
+# GKE platform policy, and the promotion-config Secret are provisioned together.
+artifact_promotion_repositories       = []
+binary_authorization_policy_projects  = []
+server_deploy_builder_repository      = null
+server_deploy_builder_pull_repositories = []
+server_deploy_cosign_kms_key_id          = ""

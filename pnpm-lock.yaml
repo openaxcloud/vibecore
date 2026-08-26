@@ -939,6 +939,9 @@ importers:
       bullmq:
         specifier: ^5.76.2
         version: 5.76.2
+      google-auth-library:
+        specifier: ^9.15.1
+        version: 9.15.1
       gpt-tokenizer:
         specifier: ^3.4.0
         version: 3.4.0
@@ -5653,7 +5656,6 @@ packages:
   '@xmldom/xmldom@0.9.10':
     resolution: {integrity: sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==}
     engines: {node: '>=14.6'}
-
   '@xterm/addon-fit@0.10.0':
     resolution: {integrity: sha512-UFYkDm4HUahf2lnEyHvio51TNGiLK66mqP2JoATy7hRZeXaGMRDr00JiSF7m63vR5WKATF605yEggJKsw0JpMQ==}
     peerDependencies:

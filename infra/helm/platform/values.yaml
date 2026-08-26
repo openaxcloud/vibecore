@@ -100,6 +100,12 @@ platformEnv:
     # Empty = pipeline off (boot-script server deploys). See configmap.yaml.
     serverDeployImageRepo: ''
     serverDeploySnapshotImage: ''
+    # Cloud KMS key reference used by the Cloud Build service account to sign
+    # each generated app image. This is a resource name, never key material.
+    serverDeployCosignKmsKey: ''
+    # Full projects/.../serviceAccounts/... resource for the dedicated Cloud
+    # Build identity. Empty keeps snapshot-image publication fail-closed.
+    serverDeployBuildServiceAccount: ''
     # Reproducible (revision-based) server deploys: '*' or comma-separated
     # project-id allowlist; empty = off (Phase-A snapshot path unchanged).
     serverDeployRevisionProjects: ''

@@ -153,6 +153,12 @@ import {
 } from './server-runtime-detect.js';
 import { runAppImageBuild } from './app-image-build.js';
 import {
+  createLiveServerImagePromotionRuntimeFromEnv,
+  isCommittedPromotionForTenant,
+  type ServerImagePromotionRuntime,
+} from './server-image-promotion.js';
+import type { PromotionManifest } from './lifecycle-state-machines.js';
+import {
   publicDeclaredDeployTarget,
   publicDetectedDeployTarget,
   publicPendingDeployTarget,
@@ -567,6 +573,9 @@ export interface ApiAppOptions {
    * build command on the host. Tests inject a deterministic implementation.
    */
   staticBuildRunner?: typeof runStaticBuild;
+
+  /** Live OCI/Artifact Registry promotion seam; production resolves ADC/WI from env. */
+  serverImagePromotionRuntime?: ServerImagePromotionRuntime;
 
   /**
    * Override the durable deploy-build enqueue path. Production uses the default
@@ -4051,6 +4060,124 @@ async function meterDeploymentOnce(store: ApiStore, deployment: DeploymentRecord
   });
 }
 
+class ServerImageReleaseGateError extends Error {
+  constructor(readonly code: string) {
+    super(code);
+    this.name = 'ServerImageReleaseGateError';
+  }
+}
+
+function serverImagePromotionErrorCopyKey(code: string | undefined): AppPublicCopyKey {
+  switch (code) {
+    case 'PROMOTION_CONFIG_MISSING':
+    case 'PROMOTION_CONFIG_INVALID':
+    case 'PROMOTION_TENANT_UNCONFIGURED':
+    case 'PROMOTION_TARGET_NOT_ISOLATED':
+    case 'BINAUTHZ_POLICY_INVALID':
+      return 'DEPLOY_SERVER_PROMOTION_CONFIG_REQUIRED';
+    case 'PROMOTION_SOURCE_INCOMPLETE':
+    case 'REGISTRY_ATTESTATION_INVALID':
+    case 'REGISTRY_ATTESTATION_SUBJECT_MISMATCH':
+    case 'REGISTRY_ATTESTATION_PREDICATE_UNSUPPORTED':
+      return 'DEPLOY_SERVER_PROMOTION_SOURCE_INCOMPLETE';
+    case 'PROMOTION_BINAUTHZ_DENIED':
+    case 'BINAUTHZ_EVALUATION_FAILED':
+    case 'BINAUTHZ_RESPONSE_INVALID':
+    case 'BINAUTHZ_POLICY_LOOKUP_FAILED':
+    case 'BINAUTHZ_POLICY_REVISION_MISMATCH':
+      return 'DEPLOY_SERVER_PROMOTION_BINAUTHZ_DENIED';
+    case 'PROMOTION_TARGET_UNVERIFIED':
+    case 'REGISTRY_REFERRER_COPY_UNVERIFIED':
+    case 'PROMOTION_ROLLBACK_FAILED':
+      return 'DEPLOY_SERVER_PROMOTION_TARGET_UNVERIFIED';
+    case 'SERVER_RELEASE_COMMIT_FAILED':
+      return 'DEPLOY_SERVER_RELEASE_COMMIT_FAILED';
+    default:
+      return 'DEPLOY_SERVER_PROMOTION_FAILED';
+  }
+}
+
+function requireCommittedServerImagePromotion(
+  deployment: DeploymentRecord,
+  organizationId: string,
+): {
+  imageRef: string;
+  imageDigest: string;
+  storeGeneration?: string;
+  releaseConfigDigest?: string;
+  serverDeploy: Record<string, unknown>;
+} {
+  const serverDeploy = (deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
+    | Record<string, unknown>
+    | undefined;
+  const image = serverDeploy?.image as
+    | { imageRef?: string; imageDigest?: string; storeGeneration?: string }
+    | undefined;
+
+  if (!serverDeploy || !image?.imageRef || !image.imageDigest) {
+    throw new ServerImageReleaseGateError('PROMOTION_NOT_COMMITTED');
+  }
+
+  if (!isCommittedPromotionForTenant(serverDeploy.promotion, organizationId, image.imageDigest, image.imageRef)) {
+    throw new ServerImageReleaseGateError('PROMOTION_NOT_COMMITTED');
+  }
+
+  return {
+    imageRef: image.imageRef,
+    imageDigest: image.imageDigest,
+    ...(image.storeGeneration ? { storeGeneration: image.storeGeneration } : {}),
+    ...(typeof serverDeploy.releaseConfigDigest === 'string'
+      ? { releaseConfigDigest: serverDeploy.releaseConfigDigest }
+      : {}),
+    serverDeploy,
+  };
+}
+
+async function commitPromotedServerImageRelease(input: {
+  store: ApiStore;
+  deployment: DeploymentRecord;
+  organizationId: string;
+  url: string;
+  readyReplicas: number;
+  readyMessage: string;
+}): Promise<DeploymentRecord> {
+  const release = requireCommittedServerImagePromotion(input.deployment, input.organizationId);
+  const metadata = {
+    ...(input.deployment.metadata as Record<string, unknown>),
+    serverDeploy: {
+      ...release.serverDeploy,
+      ready: true,
+      readyReplicas: input.readyReplicas,
+      releaseManifestCommitted: true,
+    },
+  };
+  const result = await input.store.commitServerImageRelease({
+    projectId: input.deployment.projectId,
+    organizationId: input.organizationId,
+    deploymentId: input.deployment.id,
+    environment: input.deployment.environment,
+    artifactRef: release.imageRef,
+    artifactDigest: release.imageDigest,
+    ...(release.storeGeneration ? { storeGeneration: release.storeGeneration } : {}),
+    ...(release.releaseConfigDigest ? { configDigest: release.releaseConfigDigest } : {}),
+    url: input.url,
+    previewUrl: input.deployment.environment !== 'production' ? input.url : undefined,
+    productionUrl: input.deployment.environment === 'production' ? input.url : undefined,
+    metadata,
+    logs: [
+      ...input.deployment.logs,
+      { timestamp: new Date().toISOString(), level: 'info', message: input.readyMessage },
+    ],
+    finishedAt: new Date().toISOString(),
+  });
+
+  if (!result.committed || !result.manifest || result.deployment.status !== 'READY') {
+    throw new ServerImageReleaseGateError('SERVER_RELEASE_COMMIT_FAILED');
+  }
+
+  return result.deployment;
+}
+
 async function reconcileDeploymentStatus(store: ApiStore, deployment: DeploymentRecord): Promise<DeploymentRecord> {
   /*
    * Meter a newly-READY deployment once (best-effort, idempotent). READY rows
@@ -4088,7 +4215,7 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
    */
   if (deployment.status === 'BUILDING' && deployment.provider === 'server') {
     const serverMeta = (deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
-      | { host?: string; applied?: boolean }
+      | { host?: string; applied?: boolean; image?: unknown }
       | undefined;
 
     if (serverMeta?.applied && serverMeta.host) {
@@ -4096,6 +4223,48 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
 
       if (live && live.readyReplicas >= 1) {
         const url = `https://${serverMeta.host}`;
+        const readyMessage = appPublicEnglish('DEPLOY_SERVER_READY', {
+          replicas: live.readyReplicas,
+          url,
+        });
+
+        if (serverMeta.image) {
+          const project = await store.getProject(deployment.projectId);
+
+          try {
+            if (!project) {
+              throw new ServerImageReleaseGateError('PROMOTION_PROJECT_INVALID');
+            }
+
+            return await commitPromotedServerImageRelease({
+              store,
+              deployment,
+              organizationId: project.organizationId,
+              url,
+              readyReplicas: live.readyReplicas,
+              readyMessage,
+            });
+          } catch (error) {
+            /*
+             * A live pod without a committed promotion+manifest is not a
+             * release. Stop it and surface a recoverable FAILED deployment;
+             * never let reconcile manufacture READY from manager readiness.
+             */
+            await stopServerDeploymentViaManager(deployment.id).catch(() => undefined);
+            const code = (error as { code?: string }).code ?? 'PROMOTION_NOT_COMMITTED';
+            const message = appPublicEnglish(serverImagePromotionErrorCopyKey(code));
+
+            return store.updateDeployment(deployment.projectId, deployment.id, {
+              status: 'FAILED',
+              metadata: {
+                ...(deployment.metadata as Record<string, unknown>),
+                serverDeploy: { ...serverMeta, ready: false, releaseErrorCode: code },
+              },
+              logs: [...deployment.logs, { timestamp: new Date().toISOString(), level: 'error', message }],
+              finishedAt: new Date().toISOString(),
+            });
+          }
+        }
 
         return store.updateDeployment(deployment.projectId, deployment.id, {
           status: 'READY',
@@ -4111,10 +4280,7 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
             {
               timestamp: new Date().toISOString(),
               level: 'info' as const,
-              message: appPublicEnglish('DEPLOY_SERVER_READY', {
-                replicas: live.readyReplicas,
-                url,
-              }),
+              message: readyMessage,
             },
           ],
           finishedAt: new Date().toISOString(),
@@ -7102,11 +7268,10 @@ function serverDeployRevisionEnabledForProject(projectId: string | undefined): b
 
 /**
  * P0-V3-08: append the immutable ReleaseManifest row for a deployment that just
- * reached READY, so a later rollback is deterministic. Best-effort — a manifest
- * write must NEVER fail an already-succeeded publish — but its absence is caught
- * fail-closed at rollback time (no manifest ⇒ no rollback). Static releases pin a
- * content digest of the served bytes; server releases pin the image sha256 (+ Nix
- * generation). External providers keep their own history, so we skip them.
+ * reached READY, so a later rollback is deterministic. This best-effort helper
+ * is STATIC-only. Server-image releases use `commitServerImageRelease`, where
+ * READY + ReleaseManifest commit in one transaction; making that write
+ * best-effort would recreate the exact false-release bug this gate closes.
  */
 async function writeReleaseManifest(
   store: ApiStore,
@@ -7136,26 +7301,7 @@ async function writeReleaseManifest(
       artifactRef = `static-deployments/${deployment.id}`;
       artifactDigest = digest;
     } else if (deployment.provider === 'server') {
-      const image = (
-        (deployment.metadata as Record<string, unknown> | undefined)?.serverDeploy as
-          | { image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string } }
-          | undefined
-      )?.image;
-
-      if (!image?.imageDigest) {
-        /*
-         * A server release with no retained digest can never be a rollback target
-         * (resolveRollbackImage refuses it) — recording a manifest without one
-         * would be a lie, so skip. Rollback then fail-closes on the missing digest.
-         */
-        logger.warn({ deploymentId: deployment.id }, 'release_manifest.server_no_digest');
-        return;
-      }
-
-      artifactKind = 'server-image';
-      artifactRef = (image.imageRef ?? image.imageUri ?? '').replace(/:[^:/]+$/, '');
-      artifactDigest = image.imageDigest;
-      storeGeneration = image.storeGeneration;
+      return;
     } else {
       return;
     }
@@ -8576,6 +8722,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const enqueueDeployJob = options.enqueueDeployJob ?? enqueueDeployBuildJob;
   const emailProvider = options.emailProvider ?? createEmailProvider();
   const isProduction = options.isProduction ?? process.env.NODE_ENV === 'production';
+  let defaultServerImagePromotionRuntime: ServerImagePromotionRuntime | undefined;
+  const resolveServerImagePromotionRuntime = (): ServerImagePromotionRuntime => {
+    if (options.serverImagePromotionRuntime) {
+      return options.serverImagePromotionRuntime;
+    }
+
+    defaultServerImagePromotionRuntime ??= createLiveServerImagePromotionRuntimeFromEnv();
+    return defaultServerImagePromotionRuntime;
+  };
 
   const allowedOrigins =
     options.allowedOrigins ?? (process.env.API_CORS_ORIGINS?.split(',').filter(Boolean) || ['http://localhost:5173']);
@@ -33829,6 +33984,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
              */
             imageRef?: string;
             imageDigest?: string;
+            /** Build-repository identity retained for provenance/audit only. */
+            sourceImageUri?: string;
+            sourceImageRef?: string;
 
             // Revision-based (reproducible) builds: the replayable input.
             revisionObject?: string;
@@ -33838,6 +33996,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             storeGeneration?: string;
           }
         | undefined;
+      let imagePromotion: PromotionManifest | undefined;
+      let imagePromotionErrorCode: string | undefined;
 
       /*
        * CTR-RUNTIME-NIX: the parsed (and registry-validated) ecode.lock.json,
@@ -34108,6 +34268,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       sourceBucket: context.bucket,
                       sourceObject: context.object,
                       imageUri,
+                      cosignKmsKey: process.env.SERVER_DEPLOY_COSIGN_KMS_KEY ?? '',
+                      buildServiceAccount: process.env.SERVER_DEPLOY_BUILD_SERVICE_ACCOUNT ?? '',
                       baseImage,
 
                       /*
@@ -34125,25 +34287,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
                   if (!buildResult.ok) {
                     serverError = buildResult.error;
+                  } else if (!buildResult.digest) {
+                    imagePromotionErrorCode = 'PROMOTION_SOURCE_DIGEST_MISSING';
+                    serverError = appPublicEnglish('DEPLOY_SERVER_PROMOTION_FAILED');
                   } else {
-                    serverImage = buildResult.imageUri;
-                    imageBuildInfo = {
-                      imageUri: buildResult.imageUri,
-                      imageSizeBytes: buildResult.imageSizeBytes,
-                      buildId: buildResult.buildId,
-                      buildMs: buildResult.durationMs,
-
-                      /*
-                       * Retain the immutable release identity for rollback (audit v4).
-                       * imageRef = bare repo path (tag stripped); imageDigest = sha256.
-                       */
-                      imageRef: buildResult.imageUri.replace(/:[^:/]+$/, ''),
-                      ...(buildResult.digest ? { imageDigest: buildResult.digest } : {}),
-                      ...(context.revisionSha256
-                        ? { revisionObject: context.revisionObject, revisionSha256: context.revisionSha256 }
-                        : {}),
-                      ...(ecodeLock ? { storeGeneration: ecodeLock.storeGeneration } : {}),
-                    };
                     buildProgress.onLog({
                       timestamp: nowIso(),
                       level: 'info',
@@ -34161,16 +34308,77 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                       ),
                     });
 
-                    const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(
-                      (): Record<string, string> => ({}),
-                    );
-                    serverEnv = buildServerDeployEnv({
-                      deploymentId: queued.id,
-                      port: serverPort,
-                      environment: body.environment ?? 'preview',
-                      projectSecrets,
-                      envOverrides: body.envVars,
-                    });
+                    const sourceImageRef = buildResult.imageUri.replace(/:[^:/]+$/, '');
+
+                    try {
+                      buildProgress.onPhase('promoting');
+                      const promoted = await store.withSerializedMutation(
+                        `artifact-promotion:${project.organizationId}:${project.id}:${buildResult.digest}`,
+                        () =>
+                          resolveServerImagePromotionRuntime().promote({
+                            organizationId: project.organizationId,
+                            projectId: project.id,
+                            source: { repo: sourceImageRef, digest: buildResult.digest! },
+                          }),
+                        { transactionTimeoutMs: 2 * 60 * 60 * 1_000 },
+                      );
+
+                      if (
+                        !isCommittedPromotionForTenant(
+                          promoted.manifest,
+                          project.organizationId,
+                          promoted.target.digest,
+                          promoted.target.repo,
+                        )
+                      ) {
+                        throw new ServerImageReleaseGateError('PROMOTION_NOT_COMMITTED');
+                      }
+
+                      imagePromotion = promoted.manifest;
+                      serverImage = `${promoted.target.repo}@${promoted.target.digest}`;
+                      imageBuildInfo = {
+                        imageUri: serverImage,
+                        imageRef: promoted.target.repo,
+                        imageDigest: promoted.target.digest,
+                        sourceImageUri: buildResult.imageUri,
+                        sourceImageRef,
+                        imageSizeBytes: buildResult.imageSizeBytes,
+                        buildId: buildResult.buildId,
+                        buildMs: buildResult.durationMs,
+                        ...(context.revisionSha256
+                          ? { revisionObject: context.revisionObject, revisionSha256: context.revisionSha256 }
+                          : {}),
+                        ...(ecodeLock ? { storeGeneration: ecodeLock.storeGeneration } : {}),
+                      };
+                      buildProgress.onLog({
+                        timestamp: nowIso(),
+                        level: 'info',
+                        message: appPublicEnglish('DEPLOY_SERVER_PROMOTION_COMMITTED'),
+                      });
+
+                      const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(
+                        (): Record<string, string> => ({}),
+                      );
+                      serverEnv = buildServerDeployEnv({
+                        deploymentId: queued.id,
+                        port: serverPort,
+                        environment: body.environment ?? 'preview',
+                        projectSecrets,
+                        envOverrides: body.envVars,
+                      });
+                    } catch (error) {
+                      imagePromotionErrorCode = (error as { code?: string }).code ?? 'PROMOTION_FAILED';
+                      serverError = appPublicEnglish(serverImagePromotionErrorCopyKey(imagePromotionErrorCode));
+                      request.log?.warn?.(
+                        {
+                          code: imagePromotionErrorCode,
+                          deploymentId: queued.id,
+                          projectId: project.id,
+                          organizationId: project.organizationId,
+                        },
+                        'server image promotion blocked',
+                      );
+                    }
                   }
                 }
               }
@@ -34289,6 +34497,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const manifestsApplied = Boolean(started) && !serverError;
       const converging = manifestsApplied && !ok;
       const serverStatus = ok ? 'READY' : converging ? 'BUILDING' : 'FAILED';
+      const serverImageRequiresReleaseCommit = Boolean(imageBuildInfo);
 
       buildProgress.onLog({
         timestamp: nowIso(),
@@ -34303,8 +34512,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             : appPublicEnglish('DEPLOY_SERVER_FAILED'),
       });
 
-      const readyRow = await store.updateDeployment(project.id, queued.id, {
-        status: serverStatus,
+      let readyRow = await store.updateDeployment(project.id, queued.id, {
+        // A server image may only cross BUILDING→READY atomically with its
+        // ReleaseManifest, after its promotion manifest passed every gate.
+        status: ok && serverImageRequiresReleaseCommit ? 'BUILDING' : serverStatus,
 
         /*
          * The row was created with the STATIC heuristic's guess (outputDirectory
@@ -34313,14 +34524,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * "node". Persist what actually ran.
          */
         framework: detectedFramework ?? queued.framework,
-        url: ok ? serverUrl : undefined,
-        previewUrl: ok && body.environment !== 'production' ? serverUrl : undefined,
-        productionUrl: ok && body.environment === 'production' ? serverUrl : undefined,
+        url: ok && !serverImageRequiresReleaseCommit ? serverUrl : undefined,
+        previewUrl:
+          ok && !serverImageRequiresReleaseCommit && body.environment !== 'production' ? serverUrl : undefined,
+        productionUrl:
+          ok && !serverImageRequiresReleaseCommit && body.environment === 'production' ? serverUrl : undefined,
         metadata: {
           ...(queued.metadata as Record<string, unknown>),
           serverDeploy: {
             host,
-            ready: ok,
+            ready: ok && !serverImageRequiresReleaseCommit,
             readyReplicas: started?.readyReplicas ?? 0,
 
             /*
@@ -34331,6 +34544,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
             // Snapshot-image deploys: which image runs + its size (Replit cap: 8GiB).
             ...(imageBuildInfo ? { image: imageBuildInfo } : {}),
+            ...(imagePromotion ? { promotion: imagePromotion } : {}),
+            ...(imageBuildInfo ? { releaseConfigDigest: configDigest(body.envVars ?? {}) } : {}),
+            ...(imagePromotionErrorCode ? { releaseErrorCode: imagePromotionErrorCode } : {}),
           },
         },
         logs: [
@@ -34346,8 +34562,47 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * A converging (BUILDING) deploy is not finished — leaving finishedAt
          * unset keeps reconcile's stale-timeout clock running from startedAt.
          */
-        finishedAt: converging ? undefined : nowIso(),
+        finishedAt: converging || (ok && serverImageRequiresReleaseCommit) ? undefined : nowIso(),
       });
+
+      if (ok && serverImageRequiresReleaseCommit) {
+        try {
+          readyRow = await commitPromotedServerImageRelease({
+            store,
+            deployment: readyRow,
+            organizationId: project.organizationId,
+            url: serverUrl,
+            readyReplicas: started?.readyReplicas ?? 0,
+            readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
+          });
+        } catch (error) {
+          await stopServerDeploymentViaManager(queued.id).catch(() => undefined);
+          imagePromotionErrorCode = (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED';
+          const message = appPublicEnglish(serverImagePromotionErrorCopyKey(imagePromotionErrorCode));
+          readyRow = await store.updateDeployment(project.id, queued.id, {
+            status: 'FAILED',
+            metadata: {
+              ...(readyRow.metadata as Record<string, unknown>),
+              serverDeploy: {
+                ...((readyRow.metadata as Record<string, unknown>)?.serverDeploy as Record<string, unknown>),
+                ready: false,
+                releaseErrorCode: imagePromotionErrorCode,
+              },
+            },
+            logs: [...readyRow.logs, { timestamp: nowIso(), level: 'error', message }],
+            finishedAt: nowIso(),
+          });
+          request.log?.error?.(
+            {
+              code: imagePromotionErrorCode,
+              deploymentId: queued.id,
+              projectId: project.id,
+              organizationId: project.organizationId,
+            },
+            'server image release commit blocked',
+          );
+        }
+      }
 
       if (shouldRecordDeploymentUsage(readyRow.status)) {
         await recordUsage(request, project.organizationId, 'deployments.count');
@@ -34358,7 +34613,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         action: 'deployment.create',
         resourceType: 'deployment',
         resourceId: readyRow.id,
-        metadata: { provider: readyRow.provider, environment: readyRow.environment, framework: readyRow.framework },
+        metadata: {
+          provider: readyRow.provider,
+          environment: readyRow.environment,
+          framework: readyRow.framework,
+          status: readyRow.status,
+          promotionId: imagePromotion?.promotionId,
+          promotionErrorCode: imagePromotionErrorCode,
+        },
       });
       await store.recordProjectActivity({
         projectId: project.id,
@@ -35897,6 +36159,84 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
     }
 
+    let serverPublishPromotion:
+      | { manifest: PromotionManifest; target: { repo: string; digest: string }; image: Record<string, unknown> }
+      | undefined;
+
+    if (source.provider === 'server') {
+      const sourceServerDeploy = (source.metadata as Record<string, unknown> | undefined)?.serverDeploy as
+        | Record<string, unknown>
+        | undefined;
+      const sourceImage = sourceServerDeploy?.image as
+        | {
+            sourceImageRef?: string;
+            /** Legacy rows stored the build-repository identity here. */
+            imageRef?: string;
+            imageDigest?: string;
+            imageSizeBytes?: number;
+            buildId?: string;
+            buildMs?: number;
+            revisionObject?: string;
+            revisionSha256?: string;
+            storeGeneration?: string;
+          }
+        | undefined;
+      const sourceImageRef = sourceImage?.sourceImageRef ?? sourceImage?.imageRef;
+
+      if (!sourceImageRef || !sourceImage?.imageDigest) {
+        return reply.code(409).send({
+          error: appPublicCopy('DEPLOY_SERVER_PROMOTION_REQUIRED', locale),
+          code: 'PROMOTION_SOURCE_IDENTITY_MISSING',
+        });
+      }
+
+      try {
+        const promoted = await store.withSerializedMutation(
+          `artifact-promotion:${project.organizationId}:${project.id}:${sourceImage.imageDigest}`,
+          () =>
+            resolveServerImagePromotionRuntime().promote({
+              organizationId: project.organizationId,
+              projectId: project.id,
+              source: { repo: sourceImageRef, digest: sourceImage.imageDigest! },
+            }),
+          { transactionTimeoutMs: 2 * 60 * 60 * 1_000 },
+        );
+
+        if (
+          !isCommittedPromotionForTenant(
+            promoted.manifest,
+            project.organizationId,
+            promoted.target.digest,
+            promoted.target.repo,
+          )
+        ) {
+          throw new ServerImageReleaseGateError('PROMOTION_NOT_COMMITTED');
+        }
+
+        serverPublishPromotion = {
+          manifest: promoted.manifest,
+          target: promoted.target,
+          image: {
+            ...sourceImage,
+            imageUri: `${promoted.target.repo}@${promoted.target.digest}`,
+            imageRef: promoted.target.repo,
+            imageDigest: promoted.target.digest,
+          },
+        };
+      } catch (error) {
+        const code = (error as { code?: string }).code ?? 'PROMOTION_FAILED';
+        request.log?.warn?.(
+          { code, deploymentId: source.id, projectId: project.id, organizationId: project.organizationId },
+          'production server image promotion blocked',
+        );
+        return reply.code(503).send({
+          error: appPublicCopy(serverImagePromotionErrorCopyKey(code), locale),
+          code,
+          retryable: true,
+        });
+      }
+    }
+
     /*
      * ---- Contrat Starter : projets publiés ACTIFS (pas « déploiements ») ----
      *
@@ -35929,10 +36269,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         // Création DANS la section critique : c'est elle qui rend le plafond réel.
         const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
+        const publishedInput = buildPublishedDeploymentInput(source, publishUrl);
 
         return {
           ok: true,
-          deployment: await store.createDeployment(buildPublishedDeploymentInput(source, publishUrl)),
+          deployment: await store.createDeployment(
+            serverPublishPromotion
+              ? {
+                  ...publishedInput,
+                  status: 'BUILDING',
+                  url: undefined,
+                  previewUrl: undefined,
+                  productionUrl: undefined,
+                  startedAt: new Date().toISOString(),
+                  metadata: {
+                    ...(publishedInput.metadata as Record<string, unknown>),
+                    serverDeploy: {
+                      host: '',
+                      ready: false,
+                      readyReplicas: 0,
+                      applied: false,
+                      image: serverPublishPromotion.image,
+                      promotion: serverPublishPromotion.manifest,
+                      releaseConfigDigest:
+                        typeof (
+                          (source.metadata as Record<string, unknown> | undefined)?.serverDeploy as
+                            | Record<string, unknown>
+                            | undefined
+                        )?.releaseConfigDigest === 'string'
+                          ? ((source.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>)
+                              .releaseConfigDigest
+                          : configDigest({}),
+                    },
+                  },
+                }
+              : publishedInput,
+          ),
         };
       },
     );
@@ -35968,7 +36340,94 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(publishOutcome.status).send(publishOutcome.response);
     }
 
-    const published = publishOutcome.deployment;
+    let published = publishOutcome.deployment;
+
+    if (serverPublishPromotion) {
+      const host = serverDeployHost(published.id);
+      const port = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
+
+      try {
+        const projectSecrets = await resolveProjectSecretValues(store, project.id).catch(
+          (): Record<string, string> => ({}),
+        );
+        const serverEnv = buildServerDeployEnv({
+          deploymentId: published.id,
+          port,
+          environment: 'production',
+          projectSecrets,
+          envOverrides: {},
+        });
+        const deployRateCard = await getActiveRateCard(store);
+        const machineSize = machineSizeFromCard(deployRateCard, published.machineSize);
+        const sourceImage = serverPublishPromotion.image as { storeGeneration?: string };
+        const started = await startServerDeploymentViaManager({
+          deploymentId: published.id,
+          ...machineSizeResources(machineSize),
+          image: `${serverPublishPromotion.target.repo}@${serverPublishPromotion.target.digest}`,
+          port,
+          host,
+          projectId: project.id,
+          orgId: project.organizationId,
+          env: serverEnv,
+          healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+          nixStorePvcName: nixStorePvcForProject(project.id),
+          ...(sourceImage.storeGeneration ? { nixGenerationRef: sourceImage.storeGeneration } : {}),
+        });
+        const url = started.url ?? `https://${host}`;
+        published = await store.updateDeployment(project.id, published.id, {
+          status: 'BUILDING',
+          metadata: {
+            ...(published.metadata as Record<string, unknown>),
+            serverDeploy: {
+              ...((published.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>),
+              host,
+              applied: true,
+              ready: false,
+              readyReplicas: started.readyReplicas,
+            },
+          },
+        });
+
+        if (started.ready) {
+          published = await commitPromotedServerImageRelease({
+            store,
+            deployment: published,
+            organizationId: project.organizationId,
+            url,
+            readyReplicas: started.readyReplicas,
+            readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
+          });
+        }
+      } catch (error) {
+        await stopServerDeploymentViaManager(published.id).catch(() => undefined);
+        const code = (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED';
+        published = await store.updateDeployment(project.id, published.id, {
+          status: 'FAILED',
+          metadata: {
+            ...(published.metadata as Record<string, unknown>),
+            serverDeploy: {
+              ...((published.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>),
+              host,
+              ready: false,
+              releaseErrorCode: code,
+            },
+          },
+          logs: [
+            ...published.logs,
+            {
+              timestamp: new Date().toISOString(),
+              level: 'error',
+              message: appPublicEnglish(serverImagePromotionErrorCopyKey(code)),
+            },
+          ],
+          finishedAt: new Date().toISOString(),
+        });
+        request.log?.error?.(
+          { code, deploymentId: published.id, projectId: project.id, organizationId: project.organizationId },
+          'production server image release blocked',
+        );
+      }
+    }
 
     /*
      * P2d: publishing gives the project a real PRODUCTION database, distinct
@@ -36062,6 +36521,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       action: 'deployment.publish',
       resourceType: 'deployment',
       resourceId: published.id,
+      metadata: {
+        status: published.status,
+        promotionId: serverPublishPromotion?.manifest.promotionId,
+      },
     });
 
     return reply.code(201).send({ deployment: localizeDeploymentRecord(published, locale) });
@@ -36208,6 +36671,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const sourceArtifactSizeLimitMb =
       typeof sourceMetadata.artifactSizeLimitMb === 'number' ? sourceMetadata.artifactSizeLimitMb : 250;
+
+    if (source.provider === 'server') {
+      /*
+       * Server redeploys must traverse the SAME image build → tenant promotion
+       * → Binary Authorization → atomic ReleaseManifest path as a fresh
+       * deploy. The old generic-hook branch marked a copied row READY without
+       * starting a runtime or promoting an artifact.
+       */
+      const rebuilt = await runDeploymentBuildFlow({
+        request,
+        project,
+        queued: redeploy,
+        secondaryWorkspaceId,
+        body: {
+          provider: 'server',
+          environment: source.environment,
+          workspaceId: source.workspaceId,
+          buildCommand: source.buildCommand ?? 'npm run build',
+          outputDirectory: source.outputDirectory ?? 'dist',
+          framework: source.framework,
+          branch: source.branch,
+          commitSha: source.commitSha,
+          customDomain: source.customDomain,
+          previewDeployment: source.environment !== 'production',
+          timeoutSeconds: sourceTimeoutSeconds,
+          artifactSizeLimitMb: sourceArtifactSizeLimitMb,
+          envVars: sourceEnvVars,
+          injectSecrets: [],
+          machineSize: source.machineSize,
+        },
+      });
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'deployment.redeploy',
+        resourceType: 'deployment',
+        resourceId: rebuilt.id,
+        metadata: { sourceDeploymentId: source.id, status: rebuilt.status },
+      });
+      return reply
+        .code(201)
+        .send({ deployment: localizeDeploymentRecord(rebuilt, transactionalLocaleForRequest(request)) });
+    }
 
     const hookResult = await triggerProviderDeployHook(sourceProvider);
 
@@ -36584,6 +37089,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       }
 
+      const previousDeployment = await store.getDeployment(project.id, previous.deploymentId);
+      const previousServerDeploy = (previousDeployment?.metadata as Record<string, unknown> | undefined)
+        ?.serverDeploy as Record<string, unknown> | undefined;
+      /*
+       * Deployment rows may be pruned before their immutable ReleaseManifest.
+       * The release transaction also persists the complete promotion proof in
+       * AdminAuditLog, so rollback can still verify the retained digest.
+       */
+      const previousPromotion =
+        previousServerDeploy?.promotion ?? (await store.getServerImageReleasePromotion(previous.deploymentId));
+
+      if (
+        !isCommittedPromotionForTenant(
+          previousPromotion,
+          project.organizationId,
+          previous.artifactDigest,
+          previous.artifactRef,
+        )
+      ) {
+        return reply.code(409).send({
+          error: appPublicCopy('DEPLOY_SERVER_PROMOTION_REQUIRED', locale),
+          code: 'ROLLBACK_PROMOTION_EVIDENCE_MISSING',
+        });
+      }
+
       const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
         await ensureQuota(request, project.organizationId, 'deployments.count');
 
@@ -36652,11 +37182,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const ok = Boolean(started?.ready);
         const rbUrl = started?.url ?? `https://${rbHost}`;
 
-        const ready = await store.updateDeployment(project.id, rollback.id, {
-          status: ok ? 'READY' : 'BUILDING',
-          url: ok ? rbUrl : undefined,
-          previewUrl: ok && environment !== 'production' ? rbUrl : undefined,
-          productionUrl: ok && environment === 'production' ? rbUrl : undefined,
+        let ready = await store.updateDeployment(project.id, rollback.id, {
+          status: 'BUILDING',
           metadata: {
             ...(rollback.metadata as Record<string, unknown>),
             serverDeploy: {
@@ -36671,6 +37198,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 imageDigest: plan.imageDigest,
                 ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
               },
+              promotion: previousPromotion,
+              releaseConfigDigest: previous.configDigest ?? configDigest({}),
             },
           },
           logs: [
@@ -36684,11 +37213,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               }),
             },
           ],
-          finishedAt: ok ? new Date().toISOString() : undefined,
+          finishedAt: undefined,
         });
 
         if (ok) {
-          await appendRollbackManifest(rollback.id, 'server-image', previous.artifactRef, previous.artifactDigest);
+          ready = await commitPromotedServerImageRelease({
+            store,
+            deployment: ready,
+            organizationId: project.organizationId,
+            url: rbUrl,
+            readyReplicas: started?.readyReplicas ?? 0,
+            readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
+          });
         }
 
         return reply.code(201).send({
@@ -36888,6 +37424,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           | {
               image?: { imageRef?: string; imageUri?: string; imageDigest?: string; storeGeneration?: string };
               secretPolicy?: string;
+              promotion?: unknown;
+              releaseConfigDigest?: string;
             }
           | undefined;
 
@@ -36918,6 +37456,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         );
 
         const secretResolution = resolveRollbackSecrets({ policy: secretPolicy, currentSecrets, pinnedSecrets: null });
+
+        if (
+          !isCommittedPromotionForTenant(
+            serverMeta?.promotion,
+            project.organizationId,
+            retained.imageDigest,
+            retained.imageRef,
+          )
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('DEPLOY_SERVER_PROMOTION_REQUIRED')), {
+            code: 'ROLLBACK_PROMOTION_EVIDENCE_MISSING',
+            statusCode: 409,
+          });
+        }
 
         const rbHost = serverDeployHost(rollback.id);
         const rbPort = Number(process.env.SERVER_DEPLOY_PORT) || 3000;
@@ -36958,10 +37510,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const ok = Boolean(started?.ready);
         const rbUrl = started?.url ?? `https://${rbHost}`;
         finalDeployment = await store.updateDeployment(project.id, rollback.id, {
-          status: ok ? 'READY' : 'BUILDING',
-          url: ok ? rbUrl : undefined,
-          previewUrl: ok && target.environment !== 'production' ? rbUrl : undefined,
-          productionUrl: ok && target.environment === 'production' ? rbUrl : undefined,
+          status: 'BUILDING',
           metadata: {
             ...(rollback.metadata as Record<string, unknown>),
             serverDeploy: {
@@ -36979,6 +37528,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 imageDigest: plan.imageDigest,
                 ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
               },
+              promotion: serverMeta?.promotion,
+              releaseConfigDigest: serverMeta?.releaseConfigDigest ?? configDigest({}),
             },
           },
           logs: [
@@ -36992,8 +37543,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               }),
             },
           ],
-          finishedAt: ok ? new Date().toISOString() : undefined,
+          finishedAt: undefined,
         });
+
+        if (ok) {
+          finalDeployment = await commitPromotedServerImageRelease({
+            store,
+            deployment: finalDeployment,
+            organizationId: project.organizationId,
+            url: rbUrl,
+            readyReplicas: started?.readyReplicas ?? 0,
+            readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
+          });
+        }
       } catch (error) {
         const code = (error as { code?: string }).code ?? 'ROLLBACK_FAILED';
         const statusCode = (error as { statusCode?: number }).statusCode ?? 502;

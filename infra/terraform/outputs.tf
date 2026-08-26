@@ -10,6 +10,11 @@ output "artifact_registry_repository" {
   value = module.artifact_registry.repository_id
 }
 
+output "server_deploy_builder_service_account" {
+  description = "Dedicated Cloud Build GSA; null while verified image publication is disabled."
+  value       = module.iam.server_deploy_builder_service_account
+}
+
 output "cloud_sql_connection_name" {
   value = module.cloud_sql.connection_name
 }

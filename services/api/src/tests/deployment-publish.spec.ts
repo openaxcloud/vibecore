@@ -1,7 +1,8 @@
 import { hashPassword } from '@vibecore/auth';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { buildApiApp } from '../app.js';
+import { buildApiApp, type ApiAppOptions } from '../app.js';
+import type { PromotionResult } from '../artifact-promotion.js';
 import { buildPublishedDeploymentInput, canPublishDeployment } from '../deployments.js';
 import type { EmailProvider } from '../email.js';
 import type { DeploymentRecord } from '../store.js';
@@ -68,9 +69,9 @@ describe('buildPublishedDeploymentInput', () => {
   });
 });
 
-async function setup() {
+async function setup(options: ApiAppOptions = {}) {
   const store = new TestApiStore();
-  const app = await buildApiApp({ store, emailProvider: new TestEmailProvider() });
+  const app = await buildApiApp({ store, emailProvider: new TestEmailProvider(), ...options });
 
   const user = await store.createUser({
     email: 'pub@example.com',
@@ -176,6 +177,138 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
       } else {
         process.env.DB_ROLLBACK_ENABLED = original;
       }
+    }
+  });
+
+  it('promotes a server image before manager start, then atomically commits READY + ReleaseManifest', async () => {
+    const originalManagerUrl = process.env.WORKSPACE_MANAGER_URL;
+    const realFetch = globalThis.fetch;
+    process.env.WORKSPACE_MANAGER_URL = 'http://workspace-manager.test';
+    const events: string[] = [];
+    const digest = `sha256:${'a'.repeat(64)}`;
+
+    try {
+      const promote = vi.fn(async (input: { organizationId: string; projectId: string }): Promise<PromotionResult> => {
+        events.push('promote');
+        const targetRepo = `europe-west9-docker.pkg.dev/tenant-project/releases/p-${input.projectId.toLowerCase()}`;
+        return {
+          ok: true as const,
+          target: { repo: targetRepo, digest },
+          promotedAttestations: ['signature', 'sbom', 'provenance'],
+          reused: false,
+          manifest: {
+            promotionId: 'promo-publish-route',
+            sourceRepo: `europe-west9-docker.pkg.dev/build-project/build-repo/p-${input.projectId.toLowerCase()}`,
+            sourceDigest: digest,
+            targetRepo,
+            targetTenant: input.organizationId,
+            retentionTag: `active-promo-${'a'.repeat(32)}`,
+            attachments: ['signature', 'sbom', 'provenance'].map((type, index) => ({
+              type,
+              digest: `sha256:${String(index + 1).repeat(64)}`,
+              subjectDigest: digest,
+              relinked: true,
+            })),
+            binaryAuthorizationResult: 'PASSED' as const,
+            binaryAuthorizationPolicy: 'projects/policy-proj/platforms/gke/policies/release-policy',
+            binaryAuthorizationPolicyEtag: 'policy-etag-0001',
+            binaryAuthorizationEvaluatedImage: `${targetRepo}@${digest}`,
+            binaryAuthorizationEvaluatedAt: '2026-08-26T00:00:00.500Z',
+            state: 'PROMOTION_COMMITTED' as const,
+            preparedAt: '2026-08-26T00:00:00.000Z',
+            committedAt: '2026-08-26T00:00:01.000Z',
+          },
+        };
+      });
+      const { app, store, token, project } = await setup({ serverImagePromotionRuntime: { promote } });
+      globalThis.fetch = vi.fn(async (url: unknown, init?: RequestInit) => {
+        const href = String(url);
+
+        if (href.includes('/server-deployments/start')) {
+          events.push('manager-start');
+          const body = JSON.parse(String(init?.body)) as { host: string };
+          return new Response(
+            JSON.stringify({ ready: true, readyReplicas: 1, url: `https://${body.host}` }),
+            { status: 200, headers: { 'content-type': 'application/json' } },
+          );
+        }
+
+        return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
+      }) as unknown as typeof fetch;
+      const sourceRepo = `europe-west9-docker.pkg.dev/build-project/build-repo/p-${project.id.toLowerCase()}`;
+      const source = await store.createDeployment({
+        projectId: project.id,
+        provider: 'server',
+        environment: 'preview',
+        status: 'READY',
+        url: 'https://preview-server.example/',
+        metadata: {
+          serverDeploy: {
+            image: { sourceImageRef: sourceRepo, imageRef: sourceRepo, imageDigest: digest },
+          },
+        },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/projects/${project.id}/deployments/${source.id}/publish`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(response.statusCode).toBe(201);
+      expect(response.json().deployment.status).toBe('READY');
+      expect(events).toEqual(['promote', 'manager-start']);
+      expect(store.releaseManifests).toHaveLength(1);
+      expect(store.releaseManifests[0]).toMatchObject({
+        environment: 'production',
+        artifactKind: 'server-image',
+        artifactDigest: digest,
+      });
+      await app.close();
+    } finally {
+      globalThis.fetch = realFetch;
+
+      if (originalManagerUrl === undefined) {
+        delete process.env.WORKSPACE_MANAGER_URL;
+      } else {
+        process.env.WORKSPACE_MANAGER_URL = originalManagerUrl;
+      }
+    }
+  });
+
+  it('fails closed on total promotion-provider failure: no runtime, production row or manifest', async () => {
+    const promote = vi.fn(async () => {
+      throw Object.assign(new Error('provider unavailable'), { code: 'REGISTRY_REQUEST_FAILED' });
+    });
+    const realFetch = globalThis.fetch;
+
+    try {
+      globalThis.fetch = vi.fn() as unknown as typeof fetch;
+      const { app, store, token, project } = await setup({ serverImagePromotionRuntime: { promote } });
+      const digest = `sha256:${'a'.repeat(64)}`;
+      const sourceRepo = `europe-west9-docker.pkg.dev/build-project/build-repo/p-${project.id.toLowerCase()}`;
+      const source = await store.createDeployment({
+        projectId: project.id,
+        provider: 'server',
+        environment: 'preview',
+        status: 'READY',
+        metadata: { serverDeploy: { image: { sourceImageRef: sourceRepo, imageDigest: digest } } },
+      });
+
+      const response = await app.inject({
+        method: 'POST',
+        url: `/projects/${project.id}/deployments/${source.id}/publish`,
+        headers: { authorization: `Bearer ${token}` },
+      });
+
+      expect(response.statusCode).toBe(503);
+      expect(response.json()).toMatchObject({ code: 'REGISTRY_REQUEST_FAILED', retryable: true });
+      expect(globalThis.fetch).not.toHaveBeenCalled();
+      expect((await store.listDeployments(project.id)).filter((row) => row.environment === 'production')).toEqual([]);
+      expect(store.releaseManifests).toEqual([]);
+      await app.close();
+    } finally {
+      globalThis.fetch = realFetch;
     }
   });
 });
