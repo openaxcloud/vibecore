@@ -1,6 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { hashPassword } from '@vibecore/auth';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { AgentMemoryConfigurationError } from '../agent-memory.js';
-import { appPublicEnglish } from '../app-public-copy.js';
+import { appPublicCopy, appPublicEnglish } from '../app-public-copy.js';
+import { buildApiApp } from '../app.js';
+import type { EmailProvider } from '../email.js';
+import { TestApiStore } from './test-api-store.js';
 
 /*
  * Found by the QA sweep on the audit environment: GET /agent-memory answered
@@ -39,4 +43,69 @@ describe('AgentMemoryConfigurationError', () => {
 
     expect(error.message).toBe('embeddings provider missing');
   });
+});
+
+describe('agent memory unconfigured public API contract', () => {
+  const store = new TestApiStore();
+  const logLines: string[] = [];
+
+  let app: Awaited<ReturnType<typeof buildApiApp>>;
+
+  beforeAll(async () => {
+    /* Force the real unconfigured branch even on CI workers that provide an OpenAI key. */
+    vi.stubEnv('OPENAI_API_KEY', '');
+
+    const emailProvider: EmailProvider = { send: async () => undefined };
+    app = await buildApiApp({
+      store,
+      emailProvider,
+      loggerStream: { write: (line) => logLines.push(line) },
+    });
+
+    const user = await store.createUser({
+      email: 'unconfigured-memory@example.test',
+      passwordHash: hashPassword('password123'),
+    });
+    await store.createSession({
+      userId: user.id,
+      token: 'unconfigured-memory-token',
+      expiresAt: new Date(Date.now() + 60_000),
+    });
+  });
+
+  afterAll(async () => {
+    await app.close();
+    vi.unstubAllEnvs();
+  });
+
+  it.each([
+    ['en', 'en'],
+    ['fr', 'fr'],
+  ] as const)(
+    'returns the stable coded 503 with honest %s copy while preserving diagnostic logs',
+    async (header, locale) => {
+      const logStart = logLines.length;
+
+      const response = await app.inject({
+        method: 'GET',
+        url: '/agent-memory',
+        headers: {
+          authorization: 'Bearer unconfigured-memory-token',
+          'accept-language': header,
+        },
+      });
+
+      expect(response.statusCode).toBe(503);
+      expect(response.json()).toEqual({
+        error: appPublicCopy('AGENT_MEMORY_UNCONFIGURED', locale),
+        code: 'AGENT_MEMORY_UNCONFIGURED',
+      });
+      expect(response.json().error).not.toMatch(/internal server error|erreur interne du serveur/i);
+      expect(response.headers['content-language']).toBe(locale);
+
+      const logs = logLines.slice(logStart).join('\n');
+      expect(logs).toContain('AGENT_MEMORY_UNCONFIGURED');
+      expect(logs).toContain('Agent memory requires PostgreSQL pgvector plus OPENAI_API_KEY');
+    },
+  );
 });
