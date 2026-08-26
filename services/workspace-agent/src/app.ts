@@ -1382,9 +1382,8 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
       /*
        * Track EVERY child spawned on this socket, not just the most recent one. A client
        * can send multiple `hello` frames (or reconnect/re-handshake); previously only the
-       * last child was referenced, so earlier ones were orphaned on disconnect and — since
-       * streamed commands have no timeout — leaked until they exited on their own, filling
-       * the maxProcesses budget cluster-wide.
+       * last child was referenced, so earlier ones were orphaned on disconnect until their
+       * stream deadline, filling the maxProcesses budget in the meantime.
        */
       const activeChildren = new Set<ChildProcessWithoutNullStreams>();
 
@@ -1430,7 +1429,11 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
         runCommandStream(commandCwd, payload.command, payload.args ?? [], {
           maxOutputBytes,
           maxProcesses,
-          streamTimeoutMs,
+          /*
+           * Callers may request a shorter deadline, but can never extend the
+           * platform's hard ceiling for streamed commands.
+           */
+          streamTimeoutMs: Math.min(payload.timeoutMs ?? streamTimeoutMs, streamTimeoutMs),
           locale,
           processes,
           socket,
@@ -2056,19 +2059,21 @@ function parseTerminalMessage(message: Buffer) {
   }
 }
 
-function parseCommandStreamMessage(message: Buffer): { command: string; args?: string[]; cwd?: string } | undefined {
+function parseCommandStreamMessage(
+  message: Buffer,
+): { command: string; args: string[]; cwd?: string; timeoutMs?: number } | undefined {
   try {
     const parsed = JSON.parse(message.toString()) as {
       type?: string;
-      payload?: { command?: string; args?: string[]; cwd?: string };
+      payload?: unknown;
     };
 
-    if (parsed.type === 'hello' && typeof parsed.payload?.command === 'string') {
-      return {
-        command: parsed.payload.command,
-        args: parsed.payload.args ?? [],
-        cwd: typeof parsed.payload.cwd === 'string' && parsed.payload.cwd.length > 0 ? parsed.payload.cwd : undefined,
-      };
+    if (parsed.type === 'hello') {
+      const payload = commandSchema.safeParse(parsed.payload);
+
+      if (payload.success) {
+        return payload.data;
+      }
     }
   } catch {
     return undefined;

@@ -162,7 +162,8 @@ export const MAX_PREVIEW_BOOT_ATTEMPTS = 60;
  * Whether the preview auto-start / port-watch / reinstall loop should run.
  *
  * It bails immediately on a genuine WORKSPACE error (agent unreachable / pod
- * crashed) so a dead runtime surfaces the recovery UI instead of being hammered.
+ * crashed) or a deterministic preview/install error, so the recovery UI is
+ * surfaced instead of hammering the same failed command.
  *
  * It deliberately does NOT bail merely because `previewRunFailed` is set: when the
  * workspace is HEALTHY (workspaceReady) but no port is serving yet, a "failed"
@@ -179,10 +180,11 @@ export function shouldRunPreviewBootLoop(input: {
   previewsLength: number;
   previewRunFailed: boolean;
   hasWorkspaceError: boolean;
+  hasPreviewServerError?: boolean;
   bootAttempts?: number;
 }): boolean {
-  // A genuine workspace/agent error → bail (don't hammer a dead agent).
-  if (input.hasWorkspaceError) {
+  // A genuine workspace/agent or install error → bail (don't hammer it).
+  if (input.hasWorkspaceError || input.hasPreviewServerError) {
     return false;
   }
 

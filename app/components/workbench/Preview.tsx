@@ -722,6 +722,7 @@ export const Preview = memo(
     const workspaceStatus = useStore(workbenchStore.workspaceStatus);
     const workspaceLogs = useStore(workbenchStore.workspaceLogs);
     const workspaceError = useStore(workbenchStore.workspaceError);
+    const previewServerState = useStore(workbenchStore.previewServerState);
     const files = useStore(workbenchStore.files);
 
     const normalizedActivePreviewIndex = previews[activePreviewIndex]
@@ -778,6 +779,23 @@ export const Preview = memo(
     const [devToolsOpen, setDevToolsOpen] = useState(false);
     const [capturingThumbnail, setCapturingThumbnail] = useState(false);
     const [activeDevToolsTab, setActiveDevToolsTab] = useState<PreviewDevToolsTab>('console');
+
+    /*
+     * A deterministic install/dev-server failure is already authoritative in
+     * WorkbenchStore. Surface it immediately and stop the auto-boot loop so the
+     * user gets the Run/Reinstall recovery actions instead of another silent
+     * install attempt every few seconds.
+     */
+    useEffect(() => {
+      if (previewServerState.status !== 'error' || previews.length > 0) {
+        return;
+      }
+
+      setPreviewStatus(previewServerState.error ?? t('idePanels.preview.notRunningBody'));
+      setPreviewRunFailed(true);
+      setIsStartingPreview(false);
+      setIsRefreshingPorts(false);
+    }, [previewServerState, previews.length, t]);
 
     const [previewConsoleEvents, setPreviewConsoleEvents] = useState<
       Array<{ level: string; message: string; source?: { path: string; line: number } }>
@@ -1342,6 +1360,7 @@ export const Preview = memo(
           previewsLength: previews.length,
           previewRunFailed,
           hasWorkspaceError: Boolean(workspaceError),
+          hasPreviewServerError: previewServerState.status === 'error',
           bootAttempts: bootAttemptsRef.current,
         })
       ) {
@@ -1356,6 +1375,7 @@ export const Preview = memo(
       previewableFilesSignature,
       previews.length,
       previewRunFailed,
+      previewServerState.status,
       startPreviewServer,
       workspaceError,
       workspaceReady,
@@ -1442,6 +1462,7 @@ export const Preview = memo(
           previewsLength: previews.length,
           previewRunFailed,
           hasWorkspaceError: Boolean(workspaceError),
+          hasPreviewServerError: previewServerState.status === 'error',
           bootAttempts: bootAttemptsRef.current,
         })
       ) {
@@ -1499,7 +1520,16 @@ export const Preview = memo(
       }, 2500);
 
       return () => window.clearInterval(interval);
-    }, [autoStart, hasStaticPreview, previews.length, previewRunFailed, workspaceError, workspaceReady, t]);
+    }, [
+      autoStart,
+      hasStaticPreview,
+      previews.length,
+      previewRunFailed,
+      previewServerState.status,
+      workspaceError,
+      workspaceReady,
+      t,
+    ]);
 
     useEffect(() => {
       if (
@@ -1510,6 +1540,7 @@ export const Preview = memo(
           previewsLength: previews.length,
           previewRunFailed,
           hasWorkspaceError: Boolean(workspaceError),
+          hasPreviewServerError: previewServerState.status === 'error',
           bootAttempts: bootAttemptsRef.current,
         })
       ) {
@@ -1524,7 +1555,16 @@ export const Preview = memo(
       }, 300000); // 5min: a fresh complex app's npm install + dev start can exceed 2min under gVisor/CPU contention
 
       return () => window.clearTimeout(timeout);
-    }, [autoStart, hasStaticPreview, previews.length, previewRunFailed, workspaceError, workspaceReady, t]);
+    }, [
+      autoStart,
+      hasStaticPreview,
+      previews.length,
+      previewRunFailed,
+      previewServerState.status,
+      workspaceError,
+      workspaceReady,
+      t,
+    ]);
 
     const navigatePreviewHistory = (direction: 'back' | 'forward') => {
       try {

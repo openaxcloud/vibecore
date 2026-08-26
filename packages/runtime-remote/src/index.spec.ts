@@ -934,7 +934,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     const events: Array<{ type: string; data?: string }> = [];
 
     const drained = (async () => {
-      for await (const event of adapter.streamCommand({ command: 'echo', args: ['hi'] })) {
+      for await (const event of adapter.streamCommand({ command: 'echo', args: ['hi'], timeoutMs: 12_345 })) {
         events.push(event as { type: string; data?: string });
       }
     })();
@@ -946,6 +946,10 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     await expect.poll(() => FakeWebSocket.instances.length).toBeGreaterThan(0);
 
     const socket = FakeWebSocket.instances.at(-1)!;
+
+    expect(socket.sent).toContain(
+      JSON.stringify({ type: 'hello', payload: { command: 'echo', args: ['hi'], timeoutMs: 12_345 } }),
+    );
 
     for (let i = 0; i < 5; i += 1) {
       await Promise.resolve();
@@ -1447,7 +1451,7 @@ describe('BUG-AGENT-006/002 — 425 Too Early : backoff, Retry-After et attente 
 
     expect(early).toBeLessThan(writes().length);
   });
-})
+});
 
 /*
  * BUG-AGENT-006 — un `425 WORKSPACE_NOT_STARTED` doit PROVISIONNER, pas

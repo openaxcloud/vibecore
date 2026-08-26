@@ -151,6 +151,10 @@ describe('shouldRunPreviewBootLoop', () => {
     expect(shouldRunPreviewBootLoop({ ...base, hasWorkspaceError: true })).toBe(false);
   });
 
+  it('stops retrying when the dependency install has reached a deterministic error', () => {
+    expect(shouldRunPreviewBootLoop({ ...base, hasPreviewServerError: true })).toBe(false);
+  });
+
   it('does not run before the workspace is ready', () => {
     expect(shouldRunPreviewBootLoop({ ...base, workspaceReady: false })).toBe(false);
   });

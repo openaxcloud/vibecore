@@ -1,3 +1,4 @@
+import type { CommandEvent } from '@vibecore/runtime-contract';
 import JSZip from 'jszip';
 import { describe, expect, it, vi } from 'vitest';
 import { WebContainerRuntimeAdapter, type WebContainerLike, type WebContainerProcessLike } from './index.js';
@@ -151,6 +152,44 @@ describe('WebContainerRuntimeAdapter', () => {
     expect(result.exitCode).toBe(0);
     expect(result.output).toBe('npm test');
     expect(changes).toEqual(['update:src/App.tsx']);
+  });
+
+  it('kills a streamed command at its caller deadline and reports COMMAND_TIMEOUT', async () => {
+    const webcontainer = createWebContainer();
+
+    let outputController: ReadableStreamDefaultController<string> | undefined;
+    let resolveExit: ((code: number) => void) | undefined;
+    const process: WebContainerProcessLike = {
+      input: new WritableStream<string>(),
+      output: new ReadableStream<string>({
+        start(controller) {
+          outputController = controller;
+        },
+      }),
+      exit: new Promise<number>((resolve) => {
+        resolveExit = resolve;
+      }),
+      kill: vi.fn(() => {
+        outputController?.close();
+        resolveExit?.(143);
+      }),
+      resize: vi.fn(),
+    };
+    vi.mocked(webcontainer.spawn).mockResolvedValueOnce(process);
+    const adapter = new WebContainerRuntimeAdapter({ webcontainer });
+    const events: CommandEvent[] = [];
+
+    for await (const event of adapter.streamCommand({ command: 'npm', args: ['install'], timeoutMs: 20 })) {
+      events.push(event);
+    }
+
+    expect(process.kill).toHaveBeenCalledTimes(1);
+    expect(events).toEqual([
+      expect.objectContaining({
+        type: 'error',
+        error: expect.objectContaining({ code: 'COMMAND_TIMEOUT' }),
+      }),
+    ]);
   });
 
   it('preserves directory identity in structural watch events', async () => {

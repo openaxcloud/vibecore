@@ -21,6 +21,8 @@ export const workbenchRuntimeEn = {
   'workbenchRuntime.preview.preparing': 'Preparing the preview with {command}{directory}.',
   'workbenchRuntime.preview.directory': ' in {directory}',
   'workbenchRuntime.preview.setupFailed': '{command} failed (exit code {exitCode}).',
+  'workbenchRuntime.preview.setupTimedOut':
+    '{command} did not finish within {minutes} minutes. Check registry access or package errors, then choose Reinstall dependencies.',
   'workbenchRuntime.preview.startCommand': 'Starting the preview with {command}{directory}.',
   'workbenchRuntime.preview.commandExited': 'Preview command exited with code',
   'workbenchRuntime.preview.setupExited': 'Preview setup command exited with code',
@@ -143,6 +145,8 @@ export const workbenchRuntimeFr: WorkbenchRuntimeCopy = {
   'workbenchRuntime.preview.preparing': 'Préparation de l’aperçu avec {command}{directory}.',
   'workbenchRuntime.preview.directory': ' dans {directory}',
   'workbenchRuntime.preview.setupFailed': 'Échec de {command} (code de sortie {exitCode}).',
+  'workbenchRuntime.preview.setupTimedOut':
+    '{command} ne s’est pas terminée en {minutes} minutes. Vérifiez l’accès au registre ou les erreurs de paquets, puis choisissez Réinstaller les dépendances.',
   'workbenchRuntime.preview.startCommand': 'Démarrage de l’aperçu avec {command}{directory}.',
   'workbenchRuntime.preview.commandExited': 'La commande d’aperçu s’est arrêtée avec le code',
   'workbenchRuntime.preview.setupExited': 'La commande de préparation s’est arrêtée avec le code',

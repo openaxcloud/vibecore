@@ -483,6 +483,13 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
     const reader = process.output.getReader();
 
     let completed = false;
+    let timedOut = false;
+    const timeout = request.timeoutMs
+      ? setTimeout(() => {
+          timedOut = true;
+          process.kill();
+        }, request.timeoutMs)
+      : undefined;
 
     try {
       while (true) {
@@ -497,7 +504,18 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
 
       const exitCode = await process.exit;
       completed = true;
-      yield { type: 'exit', exitCode, timestamp: new Date().toISOString() };
+
+      if (timedOut) {
+        yield {
+          type: 'error',
+          error: new RuntimeError(`Command exceeded the allowed time of ${request.timeoutMs} ms`, {
+            code: 'COMMAND_TIMEOUT',
+          }),
+          timestamp: new Date().toISOString(),
+        };
+      } else {
+        yield { type: 'exit', exitCode, timestamp: new Date().toISOString() };
+      }
     } catch (error) {
       yield {
         type: 'error',
@@ -505,6 +523,10 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
         timestamp: new Date().toISOString(),
       };
     } finally {
+      if (timeout) {
+        clearTimeout(timeout);
+      }
+
       reader.releaseLock();
 
       /*

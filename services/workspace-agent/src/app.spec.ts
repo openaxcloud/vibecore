@@ -1243,4 +1243,51 @@ describe('workspace-agent', () => {
       await app.close();
     }
   });
+
+  it('honours a shorter caller deadline for streamed dependency commands', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+
+    const address = app.server.address();
+
+    if (!address || typeof address === 'string') {
+      throw new Error('Workspace agent did not bind to a TCP port');
+    }
+
+    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/commands/stream`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
+
+    const frames: Array<{ type?: string; error?: { code?: string; message?: string } }> = [];
+
+    try {
+      await new Promise<void>((resolve, reject) => {
+        socket.addEventListener('open', () => resolve(), { once: true });
+        socket.addEventListener('error', () => reject(new Error('command-stream WebSocket failed to open')), {
+          once: true,
+        });
+      });
+
+      socket.addEventListener('message', (event) => {
+        frames.push(JSON.parse(String(event.data)) as (typeof frames)[number]);
+      });
+      socket.send(
+        JSON.stringify({
+          type: 'hello',
+          payload: {
+            command: process.execPath,
+            args: ['-e', 'setInterval(() => {}, 1000)'],
+            timeoutMs: 75,
+          },
+        }),
+      );
+
+      await expect
+        .poll(() => frames.find((frame) => frame.type === 'error')?.error, { timeout: 2_000 })
+        .toMatchObject({ code: 'COMMAND_TIMEOUT' });
+    } finally {
+      socket.close();
+      await app.close();
+    }
+  });
 });

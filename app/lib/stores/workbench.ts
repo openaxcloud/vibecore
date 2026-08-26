@@ -174,6 +174,7 @@ const WORKSPACE_LOG_FLUSH_INTERVAL_MS = 100;
  */
 const PREVIEW_SETUP_RETRY_ATTEMPTS = 3;
 const PREVIEW_SETUP_RETRY_BASE_DELAY_MS = 1000;
+const PREVIEW_SETUP_TIMEOUT_MS = 5 * 60_000;
 const ANSI_ESCAPE_SEQUENCE = /\x1B\[[0-?]*[ -/]*[@-~]/g;
 const WORKSPACE_LOG_NOISE_PATTERNS = [/malloc.*stack logging.*not enabled/i];
 
@@ -1039,16 +1040,22 @@ export class WorkbenchStore {
             workbenchText('workbenchRuntime.preview.preparing', { command: setupCommand.label, directory }),
           );
 
-          const setupExitCode = await this.#runSetupCommandWithRetry(setupCommand);
+          const setupOutcome = await this.#runSetupCommandWithRetry(setupCommand);
 
-          if (setupExitCode !== 0) {
+          if (setupOutcome.exitCode !== 0) {
             this.previewServerState.set({
               status: 'error',
               command: command.label,
-              error: workbenchText('workbenchRuntime.preview.setupFailed', {
-                command: setupCommand.label,
-                exitCode: setupExitCode,
-              }),
+              error:
+                setupOutcome.errorCode === 'COMMAND_TIMEOUT'
+                  ? workbenchText('workbenchRuntime.preview.setupTimedOut', {
+                      command: setupCommand.label,
+                      minutes: Math.round(PREVIEW_SETUP_TIMEOUT_MS / 60_000),
+                    })
+                  : workbenchText('workbenchRuntime.preview.setupFailed', {
+                      command: setupCommand.label,
+                      exitCode: setupOutcome.exitCode,
+                    }),
             });
 
             return;
@@ -1062,7 +1069,7 @@ export class WorkbenchStore {
           workbenchText('workbenchRuntime.preview.startCommand', { command: command.label, directory }),
         );
 
-        const devExitCode = await this.#streamWorkspaceCommand(command, {
+        const devOutcome = await this.#streamWorkspaceCommand(command, {
           exitMessage: workbenchText('workbenchRuntime.preview.commandExited'),
           refreshPortsOnOutput: true,
         });
@@ -1076,16 +1083,16 @@ export class WorkbenchStore {
          * lingering/phantom port. This is the "workspace RUNNING + 0 processes + 502
          * but status says Running on Port 5173" lie the P0 hinged on.
          */
-        if (devExitCode !== 0) {
+        if (devOutcome.exitCode !== 0) {
           this.previewServerState.set({
             status: 'error',
             command: command.label,
             error:
-              devExitCode === 127
+              devOutcome.exitCode === 127
                 ? workbenchText('workbenchRuntime.preview.devMissingDependencies', { command: command.label })
                 : workbenchText('workbenchRuntime.preview.devExited', {
                     command: command.label,
-                    exitCode: devExitCode,
+                    exitCode: devOutcome.exitCode,
                   }),
           });
         }
@@ -1261,32 +1268,33 @@ export class WorkbenchStore {
    * cold-start drop mid-install doesn't blank the preview while a real package
    * error still fails fast.
    */
-  async #runSetupCommandWithRetry(setupCommand: PreviewCommand): Promise<number> {
-    let exitCode = 0;
+  async #runSetupCommandWithRetry(setupCommand: PreviewCommand): Promise<{ exitCode: number; errorCode?: string }> {
+    let outcome: { exitCode: number; errorCode?: string } = { exitCode: 0 };
 
     for (let attempt = 1; attempt <= PREVIEW_SETUP_RETRY_ATTEMPTS; attempt++) {
       const tailStart = this.#currentWorkspaceLogLength();
 
-      exitCode = await this.#streamWorkspaceCommand(setupCommand, {
-        exitMessage: workbenchText('workbenchRuntime.preview.setupExited'),
-      });
+      outcome = await this.#streamWorkspaceCommand(
+        { ...setupCommand, timeoutMs: PREVIEW_SETUP_TIMEOUT_MS },
+        { exitMessage: workbenchText('workbenchRuntime.preview.setupExited') },
+      );
 
-      if (exitCode === 0) {
-        return 0;
+      if (outcome.exitCode === 0) {
+        return outcome;
       }
 
       const isLastAttempt = attempt >= PREVIEW_SETUP_RETRY_ATTEMPTS;
       const transient = isTransientCommandFailure(this.#workspaceLogTailSince(tailStart));
 
       if (isLastAttempt || !transient) {
-        return exitCode;
+        return outcome;
       }
 
       const delayMs = PREVIEW_SETUP_RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
       this.appendWorkspaceLog(
         workbenchText('workbenchRuntime.preview.transientRetry', {
           command: setupCommand.label,
-          exitCode,
+          exitCode: outcome.exitCode,
           seconds: Math.round(delayMs / 1000),
           attempt: attempt + 1,
           maxAttempts: PREVIEW_SETUP_RETRY_ATTEMPTS,
@@ -1297,7 +1305,7 @@ export class WorkbenchStore {
       });
     }
 
-    return exitCode;
+    return outcome;
   }
 
   #currentWorkspaceLogLength() {
@@ -1317,6 +1325,7 @@ export class WorkbenchStore {
     options: { exitMessage: string; refreshPortsOnOutput?: boolean },
   ) {
     let exitCode = 0;
+    let errorCode: string | undefined;
 
     /*
      * Throttle port refreshes. A dev server emits hundreds of output lines while
@@ -1354,6 +1363,7 @@ export class WorkbenchStore {
         args: command.args,
         cwd: command.cwd,
         env: command.env,
+        timeoutMs: command.timeoutMs,
       })) {
         this.appendWorkspaceLog(event);
 
@@ -1369,6 +1379,10 @@ export class WorkbenchStore {
          * success and launch the preview against a broken node_modules.
          */
         exitCode = foldCommandExitCode(exitCode, event);
+
+        if (event.type === 'error' && event.error?.code) {
+          errorCode = event.error.code;
+        }
 
         if (event.type === 'exit' && exitCode !== 0) {
           this.appendWorkspaceLog(`${options.exitMessage} ${exitCode}`);
@@ -1394,7 +1408,7 @@ export class WorkbenchStore {
       }
     }
 
-    return exitCode;
+    return { exitCode, errorCode };
   }
 
   async #detectPreviewCommand(forceInstall: boolean): Promise<PreviewCommand> {

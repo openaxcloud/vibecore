@@ -526,6 +526,51 @@ describe('WorkbenchStore reloaded and review-first actions', () => {
     expect(installAttempts).toBe(1);
   });
 
+  it('bounds dependency installation and surfaces an actionable timeout without retrying forever', async () => {
+    runtimeFiles.set(
+      'package.json',
+      JSON.stringify({
+        name: 'app',
+        type: 'module',
+        scripts: { dev: 'vite --host 0.0.0.0' },
+        dependencies: { react: '^18.3.1' },
+        devDependencies: { vite: '^5.1.4' },
+      }),
+    );
+
+    const store = new WorkbenchStore();
+    await store.loadRuntimeFiles('.');
+
+    let installRequest: { args?: string[]; timeoutMs?: number } | undefined;
+    runtimeAdapterMock.streamCommand.mockImplementation(async function* (request: {
+      args?: string[];
+      timeoutMs?: number;
+    }) {
+      if ((request.args ?? []).includes('install')) {
+        installRequest = request;
+        yield {
+          type: 'error',
+          error: { code: 'COMMAND_TIMEOUT', message: 'The command exceeded its deadline.' },
+        };
+
+        return;
+      }
+
+      yield { type: 'exit', exitCode: 0 };
+    });
+
+    await store.reinstallDependencies();
+
+    await vi.waitFor(() => {
+      expect(store.previewServerState.get().status).toBe('error');
+    });
+
+    expect(installRequest?.timeoutMs).toBe(5 * 60_000);
+    expect(runtimeAdapterMock.streamCommand).toHaveBeenCalledTimes(1);
+    expect(store.previewServerState.get().error).toMatch(/5 minutes/i);
+    expect(store.previewServerState.get().error).toMatch(/reinstall|réinstaller/i);
+  });
+
   it('surfaces an honest error (not "running"/"idle") when the dev server dies with exit 127', async () => {
     /*
      * A dev server that dies (e.g. `vite: command not found` against an empty
