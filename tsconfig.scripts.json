@@ -9,7 +9,7 @@
     "playwright.config.preview.ts",
     "playwright.tpl-proof.config.ts",
     "scripts/**/*.ts",
-    "app/lib/qa/tpl-proof-contract.spec.ts",
+    "scripts/qa/tpl-proof-contract.spec.ts",
     "tests/e2e/tpl-proof-live.spec.ts"
   ],
   "exclude": [

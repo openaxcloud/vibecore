@@ -18,7 +18,7 @@ import {
   loadTplProofConfig,
   type QaProjectIdentity,
   type TplProofInteractionContract,
-} from '~/lib/qa/tpl-proof-contract.js';
+} from '../../scripts/qa/tpl-proof-contract.js';
 
 const proof = loadTplProofConfig();
 const evidenceRoot = resolve(proof.outputDir);

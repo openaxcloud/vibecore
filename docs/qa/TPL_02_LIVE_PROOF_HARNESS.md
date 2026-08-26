@@ -168,7 +168,7 @@ org.
 These commands validate the harness without touching an application stack:
 
 ```bash
-pnpm exec vitest run app/lib/qa/tpl-proof-contract.spec.ts
+pnpm exec vitest run scripts/qa/tpl-proof-contract.spec.ts
 pnpm exec tsc --project tsconfig.scripts.json --noEmit
 
 # Must fail before discovery when TPL_PROOF_RUN is absent.

@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import JSZip from 'jszip';
-import { assertIbanWasMasked } from '~/lib/qa/tpl-proof-contract.js';
+import { assertIbanWasMasked } from '../../scripts/qa/tpl-proof-contract.js';
 
 /**
  * Screen-level proof of P0-V3-05 (I-RMX-3): versioned license + explicit

@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { loadTplProofConfig } from './app/lib/qa/tpl-proof-contract.js';
+import { loadTplProofConfig } from './scripts/qa/tpl-proof-contract.js';
 
 /* Evaluated before test discovery: an unguarded command cannot even list tests. */
 const proof = loadTplProofConfig();
