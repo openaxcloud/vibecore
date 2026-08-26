@@ -2375,6 +2375,7 @@ export class TestApiStore implements ApiStore {
     id: string,
     patch: {
       state?: string;
+      sourceRef?: string;
       findings?: unknown;
       consent?: unknown;
       targetProjectId?: string;

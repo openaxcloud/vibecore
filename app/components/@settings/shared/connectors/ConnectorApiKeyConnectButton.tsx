@@ -23,7 +23,7 @@ import { classNames } from '~/utils/classNames';
  */
 
 export interface ConnectorApiKeyConnectButtonProps {
-  provider: 'vercel' | 'supabase' | 'netlify';
+  provider: 'vercel' | 'figma' | 'claude' | 'supabase' | 'netlify';
   displayName: string;
   tokenLabel?: string;
   tokenPlaceholder?: string;

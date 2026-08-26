@@ -190,7 +190,15 @@ export const IMPORT_HUB_PROVIDERS: ImportProvider[] = [
 ];
 
 /** Providers with a real executing import path today vs modeled-only (🟡). */
-export const IMPORT_PROVIDERS_EXECUTED: ImportProvider[] = ['github', 'bitbucket', 'zip', 'empty'];
+export const IMPORT_PROVIDERS_EXECUTED: ImportProvider[] = [
+  'github',
+  'bitbucket',
+  'vercel',
+  'figma',
+  'claude',
+  'zip',
+  'empty',
+];
 
 export interface ImportFile {
   path: string;

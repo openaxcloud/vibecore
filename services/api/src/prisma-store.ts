@@ -1460,6 +1460,7 @@ export class PrismaApiStore implements ApiStore {
     id: string,
     patch: {
       state?: string;
+      sourceRef?: string;
       findings?: unknown;
       consent?: unknown;
       targetProjectId?: string;
@@ -1473,6 +1474,7 @@ export class PrismaApiStore implements ApiStore {
       where: { id },
       data: {
         ...(patch.state !== undefined ? { state: patch.state } : {}),
+        ...(patch.sourceRef !== undefined ? { sourceRef: patch.sourceRef } : {}),
         ...(patch.findings !== undefined ? { findings: patch.findings as object } : {}),
         ...(patch.consent !== undefined ? { consent: patch.consent as object } : {}),
         ...(patch.targetProjectId !== undefined ? { targetProjectId: patch.targetProjectId } : {}),

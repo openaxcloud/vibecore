@@ -26,6 +26,26 @@
         }
       }
     },
+    "figma": {
+      "displayName": "Figma",
+      "description": "Import Figma design documents into E-Code through a validated personal access token.",
+      "apiKeyFields": {
+        "accessToken": {
+          "label": "Personal access token",
+          "placeholder": "Figma personal access token"
+        }
+      }
+    },
+    "claude": {
+      "displayName": "Claude",
+      "description": "Validate Anthropic API access and import an explicit Claude artifact export into E-Code.",
+      "apiKeyFields": {
+        "accessToken": {
+          "label": "API key",
+          "placeholder": "Anthropic API key"
+        }
+      }
+    },
     "supabase": {
       "displayName": "Supabase",
       "description": "Access Supabase projects, databases, authentication, storage, and edge functions.",
@@ -78,6 +98,26 @@
         "accessToken": {
           "label": "Jeton d’accès",
           "placeholder": "Jeton d’accès personnel ou d’équipe"
+        }
+      }
+    },
+    "figma": {
+      "displayName": "Figma",
+      "description": "Importez des documents de design Figma dans E-Code avec un jeton d’accès personnel validé.",
+      "apiKeyFields": {
+        "accessToken": {
+          "label": "Jeton d’accès personnel",
+          "placeholder": "Jeton d’accès personnel Figma"
+        }
+      }
+    },
+    "claude": {
+      "displayName": "Claude",
+      "description": "Validez l’accès à l’API Anthropic et importez explicitement un export d’artifact Claude dans E-Code.",
+      "apiKeyFields": {
+        "accessToken": {
+          "label": "Clé API",
+          "placeholder": "Clé API Anthropic"
         }
       }
     },
