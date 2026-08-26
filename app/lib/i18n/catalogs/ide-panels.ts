@@ -705,7 +705,7 @@ export const idePanelsFr: Record<keyof typeof idePanelsEn, string> = {
     'Ces chemins indexés contiennent une virgule et ne peuvent pas être committés ici pour le moment : {paths}',
   'idePanels.git.commitChanges': 'Committer les modifications',
   'idePanels.git.commitPushHelp': 'Créer le commit et effectuer un push vers origin en une seule étape',
-  'idePanels.git.commitPush': 'Commit & push',
+  'idePanels.git.commitPush': 'Committer et envoyer',
   'idePanels.git.commitGraph': 'Graphe des commits',
   'idePanels.git.notPushed': 'Non envoyé vers le dépôt distant',
   'idePanels.git.upToDate': 'À jour avec le dépôt distant',

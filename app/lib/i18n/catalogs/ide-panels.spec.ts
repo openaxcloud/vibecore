@@ -15,6 +15,8 @@ describe('IDE panel translation catalog', () => {
   it('uses the approved French terms for core IDE concepts', () => {
     expect(idePanelsFr['idePanels.deployment.database']).toBe('Base de données');
     expect(idePanelsFr['idePanels.git.workingTree']).toBe('Arborescence de travail');
+    expect(idePanelsFr['idePanels.git.commitPush']).toBe('Committer et envoyer');
+    expect(idePanelsFr['idePanels.git.commitPush']).not.toMatch(/\b(?:push|and)\b/iu);
     expect(idePanelsFr['idePanels.preview.deployments']).toBe('Déploiements');
     expect(idePanelsFr['idePanels.preview.startingWorkspace']).toContain('espace de travail');
     expect(idePanelsFr['idePanels.preview.runtimeError']).toBe('Erreur d’aperçu : {message}{location}');
