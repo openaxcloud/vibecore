@@ -9,7 +9,13 @@ import { toast } from 'react-toastify';
 import { confirmWriteWithinDeadline, WRITE_CONFIRMATION_TIMEOUT_MS } from '~/lib/runtime/confirm-write';
 import { EditorStore } from './editor';
 import { fileHistoryStore } from './fileHistory';
-import { FilesStore, type FileMap, type ProjectStorageFile, type SaveFileOptions } from './files';
+import {
+  FilesStore,
+  isFileSaveConflictError,
+  type FileMap,
+  type ProjectStorageFile,
+  type SaveFileOptions,
+} from './files';
 import {
   appendWorkspaceLogLines,
   decodeArchiveEntry,
@@ -115,6 +121,23 @@ export type PreviewServerState = {
   command?: string;
   error?: string;
 };
+
+export type FileSaveIssue =
+  | {
+      kind: 'conflict';
+      filePath: string;
+      localContent: string;
+      remoteContent: string;
+      detectedAt: number;
+    }
+  | {
+      kind: 'error';
+      filePath: string;
+      localContent: string;
+      detectedAt: number;
+    };
+
+export type FileSaveConflictResolution = 'keep-local' | 'use-remote';
 
 export type WorkbenchViewType = 'code' | 'diff' | 'preview' | 'git';
 export type ProjectFilesPanelRequest = {
@@ -254,6 +277,8 @@ export class WorkbenchStore {
   showWorkbench: WritableAtom<boolean> = hotData.showWorkbench ?? atom(false);
   currentView: WritableAtom<WorkbenchViewType> = hotData.currentView ?? atom('code');
   unsavedFiles: WritableAtom<Set<string>> = hotData.unsavedFiles ?? atom(new Set<string>());
+  fileSaveIssues: MapStore<Record<string, FileSaveIssue>> =
+    hotData.fileSaveIssues ?? map<Record<string, FileSaveIssue>>({});
   actionAlert: WritableAtom<ActionAlert | undefined> = hotData.actionAlert ?? atom<ActionAlert | undefined>(undefined);
   supabaseAlert: WritableAtom<SupabaseAlert | undefined> =
     hotData.supabaseAlert ?? atom<SupabaseAlert | undefined>(undefined);
@@ -297,6 +322,7 @@ export class WorkbenchStore {
   quotaWarning: WritableAtom<string | undefined> = hotData.quotaWarning ?? atom<string | undefined>(undefined);
   billingUpgradePrompt: WritableAtom<string | undefined> =
     hotData.billingUpgradePrompt ?? atom<string | undefined>(undefined);
+  workspaceRetryRequest: WritableAtom<number> = hotData.workspaceRetryRequest ?? atom(0);
   #snapshottedArtifacts = new Set<string>();
 
   /*
@@ -358,6 +384,7 @@ export class WorkbenchStore {
 
       writableHotData.artifacts = this.artifacts;
       writableHotData.unsavedFiles = this.unsavedFiles;
+      writableHotData.fileSaveIssues = this.fileSaveIssues;
       writableHotData.showWorkbench = this.showWorkbench;
       writableHotData.currentView = this.currentView;
       writableHotData.agentPatchReviewRequired = this.agentPatchReviewRequired;
@@ -376,6 +403,7 @@ export class WorkbenchStore {
       writableHotData.projectFilesPanelRequest = this.projectFilesPanelRequest;
       writableHotData.quotaWarning = this.quotaWarning;
       writableHotData.billingUpgradePrompt = this.billingUpgradePrompt;
+      writableHotData.workspaceRetryRequest = this.workspaceRetryRequest;
 
       // Ensure binary files are properly preserved across hot reloads
       const filesMap = this.files.get();
@@ -475,6 +503,15 @@ export class WorkbenchStore {
     this.projectFilesPanelRequest.set({ open, requestId: Date.now() });
   }
 
+  /**
+   * Ask the mounted ProjectWorkspaceProvider to retry a failed workspace start.
+   * The monotonic token avoids DOM events and remains a single source of truth
+   * shared by desktop, tablet and mobile quota notices.
+   */
+  requestWorkspaceRetry() {
+    this.workspaceRetryRequest.set(this.workspaceRetryRequest.get() + 1);
+  }
+
   configureRuntime(runtime: RuntimeAdapter) {
     if (this.#runtime === runtime) {
       return;
@@ -531,6 +568,7 @@ export class WorkbenchStore {
     this.#deferredStartArtifacts.clear();
     this.agentPatchSelfRepair.set({});
     this.unsavedFiles.set(new Set<string>());
+    this.fileSaveIssues.set({});
 
     /*
      * Cancel pending autosave timers from the previous project/runtime. Left
@@ -2023,6 +2061,31 @@ export class WorkbenchStore {
 
     this.#editorStore.updateFile(filePath, newContent);
 
+    /*
+     * A user may keep typing after a conflict/error notice appears. Keep the
+     * issue's recovery payload synchronized before the early-return below so a
+     * later retry or "Keep mine" always writes the newest editor buffer, not
+     * the text that happened to exist at first failure.
+     */
+    const saveIssue = this.fileSaveIssues.get()[filePath];
+
+    if (saveIssue && saveIssue.localContent !== newContent) {
+      this.fileSaveIssues.setKey(filePath, { ...saveIssue, localContent: newContent });
+
+      /*
+       * Conflict/error autosave intentionally stops sending blind remote writes,
+       * but the recovery path must not stop evolving with the buffer. Queue every
+       * changed snapshot in File History (deduped + serialised per file) so a
+       * project switch still leaves the latest text recoverable. A full reload is
+       * additionally guarded in BaseChat while any file remains dirty.
+       */
+      void fileHistoryStore
+        .capture(filePath, newContent, saveIssue.kind === 'conflict' ? 'conflict' : 'recovery')
+        .catch((captureError) => {
+          console.warn('Could not persist updated recovery buffer', captureError);
+        });
+    }
+
     const currentDocument = this.currentDocument.get();
 
     if (currentDocument) {
@@ -2057,12 +2120,28 @@ export class WorkbenchStore {
       const document = this.#editorStore.documents.get()[filePath];
       const persistedFile = this.#filesStore.getFile(filePath);
 
+      /*
+       * A conflict requires a human choice. Re-running the same blind autosave
+       * after every keystroke cannot resolve it; it only alternates duplicate
+       * remote/local recovery versions and produces needless runtime traffic.
+       * Keep the newest local payload synchronized in setCurrentDocumentContent
+       * and wait for one of the explicit conflict actions instead.
+       */
+      if (this.fileSaveIssues.get()[filePath]?.kind === 'conflict') {
+        return;
+      }
+
       if (!document || document.value !== content || persistedFile?.content === content) {
         return;
       }
 
       this.saveFile(filePath).catch((error) => {
         console.error(`Autosave failed for ${filePath}`, error);
+
+        if (isFileSaveConflictError(error)) {
+          // The persistent conflict notice carries explicit safe actions.
+          return;
+        }
 
         /*
          * Surface autosave failures instead of swallowing them — silent loss of
@@ -2113,23 +2192,184 @@ export class WorkbenchStore {
       return;
     }
 
+    const contentAtSaveStart = document.value;
+
     /*
      * For scoped locks, we would need to implement diff checking here
      * to determine if the user is modifying existing code or just adding new code
      * This is a more complex feature that would be implemented in a future update
      */
 
-    await this.#filesStore.saveFile(filePath, document.value, options);
+    try {
+      await this.#filesStore.saveFile(filePath, contentAtSaveStart, options);
+    } catch (error) {
+      /*
+       * Agent reconciliation has its own proposal/retry UI. Human saves use
+       * the explicit issue store below so manual saves and autosaves share one
+       * durable, actionable failure state.
+       */
+      if (options?.onRemoteConflict !== 'reconcile') {
+        await this.#recordFileSaveIssue(filePath, contentAtSaveStart, error);
+      }
+
+      throw error;
+    }
+
+    const latestDocument = this.#editorStore.documents.get()[filePath];
+    const changedWhileSaving = latestDocument !== undefined && latestDocument.value !== contentAtSaveStart;
+    const newUnsavedFiles = new Set(this.unsavedFiles.get());
+
+    if (changedWhileSaving) {
+      /*
+       * The 204 confirms only the snapshot sent at call time. If the user typed
+       * while it was in flight, keep the newer buffer dirty; clearing the dot
+       * here made FH-002 look fixed while silently declaring newer text saved.
+       */
+      newUnsavedFiles.add(filePath);
+    } else {
+      newUnsavedFiles.delete(filePath);
+    }
+
+    this.unsavedFiles.set(newUnsavedFiles);
+    this.#clearFileSaveIssue(filePath);
+
+    // Append a File History version for this human save (deduped if unchanged).
+    void fileHistoryStore.capture(filePath, contentAtSaveStart, 'save');
+
+    this.#emitFileApplied(filePath, 'user');
+  }
+
+  async #recordFileSaveIssue(filePath: string, localContent: string, error: unknown) {
+    if (isFileSaveConflictError(error)) {
+      const issue: FileSaveIssue = {
+        kind: 'conflict',
+        filePath,
+        localContent,
+        remoteContent: error.remoteContent,
+        detectedAt: Date.now(),
+      };
+
+      this.fileSaveIssues.setKey(filePath, issue);
+
+      /*
+       * Capture BOTH sides in order. File History can then compare the remote
+       * revision with the recovered editor draft, and IndexedDB keeps the draft
+       * across reloads/project switches even if the runtime stays unavailable.
+       */
+      await fileHistoryStore.capture(filePath, error.remoteContent, 'external').catch((captureError) => {
+        console.warn('Could not capture remote conflict revision', captureError);
+      });
+      await fileHistoryStore.capture(filePath, localContent, 'conflict').catch((captureError) => {
+        console.warn('Could not persist conflicted editor buffer', captureError);
+      });
+
+      return;
+    }
+
+    this.fileSaveIssues.setKey(filePath, {
+      kind: 'error',
+      filePath,
+      localContent,
+      detectedAt: Date.now(),
+    });
+
+    await fileHistoryStore.capture(filePath, localContent, 'recovery').catch((captureError) => {
+      console.warn('Could not persist unsaved editor buffer', captureError);
+    });
+  }
+
+  #clearFileSaveIssue(filePath: string) {
+    if (!this.fileSaveIssues.get()[filePath]) {
+      return;
+    }
+
+    const next = { ...this.fileSaveIssues.get() };
+    delete next[filePath];
+    this.fileSaveIssues.set(next);
+  }
+
+  /** Retry a transport/write failure while preserving normal conflict checks. */
+  async retryFileSave(filePath: string) {
+    const issue = this.fileSaveIssues.get()[filePath];
+
+    if (!issue) {
+      return;
+    }
+
+    if (issue.kind === 'conflict') {
+      return;
+    }
+
+    await this.saveFile(filePath);
+  }
+
+  /**
+   * Resolve a conflict without a blind last-write-wins path.
+   *
+   * - keep-local: write only if the remote revision still equals the version
+   *   shown to the user (CAS); a newer revision raises a fresh conflict.
+   * - use-remote: adopt the reviewed remote text without writing. The local
+   *   buffer was already persisted as a conflict history version.
+   */
+  async resolveFileSaveConflict(filePath: string, resolution: FileSaveConflictResolution) {
+    const issue = this.fileSaveIssues.get()[filePath];
+
+    if (!issue || issue.kind !== 'conflict') {
+      return;
+    }
+
+    if (resolution === 'keep-local') {
+      await this.saveFile(filePath, { expectedRemoteContent: issue.remoteContent });
+
+      return;
+    }
+
+    const currentLocalContent = this.#editorStore.documents.get()[filePath]?.value ?? issue.localContent;
+
+    /* Ensure the latest keystrokes are durable before changing the editor. */
+    await fileHistoryStore.captureDurably(filePath, currentLocalContent, 'conflict');
+
+    if (this.#editorStore.documents.get()[filePath]?.value !== currentLocalContent) {
+      throw new Error('FILE_SAVE_BUFFER_CHANGED_DURING_RESOLUTION');
+    }
+
+    try {
+      await this.#filesStore.acceptRemoteFile(filePath, issue.remoteContent, currentLocalContent);
+    } catch (error) {
+      if (isFileSaveConflictError(error)) {
+        await this.#recordFileSaveIssue(filePath, currentLocalContent, error);
+      } else {
+        /*
+         * Keep the conflict actions available when the authoritative re-read is
+         * temporarily unavailable. Turning this into a generic write error would
+         * lose the reviewed remote revision and misdescribe an adoption failure
+         * as a failed write.
+         */
+        this.fileSaveIssues.setKey(filePath, {
+          ...issue,
+          localContent: currentLocalContent,
+          detectedAt: Date.now(),
+        });
+      }
+
+      throw error;
+    }
+
+    if (this.#editorStore.documents.get()[filePath]?.value !== currentLocalContent) {
+      /*
+       * The remote baseline may safely refresh, but never replace keystrokes
+       * entered while the authoritative re-read was in flight. Leave the issue
+       * and dirty marker so the user can review again.
+       */
+      throw new Error('FILE_SAVE_BUFFER_CHANGED_DURING_RESOLUTION');
+    }
+
+    this.#editorStore.updateFile(filePath, issue.remoteContent);
 
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
     newUnsavedFiles.delete(filePath);
-
     this.unsavedFiles.set(newUnsavedFiles);
-
-    // Append a File History version for this human save (deduped if unchanged).
-    void fileHistoryStore.capture(filePath, document.value, 'save');
-
-    this.#emitFileApplied(filePath, 'user');
+    this.#clearFileSaveIssue(filePath);
   }
 
   async writeFileContent(filePath: string, content: string) {
@@ -2144,6 +2384,7 @@ export class WorkbenchStore {
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
     newUnsavedFiles.delete(filePath);
     this.unsavedFiles.set(newUnsavedFiles);
+    this.#clearFileSaveIssue(filePath);
 
     // Append a File History version for this programmatic/agent write.
     void fileHistoryStore.capture(filePath, content, 'agent');
@@ -2169,6 +2410,7 @@ export class WorkbenchStore {
     const newUnsavedFiles = new Set(this.unsavedFiles.get());
     newUnsavedFiles.delete(filePath);
     this.unsavedFiles.set(newUnsavedFiles);
+    this.#clearFileSaveIssue(filePath);
 
     const version = await fileHistoryStore.capture(filePath, content, 'restore', { restoredFromSeq });
     this.#emitFileApplied(filePath, 'user');
@@ -2242,9 +2484,27 @@ export class WorkbenchStore {
   }
 
   async saveAllFiles() {
-    for (const filePath of this.unsavedFiles.get()) {
-      await this.saveFile(filePath);
-    }
+    const filePaths = [...this.unsavedFiles.get()];
+    const results = await Promise.allSettled(filePaths.map((filePath) => this.saveFile(filePath)));
+
+    /*
+     * Saving one conflicted file must not prevent independent dirty files from
+     * reaching the runtime, and UI fire-and-forget callers must not create an
+     * unhandled rejection. Each failed save already records a persistent,
+     * actionable FileSaveIssue; return a summary for callers that want one.
+     */
+    return results.reduce(
+      (summary, result) => {
+        if (result.status === 'fulfilled') {
+          summary.saved += 1;
+        } else {
+          summary.failed += 1;
+        }
+
+        return summary;
+      },
+      { saved: 0, failed: 0 },
+    );
   }
 
   getFileModifcations() {

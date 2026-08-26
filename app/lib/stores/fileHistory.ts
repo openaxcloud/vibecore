@@ -16,6 +16,7 @@ export type FileHistoryStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 interface CaptureOptions {
   restoredFromSeq?: number;
+  requirePersistence?: boolean;
 }
 
 /**
@@ -34,6 +35,13 @@ export class FileHistoryStore {
 
   /** In-memory cache per `${projectId} ${filePath}` so re-opening is instant. */
   #cache = new Map<string, FileVersion[]>();
+
+  /**
+   * IndexedDB assigns no application-level sequence number for us. Serialise
+   * captures per project/file so rapid editor changes cannot reuse a sequence
+   * or reorder a newer recovery buffer behind an older one.
+   */
+  #captureQueues = new Map<string, Promise<void>>();
 
   activeFilePath: WritableAtom<string | undefined> = atom(undefined);
   versions: WritableAtom<FileVersion[]> = atom<FileVersion[]>([]);
@@ -58,19 +66,19 @@ export class FileHistoryStore {
     this.error.set(undefined);
   }
 
-  #keyOf(filePath: string): string {
-    return `${this.#projectId} ${filePath}`;
+  #keyOf(filePath: string, projectId = this.#projectId): string {
+    return `${projectId} ${filePath}`;
   }
 
-  async #readVersions(filePath: string): Promise<FileVersion[]> {
-    const key = this.#keyOf(filePath);
+  async #readVersions(filePath: string, projectId = this.#projectId): Promise<FileVersion[]> {
+    const key = this.#keyOf(filePath, projectId);
     const cached = this.#cache.get(key);
 
     if (cached) {
       return cached;
     }
 
-    const loaded = this.#projectId ? await getVersionsForFile(this.#projectId, filePath) : [];
+    const loaded = projectId ? await getVersionsForFile(projectId, filePath) : [];
     this.#cache.set(key, loaded);
 
     return loaded;
@@ -93,10 +101,48 @@ export class FileHistoryStore {
       return undefined;
     }
 
-    const versions = await this.#readVersions(filePath);
+    const key = this.#keyOf(filePath, projectId);
+    const previous = this.#captureQueues.get(key) ?? Promise.resolve();
+
+    const operation = previous
+      .catch(() => undefined)
+      .then(() => this.#captureForProject(projectId, filePath, content, source, options));
+    const tail = operation.then(
+      () => undefined,
+      () => undefined,
+    );
+    this.#captureQueues.set(key, tail);
+
+    try {
+      return await operation;
+    } finally {
+      if (this.#captureQueues.get(key) === tail) {
+        this.#captureQueues.delete(key);
+      }
+    }
+  }
+
+  async #captureForProject(
+    projectId: string,
+    filePath: string,
+    content: string,
+    source: FileVersionSource,
+    options: CaptureOptions,
+  ): Promise<FileVersion | undefined> {
+    const key = this.#keyOf(filePath, projectId);
+
+    const versions = await this.#readVersions(filePath, projectId);
     const last = versions[versions.length - 1];
 
     if (last && last.content === content) {
+      if (options.requirePersistence) {
+        const persisted = await putVersion(last);
+
+        if (!persisted) {
+          throw new Error('FILE_HISTORY_PERSISTENCE_UNAVAILABLE');
+        }
+      }
+
       return undefined;
     }
 
@@ -114,17 +160,32 @@ export class FileHistoryStore {
     };
 
     const next = [...versions, version];
-    this.#cache.set(this.#keyOf(filePath), next);
+    this.#cache.set(key, next);
 
     try {
-      await putVersion(version);
+      const persisted = await putVersion(version);
+
+      if (options.requirePersistence && !persisted) {
+        throw new Error('FILE_HISTORY_PERSISTENCE_UNAVAILABLE');
+      }
+
       void trimVersionsForFile(projectId, filePath);
     } catch (persistError) {
-      // Keep the in-memory version even if persistence fails; log for diagnosis.
+      if (options.requirePersistence) {
+        /*
+         * A destructive conflict resolution may proceed only after the local
+         * buffer is durable. Roll the optimistic cache append back and reject;
+         * the Workbench will leave the editor and conflict notice untouched.
+         */
+        this.#cache.set(key, versions);
+        throw persistError;
+      }
+
+      // Non-destructive captures remain useful in-memory; log for diagnosis.
       logger.warn('failed to persist version', persistError);
     }
 
-    if (this.activeFilePath.get() === filePath) {
+    if (this.#projectId === projectId && this.activeFilePath.get() === filePath) {
       this.versions.set(next);
       this.status.set('ready');
     }
@@ -133,16 +194,30 @@ export class FileHistoryStore {
   }
 
   /**
+   * Capture a recovery revision and reject unless IndexedDB committed it. Use
+   * before replacing an editor buffer; ordinary history captures remain
+   * best-effort so an unavailable browser database never blocks normal saves.
+   */
+  async captureDurably(
+    filePath: string,
+    content: string,
+    source: Extract<FileVersionSource, 'conflict' | 'recovery'>,
+  ): Promise<FileVersion | undefined> {
+    return this.capture(filePath, content, source, { requirePersistence: true });
+  }
+
+  /**
    * Make the History panel show `filePath`. Loads persisted versions and, when a
    * baseline `currentContent` is supplied, seeds/records it so the panel always
    * has at least the current on-disk state to compare against.
    */
   async open(filePath: string, currentContent?: string): Promise<void> {
+    const projectId = this.#projectId;
     this.activeFilePath.set(filePath);
     this.status.set('loading');
     this.error.set(undefined);
 
-    if (!this.#projectId) {
+    if (!projectId) {
       this.status.set('error');
       this.error.set('No project is open.');
 
@@ -150,18 +225,22 @@ export class FileHistoryStore {
     }
 
     try {
-      let versions = await this.#readVersions(filePath);
+      let versions = await this.#readVersions(filePath, projectId);
+
+      if (this.#projectId !== projectId) {
+        return;
+      }
 
       if (currentContent !== undefined) {
         const last = versions[versions.length - 1];
 
         if (!last) {
           await this.capture(filePath, currentContent, 'initial');
-          versions = await this.#readVersions(filePath);
+          versions = await this.#readVersions(filePath, projectId);
         } else if (last.content !== currentContent) {
           // Disk changed outside a tracked write (e.g. git) — keep history honest.
           await this.capture(filePath, currentContent, 'external');
-          versions = await this.#readVersions(filePath);
+          versions = await this.#readVersions(filePath, projectId);
         }
       }
 

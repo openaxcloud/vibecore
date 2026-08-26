@@ -427,6 +427,23 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
   }
 
   /**
+   * Conditional editor write. This deliberately bypasses #lastWrittenContent:
+   * a command, git checkout, or another writer may have changed the file after
+   * this adapter last wrote identical content. The workspace agent compares and
+   * writes while holding its per-path write lock, returning 409 when the
+   * expected revision is stale.
+   */
+  async writeFileIfUnchanged(path: string, content: string, expectedContent: string): Promise<void> {
+    await this.#request(
+      `/workspaces/${this.#requireWorkspaceId()}/files/write`,
+      { method: 'PUT', body: JSON.stringify({ path, content, expectedContent }) },
+      { retryIdempotentWrite: true },
+    );
+
+    this.#lastWrittenContent.set(path, content);
+  }
+
+  /**
    * Oublier ce que l'on croit savoir du disque. Une commande shell, un checkout
    * git ou une restauration peuvent modifier les fichiers hors de notre vue :
    * garder le mémo ferait sauter une réécriture pourtant nécessaire.

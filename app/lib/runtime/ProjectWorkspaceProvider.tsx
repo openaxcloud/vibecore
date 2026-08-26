@@ -84,15 +84,35 @@ export function ProjectWorkspaceProvider({
     let stopLogs: (() => void) | undefined;
     let activeWorkspaceId: string | undefined;
     let heartbeat: ReturnType<typeof setInterval> | undefined;
+    let startPromise: Promise<void> | undefined;
+    let startAttemptCount = 0;
+
+    const clearQuotaPrompt = () => {
+      workbenchStore.quotaWarning.set(undefined);
+      workbenchStore.billingUpgradePrompt.set(undefined);
+    };
 
     async function startWorkspace() {
+      const retryingQuotaFailure = startAttemptCount > 0 && Boolean(workbenchStore.quotaWarning.get());
+      startAttemptCount += 1;
       workbenchStore.configureRuntime(runtime);
       workbenchStore.configureProject(projectId);
       workbenchStore.workspaceLoading.set(true);
       workbenchStore.workspaceError.set(undefined);
       workbenchStore.workspaceLogs.set([]);
-      workbenchStore.quotaWarning.set(undefined);
-      workbenchStore.billingUpgradePrompt.set(undefined);
+
+      /*
+       * Keep the actionable quota notice mounted during a user-requested retry
+       * so its button exposes a real disabled/loading state. Clearing it before
+       * runtime.boot() made the notice disappear at click time and left no
+       * feedback during a slow reprovision. Fresh mounts still clear any prompt
+       * left by the previous project; success or a non-quota failure clears it
+       * below.
+       */
+      if (!retryingQuotaFailure) {
+        clearQuotaPrompt();
+      }
+
       workbenchStore.setSelectedFile(undefined);
       workbenchStore.currentView.set('code');
 
@@ -343,6 +363,8 @@ export function ProjectWorkspaceProvider({
               activeWorkspaceId = undefined;
             }
 
+            clearQuotaPrompt();
+
             return;
           }
 
@@ -431,6 +453,8 @@ export function ProjectWorkspaceProvider({
             void touchRuntime.touch(heartbeatWorkspaceId).catch(() => undefined);
           }, 60_000);
         }
+
+        clearQuotaPrompt();
       } catch (error) {
         if (cancelled) {
           return;
@@ -457,6 +481,8 @@ export function ProjectWorkspaceProvider({
         if (quotaPrompt) {
           workbenchStore.quotaWarning.set(quotaPrompt.warning);
           workbenchStore.billingUpgradePrompt.set(quotaPrompt.upgrade);
+        } else {
+          clearQuotaPrompt();
         }
       } finally {
         if (!cancelled) {
@@ -465,10 +491,41 @@ export function ProjectWorkspaceProvider({
       }
     }
 
-    void startWorkspace();
+    const queueWorkspaceStart = () => {
+      if (cancelled || startPromise) {
+        return startPromise;
+      }
+
+      startPromise = startWorkspace().finally(() => {
+        startPromise = undefined;
+      });
+
+      return startPromise;
+    };
+
+    /*
+     * A quota notice offers a real Retry action. Subscribe to the monotonic
+     * request token instead of remounting this provider: remounting clears the
+     * project-scoped unsaved/conflict state, while an in-place retry preserves
+     * every editor buffer. The immediate subscribe emission is ignored by
+     * comparing it with the value observed before subscription.
+     */
+    let observedRetryRequest = workbenchStore.workspaceRetryRequest.get();
+
+    const stopRetryRequests = workbenchStore.workspaceRetryRequest.subscribe((request) => {
+      if (request === observedRetryRequest) {
+        return;
+      }
+
+      observedRetryRequest = request;
+      void queueWorkspaceStart();
+    });
+
+    void queueWorkspaceStart();
 
     return () => {
       cancelled = true;
+      stopRetryRequests?.();
       stopLogs?.();
 
       if (heartbeat) {

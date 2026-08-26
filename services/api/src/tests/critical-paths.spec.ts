@@ -110,6 +110,7 @@ async function register(app: Awaited<ReturnType<typeof buildTestApiApp>>, email:
 async function startRuntimeServices() {
   const files = new Map<string, string>([['README.md', '# Runtime project\n']]);
   const calls: string[] = [];
+  const writeBodies: Array<{ path: string; content: string; expectedContent?: string }> = [];
   const agent = createServer((request, response) => {
     const url = new URL(request.url ?? '/', 'http://agent.local');
     calls.push(`${request.method} ${url.pathname}`);
@@ -126,7 +127,17 @@ async function startRuntimeServices() {
         response.end(JSON.stringify([...files.keys()].map((path) => ({ path, type: 'file' }))));
       } else if (request.method === 'GET' && url.pathname === '/files/read') {
         response.end(JSON.stringify({ content: files.get(url.searchParams.get('path') ?? '') ?? '' }));
-      } else if (request.method === 'POST' && (url.pathname === '/files/write' || url.pathname === '/files/create')) {
+      } else if (request.method === 'POST' && url.pathname === '/files/write') {
+        writeBodies.push(payload);
+
+        if (payload.expectedContent !== undefined && files.get(payload.path) !== payload.expectedContent) {
+          response.writeHead(409).end(JSON.stringify({ error: 'file changed', code: 'FILE_CONTENT_CHANGED' }));
+          return;
+        }
+
+        files.set(payload.path, payload.content ?? '');
+        response.end(JSON.stringify({ ok: true }));
+      } else if (request.method === 'POST' && url.pathname === '/files/create') {
         files.set(payload.path, payload.content ?? '');
         response.end(JSON.stringify({ ok: true }));
       } else if (request.method === 'POST' && url.pathname === '/files/delete') {
@@ -170,6 +181,7 @@ async function startRuntimeServices() {
   return {
     files,
     calls,
+    writeBodies,
     async close() {
       process.env.WORKSPACE_MANAGER_URL = previousManager;
       process.env.WORKSPACE_AGENT_URL_TEMPLATE = previousAgent;
@@ -241,6 +253,38 @@ describe('critical API paths', () => {
         payload: { path: 'src/created.ts', content: 'export const updated = true;' },
       });
       expect(write.statusCode).toBe(204);
+
+      const conditionalWrite = await app.inject({
+        method: 'PUT',
+        url: `/api/runtime/workspaces/${projectId}/files/write`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          path: 'src/created.ts',
+          content: 'export const conditionallyUpdated = true;',
+          expectedContent: 'export const updated = true;',
+        },
+      });
+      expect(conditionalWrite.statusCode).toBe(204);
+      expect(runtime.writeBodies.at(-1)).toEqual({
+        path: 'src/created.ts',
+        content: 'export const conditionallyUpdated = true;',
+        expectedContent: 'export const updated = true;',
+      });
+
+      runtime.files.set('src/created.ts', 'export const external = true;');
+      const staleConditionalWrite = await app.inject({
+        method: 'PUT',
+        url: `/api/runtime/workspaces/${projectId}/files/write`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: {
+          path: 'src/created.ts',
+          content: 'export const stale = true;',
+          expectedContent: 'export const conditionallyUpdated = true;',
+        },
+      });
+      expect(staleConditionalWrite.statusCode).toBe(409);
+      expect(staleConditionalWrite.json()).toMatchObject({ code: 'FILE_CONTENT_CHANGED' });
+      expect(runtime.files.get('src/created.ts')).toBe('export const external = true;');
 
       const move = await app.inject({
         method: 'POST',

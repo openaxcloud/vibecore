@@ -74,6 +74,7 @@ const writeSchema = z.object({
   path: safePathString,
   content: z.string(),
   encoding: z.enum(['utf8', 'base64']).optional(),
+  expectedContent: z.string().optional(),
 });
 
 /**
@@ -748,6 +749,35 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
   const processes = options.processes ?? new Map<string, ProcessRecord>();
   const metrics = createPrometheusRegistry();
 
+  /*
+   * The compare and the write below must share one serialization point. This
+   * queue covers every /files/write request for a path, so two editor clients
+   * presenting the same expected revision cannot both win. It also prevents an
+   * ordinary platform write from entering between the conditional read and
+   * write. Shell processes remain visible to the immediately preceding disk
+   * read, which is the strongest guarantee the filesystem API can provide
+   * without replacing all writes with an inode-generation service.
+   */
+  const fileWriteQueues = new Map<string, Promise<void>>();
+  const withFileWriteLock = async <T>(filePath: string, operation: () => Promise<T>): Promise<T> => {
+    const previous = fileWriteQueues.get(filePath) ?? Promise.resolve();
+    const run = previous.catch(() => undefined).then(operation);
+    const tail = run.then(
+      () => undefined,
+      () => undefined,
+    );
+
+    fileWriteQueues.set(filePath, tail);
+
+    try {
+      return await run;
+    } finally {
+      if (fileWriteQueues.get(filePath) === tail) {
+        fileWriteQueues.delete(filePath);
+      }
+    }
+  };
+
   const terminalManager = new TerminalSessionManager({
     cwd: root,
     env: sanitizedChildEnv(),
@@ -942,22 +972,43 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     const body = writeSchema.parse(request.body);
     assertContentSize(body.content, maxFileBytes, body.encoding);
 
+    if (body.expectedContent !== undefined) {
+      assertContentSize(body.expectedContent, maxFileBytes, body.encoding);
+    }
+
     const safePath = resolveWorkspacePath(root, body.path);
 
-    /*
-     * Check containment BEFORE mkdir. assertRealPathContained realpaths the
-     * deepest existing ancestor, so a symlink inside the workspace pointing out of
-     * root is caught here — running mkdir first would create directories outside
-     * the workspace root along the symlinked path before the check ran.
-     */
-    await assertRealPathContained(root, safePath);
-    await mkdir(dirname(safePath), { recursive: true });
-    await assertRealPathContained(root, safePath);
+    return withFileWriteLock(safePath, async () => {
+      /*
+       * Check containment BEFORE mkdir. assertRealPathContained realpaths the
+       * deepest existing ancestor, so a symlink inside the workspace pointing out of
+       * root is caught here — running mkdir first would create directories outside
+       * the workspace root along the symlinked path before the check ran.
+       */
+      await assertRealPathContained(root, safePath);
+      await mkdir(dirname(safePath), { recursive: true });
+      await assertRealPathContained(root, safePath);
 
-    const writeBuffer = decodeWriteContent(body.content, body.encoding);
-    await writeFile(safePath, writeBuffer).catch(rethrowFsError);
+      if (body.expectedContent !== undefined) {
+        const expectedBuffer = decodeWriteContent(body.expectedContent, body.encoding);
+        const currentBuffer = await readFile(safePath).catch((error: unknown) => {
+          if ((error as NodeJS.ErrnoException)?.code === 'ENOENT') {
+            throw workspaceAgentError('fileContentChanged', { statusCode: 409, code: 'FILE_CONTENT_CHANGED' });
+          }
 
-    return { path: body.path, bytes: writeBuffer.byteLength };
+          return rethrowFsError(error);
+        });
+
+        if (!currentBuffer.equals(expectedBuffer)) {
+          throw workspaceAgentError('fileContentChanged', { statusCode: 409, code: 'FILE_CONTENT_CHANGED' });
+        }
+      }
+
+      const writeBuffer = decodeWriteContent(body.content, body.encoding);
+      await writeFile(safePath, writeBuffer).catch(rethrowFsError);
+
+      return { path: body.path, bytes: writeBuffer.byteLength };
+    });
   });
 
   app.post('/files/create', async (request) => {

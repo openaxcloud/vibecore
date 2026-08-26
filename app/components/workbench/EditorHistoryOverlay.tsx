@@ -25,6 +25,25 @@ export const EditorHistoryOverlay = memo(({ filePath, content }: EditorHistoryOv
     setOpen(false);
   }, [filePath]);
 
+  /*
+   * The save-conflict notice can open the same recovery surface from either
+   * IDE shell. Scope the event to this file so split editors do not all open at
+   * once, and keep File History as the single recovery/diff experience.
+   */
+  useEffect(() => {
+    const handleOpenFileHistory = (event: Event) => {
+      const requestedPath = (event as CustomEvent<{ filePath?: string }>).detail?.filePath;
+
+      if (requestedPath === filePath) {
+        setOpen(true);
+      }
+    };
+
+    window.addEventListener('vibecore:open-file-history', handleOpenFileHistory);
+
+    return () => window.removeEventListener('vibecore:open-file-history', handleOpenFileHistory);
+  }, [filePath]);
+
   return (
     <>
       {!open && (

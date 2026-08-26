@@ -514,6 +514,81 @@ describe('workspace-agent', () => {
     expect(read.json()).toMatchObject({ content: 'export const ok = true;', encoding: 'utf8' });
   });
 
+  it('conditionally writes only while the expected revision is authoritative', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const headers = { authorization: `Bearer ${token}` };
+
+    expect(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/files/write',
+          headers,
+          payload: { path: 'src/cas.ts', content: 'revision one' },
+        })
+      ).statusCode,
+    ).toBe(200);
+
+    const stale = await app.inject({
+      method: 'POST',
+      url: '/files/write',
+      headers,
+      payload: { path: 'src/cas.ts', content: 'must not land', expectedContent: 'older revision' },
+    });
+
+    expect(stale.statusCode).toBe(409);
+    expect(stale.json()).toMatchObject({ code: 'FILE_CONTENT_CHANGED' });
+    expect((await app.inject({ method: 'GET', url: '/files/read?path=src/cas.ts', headers })).json()).toMatchObject({
+      content: 'revision one',
+    });
+
+    const matching = await app.inject({
+      method: 'POST',
+      url: '/files/write',
+      headers,
+      payload: { path: 'src/cas.ts', content: 'revision two', expectedContent: 'revision one' },
+    });
+
+    expect(matching.statusCode).toBe(200);
+    expect((await app.inject({ method: 'GET', url: '/files/read?path=src/cas.ts', headers })).json()).toMatchObject({
+      content: 'revision two',
+    });
+  });
+
+  it('serializes conditional writes so exactly one client can win a revision', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    const headers = { authorization: `Bearer ${token}` };
+
+    await app.inject({
+      method: 'POST',
+      url: '/files/write',
+      headers,
+      payload: { path: 'src/race.ts', content: 'baseline' },
+    });
+
+    const [left, right] = await Promise.all([
+      app.inject({
+        method: 'POST',
+        url: '/files/write',
+        headers,
+        payload: { path: 'src/race.ts', content: 'left', expectedContent: 'baseline' },
+      }),
+      app.inject({
+        method: 'POST',
+        url: '/files/write',
+        headers,
+        payload: { path: 'src/race.ts', content: 'right', expectedContent: 'baseline' },
+      }),
+    ]);
+
+    expect([left.statusCode, right.statusCode].sort()).toEqual([200, 409]);
+
+    const final = (await app.inject({ method: 'GET', url: '/files/read?path=src/race.ts', headers })).json() as {
+      content: string;
+    };
+    expect(['left', 'right']).toContain(final.content);
+  });
+
   it('reports an existing path on /files/create as 409 EEXIST, not an uncoded 500', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
     const headers = { authorization: `Bearer ${token}` };

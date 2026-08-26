@@ -2,9 +2,9 @@ import { describe, expect, it, beforeEach } from 'vitest';
 import { FileHistoryStore } from './fileHistory';
 
 /*
- * IndexedDB is undefined under vitest, so persistence is a no-op and the store's
- * in-memory cache is the source of truth — exactly the append-only semantics we
- * want to assert here (persistence itself is exercised live).
+ * IndexedDB is undefined under vitest, so ordinary captures use the in-memory
+ * cache. Destructive recovery flows call captureDurably() and must fail closed
+ * without a committed browser database.
  */
 
 const FILE = '/home/project/src/app.ts';
@@ -45,6 +45,24 @@ describe('FileHistoryStore', () => {
     expect(versions.map((v) => v.seq)).toEqual([1, 2, 3]);
     expect(versions.map((v) => v.content)).toEqual(['a', 'b', 'c']);
     expect(versions.map((v) => v.source)).toEqual(['initial', 'save', 'agent']);
+  });
+
+  it('serialises rapid captures so recovery sequence numbers cannot collide', async () => {
+    const captures = Array.from({ length: 20 }, (_, index) => store.capture(FILE, `draft-${index}`, 'conflict'));
+
+    await Promise.all(captures);
+
+    const versions = store.getVersions(FILE);
+    expect(versions.map((version) => version.seq)).toEqual(Array.from({ length: 20 }, (_, index) => index + 1));
+    expect(versions.at(-1)?.content).toBe('draft-19');
+  });
+
+  it('keeps an in-flight capture bound to the project where it started', async () => {
+    const capture = store.capture(FILE, 'project-one draft', 'recovery');
+    store.configure('proj-2');
+
+    await expect(capture).resolves.toMatchObject({ projectId: 'proj-1', content: 'project-one draft' });
+    expect(store.getVersions(FILE)).toHaveLength(0);
   });
 
   it('restore is append-only: keeps history and records restoredFromSeq', async () => {
@@ -105,6 +123,13 @@ describe('FileHistoryStore', () => {
     expect(store.getVersions(FILE)).toHaveLength(1);
 
     store.configure('proj-2');
+    expect(store.getVersions(FILE)).toHaveLength(0);
+  });
+
+  it('fails closed when a destructive recovery capture cannot reach IndexedDB', async () => {
+    await expect(store.captureDurably(FILE, 'irreplaceable local draft', 'conflict')).rejects.toThrow(
+      'FILE_HISTORY_PERSISTENCE_UNAVAILABLE',
+    );
     expect(store.getVersions(FILE)).toHaveLength(0);
   });
 });

@@ -153,6 +153,26 @@ describe('WebContainerRuntimeAdapter', () => {
     expect(changes).toEqual(['update:src/App.tsx']);
   });
 
+  it('preserves directory identity in structural watch events', async () => {
+    const webcontainer = createWebContainer();
+    const watchPaths = webcontainer.internal?.watchPaths as ReturnType<typeof vi.fn>;
+    watchPaths.mockImplementationOnce((_paths: unknown, callback: (event: unknown) => void) => {
+      callback({ type: 'add_dir', path: 'src/components' });
+      callback({ type: 'remove_dir', path: 'src/legacy' });
+
+      return { close: vi.fn() };
+    });
+    const adapter = new WebContainerRuntimeAdapter({ webcontainer });
+    const changes: Array<{ type: string; path: string; entryType?: string }> = [];
+
+    await adapter.watchFiles(['src'], (change) => changes.push(change));
+
+    expect(changes).toEqual([
+      { type: 'create', path: 'src/components', entryType: 'directory', timestamp: expect.any(String) },
+      { type: 'delete', path: 'src/legacy', entryType: 'directory', timestamp: expect.any(String) },
+    ]);
+  });
+
   it('normalizes jsh pipeline commands before spawning them', async () => {
     const webcontainer = createWebContainer();
     const adapter = new WebContainerRuntimeAdapter({ webcontainer });
