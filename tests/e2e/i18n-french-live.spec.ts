@@ -276,18 +276,18 @@ async function persistJsonEvidence(testInfo: TestInfo, name: string, value: unkn
 
 async function waitForApplicationReady(page: Page, path: string, language: 'en' | 'fr'): Promise<void> {
   const bootSplash = page.locator('[data-ecode-boot-splash], [data-ecode-ide-boot-splash]');
-  const globalLanguageSwitch = page.locator('[data-testid="language-switch"]:visible').first();
 
-  await expect.soft(bootSplash, `${path} ${language} boot splash dismissed`).toHaveCount(0, { timeout: 15_000 });
-
-  if (isIdeShellPath(path)) {
-    // La coque IDE n'a plus de bascule : attendre qu'elle apparaisse ne finirait jamais.
-    return;
-  }
-
-  await expect
-    .soft(globalLanguageSwitch, `${path} ${language} global language switch ready`)
-    .toBeVisible({ timeout: 15_000 });
+  /*
+   * Readiness must describe the application, not one responsive control. The
+   * global language switch is deliberately hidden in the compact AppShell
+   * topbar (<640 px) and absent from the IDE shell, so waiting for it added 15 s
+   * per navigation on mobile and exhausted the 30-minute collector timeout. A
+   * route with a stuck splash is still recorded as a soft failure so the audit
+   * can finish collecting evidence from the rest of its exhaustive matrix.
+   */
+  await expect.soft(bootSplash, `${path} ${language} boot splash dismissed`).toHaveCount(0, {
+    timeout: 15_000,
+  });
 }
 
 function isExpectedMissingDocumentConsole(path: string, message: ConsoleMessage): boolean {
@@ -387,7 +387,12 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
   const french = await semanticEntries(page);
   const findings = findFrenchAuditResidue(english, french);
 
+  const languageSwitches = page.locator('[data-testid="language-switch"]');
   const languageSwitchCount = await page.locator('[data-testid="language-switch"]:visible').count();
+  const languageSwitchTotalCount = await languageSwitches.count();
+  const compactUserShell =
+    (page.viewportSize()?.width ?? Number.POSITIVE_INFINITY) < 640 &&
+    (await page.locator('button[data-vc-tour-target="navigation"]:visible').count()) > 0;
 
   const languageSwitchInteraction = await page
     .locator('[data-testid="language-switch"]:visible')
@@ -517,6 +522,8 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
     pageErrors,
     findings,
     languageSwitchCount,
+    languageSwitchTotalCount,
+    compactUserShell,
     languageSwitchInteraction,
     documentSeo,
     scannedEntries: french.length,
@@ -533,19 +540,33 @@ async function auditRoutePair(page: Page, path: string, theme: 'dark' | 'light',
     expect
       .soft(languageSwitchCount, `${path} (${theme}) la coque IDE ne remonte PAS de bascule de langue globale`)
       .toBe(0);
+  } else if (compactUserShell) {
+    /*
+     * Below 640 px AppShell intentionally keeps the control out of the crowded
+     * topbar. Assert that this is the known responsive state (rendered but
+     * hidden), not a missing component, without using it as a readiness probe.
+     */
+    expect.soft(languageSwitchCount, `${path} (${theme}) compact AppShell hides the topbar switch`).toBe(0);
+    expect
+      .soft(languageSwitchTotalCount, `${path} (${theme}) compact AppShell retains the language control`)
+      .toBeGreaterThan(0);
   } else {
     expect.soft(languageSwitchCount, `${path} (${theme}) visible global language switch`).toBeGreaterThan(0);
   }
 
-  expect
-    .soft(
-      languageSwitchInteraction.groups.every(
-        (group) =>
-          group.buttons.length === 2 && group.buttons.every((button) => button.hitTarget && button.insideViewport),
-      ),
-      `${path} (${theme}) language switch buttons are unobscured and inside the viewport`,
-    )
-    .toBe(true);
+  if (languageSwitchCount > 0) {
+    expect
+      .soft(
+        languageSwitchInteraction.groups.every(
+          (group) =>
+            group.buttons.length === 2 && group.buttons.every((button) => button.hitTarget && button.insideViewport),
+        ),
+        `${path} (${theme}) language switch buttons are unobscured and inside the viewport`,
+      )
+      .toBe(true);
+  } else {
+    expect.soft(languageSwitchInteraction.groups, `${path} (${theme}) no phantom visible language switch`).toEqual([]);
+  }
 
   if (languageSwitchInteraction.compactIde) {
     expect

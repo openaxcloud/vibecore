@@ -2,6 +2,8 @@ name: French i18n live audit
 
 on:
   pull_request:
+  push:
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -148,11 +150,13 @@ jobs:
           tests/e2e/i18n-french-live.spec.ts
           --config=playwright.i18n.config.ts
           --project=${{ matrix.project }}
+          --retries=0
 
       # Per viewport: (84 sitemap + 2 real 404 + 7 auth + 34 user + 14
       # project routes) x 2 themes = 282 audit JSON files. Each route/theme
       # pair captures EN and FR, for 564 PNG files. Locale negotiation adds
-      # exactly two separate JSON attachments.
+      # exactly two separate JSON attachments. The audit config deliberately
+      # disables retries so these counts always describe one complete pass.
       - name: Verify complete proof set
         if: always()
         shell: bash

@@ -43,6 +43,14 @@ export default defineConfig({
   ...baseConfig,
   webServer: [...auditWebServers, ...apiWebServer],
   workers: 1,
+  /*
+   * Each test is an exhaustive multi-route collector that uses soft assertions
+   * so one pass already records every defect. Retrying the whole collector does
+   * not isolate a flaky route: it repeats up to 282 navigations, multiplies the
+   * proof files and can turn one failure into a 90-minute timeout. Keep this
+   * evidence suite single-attempt even though ordinary E2E tests retry in CI.
+   */
+  retries: 0,
   preserveOutput: 'always',
   projects: [
     {
