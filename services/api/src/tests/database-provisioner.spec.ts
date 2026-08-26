@@ -8,12 +8,14 @@ import {
   buildClusterManifest,
   buildDatabaseForkClusterManifest,
   buildDatabaseCrManifest,
+  buildOnDemandBackupManifest,
   buildPoolerManifest,
   buildRestoreClusterManifest,
   buildScheduledBackupManifest,
   buildSharedTenantUri,
   buildTenantProvisionSql,
   clusterName,
+  onDemandBackupName,
   resolveDatabaseProvisioner,
   resolveDatabaseTier,
   sharedDbName,
@@ -467,6 +469,37 @@ describe('CnpgProvisioner', () => {
     expect((await prov.restoreProgress({ projectId: 'p1', restoreId: 'r1' })).ready).toBe(false);
     k8s.clusters.set(`Cluster/${name}`, { status: { phase: 'Cluster in healthy state', readyInstances: 1 } });
     expect((await prov.restoreProgress({ projectId: 'p1', restoreId: 'r1' })).ready).toBe(true);
+  });
+
+  it('verifies the exact environment-scoped Backup CR before reporting completion', async () => {
+    const k8s = new FakeK8s();
+    const prov = new CnpgProvisioner(k8s, 'bkt');
+    const input = { projectId: 'p1', snapshotId: 'migration-1', environment: 'production' as const };
+    const name = onDemandBackupName(input.projectId, input.snapshotId, input.environment);
+
+    await expect(prov.backupStatus(input)).resolves.toMatchObject({
+      found: false,
+      completed: false,
+      error: 'BACKUP_RESOURCE_NOT_FOUND',
+    });
+
+    k8s.clusters.set(`Backup/${name}`, { status: { phase: 'running' } });
+    await expect(prov.backupStatus(input)).resolves.toMatchObject({
+      found: true,
+      phase: 'running',
+      completed: false,
+    });
+
+    k8s.clusters.set(`Backup/${name}`, { status: { phase: 'completed' } });
+    await expect(prov.backupStatus(input)).resolves.toMatchObject({
+      found: true,
+      phase: 'completed',
+      completed: true,
+    });
+    expect(buildOnDemandBackupManifest(input.projectId, input.snapshotId, input.environment)).toMatchObject({
+      metadata: { name },
+      spec: { cluster: { name: clusterName(input.projectId, input.environment) } },
+    });
   });
 
   it('deletes the cluster + scheduled backup on teardown', async () => {

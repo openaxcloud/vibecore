@@ -1407,6 +1407,37 @@ exports.Prisma.DatabaseRestoreScalarFieldEnum = {
   completedAt: 'completedAt'
 };
 
+exports.Prisma.DBMigrationExecutionScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  organizationId: 'organizationId',
+  environment: 'environment',
+  state: 'state',
+  idempotencyKey: 'idempotencyKey',
+  requestHash: 'requestHash',
+  activeLock: 'activeLock',
+  ownerToken: 'ownerToken',
+  version: 'version',
+  leaseExpiresAt: 'leaseExpiresAt',
+  attempt: 'attempt',
+  plan: 'plan',
+  statementsSha256: 'statementsSha256',
+  statementCount: 'statementCount',
+  appliedStatements: 'appliedStatements',
+  backwardCompatible: 'backwardCompatible',
+  forwardCompatible: 'forwardCompatible',
+  backupId: 'backupId',
+  backupVerifiedAt: 'backupVerifiedAt',
+  backupVerificationMethod: 'backupVerificationMethod',
+  deploymentId: 'deploymentId',
+  createdByUserId: 'createdByUserId',
+  errorCode: 'errorCode',
+  startedAt: 'startedAt',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.ScheduledTaskScalarFieldEnum = {
   id: 'id',
   organizationId: 'organizationId',
@@ -2277,6 +2308,7 @@ exports.Prisma.ModelName = {
   DatabaseInstance: 'DatabaseInstance',
   DatabaseSnapshot: 'DatabaseSnapshot',
   DatabaseRestore: 'DatabaseRestore',
+  DBMigrationExecution: 'DBMigrationExecution',
   ScheduledTask: 'ScheduledTask',
   ScheduledTaskRun: 'ScheduledTaskRun',
   AgentRoutingCard: 'AgentRoutingCard',

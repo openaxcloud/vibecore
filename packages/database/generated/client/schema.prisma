@@ -2271,6 +2271,44 @@ model DatabaseRestore {
   @@index([requestedByUserId])
 }
 
+/// Fenced, resumable schema migration executed before a production publish.
+/// The SQL itself stays in project storage; only the immutable name/hash plan is
+/// persisted so recovery can reconcile the target without retaining user SQL.
+model DBMigrationExecution {
+  id                       String    @id @default(cuid())
+  projectId                String
+  organizationId           String
+  environment              String
+  state                    String    @default("LOCK_ACQUIRED")
+  idempotencyKey           String
+  requestHash              String
+  activeLock               String?   @unique
+  ownerToken               String?
+  version                  Int       @default(0)
+  leaseExpiresAt           DateTime?
+  attempt                  Int       @default(1)
+  plan                     Json
+  statementsSha256         String
+  statementCount           Int       @default(0)
+  appliedStatements        Int       @default(0)
+  backwardCompatible       Boolean
+  forwardCompatible        Boolean
+  backupId                 String?
+  backupVerifiedAt         DateTime?
+  backupVerificationMethod String?
+  deploymentId             String?
+  createdByUserId          String?
+  errorCode                String?
+  startedAt                DateTime  @default(now())
+  completedAt              DateTime?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  @@unique([projectId, idempotencyKey])
+  @@index([projectId, environment, state])
+  @@index([activeLock, leaseExpiresAt])
+}
+
 // ---------------------------------------------------------------------------
 // Scheduled tasks (cron). Backs BOTH the Workflows panel schedules AND the
 // Replit-parity "Scheduled" deployment type: a command that runs on a cron,
