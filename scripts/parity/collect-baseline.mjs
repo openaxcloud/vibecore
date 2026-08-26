@@ -121,27 +121,51 @@ async function fetchSource(source) {
 }
 
 /*
- * Resolve Playwright without depending on a bare 'playwright' being on the
- * module path (pnpm hoists it under .pnpm). Returns null if unavailable — the
- * collector then records RENDER_UNAVAILABLE rather than faking a render.
+ * CI passes the absolute module installed in collector-runtime. That explicit
+ * path prevents a globally installed package (or an unrelated root install)
+ * from making the job pass accidentally. The local package lookup remains as
+ * a developer convenience when running from a fully installed checkout.
  */
-async function loadChromium() {
+function loadChromium() {
   const req = createRequire(import.meta.url);
-  const candidates = [
-    'playwright',
-    join(repoRoot, 'node_modules/playwright/index.js'),
-    join(repoRoot, 'node_modules/.pnpm/playwright@1.59.1/node_modules/playwright/index.js'),
-  ];
+  const configuredModule = process.env.PARITY_PLAYWRIGHT_MODULE;
 
-  for (const candidate of candidates) {
+  if (configuredModule) {
+    const absoluteModule = resolve(configuredModule);
     try {
-      return req(candidate).chromium;
-    } catch {
-      // try next
+      const chromium = req(absoluteModule).chromium;
+      if (!chromium) {
+        return { chromium: null, error: `configured Playwright module has no chromium export: ${absoluteModule}` };
+      }
+
+      console.log(`[collect-baseline] using configured Playwright module ${absoluteModule}`);
+      return { chromium, error: null };
+    } catch (error) {
+      return {
+        chromium: null,
+        error: `configured Playwright module failed to load (${absoluteModule}): ${String(error?.message ?? error)}`,
+      };
     }
   }
 
-  return null;
+  try {
+    return { chromium: req('playwright').chromium, error: null };
+  } catch (directError) {
+    try {
+      // pnpm keeps Playwright beside @playwright/test instead of hoisting the
+      // transitive package. Resolve from that checked-in root dependency
+      // without hard-coding pnpm's versioned store layout.
+      const testEntry = req.resolve('@playwright/test');
+      return { chromium: createRequire(testEntry)('playwright').chromium, error: null };
+    } catch (testDependencyError) {
+      return {
+        chromium: null,
+        error:
+          `local Playwright module unavailable: ${String(directError?.message ?? directError)}; ` +
+          `@playwright/test fallback unavailable: ${String(testDependencyError?.message ?? testDependencyError)}`,
+      };
+    }
+  }
 }
 
 const REALISTIC_UA =
@@ -153,14 +177,14 @@ const REALISTIC_UA =
  * only faithful archive. Returns per-source results with the rendered HTML.
  */
 async function renderSources(renderSources) {
-  const chromium = await loadChromium();
+  const { chromium, error: chromiumError } = loadChromium();
 
   if (!chromium) {
     return renderSources.map((source) => ({
       source,
       status: 'RENDER_UNAVAILABLE',
       httpStatus: 0,
-      error: 'playwright not installed (rendered families need a browser)',
+      error: chromiumError,
       body: null,
     }));
   }
