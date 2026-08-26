@@ -103,6 +103,7 @@ model User {
   agentRoutingCards           AgentRoutingCard[]             @relation("AgentRoutingCardAuthor")
   runtimeWebSocketTickets     RuntimeWebSocketTicket[]
   importJobs                  ImportJob[]                    @relation("ImportJobActor")
+  projectCheckpoints          ProjectCheckpoint[]            @relation("ProjectCheckpointCreator")
 }
 
 model Account {
@@ -282,6 +283,7 @@ model Project {
   slugRedirects           ProjectSlugRedirect[]
   runtimeWebSocketTickets RuntimeWebSocketTicket[]
   importJobs              ImportJob[]              @relation("ImportJobTarget")
+  checkpoints            ProjectCheckpoint[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -2425,6 +2427,51 @@ model AgentCallLog {
   @@index([lineKey, createdAt])
   @@index([organizationId, createdAt])
   @@index([projectId, createdAt])
+}
+
+/// Checkpoint PROJET coordonné (plan §15, CTR-CHECKPOINT) : barrière logique
+/// + snapshots par composant (FILES/DATABASE/POD optionnel) + manifeste visible
+/// seulement une fois TOUT vérifié sous la même barrière. Rien à voir avec
+/// AgentCheckpoint (facturation par requête agent).
+model ProjectCheckpoint {
+  id               String    @id @default(cuid())
+  projectId        String
+  state            String    @default("PREPARING")
+  logicalBarrierId String?
+  /// crash-consistent | UNKNOWN. `application-consistent` is NOT emitted: it
+  /// would require quiescing the in-pod writers (dev server, terminal, agent),
+  /// which the API-level barrier cannot reach. See CHECKPOINT_CONTRACT §Cohérence.
+  consistencyLevel String?
+  /// { components: [{componentKind, snapshotId, hash, verified, …}], restoreCompatibility, dependenciesDeclared }
+  manifest         Json?
+  error            String?
+  expiresAt        DateTime?
+  createdByUserId  String?
+  /// Stable retry identity. A repeated key is accepted only when requestHash
+  /// matches; a different request with the same key is refused.
+  idempotencyKey   String?   @unique
+  requestHash      String?
+  /// Non-null only while this row owns the one active barrier for its project.
+  /// The unique constraint is the durable per-project singleton; an expired
+  /// owner is cleared under the same project lock before a successor acquires.
+  barrierProjectId String?   @unique
+  barrierOwnerToken String?
+  barrierFence     Int       @default(0)
+  /// Barrier lease deadline. The write barrier is read from THIS COLUMN, not from
+  /// process memory: the API runs 2..6 replicas (values-prod.yaml), so an
+  /// in-process barrier is invisible to the other replicas and freezes nothing.
+  /// A past/NULL value means thawed — expiry IS the guaranteed thaw, even if the
+  /// process holding the checkpoint dies mid-flight.
+  barrierExpiresAt DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdBy User?   @relation("ProjectCheckpointCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  @@index([projectId, createdAt])
+  @@index([barrierProjectId, barrierExpiresAt])
+  @@index([state, createdAt])
 }
 
 /// A secure project remix (fork) run. Tracks the normative state machine

@@ -1,3 +1,5 @@
+import { appPublicEnglish } from './app-public-copy.js';
+
 /**
  * Lifecycle state machines for Checkpoint, DB migration, and Promotion→Release
  * (audit v4 C + D + E).
@@ -21,18 +23,28 @@ export type CheckpointState =
   | 'PREPARING'
   | 'QUIESCING'
   | 'BARRIER_ESTABLISHED'
-  | 'SNAPSHOTTING'
+  | 'VOLUME_SNAPSHOTTING'
+  | 'DB_SNAPSHOTTING'
+  | 'POD_SNAPSHOTTING'
   | 'VERIFYING'
   | 'COMMITTED'
   | 'ABORTING'
   | 'CLEANED'
   | 'MANUAL_INTERVENTION';
 
+/*
+ * Plan §15 : le snapshot est décomposé PAR COMPOSANT — volume (fichiers), base
+ * de données, puis pod (OPTIONNEL : DB_SNAPSHOTTING peut brancher directement
+ * vers VERIFYING). Un snapshot de pod SEUL n'est jamais un « checkpoint
+ * projet » (projectCheckpointAdmissible).
+ */
 export const CHECKPOINT_ORDER: CheckpointState[] = [
   'PREPARING',
   'QUIESCING',
   'BARRIER_ESTABLISHED',
-  'SNAPSHOTTING',
+  'VOLUME_SNAPSHOTTING',
+  'DB_SNAPSHOTTING',
+  'POD_SNAPSHOTTING',
   'VERIFYING',
   'COMMITTED',
 ];
@@ -75,9 +87,14 @@ export function assertCheckpointTransition(from: CheckpointState, to: Checkpoint
   const fromIdx = CHECKPOINT_ORDER.indexOf(from);
   const toIdx = CHECKPOINT_ORDER.indexOf(to);
 
+  // POD_SNAPSHOTTING est OPTIONNEL : DB_SNAPSHOTTING → VERIFYING est légal.
+  if (from === 'DB_SNAPSHOTTING' && to === 'VERIFYING') {
+    return;
+  }
+
   if (toIdx !== fromIdx + 1) {
     // The security-critical guard: no snapshot before the barrier.
-    if (to === 'SNAPSHOTTING' && from !== 'BARRIER_ESTABLISHED') {
+    if (to.endsWith('_SNAPSHOTTING') && from !== 'BARRIER_ESTABLISHED' && !String(from).endsWith('_SNAPSHOTTING')) {
       throw new LifecycleError(
         'SNAPSHOTTING requires BARRIER_ESTABLISHED first — snapshotting without a logical barrier yields inconsistent, different-instant snapshots.',
         'CHECKPOINT_SNAPSHOT_BEFORE_BARRIER',
@@ -101,15 +118,28 @@ export function quiesceAdmissible(guard: QuiesceGuard): boolean {
   return Number.isFinite(guard.timeoutMs) && guard.timeoutMs > 0 && guard.thawGuaranteed === true;
 }
 
+export type CheckpointComponentKind = 'FILES' | 'DATABASE' | 'POD';
+
 export interface CheckpointComponentSnapshot {
+  /** Quel composant ce snapshot capture (plan §15). */
+  componentKind: CheckpointComponentKind;
   snapshotId: string;
   logicalBarrierId: string;
   startedAt: string;
   completedAt?: string;
   consistencyLevel: 'crash-consistent' | 'application-consistent' | 'UNKNOWN';
+  /** Pourquoi CE niveau — dérivé de la portée réelle de la barrière (P0-V3-09). */
+  consistencyBasis?: string;
+  /** Écrivains que la barrière n'atteint pas ; vide ⇒ rien ne pouvait écrire. */
+  unfrozenWriters?: string[];
   encryptionKeyVersion: string;
   restoreCompatibility: string;
   verified: boolean;
+  /**
+   * COMMENT `verified` a été établi. Un booléen seul laisse croire à une preuve
+   * qui n'a pas été faite ; la méthode dit exactement ce qui a été contrôlé.
+   */
+  verificationMethod?: string;
 }
 
 /**
@@ -360,10 +390,7 @@ const WORKSPACE_LIFECYCLE_NEXT: Record<WorkspaceLifecycleState, WorkspaceLifecyc
   FAILED: ['STARTING'],
 };
 
-export function assertWorkspaceLifecycleTransition(
-  from: WorkspaceLifecycleState,
-  to: WorkspaceLifecycleState,
-): void {
+export function assertWorkspaceLifecycleTransition(from: WorkspaceLifecycleState, to: WorkspaceLifecycleState): void {
   // Idempotent re-assertion of the same state is a no-op, not an error: two
   // manager replicas can both observe the same transition.
   if (from === to) {
@@ -395,4 +422,34 @@ export function lifecycleStateFromStatus(status: string): WorkspaceLifecycleStat
     default:
       return 'PENDING';
   }
+}
+
+/**
+ * Un « checkpoint PROJET » exige le composant FILES vérifié, et le composant
+ * DATABASE dès qu'une base est provisionnée (sinon la dépendance doit être
+ * DÉCLARÉE explicitement — infra dormante, jamais un silence). Un snapshot de
+ * POD seul n'est JAMAIS un checkpoint projet.
+ */
+export function projectCheckpointAdmissible(
+  components: CheckpointComponentSnapshot[],
+  opts: { databaseProvisioned: boolean; databaseDependencyDeclared?: boolean },
+): { admissible: boolean; reason?: string } {
+  const kinds = new Set(components.map((c) => c.componentKind));
+
+  if (kinds.size === 1 && kinds.has('POD')) {
+    return { admissible: false, reason: appPublicEnglish('CHECKPOINT_COMPONENT_POD_ONLY') };
+  }
+
+  if (!kinds.has('FILES')) {
+    return { admissible: false, reason: appPublicEnglish('CHECKPOINT_COMPONENT_FILES_MISSING') };
+  }
+
+  if (opts.databaseProvisioned && !kinds.has('DATABASE') && opts.databaseDependencyDeclared !== true) {
+    return {
+      admissible: false,
+      reason: appPublicEnglish('CHECKPOINT_DATABASE_DEPENDENCY_MISSING'),
+    };
+  }
+
+  return { admissible: true };
 }

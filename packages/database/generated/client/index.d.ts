@@ -648,6 +648,14 @@ export type AgentRoutingCard = $Result.DefaultSelection<Prisma.$AgentRoutingCard
  */
 export type AgentCallLog = $Result.DefaultSelection<Prisma.$AgentCallLogPayload>
 /**
+ * Model ProjectCheckpoint
+ * Checkpoint PROJET coordonné (plan §15, CTR-CHECKPOINT) : barrière logique
+ * + snapshots par composant (FILES/DATABASE/POD optionnel) + manifeste visible
+ * seulement une fois TOUT vérifié sous la même barrière. Rien à voir avec
+ * AgentCheckpoint (facturation par requête agent).
+ */
+export type ProjectCheckpoint = $Result.DefaultSelection<Prisma.$ProjectCheckpointPayload>
+/**
  * Model RemixJob
  * A secure project remix (fork) run. Tracks the normative state machine
  * (SNAPSHOT_PINNED → CREDENTIALS_DETACHED → CLONING → DB_FORKING →
@@ -2283,6 +2291,16 @@ export class PrismaClient<
   get agentCallLog(): Prisma.AgentCallLogDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.projectCheckpoint`: Exposes CRUD operations for the **ProjectCheckpoint** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectCheckpoints
+    * const projectCheckpoints = await prisma.projectCheckpoint.findMany()
+    * ```
+    */
+  get projectCheckpoint(): Prisma.ProjectCheckpointDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.remixJob`: Exposes CRUD operations for the **RemixJob** model.
     * Example usage:
     * ```ts
@@ -2956,6 +2974,7 @@ export namespace Prisma {
     ScheduledTaskRun: 'ScheduledTaskRun',
     AgentRoutingCard: 'AgentRoutingCard',
     AgentCallLog: 'AgentCallLog',
+    ProjectCheckpoint: 'ProjectCheckpoint',
     RemixJob: 'RemixJob',
     ImportJob: 'ImportJob',
     ImportCreditReservation: 'ImportCreditReservation',
@@ -2984,7 +3003,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -11186,6 +11205,80 @@ export namespace Prisma {
           }
         }
       }
+      ProjectCheckpoint: {
+        payload: Prisma.$ProjectCheckpointPayload<ExtArgs>
+        fields: Prisma.ProjectCheckpointFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectCheckpointFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectCheckpointFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectCheckpointFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectCheckpointFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>
+          }
+          findMany: {
+            args: Prisma.ProjectCheckpointFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>[]
+          }
+          create: {
+            args: Prisma.ProjectCheckpointCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>
+          }
+          createMany: {
+            args: Prisma.ProjectCheckpointCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectCheckpointCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectCheckpointDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>
+          }
+          update: {
+            args: Prisma.ProjectCheckpointUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectCheckpointDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectCheckpointUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectCheckpointUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectCheckpointUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectCheckpointPayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectCheckpointAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectCheckpoint>
+          }
+          groupBy: {
+            args: Prisma.ProjectCheckpointGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectCheckpointGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectCheckpointCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectCheckpointCountAggregateOutputType> | number
+          }
+        }
+      }
       RemixJob: {
         payload: Prisma.$RemixJobPayload<ExtArgs>
         fields: Prisma.RemixJobFieldRefs
@@ -12367,6 +12460,7 @@ export namespace Prisma {
     scheduledTaskRun?: ScheduledTaskRunOmit
     agentRoutingCard?: AgentRoutingCardOmit
     agentCallLog?: AgentCallLogOmit
+    projectCheckpoint?: ProjectCheckpointOmit
     remixJob?: RemixJobOmit
     importJob?: ImportJobOmit
     importCreditReservation?: ImportCreditReservationOmit
@@ -12494,6 +12588,7 @@ export namespace Prisma {
     agentRoutingCards: number
     runtimeWebSocketTickets: number
     importJobs: number
+    projectCheckpoints: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -12531,6 +12626,7 @@ export namespace Prisma {
     agentRoutingCards?: boolean | UserCountOutputTypeCountAgentRoutingCardsArgs
     runtimeWebSocketTickets?: boolean | UserCountOutputTypeCountRuntimeWebSocketTicketsArgs
     importJobs?: boolean | UserCountOutputTypeCountImportJobsArgs
+    projectCheckpoints?: boolean | UserCountOutputTypeCountProjectCheckpointsArgs
   }
 
   // Custom InputTypes
@@ -12780,6 +12876,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountImportJobsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ImportJobWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountProjectCheckpointsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectCheckpointWhereInput
   }
 
 
@@ -13204,6 +13307,7 @@ export namespace Prisma {
     slugRedirects: number
     runtimeWebSocketTickets: number
     importJobs: number
+    checkpoints: number
   }
 
   export type ProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -13233,6 +13337,7 @@ export namespace Prisma {
     slugRedirects?: boolean | ProjectCountOutputTypeCountSlugRedirectsArgs
     runtimeWebSocketTickets?: boolean | ProjectCountOutputTypeCountRuntimeWebSocketTicketsArgs
     importJobs?: boolean | ProjectCountOutputTypeCountImportJobsArgs
+    checkpoints?: boolean | ProjectCountOutputTypeCountCheckpointsArgs
   }
 
   // Custom InputTypes
@@ -13426,6 +13531,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountImportJobsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ImportJobWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountCheckpointsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectCheckpointWhereInput
   }
 
 
@@ -14268,6 +14380,7 @@ export namespace Prisma {
     agentRoutingCards?: boolean | User$agentRoutingCardsArgs<ExtArgs>
     runtimeWebSocketTickets?: boolean | User$runtimeWebSocketTicketsArgs<ExtArgs>
     importJobs?: boolean | User$importJobsArgs<ExtArgs>
+    projectCheckpoints?: boolean | User$projectCheckpointsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -14359,6 +14472,7 @@ export namespace Prisma {
     agentRoutingCards?: boolean | User$agentRoutingCardsArgs<ExtArgs>
     runtimeWebSocketTickets?: boolean | User$runtimeWebSocketTicketsArgs<ExtArgs>
     importJobs?: boolean | User$importJobsArgs<ExtArgs>
+    projectCheckpoints?: boolean | User$projectCheckpointsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -14402,6 +14516,7 @@ export namespace Prisma {
       agentRoutingCards: Prisma.$AgentRoutingCardPayload<ExtArgs>[]
       runtimeWebSocketTickets: Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>[]
       importJobs: Prisma.$ImportJobPayload<ExtArgs>[]
+      projectCheckpoints: Prisma.$ProjectCheckpointPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -14847,6 +14962,7 @@ export namespace Prisma {
     agentRoutingCards<T extends User$agentRoutingCardsArgs<ExtArgs> = {}>(args?: Subset<T, User$agentRoutingCardsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     runtimeWebSocketTickets<T extends User$runtimeWebSocketTicketsArgs<ExtArgs> = {}>(args?: Subset<T, User$runtimeWebSocketTicketsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     importJobs<T extends User$importJobsArgs<ExtArgs> = {}>(args?: Subset<T, User$importJobsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    projectCheckpoints<T extends User$projectCheckpointsArgs<ExtArgs> = {}>(args?: Subset<T, User$projectCheckpointsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -16115,6 +16231,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ImportJobScalarFieldEnum | ImportJobScalarFieldEnum[]
+  }
+
+  /**
+   * User.projectCheckpoints
+   */
+  export type User$projectCheckpointsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointInclude<ExtArgs> | null
+    where?: ProjectCheckpointWhereInput
+    orderBy?: ProjectCheckpointOrderByWithRelationInput | ProjectCheckpointOrderByWithRelationInput[]
+    cursor?: ProjectCheckpointWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectCheckpointScalarFieldEnum | ProjectCheckpointScalarFieldEnum[]
   }
 
   /**
@@ -26041,6 +26181,7 @@ export namespace Prisma {
     slugRedirects?: boolean | Project$slugRedirectsArgs<ExtArgs>
     runtimeWebSocketTickets?: boolean | Project$runtimeWebSocketTicketsArgs<ExtArgs>
     importJobs?: boolean | Project$importJobsArgs<ExtArgs>
+    checkpoints?: boolean | Project$checkpointsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -26130,6 +26271,7 @@ export namespace Prisma {
     slugRedirects?: boolean | Project$slugRedirectsArgs<ExtArgs>
     runtimeWebSocketTickets?: boolean | Project$runtimeWebSocketTicketsArgs<ExtArgs>
     importJobs?: boolean | Project$importJobsArgs<ExtArgs>
+    checkpoints?: boolean | Project$checkpointsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -26170,6 +26312,7 @@ export namespace Prisma {
       slugRedirects: Prisma.$ProjectSlugRedirectPayload<ExtArgs>[]
       runtimeWebSocketTickets: Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>[]
       importJobs: Prisma.$ImportJobPayload<ExtArgs>[]
+      checkpoints: Prisma.$ProjectCheckpointPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -26609,6 +26752,7 @@ export namespace Prisma {
     slugRedirects<T extends Project$slugRedirectsArgs<ExtArgs> = {}>(args?: Subset<T, Project$slugRedirectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     runtimeWebSocketTickets<T extends Project$runtimeWebSocketTicketsArgs<ExtArgs> = {}>(args?: Subset<T, Project$runtimeWebSocketTicketsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     importJobs<T extends Project$importJobsArgs<ExtArgs> = {}>(args?: Subset<T, Project$importJobsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ImportJobPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    checkpoints<T extends Project$checkpointsArgs<ExtArgs> = {}>(args?: Subset<T, Project$checkpointsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -27694,6 +27838,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ImportJobScalarFieldEnum | ImportJobScalarFieldEnum[]
+  }
+
+  /**
+   * Project.checkpoints
+   */
+  export type Project$checkpointsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointInclude<ExtArgs> | null
+    where?: ProjectCheckpointWhereInput
+    orderBy?: ProjectCheckpointOrderByWithRelationInput | ProjectCheckpointOrderByWithRelationInput[]
+    cursor?: ProjectCheckpointWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectCheckpointScalarFieldEnum | ProjectCheckpointScalarFieldEnum[]
   }
 
   /**
@@ -142226,6 +142394,1306 @@ export namespace Prisma {
 
 
   /**
+   * Model ProjectCheckpoint
+   */
+
+  export type AggregateProjectCheckpoint = {
+    _count: ProjectCheckpointCountAggregateOutputType | null
+    _avg: ProjectCheckpointAvgAggregateOutputType | null
+    _sum: ProjectCheckpointSumAggregateOutputType | null
+    _min: ProjectCheckpointMinAggregateOutputType | null
+    _max: ProjectCheckpointMaxAggregateOutputType | null
+  }
+
+  export type ProjectCheckpointAvgAggregateOutputType = {
+    barrierFence: number | null
+  }
+
+  export type ProjectCheckpointSumAggregateOutputType = {
+    barrierFence: number | null
+  }
+
+  export type ProjectCheckpointMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    state: string | null
+    logicalBarrierId: string | null
+    consistencyLevel: string | null
+    error: string | null
+    expiresAt: Date | null
+    createdByUserId: string | null
+    idempotencyKey: string | null
+    requestHash: string | null
+    barrierProjectId: string | null
+    barrierOwnerToken: string | null
+    barrierFence: number | null
+    barrierExpiresAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectCheckpointMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    state: string | null
+    logicalBarrierId: string | null
+    consistencyLevel: string | null
+    error: string | null
+    expiresAt: Date | null
+    createdByUserId: string | null
+    idempotencyKey: string | null
+    requestHash: string | null
+    barrierProjectId: string | null
+    barrierOwnerToken: string | null
+    barrierFence: number | null
+    barrierExpiresAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type ProjectCheckpointCountAggregateOutputType = {
+    id: number
+    projectId: number
+    state: number
+    logicalBarrierId: number
+    consistencyLevel: number
+    manifest: number
+    error: number
+    expiresAt: number
+    createdByUserId: number
+    idempotencyKey: number
+    requestHash: number
+    barrierProjectId: number
+    barrierOwnerToken: number
+    barrierFence: number
+    barrierExpiresAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type ProjectCheckpointAvgAggregateInputType = {
+    barrierFence?: true
+  }
+
+  export type ProjectCheckpointSumAggregateInputType = {
+    barrierFence?: true
+  }
+
+  export type ProjectCheckpointMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    state?: true
+    logicalBarrierId?: true
+    consistencyLevel?: true
+    error?: true
+    expiresAt?: true
+    createdByUserId?: true
+    idempotencyKey?: true
+    requestHash?: true
+    barrierProjectId?: true
+    barrierOwnerToken?: true
+    barrierFence?: true
+    barrierExpiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectCheckpointMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    state?: true
+    logicalBarrierId?: true
+    consistencyLevel?: true
+    error?: true
+    expiresAt?: true
+    createdByUserId?: true
+    idempotencyKey?: true
+    requestHash?: true
+    barrierProjectId?: true
+    barrierOwnerToken?: true
+    barrierFence?: true
+    barrierExpiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type ProjectCheckpointCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    state?: true
+    logicalBarrierId?: true
+    consistencyLevel?: true
+    manifest?: true
+    error?: true
+    expiresAt?: true
+    createdByUserId?: true
+    idempotencyKey?: true
+    requestHash?: true
+    barrierProjectId?: true
+    barrierOwnerToken?: true
+    barrierFence?: true
+    barrierExpiresAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type ProjectCheckpointAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectCheckpoint to aggregate.
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectCheckpoints to fetch.
+     */
+    orderBy?: ProjectCheckpointOrderByWithRelationInput | ProjectCheckpointOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProjectCheckpointWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectCheckpoints from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectCheckpoints.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProjectCheckpoints
+    **/
+    _count?: true | ProjectCheckpointCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ProjectCheckpointAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ProjectCheckpointSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectCheckpointMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectCheckpointMaxAggregateInputType
+  }
+
+  export type GetProjectCheckpointAggregateType<T extends ProjectCheckpointAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectCheckpoint]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectCheckpoint[P]>
+      : GetScalarType<T[P], AggregateProjectCheckpoint[P]>
+  }
+
+
+
+
+  export type ProjectCheckpointGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectCheckpointWhereInput
+    orderBy?: ProjectCheckpointOrderByWithAggregationInput | ProjectCheckpointOrderByWithAggregationInput[]
+    by: ProjectCheckpointScalarFieldEnum[] | ProjectCheckpointScalarFieldEnum
+    having?: ProjectCheckpointScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectCheckpointCountAggregateInputType | true
+    _avg?: ProjectCheckpointAvgAggregateInputType
+    _sum?: ProjectCheckpointSumAggregateInputType
+    _min?: ProjectCheckpointMinAggregateInputType
+    _max?: ProjectCheckpointMaxAggregateInputType
+  }
+
+  export type ProjectCheckpointGroupByOutputType = {
+    id: string
+    projectId: string
+    state: string
+    logicalBarrierId: string | null
+    consistencyLevel: string | null
+    manifest: JsonValue | null
+    error: string | null
+    expiresAt: Date | null
+    createdByUserId: string | null
+    idempotencyKey: string | null
+    requestHash: string | null
+    barrierProjectId: string | null
+    barrierOwnerToken: string | null
+    barrierFence: number
+    barrierExpiresAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: ProjectCheckpointCountAggregateOutputType | null
+    _avg: ProjectCheckpointAvgAggregateOutputType | null
+    _sum: ProjectCheckpointSumAggregateOutputType | null
+    _min: ProjectCheckpointMinAggregateOutputType | null
+    _max: ProjectCheckpointMaxAggregateOutputType | null
+  }
+
+  type GetProjectCheckpointGroupByPayload<T extends ProjectCheckpointGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectCheckpointGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectCheckpointGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectCheckpointGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectCheckpointGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectCheckpointSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    state?: boolean
+    logicalBarrierId?: boolean
+    consistencyLevel?: boolean
+    manifest?: boolean
+    error?: boolean
+    expiresAt?: boolean
+    createdByUserId?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
+    barrierProjectId?: boolean
+    barrierOwnerToken?: boolean
+    barrierFence?: boolean
+    barrierExpiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ProjectCheckpoint$createdByArgs<ExtArgs>
+  }, ExtArgs["result"]["projectCheckpoint"]>
+
+  export type ProjectCheckpointSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    state?: boolean
+    logicalBarrierId?: boolean
+    consistencyLevel?: boolean
+    manifest?: boolean
+    error?: boolean
+    expiresAt?: boolean
+    createdByUserId?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
+    barrierProjectId?: boolean
+    barrierOwnerToken?: boolean
+    barrierFence?: boolean
+    barrierExpiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ProjectCheckpoint$createdByArgs<ExtArgs>
+  }, ExtArgs["result"]["projectCheckpoint"]>
+
+  export type ProjectCheckpointSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    state?: boolean
+    logicalBarrierId?: boolean
+    consistencyLevel?: boolean
+    manifest?: boolean
+    error?: boolean
+    expiresAt?: boolean
+    createdByUserId?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
+    barrierProjectId?: boolean
+    barrierOwnerToken?: boolean
+    barrierFence?: boolean
+    barrierExpiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ProjectCheckpoint$createdByArgs<ExtArgs>
+  }, ExtArgs["result"]["projectCheckpoint"]>
+
+  export type ProjectCheckpointSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    state?: boolean
+    logicalBarrierId?: boolean
+    consistencyLevel?: boolean
+    manifest?: boolean
+    error?: boolean
+    expiresAt?: boolean
+    createdByUserId?: boolean
+    idempotencyKey?: boolean
+    requestHash?: boolean
+    barrierProjectId?: boolean
+    barrierOwnerToken?: boolean
+    barrierFence?: boolean
+    barrierExpiresAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type ProjectCheckpointOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "state" | "logicalBarrierId" | "consistencyLevel" | "manifest" | "error" | "expiresAt" | "createdByUserId" | "idempotencyKey" | "requestHash" | "barrierProjectId" | "barrierOwnerToken" | "barrierFence" | "barrierExpiresAt" | "createdAt" | "updatedAt", ExtArgs["result"]["projectCheckpoint"]>
+  export type ProjectCheckpointInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ProjectCheckpoint$createdByArgs<ExtArgs>
+  }
+  export type ProjectCheckpointIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ProjectCheckpoint$createdByArgs<ExtArgs>
+  }
+  export type ProjectCheckpointIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+    createdBy?: boolean | ProjectCheckpoint$createdByArgs<ExtArgs>
+  }
+
+  export type $ProjectCheckpointPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectCheckpoint"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+      createdBy: Prisma.$UserPayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      state: string
+      logicalBarrierId: string | null
+      /**
+       * crash-consistent | UNKNOWN. `application-consistent` is NOT emitted: it
+       * would require quiescing the in-pod writers (dev server, terminal, agent),
+       * which the API-level barrier cannot reach. See CHECKPOINT_CONTRACT §Cohérence.
+       */
+      consistencyLevel: string | null
+      /**
+       * { components: [{componentKind, snapshotId, hash, verified, …}], restoreCompatibility, dependenciesDeclared }
+       */
+      manifest: Prisma.JsonValue | null
+      error: string | null
+      expiresAt: Date | null
+      createdByUserId: string | null
+      /**
+       * Stable retry identity. A repeated key is accepted only when requestHash
+       * matches; a different request with the same key is refused.
+       */
+      idempotencyKey: string | null
+      requestHash: string | null
+      /**
+       * Non-null only while this row owns the one active barrier for its project.
+       * The unique constraint is the durable per-project singleton; an expired
+       * owner is cleared under the same project lock before a successor acquires.
+       */
+      barrierProjectId: string | null
+      barrierOwnerToken: string | null
+      barrierFence: number
+      /**
+       * Barrier lease deadline. The write barrier is read from THIS COLUMN, not from
+       * process memory: the API runs 2..6 replicas (values-prod.yaml), so an
+       * in-process barrier is invisible to the other replicas and freezes nothing.
+       * A past/NULL value means thawed — expiry IS the guaranteed thaw, even if the
+       * process holding the checkpoint dies mid-flight.
+       */
+      barrierExpiresAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["projectCheckpoint"]>
+    composites: {}
+  }
+
+  type ProjectCheckpointGetPayload<S extends boolean | null | undefined | ProjectCheckpointDefaultArgs> = $Result.GetResult<Prisma.$ProjectCheckpointPayload, S>
+
+  type ProjectCheckpointCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectCheckpointFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectCheckpointCountAggregateInputType | true
+    }
+
+  export interface ProjectCheckpointDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectCheckpoint'], meta: { name: 'ProjectCheckpoint' } }
+    /**
+     * Find zero or one ProjectCheckpoint that matches the filter.
+     * @param {ProjectCheckpointFindUniqueArgs} args - Arguments to find a ProjectCheckpoint
+     * @example
+     * // Get one ProjectCheckpoint
+     * const projectCheckpoint = await prisma.projectCheckpoint.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectCheckpointFindUniqueArgs>(args: SelectSubset<T, ProjectCheckpointFindUniqueArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectCheckpoint that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectCheckpointFindUniqueOrThrowArgs} args - Arguments to find a ProjectCheckpoint
+     * @example
+     * // Get one ProjectCheckpoint
+     * const projectCheckpoint = await prisma.projectCheckpoint.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectCheckpointFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectCheckpointFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectCheckpoint that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointFindFirstArgs} args - Arguments to find a ProjectCheckpoint
+     * @example
+     * // Get one ProjectCheckpoint
+     * const projectCheckpoint = await prisma.projectCheckpoint.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectCheckpointFindFirstArgs>(args?: SelectSubset<T, ProjectCheckpointFindFirstArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectCheckpoint that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointFindFirstOrThrowArgs} args - Arguments to find a ProjectCheckpoint
+     * @example
+     * // Get one ProjectCheckpoint
+     * const projectCheckpoint = await prisma.projectCheckpoint.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectCheckpointFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectCheckpointFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectCheckpoints that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectCheckpoints
+     * const projectCheckpoints = await prisma.projectCheckpoint.findMany()
+     * 
+     * // Get first 10 ProjectCheckpoints
+     * const projectCheckpoints = await prisma.projectCheckpoint.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const projectCheckpointWithIdOnly = await prisma.projectCheckpoint.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ProjectCheckpointFindManyArgs>(args?: SelectSubset<T, ProjectCheckpointFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectCheckpoint.
+     * @param {ProjectCheckpointCreateArgs} args - Arguments to create a ProjectCheckpoint.
+     * @example
+     * // Create one ProjectCheckpoint
+     * const ProjectCheckpoint = await prisma.projectCheckpoint.create({
+     *   data: {
+     *     // ... data to create a ProjectCheckpoint
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProjectCheckpointCreateArgs>(args: SelectSubset<T, ProjectCheckpointCreateArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectCheckpoints.
+     * @param {ProjectCheckpointCreateManyArgs} args - Arguments to create many ProjectCheckpoints.
+     * @example
+     * // Create many ProjectCheckpoints
+     * const projectCheckpoint = await prisma.projectCheckpoint.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProjectCheckpointCreateManyArgs>(args?: SelectSubset<T, ProjectCheckpointCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectCheckpoints and returns the data saved in the database.
+     * @param {ProjectCheckpointCreateManyAndReturnArgs} args - Arguments to create many ProjectCheckpoints.
+     * @example
+     * // Create many ProjectCheckpoints
+     * const projectCheckpoint = await prisma.projectCheckpoint.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProjectCheckpoints and only return the `id`
+     * const projectCheckpointWithIdOnly = await prisma.projectCheckpoint.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProjectCheckpointCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectCheckpointCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectCheckpoint.
+     * @param {ProjectCheckpointDeleteArgs} args - Arguments to delete one ProjectCheckpoint.
+     * @example
+     * // Delete one ProjectCheckpoint
+     * const ProjectCheckpoint = await prisma.projectCheckpoint.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectCheckpoint
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProjectCheckpointDeleteArgs>(args: SelectSubset<T, ProjectCheckpointDeleteArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectCheckpoint.
+     * @param {ProjectCheckpointUpdateArgs} args - Arguments to update one ProjectCheckpoint.
+     * @example
+     * // Update one ProjectCheckpoint
+     * const projectCheckpoint = await prisma.projectCheckpoint.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProjectCheckpointUpdateArgs>(args: SelectSubset<T, ProjectCheckpointUpdateArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectCheckpoints.
+     * @param {ProjectCheckpointDeleteManyArgs} args - Arguments to filter ProjectCheckpoints to delete.
+     * @example
+     * // Delete a few ProjectCheckpoints
+     * const { count } = await prisma.projectCheckpoint.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProjectCheckpointDeleteManyArgs>(args?: SelectSubset<T, ProjectCheckpointDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectCheckpoints.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectCheckpoints
+     * const projectCheckpoint = await prisma.projectCheckpoint.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProjectCheckpointUpdateManyArgs>(args: SelectSubset<T, ProjectCheckpointUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectCheckpoints and returns the data updated in the database.
+     * @param {ProjectCheckpointUpdateManyAndReturnArgs} args - Arguments to update many ProjectCheckpoints.
+     * @example
+     * // Update many ProjectCheckpoints
+     * const projectCheckpoint = await prisma.projectCheckpoint.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ProjectCheckpoints and only return the `id`
+     * const projectCheckpointWithIdOnly = await prisma.projectCheckpoint.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ProjectCheckpointUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectCheckpointUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectCheckpoint.
+     * @param {ProjectCheckpointUpsertArgs} args - Arguments to update or create a ProjectCheckpoint.
+     * @example
+     * // Update or create a ProjectCheckpoint
+     * const projectCheckpoint = await prisma.projectCheckpoint.upsert({
+     *   create: {
+     *     // ... data to create a ProjectCheckpoint
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectCheckpoint we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectCheckpointUpsertArgs>(args: SelectSubset<T, ProjectCheckpointUpsertArgs<ExtArgs>>): Prisma__ProjectCheckpointClient<$Result.GetResult<Prisma.$ProjectCheckpointPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectCheckpoints.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointCountArgs} args - Arguments to filter ProjectCheckpoints to count.
+     * @example
+     * // Count the number of ProjectCheckpoints
+     * const count = await prisma.projectCheckpoint.count({
+     *   where: {
+     *     // ... the filter for the ProjectCheckpoints we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectCheckpointCountArgs>(
+      args?: Subset<T, ProjectCheckpointCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectCheckpointCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectCheckpoint.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectCheckpointAggregateArgs>(args: Subset<T, ProjectCheckpointAggregateArgs>): Prisma.PrismaPromise<GetProjectCheckpointAggregateType<T>>
+
+    /**
+     * Group by ProjectCheckpoint.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectCheckpointGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProjectCheckpointGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectCheckpointGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectCheckpointGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectCheckpointGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectCheckpointGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectCheckpoint model
+   */
+  readonly fields: ProjectCheckpointFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectCheckpoint.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectCheckpointClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    createdBy<T extends ProjectCheckpoint$createdByArgs<ExtArgs> = {}>(args?: Subset<T, ProjectCheckpoint$createdByArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectCheckpoint model
+   */
+  interface ProjectCheckpointFieldRefs {
+    readonly id: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly projectId: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly state: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly logicalBarrierId: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly consistencyLevel: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly manifest: FieldRef<"ProjectCheckpoint", 'Json'>
+    readonly error: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly expiresAt: FieldRef<"ProjectCheckpoint", 'DateTime'>
+    readonly createdByUserId: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly idempotencyKey: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly requestHash: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly barrierProjectId: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly barrierOwnerToken: FieldRef<"ProjectCheckpoint", 'String'>
+    readonly barrierFence: FieldRef<"ProjectCheckpoint", 'Int'>
+    readonly barrierExpiresAt: FieldRef<"ProjectCheckpoint", 'DateTime'>
+    readonly createdAt: FieldRef<"ProjectCheckpoint", 'DateTime'>
+    readonly updatedAt: FieldRef<"ProjectCheckpoint", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProjectCheckpoint findUnique
+   */
+  export type ProjectCheckpointFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectCheckpoint to fetch.
+     */
+    where: ProjectCheckpointWhereUniqueInput
+  }
+
+  /**
+   * ProjectCheckpoint findUniqueOrThrow
+   */
+  export type ProjectCheckpointFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectCheckpoint to fetch.
+     */
+    where: ProjectCheckpointWhereUniqueInput
+  }
+
+  /**
+   * ProjectCheckpoint findFirst
+   */
+  export type ProjectCheckpointFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectCheckpoint to fetch.
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectCheckpoints to fetch.
+     */
+    orderBy?: ProjectCheckpointOrderByWithRelationInput | ProjectCheckpointOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectCheckpoints.
+     */
+    cursor?: ProjectCheckpointWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectCheckpoints from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectCheckpoints.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectCheckpoints.
+     */
+    distinct?: ProjectCheckpointScalarFieldEnum | ProjectCheckpointScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectCheckpoint findFirstOrThrow
+   */
+  export type ProjectCheckpointFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectCheckpoint to fetch.
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectCheckpoints to fetch.
+     */
+    orderBy?: ProjectCheckpointOrderByWithRelationInput | ProjectCheckpointOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectCheckpoints.
+     */
+    cursor?: ProjectCheckpointWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectCheckpoints from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectCheckpoints.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectCheckpoints.
+     */
+    distinct?: ProjectCheckpointScalarFieldEnum | ProjectCheckpointScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectCheckpoint findMany
+   */
+  export type ProjectCheckpointFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectCheckpoints to fetch.
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectCheckpoints to fetch.
+     */
+    orderBy?: ProjectCheckpointOrderByWithRelationInput | ProjectCheckpointOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProjectCheckpoints.
+     */
+    cursor?: ProjectCheckpointWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectCheckpoints from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectCheckpoints.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectCheckpoints.
+     */
+    distinct?: ProjectCheckpointScalarFieldEnum | ProjectCheckpointScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectCheckpoint create
+   */
+  export type ProjectCheckpointCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectCheckpoint.
+     */
+    data: XOR<ProjectCheckpointCreateInput, ProjectCheckpointUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectCheckpoint createMany
+   */
+  export type ProjectCheckpointCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectCheckpoints.
+     */
+    data: ProjectCheckpointCreateManyInput | ProjectCheckpointCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectCheckpoint createManyAndReturn
+   */
+  export type ProjectCheckpointCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectCheckpoints.
+     */
+    data: ProjectCheckpointCreateManyInput | ProjectCheckpointCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectCheckpoint update
+   */
+  export type ProjectCheckpointUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectCheckpoint.
+     */
+    data: XOR<ProjectCheckpointUpdateInput, ProjectCheckpointUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectCheckpoint to update.
+     */
+    where: ProjectCheckpointWhereUniqueInput
+  }
+
+  /**
+   * ProjectCheckpoint updateMany
+   */
+  export type ProjectCheckpointUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectCheckpoints.
+     */
+    data: XOR<ProjectCheckpointUpdateManyMutationInput, ProjectCheckpointUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectCheckpoints to update
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * Limit how many ProjectCheckpoints to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectCheckpoint updateManyAndReturn
+   */
+  export type ProjectCheckpointUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectCheckpoints.
+     */
+    data: XOR<ProjectCheckpointUpdateManyMutationInput, ProjectCheckpointUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectCheckpoints to update
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * Limit how many ProjectCheckpoints to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectCheckpoint upsert
+   */
+  export type ProjectCheckpointUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectCheckpoint to update in case it exists.
+     */
+    where: ProjectCheckpointWhereUniqueInput
+    /**
+     * In case the ProjectCheckpoint found by the `where` argument doesn't exist, create a new ProjectCheckpoint with this data.
+     */
+    create: XOR<ProjectCheckpointCreateInput, ProjectCheckpointUncheckedCreateInput>
+    /**
+     * In case the ProjectCheckpoint was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectCheckpointUpdateInput, ProjectCheckpointUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectCheckpoint delete
+   */
+  export type ProjectCheckpointDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectCheckpoint to delete.
+     */
+    where: ProjectCheckpointWhereUniqueInput
+  }
+
+  /**
+   * ProjectCheckpoint deleteMany
+   */
+  export type ProjectCheckpointDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectCheckpoints to delete
+     */
+    where?: ProjectCheckpointWhereInput
+    /**
+     * Limit how many ProjectCheckpoints to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectCheckpoint.createdBy
+   */
+  export type ProjectCheckpoint$createdByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the User
+     */
+    select?: UserSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the User
+     */
+    omit?: UserOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: UserInclude<ExtArgs> | null
+    where?: UserWhereInput
+  }
+
+  /**
+   * ProjectCheckpoint without action
+   */
+  export type ProjectCheckpointDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectCheckpoint
+     */
+    select?: ProjectCheckpointSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectCheckpoint
+     */
+    omit?: ProjectCheckpointOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectCheckpointInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model RemixJob
    */
 
@@ -159401,6 +160869,29 @@ export namespace Prisma {
   export type AgentCallLogScalarFieldEnum = (typeof AgentCallLogScalarFieldEnum)[keyof typeof AgentCallLogScalarFieldEnum]
 
 
+  export const ProjectCheckpointScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    state: 'state',
+    logicalBarrierId: 'logicalBarrierId',
+    consistencyLevel: 'consistencyLevel',
+    manifest: 'manifest',
+    error: 'error',
+    expiresAt: 'expiresAt',
+    createdByUserId: 'createdByUserId',
+    idempotencyKey: 'idempotencyKey',
+    requestHash: 'requestHash',
+    barrierProjectId: 'barrierProjectId',
+    barrierOwnerToken: 'barrierOwnerToken',
+    barrierFence: 'barrierFence',
+    barrierExpiresAt: 'barrierExpiresAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type ProjectCheckpointScalarFieldEnum = (typeof ProjectCheckpointScalarFieldEnum)[keyof typeof ProjectCheckpointScalarFieldEnum]
+
+
   export const RemixJobScalarFieldEnum: {
     id: 'id',
     sourceProjectId: 'sourceProjectId',
@@ -160132,6 +161623,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardListRelationFilter
     runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
     importJobs?: ImportJobListRelationFilter
+    projectCheckpoints?: ProjectCheckpointListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -160184,6 +161676,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardOrderByRelationAggregateInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketOrderByRelationAggregateInput
     importJobs?: ImportJobOrderByRelationAggregateInput
+    projectCheckpoints?: ProjectCheckpointOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -160239,6 +161732,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardListRelationFilter
     runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
     importJobs?: ImportJobListRelationFilter
+    projectCheckpoints?: ProjectCheckpointListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -160916,6 +162410,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectListRelationFilter
     runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
     importJobs?: ImportJobListRelationFilter
+    checkpoints?: ProjectCheckpointListRelationFilter
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -160962,6 +162457,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectOrderByRelationAggregateInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketOrderByRelationAggregateInput
     importJobs?: ImportJobOrderByRelationAggregateInput
+    checkpoints?: ProjectCheckpointOrderByRelationAggregateInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -161012,6 +162508,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectListRelationFilter
     runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
     importJobs?: ImportJobListRelationFilter
+    checkpoints?: ProjectCheckpointListRelationFilter
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -169080,6 +170577,126 @@ export namespace Prisma {
     source?: StringWithAggregatesFilter<"AgentCallLog"> | string
   }
 
+  export type ProjectCheckpointWhereInput = {
+    AND?: ProjectCheckpointWhereInput | ProjectCheckpointWhereInput[]
+    OR?: ProjectCheckpointWhereInput[]
+    NOT?: ProjectCheckpointWhereInput | ProjectCheckpointWhereInput[]
+    id?: StringFilter<"ProjectCheckpoint"> | string
+    projectId?: StringFilter<"ProjectCheckpoint"> | string
+    state?: StringFilter<"ProjectCheckpoint"> | string
+    logicalBarrierId?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    consistencyLevel?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    manifest?: JsonNullableFilter<"ProjectCheckpoint">
+    error?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    expiresAt?: DateTimeNullableFilter<"ProjectCheckpoint"> | Date | string | null
+    createdByUserId?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    idempotencyKey?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    requestHash?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    barrierProjectId?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    barrierOwnerToken?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    barrierFence?: IntFilter<"ProjectCheckpoint"> | number
+    barrierExpiresAt?: DateTimeNullableFilter<"ProjectCheckpoint"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectCheckpoint"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectCheckpoint"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    createdBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }
+
+  export type ProjectCheckpointOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    state?: SortOrder
+    logicalBarrierId?: SortOrderInput | SortOrder
+    consistencyLevel?: SortOrderInput | SortOrder
+    manifest?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    requestHash?: SortOrderInput | SortOrder
+    barrierProjectId?: SortOrderInput | SortOrder
+    barrierOwnerToken?: SortOrderInput | SortOrder
+    barrierFence?: SortOrder
+    barrierExpiresAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+    createdBy?: UserOrderByWithRelationInput
+  }
+
+  export type ProjectCheckpointWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    idempotencyKey?: string
+    barrierProjectId?: string
+    AND?: ProjectCheckpointWhereInput | ProjectCheckpointWhereInput[]
+    OR?: ProjectCheckpointWhereInput[]
+    NOT?: ProjectCheckpointWhereInput | ProjectCheckpointWhereInput[]
+    projectId?: StringFilter<"ProjectCheckpoint"> | string
+    state?: StringFilter<"ProjectCheckpoint"> | string
+    logicalBarrierId?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    consistencyLevel?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    manifest?: JsonNullableFilter<"ProjectCheckpoint">
+    error?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    expiresAt?: DateTimeNullableFilter<"ProjectCheckpoint"> | Date | string | null
+    createdByUserId?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    requestHash?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    barrierOwnerToken?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    barrierFence?: IntFilter<"ProjectCheckpoint"> | number
+    barrierExpiresAt?: DateTimeNullableFilter<"ProjectCheckpoint"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectCheckpoint"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectCheckpoint"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+    createdBy?: XOR<UserNullableScalarRelationFilter, UserWhereInput> | null
+  }, "id" | "idempotencyKey" | "barrierProjectId">
+
+  export type ProjectCheckpointOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    state?: SortOrder
+    logicalBarrierId?: SortOrderInput | SortOrder
+    consistencyLevel?: SortOrderInput | SortOrder
+    manifest?: SortOrderInput | SortOrder
+    error?: SortOrderInput | SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
+    requestHash?: SortOrderInput | SortOrder
+    barrierProjectId?: SortOrderInput | SortOrder
+    barrierOwnerToken?: SortOrderInput | SortOrder
+    barrierFence?: SortOrder
+    barrierExpiresAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: ProjectCheckpointCountOrderByAggregateInput
+    _avg?: ProjectCheckpointAvgOrderByAggregateInput
+    _max?: ProjectCheckpointMaxOrderByAggregateInput
+    _min?: ProjectCheckpointMinOrderByAggregateInput
+    _sum?: ProjectCheckpointSumOrderByAggregateInput
+  }
+
+  export type ProjectCheckpointScalarWhereWithAggregatesInput = {
+    AND?: ProjectCheckpointScalarWhereWithAggregatesInput | ProjectCheckpointScalarWhereWithAggregatesInput[]
+    OR?: ProjectCheckpointScalarWhereWithAggregatesInput[]
+    NOT?: ProjectCheckpointScalarWhereWithAggregatesInput | ProjectCheckpointScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProjectCheckpoint"> | string
+    projectId?: StringWithAggregatesFilter<"ProjectCheckpoint"> | string
+    state?: StringWithAggregatesFilter<"ProjectCheckpoint"> | string
+    logicalBarrierId?: StringNullableWithAggregatesFilter<"ProjectCheckpoint"> | string | null
+    consistencyLevel?: StringNullableWithAggregatesFilter<"ProjectCheckpoint"> | string | null
+    manifest?: JsonNullableWithAggregatesFilter<"ProjectCheckpoint">
+    error?: StringNullableWithAggregatesFilter<"ProjectCheckpoint"> | string | null
+    expiresAt?: DateTimeNullableWithAggregatesFilter<"ProjectCheckpoint"> | Date | string | null
+    createdByUserId?: StringNullableWithAggregatesFilter<"ProjectCheckpoint"> | string | null
+    idempotencyKey?: StringNullableWithAggregatesFilter<"ProjectCheckpoint"> | string | null
+    requestHash?: StringNullableWithAggregatesFilter<"ProjectCheckpoint"> | string | null
+    barrierProjectId?: StringNullableWithAggregatesFilter<"ProjectCheckpoint"> | string | null
+    barrierOwnerToken?: StringNullableWithAggregatesFilter<"ProjectCheckpoint"> | string | null
+    barrierFence?: IntWithAggregatesFilter<"ProjectCheckpoint"> | number
+    barrierExpiresAt?: DateTimeNullableWithAggregatesFilter<"ProjectCheckpoint"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ProjectCheckpoint"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"ProjectCheckpoint"> | Date | string
+  }
+
   export type RemixJobWhereInput = {
     AND?: RemixJobWhereInput | RemixJobWhereInput[]
     OR?: RemixJobWhereInput[]
@@ -170350,6 +171967,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -170402,6 +172020,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUpdateInput = {
@@ -170454,6 +172073,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -170506,6 +172126,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -171233,6 +172854,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -171278,6 +172900,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -171323,6 +172946,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -171368,6 +172992,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -180178,6 +181803,144 @@ export namespace Prisma {
     source?: StringFieldUpdateOperationsInput | string
   }
 
+  export type ProjectCheckpointCreateInput = {
+    id?: string
+    state?: string
+    logicalBarrierId?: string | null
+    consistencyLevel?: string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    expiresAt?: Date | string | null
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    barrierProjectId?: string | null
+    barrierOwnerToken?: string | null
+    barrierFence?: number
+    barrierExpiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutCheckpointsInput
+    createdBy?: UserCreateNestedOneWithoutProjectCheckpointsInput
+  }
+
+  export type ProjectCheckpointUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    state?: string
+    logicalBarrierId?: string | null
+    consistencyLevel?: string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdByUserId?: string | null
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    barrierProjectId?: string | null
+    barrierOwnerToken?: string | null
+    barrierFence?: number
+    barrierExpiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectCheckpointUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierOwnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierFence?: IntFieldUpdateOperationsInput | number
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutCheckpointsNestedInput
+    createdBy?: UserUpdateOneWithoutProjectCheckpointsNestedInput
+  }
+
+  export type ProjectCheckpointUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierOwnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierFence?: IntFieldUpdateOperationsInput | number
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectCheckpointCreateManyInput = {
+    id?: string
+    projectId: string
+    state?: string
+    logicalBarrierId?: string | null
+    consistencyLevel?: string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdByUserId?: string | null
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    barrierProjectId?: string | null
+    barrierOwnerToken?: string | null
+    barrierFence?: number
+    barrierExpiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectCheckpointUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierOwnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierFence?: IntFieldUpdateOperationsInput | number
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectCheckpointUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierOwnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierFence?: IntFieldUpdateOperationsInput | number
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type RemixJobCreateInput = {
     id?: string
     sourceProjectId: string
@@ -181857,6 +183620,12 @@ export namespace Prisma {
     none?: ImportJobWhereInput
   }
 
+  export type ProjectCheckpointListRelationFilter = {
+    every?: ProjectCheckpointWhereInput
+    some?: ProjectCheckpointWhereInput
+    none?: ProjectCheckpointWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -181995,6 +183764,10 @@ export namespace Prisma {
   }
 
   export type ImportJobOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProjectCheckpointOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -187717,6 +189490,72 @@ export namespace Prisma {
     routingCardVersion?: SortOrder
   }
 
+  export type ProjectCheckpointCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    state?: SortOrder
+    logicalBarrierId?: SortOrder
+    consistencyLevel?: SortOrder
+    manifest?: SortOrder
+    error?: SortOrder
+    expiresAt?: SortOrder
+    createdByUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
+    barrierProjectId?: SortOrder
+    barrierOwnerToken?: SortOrder
+    barrierFence?: SortOrder
+    barrierExpiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectCheckpointAvgOrderByAggregateInput = {
+    barrierFence?: SortOrder
+  }
+
+  export type ProjectCheckpointMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    state?: SortOrder
+    logicalBarrierId?: SortOrder
+    consistencyLevel?: SortOrder
+    error?: SortOrder
+    expiresAt?: SortOrder
+    createdByUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
+    barrierProjectId?: SortOrder
+    barrierOwnerToken?: SortOrder
+    barrierFence?: SortOrder
+    barrierExpiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectCheckpointMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    state?: SortOrder
+    logicalBarrierId?: SortOrder
+    consistencyLevel?: SortOrder
+    error?: SortOrder
+    expiresAt?: SortOrder
+    createdByUserId?: SortOrder
+    idempotencyKey?: SortOrder
+    requestHash?: SortOrder
+    barrierProjectId?: SortOrder
+    barrierOwnerToken?: SortOrder
+    barrierFence?: SortOrder
+    barrierExpiresAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type ProjectCheckpointSumOrderByAggregateInput = {
+    barrierFence?: SortOrder
+  }
+
   export type RemixJobCountOrderByAggregateInput = {
     id?: SortOrder
     sourceProjectId?: SortOrder
@@ -188787,6 +190626,13 @@ export namespace Prisma {
     connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
   }
 
+  export type ProjectCheckpointCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<ProjectCheckpointCreateWithoutCreatedByInput, ProjectCheckpointUncheckedCreateWithoutCreatedByInput> | ProjectCheckpointCreateWithoutCreatedByInput[] | ProjectCheckpointUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ProjectCheckpointCreateOrConnectWithoutCreatedByInput | ProjectCheckpointCreateOrConnectWithoutCreatedByInput[]
+    createMany?: ProjectCheckpointCreateManyCreatedByInputEnvelope
+    connect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -189026,6 +190872,13 @@ export namespace Prisma {
     connectOrCreate?: ImportJobCreateOrConnectWithoutActorInput | ImportJobCreateOrConnectWithoutActorInput[]
     createMany?: ImportJobCreateManyActorInputEnvelope
     connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+  }
+
+  export type ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput = {
+    create?: XOR<ProjectCheckpointCreateWithoutCreatedByInput, ProjectCheckpointUncheckedCreateWithoutCreatedByInput> | ProjectCheckpointCreateWithoutCreatedByInput[] | ProjectCheckpointUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ProjectCheckpointCreateOrConnectWithoutCreatedByInput | ProjectCheckpointCreateOrConnectWithoutCreatedByInput[]
+    createMany?: ProjectCheckpointCreateManyCreatedByInputEnvelope
+    connect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -189530,6 +191383,20 @@ export namespace Prisma {
     deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
   }
 
+  export type ProjectCheckpointUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<ProjectCheckpointCreateWithoutCreatedByInput, ProjectCheckpointUncheckedCreateWithoutCreatedByInput> | ProjectCheckpointCreateWithoutCreatedByInput[] | ProjectCheckpointUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ProjectCheckpointCreateOrConnectWithoutCreatedByInput | ProjectCheckpointCreateOrConnectWithoutCreatedByInput[]
+    upsert?: ProjectCheckpointUpsertWithWhereUniqueWithoutCreatedByInput | ProjectCheckpointUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: ProjectCheckpointCreateManyCreatedByInputEnvelope
+    set?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    disconnect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    delete?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    connect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    update?: ProjectCheckpointUpdateWithWhereUniqueWithoutCreatedByInput | ProjectCheckpointUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: ProjectCheckpointUpdateManyWithWhereWithoutCreatedByInput | ProjectCheckpointUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: ProjectCheckpointScalarWhereInput | ProjectCheckpointScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -190010,6 +191877,20 @@ export namespace Prisma {
     update?: ImportJobUpdateWithWhereUniqueWithoutActorInput | ImportJobUpdateWithWhereUniqueWithoutActorInput[]
     updateMany?: ImportJobUpdateManyWithWhereWithoutActorInput | ImportJobUpdateManyWithWhereWithoutActorInput[]
     deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+  }
+
+  export type ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput = {
+    create?: XOR<ProjectCheckpointCreateWithoutCreatedByInput, ProjectCheckpointUncheckedCreateWithoutCreatedByInput> | ProjectCheckpointCreateWithoutCreatedByInput[] | ProjectCheckpointUncheckedCreateWithoutCreatedByInput[]
+    connectOrCreate?: ProjectCheckpointCreateOrConnectWithoutCreatedByInput | ProjectCheckpointCreateOrConnectWithoutCreatedByInput[]
+    upsert?: ProjectCheckpointUpsertWithWhereUniqueWithoutCreatedByInput | ProjectCheckpointUpsertWithWhereUniqueWithoutCreatedByInput[]
+    createMany?: ProjectCheckpointCreateManyCreatedByInputEnvelope
+    set?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    disconnect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    delete?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    connect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    update?: ProjectCheckpointUpdateWithWhereUniqueWithoutCreatedByInput | ProjectCheckpointUpdateWithWhereUniqueWithoutCreatedByInput[]
+    updateMany?: ProjectCheckpointUpdateManyWithWhereWithoutCreatedByInput | ProjectCheckpointUpdateManyWithWhereWithoutCreatedByInput[]
+    deleteMany?: ProjectCheckpointScalarWhereInput | ProjectCheckpointScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutAccountsInput = {
@@ -191923,6 +193804,13 @@ export namespace Prisma {
     connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
   }
 
+  export type ProjectCheckpointCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectCheckpointCreateWithoutProjectInput, ProjectCheckpointUncheckedCreateWithoutProjectInput> | ProjectCheckpointCreateWithoutProjectInput[] | ProjectCheckpointUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectCheckpointCreateOrConnectWithoutProjectInput | ProjectCheckpointCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectCheckpointCreateManyProjectInputEnvelope
+    connect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -192106,6 +193994,13 @@ export namespace Prisma {
     connectOrCreate?: ImportJobCreateOrConnectWithoutTargetProjectInput | ImportJobCreateOrConnectWithoutTargetProjectInput[]
     createMany?: ImportJobCreateManyTargetProjectInputEnvelope
     connect?: ImportJobWhereUniqueInput | ImportJobWhereUniqueInput[]
+  }
+
+  export type ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectCheckpointCreateWithoutProjectInput, ProjectCheckpointUncheckedCreateWithoutProjectInput> | ProjectCheckpointCreateWithoutProjectInput[] | ProjectCheckpointUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectCheckpointCreateOrConnectWithoutProjectInput | ProjectCheckpointCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectCheckpointCreateManyProjectInputEnvelope
+    connect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -192486,6 +194381,20 @@ export namespace Prisma {
     deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
   }
 
+  export type ProjectCheckpointUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectCheckpointCreateWithoutProjectInput, ProjectCheckpointUncheckedCreateWithoutProjectInput> | ProjectCheckpointCreateWithoutProjectInput[] | ProjectCheckpointUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectCheckpointCreateOrConnectWithoutProjectInput | ProjectCheckpointCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectCheckpointUpsertWithWhereUniqueWithoutProjectInput | ProjectCheckpointUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectCheckpointCreateManyProjectInputEnvelope
+    set?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    disconnect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    delete?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    connect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    update?: ProjectCheckpointUpdateWithWhereUniqueWithoutProjectInput | ProjectCheckpointUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectCheckpointUpdateManyWithWhereWithoutProjectInput | ProjectCheckpointUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectCheckpointScalarWhereInput | ProjectCheckpointScalarWhereInput[]
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -192854,6 +194763,20 @@ export namespace Prisma {
     update?: ImportJobUpdateWithWhereUniqueWithoutTargetProjectInput | ImportJobUpdateWithWhereUniqueWithoutTargetProjectInput[]
     updateMany?: ImportJobUpdateManyWithWhereWithoutTargetProjectInput | ImportJobUpdateManyWithWhereWithoutTargetProjectInput[]
     deleteMany?: ImportJobScalarWhereInput | ImportJobScalarWhereInput[]
+  }
+
+  export type ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectCheckpointCreateWithoutProjectInput, ProjectCheckpointUncheckedCreateWithoutProjectInput> | ProjectCheckpointCreateWithoutProjectInput[] | ProjectCheckpointUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectCheckpointCreateOrConnectWithoutProjectInput | ProjectCheckpointCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectCheckpointUpsertWithWhereUniqueWithoutProjectInput | ProjectCheckpointUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectCheckpointCreateManyProjectInputEnvelope
+    set?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    disconnect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    delete?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    connect?: ProjectCheckpointWhereUniqueInput | ProjectCheckpointWhereUniqueInput[]
+    update?: ProjectCheckpointUpdateWithWhereUniqueWithoutProjectInput | ProjectCheckpointUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectCheckpointUpdateManyWithWhereWithoutProjectInput | ProjectCheckpointUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectCheckpointScalarWhereInput | ProjectCheckpointScalarWhereInput[]
   }
 
   export type ProjectCreateNestedOneWithoutSlugRedirectsInput = {
@@ -195596,6 +197519,36 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutAgentRoutingCardsInput, UserUpdateWithoutAgentRoutingCardsInput>, UserUncheckedUpdateWithoutAgentRoutingCardsInput>
   }
 
+  export type ProjectCreateNestedOneWithoutCheckpointsInput = {
+    create?: XOR<ProjectCreateWithoutCheckpointsInput, ProjectUncheckedCreateWithoutCheckpointsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutCheckpointsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutProjectCheckpointsInput = {
+    create?: XOR<UserCreateWithoutProjectCheckpointsInput, UserUncheckedCreateWithoutProjectCheckpointsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutProjectCheckpointsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneRequiredWithoutCheckpointsNestedInput = {
+    create?: XOR<ProjectCreateWithoutCheckpointsInput, ProjectUncheckedCreateWithoutCheckpointsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutCheckpointsInput
+    upsert?: ProjectUpsertWithoutCheckpointsInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutCheckpointsInput, ProjectUpdateWithoutCheckpointsInput>, ProjectUncheckedUpdateWithoutCheckpointsInput>
+  }
+
+  export type UserUpdateOneWithoutProjectCheckpointsNestedInput = {
+    create?: XOR<UserCreateWithoutProjectCheckpointsInput, UserUncheckedCreateWithoutProjectCheckpointsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutProjectCheckpointsInput
+    upsert?: UserUpsertWithoutProjectCheckpointsInput
+    disconnect?: UserWhereInput | boolean
+    delete?: UserWhereInput | boolean
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutProjectCheckpointsInput, UserUpdateWithoutProjectCheckpointsInput>, UserUncheckedUpdateWithoutProjectCheckpointsInput>
+  }
+
   export type OrganizationCreateNestedOneWithoutImportJobsInput = {
     create?: XOR<OrganizationCreateWithoutImportJobsInput, OrganizationUncheckedCreateWithoutImportJobsInput>
     connectOrCreate?: OrganizationCreateOrConnectWithoutImportJobsInput
@@ -197772,6 +199725,54 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ProjectCheckpointCreateWithoutCreatedByInput = {
+    id?: string
+    state?: string
+    logicalBarrierId?: string | null
+    consistencyLevel?: string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    expiresAt?: Date | string | null
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    barrierProjectId?: string | null
+    barrierOwnerToken?: string | null
+    barrierFence?: number
+    barrierExpiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    project: ProjectCreateNestedOneWithoutCheckpointsInput
+  }
+
+  export type ProjectCheckpointUncheckedCreateWithoutCreatedByInput = {
+    id?: string
+    projectId: string
+    state?: string
+    logicalBarrierId?: string | null
+    consistencyLevel?: string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    expiresAt?: Date | string | null
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    barrierProjectId?: string | null
+    barrierOwnerToken?: string | null
+    barrierFence?: number
+    barrierExpiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectCheckpointCreateOrConnectWithoutCreatedByInput = {
+    where: ProjectCheckpointWhereUniqueInput
+    create: XOR<ProjectCheckpointCreateWithoutCreatedByInput, ProjectCheckpointUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type ProjectCheckpointCreateManyCreatedByInputEnvelope = {
+    data: ProjectCheckpointCreateManyCreatedByInput | ProjectCheckpointCreateManyCreatedByInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
     where: AccountWhereUniqueInput
     update: XOR<AccountUpdateWithoutUserInput, AccountUncheckedUpdateWithoutUserInput>
@@ -198873,6 +200874,45 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ImportJob"> | Date | string
   }
 
+  export type ProjectCheckpointUpsertWithWhereUniqueWithoutCreatedByInput = {
+    where: ProjectCheckpointWhereUniqueInput
+    update: XOR<ProjectCheckpointUpdateWithoutCreatedByInput, ProjectCheckpointUncheckedUpdateWithoutCreatedByInput>
+    create: XOR<ProjectCheckpointCreateWithoutCreatedByInput, ProjectCheckpointUncheckedCreateWithoutCreatedByInput>
+  }
+
+  export type ProjectCheckpointUpdateWithWhereUniqueWithoutCreatedByInput = {
+    where: ProjectCheckpointWhereUniqueInput
+    data: XOR<ProjectCheckpointUpdateWithoutCreatedByInput, ProjectCheckpointUncheckedUpdateWithoutCreatedByInput>
+  }
+
+  export type ProjectCheckpointUpdateManyWithWhereWithoutCreatedByInput = {
+    where: ProjectCheckpointScalarWhereInput
+    data: XOR<ProjectCheckpointUpdateManyMutationInput, ProjectCheckpointUncheckedUpdateManyWithoutCreatedByInput>
+  }
+
+  export type ProjectCheckpointScalarWhereInput = {
+    AND?: ProjectCheckpointScalarWhereInput | ProjectCheckpointScalarWhereInput[]
+    OR?: ProjectCheckpointScalarWhereInput[]
+    NOT?: ProjectCheckpointScalarWhereInput | ProjectCheckpointScalarWhereInput[]
+    id?: StringFilter<"ProjectCheckpoint"> | string
+    projectId?: StringFilter<"ProjectCheckpoint"> | string
+    state?: StringFilter<"ProjectCheckpoint"> | string
+    logicalBarrierId?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    consistencyLevel?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    manifest?: JsonNullableFilter<"ProjectCheckpoint">
+    error?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    expiresAt?: DateTimeNullableFilter<"ProjectCheckpoint"> | Date | string | null
+    createdByUserId?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    idempotencyKey?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    requestHash?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    barrierProjectId?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    barrierOwnerToken?: StringNullableFilter<"ProjectCheckpoint"> | string | null
+    barrierFence?: IntFilter<"ProjectCheckpoint"> | number
+    barrierExpiresAt?: DateTimeNullableFilter<"ProjectCheckpoint"> | Date | string | null
+    createdAt?: DateTimeFilter<"ProjectCheckpoint"> | Date | string
+    updatedAt?: DateTimeFilter<"ProjectCheckpoint"> | Date | string
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     email: string
@@ -198922,6 +200962,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -198973,6 +201014,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -199040,6 +201082,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -199091,6 +201134,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -199142,6 +201186,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -199193,6 +201238,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -199260,6 +201306,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -199311,6 +201358,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationMemberCreateWithoutOrganizationInput = {
@@ -199409,6 +201457,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -199453,6 +201502,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -201502,6 +203552,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -201553,6 +203604,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -201740,6 +203792,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -201791,6 +203844,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type RoleUpsertWithoutMembersInput = {
@@ -203318,6 +205372,54 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ProjectCheckpointCreateWithoutProjectInput = {
+    id?: string
+    state?: string
+    logicalBarrierId?: string | null
+    consistencyLevel?: string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    expiresAt?: Date | string | null
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    barrierProjectId?: string | null
+    barrierOwnerToken?: string | null
+    barrierFence?: number
+    barrierExpiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    createdBy?: UserCreateNestedOneWithoutProjectCheckpointsInput
+  }
+
+  export type ProjectCheckpointUncheckedCreateWithoutProjectInput = {
+    id?: string
+    state?: string
+    logicalBarrierId?: string | null
+    consistencyLevel?: string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdByUserId?: string | null
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    barrierProjectId?: string | null
+    barrierOwnerToken?: string | null
+    barrierFence?: number
+    barrierExpiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectCheckpointCreateOrConnectWithoutProjectInput = {
+    where: ProjectCheckpointWhereUniqueInput
+    create: XOR<ProjectCheckpointCreateWithoutProjectInput, ProjectCheckpointUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectCheckpointCreateManyProjectInputEnvelope = {
+    data: ProjectCheckpointCreateManyProjectInput | ProjectCheckpointCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -204046,6 +206148,22 @@ export namespace Prisma {
     data: XOR<ImportJobUpdateManyMutationInput, ImportJobUncheckedUpdateManyWithoutTargetProjectInput>
   }
 
+  export type ProjectCheckpointUpsertWithWhereUniqueWithoutProjectInput = {
+    where: ProjectCheckpointWhereUniqueInput
+    update: XOR<ProjectCheckpointUpdateWithoutProjectInput, ProjectCheckpointUncheckedUpdateWithoutProjectInput>
+    create: XOR<ProjectCheckpointCreateWithoutProjectInput, ProjectCheckpointUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectCheckpointUpdateWithWhereUniqueWithoutProjectInput = {
+    where: ProjectCheckpointWhereUniqueInput
+    data: XOR<ProjectCheckpointUpdateWithoutProjectInput, ProjectCheckpointUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ProjectCheckpointUpdateManyWithWhereWithoutProjectInput = {
+    where: ProjectCheckpointScalarWhereInput
+    data: XOR<ProjectCheckpointUpdateManyMutationInput, ProjectCheckpointUncheckedUpdateManyWithoutProjectInput>
+  }
+
   export type ProjectCreateWithoutSlugRedirectsInput = {
     id?: string
     name: string
@@ -204088,6 +206206,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSlugRedirectsInput = {
@@ -204132,6 +206251,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSlugRedirectsInput = {
@@ -204192,6 +206312,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSlugRedirectsInput = {
@@ -204236,6 +206357,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoriesInput = {
@@ -204287,6 +206409,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoriesInput = {
@@ -204338,6 +206461,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoriesInput = {
@@ -204405,6 +206529,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -204456,6 +206581,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationCreateWithoutAgentMemoriesInput = {
@@ -204688,6 +206814,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
@@ -204732,6 +206859,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -204792,6 +206920,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -204836,6 +206965,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoryPreferencesInput = {
@@ -204887,6 +207017,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -204938,6 +207069,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -205078,6 +207210,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -205122,6 +207255,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -205189,6 +207323,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -205240,6 +207375,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentMemoryPreferencesInput = {
@@ -205392,6 +207528,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -205436,6 +207573,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
@@ -205480,6 +207618,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -205524,6 +207663,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -205580,6 +207720,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectIdeStateUpdatesInput = {
@@ -205631,6 +207772,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectIdeStateUpdatesInput = {
@@ -205691,6 +207833,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -205735,6 +207878,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -205797,6 +207941,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput = {
@@ -205848,6 +207993,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutAgentPatchProposalsInput = {
@@ -205892,6 +208038,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentPatchProposalsInput = {
@@ -205936,6 +208083,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentPatchProposalsInput = {
@@ -205996,6 +208144,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentPatchProposalsInput = {
@@ -206040,6 +208189,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutRepairEventsInput = {
@@ -206084,6 +208234,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRepairEventsInput = {
@@ -206128,6 +208279,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRepairEventsInput = {
@@ -206188,6 +208340,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRepairEventsInput = {
@@ -206232,6 +208385,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSkillsInput = {
@@ -206276,6 +208430,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSkillsInput = {
@@ -206320,6 +208475,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSkillsInput = {
@@ -206380,6 +208536,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSkillsInput = {
@@ -206424,6 +208581,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
@@ -206468,6 +208626,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -206512,6 +208671,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -206572,6 +208732,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -206616,6 +208777,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -206660,6 +208822,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -206704,6 +208867,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -206764,6 +208928,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -206808,6 +208973,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -206852,6 +209018,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -206896,6 +209063,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -206956,6 +209124,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -207000,6 +209169,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -207044,6 +209214,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -207088,6 +209259,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -207144,6 +209316,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectCollaborationsInput = {
@@ -207195,6 +209368,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectCollaborationsInput = {
@@ -207255,6 +209429,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -207299,6 +209474,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -207361,6 +209537,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectCollaborationsInput = {
@@ -207412,6 +209589,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutActivityInput = {
@@ -207456,6 +209634,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -207500,6 +209679,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -207556,6 +209736,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectActivityInput = {
@@ -207607,6 +209788,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectActivityInput = {
@@ -207667,6 +209849,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -207711,6 +209894,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -207773,6 +209957,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectActivityInput = {
@@ -207824,6 +210009,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationPresenceInput = {
@@ -207868,6 +210054,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -207912,6 +210099,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -207968,6 +210156,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -208019,6 +210208,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -208079,6 +210269,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -208123,6 +210314,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -208185,6 +210377,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -208236,6 +210429,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationCommentsInput = {
@@ -208280,6 +210474,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -208324,6 +210519,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -208380,6 +210576,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -208431,6 +210628,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -208491,6 +210689,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -208535,6 +210734,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -208597,6 +210797,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -208648,6 +210849,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutShareLinksInput = {
@@ -208692,6 +210894,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -208736,6 +210939,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -208792,6 +210996,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationShareLinksInput = {
@@ -208843,6 +211048,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationShareLinksInput = {
@@ -208903,6 +211109,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -208947,6 +211154,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -209009,6 +211217,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationShareLinksInput = {
@@ -209060,6 +211269,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutTemplatesInput = {
@@ -209104,6 +211314,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -209148,6 +211359,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -209299,6 +211511,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -209343,6 +211556,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -209484,6 +211698,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -209528,6 +211743,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -209775,6 +211991,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -209819,6 +212036,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -210325,6 +212543,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -210369,6 +212588,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -210472,6 +212692,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -210516,6 +212737,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -210609,6 +212831,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -210653,6 +212876,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -210709,6 +212933,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutProjectSnapshotsInput = {
@@ -210760,6 +212985,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutProjectSnapshotsInput = {
@@ -210820,6 +213046,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -210864,6 +213091,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -210926,6 +213154,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectSnapshotsInput = {
@@ -210977,6 +213206,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectCreateWithoutStorageObjectsInput = {
@@ -211021,6 +213251,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutStorageObjectsInput = {
@@ -211065,6 +213296,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutStorageObjectsInput = {
@@ -211125,6 +213357,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutStorageObjectsInput = {
@@ -211169,6 +213402,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -211213,6 +213447,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -211257,6 +213492,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -211332,6 +213568,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -211376,6 +213613,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -211623,6 +213861,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -211674,6 +213913,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -211838,6 +214078,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -211889,6 +214130,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutAdminAuditLogsInput = {
@@ -211940,6 +214182,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAdminAuditLogsInput = {
@@ -211991,6 +214234,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAdminAuditLogsInput = {
@@ -212058,6 +214302,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAdminAuditLogsInput = {
@@ -212109,6 +214354,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationCreateWithoutBillingCustomerInput = {
@@ -213407,6 +215653,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -213451,6 +215698,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -213507,6 +215755,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutConversationsInput = {
@@ -213558,6 +215807,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutConversationsInput = {
@@ -213646,6 +215896,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -213690,6 +215941,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -213752,6 +216004,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationsInput = {
@@ -213803,6 +216056,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type AiMessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -214143,6 +216397,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAiMessageFeedbackInput = {
@@ -214194,6 +216449,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAiMessageFeedbackInput = {
@@ -214261,6 +216517,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAiMessageFeedbackInput = {
@@ -214312,6 +216569,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationCreateWithoutAiCostLedgerInput = {
@@ -214830,6 +217088,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutSupportTicketsInput = {
@@ -214881,6 +217140,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutSupportTicketsInput = {
@@ -215071,6 +217331,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSupportTicketsInput = {
@@ -215122,6 +217383,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type TicketMessageUpsertWithWhereUniqueWithoutTicketInput = {
@@ -215449,6 +217711,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -215500,6 +217763,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -215567,6 +217831,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -215618,6 +217883,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutRuntimeWebSocketTicketsInput = {
@@ -215669,6 +217935,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutRuntimeWebSocketTicketsInput = {
@@ -215720,6 +217987,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutRuntimeWebSocketTicketsInput = {
@@ -215769,6 +218037,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRuntimeWebSocketTicketsInput = {
@@ -215813,6 +218082,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRuntimeWebSocketTicketsInput = {
@@ -215880,6 +218150,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRuntimeWebSocketTicketsInput = {
@@ -215931,6 +218202,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectUpsertWithoutRuntimeWebSocketTicketsInput = {
@@ -215986,6 +218258,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRuntimeWebSocketTicketsInput = {
@@ -216030,6 +218303,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -216081,6 +218355,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -216132,6 +218407,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -216199,6 +218475,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -216250,6 +218527,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutRecoveryCodesInput = {
@@ -216301,6 +218579,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutRecoveryCodesInput = {
@@ -216352,6 +218631,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutRecoveryCodesInput = {
@@ -216419,6 +218699,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRecoveryCodesInput = {
@@ -216470,6 +218751,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationCreateWithoutEnterpriseSettingsInput = {
@@ -217740,6 +220022,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutApiKeysInput = {
@@ -217791,6 +220074,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutApiKeysInput = {
@@ -217955,6 +220239,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutApiKeysInput = {
@@ -218006,6 +220291,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutOauthConnectionsInput = {
@@ -218057,6 +220343,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutOauthConnectionsInput = {
@@ -218108,6 +220395,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutOauthConnectionsInput = {
@@ -218175,6 +220463,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOauthConnectionsInput = {
@@ -218226,6 +220515,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type McpInstallCreateWithoutCatalogEntryInput = {
@@ -218384,6 +220674,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutMcpInstallsInput = {
@@ -218435,6 +220726,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutMcpInstallsInput = {
@@ -218658,6 +220950,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpInstallsInput = {
@@ -218709,6 +221002,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationUpsertWithoutMcpInstallsInput = {
@@ -218857,6 +221151,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutMcpUserConfigInput = {
@@ -218908,6 +221203,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutMcpUserConfigInput = {
@@ -218975,6 +221271,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpUserConfigInput = {
@@ -219026,6 +221323,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type AgentRunResultCreateWithoutRunInput = {
@@ -219148,6 +221446,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAgentRunsInput = {
@@ -219199,6 +221498,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAgentRunsInput = {
@@ -219430,6 +221730,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRunsInput = {
@@ -219481,6 +221782,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentRunsInput = {
@@ -219789,6 +222091,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutUserConnectionsInput = {
@@ -219840,6 +222143,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutUserConnectionsInput = {
@@ -219994,6 +222298,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutUserConnectionsInput = {
@@ -220045,6 +222350,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationOAuthAppOverrideUpsertWithoutUserConnectionsInput = {
@@ -220174,6 +222480,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConnectionLinksInput = {
@@ -220218,6 +222525,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConnectionLinksInput = {
@@ -220327,6 +222635,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutLinkedProjectConnectionsInput = {
@@ -220378,6 +222687,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutLinkedProjectConnectionsInput = {
@@ -220438,6 +222748,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConnectionLinksInput = {
@@ -220482,6 +222793,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserConnectionUpsertWithoutProjectLinksInput = {
@@ -220603,6 +222915,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLinkedProjectConnectionsInput = {
@@ -220654,6 +222967,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationCreateWithoutOauthAppOverridesInput = {
@@ -220796,6 +223110,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutConfiguredOauthAppOverridesInput = {
@@ -220847,6 +223162,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutConfiguredOauthAppOverridesInput = {
@@ -221069,6 +223385,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConfiguredOauthAppOverridesInput = {
@@ -221120,6 +223437,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserConnectionUpsertWithWhereUniqueWithoutOauthAppOverrideInput = {
@@ -221487,6 +223805,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -221538,6 +223857,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -221605,6 +223925,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -221656,6 +223977,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserCreateWithoutIntegrationFeatureRequestsInput = {
@@ -221707,6 +224029,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutIntegrationFeatureRequestsInput = {
@@ -221758,6 +224081,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutIntegrationFeatureRequestsInput = {
@@ -221916,6 +224240,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutIntegrationFeatureRequestsInput = {
@@ -221967,6 +224292,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type OrganizationUpsertWithoutIntegrationFeatureRequestsInput = {
@@ -223080,6 +225406,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutSpendLimitsInput = {
@@ -223131,6 +225458,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutSpendLimitsInput = {
@@ -223295,6 +225623,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSpendLimitsInput = {
@@ -223346,6 +225675,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ModelConfigCreateWithoutProviderConfigInput = {
@@ -223533,6 +225863,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDatabaseInstancesInput = {
@@ -223577,6 +225908,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDatabaseInstancesInput = {
@@ -223705,6 +226037,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDatabaseInstancesInput = {
@@ -223749,6 +226082,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput = {
@@ -224250,6 +226584,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutAgentRoutingCardsInput = {
@@ -224301,6 +226636,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutAgentRoutingCardsInput = {
@@ -224368,6 +226704,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRoutingCardsInput = {
@@ -224417,6 +226754,427 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type ProjectCreateWithoutCheckpointsInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutCheckpointsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutCheckpointsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutCheckpointsInput, ProjectUncheckedCreateWithoutCheckpointsInput>
+  }
+
+  export type UserCreateWithoutProjectCheckpointsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobCreateNestedManyWithoutActorInput
+  }
+
+  export type UserUncheckedCreateWithoutProjectCheckpointsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+  }
+
+  export type UserCreateOrConnectWithoutProjectCheckpointsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutProjectCheckpointsInput, UserUncheckedCreateWithoutProjectCheckpointsInput>
+  }
+
+  export type ProjectUpsertWithoutCheckpointsInput = {
+    update: XOR<ProjectUpdateWithoutCheckpointsInput, ProjectUncheckedUpdateWithoutCheckpointsInput>
+    create: XOR<ProjectCreateWithoutCheckpointsInput, ProjectUncheckedCreateWithoutCheckpointsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutCheckpointsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutCheckpointsInput, ProjectUncheckedUpdateWithoutCheckpointsInput>
+  }
+
+  export type ProjectUpdateWithoutCheckpointsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutCheckpointsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+  }
+
+  export type UserUpsertWithoutProjectCheckpointsInput = {
+    update: XOR<UserUpdateWithoutProjectCheckpointsInput, UserUncheckedUpdateWithoutProjectCheckpointsInput>
+    create: XOR<UserCreateWithoutProjectCheckpointsInput, UserUncheckedCreateWithoutProjectCheckpointsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutProjectCheckpointsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutProjectCheckpointsInput, UserUncheckedUpdateWithoutProjectCheckpointsInput>
+  }
+
+  export type UserUpdateWithoutProjectCheckpointsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutProjectCheckpointsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
   }
@@ -224561,6 +227319,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutImportJobsInput = {
@@ -224612,6 +227371,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutImportJobsInput = {
@@ -224661,6 +227421,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutImportJobsInput = {
@@ -224705,6 +227466,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutImportJobsInput = {
@@ -224898,6 +227660,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutImportJobsInput = {
@@ -224949,6 +227712,7 @@ export namespace Prisma {
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type ProjectUpsertWithoutImportJobsInput = {
@@ -225004,6 +227768,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutImportJobsInput = {
@@ -225048,6 +227813,7 @@ export namespace Prisma {
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ImportCreditReservationUpsertWithoutImportJobInput = {
@@ -225251,6 +228017,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutGalleryListingsInput = {
@@ -225295,6 +228062,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutGalleryListingsInput = {
@@ -225351,6 +228119,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
     importJobs?: ImportJobCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserUncheckedCreateWithoutGalleryListingsInput = {
@@ -225402,6 +228171,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
     importJobs?: ImportJobUncheckedCreateNestedManyWithoutActorInput
+    projectCheckpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutCreatedByInput
   }
 
   export type UserCreateOrConnectWithoutGalleryListingsInput = {
@@ -225462,6 +228232,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutGalleryListingsInput = {
@@ -225506,6 +228277,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutGalleryListingsInput = {
@@ -225568,6 +228340,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUpdateManyWithoutCreatedByNestedInput
   }
 
   export type UserUncheckedUpdateWithoutGalleryListingsInput = {
@@ -225619,6 +228392,7 @@ export namespace Prisma {
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutActorNestedInput
+    projectCheckpoints?: ProjectCheckpointUncheckedUpdateManyWithoutCreatedByNestedInput
   }
 
   export type LedgerEntryCreateWithoutAccountInput = {
@@ -226609,6 +229383,25 @@ export namespace Prisma {
     cleanupTerminalState?: string | null
     error?: string | null
     expiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type ProjectCheckpointCreateManyCreatedByInput = {
+    id?: string
+    projectId: string
+    state?: string
+    logicalBarrierId?: string | null
+    consistencyLevel?: string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    expiresAt?: Date | string | null
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    barrierProjectId?: string | null
+    barrierOwnerToken?: string | null
+    barrierFence?: number
+    barrierExpiresAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -227829,6 +230622,63 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type ProjectCheckpointUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierOwnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierFence?: IntFieldUpdateOperationsInput | number
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutCheckpointsNestedInput
+  }
+
+  export type ProjectCheckpointUncheckedUpdateWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierOwnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierFence?: IntFieldUpdateOperationsInput | number
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectCheckpointUncheckedUpdateManyWithoutCreatedByInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierOwnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierFence?: IntFieldUpdateOperationsInput | number
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type OrganizationMemberCreateManyOrganizationInput = {
     id?: string
     userId: string
@@ -228270,6 +231120,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -228314,6 +231165,7 @@ export namespace Prisma {
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
     runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
     importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -229766,6 +232618,25 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type ProjectCheckpointCreateManyProjectInput = {
+    id?: string
+    state?: string
+    logicalBarrierId?: string | null
+    consistencyLevel?: string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: string | null
+    expiresAt?: Date | string | null
+    createdByUserId?: string | null
+    idempotencyKey?: string | null
+    requestHash?: string | null
+    barrierProjectId?: string | null
+    barrierOwnerToken?: string | null
+    barrierFence?: number
+    barrierExpiresAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type ProjectEnvironmentUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -230783,6 +233654,63 @@ export namespace Prisma {
     cleanupTerminalState?: NullableStringFieldUpdateOperationsInput | string | null
     error?: NullableStringFieldUpdateOperationsInput | string | null
     expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectCheckpointUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierOwnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierFence?: IntFieldUpdateOperationsInput | number
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: UserUpdateOneWithoutProjectCheckpointsNestedInput
+  }
+
+  export type ProjectCheckpointUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierOwnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierFence?: IntFieldUpdateOperationsInput | number
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectCheckpointUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    state?: StringFieldUpdateOperationsInput | string
+    logicalBarrierId?: NullableStringFieldUpdateOperationsInput | string | null
+    consistencyLevel?: NullableStringFieldUpdateOperationsInput | string | null
+    manifest?: NullableJsonNullValueInput | InputJsonValue
+    error?: NullableStringFieldUpdateOperationsInput | string | null
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
+    requestHash?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierProjectId?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierOwnerToken?: NullableStringFieldUpdateOperationsInput | string | null
+    barrierFence?: IntFieldUpdateOperationsInput | number
+    barrierExpiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

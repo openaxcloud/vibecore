@@ -2269,6 +2269,229 @@ export class TestApiStore implements ApiStore {
     return active ? { version: active.version, data: active.data } : undefined;
   }
 
+  projectCheckpoints = new Map<
+    string,
+    {
+      id: string;
+      projectId: string;
+      state: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      createdByUserId?: string;
+      idempotencyKey?: string;
+      requestHash?: string;
+      barrierProjectId?: string | null;
+      barrierOwnerToken?: string | null;
+      barrierFence: number;
+      barrierExpiresAt?: string | null;
+      createdAt: string;
+    }
+  >();
+
+  async getDatabaseTime() {
+    return now();
+  }
+
+  async createProjectCheckpoint(input: {
+    projectId: string;
+    createdByUserId?: string;
+    idempotencyKey?: string;
+    requestHash?: string;
+  }) {
+    const requestHash = input.requestHash ?? hashToken(`project-checkpoint:${input.projectId}`);
+    const existing = input.idempotencyKey
+      ? [...this.projectCheckpoints.values()].find((row) => row.idempotencyKey === input.idempotencyKey)
+      : undefined;
+
+    if (existing) {
+      if (existing.projectId !== input.projectId || existing.requestHash !== requestHash) {
+        throw Object.assign(new Error('CHECKPOINT_IDEMPOTENCY_KEY_REUSED'), {
+          statusCode: 409,
+          code: 'IDEMPOTENCY_KEY_REUSED',
+        });
+      }
+
+      return { id: existing.id, state: existing.state, replayed: true };
+    }
+
+    const row: typeof this.projectCheckpoints extends Map<string, infer Row> ? Row : never = {
+      id: id('ckpt'),
+      projectId: input.projectId,
+      state: 'PREPARING',
+      createdAt: now(),
+      createdByUserId: input.createdByUserId,
+      idempotencyKey: input.idempotencyKey,
+      requestHash,
+      barrierFence: 0,
+    };
+    this.projectCheckpoints.set(row.id, row);
+    return { id: row.id, state: row.state, replayed: false };
+  }
+
+  async acquireProjectCheckpointBarrier(input: {
+    checkpointId: string;
+    projectId: string;
+    barrierId: string;
+    ownerToken: string;
+    ttlSeconds: number;
+  }) {
+    const at = Date.now();
+
+    for (const candidate of this.projectCheckpoints.values()) {
+      if (
+        candidate.barrierProjectId === input.projectId &&
+        candidate.barrierExpiresAt &&
+        new Date(candidate.barrierExpiresAt).getTime() <= at
+      ) {
+        candidate.barrierProjectId = null;
+        candidate.barrierOwnerToken = null;
+        candidate.barrierExpiresAt = null;
+        candidate.barrierFence += 1;
+      }
+    }
+
+    const row = this.projectCheckpoints.get(input.checkpointId);
+    const active = [...this.projectCheckpoints.values()].some(
+      (candidate) =>
+        candidate.barrierProjectId === input.projectId &&
+        candidate.barrierExpiresAt &&
+        new Date(candidate.barrierExpiresAt).getTime() > at,
+    );
+
+    if (!row || row.projectId !== input.projectId || !['PREPARING', 'QUIESCING'].includes(row.state) || active) {
+      return undefined;
+    }
+
+    row.state = 'BARRIER_ESTABLISHED';
+    row.logicalBarrierId = input.barrierId;
+    row.barrierProjectId = input.projectId;
+    row.barrierOwnerToken = input.ownerToken;
+    row.barrierFence += 1;
+    row.barrierExpiresAt = new Date(at + input.ttlSeconds * 1000).toISOString();
+
+    return {
+      checkpointId: row.id,
+      barrierId: input.barrierId,
+      ownerToken: input.ownerToken,
+      fence: row.barrierFence,
+      expiresAt: row.barrierExpiresAt,
+    };
+  }
+
+  async renewProjectCheckpointBarrier(input: {
+    checkpointId: string;
+    ownerToken: string;
+    fence: number;
+    ttlSeconds: number;
+  }) {
+    const row = this.projectCheckpoints.get(input.checkpointId);
+
+    if (
+      !row ||
+      row.barrierOwnerToken !== input.ownerToken ||
+      row.barrierFence !== input.fence ||
+      !row.barrierExpiresAt ||
+      new Date(row.barrierExpiresAt).getTime() <= Date.now()
+    ) {
+      return undefined;
+    }
+
+    row.barrierExpiresAt = new Date(Date.now() + input.ttlSeconds * 1000).toISOString();
+    return row.barrierExpiresAt;
+  }
+
+  async assertProjectCheckpointBarrier(input: { checkpointId: string; ownerToken: string; fence: number }) {
+    const row = this.projectCheckpoints.get(input.checkpointId);
+
+    if (
+      !row ||
+      row.barrierProjectId !== row.projectId ||
+      row.barrierOwnerToken !== input.ownerToken ||
+      row.barrierFence !== input.fence ||
+      !row.barrierExpiresAt ||
+      new Date(row.barrierExpiresAt).getTime() <= Date.now()
+    ) {
+      throw Object.assign(new Error('CHECKPOINT_BARRIER_LOST'), { statusCode: 409, code: 'CHECKPOINT_BARRIER_LOST' });
+    }
+  }
+
+  async transitionProjectCheckpoint(input: {
+    checkpointId: string;
+    ownerToken: string;
+    fence: number;
+    from: string;
+    to: string;
+    patch?: {
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      retentionSeconds?: number;
+    };
+    retainBarrier?: boolean;
+  }) {
+    await this.assertProjectCheckpointBarrier(input);
+    const row = this.projectCheckpoints.get(input.checkpointId)!;
+
+    if (row.state !== input.from) {
+      throw Object.assign(new Error('CHECKPOINT_STATE_CONFLICT'), {
+        statusCode: 409,
+        code: 'CHECKPOINT_STATE_CONFLICT',
+      });
+    }
+
+    row.state = input.to;
+    Object.assign(row, input.patch);
+    if (input.patch?.retentionSeconds !== undefined) {
+      row.expiresAt = new Date(Date.now() + input.patch.retentionSeconds * 1000).toISOString();
+    }
+    if (input.to === 'COMMITTED' && input.retainBarrier !== true) {
+      row.barrierProjectId = null;
+      row.barrierOwnerToken = null;
+      row.barrierExpiresAt = null;
+    }
+  }
+
+  async releaseProjectCheckpointBarrier(input: { checkpointId: string; ownerToken: string; fence: number }) {
+    const row = this.projectCheckpoints.get(input.checkpointId);
+    if (!row || row.barrierOwnerToken !== input.ownerToken || row.barrierFence !== input.fence) return false;
+    row.barrierProjectId = null;
+    row.barrierOwnerToken = null;
+    row.barrierExpiresAt = null;
+    return true;
+  }
+
+  async updateProjectCheckpoint(idv: string, patch: Record<string, unknown>) {
+    const row = this.projectCheckpoints.get(idv);
+    if (row) Object.assign(row, patch);
+  }
+
+  /** Mirrors PrismaApiStore: barrier read from the shared row, expiry = thaw. */
+  async getActiveCheckpointBarrier(projectId: string) {
+    const rows = [...this.projectCheckpoints.values()]
+      .filter(
+        (r) =>
+          r.barrierProjectId === projectId &&
+          r.barrierExpiresAt != null &&
+          new Date(r.barrierExpiresAt).getTime() > Date.now() &&
+          r.logicalBarrierId,
+      )
+      .sort((a, b) => new Date(b.barrierExpiresAt!).getTime() - new Date(a.barrierExpiresAt!).getTime());
+
+    const row = rows[0];
+
+    return row
+      ? { checkpointId: row.id, barrierId: row.logicalBarrierId!, expiresAt: row.barrierExpiresAt! }
+      : undefined;
+  }
+
+  async getProjectCheckpoint(idv: string) {
+    return this.projectCheckpoints.get(idv);
+  }
+
   remixJobs = new Map<
     string,
     {

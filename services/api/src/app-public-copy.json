@@ -1,4 +1,12 @@
 {
+  "CHECKPOINT_IDEMPOTENCY_KEY_REUSED": {
+    "en": "This idempotency key was already used for a different checkpoint request.",
+    "fr": "Cette clé d’idempotence a déjà été utilisée pour une autre demande de checkpoint."
+  },
+  "CHECKPOINT_BARRIER_LOST": {
+    "en": "The checkpoint write barrier was lost. Retry from a fresh checkpoint.",
+    "fr": "La barrière d’écriture du checkpoint a été perdue. Recommencez avec un nouveau checkpoint."
+  },
   "GENERIC_REQUEST_FAILED": {
     "en": "The request could not be completed. Please try again.",
     "fr": "La requête n’a pas pu aboutir. Veuillez réessayer."
@@ -2578,5 +2586,105 @@
   "DATABASE_PROVISION_UNAVAILABLE": {
     "en": "The managed database could not be provisioned, so nothing was created. This is usually temporary — try again in a moment.",
     "fr": "La base de données managée n'a pas pu être provisionnée, rien n'a donc été créé. C'est généralement temporaire : réessayez dans un instant."
+  },
+  "CHECKPOINT_BARRIER_ACTIVE_MESSAGE": {
+    "en": "The project is locked for a coordinated checkpoint. Try again after the checkpoint finishes.",
+    "fr": "Le projet est verrouillé pour un point de contrôle coordonné. Réessayez après la fin du point de contrôle."
+  },
+  "CHECKPOINT_IDEMPOTENCY_IN_PROGRESS": {
+    "en": "A checkpoint with this retry key is already in progress.",
+    "fr": "Un point de contrôle utilisant cette clé de nouvelle tentative est déjà en cours."
+  },
+  "CHECKPOINT_QUIESCE_INADMISSIBLE": {
+    "en": "The checkpoint write barrier has no safe bounded lease.",
+    "fr": "La barrière d'écriture du point de contrôle ne possède pas de bail borné sûr."
+  },
+  "CHECKPOINT_ALREADY_ACTIVE": {
+    "en": "Another checkpoint or restore already owns the project write barrier.",
+    "fr": "Un autre point de contrôle ou une autre restauration possède déjà la barrière d'écriture du projet."
+  },
+  "CHECKPOINT_SNAPSHOT_LABEL": {
+    "en": "Checkpoint {barrierId}",
+    "fr": "Point de contrôle {barrierId}"
+  },
+  "CHECKPOINT_INADMISSIBLE": {
+    "en": "The checkpoint does not contain the required verified components.",
+    "fr": "Le point de contrôle ne contient pas les composants vérifiés requis."
+  },
+  "CHECKPOINT_UNVERIFIED": {
+    "en": "The checkpoint manifest did not pass verification.",
+    "fr": "Le manifeste du point de contrôle n'a pas réussi la vérification."
+  },
+  "CHECKPOINT_NOT_FOUND": {
+    "en": "Checkpoint not found.",
+    "fr": "Point de contrôle introuvable."
+  },
+  "CHECKPOINT_COMMITTED_NOT_FOUND": {
+    "en": "Committed checkpoint not found.",
+    "fr": "Point de contrôle validé introuvable."
+  },
+  "CHECKPOINT_NO_FILES": {
+    "en": "The checkpoint has no verified file component.",
+    "fr": "Le point de contrôle ne contient aucun composant de fichiers vérifié."
+  },
+  "CHECKPOINT_SNAPSHOT_MISSING": {
+    "en": "The checkpoint archive is missing.",
+    "fr": "L'archive du point de contrôle est absente."
+  },
+  "CHECKPOINT_SAFETY_FAILED": {
+    "en": "The restore was refused because its safety checkpoint failed: {detail}",
+    "fr": "La restauration a été refusée car son point de contrôle de sûreté a échoué : {detail}"
+  },
+  "CHECKPOINT_SAFETY_BARRIER_MISSING": {
+    "en": "The safety checkpoint did not retain its write barrier.",
+    "fr": "Le point de contrôle de sûreté n'a pas conservé sa barrière d'écriture."
+  },
+  "CHECKPOINT_SAFETY_SNAPSHOT_MISSING": {
+    "en": "The safety checkpoint archive is missing.",
+    "fr": "L'archive du point de contrôle de sûreté est absente."
+  },
+  "CHECKPOINT_SAFETY_SNAPSHOT_HASH_MISMATCH": {
+    "en": "The safety checkpoint archive failed content verification.",
+    "fr": "L'archive du point de contrôle de sûreté a échoué à la vérification du contenu."
+  },
+  "CHECKPOINT_SAFETY_ARCHIVE_INVALID": {
+    "en": "The safety checkpoint archive is missing or failed verification.",
+    "fr": "L'archive du point de contrôle de sûreté est absente ou a échoué à la vérification."
+  },
+  "CHECKPOINT_RESTORE_ROLLED_BACK": {
+    "en": "The restored tree failed verification, and the original tree was restored.",
+    "fr": "L'arbre restauré a échoué à la vérification et l'arbre d'origine a été rétabli."
+  },
+  "CHECKPOINT_RESTORE_ROLLBACK_FAILED": {
+    "en": "The restored tree and the automatic safety rollback both failed verification.",
+    "fr": "L'arbre restauré et le retour automatique au point de sûreté ont tous deux échoué à la vérification."
+  },
+  "CHECKPOINT_RESTORE_FAILED_ROLLED_BACK": {
+    "en": "The restore failed, and the original tree was restored.",
+    "fr": "La restauration a échoué et l'arbre d'origine a été rétabli."
+  },
+  "CHECKPOINT_RESTORE_FAILED_RECOVERY_AVAILABLE": {
+    "en": "The restore failed. The safety checkpoint remains available for recovery.",
+    "fr": "La restauration a échoué. Le point de contrôle de sûreté reste disponible pour la récupération."
+  },
+  "CHECKPOINT_LEASE_CONFIGURATION_INVALID": {
+    "en": "The checkpoint lease configuration is invalid.",
+    "fr": "La configuration du bail du point de contrôle est invalide."
+  },
+  "CHECKPOINT_COMPONENT_POD_ONLY": {
+    "en": "A pod snapshot alone is not a project checkpoint.",
+    "fr": "Un instantané de pod seul ne constitue pas un point de contrôle de projet."
+  },
+  "CHECKPOINT_COMPONENT_FILES_MISSING": {
+    "en": "The verified file component is missing.",
+    "fr": "Le composant de fichiers vérifié est absent."
+  },
+  "CHECKPOINT_DATABASE_DEPENDENCY_MISSING": {
+    "en": "A database exists, but no verified database component or explicit dependency was recorded.",
+    "fr": "Une base de données existe, mais aucun composant de base vérifié ni aucune dépendance explicite n'a été enregistré."
+  },
+  "DATABASE_TIME_UNAVAILABLE": {
+    "en": "The database clock is unavailable.",
+    "fr": "L'horloge de la base de données est indisponible."
   }
 }
