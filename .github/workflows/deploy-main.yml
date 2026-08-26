@@ -119,7 +119,7 @@ jobs:
       - name: Pipeline policy — admin deploy tier must stay complete
         run: |
           set -euo pipefail
-          node --test scripts/detect-deploy-tiers.test.mjs
+          node --test scripts/detect-deploy-tiers.node-test.mjs
           node scripts/validate-admin-deploy-tier.mjs --self-test
           node scripts/validate-admin-deploy-tier.mjs
 
