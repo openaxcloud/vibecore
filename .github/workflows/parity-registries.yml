@@ -50,6 +50,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Validate daily collector workflow contract and mutation guards
+        run: |
+          node scripts/parity/validate-collector-workflow.mjs
+          node --test scripts/parity/collector-ci.node-test.mjs
       # The validator's only dependency is `yaml`. A plain `npm install` at the
       # repo root fails on pnpm `workspace:` protocols, so it goes into an
       # isolated dir handed to the script via PARITY_DEPS.
@@ -172,9 +176,61 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: node scripts/parity/collect-baseline.mjs | tee /tmp/collect.log
-      - run: mkdir -p /tmp/parity-deps && cd /tmp/parity-deps && npm init -y >/dev/null && npm install yaml@2 >/dev/null
-      - run: PARITY_DEPS=/tmp/parity-deps node scripts/parity/validate-registries.mjs
+          cache: npm
+          cache-dependency-path: scripts/parity/collector-runtime/package-lock.json
+      - name: Restore pinned Chromium binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: parity-collector-chromium-${{ runner.os }}-${{ hashFiles('scripts/parity/collector-runtime/package-lock.json') }}
+      - name: Install isolated collector dependencies
+        shell: bash
+        run: |
+          set -o pipefail
+          mkdir -p /tmp/parity-collector-diagnostics
+          timeout 2m npm ci --prefix scripts/parity/collector-runtime --ignore-scripts --no-audit --no-fund 2>&1 \
+            | tee /tmp/parity-collector-diagnostics/npm-ci.log
+      - name: Install pinned Chromium and system dependencies
+        shell: bash
+        run: |
+          set -o pipefail
+          scripts/parity/collector-runtime/node_modules/.bin/playwright --version \
+            | tee /tmp/parity-collector-diagnostics/playwright-version.log
+          timeout 8m scripts/parity/collector-runtime/node_modules/.bin/playwright install --with-deps chromium 2>&1 \
+            | tee /tmp/parity-collector-diagnostics/chromium-install.log
+          find ~/.cache/ms-playwright -maxdepth 2 -type f -print \
+            | sort > /tmp/parity-collector-diagnostics/browser-cache-files.log
+      - name: Collect rendered daily baseline
+        id: collect
+        shell: bash
+        env:
+          PARITY_PLAYWRIGHT_MODULE: ${{ github.workspace }}/scripts/parity/collector-runtime/node_modules/playwright/index.js
+        run: |
+          set -o pipefail
+          DAY=$(date -u +%F)
+          SNAPSHOT_DIR="docs/parity/baseline/snapshots/${DAY}"
+          echo "day=${DAY}" >> "$GITHUB_OUTPUT"
+          echo "snapshot_dir=${SNAPSHOT_DIR}" >> "$GITHUB_OUTPUT"
+          timeout 10m node scripts/parity/collect-baseline.mjs 2>&1 | tee /tmp/collect.log
+      - name: Require real pricing, gallery and community renders
+        shell: bash
+        run: timeout 1m node scripts/parity/assert-rendered-baseline.mjs --manifest "${{ steps.collect.outputs.snapshot_dir }}/manifest.json"
+      - name: Validate registries with isolated dependencies
+        run: PARITY_DEPS="${{ github.workspace }}/scripts/parity/collector-runtime" node scripts/parity/validate-registries.mjs
+      - name: Preserve collector artifacts and diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: parity-baseline-collector-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+          path: |
+            /tmp/collect.log
+            /tmp/parity-collector-diagnostics
+            ${{ steps.collect.outputs.snapshot_dir }}/manifest.json
+            ${{ steps.collect.outputs.snapshot_dir }}/pricing.rendered.html
+            ${{ steps.collect.outputs.snapshot_dir }}/gallery.rendered.html
+            ${{ steps.collect.outputs.snapshot_dir }}/community.rendered.html
       - name: Commit the day's snapshot
         run: |
           git config user.name "parity-baseline-bot"
@@ -183,8 +239,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "no snapshot change to commit"
           else
-            DAY=$(date -u +%F)
-            git commit -m "chore(parity): baseline snapshot ${DAY} (P0-04 daily collector)" \
+            git commit -m "chore(parity): baseline snapshot ${{ steps.collect.outputs.day }} (P0-04 daily collector)" \
                        -m "$(tail -20 /tmp/collect.log)"
             git push origin HEAD:main
           fi

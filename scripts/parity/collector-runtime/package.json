@@ -1,0 +1,14 @@
+{
+  "name": "@vibecore/parity-collector-runtime",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pinned, isolated runtime dependencies for the daily parity baseline collector.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "playwright": "1.59.1",
+    "yaml": "2.8.4"
+  }
+}
