@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createTotpCode } from '@vibecore/auth';
 import { decryptJson } from '@vibecore/security';
+import { GALLERY_DEMO_APP_CATALOG } from '@vibecore/template-catalog/server';
 import JSZip from 'jszip';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import WebSocket, { WebSocketServer } from 'ws';
@@ -3440,13 +3441,64 @@ describe('SaaS API', () => {
     const signatures = new Set([signature(crmId), signature(apiId), signature(dashId)]);
     expect(signatures.size).toBe(3);
 
-    /*
-     * A templateName with no catalog entry still scaffolds a runnable project
-     * (generic Vite fallback) rather than an empty one.
-     */
-    const fallbackId = await createFromTemplate('react-basic-starter', 'Fallback App');
-    expect(projectStorage.files.get(fallbackId)?.size ?? 0).toBeGreaterThan(0);
-    expect(projectStorage.files.get(fallbackId)?.get('package.json')).toBeDefined();
+    await app.close();
+  });
+
+  it('fails closed for an unknown template and accepts every id from the shared catalog without store drift', async () => {
+    const store = new TestApiStore();
+    const projectStorage = new MemoryProjectStorage();
+    const app = await buildTestApiApp({ store, projectStorage });
+    const auth = await register(app, { email: 'tpl-guard@example.com', organizationName: 'Tpl Guard Org' });
+    await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'team', status: 'ACTIVE' });
+
+    try {
+      const beforeProjects = store.projects.size;
+      const beforeScaffolds = projectStorage.files.size;
+      const rejected = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects/from-template`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name: 'Unknown Template', templateName: 'totally-unknown-template' },
+      });
+
+      expect(rejected.statusCode).toBe(400);
+      expect(rejected.json()).toMatchObject({
+        code: 'VALIDATION_ERROR',
+        issues: [expect.objectContaining({ path: ['templateName'] })],
+      });
+      expect(store.projects.size).toBe(beforeProjects);
+      expect(projectStorage.files.size).toBe(beforeScaffolds);
+
+      for (const definition of GALLERY_DEMO_APP_CATALOG) {
+        const response = await app.inject({
+          method: 'POST',
+          url: `/orgs/${auth.organization.id}/projects/from-template`,
+          headers: { authorization: `Bearer ${auth.token}` },
+          payload: { name: `Catalog ${definition.id}`, templateName: definition.id },
+        });
+
+        expect(response.statusCode, definition.id).toBe(201);
+        const project = response.json().project as { id: string; templateName?: string };
+        expect(store.projects.get(project.id)?.templateName, definition.id).toBe(definition.id);
+        expect(projectStorage.files.get(project.id)?.size ?? 0, definition.id).toBe(definition.files.length);
+      }
+
+      expect(store.projects.size).toBe(beforeProjects + GALLERY_DEMO_APP_CATALOG.length);
+
+      /* Catalog keys/slugs remain supported, but the store persists the canonical id. */
+      const alias = GALLERY_DEMO_APP_CATALOG.find((definition) => definition.key !== definition.id)!;
+      const aliasResponse = await app.inject({
+        method: 'POST',
+        url: `/orgs/${auth.organization.id}/projects/from-template`,
+        headers: { authorization: `Bearer ${auth.token}` },
+        payload: { name: 'Catalog Alias', templateName: `  ${alias.key.toUpperCase()}  ` },
+      });
+
+      expect(aliasResponse.statusCode).toBe(201);
+      expect(store.projects.get(aliasResponse.json().project.id)?.templateName).toBe(alias.id);
+    } finally {
+      await app.close();
+    }
   });
 
   it('supports persistent project CRUD, settings, collaborators and soft delete restore', async () => {
@@ -3459,7 +3511,7 @@ describe('SaaS API', () => {
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/from-template`,
       headers: { authorization: `Bearer ${auth.token}`, 'accept-language': 'fr-FR,fr;q=0.9' },
-      payload: { name: 'Template App', templateName: 'react-basic-starter' },
+      payload: { name: 'Template App', templateName: 'react-saas' },
     });
     expect(create.statusCode).toBe(201);
 
@@ -3485,8 +3537,7 @@ describe('SaaS API', () => {
     });
     expect(dashboard.statusCode).toBe(200);
     expect(dashboard.json().files.length).toBeGreaterThan(0);
-    expect(projectStorage.files.get(projectId)?.get('index.html')).toContain('<html lang="fr">');
-    expect(projectStorage.files.get(projectId)?.get('src/App.tsx')).toContain('Créé à partir du modèle Bolt');
+    expect(projectStorage.files.get(projectId)?.get('src/App.tsx')).toContain('data-gallery-app-id="react-saas"');
 
     const homepagePreview = await app.inject({
       method: 'GET',
@@ -3644,7 +3695,7 @@ describe('SaaS API', () => {
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/from-template`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { name: 'Etag Concurrency App', templateName: 'react-basic-starter' },
+      payload: { name: 'Etag Concurrency App', templateName: 'react-saas' },
     });
     expect(create.statusCode).toBe(201);
 
@@ -3742,7 +3793,7 @@ describe('SaaS API', () => {
       method: 'POST',
       url: `/orgs/${owner.organization.id}/projects/from-template`,
       headers: { authorization: `Bearer ${owner.token}` },
-      payload: { name: 'Realtime App', templateName: 'react-basic-starter' },
+      payload: { name: 'Realtime App', templateName: 'react-saas' },
     });
     expect(create.statusCode).toBe(201);
 
@@ -4544,7 +4595,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/from-template`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { name: 'Deployable App', templateName: 'react-basic-starter' },
+      payload: { name: 'Deployable App', templateName: 'react-saas' },
     });
 
     const projectId = project.json().project.id as string;
@@ -4762,7 +4813,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/from-template`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { name: 'Broken App', templateName: 'react-basic-starter' },
+      payload: { name: 'Broken App', templateName: 'react-saas' },
     });
 
     const projectId = project.json().project.id as string;
@@ -4888,7 +4939,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/from-template`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { name: 'Deploy Ops App', templateName: 'react-basic-starter' },
+      payload: { name: 'Deploy Ops App', templateName: 'react-saas' },
     });
 
     const projectId = project.json().project.id as string;
