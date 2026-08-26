@@ -858,6 +858,19 @@ exports.Prisma.SamlAssertionScalarFieldEnum = {
   consumedAt: 'consumedAt'
 };
 
+exports.Prisma.RuntimeWebSocketTicketScalarFieldEnum = {
+  id: 'id',
+  tokenHash: 'tokenHash',
+  userId: 'userId',
+  workspaceId: 'workspaceId',
+  projectId: 'projectId',
+  resolvedWorkspaceId: 'resolvedWorkspaceId',
+  endpoint: 'endpoint',
+  expiresAt: 'expiresAt',
+  consumedAt: 'consumedAt',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.PasswordResetTokenScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -1902,6 +1915,7 @@ exports.Prisma.ModelName = {
   SystemSetting: 'SystemSetting',
   EmailVerificationToken: 'EmailVerificationToken',
   SamlAssertion: 'SamlAssertion',
+  RuntimeWebSocketTicket: 'RuntimeWebSocketTicket',
   PasswordResetToken: 'PasswordResetToken',
   MfaRecoveryCode: 'MfaRecoveryCode',
   EnterpriseOrganizationSettings: 'EnterpriseOrganizationSettings',

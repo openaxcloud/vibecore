@@ -59,6 +59,27 @@ export interface WebSocketLike {
   removeEventListener?(type: 'open' | 'message' | 'error' | 'close', listener: (event: any) => void): void;
 }
 
+export const RUNTIME_WEBSOCKET_PROTOCOL = 'vibecore.runtime.v1';
+export const RUNTIME_WEBSOCKET_TICKET_PROTOCOL_PREFIX = 'vibecore.runtime.ticket.';
+
+type RuntimeWebSocketEndpoint = 'commands/stream' | 'terminal' | 'logs' | 'files/watch' | 'ports/watch';
+
+function runtimeSocketTarget(path: string): { workspaceId: string; endpoint: RuntimeWebSocketEndpoint } | undefined {
+  const match = path.match(
+    /^\/workspaces\/([^/]+)\/(commands\/stream|terminal|logs|files\/watch|ports\/watch)(?:\?|$)/,
+  );
+
+  if (!match) {
+    return undefined;
+  }
+
+  try {
+    return { workspaceId: decodeURIComponent(match[1]), endpoint: match[2] as RuntimeWebSocketEndpoint };
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * `Retry-After` en secondes (entier) ou en date HTTP. Renvoie undefined si
  * l'en-tête est absent ou illisible — on retombe alors sur le backoff calculé.
@@ -1124,11 +1145,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         const provisioning = this.#isRetryableProvisioningError(error);
         const budget = provisioning ? maxProvisioningAttempts : maxAttempts;
 
-        if (
-          init.signal?.aborted ||
-          attempt >= budget ||
-          !(this.#isTransientStartError(error) || provisioning)
-        ) {
+        if (init.signal?.aborted || attempt >= budget || !(this.#isTransientStartError(error) || provisioning)) {
           throw error;
         }
 
@@ -1298,7 +1315,49 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       throw new RuntimeError('WebSocket is not available for remote runtime', { code: 'WEBSOCKET_UNAVAILABLE' });
     }
 
-    const token = await this.#resolveAuthToken();
+    const target = runtimeSocketTarget(path);
+
+    if (!target) {
+      throw new RuntimeError('Unsupported remote runtime WebSocket endpoint', {
+        code: 'REMOTE_RUNTIME_SOCKET_PATH_INVALID',
+      });
+    }
+
+    const ticketResponse = await this.#sendRawRequest(
+      `/workspaces/${encodeURIComponent(target.workspaceId)}/socket-ticket`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ endpoint: target.endpoint }),
+      },
+    );
+
+    if (!ticketResponse.ok) {
+      throw new RuntimeError('Remote runtime WebSocket ticket request failed', {
+        code: 'REMOTE_RUNTIME_SOCKET_TICKET_FAILED',
+        status: ticketResponse.status,
+        details: ticketResponse.status === 401 ? { closeCode: 4401 } : undefined,
+      });
+    }
+
+    let ticketPayload: { ticket?: string; protocol?: string };
+
+    try {
+      ticketPayload = (await ticketResponse.json()) as { ticket?: string; protocol?: string };
+    } catch {
+      ticketPayload = {};
+    }
+
+    if (
+      !ticketPayload.ticket ||
+      ticketPayload.ticket.length < 16 ||
+      ticketPayload.ticket.length > 256 ||
+      !/^[A-Za-z0-9._~-]+$/.test(ticketPayload.ticket) ||
+      ticketPayload.protocol !== RUNTIME_WEBSOCKET_PROTOCOL
+    ) {
+      throw new RuntimeError('Remote runtime WebSocket ticket response is invalid', {
+        code: 'REMOTE_RUNTIME_SOCKET_TICKET_INVALID',
+      });
+    }
 
     /*
      * Resolve against the page origin so a RELATIVE baseUrl (e.g. "/api/runtime")
@@ -1314,11 +1373,10 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     const url = new URL(`${this.#baseUrl}${path}`, origin);
     url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
 
-    if (token) {
-      url.searchParams.set('token', token);
-    }
-
-    const socket = new WebSocketImpl(url.toString());
+    const socket = new WebSocketImpl(url.toString(), [
+      RUNTIME_WEBSOCKET_PROTOCOL,
+      `${RUNTIME_WEBSOCKET_TICKET_PROTOCOL_PREFIX}${ticketPayload.ticket}`,
+    ]);
 
     await new Promise<void>((resolve, reject) => {
       let settled = false;

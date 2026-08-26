@@ -116,20 +116,24 @@ describe('streamAgentCommand', () => {
     expect(result.error).toBe('WORKSPACE_STREAM_CLOSED');
   });
 
-  it('passes the token as a query param', async () => {
+  it('passes the token only in Authorization and keeps the WebSocket URL credential-free', async () => {
     let seenUrl = '';
+    let seenHeaders: Record<string, string> = {};
     await streamAgentCommand(
       'ws://agent/commands/stream',
       'secret-tok',
       { command: 'npm', args: [], cwd: '.', onLine: () => {} },
       5000,
-      (url: string) => {
+      (url: string, headers: Record<string, string>) => {
         seenUrl = url;
+        seenHeaders = headers;
         return fakeSocket([{ type: 'exit', exitCode: 0 }])(url);
       },
     );
 
-    expect(seenUrl).toBe('ws://agent/commands/stream?token=secret-tok');
+    expect(seenUrl).toBe('ws://agent/commands/stream');
+    expect(seenUrl).not.toContain('secret-tok');
+    expect(seenHeaders).toEqual({ authorization: 'Bearer secret-tok' });
   });
 });
 

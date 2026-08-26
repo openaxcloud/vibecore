@@ -1,4 +1,5 @@
 import { mkdtemp, rm } from 'node:fs/promises';
+import { request as httpRequest } from 'node:http';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -450,7 +451,12 @@ describe('killStalePinnedDevServers (real process)', () => {
 
     const processes = new Map<
       string,
-      { id: string; command: string; startedAt: string; process: import('node:child_process').ChildProcessWithoutNullStreams }
+      {
+        id: string;
+        command: string;
+        startedAt: string;
+        process: import('node:child_process').ChildProcessWithoutNullStreams;
+      }
     >();
     processes.set('prior', {
       id: 'prior',
@@ -1005,6 +1011,41 @@ describe('workspace-agent', () => {
     expect(response.body).toContain('terminal_sessions');
   });
 
+  it('rejects a WebSocket bearer placed in the query string', async () => {
+    const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId });
+    await app.listen({ host: '127.0.0.1', port: 0 });
+
+    const address = app.server.address();
+
+    if (!address || typeof address === 'string') {
+      throw new Error('Workspace agent did not bind to a TCP port');
+    }
+
+    try {
+      const statusCode = await new Promise<number>((resolve, reject) => {
+        const request = httpRequest({
+          host: '127.0.0.1',
+          port: address.port,
+          path: `/terminal?token=${encodeURIComponent(token)}`,
+          headers: {
+            connection: 'Upgrade',
+            upgrade: 'websocket',
+            'sec-websocket-key': 'dGhlIHNhbXBsZSBub25jZQ==',
+            'sec-websocket-version': '13',
+          },
+        });
+        request.once('response', (response) => resolve(response.statusCode ?? 0));
+        request.once('upgrade', () => reject(new Error('query-token WebSocket unexpectedly upgraded')));
+        request.once('error', reject);
+        request.end();
+      });
+
+      expect(statusCode).toBe(401);
+    } finally {
+      await app.close();
+    }
+  });
+
   it('streams terminal WebSocket input and command output', async () => {
     const app = buildWorkspaceAgentApp({ workspaceRoot: root, tokenSecret, workspaceId, commandTimeoutMs: 2_000 });
     await app.listen({ host: '127.0.0.1', port: 0 });
@@ -1016,7 +1057,9 @@ describe('workspace-agent', () => {
     }
 
     const messages: string[] = [];
-    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/terminal?token=${encodeURIComponent(token)}`);
+    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/terminal`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
 
     try {
       await new Promise<void>((resolve, reject) => {
@@ -1044,8 +1087,8 @@ describe('workspace-agent', () => {
       throw new Error('Workspace agent did not bind to a TCP port');
     }
 
-    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/terminal?token=${encodeURIComponent(token)}`, {
-      headers: { 'accept-language': 'fr-FR' },
+    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/terminal`, {
+      headers: { authorization: `Bearer ${token}`, 'accept-language': 'fr-FR' },
     });
 
     try {
@@ -1093,7 +1136,9 @@ describe('workspace-agent', () => {
       'tick();',
     ].join('');
 
-    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/commands/stream?token=${encodeURIComponent(token)}`);
+    const socket = new WebSocket(`ws://127.0.0.1:${address.port}/commands/stream`, {
+      headers: { authorization: `Bearer ${token}` },
+    });
     const stdout: string[] = [];
 
     try {

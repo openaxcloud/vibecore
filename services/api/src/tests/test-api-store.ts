@@ -73,6 +73,7 @@ import type {
   GalleryListingRecord,
   ProjectTemplateRecord,
   RecoveryCodeRecord,
+  RuntimeWebSocketTicketRecord,
   ScimTokenRecord,
   SessionRecord,
   SiemWebhookRecord,
@@ -116,6 +117,7 @@ function slugify(value: string) {
 export class TestApiStore implements ApiStore {
   readonly users = new Map<string, UserRecord>();
   readonly sessions = new Map<string, SessionRecord>();
+  readonly runtimeWebSocketTickets = new Map<string, RuntimeWebSocketTicketRecord>();
   readonly organizations = new Map<string, OrganizationRecord>();
   readonly memberships = new Map<string, MembershipRecord>();
   readonly projects = new Map<string, ProjectRecord>();
@@ -415,6 +417,49 @@ export class TestApiStore implements ApiStore {
     }
 
     return session;
+  }
+
+  async createRuntimeWebSocketTicket(input: {
+    tokenHash: string;
+    userId: string;
+    workspaceId: string;
+    projectId: string;
+    resolvedWorkspaceId: string;
+    endpoint: RuntimeWebSocketTicketRecord['endpoint'];
+    ttlMs: number;
+  }) {
+    const { ttlMs, ...scope } = input;
+    const ticket: RuntimeWebSocketTicketRecord = {
+      id: id('runtime-ws-ticket'),
+      ...scope,
+      expiresAt: new Date(Date.now() + ttlMs).toISOString(),
+      createdAt: now(),
+    };
+    this.runtimeWebSocketTickets.set(input.tokenHash, ticket);
+
+    return ticket;
+  }
+
+  async consumeRuntimeWebSocketTicket(input: {
+    tokenHash: string;
+    workspaceId: string;
+    endpoint: RuntimeWebSocketTicketRecord['endpoint'];
+  }) {
+    const ticket = this.runtimeWebSocketTickets.get(input.tokenHash);
+
+    if (
+      !ticket ||
+      ticket.consumedAt ||
+      ticket.workspaceId !== input.workspaceId ||
+      ticket.endpoint !== input.endpoint ||
+      new Date(ticket.expiresAt).getTime() <= Date.now()
+    ) {
+      return undefined;
+    }
+
+    ticket.consumedAt = now();
+
+    return ticket;
   }
 
   async createEmailVerification(input: { userId: string; token: string; expiresAt: Date; email?: string }) {

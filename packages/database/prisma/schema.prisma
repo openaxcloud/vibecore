@@ -83,7 +83,7 @@ model User {
   projectCollaborations       ProjectCollaborator[]
   projectActivity             ProjectActivity[]
   projectSnapshots            ProjectSnapshot[]
-  galleryListings             GalleryListing[]        @relation("UserGalleryListings")
+  galleryListings             GalleryListing[]               @relation("UserGalleryListings")
   projectIdeStateUpdates      ProjectIdeState[]
   collaborationPresence       CollaborationPresence[]
   collaborationComments       CollaborationComment[]
@@ -101,6 +101,7 @@ model User {
   aiMessageFeedback           AiMessageFeedback[]
   spendLimits                 UserSpendLimit[]
   agentRoutingCards           AgentRoutingCard[]             @relation("AgentRoutingCardAuthor")
+  runtimeWebSocketTickets     RuntimeWebSocketTicket[]
 }
 
 model Account {
@@ -236,47 +237,48 @@ model RolePermission {
 }
 
 model Project {
-  id                     String                  @id @default(cuid())
-  organizationId         String
-  name                   String
-  slug                   String
-  description            String?
-  sourceType             String                  @default("blank")
-  templateName           String?
-  gitRepositoryUrl       String?
-  gitDefaultBranch       String?
-  persistentVolumeClaim  String?
-  thumbnailUrl           String?
-  thumbnailUpdatedAt     DateTime?
-  deletedAt              DateTime?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  organization           Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  environments           ProjectEnvironment[]
-  envVars                ProjectEnvVar[]
-  secrets                ProjectSecret[]
-  collaborators          ProjectCollaborator[]
-  activity               ProjectActivity[]
-  templates              ProjectTemplate[]       @relation("ProjectTemplates")
-  galleryListings        GalleryListing[]        @relation("ProjectGalleryListings")
-  workspaces             Workspace[]
-  snapshots              ProjectSnapshot[]
-  storageObjects         ProjectStorageObject[]
-  deployments            Deployment[]
-  fileSnapshots          FileSnapshot[]
-  conversations          AiConversation[]
-  ideState               ProjectIdeState?
-  collaborationPresence  CollaborationPresence[]
-  collaborationComments  CollaborationComment[]
-  shareLinks             ProjectShareLink[]
-  agentMemories          AgentMemory[]
-  agentMemoryPreferences AgentMemoryPreference[]
-  agentPatchProposals    AgentPatchProposal[]
-  connectionLinks        ProjectConnectionLink[]
-  databaseInstances      DatabaseInstance[]
-  skills                 ProjectSkill[]
-  repairEvents           AgentRepairEvent[]
-  slugRedirects          ProjectSlugRedirect[]
+  id                      String                   @id @default(cuid())
+  organizationId          String
+  name                    String
+  slug                    String
+  description             String?
+  sourceType              String                   @default("blank")
+  templateName            String?
+  gitRepositoryUrl        String?
+  gitDefaultBranch        String?
+  persistentVolumeClaim   String?
+  thumbnailUrl            String?
+  thumbnailUpdatedAt      DateTime?
+  deletedAt               DateTime?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  organization            Organization             @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  environments            ProjectEnvironment[]
+  envVars                 ProjectEnvVar[]
+  secrets                 ProjectSecret[]
+  collaborators           ProjectCollaborator[]
+  activity                ProjectActivity[]
+  templates               ProjectTemplate[]        @relation("ProjectTemplates")
+  galleryListings         GalleryListing[]         @relation("ProjectGalleryListings")
+  workspaces              Workspace[]
+  snapshots               ProjectSnapshot[]
+  storageObjects          ProjectStorageObject[]
+  deployments             Deployment[]
+  fileSnapshots           FileSnapshot[]
+  conversations           AiConversation[]
+  ideState                ProjectIdeState?
+  collaborationPresence   CollaborationPresence[]
+  collaborationComments   CollaborationComment[]
+  shareLinks              ProjectShareLink[]
+  agentMemories           AgentMemory[]
+  agentMemoryPreferences  AgentMemoryPreference[]
+  agentPatchProposals     AgentPatchProposal[]
+  connectionLinks         ProjectConnectionLink[]
+  databaseInstances       DatabaseInstance[]
+  skills                  ProjectSkill[]
+  repairEvents            AgentRepairEvent[]
+  slugRedirects           ProjectSlugRedirect[]
+  runtimeWebSocketTickets RuntimeWebSocketTicket[]
 
   @@unique([organizationId, slug])
   @@index([organizationId])
@@ -452,7 +454,7 @@ model InstalledSkill {
 
   // RPL-SK-001.3/.4 — provenance + security-audit + revoke state.
   // origin: where the skill came from ('catalog' | 'github' | 'workspace-file' | 'builtin').
-  origin          String  @default("github")
+  origin          String    @default("github")
   // sha256 of the audited disclosed surface (body + resources) — provenance integrity.
   contentHash     String?
   // Latest audit verdict: 'approved' | 'quarantined' | 'rejected'. A 'rejected' skill
@@ -636,17 +638,17 @@ model ProjectTemplate {
 }
 
 model Workspace {
-  id               String             @id @default(cuid())
+  id               String                    @id @default(cuid())
   projectId        String
   name             String
-  status           WorkspaceStatus    @default(PENDING)
+  status           WorkspaceStatus           @default(PENDING)
   runtimeMode      String
   // P2d dev/prod split: 'development' (the editable workspace) or 'production'
   // (the checkout created when a deployment is published). Existing rows
   // backfill to 'development'. Not unique — a project keeps multiple dev
   // workspaces (primary + secondary agent-run checkouts); the prod checkout
   // is the single workspace with environment='production'.
-  environment      String             @default("development")
+  environment      String                    @default("development")
   // Filesystem path (relative to the project storage root) for this
   // workspace's isolated git working tree. Allocated when the workspace
   // is created so each branch / agent run can have its own checkout
@@ -659,9 +661,9 @@ model Workspace {
   // every workspace. Nullable: a fresh workspace inherits the project-level
   // remote until the user explicitly configures one.
   gitRepositoryUrl String?
-  createdAt        DateTime           @default(now())
-  updatedAt        DateTime           @updatedAt
-  project          Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  project          Project                   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   sessions         WorkspaceSession[]
   ports            WorkspacePort[]
   snapshots        FileSnapshot[]
@@ -1302,6 +1304,32 @@ model SamlAssertion {
   @@index([expiresAt])
 }
 
+// Short-lived, single-use credentials for browser -> API runtime WebSocket
+// upgrades. Only a SHA-256 hash is persisted; the raw ticket travels in the
+// Sec-WebSocket-Protocol header, never in the URL. The conditional consume in
+// PrismaApiStore makes replay protection atomic across API replicas.
+model RuntimeWebSocketTicket {
+  id                  String    @id @default(cuid())
+  tokenHash           String    @unique
+  userId              String
+  // Exact :workspaceId URL segment. It may be a project-id alias.
+  workspaceId         String
+  // Authoritative scope resolved server-side when the ticket is minted.
+  projectId           String
+  resolvedWorkspaceId String
+  endpoint            String
+  expiresAt           DateTime
+  consumedAt          DateTime?
+  createdAt           DateTime  @default(now())
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project             Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([projectId])
+  @@index([resolvedWorkspaceId])
+  @@index([expiresAt])
+}
+
 model PasswordResetToken {
   id        String    @id @default(cuid())
   userId    String
@@ -1860,24 +1888,24 @@ model ReconnectionAlert {
 /// real producer is the connector reconnection alert: when one is raised the
 /// API also drops a Notification so the feed is non-empty in reality.
 model Notification {
-  id        String    @id @default(cuid())
-  userId    String
+  id            String    @id @default(cuid())
+  userId        String
   /// Coarse routing/tone bucket, aligned with the preferences surfaces:
   /// "security" | "billing" | "deployments" | "team" | "system".
-  category  String    @default("system")
-  title     String
-  body      String?
+  category      String    @default("system")
+  title         String
+  body          String?
   /// Stable i18n descriptor for newly-produced notifications. Nullable keeps
   /// every historical row and older producer compatible with title/body.
   messageKey    String?
   messageParams Json?
   /// Optional in-app link the notification points at (e.g. /account/connections).
-  linkUrl   String?
+  linkUrl       String?
   /// Free-form producer metadata (e.g. the source alert id / provider) so the
   /// feed can be traced back to its origin without extra columns.
-  metadata  Json?
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
+  metadata      Json?
+  readAt        DateTime?
+  createdAt     DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -2256,43 +2284,43 @@ enum ScheduledTaskRunStatus {
 /// token: the scheduler advances it inside a conditional UPDATE, so exactly one
 /// api replica can ever own a given tick (no distributed lock needed).
 model ScheduledTask {
-  id             String            @id @default(cuid())
-  organizationId String
-  projectId      String
-  kind           ScheduledTaskKind @default(DEPLOYMENT)
-  name           String
+  id              String             @id @default(cuid())
+  organizationId  String
+  projectId       String
+  kind            ScheduledTaskKind  @default(DEPLOYMENT)
+  name            String
   /// Shell command for DEPLOYMENT tasks (run as `sh -lc <command>` in the project sandbox).
-  command        String            @default("")
+  command         String             @default("")
   /// For WORKFLOW tasks: the workflow id inside VIBECORE_WORKFLOWS_STATE.
-  workflowId     Int?
+  workflowId      Int?
   /// 5-field cron expression, already normalized.
-  cron           String
+  cron            String
   /// IANA timezone the cron fields are interpreted in.
-  timezone       String            @default("UTC")
+  timezone        String             @default("UTC")
   /// Machine size key. The size catalogue itself is owned elsewhere; this is the field only.
-  machineSize    String            @default("shared-0.5")
-  enabled        Boolean           @default(true)
+  machineSize     String             @default("shared-0.5")
+  enabled         Boolean            @default(true)
   /// Hard kill after this many seconds.
-  timeoutSeconds Int               @default(900)
+  timeoutSeconds  Int                @default(900)
   /// FORBID (skip if the previous run is still going) | ALLOW.
-  concurrency    String            @default("FORBID")
+  concurrency     String             @default("FORBID")
   /// Replit parity: a failed scheduled run is NOT retried by default.
-  maxRetries     Int               @default(0)
-  notifyOnFailure Boolean          @default(true)
-  lastRunAt      DateTime?
-  lastStatus     String?
+  maxRetries      Int                @default(0)
+  notifyOnFailure Boolean            @default(true)
+  lastRunAt       DateTime?
+  lastStatus      String?
   /// Next fire time (UTC). NULL when disabled.
-  nextRunAt      DateTime?
+  nextRunAt       DateTime?
   createdByUserId String?
-  createdAt      DateTime          @default(now())
-  updatedAt      DateTime          @updatedAt
-  runs           ScheduledTaskRun[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+  runs            ScheduledTaskRun[]
 
+  @@unique([projectId, kind, workflowId])
   /// The scheduler's hot query: enabled tasks whose nextRunAt is due.
   @@index([enabled, nextRunAt])
   @@index([projectId])
   @@index([organizationId])
-  @@unique([projectId, kind, workflowId])
 }
 
 /// One execution. Holds the FULL captured stdout+stderr, the real exit code, the
@@ -2395,12 +2423,12 @@ model AgentCallLog {
 /// holds ONLY secret/env KEYS (references) — never a value. `scanFindings`
 /// records materialized-secret hits (key + location, never the value).
 model RemixJob {
-  id              String   @id @default(cuid())
-  sourceProjectId String
-  targetProjectId String?
-  organizationId  String
-  actorUserId     String?
-  state           String   @default("SNAPSHOT_PINNED")
+  id               String   @id @default(cuid())
+  sourceProjectId  String
+  targetProjectId  String?
+  organizationId   String
+  actorUserId      String?
+  state            String   @default("SNAPSHOT_PINNED")
   /// IMMUTABLE source release the clone reproduces. When set, CLONING reads the
   /// files from this pinned ProjectSnapshot archive (not the live source), so a
   /// gallery remix is reproducible from the exact published release. NULL for a
@@ -2409,31 +2437,31 @@ model RemixJob {
   /// The gallery listing this remix was launched from, if any (provenance).
   sourceListingId  String?
   /// { secretKeys: string[], envVarKeys: string[] } — references only.
-  detachedKeys    Json?
+  detachedKeys     Json?
   /// DETACH | CLONE | SHARE_WITH_CONSENT
-  storagePolicy   String   @default("DETACH")
+  storagePolicy    String   @default("DETACH")
   /// SecretScanFinding[] { path, secretKey, line } — never the value.
-  scanFindings    Json?
+  scanFindings     Json?
   /// Count of value-lines scrubbed out of the clone during CLONING.
-  scrubbedCount   Int      @default(0)
+  scrubbedCount    Int      @default(0)
   /// VERSIONED license captured at remix time from the source listing —
   /// { licenseId, licenseTextSha256, sourceListingId, capturedAt }. Immutable on
   /// the job: later edits to the listing's license never rewrite what THIS remix
   /// was accepted under (I-RMX-3, P0-V3-05). Null for a same-org self-remix.
-  licenseSnapshot Json?
+  licenseSnapshot  Json?
   /// Version of the remix consent text the REMIXER explicitly accepted before
   /// the clone ran (REMIX_CONSENT_VERSION at accept time). Null = no consent
   /// captured (same-org self-remix only — a gallery remix REQUIRES it).
-  consentVersion  String?
+  consentVersion   String?
   /// PiiFinding[] { path, kind, line } — kind of PII masked, never the value.
-  piiFindings     Json?
+  piiFindings      Json?
   /// Count of PII spans masked out of the clone during SOURCE_SANITIZED.
-  piiMaskedCount  Int      @default(0)
+  piiMaskedCount   Int      @default(0)
   /// Honest marker: was a physical isolated DB provisioned, or deferred?
-  dbForked        Boolean  @default(false)
-  error           String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  dbForked         Boolean  @default(false)
+  error            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@index([sourceProjectId])
   @@index([organizationId, createdAt])
@@ -2447,12 +2475,12 @@ model RemixJob {
 /// `targetProjectId` is set ONLY at the atomic COMMIT — it is null on every
 /// non-committed terminal state (proving the target was never touched).
 model ImportJob {
-  id              String   @id @default(cuid())
+  id              String    @id @default(cuid())
   organizationId  String
   actorUserId     String?
   /// One of the 12 hub tiles (github|bitbucket|vercel|figma|claude|bolt|lovable|base44|zip|spreadsheet|previous-agent-export|empty)
   provider        String
-  state           String   @default("RECEIVED")
+  state           String    @default("RECEIVED")
   sourceRef       String?
   /// ImportSecretFinding[] { path, line, kind, preview } — redacted, no value.
   findings        Json?
@@ -2460,14 +2488,14 @@ model ImportJob {
   consent         Json?
   /// Set only at COMMITTED. Null everywhere else = target never mounted.
   targetProjectId String?
-  stagedFileCount Int      @default(0)
-  redactedCount   Int      @default(0)
+  stagedFileCount Int       @default(0)
+  redactedCount   Int       @default(0)
   /// E-CODE DECISION (not Replit parity): idempotent credit reservation marker.
-  creditsReserved Boolean  @default(false)
+  creditsReserved Boolean   @default(false)
   error           String?
   expiresAt       DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   @@index([organizationId, createdAt])
   @@index([state])
@@ -2488,56 +2516,56 @@ model ImportJob {
 /// clones from THAT snapshot, so what a user forks matches the published
 /// listing regardless of later edits to the source project.
 model GalleryListing {
-  id               String    @id @default(cuid())
-  slug             String    @unique
-  title            String
-  description      String
-  category         String
+  id                  String    @id @default(cuid())
+  slug                String    @unique
+  title               String
+  description         String
+  category            String
   /// Free-form display tags (["react","stripe"]). Not a taxonomy.
-  tags             String[]  @default([])
+  tags                String[]  @default([])
   /// PUBLISHED (visible) | PENDING_REVIEW (curated, not yet live) | UNPUBLISHED.
-  status           String    @default("PUBLISHED")
-  featured         Boolean   @default(false)
-  sourceProjectId  String
+  status              String    @default("PUBLISHED")
+  featured            Boolean   @default(false)
+  sourceProjectId     String
   /// Immutable release pin — the ProjectSnapshot a Remix reproduces.
-  sourceSnapshotId String
+  sourceSnapshotId    String
   /// Curated author display (denormalized so a listing survives author changes).
-  authorName       String
-  authorUserId     String?
+  authorName          String
+  authorUserId        String?
   /// Outbound "View App" link to the deployed app (may be null pre-deploy).
-  appUrl           String?
+  appUrl              String?
   /// Card preview image (a real rendered screenshot). Root-relative static
   /// asset (/gallery-apps/<id>/thumbnail.png) or an https URL; null renders
   /// the text-only card.
-  thumbnailUrl     String?
+  thumbnailUrl        String?
   /// FAIL-CLOSED (directive 20/07) : un projet publié ordinaire est
   /// ALL_RIGHTS_RESERVED, non-remixable. remixAllowed ne passe true qu'avec
   /// une licence EXPLICITE + confirmation des droits + politique PII acceptée.
-  remixAllowed     Boolean   @default(false)
+  remixAllowed        Boolean   @default(false)
   /// License identifier declared at curation (e.g. an SPDX id like "MIT").
   /// Null = the author declared no license (surfaced as such — never invented).
-  licenseId        String?
+  licenseId           String?
   /// VERSIONED license text snapshot captured at curation. What a remixer
   /// accepts is THIS text, pinned by its sha256 onto the RemixJob.
-  licenseText      String?
+  licenseText         String?
   /// sha256 of licenseText — the version pin recorded on every remix.
-  licenseTextSha256 String?
+  licenseTextSha256   String?
   /// Version of the PII-sharing consent the AUTHOR explicitly gave at curation
   /// (data ships unmasked). Null = no consent → PII is masked on every remix.
-  piiConsentVersion String?
+  piiConsentVersion   String?
   /// TRACE AUDITABLE des confirmations exigées pour rendre un listing remixable
   /// (P0-V3-05, réserve #8). Avant la migration 0081 elles étaient validées à la
   /// curation puis JAMAIS écrites : la confirmation des droits par le curateur
   /// était inauditable a posteriori. Horodatage + acteur (userId de l'admin qui
   /// a curé). Null = jamais confirmé.
-  rightsConfirmedAt DateTime?
-  rightsConfirmedBy String?
+  rightsConfirmedAt   DateTime?
+  rightsConfirmedBy   String?
   piiPolicyAcceptedAt DateTime?
   piiPolicyAcceptedBy String?
-  viewCount        Int       @default(0)
-  useCount         Int       @default(0)
-  createdAt        DateTime  @default(now())
-  publishedAt      DateTime?
+  viewCount           Int       @default(0)
+  useCount            Int       @default(0)
+  createdAt           DateTime  @default(now())
+  publishedAt         DateTime?
 
   sourceProject Project @relation("ProjectGalleryListings", fields: [sourceProjectId], references: [id], onDelete: Cascade)
   author        User?   @relation("UserGalleryListings", fields: [authorUserId], references: [id], onDelete: SetNull)

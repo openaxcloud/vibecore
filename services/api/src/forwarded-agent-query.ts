@@ -15,7 +15,7 @@
  */
 const AGENT_FORWARDED_QUERY_KEYS = ['sessionId', 'cols', 'rows'] as const;
 
-export function forwardedAgentQuery(clientQuery: unknown): string {
+export function forwardedAgentQuery(clientQuery: unknown, prefix: '?' | '&' = '&'): string {
   if (!clientQuery || typeof clientQuery !== 'object') {
     return '';
   }
@@ -39,5 +39,5 @@ export function forwardedAgentQuery(clientQuery: unknown): string {
 
   const serialized = params.toString();
 
-  return serialized ? `&${serialized}` : '';
+  return serialized ? `${prefix}${serialized}` : '';
 }

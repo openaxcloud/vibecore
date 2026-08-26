@@ -53,6 +53,24 @@ export interface SessionRecord {
   impersonatedBy?: string;
 }
 
+export type RuntimeWebSocketEndpoint = 'commands/stream' | 'terminal' | 'logs' | 'files/watch' | 'ports/watch';
+
+export interface RuntimeWebSocketTicketRecord {
+  id: string;
+  tokenHash: string;
+  userId: string;
+  /** Exact :workspaceId URL segment the browser must present. */
+  workspaceId: string;
+  /** Authoritative project resolved during ticket issuance. */
+  projectId: string;
+  /** Authoritative runtime workspace resolved during ticket issuance. */
+  resolvedWorkspaceId: string;
+  endpoint: RuntimeWebSocketEndpoint;
+  expiresAt: string;
+  consumedAt?: string;
+  createdAt: string;
+}
+
 export interface OrganizationRecord {
   id: string;
   slug: string;
@@ -1277,6 +1295,26 @@ export interface ApiStore {
   revokeSession(userId: string, sessionId: string): Promise<boolean>;
   revokeAllSessions(userId: string, exceptSessionId?: string): Promise<number>;
   markSessionReauthenticated(sessionId: string): Promise<SessionRecord | undefined>;
+  createRuntimeWebSocketTicket(input: {
+    tokenHash: string;
+    userId: string;
+    workspaceId: string;
+    projectId: string;
+    resolvedWorkspaceId: string;
+    endpoint: RuntimeWebSocketEndpoint;
+    /** Relative lifetime; the durable store evaluates it from its own clock. */
+    ttlMs: number;
+  }): Promise<RuntimeWebSocketTicketRecord>;
+  /**
+   * Atomically claim a live ticket bound to the exact workspace + endpoint.
+   * Exactly one concurrent caller can receive the row; expiry and replay fail
+   * closed with `undefined`.
+   */
+  consumeRuntimeWebSocketTicket(input: {
+    tokenHash: string;
+    workspaceId: string;
+    endpoint: RuntimeWebSocketEndpoint;
+  }): Promise<RuntimeWebSocketTicketRecord | undefined>;
   createEmailVerification(input: { userId: string; token: string; expiresAt: Date; email?: string }): Promise<void>;
   consumeEmailVerification(token: string): Promise<UserRecord | undefined>;
   createPasswordReset(input: { userId: string; token: string; expiresAt: Date }): Promise<void>;
@@ -1885,9 +1923,7 @@ export interface ApiStore {
     canceledAt?: string;
   }): Promise<DeploymentRecord>;
   getDeployment(projectId: string, deploymentId: string): Promise<DeploymentRecord | undefined>;
-  getDeploymentOwnerStatus(
-    deploymentId: string,
-  ): Promise<
+  getDeploymentOwnerStatus(deploymentId: string): Promise<
     | {
         projectId: string;
         status: string;
