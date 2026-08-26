@@ -2578,5 +2578,33 @@
   "DATABASE_PROVISION_UNAVAILABLE": {
     "en": "The managed database could not be provisioned, so nothing was created. This is usually temporary — try again in a moment.",
     "fr": "La base de données managée n'a pas pu être provisionnée, rien n'a donc été créé. C'est généralement temporaire : réessayez dans un instant."
+  },
+  "PROJECT_MANIFEST_INVALID": {
+    "en": "The project manifest is invalid. Review its fields and references before trying again.",
+    "fr": "Le manifeste du projet est invalide. Vérifiez ses champs et ses références avant de réessayer."
+  },
+  "PROJECT_MANIFEST_TOO_LARGE": {
+    "en": "The project manifest exceeds the 64 KiB safety limit.",
+    "fr": "Le manifeste du projet dépasse la limite de sécurité de 64 Kio."
+  },
+  "PROJECT_MANIFEST_SCHEMA_UNSUPPORTED": {
+    "en": "Project manifest schema version {version} is not supported by this release.",
+    "fr": "La version {version} du schéma du manifeste de projet n’est pas prise en charge par cette version."
+  },
+  "PROJECT_MANIFEST_PROJECT_MISMATCH": {
+    "en": "The project manifest belongs to a different project.",
+    "fr": "Le manifeste de projet appartient à un autre projet."
+  },
+  "PROJECT_MANIFEST_VERSION_CONFLICT": {
+    "en": "The project manifest changed in another session. Reload it before saving your changes.",
+    "fr": "Le manifeste du projet a changé dans une autre session. Rechargez-le avant d’enregistrer vos modifications."
+  },
+  "PROJECT_MANIFEST_CORRUPTED": {
+    "en": "The stored project manifest failed its integrity check. No deployment was started.",
+    "fr": "Le contrôle d’intégrité du manifeste de projet enregistré a échoué. Aucun déploiement n’a été lancé."
+  },
+  "PROJECT_MANIFEST_CHANGED_BEFORE_DEPLOY": {
+    "en": "The project manifest changed after this deployment was queued. Start a new deployment from the current manifest.",
+    "fr": "Le manifeste du projet a changé après la mise en file de ce déploiement. Lancez un nouveau déploiement depuis le manifeste actuel."
   }
 }

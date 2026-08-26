@@ -2,7 +2,16 @@ import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
+import { appPublicEnglish } from '../app-public-copy.js';
 import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
+import {
+  createDefaultProjectManifest,
+  projectManifestForClone,
+  projectManifestDigest,
+  verifyStoredProjectManifestRevision,
+  type ProjectManifest,
+  type ProjectManifestCloneMode,
+} from '../project-manifest.js';
 import type {
   EnvVarScope,
   AbuseEventRecord,
@@ -66,6 +75,7 @@ import type {
   ProjectCollaboratorRecord,
   ProjectEnvironmentRecord,
   ProjectIdeStateRecord,
+  ProjectManifestRevisionRecord,
   ProjectRecord,
   ProjectSecretRecord,
   ProjectShareLinkRecord,
@@ -125,6 +135,7 @@ export class TestApiStore implements ApiStore {
   readonly organizations = new Map<string, OrganizationRecord>();
   readonly memberships = new Map<string, MembershipRecord>();
   readonly projects = new Map<string, ProjectRecord>();
+  readonly projectManifestRevisions = new Map<string, ProjectManifestRevisionRecord[]>();
   readonly workspaces = new Map<string, WorkspaceRecord>();
   readonly snapshots = new Map<string, SnapshotRecord>();
   readonly projectStorageObjects = new Map<string, ProjectStorageObjectRecord>();
@@ -638,6 +649,8 @@ export class TestApiStore implements ApiStore {
     templateName?: string;
     gitRepositoryUrl?: string;
     gitDefaultBranch?: string;
+    initialManifest?: unknown;
+    manifestCloneMode?: ProjectManifestCloneMode;
   }) {
     const createdAt = now();
 
@@ -655,7 +668,21 @@ export class TestApiStore implements ApiStore {
       createdAt,
       updatedAt: createdAt,
     };
+    const manifest = input.initialManifest
+      ? projectManifestForClone(input.initialManifest, project.id, input.manifestCloneMode)
+      : createDefaultProjectManifest(project.id);
     this.projects.set(project.id, project);
+    this.projectManifestRevisions.set(project.id, [
+      {
+        id: id('project_manifest'),
+        projectId: project.id,
+        schemaVersion: manifest.schemaVersion,
+        manifestVersion: manifest.manifestVersion,
+        digest: projectManifestDigest(manifest),
+        manifest,
+        createdAt,
+      },
+    ]);
 
     return project;
   }
@@ -847,6 +874,7 @@ export class TestApiStore implements ApiStore {
   async hardDeleteProject(projectId: string) {
     const project = await this.updateProject({ projectId });
     this.projects.delete(projectId);
+    this.projectManifestRevisions.delete(projectId);
 
     return project;
   }
@@ -859,12 +887,23 @@ export class TestApiStore implements ApiStore {
     return project;
   }
 
-  async duplicateProject(input: { projectId: string; name: string; slug: string; organizationId?: string }) {
+  async duplicateProject(input: {
+    projectId: string;
+    name: string;
+    slug: string;
+    organizationId?: string;
+    manifestCloneMode?: ProjectManifestCloneMode;
+  }) {
     const source = this.projects.get(input.projectId);
 
     if (!source) {
       throw Object.assign(new Error('Project not found'), { statusCode: 404, code: 'PROJECT_NOT_FOUND' });
     }
+
+    const sourceRevision = await this.getLatestProjectManifest(source.id);
+    const sourceManifest = sourceRevision
+      ? verifyStoredProjectManifestRevision(sourceRevision, source.id)
+      : createDefaultProjectManifest(source.id);
 
     return this.createProject({
       organizationId: input.organizationId ?? source.organizationId,
@@ -875,6 +914,8 @@ export class TestApiStore implements ApiStore {
       templateName: source.templateName,
       gitRepositoryUrl: source.gitRepositoryUrl,
       gitDefaultBranch: source.gitDefaultBranch,
+      initialManifest: sourceManifest,
+      manifestCloneMode: input.manifestCloneMode,
     });
   }
 
@@ -2218,6 +2259,55 @@ export class TestApiStore implements ApiStore {
       .filter((m) => m.projectId === projectId && m.environment === environment)
       .sort((a, b) => b.version - a.version)
       .slice(0, options?.take ?? 100);
+  }
+
+  async getLatestProjectManifest(projectId: string): Promise<ProjectManifestRevisionRecord | undefined> {
+    return [...(this.projectManifestRevisions.get(projectId) ?? [])].sort(
+      (left, right) => right.manifestVersion - left.manifestVersion,
+    )[0];
+  }
+
+  async createProjectManifestRevision(input: {
+    projectId: string;
+    schemaVersion: number;
+    manifestVersion: number;
+    digest: string;
+    manifest: ProjectManifest;
+    expectedDigest?: string;
+    createdByUserId?: string;
+  }): Promise<ProjectManifestRevisionRecord> {
+    const manifest = verifyStoredProjectManifestRevision(input, input.projectId);
+
+    return this.withSerializedMutation(`project-manifest:${input.projectId}`, async () => {
+      const rows = this.projectManifestRevisions.get(input.projectId) ?? [];
+      const latest = [...rows].sort((left, right) => right.manifestVersion - left.manifestVersion)[0];
+
+      if (latest?.digest === input.digest && latest.manifestVersion === input.manifestVersion) {
+        return latest;
+      }
+
+      const expectedMatches = latest ? input.expectedDigest === latest.digest : input.expectedDigest === undefined;
+      if (!expectedMatches || input.manifestVersion !== (latest?.manifestVersion ?? 0) + 1) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_VERSION_CONFLICT')), {
+          code: 'PROJECT_MANIFEST_VERSION_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const row: ProjectManifestRevisionRecord = {
+        id: id('project_manifest'),
+        projectId: input.projectId,
+        schemaVersion: input.schemaVersion,
+        manifestVersion: input.manifestVersion,
+        digest: input.digest,
+        manifest,
+        createdByUserId: input.createdByUserId,
+        createdAt: now(),
+      };
+      rows.push(row);
+      this.projectManifestRevisions.set(input.projectId, rows);
+      return row;
+    });
   }
 
   /** No DB-backed rate card in tests: callers fall back to the built-in card. */

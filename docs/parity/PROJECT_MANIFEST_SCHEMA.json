@@ -1,128 +1,53 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "ecode/parity/project-manifest",
-  "x-schemaVersion": 3,
-  "x-repoCommit": "1692f981",
+  "$id": "https://e-code.ai/contracts/project-manifest/v1",
   "title": "ProjectManifest",
-  "description": "Source versionnée des composants, artifacts, bindings et scopes d'un Project (plan §5, P0-EX-08). Consommé par ProjectRevision (manifestDigest).",
+  "description": "Contrat structurel v1 du ProjectManifest. Le validateur runtime autoritatif, les invariants référentiels et la canonicalisation SHA-256 vivent dans services/api/src/project-manifest.ts.",
   "type": "object",
-  "required": [
-    "manifestVersion",
-    "projectId",
-    "artifacts"
-  ],
+  "required": ["schemaVersion", "manifestVersion", "projectId", "artifacts"],
   "properties": {
-    "manifestVersion": {
-      "type": "integer",
-      "minimum": 1
-    },
-    "projectId": {
-      "type": "string",
-      "minLength": 1
-    },
+    "schemaVersion": { "const": 1 },
+    "manifestVersion": { "type": "integer", "minimum": 1, "maximum": 9007199254740991 },
+    "projectId": { "$ref": "#/$defs/identifier" },
     "artifacts": {
       "type": "array",
+      "minItems": 1,
       "maxItems": 7,
-      "items": {
-        "type": "object",
-        "required": [
-          "artifactId",
-          "kind",
-          "sourceRoot"
-        ],
-        "properties": {
-          "artifactId": {
-            "type": "string",
-            "minLength": 1
-          },
-          "kind": {
-            "enum": [
-              "WEB_APP",
-              "MOBILE_APP",
-              "DATA_VISUALIZATION",
-              "SLIDE_DECK",
-              "ANIMATION_VIDEO",
-              "DESIGN",
-              "EXPERIENCE_3D"
-            ]
-          },
-          "sourceRoot": {
-            "type": "string",
-            "minLength": 1
-          },
-          "components": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "required": [
-                "componentId",
-                "kind"
-              ],
-              "properties": {
-                "kind": {
-                  "enum": [
-                    "WEB_FRONTEND",
-                    "API",
-                    "SERVICE",
-                    "WORKER",
-                    "JOB",
-                    "SHARED_PACKAGE",
-                    "STATIC_SITE_COMPONENT"
-                  ]
-                },
-                "componentId": {
-                  "type": "string",
-                  "minLength": 1
-                }
-              },
-              "additionalProperties": false
-            }
-          },
-          "previewConfig": {
-            "type": "object"
-          },
-          "publishConfig": {
-            "type": "object"
-          }
-        },
-        "additionalProperties": false
-      },
-      "minItems": 1
+      "items": { "$ref": "#/$defs/artifact" }
     },
-    "sharedBackendBinding": {
-      "type": "object"
-    },
+    "sharedBackendBinding": { "$ref": "#/$defs/backendBinding" },
     "sharedDataBindings": {
-      "type": "array"
+      "type": "array",
+      "maxItems": 64,
+      "items": { "$ref": "#/$defs/dataBinding" }
     },
     "sharedStorageBindings": {
-      "type": "array"
+      "type": "array",
+      "maxItems": 64,
+      "items": { "$ref": "#/$defs/storageBinding" }
     },
     "scopes": {
       "type": "array",
+      "maxItems": 128,
+      "uniqueItems": true,
       "items": {
-        "type": "string"
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 128,
+        "pattern": "^[a-z][a-z0-9._-]*:[a-z0-9*][a-z0-9*._/-]*$"
       }
     },
-    "entitlementsRef": {
-      "type": "string"
-    }
+    "entitlementsRef": { "$ref": "#/$defs/reference" }
   },
   "allOf": [
     {
-      "description": "au plus 1 MOBILE_APP par projet — CONTRAINTE EXÉCUTABLE (plus une simple description) ; le quota vit dans entitlementsRef, jamais codé en dur ailleurs",
+      "description": "Au plus un MOBILE_APP par projet.",
       "properties": {
         "artifacts": {
           "contains": {
             "type": "object",
-            "required": [
-              "kind"
-            ],
-            "properties": {
-              "kind": {
-                "const": "MOBILE_APP"
-              }
-            }
+            "required": ["kind"],
+            "properties": { "kind": { "const": "MOBILE_APP" } }
           },
           "minContains": 0,
           "maxContains": 1
@@ -130,12 +55,148 @@
       }
     }
   ],
-  "x-reviewVerdict": "REFUSED — 0/14 contrats signés (lot 57febeab, OpenAI-Codex, 2026-07-20)",
-  "x-reviewCloseCriterion": "v2 durci : additionalProperties false, allOf exécutable (≤1 MOBILE_APP via maxContains), minLength/minItems, PENDING_COMMIT purgé — re-soumettre à signature",
-  "x-refusalReason": "accepte contre-exemples + PENDING_COMMIT (verbatim relecteur, transmis 20/07 — corrigé en v2 : x-repoCommit était littéralement la chaîne PENDING_COMMIT)",
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "reference": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:/-]*$"
+    },
+    "relativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512,
+      "description": "Chemin POSIX relatif, '.' autorisé; segments vides, '.'/'..', chemin absolu, NUL, antislash et préfixe lecteur refusés au runtime."
+    },
+    "command": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "component": {
+      "type": "object",
+      "required": ["componentId", "kind"],
+      "properties": {
+        "componentId": { "$ref": "#/$defs/identifier" },
+        "kind": {
+          "enum": ["WEB_FRONTEND", "API", "SERVICE", "WORKER", "JOB", "SHARED_PACKAGE", "STATIC_SITE_COMPONENT"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "previewConfig": {
+      "type": "object",
+      "properties": {
+        "command": { "$ref": "#/$defs/command" },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "healthPath": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^/(?!/)" }
+      },
+      "additionalProperties": false
+    },
+    "publishConfig": {
+      "type": "object",
+      "required": ["deploymentType"],
+      "properties": {
+        "deploymentType": { "enum": ["AUTOSCALE", "STATIC", "RESERVED_VM", "SCHEDULED"] },
+        "buildCommand": { "$ref": "#/$defs/command" },
+        "outputDirectory": { "$ref": "#/$defs/relativePath" },
+        "runCommand": { "$ref": "#/$defs/command" },
+        "schedule": {
+          "type": "string",
+          "minLength": 9,
+          "maxLength": 120,
+          "description": "Expression cron standard à 5 champs, analysée par le moteur runtime autoritatif."
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "deploymentType": { "const": "SCHEDULED" } }, "required": ["deploymentType"] },
+          "then": { "required": ["schedule"] },
+          "else": { "not": { "required": ["schedule"] } }
+        }
+      ],
+      "additionalProperties": false
+    },
+    "artifact": {
+      "type": "object",
+      "required": ["artifactId", "kind", "sourceRoot"],
+      "properties": {
+        "artifactId": { "$ref": "#/$defs/identifier" },
+        "kind": {
+          "enum": [
+            "WEB_APP",
+            "MOBILE_APP",
+            "DATA_VISUALIZATION",
+            "SLIDE_DECK",
+            "ANIMATION_VIDEO",
+            "DESIGN",
+            "EXPERIENCE_3D"
+          ]
+        },
+        "sourceRoot": { "$ref": "#/$defs/relativePath" },
+        "components": { "type": "array", "maxItems": 64, "items": { "$ref": "#/$defs/component" } },
+        "previewConfig": { "$ref": "#/$defs/previewConfig" },
+        "publishConfig": { "$ref": "#/$defs/publishConfig" }
+      },
+      "additionalProperties": false
+    },
+    "componentIds": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 64,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/identifier" }
+    },
+    "backendBinding": {
+      "type": "object",
+      "required": ["bindingId", "componentIds"],
+      "properties": {
+        "bindingId": { "$ref": "#/$defs/identifier" },
+        "componentIds": { "$ref": "#/$defs/componentIds" }
+      },
+      "additionalProperties": false
+    },
+    "dataBinding": {
+      "type": "object",
+      "required": ["bindingId", "resourceRef", "access", "componentIds"],
+      "properties": {
+        "bindingId": { "$ref": "#/$defs/identifier" },
+        "resourceRef": { "$ref": "#/$defs/reference" },
+        "access": { "enum": ["READ_ONLY", "READ_WRITE"] },
+        "componentIds": { "$ref": "#/$defs/componentIds" }
+      },
+      "additionalProperties": false
+    },
+    "storageBinding": {
+      "type": "object",
+      "required": ["bindingId", "resourceRef", "access", "componentIds"],
+      "properties": {
+        "bindingId": { "$ref": "#/$defs/identifier" },
+        "resourceRef": { "$ref": "#/$defs/reference" },
+        "access": { "enum": ["READ_ONLY", "READ_WRITE"] },
+        "componentIds": { "$ref": "#/$defs/componentIds" }
+      },
+      "additionalProperties": false
+    }
+  },
   "additionalProperties": false,
+  "x-maxSerializedBytes": 65536,
   "x-contractId": "CTR-PROJECT-MANIFEST-SCHEMA",
   "x-contractVersion": 2,
+  "x-runtimeValidator": "services/api/src/project-manifest.ts",
+  "x-runtimeInvariants": [
+    "identifiants artifact/component/binding et sourceRoot uniques",
+    "références componentIds existantes et uniques",
+    "au plus un MOBILE_APP",
+    "canonicalisation des ensembles puis clés JSON triées",
+    "digest sha256 vérifié à chaque consommation",
+    "révisions append-only en base avec CAS expectedDigest cross-replica",
+    "création/import atomique avec v1; duplicate valide et recopie; remix détache les références tenant-bound",
+    "déploiement lié au digest validé puis revalidé juste avant le build worker"
+  ],
+  "x-reviewVerdict": "REFUSED historique — remédiation runtime à re-soumettre",
   "x-expectedReviewer": "OpenAI-Codex",
   "x-signatureResult": "PENDING_REVIEW"
 }
