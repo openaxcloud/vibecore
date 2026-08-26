@@ -17,6 +17,7 @@ import {
   type OnSaveCallback as OnEditorSave,
   type OnScrollCallback as OnEditorScroll,
 } from '~/components/editor/codemirror/CodeMirrorEditor';
+import { FileSaveIssueNotice, WorkspaceQuotaNotice } from '~/components/project-ide/IdeIntegrityNotices';
 import { PanelBoundary } from '~/components/ui/PanelBoundary';
 import { PanelHeader } from '~/components/ui/PanelHeader';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
@@ -206,7 +207,7 @@ export const EditorPanel = memo(
     );
 
     const editorPane = (
-      <div className="flex h-full flex-col">
+      <div className="vc-ide-integrity-container flex h-full flex-col">
         <PanelHeader className="overflow-x-auto">
           {activeFileSegments?.length && (
             <div className="flex items-center flex-1 text-sm">
@@ -256,6 +257,8 @@ export const EditorPanel = memo(
             </div>
           )}
         </PanelHeader>
+        {!useMobilePanelLayout ? <WorkspaceQuotaNotice /> : null}
+        {!useMobilePanelLayout ? <FileSaveIssueNotice filePath={editorDocument?.filePath} /> : null}
         {useMobilePanelLayout && (
           <TouchSymbolToolbar
             onInsert={(text) => {

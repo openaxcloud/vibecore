@@ -1369,6 +1369,13 @@ const runtimeFileWriteSchema = z.object({
   content: z.string(),
 
   /*
+   * Optional compare-and-swap precondition for human editor saves. The
+   * workspace agent validates it under its per-path write lock immediately
+   * before writing; the API must forward it byte-for-byte.
+   */
+  expectedContent: z.string().optional(),
+
+  /*
    * Optional content encoding. The read path returns binary files as
    * {content:<base64>, encoding:'base64'} (commit 1029075b). A read-modify-write
    * of a binary file (editor save in REMOTE mode, copy/duplicate) must be able
@@ -16543,7 +16550,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileWriteSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
-    await agentMutateEnsuring(request, authorized, '/files/write', { method: 'POST', body: JSON.stringify(body) });
+    try {
+      await agentMutateEnsuring(request, authorized, '/files/write', { method: 'POST', body: JSON.stringify(body) });
+    } catch (error) {
+      /*
+       * agentRequest intentionally normalizes agent 4xx codes. On this route a
+       * 409 is the conditional-write precondition failing; restore the stable
+       * public code so the browser can refresh both revisions and render the
+       * recovery UI instead of treating it as a generic transport failure.
+       */
+      if (body.expectedContent !== undefined && (error as { statusCode?: unknown })?.statusCode === 409) {
+        throw Object.assign(new Error(appPublicEnglish('WORKSPACE_AGENT_CLIENT_ERROR')), {
+          statusCode: 409,
+          code: 'FILE_CONTENT_CHANGED',
+        });
+      }
+
+      throw error;
+    }
     await audit(request, store, {
       organizationId: authorized.organizationId,
       action: 'runtime.file.write',
@@ -17918,11 +17942,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const snapshotTree = async () =>
       flattenTree(await agentRequest<AgentNode[]>(authorized.workspaceId, '/files/tree'));
 
-    const emit = (path: string, type: 'create' | 'update' | 'delete') =>
+    const emit = (path: string, type: 'create' | 'update' | 'delete', entryType?: AgentNode['type']) =>
       client.send(
         JSON.stringify({
           path,
           type,
+          ...(entryType ? { entryType } : {}),
           timestamp: new Date().toISOString(),
           metadata: { workspaceId: authorized.workspaceId },
         }),
@@ -17951,13 +17976,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         for (const path of current.keys()) {
           if (!previous.has(path)) {
-            emit(path, 'create');
+            emit(path, 'create', current.get(path));
           }
         }
 
         for (const path of previous.keys()) {
           if (!current.has(path)) {
-            emit(path, 'delete');
+            emit(path, 'delete', previous.get(path));
           }
         }
 

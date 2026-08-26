@@ -387,6 +387,11 @@ export class WebContainerRuntimeAdapter implements RuntimeAdapter {
           onChange({
             path,
             type: this.#mapWatchEvent(eventType),
+            ...(eventType === 'add_dir' || eventType === 'remove_dir'
+              ? { entryType: 'directory' as const }
+              : eventType === 'add_file' || eventType === 'remove_file' || eventType === 'change'
+                ? { entryType: 'file' as const }
+                : {}),
 
             /*
              * Honor the binary ⟹ base64-content invariant the rest of the app

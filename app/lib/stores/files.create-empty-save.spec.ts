@@ -34,6 +34,16 @@ function makeRemoteRuntime() {
       writeFile: vi.fn(async (path: string, content: string) => {
         disk.set(path, content);
       }),
+      writeFileIfUnchanged: vi.fn(async (path: string, content: string, expectedContent: string) => {
+        if (disk.get(path) !== expectedContent) {
+          throw Object.assign(new Error('conditional write rejected'), {
+            code: 'FILE_CONTENT_CHANGED',
+            status: 409,
+          });
+        }
+
+        disk.set(path, content);
+      }),
       watchFiles: vi.fn(async () => () => undefined),
       watchPorts: vi.fn(async () => () => undefined),
     } as unknown as ConstructorParameters<typeof FilesStore>[0],

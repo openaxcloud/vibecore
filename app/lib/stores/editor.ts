@@ -35,37 +35,50 @@ export class EditorStore {
   setDocuments(files: FileMap, keepUnsavedPaths?: ReadonlySet<string>) {
     const previousDocuments = this.documents.value;
 
-    this.documents.set(
-      Object.fromEntries<EditorDocument>(
-        Object.entries(files)
-          .map(([filePath, dirent]) => {
-            if (dirent === undefined || dirent.type !== 'file') {
-              return undefined;
-            }
+    const nextDocuments = Object.fromEntries<EditorDocument>(
+      Object.entries(files)
+        .map(([filePath, dirent]) => {
+          if (dirent === undefined || dirent.type !== 'file') {
+            return undefined;
+          }
 
-            const previousDocument = previousDocuments?.[filePath];
+          const previousDocument = previousDocuments?.[filePath];
 
-            /*
-             * Preserve the in-editor value for files with unsaved edits. This
-             * runs on every `files` store change (AI writing a different file, a
-             * save echo, an external write); without this guard a dirty file is
-             * reset to its on-disk content and the user's unsaved edits are lost.
-             */
-            const preserveUnsaved = keepUnsavedPaths?.has(filePath) && previousDocument !== undefined;
+          /*
+           * Preserve the in-editor value for files with unsaved edits. This
+           * runs on every `files` store change (AI writing a different file, a
+           * save echo, an external write); without this guard a dirty file is
+           * reset to its on-disk content and the user's unsaved edits are lost.
+           */
+          const preserveUnsaved = keepUnsavedPaths?.has(filePath) && previousDocument !== undefined;
 
-            return [
+          return [
+            filePath,
+            {
+              value: preserveUnsaved ? previousDocument!.value : dirent.content,
               filePath,
-              {
-                value: preserveUnsaved ? previousDocument!.value : dirent.content,
-                filePath,
-                isBinary: dirent.isBinary, // Add this line
-                scroll: previousDocument?.scroll,
-              },
-            ] as [string, EditorDocument];
-          })
-          .filter(Boolean) as Array<[string, EditorDocument]>,
-      ),
+              isBinary: dirent.isBinary, // Add this line
+              scroll: previousDocument?.scroll,
+            },
+          ] as [string, EditorDocument];
+        })
+        .filter(Boolean) as Array<[string, EditorDocument]>,
     );
+
+    /*
+     * A remote deletion removes the file from `files`, but it must not also
+     * discard a dirty editor buffer. Keep the complete prior document so its
+     * content and view state remain recoverable until the conflict is resolved.
+     */
+    for (const filePath of keepUnsavedPaths ?? []) {
+      const previousDocument = previousDocuments?.[filePath];
+
+      if (nextDocuments[filePath] === undefined && previousDocument !== undefined) {
+        nextDocuments[filePath] = previousDocument;
+      }
+    }
+
+    this.documents.set(nextDocuments);
   }
 
   setSelectedFile(filePath: string | undefined) {

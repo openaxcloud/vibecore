@@ -1278,6 +1278,21 @@ describe('BUG-AGENT-001 — writeFile ne repart sur le réseau que sur changemen
     expect(writesOf(fetchMock)).toHaveLength(1);
   });
 
+  it('une écriture conditionnelle contourne le mémo et transmet la révision attendue', async () => {
+    const { adapter, fetchMock } = makeAdapter();
+
+    await adapter.writeFile('src/App.tsx', 'local');
+    await adapter.writeFileIfUnchanged('src/App.tsx', 'local', 'remote reviewed');
+
+    const writes = writesOf(fetchMock);
+    expect(writes).toHaveLength(2);
+    expect(JSON.parse(String((writes[1]?.[1] as RequestInit).body))).toEqual({
+      path: 'src/App.tsx',
+      content: 'local',
+      expectedContent: 'remote reviewed',
+    });
+  });
+
   it('tout changement de contenu passe — sinon on perd le fichier', async () => {
     const { adapter, fetchMock } = makeAdapter();
 
@@ -1432,7 +1447,7 @@ describe('BUG-AGENT-006/002 — 425 Too Early : backoff, Retry-After et attente 
 
     expect(early).toBeLessThan(writes().length);
   });
-});
+})
 
 /*
  * BUG-AGENT-006 — un `425 WORKSPACE_NOT_STARTED` doit PROVISIONNER, pas

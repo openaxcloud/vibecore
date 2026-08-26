@@ -1,6 +1,6 @@
 import { resolveMarketingLanguage, type MarketingLanguage } from './marketing';
 
-export type FileHistorySource = 'initial' | 'save' | 'agent' | 'restore' | 'external';
+export type FileHistorySource = 'initial' | 'save' | 'agent' | 'restore' | 'external' | 'conflict' | 'recovery';
 
 export const fileHistoryEn = {
   'fileHistory.dialogLabel': 'File history for {fileName}',
@@ -18,6 +18,8 @@ export const fileHistoryEn = {
   'fileHistory.source.agent': 'Agent',
   'fileHistory.source.restore': 'Restored',
   'fileHistory.source.external': 'External',
+  'fileHistory.source.conflict': 'Recovered conflict edit',
+  'fileHistory.source.recovery': 'Recovered unsaved edit',
   'fileHistory.dateUnavailable': 'Date unavailable',
   'fileHistory.latest': 'Latest',
   'fileHistory.previous': 'Previous version',
@@ -54,6 +56,8 @@ export const fileHistoryFr: FileHistoryCopy = {
   'fileHistory.source.agent': 'Agent',
   'fileHistory.source.restore': 'Restaurée',
   'fileHistory.source.external': 'Externe',
+  'fileHistory.source.conflict': 'Édition récupérée après conflit',
+  'fileHistory.source.recovery': 'Édition non enregistrée récupérée',
   'fileHistory.dateUnavailable': 'Date indisponible',
   'fileHistory.latest': 'Dernière version',
   'fileHistory.previous': 'Version précédente',

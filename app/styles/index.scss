@@ -10246,6 +10246,10 @@ body :where(.lucide, svg[data-lucide]) {
   background: var(--vc-ide-bg-app);
 }
 
+.bolt-project-editor-tool {
+  container-type: inline-size;
+}
+
 .bolt-project-editor-toolbar,
 .bolt-project-webview-toolbar,
 .bolt-project-console-header {
@@ -14803,6 +14807,193 @@ body :where(.lucide, svg[data-lucide]) {
   height: 100%;
   flex-direction: column;
   overflow: hidden;
+  container-type: inline-size;
+}
+
+.vc-ide-integrity-container {
+  container-type: inline-size;
+}
+
+.bolt-mobile-integrity-stack {
+  position: fixed;
+  z-index: 70;
+  top: calc(56px + env(safe-area-inset-top, 0px));
+  right: 8px;
+  left: 8px;
+  display: grid;
+  max-height: min(46vh, 420px);
+  gap: 8px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  pointer-events: auto;
+}
+
+.bolt-mobile-integrity-stack .vc-ide-integrity-notice {
+  border-width: 1px;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--vc-ide-bg-app), transparent 38%);
+}
+
+.bolt-mobile-integrity-stack .vc-ide-integrity-notice-quota {
+  margin: 0;
+}
+
+/*
+ * BUG-CREATE-002 / BUG-IDE save integrity — visible, actionable failures.
+ * The notice uses semantic IDE tokens in both themes and wraps into one column
+ * in narrow panes, not just at the page breakpoint (split editors can be mobile-
+ * width on a desktop screen).
+ */
+.vc-ide-integrity-notice {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 22px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid color-mix(in srgb, var(--vc-ide-accent-warning), transparent 48%);
+  background: color-mix(in srgb, var(--vc-ide-accent-warning), var(--vc-ide-bg-panel) 91%);
+  padding: 10px 12px;
+  color: var(--vc-ide-text-primary);
+}
+
+.vc-ide-integrity-notice-quota {
+  flex: 0 0 auto;
+  margin: 8px 8px 0;
+  border-radius: 8px;
+}
+
+.vc-ide-integrity-notice-save {
+  flex: 0 0 auto;
+  border-width: 0 0 1px;
+  border-radius: 0;
+}
+
+.vc-ide-integrity-notice[data-kind='conflict'] {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-error), transparent 52%);
+  background: color-mix(in srgb, var(--vc-ide-accent-error), var(--vc-ide-bg-panel) 94%);
+}
+
+.vc-ide-integrity-notice-icon {
+  align-self: start;
+  margin-top: 2px;
+  color: var(--vc-ide-accent-warning);
+  font-size: 20px;
+}
+
+.vc-ide-integrity-notice[data-kind='conflict'] .vc-ide-integrity-notice-icon {
+  color: var(--vc-ide-accent-error);
+}
+
+.vc-ide-integrity-notice-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.vc-ide-integrity-notice-copy strong {
+  overflow-wrap: anywhere;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.vc-ide-integrity-notice-copy p {
+  margin: 0;
+  color: var(--vc-ide-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.vc-ide-integrity-notice-copy .vc-ide-integrity-notice-action-error {
+  color: var(--vc-ide-accent-error);
+  font-weight: 650;
+}
+
+.vc-ide-integrity-notice-actions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.vc-ide-integrity-action {
+  display: inline-flex;
+  min-width: 0;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--vc-ide-border-visible);
+  border-radius: 7px;
+  background: var(--vc-ide-bg-card);
+  padding: 8px 11px;
+  color: var(--vc-ide-text-primary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+}
+
+.vc-ide-integrity-action:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 35%);
+  background: var(--vc-ide-bg-hover);
+}
+
+.vc-ide-integrity-action:focus-visible {
+  outline: 2px solid var(--vc-ide-accent-action);
+  outline-offset: 2px;
+}
+
+.vc-ide-integrity-action:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.vc-ide-integrity-action-primary {
+  border-color: color-mix(in srgb, var(--vc-ide-accent-action), transparent 24%);
+  background: var(--vc-ide-accent-action);
+  color: var(--vc-ide-bg-app);
+}
+
+/* A visible quota row consumes vertical space instead of covering tabs/editor. */
+.bolt-project-main-stack:has(> .vc-ide-integrity-notice-quota) > .bolt-project-main-panes {
+  height: auto;
+  flex: 1 1 0;
+}
+
+@container (max-width: 700px) {
+  .vc-ide-integrity-notice {
+    grid-template-columns: 20px minmax(0, 1fr);
+  }
+
+  .vc-ide-integrity-notice-actions {
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+
+  .vc-ide-integrity-action {
+    flex: 1 1 150px;
+  }
+}
+
+@media (max-width: 700px) {
+  .vc-ide-integrity-notice {
+    grid-template-columns: 20px minmax(0, 1fr);
+    padding: 10px;
+  }
+
+  .vc-ide-integrity-notice-actions {
+    grid-column: 1 / -1;
+    justify-content: stretch;
+  }
+
+  .vc-ide-integrity-action {
+    flex: 1 1 145px;
+  }
 }
 
 .bolt-project-main-panes {

@@ -46,6 +46,9 @@ export interface FileNode {
 export interface FileChange {
   path: string;
   type: 'create' | 'update' | 'delete' | 'rename';
+
+  /** Structural kind supplied by authoritative tree/watch sources. */
+  entryType?: 'file' | 'directory';
   content?: string;
   oldPath?: string;
   binary?: boolean;
@@ -235,6 +238,15 @@ export interface RuntimeAdapter {
    */
   readFile(path: string): Promise<{ content: string; encoding?: 'utf8' | 'base64' }>;
   writeFile(path: string, content: string): Promise<void>;
+
+  /**
+   * Atomically replace a text file only when its authoritative content still
+   * equals `expectedContent` at the runtime write boundary. Remote runtimes use
+   * this for human editor saves so a concurrent agent/shell write cannot slip
+   * between a client-side read and write. Runtimes that cannot provide this
+   * guarantee omit the capability; callers that require it must fail closed.
+   */
+  writeFileIfUnchanged?(path: string, content: string, expectedContent: string): Promise<void>;
   createFile(path: string, content?: string): Promise<void>;
   createDirectory(path: string): Promise<void>;
   deleteFile(path: string): Promise<void>;

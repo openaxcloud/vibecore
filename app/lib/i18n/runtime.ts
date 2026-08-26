@@ -74,6 +74,7 @@ import { githubTabEn, githubTabFr } from './catalogs/github-tab';
 import { gitLabAuthDialogEn, gitLabAuthDialogFr } from './catalogs/gitlab-auth-dialog';
 import { gitLabTabEn, gitLabTabFr } from './catalogs/gitlab-tab';
 import { headerActionButtonsEn, headerActionButtonsFr } from './catalogs/header-action-buttons';
+import { ideIntegrityEn, ideIntegrityFr } from './catalogs/ide-integrity';
 import { ideNewRouteEn, ideNewRouteFr } from './catalogs/ide-new-route';
 import { idePanelsEn, idePanelsFr } from './catalogs/ide-panels';
 import { impersonationBannerEn, impersonationBannerFr } from './catalogs/impersonation-banner';
@@ -296,6 +297,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...githubAuthDialogEn,
       ...githubTabEn,
       ...headerActionButtonsEn,
+      ...ideIntegrityEn,
       ...keybindingsEn,
       ...organizationAccessEn,
       ...organizationDomainsEn,
@@ -448,6 +450,7 @@ const RESOURCES: Record<SupportedLanguage, { translation: Record<string, string>
       ...githubAuthDialogFr,
       ...githubTabFr,
       ...headerActionButtonsFr,
+      ...ideIntegrityFr,
       ...keybindingsFr,
       ...organizationAccessFr,
       ...organizationDomainsFr,

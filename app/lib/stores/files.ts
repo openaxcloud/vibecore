@@ -23,6 +23,12 @@ import { createScopedLogger } from '~/utils/logger';
 import { path } from '~/utils/path';
 import { unreachable } from '~/utils/unreachable';
 
+type IntegrityRuntimeAdapter = RuntimeAdapter & {
+  writeFileIfUnchanged?: (path: string, content: string, expectedContent: string) => Promise<void>;
+};
+
+type TypedFileChange = FileChange & { entryType?: 'file' | 'directory' };
+
 const logger = createScopedLogger('FilesStore');
 
 const utf8TextDecoder = new TextDecoder('utf8', { fatal: true });
@@ -35,6 +41,67 @@ export interface SaveFileOptions {
    * fresh version for other files, so parallel agent-patch lanes don't fail.
    */
   onRemoteConflict?: 'throw' | 'reconcile';
+
+  /**
+   * Content the user explicitly reviewed before retrying a conflicted save.
+   * The retry is allowed only while the remote file still matches this exact
+   * value. A newer remote edit produces another conflict instead of being
+   * overwritten, which gives the "Keep my version" action CAS semantics.
+   */
+  expectedRemoteContent?: string;
+}
+
+export const FILE_SAVE_CONFLICT_CODE = 'FILE_SAVE_CONFLICT' as const;
+
+/**
+ * Structured optimistic-concurrency failure for a human file save.
+ *
+ * Keeping both versions on the error lets the Workbench retain the editor
+ * buffer, persist a recovery copy, and offer explicit resolution actions. The
+ * previous plain `Error` forced callers to inspect a localized message and
+ * could only show a generic toast.
+ */
+export class FileSaveConflictError extends Error {
+  readonly code = FILE_SAVE_CONFLICT_CODE;
+
+  readonly filePath!: string;
+
+  readonly localContent!: string;
+
+  readonly remoteContent!: string;
+
+  constructor(
+    filePath: string,
+    localContent: string,
+    remoteContent: string,
+    message = clientStoresServicesText('clientStores.files.remoteChanged', { path: filePath }),
+  ) {
+    super(message);
+    this.name = 'FileSaveConflictError';
+
+    /*
+     * Source files frequently contain tokens, keys, or customer data. The
+     * logger serializes enumerable Error properties, so keep the recovery
+     * payload accessible to typed callers but out of console/debug exports.
+     */
+    Object.defineProperties(this, {
+      filePath: { value: filePath, enumerable: false },
+      localContent: { value: localContent, enumerable: false },
+      remoteContent: { value: remoteContent, enumerable: false },
+    });
+  }
+}
+
+export function isFileSaveConflictError(error: unknown): error is FileSaveConflictError {
+  return (
+    error instanceof FileSaveConflictError ||
+    (typeof error === 'object' &&
+      error !== null &&
+      (error as { code?: unknown }).code === FILE_SAVE_CONFLICT_CODE &&
+      typeof (error as { filePath?: unknown }).filePath === 'string' &&
+      typeof (error as { localContent?: unknown }).localContent === 'string' &&
+      typeof (error as { remoteContent?: unknown }).remoteContent === 'string')
+  );
 }
 
 export interface File {
@@ -89,7 +156,7 @@ export function shouldPreserveHydratedTree(currentFileCount: number, incomingFil
 }
 
 export class FilesStore {
-  #runtime: RuntimeAdapter;
+  #runtime: IntegrityRuntimeAdapter;
 
   /**
    * Tracks the number of files without folders.
@@ -133,7 +200,7 @@ export class FilesStore {
   }
 
   constructor(runtime: RuntimeAdapter) {
-    this.#runtime = runtime;
+    this.#runtime = runtime as IntegrityRuntimeAdapter;
 
     // Load deleted paths from localStorage if available
     this.#loadDeletedPaths();
@@ -184,7 +251,7 @@ export class FilesStore {
   }
 
   setRuntime(runtime: RuntimeAdapter) {
-    this.#runtime = runtime;
+    this.#runtime = runtime as IntegrityRuntimeAdapter;
     this.#stopWatchingFiles?.();
     this.#stopWatchingFiles = undefined;
 
@@ -848,10 +915,24 @@ export class FilesStore {
       });
 
       if (this.#runtime.mode === 'remote-kubernetes') {
-        const remoteContent = await this.#runtime
-          .readFile(relativePath)
-          .then((result) => result.content)
-          .catch(() => oldContent);
+        /*
+         * Fail closed when the authoritative read is unavailable. Falling back
+         * to `oldContent` made a network/RBAC error look like "unchanged" and
+         * allowed the following write to clobber an unseen remote edit. The
+         * Workbench keeps the dirty editor document and persists a recovery
+         * copy, so surfacing the read failure is safe and retryable.
+         */
+        const remoteContent = await this.#runtime.readFile(relativePath).then((result) => result.content);
+
+        /*
+         * A conflict resolution is tied to the exact revision the user saw.
+         * Compare it unconditionally: a watcher may already have refreshed the
+         * FilesStore baseline to a newer remote revision, making
+         * remoteContent === oldContent while the reviewed revision is stale.
+         */
+        if (options?.expectedRemoteContent !== undefined && remoteContent !== options.expectedRemoteContent) {
+          throw new FileSaveConflictError(filePath, content, remoteContent);
+        }
 
         if (remoteContent !== oldContent) {
           /*
@@ -861,24 +942,59 @@ export class FilesStore {
            * `reconcile`, which merges (JSON) / adopts-fresh (other) instead of
            * failing with a stack of "Remote file changed since it was loaded".
            */
-          if (options?.onRemoteConflict !== 'reconcile') {
-            throw new Error(clientStoresServicesText('clientStores.files.remoteChanged', { path: filePath }));
+          if (options?.expectedRemoteContent !== undefined) {
+            /*
+             * The user reviewed this exact remote revision and chose to keep
+             * the local buffer. Treat it as the new baseline; if the remote
+             * changed again, the equality above fails and a fresh conflict is
+             * surfaced instead of overwriting the newer revision.
+             */
+            baselineContent = remoteContent;
+          } else if (options?.onRemoteConflict !== 'reconcile') {
+            throw new FileSaveConflictError(filePath, content, remoteContent);
+          } else {
+            effectiveContent = reconcileRemoteWrite(filePath, remoteContent, content);
+            baselineContent = remoteContent;
+
+            this.files.setKey(filePath, {
+              type: 'file',
+              content: effectiveContent,
+              isBinary: currentFile?.type === 'file' ? currentFile.isBinary : false,
+              isLocked: currentFile?.type === 'file' ? currentFile.isLocked : false,
+              lockedByFolder: currentFile?.type === 'file' ? currentFile.lockedByFolder : undefined,
+            });
           }
-
-          effectiveContent = reconcileRemoteWrite(filePath, remoteContent, content);
-          baselineContent = remoteContent;
-
-          this.files.setKey(filePath, {
-            type: 'file',
-            content: effectiveContent,
-            isBinary: currentFile?.type === 'file' ? currentFile.isBinary : false,
-            isLocked: currentFile?.type === 'file' ? currentFile.isLocked : false,
-            lockedByFolder: currentFile?.type === 'file' ? currentFile.lockedByFolder : undefined,
-          });
         }
       }
 
-      await this.#runtime.writeFile(relativePath, effectiveContent);
+      if (this.#runtime.mode === 'remote-kubernetes') {
+        const conditionalWrite = this.#runtime.writeFileIfUnchanged;
+
+        if (!conditionalWrite) {
+          throw new Error('REMOTE_CONDITIONAL_WRITE_UNSUPPORTED');
+        }
+
+        try {
+          /*
+           * This compare happens again at the workspace-agent write boundary,
+           * under its per-path queue. The earlier read is only for presenting a
+           * useful conflict/merge; this call is the actual linearization point.
+           */
+          await conditionalWrite.call(this.#runtime, relativePath, effectiveContent, baselineContent);
+        } catch (error) {
+          const code = (error as { code?: unknown } | undefined)?.code;
+          const status = (error as { status?: unknown } | undefined)?.status;
+
+          if (code === 'FILE_CONTENT_CHANGED' || status === 409) {
+            const latestRemoteContent = await this.#runtime.readFile(relativePath).then((result) => result.content);
+            throw new FileSaveConflictError(filePath, content, latestRemoteContent);
+          }
+
+          throw error;
+        }
+      } else {
+        await this.#runtime.writeFile(relativePath, effectiveContent);
+      }
 
       if (!this.#modifiedFiles.has(filePath)) {
         this.#modifiedFiles.set(filePath, baselineContent);
@@ -891,6 +1007,47 @@ export class FilesStore {
 
       throw error;
     }
+  }
+
+  /**
+   * Adopt a remote revision after an explicit user choice without issuing a
+   * write. Lock/binary metadata are preserved and the Workbench updates the
+   * editor buffer separately. The recovery draft is captured before this is
+   * called, so choosing the remote side never destroys the user's text.
+   */
+  async acceptRemoteFile(filePath: string, remoteContent: string, localContent: string) {
+    const currentFile = this.files.get()[filePath];
+
+    if (currentFile?.type !== 'file') {
+      throw new Error(clientStoresServicesText('clientStores.files.invalidFileWrite', { path: filePath }));
+    }
+
+    if (this.#runtime.mode === 'remote-kubernetes') {
+      const relativePath = this.#toRuntimePath(filePath);
+
+      if (!relativePath) {
+        throw new Error(clientStoresServicesText('clientStores.files.invalidFileWrite', { path: filePath }));
+      }
+
+      /*
+       * "Use workspace version" must be concurrency-safe too. The version the
+       * user reviewed may have changed again while the notice was open; adopting
+       * that stale snapshot would clear the dirty marker even though the runtime
+       * now contains different text. Re-read authoritatively and surface a fresh
+       * structured conflict instead. A read failure also fails closed and leaves
+       * both the editor buffer and the existing notice untouched.
+       */
+      const latestRemoteContent = await this.#runtime.readFile(relativePath).then((result) => result.content);
+
+      if (latestRemoteContent !== remoteContent) {
+        throw new FileSaveConflictError(filePath, localContent, latestRemoteContent);
+      }
+    }
+
+    this.files.setKey(filePath, {
+      ...currentFile,
+      content: remoteContent,
+    });
   }
 
   async #init() {
@@ -1106,7 +1263,7 @@ export class FilesStore {
     }
   }
 
-  #processFileChange(change: FileChange) {
+  #processFileChange(change: TypedFileChange) {
     const sanitizedPath = this.#toWorkbenchPath(change.path).replace(/\/+$/g, '');
 
     /*
@@ -1141,6 +1298,17 @@ export class FilesStore {
       if (this.#deletedPaths.size > 0) {
         this.#clearDeletedPathForCreate(sanitizedPath);
         this.#persistDeletedPaths();
+      }
+
+      if (change.entryType === 'directory') {
+        const existing = this.files.get()[sanitizedPath];
+        this.files.setKey(sanitizedPath, {
+          type: 'folder',
+          ...(existing?.isLocked !== undefined ? { isLocked: existing.isLocked } : {}),
+          ...(existing?.lockedByFolder !== undefined ? { lockedByFolder: existing.lockedByFolder } : {}),
+        });
+
+        return;
       }
 
       this.#registerContentlessCreate(sanitizedPath);

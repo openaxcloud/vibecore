@@ -91,6 +91,7 @@ import { Preview } from '~/components/workbench/Preview';
 import { Search } from '~/components/workbench/Search';
 import { LockManager } from '~/components/workbench/LockManager';
 import { ProjectAgentRunStatus } from '~/components/project-ide/ProjectAgentRunStatus';
+import { FileSaveIssueNotice, WorkspaceQuotaNotice } from '~/components/project-ide/IdeIntegrityNotices';
 import { FloatingPaneFrame } from '~/components/project-ide/FloatingPaneFrame';
 import { PANEL_ICONS, panelIcon } from '~/components/project-ide/panel-meta';
 import {
@@ -3412,6 +3413,21 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const currentView = useStore(workbenchStore.currentView);
     const currentDocument = useStore(workbenchStore.currentDocument);
     const unsavedFiles = useStore(workbenchStore.unsavedFiles);
+    const fileSaveIssues = useStore(workbenchStore.fileSaveIssues);
+
+    useEffect(() => {
+      const protectUnsavedBuffers = (event: BeforeUnloadEvent) => {
+        event.preventDefault();
+        event.returnValue = '';
+      };
+
+      if (unsavedFiles instanceof Set && unsavedFiles.size > 0) {
+        window.addEventListener('beforeunload', protectUnsavedBuffers);
+      }
+
+      return () => window.removeEventListener('beforeunload', protectUnsavedBuffers);
+    }, [unsavedFiles]);
+
     const theme = useStore(themeStore);
     const DEFAULT_RIGHT_PANEL_WIDTH = 280;
     const MIN_RIGHT_PANEL_WIDTH = 272;
@@ -8314,6 +8330,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               <div className="bolt-project-workspace-shell">
                 <section className="bolt-project-ide-panel" aria-label={t('chat.copy.editorAndPreview_c279cf0b')}>
                   <div className="bolt-project-main-stack">
+                    <WorkspaceQuotaNotice />
+                    <FileSaveIssueNotice filePath={currentDocument?.filePath} />
                     <div
                       className="bolt-project-main-panes"
                       data-window-id={projectEditorWindowId}
@@ -9296,6 +9314,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             projectIdePanels
           ) : (
             <>
+              {projectIdeMode &&
+              useMobileIde &&
+              (quotaWarning || billingUpgradePrompt || Object.keys(fileSaveIssues).length > 0) ? (
+                <div className="bolt-mobile-integrity-stack" data-testid="mobile-ide-integrity-stack">
+                  <WorkspaceQuotaNotice />
+                  <FileSaveIssueNotice filePath={currentDocument?.filePath} />
+                </div>
+              ) : null}
               {agentPanel}
               {useMobileIde && mobilePanel === 'locks' ? (
                 <PanelBoundary title={t('chat.copy.locks_01175ae5')}>
