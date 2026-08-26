@@ -182,6 +182,24 @@
       "expiresOn": "2027-08-04"
     },
     {
+      "id": "ide-file-integrity-control-sentinels",
+      "path": "app/lib/stores/*.ts",
+      "rule": "error-message",
+      "textPattern": "^(?:FILE_HISTORY_PERSISTENCE_UNAVAILABLE|REMOTE_CONDITIONAL_WRITE_UNSUPPORTED|FILE_SAVE_BUFFER_CHANGED_DURING_RESOLUTION)$",
+      "justification": "These stable machine sentinels keep destructive conflict resolution fail-closed. IdeIntegrityNotices catches every action failure and renders catalogued EN/FR recovery copy; the sentinel text is never shown to the user.",
+      "owner": "ide-platform-and-i18n",
+      "expiresOn": "2027-08-26"
+    },
+    {
+      "id": "runtime-websocket-ticket-store-invariant",
+      "path": "services/api/src/prisma-store.ts",
+      "rule": "error-message",
+      "textPattern": "^Runtime WebSocket ticket insert returned no row$",
+      "justification": "This impossible INSERT RETURNING invariant is retained for operator diagnostics. The API masks uncaught 5xx failures through its localized public error contract and never serializes this message.",
+      "owner": "runtime-security-and-i18n",
+      "expiresOn": "2027-08-26"
+    },
+    {
       "id": "retired-static-marketing-shell-response",
       "path": "app/lib/marketing/ecode-static-shell.server.ts",
       "rule": "response-message",
