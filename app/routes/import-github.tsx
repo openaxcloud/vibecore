@@ -1,7 +1,7 @@
 import { Github } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
-import { Form, useActionData, useNavigation } from 'react-router';
+import { Form, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { AppShell } from '~/components/dashboard/SaaSLayout';
 import { Button } from '~/components/ui/Button';
 import {
@@ -80,7 +80,29 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     return redirect('/');
   }
 
-  return json({ language: localeResolution.language }, { headers: localeResponseHeaders(request, localeResolution) });
+  const prefill = gitImportPrefillFromUrl(request.url);
+
+  return json(
+    {
+      language: localeResolution.language,
+      ...prefill,
+    },
+    { headers: localeResponseHeaders(request, localeResolution) },
+  );
+}
+
+export function gitImportPrefillFromUrl(requestUrl: string) {
+  const url = new URL(requestUrl);
+
+  return {
+    repositoryUrl: boundedImportField(url.searchParams.get('repositoryUrl'), 2_048),
+    branch: boundedImportField(url.searchParams.get('branch'), 255),
+    name: boundedImportField(url.searchParams.get('name'), 255),
+  };
+}
+
+function boundedImportField(value: string | null, maximumLength: number): string {
+  return value?.trim().slice(0, maximumLength) ?? '';
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
@@ -139,6 +161,7 @@ export async function action({ request }: EnterpriseActionArgs) {
 export default function ImportGithubPage() {
   const { i18n } = useTranslation();
   const copy = getImportRoutesCopy(i18n.resolvedLanguage ?? i18n.language);
+  const loaderData = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as ImportGitActionData | undefined;
   const navigation = useNavigation();
   const importing = navigation.state === 'submitting';
@@ -161,6 +184,7 @@ export default function ImportGithubPage() {
               name="repositoryUrl"
               type="url"
               required
+              defaultValue={loaderData.repositoryUrl}
               placeholder={copy['importRoutes.git.form.repositoryPlaceholder']}
             />
           </label>
@@ -169,6 +193,7 @@ export default function ImportGithubPage() {
             <input
               className="min-h-11 w-full min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-base outline-none sm:text-sm"
               name="branch"
+              defaultValue={loaderData.branch}
               placeholder={copy['importRoutes.git.form.branchPlaceholder']}
             />
           </label>
@@ -177,6 +202,7 @@ export default function ImportGithubPage() {
             <input
               className="min-h-11 w-full min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-base outline-none sm:text-sm"
               name="name"
+              defaultValue={loaderData.name}
               placeholder={copy['importRoutes.git.form.projectPlaceholder']}
             />
           </label>

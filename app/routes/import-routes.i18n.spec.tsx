@@ -11,7 +11,13 @@ const firstOrganizationOrNullMock = vi.hoisted(() => vi.fn());
 
 const routeState = vi.hoisted(() => ({
   actionData: undefined as unknown,
-  loaderData: { language: 'fr', source: null as 'bolt' | 'lovable' | 'base44' | 'previous-agent-export' | null },
+  loaderData: {
+    language: 'fr',
+    source: null as 'bolt' | 'lovable' | 'base44' | 'previous-agent-export' | null,
+    repositoryUrl: '',
+    branch: '',
+    name: '',
+  },
   navigationState: 'idle',
 }));
 
@@ -77,7 +83,7 @@ function readData<T>(result: unknown): T {
 afterEach(() => {
   cleanup();
   routeState.actionData = undefined;
-  routeState.loaderData = { language: 'fr', source: null };
+  routeState.loaderData = { language: 'fr', source: null, repositoryUrl: '', branch: '', name: '' };
   routeState.navigationState = 'idle';
   apiRequestMock.mockReset();
   firstOrganizationMock.mockReset();
@@ -137,6 +143,9 @@ describe('localized import routes', () => {
 
   it('switches the Git import surface live without translating brands or branch names', async () => {
     routeState.actionData = { errorCode: 'inaccessible' };
+    routeState.loaderData.repositoryUrl = 'https://github.com/acme/imported-app';
+    routeState.loaderData.branch = 'release/v2';
+    routeState.loaderData.name = 'Imported app';
 
     const i18n = createI18nInstance('fr');
 
@@ -148,6 +157,11 @@ describe('localized import routes', () => {
 
     expect(screen.getByRole('heading', { name: 'Importer un dépôt Git' })).toBeTruthy();
     expect(screen.getByLabelText('URL du dépôt')).toBeTruthy();
+    expect((screen.getByLabelText('URL du dépôt') as HTMLInputElement).value).toBe(
+      'https://github.com/acme/imported-app',
+    );
+    expect((screen.getByLabelText('Branche') as HTMLInputElement).value).toBe('release/v2');
+    expect((screen.getByLabelText('Nom du projet') as HTMLInputElement).value).toBe('Imported app');
     expect((screen.getByLabelText('Branche') as HTMLInputElement).placeholder).toBe('main');
     expect(screen.getByText(/GitHub, GitLab ou Bitbucket/u)).toBeTruthy();
     expect(screen.getByRole('alert').textContent).not.toContain('upstream');

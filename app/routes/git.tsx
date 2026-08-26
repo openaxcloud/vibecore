@@ -1,41 +1,40 @@
 import type { LoaderFunctionArgs } from 'react-router';
-import { data as json, type MetaFunction } from 'react-router';
-import { ClientOnly } from 'remix-utils/client-only';
-import { BaseChat } from '~/components/chat/BaseChat';
-import { GitUrlImport } from '~/components/git/GitUrlImport.client';
-import { Header } from '~/components/header/Header';
-import BackgroundRays from '~/components/ui/BackgroundRays';
-import { buildRemainingRouteMeta, getRemainingRouteShellsCopy } from '~/lib/i18n/catalogs/remaining-route-shells';
-import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { redirect } from 'react-router';
 
-export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
-  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
-  const language = data?.language ?? rootData?.language;
-  const copy = getRemainingRouteShellsCopy(language);
+/*
+ * `/git` was the legacy client-only clone surface. It mounted `useGit()` with no
+ * project/workspace identity, which made the remote runtime adapter POST `{}` to
+ * `/api/runtime/workspaces` twice and could never import anything. The real,
+ * tenant-scoped import flow is `/import-github`: it creates the project through
+ * the authenticated organization API, persists the files, then opens that
+ * project's IDE. Keep old bookmarks working by redirecting rather than trying
+ * to provision an ownerless workspace.
+ */
+export function legacyGitImportLocation(requestUrl: string): string {
+  const source = new URL(requestUrl);
+  const target = new URL('/import-github', source.origin);
+  const repositoryUrl = source.searchParams.get('repositoryUrl') ?? source.searchParams.get('url');
 
-  return buildRemainingRouteMeta({
-    title: copy['remainingRoutes.git.title'],
-    description: copy['remainingRoutes.git.description'],
-    path: '/git',
-    language,
-  });
-};
+  if (repositoryUrl) {
+    target.searchParams.set('repositoryUrl', repositoryUrl);
+  }
 
-export async function loader(args: LoaderFunctionArgs) {
-  const localeResolution = resolveRequestLocale(args.request);
+  for (const key of ['branch', 'name', 'lang'] as const) {
+    const value = source.searchParams.get(key);
 
-  return json(
-    { language: localeResolution.language, url: args.params.url },
-    { headers: localeResponseHeaders(args.request, localeResolution) },
-  );
+    if (value) {
+      target.searchParams.set(key, value);
+    }
+  }
+
+  return `${target.pathname}${target.search}`;
 }
 
-export default function Index() {
-  return (
-    <div className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1">
-      <BackgroundRays />
-      <Header />
-      <ClientOnly fallback={<BaseChat />}>{() => <GitUrlImport />}</ClientOnly>
-    </div>
-  );
+export async function loader({ request }: LoaderFunctionArgs) {
+  return redirect(legacyGitImportLocation(request.url), 301);
+}
+
+/* The loader always redirects; the element exists only to satisfy route typing. */
+export default function LegacyGitImportRedirect() {
+  return null;
 }
