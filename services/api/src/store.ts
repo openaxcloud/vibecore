@@ -1463,7 +1463,15 @@ export interface ApiStore {
     message: string;
     pagePath?: string;
   }): Promise<ContactRequestRecord>;
-  countProjects(organizationId: string): Promise<number>;
+  countProjects(organizationId: string, options?: { since?: Date }): Promise<number>;
+  /** Active moderation strikes across every current organization member. */
+  countOrganizationActiveStrikes(organizationId: string, nowMs: number): Promise<number>;
+  /**
+   * Authoritative count used for tenant demotion. Implementations must inspect
+   * every high/critical event in the window; a display-list `take` cap is not a
+   * security boundary and would let newer low-severity rows bury an incident.
+   */
+  countRecentSevereAbuseEvents(organizationId: string, since: Date): Promise<number>;
   softDeleteProject(projectId: string): Promise<ProjectRecord>;
   restoreProject(projectId: string): Promise<ProjectRecord>;
 
@@ -1901,6 +1909,8 @@ export interface ApiStore {
     name: string;
     runtimeMode: string;
     environment?: string;
+    /** Non-running checkouts (for example production source trees) start STOPPED. */
+    initialStatus?: WorkspaceRecord['status'];
   }): Promise<WorkspaceRecord>;
   getWorkspace(id: string): Promise<WorkspaceRecord | undefined>;
   listWorkspaces(projectId: string): Promise<WorkspaceRecord[]>;

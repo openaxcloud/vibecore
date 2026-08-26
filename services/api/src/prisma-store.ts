@@ -7,6 +7,7 @@ import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/dat
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
 import { slugify } from './slugify.js';
+import { countActiveModerationStrikes } from './strike-system.js';
 import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
 import type {
   AbuseEventRecord,
@@ -389,6 +390,13 @@ export class PrismaApiStore implements ApiStore {
   }
 
   #lockClient?: DatabaseClient;
+
+  /** Release both pools during controlled shutdowns and real-Postgres tests. */
+  async disconnect(): Promise<void> {
+    const clients = [this.prisma, this.#lockClient].filter(Boolean) as DatabaseClient[];
+    this.#lockClient = undefined;
+    await Promise.all(clients.map((client) => client.$disconnect()));
+  }
 
   async createUser(input: {
     email: string;
@@ -1149,8 +1157,55 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapProject);
   }
 
-  async countProjects(organizationId: string) {
-    return this.prisma.project.count({ where: { organizationId, deletedAt: null } });
+  async countProjects(organizationId: string, options: { since?: Date } = {}) {
+    return this.prisma.project.count({
+      where: {
+        organizationId,
+        deletedAt: null,
+        ...(options.since ? { createdAt: { gte: options.since } } : {}),
+      },
+    });
+  }
+
+  async countOrganizationActiveStrikes(organizationId: string, nowMs: number) {
+    const memberships = await this.prisma.organizationMember.findMany({
+      where: { organizationId },
+      select: { user: { select: { preferences: true } } },
+    });
+
+    return memberships.reduce(
+      (total, membership) => total + countActiveModerationStrikes(membership.user.preferences, nowMs),
+      0,
+    );
+  }
+
+  async countRecentSevereAbuseEvents(organizationId: string, since: Date) {
+    if (!organizationId || !Number.isFinite(since.getTime())) {
+      throw new TypeError('TENANT_GUARDRAIL_ABUSE_COUNTER_CONTEXT_INVALID');
+    }
+
+    /*
+     * One aggregate query is the security boundary. In particular, do not reuse
+     * listAbuseEvents(): its intentional display/hot-path cap would let an
+     * attacker push a severe event out of the first page with harmless rows.
+     * IS DISTINCT FROM includes legacy NULL metadata while excluding incidents
+     * an operator explicitly dismissed.
+     */
+    const [row] = await this.prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+      SELECT COUNT(*)::bigint AS "count"
+      FROM "AbuseEvent"
+      WHERE "organizationId" = ${organizationId}
+        AND "severity" IN ('high', 'critical')
+        AND "createdAt" >= ${since}
+        AND ("metadata"->>'disposition') IS DISTINCT FROM 'dismissed'
+    `);
+    const count = Number(row?.count ?? 0n);
+
+    if (!Number.isSafeInteger(count) || count < 0) {
+      throw new RangeError('TENANT_GUARDRAIL_ABUSE_COUNTER_INVALID');
+    }
+
+    return count;
   }
 
   async subscribeNewsletter(input: { email: string; source?: string }) {
@@ -3021,6 +3076,7 @@ export class PrismaApiStore implements ApiStore {
     name: string;
     runtimeMode: string;
     environment?: string;
+    initialStatus?: WorkspaceRecord['status'];
   }) {
     /*
      * Persist the created workspace first so Prisma can mint the id when the
@@ -3030,8 +3086,9 @@ export class PrismaApiStore implements ApiStore {
      * so a crash between them can never leave a row with a null gitPath.
      */
     const updated = await this.prisma.$transaction(async (tx) => {
+      const { initialStatus, ...data } = input;
       const created = await tx.workspace.create({
-        data: { ...input, status: 'PENDING' },
+        data: { ...data, status: initialStatus ?? 'PENDING' },
       });
 
       const gitPath = workspaceRelativeGitPath(created.id);

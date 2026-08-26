@@ -28,11 +28,7 @@ class FakeProjectStorage {
     return (this.files.get(this.#key(projectId, workspaceId)) ?? []).map((file) => ({ ...file, encoding: 'utf8' }));
   }
 
-  async writeFiles(
-    projectId: string,
-    files: Array<{ path: string; content: string }>,
-    workspaceId?: string,
-  ) {
+  async writeFiles(projectId: string, files: Array<{ path: string; content: string }>, workspaceId?: string) {
     this.files.set(this.#key(projectId, workspaceId), files);
     this.writes.push({ workspaceId, count: files.length });
 
@@ -88,6 +84,8 @@ describe('P2d production workspace checkout on publish', () => {
     const prod = workspaces.find((w) => w.environment === 'production');
     expect(prod).toBeTruthy();
     expect(prod!.name).toBe('Production');
+    expect(prod!.status).toBe('STOPPED');
+    expect(await store.countActiveWorkspaces((await store.getProject(project.id))!.organizationId)).toBe(0);
 
     // the published files were copied into the prod checkout
     const write = storage.writes.find((w) => w.workspaceId === prod!.id);
@@ -100,10 +98,24 @@ describe('P2d production workspace checkout on publish', () => {
     const { app, store, storage, token, project } = await setup();
     storage.seed(project.id, undefined, [{ path: 'a.txt', content: 'a' }]);
     const mkReady = () =>
-      store.createDeployment({ projectId: project.id, provider: 'static', environment: 'preview', status: 'READY', url: 'u' });
+      store.createDeployment({
+        projectId: project.id,
+        provider: 'static',
+        environment: 'preview',
+        status: 'READY',
+        url: 'u',
+      });
 
-    await app.inject({ method: 'POST', url: `/projects/${project.id}/deployments/${(await mkReady()).id}/publish`, headers: { authorization: `Bearer ${token}` } });
-    await app.inject({ method: 'POST', url: `/projects/${project.id}/deployments/${(await mkReady()).id}/publish`, headers: { authorization: `Bearer ${token}` } });
+    await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/deployments/${(await mkReady()).id}/publish`,
+      headers: { authorization: `Bearer ${token}` },
+    });
+    await app.inject({
+      method: 'POST',
+      url: `/projects/${project.id}/deployments/${(await mkReady()).id}/publish`,
+      headers: { authorization: `Bearer ${token}` },
+    });
 
     const prodWorkspaces = (await store.listWorkspaces(project.id)).filter((w) => w.environment === 'production');
     expect(prodWorkspaces).toHaveLength(1);
