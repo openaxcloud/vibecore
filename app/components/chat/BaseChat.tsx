@@ -9314,14 +9314,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             projectIdePanels
           ) : (
             <>
-              {projectIdeMode &&
-              useMobileIde &&
-              (quotaWarning || billingUpgradePrompt || Object.keys(fileSaveIssues).length > 0) ? (
-                <div className="bolt-mobile-integrity-stack" data-testid="mobile-ide-integrity-stack">
-                  <WorkspaceQuotaNotice />
-                  <FileSaveIssueNotice filePath={currentDocument?.filePath} />
-                </div>
-              ) : null}
               {agentPanel}
               {useMobileIde && mobilePanel === 'locks' ? (
                 <PanelBoundary title={t('chat.copy.locks_01175ae5')}>
@@ -10259,6 +10251,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             </div>
           </footer>
         )}
+        {projectIdeMode &&
+        useMobileIde &&
+        (quotaWarning || billingUpgradePrompt || Object.keys(fileSaveIssues).length > 0) ? (
+          <div className="bolt-mobile-integrity-stack" data-testid="mobile-ide-integrity-stack">
+            <WorkspaceQuotaNotice />
+            <FileSaveIssueNotice filePath={currentDocument?.filePath} />
+          </div>
+        ) : null}
         {projectIdeMode && guidedTourOpen ? (
           <ProjectIdeGuidedTour
             step={PROJECT_IDE_TOUR_STEPS[guidedTourStepIndex]}
