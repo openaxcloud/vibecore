@@ -1,6 +1,8 @@
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { execFile } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { promisify } from 'node:util';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,6 +16,7 @@ import {
 } from './deploy-workspace-build.js';
 
 const tmpDirs: string[] = [];
+const execFileAsync = promisify(execFile);
 
 afterEach(async () => {
   await Promise.all(tmpDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
@@ -137,6 +140,8 @@ describe('runWorkspaceStaticBuild', () => {
     expect(calls[0].cwd).toBe('.');
     expect(calls[0].args[1]).toContain('! -name node_modules');
     expect(calls[0].args[1]).toContain('.deploy-x');
+    expect(calls[0].args[1]).toContain('[deploy-audit] source entries=');
+    expect(calls[0].args[1]).toContain('[deploy-audit] sandbox entries=');
 
     // React-18 manifest guard, then install + build, all INSIDE the sandbox (never the live root).
     expect(calls[1]).toMatchObject({ command: 'node', cwd: '.deploy-x' });
@@ -150,6 +155,122 @@ describe('runWorkspaceStaticBuild', () => {
     const last = calls[calls.length - 1];
     expect(last.command).toBe('sh');
     expect(last.args[1]).toContain('rm -rf ".deploy-x"');
+  });
+
+  it('persists the exact deployment/project/runtime target without exposing file contents', async () => {
+    const dir = await materializeDir();
+    const logged: string[] = [];
+    const agent = fakeAgent({
+      runStep: vi.fn(async () => ({ exitCode: 86, timedOut: false })),
+    });
+
+    await runWorkspaceStaticBuild(
+      {
+        ...baseOptions,
+        materializeDir: dir,
+        sandboxDir: '.deploy-audit',
+        diagnosticContext: {
+          deploymentId: 'deploy-1',
+          projectId: 'project-1',
+          runtimeWorkspaceId: 'ws-runtime-1',
+          requestedProjectWorkspaceId: 'workspace-checkout-1',
+        },
+        onLog: (entry) => logged.push(entry.message),
+      },
+      agent,
+    );
+
+    expect(logged[0]).toBe(
+      'Workspace deploy audit: deployment=deploy-1 project=project-1 runtimeWorkspace=ws-runtime-1 ' +
+        'requestedProjectWorkspace=workspace-checkout-1 sourceCwd=.',
+    );
+  });
+
+  it('executes the real prepare script and records both source and sandbox postconditions', async () => {
+    const workspaceDir = await mkdtemp(join(tmpdir(), 'wsbuild-source-'));
+    tmpDirs.push(workspaceDir);
+    await writeFile(join(workspaceDir, 'package.json'), '{"scripts":{"build":"vite build"}}\n');
+    await writeFile(join(workspaceDir, 'README.md'), '# audited source\n');
+
+    const dir = await materializeDir();
+    const logged: string[] = [];
+    let step = 0;
+    const agent = fakeAgent({
+      runStep: vi.fn(
+        async ({
+          command,
+          args,
+          onLine,
+        }: {
+          command: string;
+          args: string[];
+          onLine: (level: 'info' | 'error', line: string) => void;
+        }) => {
+          step += 1;
+
+          if (command === 'sh') {
+            try {
+              const result = await execFileAsync(command, args, { cwd: workspaceDir });
+
+              for (const line of result.stdout.trim().split('\n').filter(Boolean)) {
+                onLine('info', line);
+              }
+
+              return { exitCode: 0, timedOut: false };
+            } catch (error) {
+              return {
+                exitCode: Number((error as { code?: number }).code ?? 1),
+                timedOut: false,
+              };
+            }
+          }
+
+          /* Stop after the audited copy; the test is not exercising npm itself. */
+          return { exitCode: step >= 3 ? 1 : 0, timedOut: false };
+        },
+      ),
+    });
+
+    const result = await runWorkspaceStaticBuild(
+      {
+        ...baseOptions,
+        materializeDir: dir,
+        sandboxDir: '.deploy-real-audit',
+        onLog: (entry) => logged.push(entry.message),
+      },
+      agent,
+    );
+
+    expect(result.error).toBe('INSTALL_FAILED');
+    expect(logged).toContain('[prepare] [deploy-audit] source entries=2 packageJson=true');
+    expect(logged).toContain('[prepare] [deploy-audit] sandbox entries=2 packageJson=true');
+    await expect(stat(join(workspaceDir, '.deploy-real-audit'))).rejects.toMatchObject({ code: 'ENOENT' });
+  });
+
+  it.each([
+    [86, 'SOURCE_WORKSPACE_EMPTY'],
+    [87, 'SOURCE_PACKAGE_JSON_MISSING'],
+    [88, 'SANDBOX_PREPARE_EMPTY'],
+    [89, 'SANDBOX_PACKAGE_JSON_MISSING'],
+  ] as const)('fails before install with factual prepare postcondition code %s -> %s', async (exitCode, code) => {
+    const dir = await materializeDir();
+    const calls: string[] = [];
+    const agent = fakeAgent({
+      runStep: vi.fn(async ({ command }: { command: string }) => {
+        calls.push(command);
+        return { exitCode: command === 'sh' && calls.length === 1 ? exitCode : 0, timedOut: false };
+      }),
+    });
+
+    const result = await runWorkspaceStaticBuild(
+      { ...baseOptions, materializeDir: dir, sandboxDir: '.deploy-postcondition' },
+      agent,
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe(code);
+    expect(calls).not.toContain('npm');
+    expect(calls.at(-1)).toBe('sh'); // finally cleanup remains idempotent
   });
 
   it('tears down the sandbox even when the build fails', async () => {
@@ -294,10 +415,7 @@ describe('computeReactManifestRepair (P0-2 deploy guard)', () => {
   });
 
   it('forces a below-18 react/react-dom pin up to the supported range', () => {
-    const r = computeReactManifestRepair(
-      { dependencies: { react: '^17.0.2', 'react-dom': '17.0.2' } },
-      true,
-    );
+    const r = computeReactManifestRepair({ dependencies: { react: '^17.0.2', 'react-dom': '17.0.2' } }, true);
     expect(r.changed).toBe(true);
     expect(r.forced).toEqual({ react: DEPLOY_REACT18_RANGE, 'react-dom': DEPLOY_REACT18_RANGE });
   });

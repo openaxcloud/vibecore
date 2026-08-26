@@ -31,6 +31,23 @@ class TestWorkspaceStore implements WorkspaceStore {
     return updated;
   }
 
+  async updateIfUnchanged(
+    workspaceId: string,
+    expected: Pick<WorkspaceRecord, 'status' | 'lastActiveAt'>,
+    patch: Partial<WorkspaceRecord>,
+  ) {
+    const existing = this.workspaces.get(workspaceId);
+
+    if (!existing || existing.status !== expected.status || existing.lastActiveAt !== expected.lastActiveAt) {
+      return undefined;
+    }
+
+    const updated = { ...existing, ...patch };
+    this.workspaces.set(workspaceId, updated);
+
+    return updated;
+  }
+
   async get(workspaceId: string) {
     return this.workspaces.get(workspaceId);
   }
@@ -65,7 +82,8 @@ class TestK8sClient implements WorkspaceK8sClient {
     return object;
   }
 
-  async delete(_kind: string, namespace: string) {
+  async delete(kind: string, namespace: string, name: string) {
+    this.objects.delete(`${namespace}:${kind}:${name}`);
     this.namespaces.push(namespace);
   }
 

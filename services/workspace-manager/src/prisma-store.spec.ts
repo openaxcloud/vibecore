@@ -108,6 +108,22 @@ integrationDescribe('PrismaWorkspaceStore', () => {
     expect(cleared.error).toBeUndefined();
   });
 
+  it('atomically lets only one lifecycle owner claim an observed row', async () => {
+    const created = await createRecord({ status: 'RUNNING' });
+    const expected = { status: created.status, lastActiveAt: created.lastActiveAt };
+
+    const [stop, reopen] = await Promise.all([
+      store.updateIfUnchanged(created.id, expected, { status: 'STOPPING' }),
+      store.updateIfUnchanged(created.id, expected, {
+        status: 'STARTING',
+        lastActiveAt: new Date(Date.now() + 1_000).toISOString(),
+      }),
+    ]);
+
+    expect([stop, reopen].filter(Boolean)).toHaveLength(1);
+    expect((await store.get(created.id))?.status).toBe(stop ? 'STOPPING' : 'STARTING');
+  });
+
   it('throws "Workspace not found" when updating an unknown id (matches JsonWorkspaceStore)', async () => {
     await expect(() => store.update('ws-never-created', { status: 'STOPPED' })).rejects.toThrowError(
       /Workspace not found/,
