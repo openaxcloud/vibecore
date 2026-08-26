@@ -133,6 +133,28 @@ describe('import-github action error handling', () => {
     expect(JSON.stringify(readData(result))).not.toContain('upstream boom');
   });
 
+  it('surfaces a confirmed cold start without replaying the import mutation', async () => {
+    const fetchSpy = stubFetch(jsonResponse(425, { ok: false, code: 'WORKSPACE_STARTING' }));
+    globalThis.fetch = fetchSpy;
+
+    const result = await action({ request: importRequest() } as never);
+
+    expect(readData(result)).toEqual({ errorCode: 'workspaceStarting' });
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy.mock.calls.filter(([url]) => String(url).includes('/projects/import/github'))).toHaveLength(1);
+  });
+
+  it.each([502, 503, 504])('surfaces service unavailability for HTTP %s without an automatic retry', async (status) => {
+    const fetchSpy = stubFetch(jsonResponse(status, { ok: false, code: 'IMPORT_SERVICE_UNAVAILABLE' }));
+    globalThis.fetch = fetchSpy;
+
+    const result = await action({ request: importRequest() } as never);
+
+    expect(readData(result)).toEqual({ errorCode: 'serviceUnavailable' });
+    expect(fetchSpy).toHaveBeenCalledTimes(2);
+    expect(fetchSpy.mock.calls.filter(([url]) => String(url).includes('/projects/import/github'))).toHaveLength(1);
+  });
+
   it('re-throws a 3xx re-auth redirect so the framework follows it', async () => {
     const redirectResponse = new Response(null, {
       status: 302,

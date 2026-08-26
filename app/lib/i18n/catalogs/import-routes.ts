@@ -60,6 +60,10 @@ export const importRoutesEn = {
     'This repository could not be accessed. Check the URL and your permissions, then try again.',
   'importRoutes.git.error.quota':
     'Your workspace has reached its project limit. Upgrade the plan or ask an administrator to increase the quota before importing another repository.',
+  'importRoutes.git.error.workspaceStarting':
+    'The workspace is still starting. No second import was submitted; wait a moment, then retry.',
+  'importRoutes.git.error.serviceUnavailable':
+    'The import service is temporarily unavailable. Nothing was retried automatically; try again when service recovers.',
   'importRoutes.git.error.importFailed': 'The repository could not be imported. Try again.',
 } as const;
 
@@ -126,6 +130,10 @@ export const importRoutesFr: ImportRoutesCopy = {
     'Impossible d’accéder à ce dépôt. Vérifiez l’URL et vos autorisations, puis réessayez.',
   'importRoutes.git.error.quota':
     'Votre espace de travail a atteint sa limite de projets. Changez d’offre ou demandez à un administrateur d’augmenter le quota avant d’importer un autre dépôt.',
+  'importRoutes.git.error.workspaceStarting':
+    'L’espace de travail démarre encore. Aucun second import n’a été envoyé ; patientez un instant, puis réessayez.',
+  'importRoutes.git.error.serviceUnavailable':
+    'Le service d’import est temporairement indisponible. Aucun nouvel essai automatique n’a été lancé ; réessayez après son rétablissement.',
   'importRoutes.git.error.importFailed': 'Impossible d’importer le dépôt. Réessayez.',
 };
 

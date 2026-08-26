@@ -49,7 +49,13 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
 };
 
 type Project = { id: string; slug?: string };
-type ImportGitErrorCode = 'urlRequired' | 'inaccessible' | 'quota' | 'importFailed';
+type ImportGitErrorCode =
+  | 'urlRequired'
+  | 'inaccessible'
+  | 'quota'
+  | 'workspaceStarting'
+  | 'serviceUnavailable'
+  | 'importFailed';
 type ImportGitActionData = { errorCode: ImportGitErrorCode };
 
 /*
@@ -152,6 +158,14 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     if (isApiResponse(error, 402) || isApiResponse(error, 429)) {
       return actionError('quota', error.status);
+    }
+
+    if (isApiResponse(error, 425)) {
+      return actionError('workspaceStarting', 425);
+    }
+
+    if (isApiResponse(error, 502) || isApiResponse(error, 503) || isApiResponse(error, 504)) {
+      return actionError('serviceUnavailable', error.status);
     }
 
     return actionError('importFailed', error instanceof Response ? error.status : 500);
