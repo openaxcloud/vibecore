@@ -971,6 +971,63 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     expect(events[0].data).toBe('');
   });
 
+  it('ends a mute command socket at the caller deadline instead of leaving installation stuck forever', async () => {
+    vi.useFakeTimers();
+    FakeWebSocket.instances = [];
+
+    try {
+      const adapter = new RemoteKubernetesRuntimeAdapter({
+        baseUrl: 'https://runtime.example.com',
+        authToken: 'token-stream-timeout',
+        workspaceId: 'ws-1',
+        fetchImpl: createFetchMock() as typeof fetch,
+        WebSocketImpl: FakeWebSocket,
+      });
+
+      const events: Array<{ type: string; error?: { code?: string } }> = [];
+
+      let settled = false;
+
+      const drained = (async () => {
+        for await (const event of adapter.streamCommand({ command: 'npm', args: ['install'], timeoutMs: 50 })) {
+          events.push(event as { type: string; error?: { code?: string } });
+        }
+
+        settled = true;
+      })();
+
+      for (let index = 0; index < 10 && FakeWebSocket.instances.length === 0; index += 1) {
+        await vi.advanceTimersByTimeAsync(0);
+        await Promise.resolve();
+      }
+
+      const socket = FakeWebSocket.instances.at(-1)!;
+      expect(socket).toBeDefined();
+
+      /*
+       * The server normally emits COMMAND_TIMEOUT itself. This test models the
+       * more dangerous transport failure: the upgrade succeeded, then the
+       * proxy/agent path became mute without delivering `close`, `error` or an
+       * exit frame. The client deadline needs a short teardown grace, but it may
+       * never turn a 50 ms request into an unbounded async iterator.
+       */
+      await vi.advanceTimersByTimeAsync(10_051);
+
+      const settledAtDeadline = settled;
+
+      /* Let the pre-fix implementation drain so a deliberately red mutation test never leaks a pending generator. */
+      if (!settledAtDeadline) {
+        socket.emit('message', { data: JSON.stringify({ type: 'exit', exitCode: 143, timestamp: 'now' }) });
+        await drained;
+      }
+
+      expect(settledAtDeadline).toBe(true);
+      expect(events.at(-1)).toMatchObject({ type: 'error', error: { code: 'COMMAND_TIMEOUT' } });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('surfaces workspace start failures and quota exceeded responses', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);

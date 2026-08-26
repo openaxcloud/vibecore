@@ -62,6 +62,16 @@ export interface WebSocketLike {
 export const RUNTIME_WEBSOCKET_PROTOCOL = 'vibecore.runtime.v1';
 export const RUNTIME_WEBSOCKET_TICKET_PROTOCOL_PREFIX = 'vibecore.runtime.ticket.';
 
+/*
+ * The workspace agent owns the authoritative command timeout and normally
+ * sends a COMMAND_TIMEOUT frame at that deadline. Keep a small client grace so
+ * that localized server frame wins, then fail closed if an already-open
+ * WebSocket becomes mute without `error` / `close` / terminal output. Without
+ * this independent watchdog a proxy black-hole could leave `npm install` (and
+ * the IDE's "starting" state) pending forever despite CommandRequest.timeoutMs.
+ */
+const COMMAND_STREAM_CLIENT_TIMEOUT_GRACE_MS = 10_000;
+
 type RuntimeWebSocketEndpoint = 'commands/stream' | 'terminal' | 'logs' | 'files/watch' | 'ports/watch';
 
 function runtimeSocketTarget(path: string): { workspaceId: string; endpoint: RuntimeWebSocketEndpoint } | undefined {
@@ -543,6 +553,15 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
     const queue = new AsyncQueue<CommandEvent>();
 
     let sawTerminalEvent = false;
+    let clientDeadline: ReturnType<typeof setTimeout> | undefined;
+
+    const clearClientDeadline = () => {
+      if (clientDeadline !== undefined) {
+        clearTimeout(clientDeadline);
+        clientDeadline = undefined;
+      }
+    };
+
     socket.addEventListener('message', (event: { data: string }) => {
       let parsed: CommandEvent;
 
@@ -564,15 +583,19 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
        */
       if (parsed.type === 'exit' || parsed.type === 'error') {
         sawTerminalEvent = true;
+        clearClientDeadline();
         queue.close();
       }
     });
     socket.addEventListener('error', () => {
       sawTerminalEvent = true;
+      clearClientDeadline();
       queue.push({ type: 'error', error: new RuntimeError('Command stream failed'), timestamp: now() });
       queue.close();
     });
     socket.addEventListener('close', () => {
+      clearClientDeadline();
+
       /*
        * A close *before* any exit/error event means the command was interrupted
        * (pod restart, LB idle-kill, network drop). Surface it as an error instead
@@ -591,6 +614,35 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
       queue.close();
     });
 
+    if (typeof request.timeoutMs === 'number' && Number.isFinite(request.timeoutMs) && request.timeoutMs > 0) {
+      clientDeadline = setTimeout(() => {
+        if (sawTerminalEvent) {
+          return;
+        }
+
+        sawTerminalEvent = true;
+        queue.push({
+          type: 'error',
+          error: new RuntimeError(`Command did not complete within ${request.timeoutMs} ms`, {
+            code: 'COMMAND_TIMEOUT',
+          }),
+          timestamp: now(),
+        });
+        queue.close();
+
+        /*
+         * Closing the client↔API socket propagates cancellation to the agent,
+         * whose close handler terminates every active child for this stream.
+         */
+        try {
+          socket.close();
+        } catch {
+          // Socket may have transitioned to CLOSED after the deadline check.
+        }
+      }, request.timeoutMs + COMMAND_STREAM_CLIENT_TIMEOUT_GRACE_MS);
+      (clientDeadline as unknown as { unref?: () => void }).unref?.();
+    }
+
     /*
      * Always tear down the socket — including when the consumer breaks/throws out of the
      * loop early — so we never leak a live WebSocket + listeners per cancelled command.
@@ -600,6 +652,7 @@ export class RemoteKubernetesRuntimeAdapter implements RuntimeAdapter {
         yield event;
       }
     } finally {
+      clearClientDeadline();
       queue.close();
 
       try {
