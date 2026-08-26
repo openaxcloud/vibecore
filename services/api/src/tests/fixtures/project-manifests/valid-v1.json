@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "manifestVersion": 1,
+  "projectId": "project-fixture",
+  "artifacts": [
+    {
+      "artifactId": "web",
+      "kind": "WEB_APP",
+      "sourceRoot": "apps/web",
+      "components": [
+        { "componentId": "frontend", "kind": "WEB_FRONTEND" },
+        { "componentId": "api", "kind": "API" }
+      ],
+      "previewConfig": { "command": "pnpm dev", "port": 5173, "healthPath": "/" },
+      "publishConfig": {
+        "deploymentType": "AUTOSCALE",
+        "buildCommand": "pnpm build",
+        "runCommand": "pnpm start"
+      }
+    }
+  ],
+  "sharedBackendBinding": { "bindingId": "backend", "componentIds": ["api", "frontend"] },
+  "sharedDataBindings": [
+    {
+      "bindingId": "primary-db",
+      "resourceRef": "database:primary",
+      "access": "READ_WRITE",
+      "componentIds": ["api"]
+    }
+  ],
+  "sharedStorageBindings": [
+    {
+      "bindingId": "assets",
+      "resourceRef": "bucket:assets",
+      "access": "READ_ONLY",
+      "componentIds": ["frontend"]
+    }
+  ],
+  "scopes": ["deploy:production", "deploy:preview"],
+  "entitlementsRef": "organization:plan-v3"
+}

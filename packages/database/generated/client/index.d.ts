@@ -205,6 +205,11 @@ export type FileSnapshot = $Result.DefaultSelection<Prisma.$FileSnapshotPayload>
  */
 export type ProjectSnapshot = $Result.DefaultSelection<Prisma.$ProjectSnapshotPayload>
 /**
+ * Model ProjectManifestRevision
+ * 
+ */
+export type ProjectManifestRevision = $Result.DefaultSelection<Prisma.$ProjectManifestRevisionPayload>
+/**
  * Model ProjectStorageObject
  * 
  */
@@ -1863,6 +1868,16 @@ export class PrismaClient<
   get projectSnapshot(): Prisma.ProjectSnapshotDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.projectManifestRevision`: Exposes CRUD operations for the **ProjectManifestRevision** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more ProjectManifestRevisions
+    * const projectManifestRevisions = await prisma.projectManifestRevision.findMany()
+    * ```
+    */
+  get projectManifestRevision(): Prisma.ProjectManifestRevisionDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.projectStorageObject`: Exposes CRUD operations for the **ProjectStorageObject** model.
     * Example usage:
     * ```ts
@@ -3352,6 +3367,7 @@ export namespace Prisma {
     WorkspacePort: 'WorkspacePort',
     FileSnapshot: 'FileSnapshot',
     ProjectSnapshot: 'ProjectSnapshot',
+    ProjectManifestRevision: 'ProjectManifestRevision',
     ProjectStorageObject: 'ProjectStorageObject',
     Deployment: 'Deployment',
     DeploymentEnvironment: 'DeploymentEnvironment',
@@ -3469,7 +3485,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "collaborationGroup" | "collaborationGroupMember" | "resourceAccessGrant" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectManifestRevision" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "dBMigrationExecution" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "projectCheckpoint" | "remixJob" | "remixStorageShare" | "importJob" | "importCreditReservation" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem" | "cloudTenant" | "cloudProjectBinding" | "cloudProjectFactoryEvent" | "cloudOperation" | "cloudOperationEvent" | "cloudTenantTransfer" | "cloudTeardownRecord" | "platformIamIdentity" | "platformIamImpersonationAudit"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -6192,6 +6208,80 @@ export namespace Prisma {
           count: {
             args: Prisma.ProjectSnapshotCountArgs<ExtArgs>
             result: $Utils.Optional<ProjectSnapshotCountAggregateOutputType> | number
+          }
+        }
+      }
+      ProjectManifestRevision: {
+        payload: Prisma.$ProjectManifestRevisionPayload<ExtArgs>
+        fields: Prisma.ProjectManifestRevisionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.ProjectManifestRevisionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectManifestRevisionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.ProjectManifestRevisionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectManifestRevisionPayload>
+          }
+          findFirst: {
+            args: Prisma.ProjectManifestRevisionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectManifestRevisionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.ProjectManifestRevisionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectManifestRevisionPayload>
+          }
+          findMany: {
+            args: Prisma.ProjectManifestRevisionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectManifestRevisionPayload>[]
+          }
+          create: {
+            args: Prisma.ProjectManifestRevisionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectManifestRevisionPayload>
+          }
+          createMany: {
+            args: Prisma.ProjectManifestRevisionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.ProjectManifestRevisionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectManifestRevisionPayload>[]
+          }
+          delete: {
+            args: Prisma.ProjectManifestRevisionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectManifestRevisionPayload>
+          }
+          update: {
+            args: Prisma.ProjectManifestRevisionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectManifestRevisionPayload>
+          }
+          deleteMany: {
+            args: Prisma.ProjectManifestRevisionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.ProjectManifestRevisionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.ProjectManifestRevisionUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectManifestRevisionPayload>[]
+          }
+          upsert: {
+            args: Prisma.ProjectManifestRevisionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$ProjectManifestRevisionPayload>
+          }
+          aggregate: {
+            args: Prisma.ProjectManifestRevisionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateProjectManifestRevision>
+          }
+          groupBy: {
+            args: Prisma.ProjectManifestRevisionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<ProjectManifestRevisionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.ProjectManifestRevisionCountArgs<ExtArgs>
+            result: $Utils.Optional<ProjectManifestRevisionCountAggregateOutputType> | number
           }
         }
       }
@@ -13888,6 +13978,7 @@ export namespace Prisma {
     workspacePort?: WorkspacePortOmit
     fileSnapshot?: FileSnapshotOmit
     projectSnapshot?: ProjectSnapshotOmit
+    projectManifestRevision?: ProjectManifestRevisionOmit
     projectStorageObject?: ProjectStorageObjectOmit
     deployment?: DeploymentOmit
     deploymentEnvironment?: DeploymentEnvironmentOmit
@@ -14909,6 +15000,7 @@ export namespace Prisma {
     galleryListings: number
     workspaces: number
     snapshots: number
+    manifestRevisions: number
     storageObjects: number
     deployments: number
     fileSnapshots: number
@@ -14939,6 +15031,7 @@ export namespace Prisma {
     galleryListings?: boolean | ProjectCountOutputTypeCountGalleryListingsArgs
     workspaces?: boolean | ProjectCountOutputTypeCountWorkspacesArgs
     snapshots?: boolean | ProjectCountOutputTypeCountSnapshotsArgs
+    manifestRevisions?: boolean | ProjectCountOutputTypeCountManifestRevisionsArgs
     storageObjects?: boolean | ProjectCountOutputTypeCountStorageObjectsArgs
     deployments?: boolean | ProjectCountOutputTypeCountDeploymentsArgs
     fileSnapshots?: boolean | ProjectCountOutputTypeCountFileSnapshotsArgs
@@ -15031,6 +15124,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountSnapshotsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ProjectSnapshotWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountManifestRevisionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectManifestRevisionWhereInput
   }
 
   /**
@@ -28410,6 +28510,7 @@ export namespace Prisma {
     galleryListings?: boolean | Project$galleryListingsArgs<ExtArgs>
     workspaces?: boolean | Project$workspacesArgs<ExtArgs>
     snapshots?: boolean | Project$snapshotsArgs<ExtArgs>
+    manifestRevisions?: boolean | Project$manifestRevisionsArgs<ExtArgs>
     storageObjects?: boolean | Project$storageObjectsArgs<ExtArgs>
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
@@ -28501,6 +28602,7 @@ export namespace Prisma {
     galleryListings?: boolean | Project$galleryListingsArgs<ExtArgs>
     workspaces?: boolean | Project$workspacesArgs<ExtArgs>
     snapshots?: boolean | Project$snapshotsArgs<ExtArgs>
+    manifestRevisions?: boolean | Project$manifestRevisionsArgs<ExtArgs>
     storageObjects?: boolean | Project$storageObjectsArgs<ExtArgs>
     deployments?: boolean | Project$deploymentsArgs<ExtArgs>
     fileSnapshots?: boolean | Project$fileSnapshotsArgs<ExtArgs>
@@ -28543,6 +28645,7 @@ export namespace Prisma {
       galleryListings: Prisma.$GalleryListingPayload<ExtArgs>[]
       workspaces: Prisma.$WorkspacePayload<ExtArgs>[]
       snapshots: Prisma.$ProjectSnapshotPayload<ExtArgs>[]
+      manifestRevisions: Prisma.$ProjectManifestRevisionPayload<ExtArgs>[]
       storageObjects: Prisma.$ProjectStorageObjectPayload<ExtArgs>[]
       deployments: Prisma.$DeploymentPayload<ExtArgs>[]
       fileSnapshots: Prisma.$FileSnapshotPayload<ExtArgs>[]
@@ -28984,6 +29087,7 @@ export namespace Prisma {
     galleryListings<T extends Project$galleryListingsArgs<ExtArgs> = {}>(args?: Subset<T, Project$galleryListingsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$GalleryListingPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     workspaces<T extends Project$workspacesArgs<ExtArgs> = {}>(args?: Subset<T, Project$workspacesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$WorkspacePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     snapshots<T extends Project$snapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Project$snapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    manifestRevisions<T extends Project$manifestRevisionsArgs<ExtArgs> = {}>(args?: Subset<T, Project$manifestRevisionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectManifestRevisionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     storageObjects<T extends Project$storageObjectsArgs<ExtArgs> = {}>(args?: Subset<T, Project$storageObjectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectStorageObjectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     deployments<T extends Project$deploymentsArgs<ExtArgs> = {}>(args?: Subset<T, Project$deploymentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$DeploymentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     fileSnapshots<T extends Project$fileSnapshotsArgs<ExtArgs> = {}>(args?: Subset<T, Project$fileSnapshotsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FileSnapshotPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -29662,6 +29766,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ProjectSnapshotScalarFieldEnum | ProjectSnapshotScalarFieldEnum[]
+  }
+
+  /**
+   * Project.manifestRevisions
+   */
+  export type Project$manifestRevisionsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectManifestRevision
+     */
+    select?: ProjectManifestRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectManifestRevision
+     */
+    omit?: ProjectManifestRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectManifestRevisionInclude<ExtArgs> | null
+    where?: ProjectManifestRevisionWhereInput
+    orderBy?: ProjectManifestRevisionOrderByWithRelationInput | ProjectManifestRevisionOrderByWithRelationInput[]
+    cursor?: ProjectManifestRevisionWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: ProjectManifestRevisionScalarFieldEnum | ProjectManifestRevisionScalarFieldEnum[]
   }
 
   /**
@@ -60877,6 +61005,1142 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: ProjectSnapshotInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model ProjectManifestRevision
+   */
+
+  export type AggregateProjectManifestRevision = {
+    _count: ProjectManifestRevisionCountAggregateOutputType | null
+    _avg: ProjectManifestRevisionAvgAggregateOutputType | null
+    _sum: ProjectManifestRevisionSumAggregateOutputType | null
+    _min: ProjectManifestRevisionMinAggregateOutputType | null
+    _max: ProjectManifestRevisionMaxAggregateOutputType | null
+  }
+
+  export type ProjectManifestRevisionAvgAggregateOutputType = {
+    schemaVersion: number | null
+    manifestVersion: number | null
+  }
+
+  export type ProjectManifestRevisionSumAggregateOutputType = {
+    schemaVersion: number | null
+    manifestVersion: number | null
+  }
+
+  export type ProjectManifestRevisionMinAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    schemaVersion: number | null
+    manifestVersion: number | null
+    digest: string | null
+    createdByUserId: string | null
+    createdAt: Date | null
+  }
+
+  export type ProjectManifestRevisionMaxAggregateOutputType = {
+    id: string | null
+    projectId: string | null
+    schemaVersion: number | null
+    manifestVersion: number | null
+    digest: string | null
+    createdByUserId: string | null
+    createdAt: Date | null
+  }
+
+  export type ProjectManifestRevisionCountAggregateOutputType = {
+    id: number
+    projectId: number
+    schemaVersion: number
+    manifestVersion: number
+    digest: number
+    manifest: number
+    createdByUserId: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type ProjectManifestRevisionAvgAggregateInputType = {
+    schemaVersion?: true
+    manifestVersion?: true
+  }
+
+  export type ProjectManifestRevisionSumAggregateInputType = {
+    schemaVersion?: true
+    manifestVersion?: true
+  }
+
+  export type ProjectManifestRevisionMinAggregateInputType = {
+    id?: true
+    projectId?: true
+    schemaVersion?: true
+    manifestVersion?: true
+    digest?: true
+    createdByUserId?: true
+    createdAt?: true
+  }
+
+  export type ProjectManifestRevisionMaxAggregateInputType = {
+    id?: true
+    projectId?: true
+    schemaVersion?: true
+    manifestVersion?: true
+    digest?: true
+    createdByUserId?: true
+    createdAt?: true
+  }
+
+  export type ProjectManifestRevisionCountAggregateInputType = {
+    id?: true
+    projectId?: true
+    schemaVersion?: true
+    manifestVersion?: true
+    digest?: true
+    manifest?: true
+    createdByUserId?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type ProjectManifestRevisionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectManifestRevision to aggregate.
+     */
+    where?: ProjectManifestRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectManifestRevisions to fetch.
+     */
+    orderBy?: ProjectManifestRevisionOrderByWithRelationInput | ProjectManifestRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: ProjectManifestRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectManifestRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectManifestRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned ProjectManifestRevisions
+    **/
+    _count?: true | ProjectManifestRevisionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: ProjectManifestRevisionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: ProjectManifestRevisionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: ProjectManifestRevisionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: ProjectManifestRevisionMaxAggregateInputType
+  }
+
+  export type GetProjectManifestRevisionAggregateType<T extends ProjectManifestRevisionAggregateArgs> = {
+        [P in keyof T & keyof AggregateProjectManifestRevision]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateProjectManifestRevision[P]>
+      : GetScalarType<T[P], AggregateProjectManifestRevision[P]>
+  }
+
+
+
+
+  export type ProjectManifestRevisionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: ProjectManifestRevisionWhereInput
+    orderBy?: ProjectManifestRevisionOrderByWithAggregationInput | ProjectManifestRevisionOrderByWithAggregationInput[]
+    by: ProjectManifestRevisionScalarFieldEnum[] | ProjectManifestRevisionScalarFieldEnum
+    having?: ProjectManifestRevisionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: ProjectManifestRevisionCountAggregateInputType | true
+    _avg?: ProjectManifestRevisionAvgAggregateInputType
+    _sum?: ProjectManifestRevisionSumAggregateInputType
+    _min?: ProjectManifestRevisionMinAggregateInputType
+    _max?: ProjectManifestRevisionMaxAggregateInputType
+  }
+
+  export type ProjectManifestRevisionGroupByOutputType = {
+    id: string
+    projectId: string
+    schemaVersion: number
+    manifestVersion: number
+    digest: string
+    manifest: JsonValue
+    createdByUserId: string | null
+    createdAt: Date
+    _count: ProjectManifestRevisionCountAggregateOutputType | null
+    _avg: ProjectManifestRevisionAvgAggregateOutputType | null
+    _sum: ProjectManifestRevisionSumAggregateOutputType | null
+    _min: ProjectManifestRevisionMinAggregateOutputType | null
+    _max: ProjectManifestRevisionMaxAggregateOutputType | null
+  }
+
+  type GetProjectManifestRevisionGroupByPayload<T extends ProjectManifestRevisionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<ProjectManifestRevisionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof ProjectManifestRevisionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], ProjectManifestRevisionGroupByOutputType[P]>
+            : GetScalarType<T[P], ProjectManifestRevisionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type ProjectManifestRevisionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    schemaVersion?: boolean
+    manifestVersion?: boolean
+    digest?: boolean
+    manifest?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectManifestRevision"]>
+
+  export type ProjectManifestRevisionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    schemaVersion?: boolean
+    manifestVersion?: boolean
+    digest?: boolean
+    manifest?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectManifestRevision"]>
+
+  export type ProjectManifestRevisionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    projectId?: boolean
+    schemaVersion?: boolean
+    manifestVersion?: boolean
+    digest?: boolean
+    manifest?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["projectManifestRevision"]>
+
+  export type ProjectManifestRevisionSelectScalar = {
+    id?: boolean
+    projectId?: boolean
+    schemaVersion?: boolean
+    manifestVersion?: boolean
+    digest?: boolean
+    manifest?: boolean
+    createdByUserId?: boolean
+    createdAt?: boolean
+  }
+
+  export type ProjectManifestRevisionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "projectId" | "schemaVersion" | "manifestVersion" | "digest" | "manifest" | "createdByUserId" | "createdAt", ExtArgs["result"]["projectManifestRevision"]>
+  export type ProjectManifestRevisionInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type ProjectManifestRevisionIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type ProjectManifestRevisionIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+
+  export type $ProjectManifestRevisionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "ProjectManifestRevision"
+    objects: {
+      project: Prisma.$ProjectPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      projectId: string
+      schemaVersion: number
+      manifestVersion: number
+      digest: string
+      manifest: Prisma.JsonValue
+      createdByUserId: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["projectManifestRevision"]>
+    composites: {}
+  }
+
+  type ProjectManifestRevisionGetPayload<S extends boolean | null | undefined | ProjectManifestRevisionDefaultArgs> = $Result.GetResult<Prisma.$ProjectManifestRevisionPayload, S>
+
+  type ProjectManifestRevisionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<ProjectManifestRevisionFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: ProjectManifestRevisionCountAggregateInputType | true
+    }
+
+  export interface ProjectManifestRevisionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ProjectManifestRevision'], meta: { name: 'ProjectManifestRevision' } }
+    /**
+     * Find zero or one ProjectManifestRevision that matches the filter.
+     * @param {ProjectManifestRevisionFindUniqueArgs} args - Arguments to find a ProjectManifestRevision
+     * @example
+     * // Get one ProjectManifestRevision
+     * const projectManifestRevision = await prisma.projectManifestRevision.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends ProjectManifestRevisionFindUniqueArgs>(args: SelectSubset<T, ProjectManifestRevisionFindUniqueArgs<ExtArgs>>): Prisma__ProjectManifestRevisionClient<$Result.GetResult<Prisma.$ProjectManifestRevisionPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one ProjectManifestRevision that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {ProjectManifestRevisionFindUniqueOrThrowArgs} args - Arguments to find a ProjectManifestRevision
+     * @example
+     * // Get one ProjectManifestRevision
+     * const projectManifestRevision = await prisma.projectManifestRevision.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends ProjectManifestRevisionFindUniqueOrThrowArgs>(args: SelectSubset<T, ProjectManifestRevisionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ProjectManifestRevisionClient<$Result.GetResult<Prisma.$ProjectManifestRevisionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectManifestRevision that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectManifestRevisionFindFirstArgs} args - Arguments to find a ProjectManifestRevision
+     * @example
+     * // Get one ProjectManifestRevision
+     * const projectManifestRevision = await prisma.projectManifestRevision.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends ProjectManifestRevisionFindFirstArgs>(args?: SelectSubset<T, ProjectManifestRevisionFindFirstArgs<ExtArgs>>): Prisma__ProjectManifestRevisionClient<$Result.GetResult<Prisma.$ProjectManifestRevisionPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first ProjectManifestRevision that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectManifestRevisionFindFirstOrThrowArgs} args - Arguments to find a ProjectManifestRevision
+     * @example
+     * // Get one ProjectManifestRevision
+     * const projectManifestRevision = await prisma.projectManifestRevision.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends ProjectManifestRevisionFindFirstOrThrowArgs>(args?: SelectSubset<T, ProjectManifestRevisionFindFirstOrThrowArgs<ExtArgs>>): Prisma__ProjectManifestRevisionClient<$Result.GetResult<Prisma.$ProjectManifestRevisionPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more ProjectManifestRevisions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectManifestRevisionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all ProjectManifestRevisions
+     * const projectManifestRevisions = await prisma.projectManifestRevision.findMany()
+     * 
+     * // Get first 10 ProjectManifestRevisions
+     * const projectManifestRevisions = await prisma.projectManifestRevision.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const projectManifestRevisionWithIdOnly = await prisma.projectManifestRevision.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends ProjectManifestRevisionFindManyArgs>(args?: SelectSubset<T, ProjectManifestRevisionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectManifestRevisionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a ProjectManifestRevision.
+     * @param {ProjectManifestRevisionCreateArgs} args - Arguments to create a ProjectManifestRevision.
+     * @example
+     * // Create one ProjectManifestRevision
+     * const ProjectManifestRevision = await prisma.projectManifestRevision.create({
+     *   data: {
+     *     // ... data to create a ProjectManifestRevision
+     *   }
+     * })
+     * 
+     */
+    create<T extends ProjectManifestRevisionCreateArgs>(args: SelectSubset<T, ProjectManifestRevisionCreateArgs<ExtArgs>>): Prisma__ProjectManifestRevisionClient<$Result.GetResult<Prisma.$ProjectManifestRevisionPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many ProjectManifestRevisions.
+     * @param {ProjectManifestRevisionCreateManyArgs} args - Arguments to create many ProjectManifestRevisions.
+     * @example
+     * // Create many ProjectManifestRevisions
+     * const projectManifestRevision = await prisma.projectManifestRevision.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends ProjectManifestRevisionCreateManyArgs>(args?: SelectSubset<T, ProjectManifestRevisionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many ProjectManifestRevisions and returns the data saved in the database.
+     * @param {ProjectManifestRevisionCreateManyAndReturnArgs} args - Arguments to create many ProjectManifestRevisions.
+     * @example
+     * // Create many ProjectManifestRevisions
+     * const projectManifestRevision = await prisma.projectManifestRevision.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many ProjectManifestRevisions and only return the `id`
+     * const projectManifestRevisionWithIdOnly = await prisma.projectManifestRevision.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends ProjectManifestRevisionCreateManyAndReturnArgs>(args?: SelectSubset<T, ProjectManifestRevisionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectManifestRevisionPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a ProjectManifestRevision.
+     * @param {ProjectManifestRevisionDeleteArgs} args - Arguments to delete one ProjectManifestRevision.
+     * @example
+     * // Delete one ProjectManifestRevision
+     * const ProjectManifestRevision = await prisma.projectManifestRevision.delete({
+     *   where: {
+     *     // ... filter to delete one ProjectManifestRevision
+     *   }
+     * })
+     * 
+     */
+    delete<T extends ProjectManifestRevisionDeleteArgs>(args: SelectSubset<T, ProjectManifestRevisionDeleteArgs<ExtArgs>>): Prisma__ProjectManifestRevisionClient<$Result.GetResult<Prisma.$ProjectManifestRevisionPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one ProjectManifestRevision.
+     * @param {ProjectManifestRevisionUpdateArgs} args - Arguments to update one ProjectManifestRevision.
+     * @example
+     * // Update one ProjectManifestRevision
+     * const projectManifestRevision = await prisma.projectManifestRevision.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends ProjectManifestRevisionUpdateArgs>(args: SelectSubset<T, ProjectManifestRevisionUpdateArgs<ExtArgs>>): Prisma__ProjectManifestRevisionClient<$Result.GetResult<Prisma.$ProjectManifestRevisionPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more ProjectManifestRevisions.
+     * @param {ProjectManifestRevisionDeleteManyArgs} args - Arguments to filter ProjectManifestRevisions to delete.
+     * @example
+     * // Delete a few ProjectManifestRevisions
+     * const { count } = await prisma.projectManifestRevision.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends ProjectManifestRevisionDeleteManyArgs>(args?: SelectSubset<T, ProjectManifestRevisionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectManifestRevisions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectManifestRevisionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many ProjectManifestRevisions
+     * const projectManifestRevision = await prisma.projectManifestRevision.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends ProjectManifestRevisionUpdateManyArgs>(args: SelectSubset<T, ProjectManifestRevisionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more ProjectManifestRevisions and returns the data updated in the database.
+     * @param {ProjectManifestRevisionUpdateManyAndReturnArgs} args - Arguments to update many ProjectManifestRevisions.
+     * @example
+     * // Update many ProjectManifestRevisions
+     * const projectManifestRevision = await prisma.projectManifestRevision.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more ProjectManifestRevisions and only return the `id`
+     * const projectManifestRevisionWithIdOnly = await prisma.projectManifestRevision.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends ProjectManifestRevisionUpdateManyAndReturnArgs>(args: SelectSubset<T, ProjectManifestRevisionUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectManifestRevisionPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one ProjectManifestRevision.
+     * @param {ProjectManifestRevisionUpsertArgs} args - Arguments to update or create a ProjectManifestRevision.
+     * @example
+     * // Update or create a ProjectManifestRevision
+     * const projectManifestRevision = await prisma.projectManifestRevision.upsert({
+     *   create: {
+     *     // ... data to create a ProjectManifestRevision
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the ProjectManifestRevision we want to update
+     *   }
+     * })
+     */
+    upsert<T extends ProjectManifestRevisionUpsertArgs>(args: SelectSubset<T, ProjectManifestRevisionUpsertArgs<ExtArgs>>): Prisma__ProjectManifestRevisionClient<$Result.GetResult<Prisma.$ProjectManifestRevisionPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of ProjectManifestRevisions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectManifestRevisionCountArgs} args - Arguments to filter ProjectManifestRevisions to count.
+     * @example
+     * // Count the number of ProjectManifestRevisions
+     * const count = await prisma.projectManifestRevision.count({
+     *   where: {
+     *     // ... the filter for the ProjectManifestRevisions we want to count
+     *   }
+     * })
+    **/
+    count<T extends ProjectManifestRevisionCountArgs>(
+      args?: Subset<T, ProjectManifestRevisionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], ProjectManifestRevisionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a ProjectManifestRevision.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectManifestRevisionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends ProjectManifestRevisionAggregateArgs>(args: Subset<T, ProjectManifestRevisionAggregateArgs>): Prisma.PrismaPromise<GetProjectManifestRevisionAggregateType<T>>
+
+    /**
+     * Group by ProjectManifestRevision.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {ProjectManifestRevisionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends ProjectManifestRevisionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: ProjectManifestRevisionGroupByArgs['orderBy'] }
+        : { orderBy?: ProjectManifestRevisionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, ProjectManifestRevisionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetProjectManifestRevisionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the ProjectManifestRevision model
+   */
+  readonly fields: ProjectManifestRevisionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for ProjectManifestRevision.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__ProjectManifestRevisionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the ProjectManifestRevision model
+   */
+  interface ProjectManifestRevisionFieldRefs {
+    readonly id: FieldRef<"ProjectManifestRevision", 'String'>
+    readonly projectId: FieldRef<"ProjectManifestRevision", 'String'>
+    readonly schemaVersion: FieldRef<"ProjectManifestRevision", 'Int'>
+    readonly manifestVersion: FieldRef<"ProjectManifestRevision", 'Int'>
+    readonly digest: FieldRef<"ProjectManifestRevision", 'String'>
+    readonly manifest: FieldRef<"ProjectManifestRevision", 'Json'>
+    readonly createdByUserId: FieldRef<"ProjectManifestRevision", 'String'>
+    readonly createdAt: FieldRef<"ProjectManifestRevision", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * ProjectManifestRevision findUnique
+   */
+  export type ProjectManifestRevisionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectManifestRevision
+     */
+    select?: ProjectManifestRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectManifestRevision
+     */
+    omit?: ProjectManifestRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectManifestRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectManifestRevision to fetch.
+     */
+    where: ProjectManifestRevisionWhereUniqueInput
+  }
+
+  /**
+   * ProjectManifestRevision findUniqueOrThrow
+   */
+  export type ProjectManifestRevisionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectManifestRevision
+     */
+    select?: ProjectManifestRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectManifestRevision
+     */
+    omit?: ProjectManifestRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectManifestRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectManifestRevision to fetch.
+     */
+    where: ProjectManifestRevisionWhereUniqueInput
+  }
+
+  /**
+   * ProjectManifestRevision findFirst
+   */
+  export type ProjectManifestRevisionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectManifestRevision
+     */
+    select?: ProjectManifestRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectManifestRevision
+     */
+    omit?: ProjectManifestRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectManifestRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectManifestRevision to fetch.
+     */
+    where?: ProjectManifestRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectManifestRevisions to fetch.
+     */
+    orderBy?: ProjectManifestRevisionOrderByWithRelationInput | ProjectManifestRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectManifestRevisions.
+     */
+    cursor?: ProjectManifestRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectManifestRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectManifestRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectManifestRevisions.
+     */
+    distinct?: ProjectManifestRevisionScalarFieldEnum | ProjectManifestRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectManifestRevision findFirstOrThrow
+   */
+  export type ProjectManifestRevisionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectManifestRevision
+     */
+    select?: ProjectManifestRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectManifestRevision
+     */
+    omit?: ProjectManifestRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectManifestRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectManifestRevision to fetch.
+     */
+    where?: ProjectManifestRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectManifestRevisions to fetch.
+     */
+    orderBy?: ProjectManifestRevisionOrderByWithRelationInput | ProjectManifestRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for ProjectManifestRevisions.
+     */
+    cursor?: ProjectManifestRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectManifestRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectManifestRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectManifestRevisions.
+     */
+    distinct?: ProjectManifestRevisionScalarFieldEnum | ProjectManifestRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectManifestRevision findMany
+   */
+  export type ProjectManifestRevisionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectManifestRevision
+     */
+    select?: ProjectManifestRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectManifestRevision
+     */
+    omit?: ProjectManifestRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectManifestRevisionInclude<ExtArgs> | null
+    /**
+     * Filter, which ProjectManifestRevisions to fetch.
+     */
+    where?: ProjectManifestRevisionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of ProjectManifestRevisions to fetch.
+     */
+    orderBy?: ProjectManifestRevisionOrderByWithRelationInput | ProjectManifestRevisionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing ProjectManifestRevisions.
+     */
+    cursor?: ProjectManifestRevisionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` ProjectManifestRevisions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` ProjectManifestRevisions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of ProjectManifestRevisions.
+     */
+    distinct?: ProjectManifestRevisionScalarFieldEnum | ProjectManifestRevisionScalarFieldEnum[]
+  }
+
+  /**
+   * ProjectManifestRevision create
+   */
+  export type ProjectManifestRevisionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectManifestRevision
+     */
+    select?: ProjectManifestRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectManifestRevision
+     */
+    omit?: ProjectManifestRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectManifestRevisionInclude<ExtArgs> | null
+    /**
+     * The data needed to create a ProjectManifestRevision.
+     */
+    data: XOR<ProjectManifestRevisionCreateInput, ProjectManifestRevisionUncheckedCreateInput>
+  }
+
+  /**
+   * ProjectManifestRevision createMany
+   */
+  export type ProjectManifestRevisionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many ProjectManifestRevisions.
+     */
+    data: ProjectManifestRevisionCreateManyInput | ProjectManifestRevisionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * ProjectManifestRevision createManyAndReturn
+   */
+  export type ProjectManifestRevisionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectManifestRevision
+     */
+    select?: ProjectManifestRevisionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectManifestRevision
+     */
+    omit?: ProjectManifestRevisionOmit<ExtArgs> | null
+    /**
+     * The data used to create many ProjectManifestRevisions.
+     */
+    data: ProjectManifestRevisionCreateManyInput | ProjectManifestRevisionCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectManifestRevisionIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectManifestRevision update
+   */
+  export type ProjectManifestRevisionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectManifestRevision
+     */
+    select?: ProjectManifestRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectManifestRevision
+     */
+    omit?: ProjectManifestRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectManifestRevisionInclude<ExtArgs> | null
+    /**
+     * The data needed to update a ProjectManifestRevision.
+     */
+    data: XOR<ProjectManifestRevisionUpdateInput, ProjectManifestRevisionUncheckedUpdateInput>
+    /**
+     * Choose, which ProjectManifestRevision to update.
+     */
+    where: ProjectManifestRevisionWhereUniqueInput
+  }
+
+  /**
+   * ProjectManifestRevision updateMany
+   */
+  export type ProjectManifestRevisionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update ProjectManifestRevisions.
+     */
+    data: XOR<ProjectManifestRevisionUpdateManyMutationInput, ProjectManifestRevisionUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectManifestRevisions to update
+     */
+    where?: ProjectManifestRevisionWhereInput
+    /**
+     * Limit how many ProjectManifestRevisions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectManifestRevision updateManyAndReturn
+   */
+  export type ProjectManifestRevisionUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectManifestRevision
+     */
+    select?: ProjectManifestRevisionSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectManifestRevision
+     */
+    omit?: ProjectManifestRevisionOmit<ExtArgs> | null
+    /**
+     * The data used to update ProjectManifestRevisions.
+     */
+    data: XOR<ProjectManifestRevisionUpdateManyMutationInput, ProjectManifestRevisionUncheckedUpdateManyInput>
+    /**
+     * Filter which ProjectManifestRevisions to update
+     */
+    where?: ProjectManifestRevisionWhereInput
+    /**
+     * Limit how many ProjectManifestRevisions to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectManifestRevisionIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * ProjectManifestRevision upsert
+   */
+  export type ProjectManifestRevisionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectManifestRevision
+     */
+    select?: ProjectManifestRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectManifestRevision
+     */
+    omit?: ProjectManifestRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectManifestRevisionInclude<ExtArgs> | null
+    /**
+     * The filter to search for the ProjectManifestRevision to update in case it exists.
+     */
+    where: ProjectManifestRevisionWhereUniqueInput
+    /**
+     * In case the ProjectManifestRevision found by the `where` argument doesn't exist, create a new ProjectManifestRevision with this data.
+     */
+    create: XOR<ProjectManifestRevisionCreateInput, ProjectManifestRevisionUncheckedCreateInput>
+    /**
+     * In case the ProjectManifestRevision was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<ProjectManifestRevisionUpdateInput, ProjectManifestRevisionUncheckedUpdateInput>
+  }
+
+  /**
+   * ProjectManifestRevision delete
+   */
+  export type ProjectManifestRevisionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectManifestRevision
+     */
+    select?: ProjectManifestRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectManifestRevision
+     */
+    omit?: ProjectManifestRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectManifestRevisionInclude<ExtArgs> | null
+    /**
+     * Filter which ProjectManifestRevision to delete.
+     */
+    where: ProjectManifestRevisionWhereUniqueInput
+  }
+
+  /**
+   * ProjectManifestRevision deleteMany
+   */
+  export type ProjectManifestRevisionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which ProjectManifestRevisions to delete
+     */
+    where?: ProjectManifestRevisionWhereInput
+    /**
+     * Limit how many ProjectManifestRevisions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * ProjectManifestRevision without action
+   */
+  export type ProjectManifestRevisionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the ProjectManifestRevision
+     */
+    select?: ProjectManifestRevisionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the ProjectManifestRevision
+     */
+    omit?: ProjectManifestRevisionOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: ProjectManifestRevisionInclude<ExtArgs> | null
   }
 
 
@@ -179705,6 +180969,20 @@ export namespace Prisma {
   export type ProjectSnapshotScalarFieldEnum = (typeof ProjectSnapshotScalarFieldEnum)[keyof typeof ProjectSnapshotScalarFieldEnum]
 
 
+  export const ProjectManifestRevisionScalarFieldEnum: {
+    id: 'id',
+    projectId: 'projectId',
+    schemaVersion: 'schemaVersion',
+    manifestVersion: 'manifestVersion',
+    digest: 'digest',
+    manifest: 'manifest',
+    createdByUserId: 'createdByUserId',
+    createdAt: 'createdAt'
+  };
+
+  export type ProjectManifestRevisionScalarFieldEnum = (typeof ProjectManifestRevisionScalarFieldEnum)[keyof typeof ProjectManifestRevisionScalarFieldEnum]
+
+
   export const ProjectStorageObjectScalarFieldEnum: {
     id: 'id',
     projectId: 'projectId',
@@ -182944,6 +184222,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingListRelationFilter
     workspaces?: WorkspaceListRelationFilter
     snapshots?: ProjectSnapshotListRelationFilter
+    manifestRevisions?: ProjectManifestRevisionListRelationFilter
     storageObjects?: ProjectStorageObjectListRelationFilter
     deployments?: DeploymentListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
@@ -182992,6 +184271,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingOrderByRelationAggregateInput
     workspaces?: WorkspaceOrderByRelationAggregateInput
     snapshots?: ProjectSnapshotOrderByRelationAggregateInput
+    manifestRevisions?: ProjectManifestRevisionOrderByRelationAggregateInput
     storageObjects?: ProjectStorageObjectOrderByRelationAggregateInput
     deployments?: DeploymentOrderByRelationAggregateInput
     fileSnapshots?: FileSnapshotOrderByRelationAggregateInput
@@ -183044,6 +184324,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingListRelationFilter
     workspaces?: WorkspaceListRelationFilter
     snapshots?: ProjectSnapshotListRelationFilter
+    manifestRevisions?: ProjectManifestRevisionListRelationFilter
     storageObjects?: ProjectStorageObjectListRelationFilter
     deployments?: DeploymentListRelationFilter
     fileSnapshots?: FileSnapshotListRelationFilter
@@ -185264,6 +186545,80 @@ export namespace Prisma {
     conversationId?: StringNullableWithAggregatesFilter<"ProjectSnapshot"> | string | null
     turnIndex?: IntNullableWithAggregatesFilter<"ProjectSnapshot"> | number | null
     createdAt?: DateTimeWithAggregatesFilter<"ProjectSnapshot"> | Date | string
+  }
+
+  export type ProjectManifestRevisionWhereInput = {
+    AND?: ProjectManifestRevisionWhereInput | ProjectManifestRevisionWhereInput[]
+    OR?: ProjectManifestRevisionWhereInput[]
+    NOT?: ProjectManifestRevisionWhereInput | ProjectManifestRevisionWhereInput[]
+    id?: StringFilter<"ProjectManifestRevision"> | string
+    projectId?: StringFilter<"ProjectManifestRevision"> | string
+    schemaVersion?: IntFilter<"ProjectManifestRevision"> | number
+    manifestVersion?: IntFilter<"ProjectManifestRevision"> | number
+    digest?: StringFilter<"ProjectManifestRevision"> | string
+    manifest?: JsonFilter<"ProjectManifestRevision">
+    createdByUserId?: StringNullableFilter<"ProjectManifestRevision"> | string | null
+    createdAt?: DateTimeFilter<"ProjectManifestRevision"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }
+
+  export type ProjectManifestRevisionOrderByWithRelationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    schemaVersion?: SortOrder
+    manifestVersion?: SortOrder
+    digest?: SortOrder
+    manifest?: SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    project?: ProjectOrderByWithRelationInput
+  }
+
+  export type ProjectManifestRevisionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    projectId_manifestVersion?: ProjectManifestRevisionProjectIdManifestVersionCompoundUniqueInput
+    projectId_digest?: ProjectManifestRevisionProjectIdDigestCompoundUniqueInput
+    AND?: ProjectManifestRevisionWhereInput | ProjectManifestRevisionWhereInput[]
+    OR?: ProjectManifestRevisionWhereInput[]
+    NOT?: ProjectManifestRevisionWhereInput | ProjectManifestRevisionWhereInput[]
+    projectId?: StringFilter<"ProjectManifestRevision"> | string
+    schemaVersion?: IntFilter<"ProjectManifestRevision"> | number
+    manifestVersion?: IntFilter<"ProjectManifestRevision"> | number
+    digest?: StringFilter<"ProjectManifestRevision"> | string
+    manifest?: JsonFilter<"ProjectManifestRevision">
+    createdByUserId?: StringNullableFilter<"ProjectManifestRevision"> | string | null
+    createdAt?: DateTimeFilter<"ProjectManifestRevision"> | Date | string
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }, "id" | "projectId_manifestVersion" | "projectId_digest">
+
+  export type ProjectManifestRevisionOrderByWithAggregationInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    schemaVersion?: SortOrder
+    manifestVersion?: SortOrder
+    digest?: SortOrder
+    manifest?: SortOrder
+    createdByUserId?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: ProjectManifestRevisionCountOrderByAggregateInput
+    _avg?: ProjectManifestRevisionAvgOrderByAggregateInput
+    _max?: ProjectManifestRevisionMaxOrderByAggregateInput
+    _min?: ProjectManifestRevisionMinOrderByAggregateInput
+    _sum?: ProjectManifestRevisionSumOrderByAggregateInput
+  }
+
+  export type ProjectManifestRevisionScalarWhereWithAggregatesInput = {
+    AND?: ProjectManifestRevisionScalarWhereWithAggregatesInput | ProjectManifestRevisionScalarWhereWithAggregatesInput[]
+    OR?: ProjectManifestRevisionScalarWhereWithAggregatesInput[]
+    NOT?: ProjectManifestRevisionScalarWhereWithAggregatesInput | ProjectManifestRevisionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"ProjectManifestRevision"> | string
+    projectId?: StringWithAggregatesFilter<"ProjectManifestRevision"> | string
+    schemaVersion?: IntWithAggregatesFilter<"ProjectManifestRevision"> | number
+    manifestVersion?: IntWithAggregatesFilter<"ProjectManifestRevision"> | number
+    digest?: StringWithAggregatesFilter<"ProjectManifestRevision"> | string
+    manifest?: JsonWithAggregatesFilter<"ProjectManifestRevision">
+    createdByUserId?: StringNullableWithAggregatesFilter<"ProjectManifestRevision"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"ProjectManifestRevision"> | Date | string
   }
 
   export type ProjectStorageObjectWhereInput = {
@@ -195038,6 +196393,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -195085,6 +196441,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -195132,6 +196489,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -195179,6 +196537,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -197476,6 +198835,82 @@ export namespace Prisma {
     createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     conversationId?: NullableStringFieldUpdateOperationsInput | string | null
     turnIndex?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectManifestRevisionCreateInput = {
+    id?: string
+    schemaVersion: number
+    manifestVersion: number
+    digest: string
+    manifest: JsonNullValueInput | InputJsonValue
+    createdByUserId?: string | null
+    createdAt?: Date | string
+    project: ProjectCreateNestedOneWithoutManifestRevisionsInput
+  }
+
+  export type ProjectManifestRevisionUncheckedCreateInput = {
+    id?: string
+    projectId: string
+    schemaVersion: number
+    manifestVersion: number
+    digest: string
+    manifest: JsonNullValueInput | InputJsonValue
+    createdByUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectManifestRevisionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    schemaVersion?: IntFieldUpdateOperationsInput | number
+    manifestVersion?: IntFieldUpdateOperationsInput | number
+    digest?: StringFieldUpdateOperationsInput | string
+    manifest?: JsonNullValueInput | InputJsonValue
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutManifestRevisionsNestedInput
+  }
+
+  export type ProjectManifestRevisionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    schemaVersion?: IntFieldUpdateOperationsInput | number
+    manifestVersion?: IntFieldUpdateOperationsInput | number
+    digest?: StringFieldUpdateOperationsInput | string
+    manifest?: JsonNullValueInput | InputJsonValue
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectManifestRevisionCreateManyInput = {
+    id?: string
+    projectId: string
+    schemaVersion: number
+    manifestVersion: number
+    digest: string
+    manifest: JsonNullValueInput | InputJsonValue
+    createdByUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectManifestRevisionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    schemaVersion?: IntFieldUpdateOperationsInput | number
+    manifestVersion?: IntFieldUpdateOperationsInput | number
+    digest?: StringFieldUpdateOperationsInput | string
+    manifest?: JsonNullValueInput | InputJsonValue
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectManifestRevisionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    schemaVersion?: IntFieldUpdateOperationsInput | number
+    manifestVersion?: IntFieldUpdateOperationsInput | number
+    digest?: StringFieldUpdateOperationsInput | string
+    manifest?: JsonNullValueInput | InputJsonValue
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -208502,6 +209937,12 @@ export namespace Prisma {
     none?: WorkspaceWhereInput
   }
 
+  export type ProjectManifestRevisionListRelationFilter = {
+    every?: ProjectManifestRevisionWhereInput
+    some?: ProjectManifestRevisionWhereInput
+    none?: ProjectManifestRevisionWhereInput
+  }
+
   export type ProjectStorageObjectListRelationFilter = {
     every?: ProjectStorageObjectWhereInput
     some?: ProjectStorageObjectWhereInput
@@ -208573,6 +210014,10 @@ export namespace Prisma {
   }
 
   export type WorkspaceOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type ProjectManifestRevisionOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -210081,6 +211526,57 @@ export namespace Prisma {
   export type ProjectSnapshotSumOrderByAggregateInput = {
     byteLength?: SortOrder
     turnIndex?: SortOrder
+  }
+
+  export type ProjectManifestRevisionProjectIdManifestVersionCompoundUniqueInput = {
+    projectId: string
+    manifestVersion: number
+  }
+
+  export type ProjectManifestRevisionProjectIdDigestCompoundUniqueInput = {
+    projectId: string
+    digest: string
+  }
+
+  export type ProjectManifestRevisionCountOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    schemaVersion?: SortOrder
+    manifestVersion?: SortOrder
+    digest?: SortOrder
+    manifest?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProjectManifestRevisionAvgOrderByAggregateInput = {
+    schemaVersion?: SortOrder
+    manifestVersion?: SortOrder
+  }
+
+  export type ProjectManifestRevisionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    schemaVersion?: SortOrder
+    manifestVersion?: SortOrder
+    digest?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProjectManifestRevisionMinOrderByAggregateInput = {
+    id?: SortOrder
+    projectId?: SortOrder
+    schemaVersion?: SortOrder
+    manifestVersion?: SortOrder
+    digest?: SortOrder
+    createdByUserId?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type ProjectManifestRevisionSumOrderByAggregateInput = {
+    schemaVersion?: SortOrder
+    manifestVersion?: SortOrder
   }
 
   export type ProjectStorageObjectCountOrderByAggregateInput = {
@@ -219432,6 +220928,13 @@ export namespace Prisma {
     connect?: ProjectSnapshotWhereUniqueInput | ProjectSnapshotWhereUniqueInput[]
   }
 
+  export type ProjectManifestRevisionCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectManifestRevisionCreateWithoutProjectInput, ProjectManifestRevisionUncheckedCreateWithoutProjectInput> | ProjectManifestRevisionCreateWithoutProjectInput[] | ProjectManifestRevisionUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectManifestRevisionCreateOrConnectWithoutProjectInput | ProjectManifestRevisionCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectManifestRevisionCreateManyProjectInputEnvelope
+    connect?: ProjectManifestRevisionWhereUniqueInput | ProjectManifestRevisionWhereUniqueInput[]
+  }
+
   export type ProjectStorageObjectCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectStorageObjectCreateWithoutProjectInput, ProjectStorageObjectUncheckedCreateWithoutProjectInput> | ProjectStorageObjectCreateWithoutProjectInput[] | ProjectStorageObjectUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectStorageObjectCreateOrConnectWithoutProjectInput | ProjectStorageObjectCreateOrConnectWithoutProjectInput[]
@@ -219628,6 +221131,13 @@ export namespace Prisma {
     connectOrCreate?: ProjectSnapshotCreateOrConnectWithoutProjectInput | ProjectSnapshotCreateOrConnectWithoutProjectInput[]
     createMany?: ProjectSnapshotCreateManyProjectInputEnvelope
     connect?: ProjectSnapshotWhereUniqueInput | ProjectSnapshotWhereUniqueInput[]
+  }
+
+  export type ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<ProjectManifestRevisionCreateWithoutProjectInput, ProjectManifestRevisionUncheckedCreateWithoutProjectInput> | ProjectManifestRevisionCreateWithoutProjectInput[] | ProjectManifestRevisionUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectManifestRevisionCreateOrConnectWithoutProjectInput | ProjectManifestRevisionCreateOrConnectWithoutProjectInput[]
+    createMany?: ProjectManifestRevisionCreateManyProjectInputEnvelope
+    connect?: ProjectManifestRevisionWhereUniqueInput | ProjectManifestRevisionWhereUniqueInput[]
   }
 
   export type ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput = {
@@ -219897,6 +221407,20 @@ export namespace Prisma {
     update?: ProjectSnapshotUpdateWithWhereUniqueWithoutProjectInput | ProjectSnapshotUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: ProjectSnapshotUpdateManyWithWhereWithoutProjectInput | ProjectSnapshotUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: ProjectSnapshotScalarWhereInput | ProjectSnapshotScalarWhereInput[]
+  }
+
+  export type ProjectManifestRevisionUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectManifestRevisionCreateWithoutProjectInput, ProjectManifestRevisionUncheckedCreateWithoutProjectInput> | ProjectManifestRevisionCreateWithoutProjectInput[] | ProjectManifestRevisionUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectManifestRevisionCreateOrConnectWithoutProjectInput | ProjectManifestRevisionCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectManifestRevisionUpsertWithWhereUniqueWithoutProjectInput | ProjectManifestRevisionUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectManifestRevisionCreateManyProjectInputEnvelope
+    set?: ProjectManifestRevisionWhereUniqueInput | ProjectManifestRevisionWhereUniqueInput[]
+    disconnect?: ProjectManifestRevisionWhereUniqueInput | ProjectManifestRevisionWhereUniqueInput[]
+    delete?: ProjectManifestRevisionWhereUniqueInput | ProjectManifestRevisionWhereUniqueInput[]
+    connect?: ProjectManifestRevisionWhereUniqueInput | ProjectManifestRevisionWhereUniqueInput[]
+    update?: ProjectManifestRevisionUpdateWithWhereUniqueWithoutProjectInput | ProjectManifestRevisionUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectManifestRevisionUpdateManyWithWhereWithoutProjectInput | ProjectManifestRevisionUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectManifestRevisionScalarWhereInput | ProjectManifestRevisionScalarWhereInput[]
   }
 
   export type ProjectStorageObjectUpdateManyWithoutProjectNestedInput = {
@@ -220291,6 +221815,20 @@ export namespace Prisma {
     update?: ProjectSnapshotUpdateWithWhereUniqueWithoutProjectInput | ProjectSnapshotUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: ProjectSnapshotUpdateManyWithWhereWithoutProjectInput | ProjectSnapshotUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: ProjectSnapshotScalarWhereInput | ProjectSnapshotScalarWhereInput[]
+  }
+
+  export type ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<ProjectManifestRevisionCreateWithoutProjectInput, ProjectManifestRevisionUncheckedCreateWithoutProjectInput> | ProjectManifestRevisionCreateWithoutProjectInput[] | ProjectManifestRevisionUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: ProjectManifestRevisionCreateOrConnectWithoutProjectInput | ProjectManifestRevisionCreateOrConnectWithoutProjectInput[]
+    upsert?: ProjectManifestRevisionUpsertWithWhereUniqueWithoutProjectInput | ProjectManifestRevisionUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: ProjectManifestRevisionCreateManyProjectInputEnvelope
+    set?: ProjectManifestRevisionWhereUniqueInput | ProjectManifestRevisionWhereUniqueInput[]
+    disconnect?: ProjectManifestRevisionWhereUniqueInput | ProjectManifestRevisionWhereUniqueInput[]
+    delete?: ProjectManifestRevisionWhereUniqueInput | ProjectManifestRevisionWhereUniqueInput[]
+    connect?: ProjectManifestRevisionWhereUniqueInput | ProjectManifestRevisionWhereUniqueInput[]
+    update?: ProjectManifestRevisionUpdateWithWhereUniqueWithoutProjectInput | ProjectManifestRevisionUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: ProjectManifestRevisionUpdateManyWithWhereWithoutProjectInput | ProjectManifestRevisionUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: ProjectManifestRevisionScalarWhereInput | ProjectManifestRevisionScalarWhereInput[]
   }
 
   export type ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput = {
@@ -221589,6 +223127,20 @@ export namespace Prisma {
     delete?: UserWhereInput | boolean
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutProjectSnapshotsInput, UserUpdateWithoutProjectSnapshotsInput>, UserUncheckedUpdateWithoutProjectSnapshotsInput>
+  }
+
+  export type ProjectCreateNestedOneWithoutManifestRevisionsInput = {
+    create?: XOR<ProjectCreateWithoutManifestRevisionsInput, ProjectUncheckedCreateWithoutManifestRevisionsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutManifestRevisionsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type ProjectUpdateOneRequiredWithoutManifestRevisionsNestedInput = {
+    create?: XOR<ProjectCreateWithoutManifestRevisionsInput, ProjectUncheckedCreateWithoutManifestRevisionsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutManifestRevisionsInput
+    upsert?: ProjectUpsertWithoutManifestRevisionsInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutManifestRevisionsInput, ProjectUpdateWithoutManifestRevisionsInput>, ProjectUncheckedUpdateWithoutManifestRevisionsInput>
   }
 
   export type ProjectCreateNestedOneWithoutStorageObjectsInput = {
@@ -229151,6 +230703,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -229197,6 +230750,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -233331,6 +234885,36 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type ProjectManifestRevisionCreateWithoutProjectInput = {
+    id?: string
+    schemaVersion: number
+    manifestVersion: number
+    digest: string
+    manifest: JsonNullValueInput | InputJsonValue
+    createdByUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectManifestRevisionUncheckedCreateWithoutProjectInput = {
+    id?: string
+    schemaVersion: number
+    manifestVersion: number
+    digest: string
+    manifest: JsonNullValueInput | InputJsonValue
+    createdByUserId?: string | null
+    createdAt?: Date | string
+  }
+
+  export type ProjectManifestRevisionCreateOrConnectWithoutProjectInput = {
+    where: ProjectManifestRevisionWhereUniqueInput
+    create: XOR<ProjectManifestRevisionCreateWithoutProjectInput, ProjectManifestRevisionUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectManifestRevisionCreateManyProjectInputEnvelope = {
+    data: ProjectManifestRevisionCreateManyProjectInput | ProjectManifestRevisionCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type ProjectStorageObjectCreateWithoutProjectInput = {
     id?: string
     key: string
@@ -234332,6 +235916,36 @@ export namespace Prisma {
     data: XOR<ProjectSnapshotUpdateManyMutationInput, ProjectSnapshotUncheckedUpdateManyWithoutProjectInput>
   }
 
+  export type ProjectManifestRevisionUpsertWithWhereUniqueWithoutProjectInput = {
+    where: ProjectManifestRevisionWhereUniqueInput
+    update: XOR<ProjectManifestRevisionUpdateWithoutProjectInput, ProjectManifestRevisionUncheckedUpdateWithoutProjectInput>
+    create: XOR<ProjectManifestRevisionCreateWithoutProjectInput, ProjectManifestRevisionUncheckedCreateWithoutProjectInput>
+  }
+
+  export type ProjectManifestRevisionUpdateWithWhereUniqueWithoutProjectInput = {
+    where: ProjectManifestRevisionWhereUniqueInput
+    data: XOR<ProjectManifestRevisionUpdateWithoutProjectInput, ProjectManifestRevisionUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type ProjectManifestRevisionUpdateManyWithWhereWithoutProjectInput = {
+    where: ProjectManifestRevisionScalarWhereInput
+    data: XOR<ProjectManifestRevisionUpdateManyMutationInput, ProjectManifestRevisionUncheckedUpdateManyWithoutProjectInput>
+  }
+
+  export type ProjectManifestRevisionScalarWhereInput = {
+    AND?: ProjectManifestRevisionScalarWhereInput | ProjectManifestRevisionScalarWhereInput[]
+    OR?: ProjectManifestRevisionScalarWhereInput[]
+    NOT?: ProjectManifestRevisionScalarWhereInput | ProjectManifestRevisionScalarWhereInput[]
+    id?: StringFilter<"ProjectManifestRevision"> | string
+    projectId?: StringFilter<"ProjectManifestRevision"> | string
+    schemaVersion?: IntFilter<"ProjectManifestRevision"> | number
+    manifestVersion?: IntFilter<"ProjectManifestRevision"> | number
+    digest?: StringFilter<"ProjectManifestRevision"> | string
+    manifest?: JsonFilter<"ProjectManifestRevision">
+    createdByUserId?: StringNullableFilter<"ProjectManifestRevision"> | string | null
+    createdAt?: DateTimeFilter<"ProjectManifestRevision"> | Date | string
+  }
+
   export type ProjectStorageObjectUpsertWithWhereUniqueWithoutProjectInput = {
     where: ProjectStorageObjectWhereUniqueInput
     update: XOR<ProjectStorageObjectUpdateWithoutProjectInput, ProjectStorageObjectUncheckedUpdateWithoutProjectInput>
@@ -234865,6 +236479,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -234911,6 +236526,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -234973,6 +236589,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -235019,6 +236636,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -235513,6 +237131,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -235559,6 +237178,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -235621,6 +237241,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -235667,6 +237288,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -235931,6 +237553,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -235977,6 +237600,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -236269,6 +237893,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -236315,6 +237940,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -236361,6 +237987,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -236407,6 +238034,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -236590,6 +238218,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -236636,6 +238265,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -236809,6 +238439,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -236855,6 +238486,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -236917,6 +238549,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -236963,6 +238596,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -237009,6 +238643,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -237055,6 +238690,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -237117,6 +238753,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -237163,6 +238800,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -237209,6 +238847,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -237255,6 +238894,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -237317,6 +238957,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -237363,6 +239004,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -237408,6 +239050,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -237454,6 +239097,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -237516,6 +239160,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -237562,6 +239207,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -237608,6 +239254,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -237654,6 +239301,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -237716,6 +239364,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -237762,6 +239411,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -237808,6 +239458,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -237854,6 +239505,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -237916,6 +239568,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -237962,6 +239615,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -238008,6 +239662,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -238054,6 +239709,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -238237,6 +239893,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -238283,6 +239940,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -238456,6 +240114,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -238502,6 +240161,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -238685,6 +240345,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -238731,6 +240392,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -238905,6 +240567,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -238951,6 +240614,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -239134,6 +240798,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -239180,6 +240845,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -239353,6 +241019,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -239399,6 +241066,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -239582,6 +241250,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -239628,6 +241297,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -239801,6 +241471,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -239847,6 +241518,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -240030,6 +241702,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -240076,6 +241749,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -241695,6 +243369,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -241741,6 +243416,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -241900,6 +243576,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -241946,6 +243623,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -242095,6 +243773,7 @@ export namespace Prisma {
     templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -242141,6 +243820,7 @@ export namespace Prisma {
     templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -242390,6 +244070,7 @@ export namespace Prisma {
     templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -242436,6 +244117,7 @@ export namespace Prisma {
     templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -242945,6 +244627,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -242991,6 +244674,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -243096,6 +244780,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -243142,6 +244827,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -243236,6 +244922,7 @@ export namespace Prisma {
     templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -243282,6 +244969,7 @@ export namespace Prisma {
     templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -243465,6 +245153,7 @@ export namespace Prisma {
     templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -243511,6 +245200,7 @@ export namespace Prisma {
     templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -243660,6 +245350,210 @@ export namespace Prisma {
     accessGrantsRevoked?: ResourceAccessGrantUncheckedUpdateManyWithoutRevokedByNestedInput
   }
 
+  export type ProjectCreateWithoutManifestRevisionsInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutManifestRevisionsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
+    importJobs?: ImportJobUncheckedCreateNestedManyWithoutTargetProjectInput
+    cloudBinding?: CloudProjectBindingUncheckedCreateNestedOneWithoutProjectInput
+    checkpoints?: ProjectCheckpointUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutManifestRevisionsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutManifestRevisionsInput, ProjectUncheckedCreateWithoutManifestRevisionsInput>
+  }
+
+  export type ProjectUpsertWithoutManifestRevisionsInput = {
+    update: XOR<ProjectUpdateWithoutManifestRevisionsInput, ProjectUncheckedUpdateWithoutManifestRevisionsInput>
+    create: XOR<ProjectCreateWithoutManifestRevisionsInput, ProjectUncheckedCreateWithoutManifestRevisionsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutManifestRevisionsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutManifestRevisionsInput, ProjectUncheckedUpdateWithoutManifestRevisionsInput>
+  }
+
+  export type ProjectUpdateWithoutManifestRevisionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutManifestRevisionsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
+    importJobs?: ImportJobUncheckedUpdateManyWithoutTargetProjectNestedInput
+    cloudBinding?: CloudProjectBindingUncheckedUpdateOneWithoutProjectNestedInput
+    checkpoints?: ProjectCheckpointUncheckedUpdateManyWithoutProjectNestedInput
+  }
+
   export type ProjectCreateWithoutStorageObjectsInput = {
     id?: string
     name: string
@@ -243685,6 +245579,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -243731,6 +245626,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -243793,6 +245689,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -243839,6 +245736,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -243885,6 +245783,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
     conversations?: AiConversationCreateNestedManyWithoutProjectInput
@@ -243931,6 +245830,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
     conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
@@ -244008,6 +245908,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUpdateManyWithoutProjectNestedInput
@@ -244054,6 +245955,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
     conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
@@ -246227,6 +248129,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -246273,6 +248176,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -246484,6 +248388,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -246530,6 +248435,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -248771,6 +250677,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -248817,6 +250724,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -249006,6 +250914,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -249052,6 +250961,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -253530,6 +255440,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -253576,6 +255487,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -253812,6 +255724,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -253858,6 +255771,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -257133,6 +259047,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -257179,6 +259094,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -257309,6 +259225,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -257355,6 +259272,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -258099,6 +260017,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -258145,6 +260064,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -258328,6 +260248,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -258374,6 +260295,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -258765,6 +260687,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -258811,6 +260734,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -259132,6 +261056,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -259178,6 +261103,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -259382,6 +261308,7 @@ export namespace Prisma {
     templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -259428,6 +261355,7 @@ export namespace Prisma {
     templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -259611,6 +261539,7 @@ export namespace Prisma {
     templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -259657,6 +261586,7 @@ export namespace Prisma {
     templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -261467,6 +263397,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
     deployments?: DeploymentCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
@@ -261513,6 +263444,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
     workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
     snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedCreateNestedManyWithoutProjectInput
     storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
     deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
     fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
@@ -261820,6 +263752,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -261866,6 +263799,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -266615,6 +268549,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
@@ -266661,6 +268596,7 @@ export namespace Prisma {
     galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
     workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
     snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    manifestRevisions?: ProjectManifestRevisionUncheckedUpdateManyWithoutProjectNestedInput
     storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
     deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
     fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
@@ -268071,6 +270007,16 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type ProjectManifestRevisionCreateManyProjectInput = {
+    id?: string
+    schemaVersion: number
+    manifestVersion: number
+    digest: string
+    manifest: JsonNullValueInput | InputJsonValue
+    createdByUserId?: string | null
+    createdAt?: Date | string
+  }
+
   export type ProjectStorageObjectCreateManyProjectInput = {
     id?: string
     key: string
@@ -268614,6 +270560,36 @@ export namespace Prisma {
     createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     conversationId?: NullableStringFieldUpdateOperationsInput | string | null
     turnIndex?: NullableIntFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectManifestRevisionUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    schemaVersion?: IntFieldUpdateOperationsInput | number
+    manifestVersion?: IntFieldUpdateOperationsInput | number
+    digest?: StringFieldUpdateOperationsInput | string
+    manifest?: JsonNullValueInput | InputJsonValue
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectManifestRevisionUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    schemaVersion?: IntFieldUpdateOperationsInput | number
+    manifestVersion?: IntFieldUpdateOperationsInput | number
+    digest?: StringFieldUpdateOperationsInput | string
+    manifest?: JsonNullValueInput | InputJsonValue
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProjectManifestRevisionUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    schemaVersion?: IntFieldUpdateOperationsInput | number
+    manifestVersion?: IntFieldUpdateOperationsInput | number
+    digest?: StringFieldUpdateOperationsInput | string
+    manifest?: JsonNullValueInput | InputJsonValue
+    createdByUserId?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

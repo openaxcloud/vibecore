@@ -264,7 +264,7 @@ documents:
     repoCommit: ca299f87
     reviewer: UNKNOWN
   - file: PROJECT_MANIFEST_SCHEMA.json
-    sha256: "1c09f782cfa4fcef1633b0136a9360953f8fd9266c18571747d1741c901ae885"
+    sha256: "50f6409310b9ca05cfefa3bd46df6fcaf494e3434b5460cafa221ad72f343334"
     schemaVersion: null
     repoCommit: null
     reviewer: UNKNOWN

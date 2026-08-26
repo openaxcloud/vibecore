@@ -373,6 +373,15 @@ import {
 } from './object-storage.js';
 import { PrismaApiStore } from './prisma-store.js';
 import {
+  canonicalizeProjectManifest,
+  createDefaultProjectManifest,
+  PROJECT_MANIFEST_DIGEST_PATTERN,
+  ProjectManifestError,
+  projectManifestDigest,
+  verifyStoredProjectManifestRevision,
+  type ProjectManifest,
+} from './project-manifest.js';
+import {
   decodeFileContent,
   filesFromZip,
   filesFromZipBase64,
@@ -795,6 +804,12 @@ const domainParams = orgParams.extend({ domain: z.string().min(3) });
 const sessionParams = z.object({ sessionId: z.string().min(1) });
 const stripeWebhookFailureParams = z.object({ eventId: z.string().min(1) });
 const projectParams = z.object({ projectId: z.string().min(1) });
+const projectManifestUpdateSchema = z
+  .object({
+    expectedDigest: z.string().regex(PROJECT_MANIFEST_DIGEST_PATTERN),
+    manifest: z.unknown(),
+  })
+  .strict();
 
 const projectResolveQuerySchema = z.object({
   accountSlug: z.string().min(1).max(120),
@@ -1892,6 +1907,34 @@ const aiToolParams = projectParams.extend({ toolName: z.enum(aiToolNames) });
 
 function parse<T>(schema: ZodSchema<T>, value: unknown): T {
   return schema.parse(value);
+}
+
+async function currentProjectManifest(
+  store: ApiStore,
+  project: Pick<ProjectRecord, 'id'>,
+): Promise<{ manifest: ProjectManifest; digest: string }> {
+  let revision = await store.getLatestProjectManifest(project.id);
+
+  /*
+   * Existing projects predate migration 0092. Materialize their conservative
+   * one-artifact manifest on first read under the store's cross-replica lock;
+   * an exact concurrent insert is idempotent.
+   */
+  if (!revision) {
+    const manifest = createDefaultProjectManifest(project.id);
+    revision = await store.createProjectManifestRevision({
+      projectId: project.id,
+      schemaVersion: manifest.schemaVersion,
+      manifestVersion: manifest.manifestVersion,
+      digest: projectManifestDigest(manifest),
+      manifest,
+    });
+  }
+
+  return {
+    manifest: verifyStoredProjectManifestRevision(revision, project.id),
+    digest: revision.digest,
+  };
 }
 
 function aiTranscriptMessageId(conversationId: string, clientId: string) {
@@ -9153,6 +9196,38 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   });
 
   app.setErrorHandler((error: any, request, reply) => {
+    if (error instanceof ProjectManifestError) {
+      const locale = transactionalLocaleForRequest(request);
+      const localized = localizeAppPublicMessage(error.publicMessage, locale);
+
+      if (error.statusCode >= 500) {
+        request.log.error(
+          { err: error, route: request.routeOptions.url ?? request.url, code: error.code },
+          'project manifest integrity failure',
+        );
+        metrics.increment('api_errors_total', {
+          method: request.method,
+          route: request.routeOptions.url ?? request.url.split('?')[0] ?? 'unknown',
+          code: error.code,
+        });
+        void sentry.captureException(error, {
+          requestId: request.id,
+          correlationId: request.observability?.correlationId,
+          userId: request.currentUser?.id,
+          organizationId: orgIdFromRequest(request),
+          route: request.routeOptions.url,
+        });
+      }
+
+      return reply.code(error.statusCode).send({
+        error: localized.matched
+          ? localized.value
+          : publicErrorMessage({ code: error.code, locale, englishFallback: error.publicMessage }),
+        code: error.code,
+        ...(error.issues.length ? { issues: error.issues } : {}),
+      });
+    }
+
     if (error instanceof z.ZodError) {
       const locale = transactionalLocaleForRequest(request);
 
@@ -21556,6 +21631,79 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   app.get('/projects/:projectId', async (request) => ({
     project: await requireProject(request, store, parse(projectParams, request.params).projectId, 'projects:read'),
   }));
+  app.get('/projects/:projectId/manifest', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const current = await currentProjectManifest(store, project);
+
+    reply.header('etag', `"${current.digest}"`);
+    reply.header('cache-control', 'private, no-cache');
+    return current;
+  });
+  app.put('/projects/:projectId/manifest', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    const body = parse(projectManifestUpdateSchema, request.body ?? {});
+    const manifest = canonicalizeProjectManifest(body.manifest);
+
+    if (manifest.projectId !== project.id) {
+      throw new ProjectManifestError({
+        code: 'PROJECT_MANIFEST_PROJECT_MISMATCH',
+        statusCode: 422,
+        publicMessage: appPublicEnglish('PROJECT_MANIFEST_PROJECT_MISMATCH'),
+      });
+    }
+
+    const current = await currentProjectManifest(store, project);
+    const digest = projectManifestDigest(manifest);
+    const revision = await store.createProjectManifestRevision({
+      projectId: project.id,
+      schemaVersion: manifest.schemaVersion,
+      manifestVersion: manifest.manifestVersion,
+      digest,
+      manifest,
+      expectedDigest: body.expectedDigest,
+      createdByUserId: request.currentUser!.id,
+    });
+    const verified = verifyStoredProjectManifestRevision(revision, project.id);
+
+    if (current.digest !== revision.digest) {
+      await store.recordProjectActivity({
+        projectId: project.id,
+        actorUserId: request.currentUser!.id,
+        action: 'project.manifest.update',
+        metadata: {
+          schemaVersion: revision.schemaVersion,
+          manifestVersion: revision.manifestVersion,
+          digest: revision.digest,
+        },
+      });
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'project.manifest.update',
+        resourceType: 'projectManifest',
+        resourceId: revision.id,
+        metadata: {
+          projectId: project.id,
+          schemaVersion: revision.schemaVersion,
+          manifestVersion: revision.manifestVersion,
+          digest: revision.digest,
+        },
+      });
+    }
+
+    reply.header('etag', `"${revision.digest}"`);
+    reply.header('cache-control', 'private, no-cache');
+    return { manifest: verified, digest: revision.digest };
+  });
   app.get('/projects/:projectId/dashboard', async (request) => {
     const project = await requireProject(
       request,
@@ -33930,6 +34078,48 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { request, project, queued, body, secondaryWorkspaceId } = params;
 
     /*
+     * The queue payload can wait or retry while a collaborator edits the
+     * manifest. Never execute a build under relations/scopes other than those
+     * approved when the row was queued. Legacy rows (created before 0092) have
+     * no binding and keep their prior behaviour; every new row is bound.
+     */
+    const queuedManifestDigest = (queued.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
+
+    if (typeof queuedManifestDigest === 'string') {
+      let currentDigest: string | undefined;
+      let failureMessage = appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_DEPLOY');
+
+      try {
+        currentDigest = (await currentProjectManifest(store, project)).digest;
+      } catch (error) {
+        currentDigest = undefined;
+        request.log?.error?.(
+          { err: error, projectId: project.id, deploymentId: queued.id },
+          'deployment project manifest verification failed',
+        );
+
+        if (error instanceof ProjectManifestError) {
+          failureMessage = error.publicMessage;
+        }
+      }
+
+      if (currentDigest !== queuedManifestDigest) {
+        return store.updateDeployment(project.id, queued.id, {
+          status: 'FAILED',
+          logs: [
+            ...queued.logs,
+            {
+              timestamp: new Date().toISOString(),
+              level: 'error',
+              message: failureMessage,
+            },
+          ],
+          finishedAt: new Date().toISOString(),
+        });
+      }
+    }
+
+    /*
      * Incremental log/phase flush (coalesced ~1/s) so the UI streams progress
      * instead of showing a frozen screen while the pod builds. Flushing also keeps
      * the row's updatedAt fresh, which is what the reaper uses to tell a live build
@@ -35067,6 +35257,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       injectSecrets: [],
       ...parse(createDeploymentSchema, request.body),
     };
+    const boundProjectManifest = await currentProjectManifest(store, project);
 
     const { subscription } = await billingState(project.organizationId);
 
@@ -35160,6 +35351,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           customDomain: body.customDomain,
           machineSize: deployMachineSize,
           metadata: {
+            projectManifestDigest: boundProjectManifest.digest,
+            projectManifestVersion: boundProjectManifest.manifest.manifestVersion,
+            projectManifestSchemaVersion: boundProjectManifest.manifest.schemaVersion,
             previewDeployment: body.previewDeployment,
             timeoutSeconds: body.timeoutSeconds,
             artifactSizeLimitMb: body.artifactSizeLimitMb,
@@ -35298,6 +35492,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const syntheticRequest = {
       currentUser: data.userId ? { id: data.userId } : undefined,
       ip: '127.0.0.1',
+      log: request.log,
       raw: { aborted: false },
     };
 

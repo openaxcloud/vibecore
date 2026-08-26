@@ -668,6 +668,18 @@ export interface ServerImageReleaseCommitResult {
   manifest?: ReleaseManifestRecord;
 }
 
+/** P0-EX-08: one immutable, canonical ProjectManifest revision. */
+export interface ProjectManifestRevisionRecord {
+  id: string;
+  projectId: string;
+  schemaVersion: number;
+  manifestVersion: number;
+  digest: string;
+  manifest: unknown;
+  createdByUserId?: string;
+  createdAt: string;
+}
+
 export interface SupportTicketRecord {
   id: string;
   organizationId: string;
@@ -1635,6 +1647,10 @@ export interface ApiStore {
     templateName?: string;
     gitRepositoryUrl?: string;
     gitDefaultBranch?: string;
+    /** Internal clone seed. Runtime-validated before the project transaction commits. */
+    initialManifest?: unknown;
+    /** Secure remixes strip tenant-bound refs; ordinary duplicates preserve them. */
+    manifestCloneMode?: 'COPY' | 'DETACH_EXTERNALS';
   }): Promise<ProjectRecord>;
   getProject(id: string): Promise<ProjectRecord | undefined>;
   getProjectBySlugs(input: { organizationSlug: string; projectSlug: string }): Promise<ProjectRecord | undefined>;
@@ -1704,6 +1720,8 @@ export interface ApiStore {
     slug: string;
     /** Target org for the clone. Defaults to the source project's org. */
     organizationId?: string;
+    /** Secure remix boundary: never carry source resource/entitlement refs. */
+    manifestCloneMode?: 'COPY' | 'DETACH_EXTERNALS';
   }): Promise<ProjectRecord>;
   createProjectTemplate(input: {
     sourceProjectId: string;
@@ -2662,6 +2680,23 @@ export interface ApiStore {
   commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult>;
   /** Durable promotion evidence retained independently of a prunable Deployment row. */
   getServerImageReleasePromotion(deploymentId: string): Promise<unknown | undefined>;
+  /** Latest append-only ProjectManifest revision, or undefined for a legacy row. */
+  getLatestProjectManifest(projectId: string): Promise<ProjectManifestRevisionRecord | undefined>;
+  /**
+   * Append exactly the next version. The store serializes by project across API
+   * replicas and compares `expectedDigest` under that lock. A retry whose exact
+   * digest already won is idempotent; any other stale write fails with
+   * PROJECT_MANIFEST_VERSION_CONFLICT.
+   */
+  createProjectManifestRevision(input: {
+    projectId: string;
+    schemaVersion: number;
+    manifestVersion: number;
+    digest: string;
+    manifest: unknown;
+    expectedDigest?: string;
+    createdByUserId?: string;
+  }): Promise<ProjectManifestRevisionRecord>;
   /**
    * The ACTIVE versioned Rate Card row (undefined when none is active — the
    * caller falls back to the built-in card). `data` is the serialized RateCard.

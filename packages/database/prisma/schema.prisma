@@ -312,6 +312,7 @@ model Project {
   galleryListings         GalleryListing[]         @relation("ProjectGalleryListings")
   workspaces              Workspace[]
   snapshots               ProjectSnapshot[]
+  manifestRevisions       ProjectManifestRevision[]
   storageObjects          ProjectStorageObject[]
   deployments             Deployment[]
   fileSnapshots           FileSnapshot[]
@@ -882,6 +883,25 @@ model ProjectSnapshot {
   @@index([projectId])
   @@index([createdByUserId])
   @@index([conversationId, turnIndex])
+}
+
+// P0-EX-08: append-only, integrity-bound ProjectManifest history. The latest
+// manifestVersion is the project's component/artifact/scope source of truth;
+// consumers re-canonicalize `manifest` and verify `digest` before acting.
+model ProjectManifestRevision {
+  id              String   @id @default(cuid())
+  projectId       String
+  schemaVersion   Int
+  manifestVersion Int
+  digest          String
+  manifest        Json
+  createdByUserId String?
+  createdAt       DateTime @default(now())
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, manifestVersion])
+  @@unique([projectId, digest])
+  @@index([projectId, createdAt])
 }
 
 model ProjectStorageObject {

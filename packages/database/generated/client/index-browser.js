@@ -558,6 +558,17 @@ exports.Prisma.ProjectSnapshotScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.ProjectManifestRevisionScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  schemaVersion: 'schemaVersion',
+  manifestVersion: 'manifestVersion',
+  digest: 'digest',
+  manifest: 'manifest',
+  createdByUserId: 'createdByUserId',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.ProjectStorageObjectScalarFieldEnum = {
   id: 'id',
   projectId: 'projectId',
@@ -2313,6 +2324,7 @@ exports.Prisma.ModelName = {
   WorkspacePort: 'WorkspacePort',
   FileSnapshot: 'FileSnapshot',
   ProjectSnapshot: 'ProjectSnapshot',
+  ProjectManifestRevision: 'ProjectManifestRevision',
   ProjectStorageObject: 'ProjectStorageObject',
   Deployment: 'Deployment',
   DeploymentEnvironment: 'DeploymentEnvironment',

@@ -7,6 +7,14 @@ import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/dat
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from './server-image-promotion.js';
+import {
+  createDefaultProjectManifest,
+  projectManifestForClone,
+  projectManifestDigest,
+  verifyStoredProjectManifestRevision,
+  type ProjectManifest,
+  type ProjectManifestCloneMode,
+} from './project-manifest.js';
 import { slugify } from './slugify.js';
 import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
 import type {
@@ -76,6 +84,7 @@ import type {
   EnvVarScope,
   ProjectEnvironmentRecord,
   ProjectIdeStateRecord,
+  ProjectManifestRevisionRecord,
   ProjectRecord,
   ProjectSecretRecord,
   ProjectShareLinkRecord,
@@ -1194,6 +1203,8 @@ export class PrismaApiStore implements ApiStore {
     templateName?: string;
     gitRepositoryUrl?: string;
     gitDefaultBranch?: string;
+    initialManifest?: unknown;
+    manifestCloneMode?: ProjectManifestCloneMode;
   }) {
     const base = projectSlugBase(input);
 
@@ -1208,8 +1219,8 @@ export class PrismaApiStore implements ApiStore {
       const slug = await this.nextProjectSlug(input.organizationId, base);
 
       try {
-        return mapProject(
-          await this.prisma.project.create({
+        return await this.prisma.$transaction(async (tx) => {
+          const project = await tx.project.create({
             data: {
               organizationId: input.organizationId,
               name: input.name,
@@ -1221,8 +1232,23 @@ export class PrismaApiStore implements ApiStore {
               gitDefaultBranch: input.gitDefaultBranch,
               persistentVolumeClaim: `pvc-${input.organizationId}-${slug}`,
             },
-          }),
-        );
+          });
+          const manifest = input.initialManifest
+            ? projectManifestForClone(input.initialManifest, project.id, input.manifestCloneMode)
+            : createDefaultProjectManifest(project.id);
+
+          await tx.projectManifestRevision.create({
+            data: {
+              projectId: project.id,
+              schemaVersion: manifest.schemaVersion,
+              manifestVersion: manifest.manifestVersion,
+              digest: projectManifestDigest(manifest),
+              manifest: manifest as Prisma.InputJsonValue,
+            },
+          });
+
+          return mapProject(project);
+        });
       } catch (error) {
         if (isPrismaKnownRequestError(error) && error.code === 'P2002' && attempt < 5) {
           continue;
@@ -1524,12 +1550,22 @@ export class PrismaApiStore implements ApiStore {
     }
   }
 
-  async duplicateProject(input: { projectId: string; name: string; slug: string; organizationId?: string }) {
-    const source = assertFound(
-      await this.prisma.project.findUnique({ where: { id: input.projectId } }),
-      'Project not found',
-      'PROJECT_NOT_FOUND',
-    );
+  async duplicateProject(input: {
+    projectId: string;
+    name: string;
+    slug: string;
+    organizationId?: string;
+    manifestCloneMode?: ProjectManifestCloneMode;
+  }) {
+    const [sourceRow, sourceRevision] = await Promise.all([
+      this.prisma.project.findUnique({ where: { id: input.projectId } }),
+      this.getLatestProjectManifest(input.projectId),
+    ]);
+    const source = assertFound(sourceRow, 'Project not found', 'PROJECT_NOT_FOUND');
+    const sourceManifest = sourceRevision
+      ? verifyStoredProjectManifestRevision(sourceRevision, source.id)
+      : createDefaultProjectManifest(source.id);
+
     return this.createProject({
       organizationId: input.organizationId ?? source.organizationId,
       name: input.name,
@@ -1539,6 +1575,8 @@ export class PrismaApiStore implements ApiStore {
       templateName: source.templateName ?? undefined,
       gitRepositoryUrl: source.gitRepositoryUrl ?? undefined,
       gitDefaultBranch: source.gitDefaultBranch ?? undefined,
+      initialManifest: sourceManifest,
+      manifestCloneMode: input.manifestCloneMode,
     });
   }
 
@@ -2164,21 +2202,53 @@ export class PrismaApiStore implements ApiStore {
         });
       }
 
+      const source = assertFound(
+        await tx.project.findUnique({ where: { id: job.sourceProjectId } }),
+        appPublicEnglish('PROJECT_NOT_FOUND'),
+        'PROJECT_NOT_FOUND',
+      );
+      const sourceRevisionRow = await tx.projectManifestRevision.findFirst({
+        where: { projectId: source.id },
+        orderBy: { manifestVersion: 'desc' },
+      });
+      const sourceManifest = sourceRevisionRow
+        ? verifyStoredProjectManifestRevision(mapProjectManifestRevision(sourceRevisionRow), source.id)
+        : createDefaultProjectManifest(source.id);
+      const ensureDetachedTargetManifest = async (targetProjectId: string) => {
+        const existingRevisionRow = await tx.projectManifestRevision.findFirst({
+          where: { projectId: targetProjectId },
+          orderBy: { manifestVersion: 'desc' },
+        });
+
+        if (existingRevisionRow) {
+          verifyStoredProjectManifestRevision(mapProjectManifestRevision(existingRevisionRow), targetProjectId);
+          return;
+        }
+
+        const manifest = projectManifestForClone(sourceManifest, targetProjectId, 'DETACH_EXTERNALS');
+        await tx.projectManifestRevision.create({
+          data: {
+            projectId: targetProjectId,
+            schemaVersion: manifest.schemaVersion,
+            manifestVersion: manifest.manifestVersion,
+            digest: projectManifestDigest(manifest),
+            manifest: manifest as Prisma.InputJsonValue,
+            createdByUserId: job.actorUserId,
+          },
+        });
+      };
+
       if (job.targetProjectId) {
         const existing = await tx.project.findFirst({
           where: { id: job.targetProjectId, organizationId: input.organizationId },
         });
 
         if (existing) {
+          await ensureDetachedTargetManifest(existing.id);
           return mapProject(existing);
         }
       }
 
-      const source = assertFound(
-        await tx.project.findUnique({ where: { id: job.sourceProjectId } }),
-        appPublicEnglish('PROJECT_NOT_FOUND'),
-        'PROJECT_NOT_FOUND',
-      );
       const baseSlug = slugify(input.slug) || `remix-${job.id.slice(-8)}`;
       const occupied = await tx.project.findUnique({
         where: { organizationId_slug: { organizationId: input.organizationId, slug: baseSlug } },
@@ -2201,6 +2271,7 @@ export class PrismaApiStore implements ApiStore {
           deletedAt: new Date(),
         },
       });
+      await ensureDetachedTargetManifest(project.id);
       await tx.remixJob.update({
         where: { id: job.id },
         data: { targetProjectId: project.id, version: { increment: 1 } },
@@ -2864,13 +2935,14 @@ export class PrismaApiStore implements ApiStore {
       const job = await tx.importJob.findFirst({
         where: { id: input.importJobId, organizationId: input.organizationId },
       });
+      const now = await databaseNow(tx);
 
       if (
         !job ||
         job.state !== 'COMMITTING' ||
         job.operationToken !== input.operationToken ||
         !job.operationExpiresAt ||
-        job.operationExpiresAt.getTime() <= Date.now()
+        job.operationExpiresAt <= now
       ) {
         throw Object.assign(new Error(appPublicEnglish('IMPORT_COMMIT_OWNERSHIP_LOST')), {
           statusCode: 409,
@@ -2878,12 +2950,37 @@ export class PrismaApiStore implements ApiStore {
         });
       }
 
+      const ensureDefaultManifest = async (targetProjectId: string) => {
+        const existingRevisionRow = await tx.projectManifestRevision.findFirst({
+          where: { projectId: targetProjectId },
+          orderBy: { manifestVersion: 'desc' },
+        });
+
+        if (existingRevisionRow) {
+          verifyStoredProjectManifestRevision(mapProjectManifestRevision(existingRevisionRow), targetProjectId);
+          return;
+        }
+
+        const manifest = createDefaultProjectManifest(targetProjectId);
+        await tx.projectManifestRevision.create({
+          data: {
+            projectId: targetProjectId,
+            schemaVersion: manifest.schemaVersion,
+            manifestVersion: manifest.manifestVersion,
+            digest: projectManifestDigest(manifest),
+            manifest: manifest as Prisma.InputJsonValue,
+            createdByUserId: job.actorUserId,
+          },
+        });
+      };
+
       if (job.targetProjectId) {
         const existing = await tx.project.findFirst({
           where: { id: job.targetProjectId, organizationId: input.organizationId },
         });
 
         if (existing) {
+          await ensureDefaultManifest(existing.id);
           return mapProject(existing);
         }
       }
@@ -2897,6 +2994,7 @@ export class PrismaApiStore implements ApiStore {
           persistentVolumeClaim: `pvc-${input.organizationId}-${input.slug}`,
         },
       });
+      await ensureDefaultManifest(project.id);
       await tx.importJob.update({
         where: { id: job.id },
         data: { targetProjectId: project.id, version: { increment: 1 } },
@@ -5869,6 +5967,62 @@ export class PrismaApiStore implements ApiStore {
       select: { metadata: true },
     });
     return (audit?.metadata as Record<string, unknown> | null)?.promotion;
+  }
+
+  async getLatestProjectManifest(projectId: string) {
+    const row = await this.prisma.projectManifestRevision.findFirst({
+      where: { projectId },
+      orderBy: { manifestVersion: 'desc' },
+    });
+
+    return row ? mapProjectManifestRevision(row) : undefined;
+  }
+
+  async createProjectManifestRevision(input: {
+    projectId: string;
+    schemaVersion: number;
+    manifestVersion: number;
+    digest: string;
+    manifest: ProjectManifest;
+    expectedDigest?: string;
+    createdByUserId?: string;
+  }): Promise<ProjectManifestRevisionRecord> {
+    const manifest = verifyStoredProjectManifestRevision(input, input.projectId);
+
+    return this.withSerializedMutation(`project-manifest:${input.projectId}`, async () => {
+      const latest = await this.prisma.projectManifestRevision.findFirst({
+        where: { projectId: input.projectId },
+        orderBy: { manifestVersion: 'desc' },
+      });
+
+      /* Exact replay after the first response was lost: return the winning row. */
+      if (latest?.digest === input.digest && latest.manifestVersion === input.manifestVersion) {
+        return mapProjectManifestRevision(latest);
+      }
+
+      const expectedMatches = latest ? input.expectedDigest === latest.digest : input.expectedDigest === undefined;
+      const nextVersion = (latest?.manifestVersion ?? 0) + 1;
+
+      if (!expectedMatches || input.manifestVersion !== nextVersion) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_VERSION_CONFLICT')), {
+          code: 'PROJECT_MANIFEST_VERSION_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      return mapProjectManifestRevision(
+        await this.prisma.projectManifestRevision.create({
+          data: {
+            projectId: input.projectId,
+            schemaVersion: input.schemaVersion,
+            manifestVersion: input.manifestVersion,
+            digest: input.digest,
+            manifest: manifest as Prisma.InputJsonValue,
+            createdByUserId: input.createdByUserId ?? null,
+          },
+        }),
+      );
+    });
   }
 
   async getActiveRateCard() {
@@ -9306,6 +9460,19 @@ function mapReleaseManifest(row: any): ReleaseManifestRecord {
     storeGeneration: row.storeGeneration ?? undefined,
     configDigest: row.configDigest ?? undefined,
     dbMigrationPoint: row.dbMigrationPoint ?? undefined,
+    createdAt: toIso(row.createdAt)!,
+  };
+}
+
+function mapProjectManifestRevision(row: any): ProjectManifestRevisionRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    schemaVersion: row.schemaVersion,
+    manifestVersion: row.manifestVersion,
+    digest: row.digest,
+    manifest: row.manifest,
+    createdByUserId: row.createdByUserId ?? undefined,
     createdAt: toIso(row.createdAt)!,
   };
 }

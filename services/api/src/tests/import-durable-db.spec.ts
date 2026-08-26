@@ -115,6 +115,22 @@ runDbTests('durable import staging — real PostgreSQL multi-client CAS', () => 
         slug: `imported-once-${suffix}`,
         sourceType: 'zip',
       });
+      expect(await prismaA.projectManifestRevision.count({ where: { projectId: project.id } })).toBe(1);
+
+      // Crash-window mutation: a replay that finds the claimed Project row must
+      // restore its v1 manifest before exposing or finalizing that project.
+      await prismaA.projectManifestRevision.deleteMany({ where: { projectId: project.id } });
+      const replayedProject = await winnerStore.createClaimedImportProject({
+        importJobId: job.id,
+        organizationId: organization.id,
+        operationToken: winnerToken,
+        name: 'Imported once',
+        slug: `imported-once-${suffix}`,
+        sourceType: 'zip',
+      });
+      expect(replayedProject.id).toBe(project.id);
+      expect(await prismaA.projectManifestRevision.count({ where: { projectId: project.id } })).toBe(1);
+
       const finalized = await winnerStore.finalizeImportCommit({
         importJobId: job.id,
         organizationId: organization.id,
