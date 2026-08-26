@@ -73,6 +73,14 @@ data:
   # Comma-separated list of emails granted PlatformAdmin (services/api/src/app.ts:2224).
   PLATFORM_ADMIN_EMAILS: {{ .Values.platformEnv.platformAdminEmails | quote }}
 
+  # P0-V3-04 CloudTenant/Project Factory. All values are non-secret. The
+  # service authenticates exclusively through the API pod's Workload Identity;
+  # service-account JSON keys are intentionally unsupported.
+  CLOUD_TENANT_FACTORY_ENABLED: {{ .Values.platformEnv.cloudTenantFactoryEnabled | default "false" | quote }}
+  CLOUD_TENANT_ALLOWED_PARENT_FOLDERS: {{ .Values.platformEnv.cloudTenantAllowedParentFolders | default "" | quote }}
+  CLOUD_OPERATION_WORKER: {{ .Values.platformEnv.cloudOperationWorker | default "off" | quote }}
+  CLOUD_OPERATION_WORKER_INTERVAL_MS: {{ .Values.platformEnv.cloudOperationWorkerIntervalMs | default "5000" | quote }}
+
   # When 'true', the ai-gateway requires the shared-secret bearer on
   # /chat/completions (the api always sends it once provisioned). Separate flag so
   # the secret rolls out to both pods BEFORE enforcement is enabled — flipping this
