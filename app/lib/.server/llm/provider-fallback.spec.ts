@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   PROVIDER_FALLBACK_CHAIN,
@@ -41,6 +41,10 @@ const CLES = {
 beforeEach(() => {
   resetProviderHealth();
   resetProviderProbeCache();
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 describe('classification des échecs fournisseur', () => {
@@ -155,6 +159,13 @@ describe('choix du fournisseur pour le tour', () => {
 
   it('saute un fournisseur de repli dont la clé manque', () => {
     markProviderUnhealthy('Anthropic', 'credit', 'solde épuisé');
+
+    /*
+     * Le poste du développeur/runner peut porter une vraie clé gérée. Ce cas
+     * teste explicitement son ABSENCE : neutraliser le process env empêche une
+     * credential externe de rendre le test vert ou rouge selon la machine.
+     */
+    vi.stubEnv('OPENAI_API_KEY', '');
 
     const choix = resolveRuntimeProvider({
       provider: anthropic,
