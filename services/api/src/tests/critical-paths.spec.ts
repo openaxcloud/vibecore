@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createServer, type Server } from 'node:http';
-import { buildApiApp, type ApiAppOptions } from '../app.js';
+import { AI_GENERATION_SCAFFOLD_MARKER, buildApiApp, type ApiAppOptions } from '../app.js';
 import type { EmailMessage, EmailProvider } from '../email.js';
 import type { GitProvider } from '../project-storage.js';
 import { TestApiStore } from './test-api-store.js';
@@ -181,7 +181,7 @@ async function startRuntimeServices() {
 }
 
 describe('critical API paths', () => {
-  it('creates an AI prompt project without pre-generating application files', async () => {
+  it('creates an AI prompt project with a runnable shell that stays explicitly pending', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, 'critical-prompt@example.com');
 
@@ -193,16 +193,42 @@ describe('critical API paths', () => {
     });
 
     expect(response.statusCode).toBe(201);
+
     const projectId = response.json().project.id as string;
+
     const files = await app.inject({
       method: 'GET',
       url: `/projects/${projectId}/files`,
       headers: { authorization: `Bearer ${auth.token}` },
     });
+
     expect(files.statusCode).toBe(200);
-    const paths = files.json().files.map((file: { path: string }) => file.path);
-    expect(paths).toEqual(['README.md']);
-    expect(paths).not.toEqual(expect.arrayContaining(['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx']));
+
+    const paths = (files.json().files as Array<{ path: string }>).map((file) => file.path);
+
+    const ideState = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/ide-state`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(ideState.statusCode).toBe(200);
+
+    const deliveredFiles = ideState.json().ideState.state.files.entries as Array<{ path: string; content: string }>;
+
+    const manifest = JSON.parse(deliveredFiles.find((file) => file.path === 'package.json')!.content) as {
+      scripts?: Record<string, string>;
+      ecode?: { generationScaffold?: string };
+    };
+
+    const appEntry = deliveredFiles.find((file) => file.path === 'src/App.tsx')!.content;
+
+    expect(paths).toEqual(expect.arrayContaining(['package.json', 'index.html', 'src/main.tsx', 'src/App.tsx']));
+    expect(manifest.scripts?.dev).toBe('vite');
+    expect(manifest.ecode?.generationScaffold).toBe(AI_GENERATION_SCAFFOLD_MARKER);
+    expect(appEntry).toContain(AI_GENERATION_SCAFFOLD_MARKER);
+    expect(appEntry).toMatch(/generation is still pending/i);
+
     await app.close();
   });
 
@@ -210,12 +236,14 @@ describe('critical API paths', () => {
     const runtime = await startRuntimeServices();
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, 'critical-files@example.com');
+
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects`,
       headers: { authorization: `Bearer ${auth.token}` },
       payload: { name: 'Runtime CRUD Project' },
     });
+
     const projectId = project.json().project.id as string;
 
     try {

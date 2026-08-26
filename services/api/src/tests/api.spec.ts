@@ -8,7 +8,7 @@ import { decryptJson } from '@vibecore/security';
 import JSZip from 'jszip';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import WebSocket, { WebSocketServer } from 'ws';
-import { buildApiApp, type ApiAppOptions } from '../app.js';
+import { AI_GENERATION_SCAFFOLD_MARKER, buildApiApp, type ApiAppOptions } from '../app.js';
 import type { EmailMessage, EmailProvider } from '../email.js';
 import type { GitProvider, ProjectFile, ProjectStorage, StoredArchive } from '../project-storage.js';
 import { TestApiStore } from './test-api-store.js';
@@ -4211,7 +4211,9 @@ export function App() { return 'Old app'; }
       headers: { authorization: `Bearer ${auth.token}` },
     });
     expect(createdFiles.statusCode).toBe(200);
-    expect(createdFiles.json().files.map((file: { path: string }) => file.path)).toEqual(['README.md']);
+    expect(createdFiles.json().files.map((file: { path: string }) => file.path)).toEqual(
+      expect.arrayContaining(['README.md', 'package.json', 'index.html', 'src/main.tsx', 'src/App.tsx']),
+    );
 
     const secret = await app.inject({
       method: 'PUT',
@@ -4318,18 +4320,28 @@ export function App() { return 'Old app'; }
     await app.close();
   });
 
-  it('does not scaffold simulated app files before the IDE agent generates real output', async () => {
+  it('seeds a runnable, explicitly pending shell without leaking the prompt into delivered files', async () => {
     const app = await buildTestApiApp({ store: new TestApiStore() });
     const auth = await register(app, { email: 'ai-builder@example.com', organizationName: 'AI Builder Org' });
-    const prompt = 'build a saas platform a clone of bolt';
+    const secretCanary = 'sk_live_PROMPT_PREFIX_MUST_STAY_PRIVATE';
+    const explicitSecretName = 'private-customer-name-ACME-7429';
+    const prompt = `${secretCanary} build a saas platform a clone of bolt`;
 
     const project = await app.inject({
       method: 'POST',
       url: `/orgs/${auth.organization.id}/projects/from-ai`,
       headers: { authorization: `Bearer ${auth.token}` },
-      payload: { prompt, name: 'Bolt Enterprise Studio', artifactType: 'Web', framework: 'React + Vite + TypeScript' },
+      payload: {
+        prompt,
+        name: explicitSecretName,
+        artifactType: 'Web',
+        framework: 'React + Vite + TypeScript',
+        provider: 'Anthropic',
+      },
     });
     expect(project.statusCode).toBe(201);
+    expect(project.json().project.name).toBe(explicitSecretName);
+    expect(project.json().project.name).not.toContain(secretCanary);
 
     const exported = await app.inject({
       method: 'GET',
@@ -4342,9 +4354,31 @@ export function App() { return 'Old app'; }
     const paths = Object.keys(zip.files).filter((path) => !zip.files[path]?.dir);
     const readme = await zip.file('README.md')!.async('string');
 
-    expect(paths).toEqual(['README.md']);
-    expect(zip.file('package.json')).toBeNull();
-    expect(zip.file('src/App.tsx')).toBeNull();
+    const packageJson = JSON.parse(await zip.file('package.json')!.async('string')) as {
+      scripts?: Record<string, string>;
+      ecode?: { generationScaffold?: string };
+    };
+
+    const appEntry = await zip.file('src/App.tsx')!.async('string');
+    const deliveredText = (
+      await Promise.all(paths.map(async (path) => (await zip.file(path)!.async('string')) ?? ''))
+    ).join('\n');
+
+    expect(paths).toEqual(
+      expect.arrayContaining([
+        'README.md',
+        'package.json',
+        'vite.config.ts',
+        'index.html',
+        'src/main.tsx',
+        'src/App.tsx',
+        'src/styles.css',
+      ]),
+    );
+    expect(packageJson.scripts).toMatchObject({ dev: 'vite', build: 'vite build', preview: 'vite preview' });
+    expect(packageJson.ecode?.generationScaffold).toBe(AI_GENERATION_SCAFFOLD_MARKER);
+    expect(appEntry).toContain(AI_GENERATION_SCAFFOLD_MARKER);
+    expect(appEntry).toMatch(/generation is still pending/i);
 
     /*
      * BUG-QA-PROMPT-IN-README. This assertion used to be
@@ -4354,6 +4388,11 @@ export function App() { return 'Old app'; }
      * carry API keys and database URLs.
      */
     expect(readme).not.toContain(prompt);
+    expect(appEntry).not.toContain(prompt);
+    expect(JSON.stringify(packageJson)).not.toContain(prompt);
+    expect(deliveredText).not.toContain(prompt);
+    expect(deliveredText).not.toContain(secretCanary);
+    expect(deliveredText).not.toContain(explicitSecretName);
 
     /*
      * …and the prompt must still be available to the IDE, which is what makes
@@ -4367,6 +4406,7 @@ export function App() { return 'Old app'; }
     });
     expect(ideState.statusCode).toBe(200);
     expect(ideState.json().ideState.state.chat.pendingPrompt.prompt).toBe(prompt);
+    expect(ideState.json().ideState.state.chat.pendingPrompt.provider).toBe('Anthropic');
 
     await app.close();
   });

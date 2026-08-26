@@ -104,7 +104,7 @@ describe('projects/new action', () => {
     const response = toResponse(
       await action(
         buildActionArgs({
-          prompt: 'Build a production analytics dashboard',
+          prompt: 'sk_live_PRIVATE_PREFIX Build a production analytics dashboard',
           artifactType: 'web',
           provider: 'OpenAI',
           model: 'gpt-4o',
@@ -120,6 +120,8 @@ describe('projects/new action', () => {
 
     expect(fromAiBody?.prompt).toEqual(expect.stringContaining('Production quality bar:'));
     expect(fromAiBody?.prompt).toEqual(expect.stringContaining('Build a production analytics dashboard'));
+    expect(fromAiBody?.name).toBe('AI project');
+    expect(String(fromAiBody?.name)).not.toContain('sk_live_PRIVATE_PREFIX');
 
     const pendingPrompt = ideStateBody?.state?.chat?.pendingPrompt;
 
@@ -222,6 +224,51 @@ describe('projects/new action', () => {
     expect(response.error).toMatch(/project limit/i);
     expect(response.kind).toBe('quota');
     expect(attemptedFallbackCreate).toBe(false);
+  });
+
+  it('fails closed instead of creating a generic project when from-ai definitively fails', async () => {
+    let attemptedBlankCreate = false;
+    let attemptedIdeRedirectState = false;
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+
+        if (url === 'https://api.example.com/orgs') {
+          return jsonResponse({ organizations: [{ id: 'org_1' }] });
+        }
+
+        if (url === 'https://api.example.com/orgs/org_1/projects/from-ai') {
+          return jsonResponse({ error: 'Provider unavailable', code: 'UPSTREAM_UNAVAILABLE' }, 503);
+        }
+
+        if (url === 'https://api.example.com/orgs/org_1/projects') {
+          attemptedBlankCreate = true;
+          return jsonResponse({ project: { id: 'project_misleading_fallback' } }, 201);
+        }
+
+        if (url.includes('/ide-state')) {
+          attemptedIdeRedirectState = true;
+        }
+
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    const response = (await action(
+      buildActionArgs({
+        prompt: 'Build a production analytics dashboard',
+        artifactType: 'web',
+        provider: 'OpenAI',
+        model: 'gpt-4o',
+      }),
+    )) as { error?: string };
+
+    expect(response.error).toMatch(/no empty fallback was created/i);
+    expect(response.error).toMatch(/try again/i);
+    expect(attemptedBlankCreate).toBe(false);
+    expect(attemptedIdeRedirectState).toBe(false);
   });
 
   it('returns an inline error when blank project creation hits the project quota', async () => {

@@ -984,8 +984,12 @@
     "fr": "Créé à partir du modèle Bolt {templateName}."
   },
   "PROJECT_STARTER_AI_DESCRIPTION": {
-    "en": "This project was created from an AI prompt. Application files are intentionally left for the IDE agent to produce as real generated output.",
-    "fr": "Ce projet a été créé à partir d’un prompt d’IA. Les fichiers de l’application sont volontairement laissés à l’agent de l’IDE afin qu’il produise un résultat réellement généré."
+    "en": "This runnable shell keeps Preview available while the E-Code agent generates the real application. Generation is still pending: follow its progress in the Agent panel and use Retry there if the provider stops.",
+    "fr": "Cette base exécutable garde l’aperçu disponible pendant que l’agent E-Code génère la véritable application. La génération est toujours en attente : suivez sa progression dans le panneau Agent et utilisez Réessayer si le fournisseur s’arrête."
+  },
+  "PROJECT_STARTER_AI_DEFAULT_NAME": {
+    "en": "AI Project",
+    "fr": "Projet IA"
   },
   "PROJECT_STARTER_ARTIFACT_TYPE": {
     "en": "Artifact type: {value}",
