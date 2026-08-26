@@ -11,8 +11,10 @@
     "  3. A waived test that starts PASSING fails the gate until it is removed",
     "     — unless marked `unstable`, which means it is waived because it flaps.",
     "  4. Any failure NOT listed here fails the gate normally.",
-    "  5. Window capped at 30 days; policy path hard-coded in the script.",
-    "  6. Entries are keyed on file + test title, never on line numbers.",
+    "  5. Window capped at 7 days; policy path hard-coded in the script.",
+    "  6. Empty waivers never expire; created/expires are null until needed.",
+    "  7. Every entry is non-critical and names its owner, ticket and reason.",
+    "  8. Entries are keyed on file + test title, never on line numbers.",
     "",
     "History: Production E2E had never been green — 0 successes in 405 runs since",
     "2026-05-17. main @ b2ee7c88 = 57 failed / 177 passed. First green: run",
@@ -30,7 +32,7 @@
     "  - section 12 measured the add-tab '+' button, which a dedicated rule rounds",
     "    to 6px, instead of a regular tab action carrying the 4px button token."
   ],
-  "expires": "2026-08-27",
-  "owner": "avi@snatchbot.me",
+  "created": null,
+  "expires": null,
   "waived": []
 }
