@@ -1517,6 +1517,330 @@ export class PrismaApiStore implements ApiStore {
     return secret ? mapSecret(secret) : undefined;
   }
 
+  async getDatabaseTime() {
+    const rows = await this.prisma.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS "now"`;
+    const now = rows[0]?.now;
+    if (!now) throw new Error(appPublicEnglish('DATABASE_TIME_UNAVAILABLE'));
+    return now.toISOString();
+  }
+
+  async createProjectCheckpoint(input: {
+    projectId: string;
+    createdByUserId?: string;
+    idempotencyKey?: string;
+    requestHash?: string;
+  }) {
+    const requestHash = input.requestHash ?? hashToken(`project-checkpoint:${input.projectId}`);
+
+    return this.prisma.$transaction(async (tx) => {
+      if (input.idempotencyKey) {
+        await tx.$executeRaw`
+          SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint-idempotency:${input.idempotencyKey}`}, 0))
+        `;
+        const existing = await tx.projectCheckpoint.findUnique({
+          where: { idempotencyKey: input.idempotencyKey },
+        });
+
+        if (existing) {
+          if (existing.projectId !== input.projectId || existing.requestHash !== requestHash) {
+            throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_IDEMPOTENCY_KEY_REUSED')), {
+              statusCode: 409,
+              code: 'IDEMPOTENCY_KEY_REUSED',
+            });
+          }
+
+          return { id: existing.id, state: existing.state, replayed: true };
+        }
+      }
+
+      const row = await tx.projectCheckpoint.create({
+        data: {
+          projectId: input.projectId,
+          createdByUserId: input.createdByUserId ?? null,
+          state: 'PREPARING',
+          idempotencyKey: input.idempotencyKey ?? null,
+          requestHash,
+        },
+      });
+
+      return { id: row.id, state: row.state, replayed: false };
+    });
+  }
+
+  async acquireProjectCheckpointBarrier(input: {
+    checkpointId: string;
+    projectId: string;
+    barrierId: string;
+    ownerToken: string;
+    ttlSeconds: number;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`
+        SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint:${input.projectId}`}, 0))
+      `;
+
+      // Expiry is a durable fail-open thaw. Clear a dead singleton while the
+      // same project lock is held so only one successor can take ownership.
+      await tx.$executeRaw`
+        UPDATE "ProjectCheckpoint"
+        SET "barrierProjectId" = NULL,
+            "barrierOwnerToken" = NULL,
+            "barrierExpiresAt" = NULL,
+            "barrierFence" = "barrierFence" + 1,
+            "updatedAt" = clock_timestamp()
+        WHERE "barrierProjectId" = ${input.projectId}
+          AND "barrierExpiresAt" <= clock_timestamp()
+      `;
+
+      const rows = await tx.$queryRaw<
+        Array<{ id: string; logicalBarrierId: string; barrierFence: number; barrierExpiresAt: Date }>
+      >`
+        UPDATE "ProjectCheckpoint"
+        SET "state" = 'BARRIER_ESTABLISHED',
+            "logicalBarrierId" = ${input.barrierId},
+            "barrierProjectId" = ${input.projectId},
+            "barrierOwnerToken" = ${input.ownerToken},
+            "barrierFence" = "barrierFence" + 1,
+            "barrierExpiresAt" = clock_timestamp() + make_interval(secs => ${input.ttlSeconds}),
+            "updatedAt" = clock_timestamp()
+        WHERE "id" = ${input.checkpointId}
+          AND "projectId" = ${input.projectId}
+          AND "state" IN ('PREPARING', 'QUIESCING')
+          AND "barrierProjectId" IS NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM "ProjectCheckpoint" active
+            WHERE active."barrierProjectId" = ${input.projectId}
+              AND active."barrierExpiresAt" > clock_timestamp()
+          )
+        RETURNING "id", "logicalBarrierId", "barrierFence", "barrierExpiresAt"
+      `;
+      const row = rows[0];
+
+      return row
+        ? {
+            checkpointId: row.id,
+            barrierId: row.logicalBarrierId,
+            ownerToken: input.ownerToken,
+            fence: row.barrierFence,
+            expiresAt: row.barrierExpiresAt.toISOString(),
+          }
+        : undefined;
+    });
+  }
+
+  async renewProjectCheckpointBarrier(input: {
+    checkpointId: string;
+    ownerToken: string;
+    fence: number;
+    ttlSeconds: number;
+  }) {
+    const rows = await this.prisma.$queryRaw<Array<{ barrierExpiresAt: Date }>>`
+      UPDATE "ProjectCheckpoint"
+      SET "barrierExpiresAt" = clock_timestamp() + make_interval(secs => ${input.ttlSeconds}),
+          "updatedAt" = clock_timestamp()
+      WHERE "id" = ${input.checkpointId}
+        AND "barrierProjectId" = "projectId"
+        AND "barrierOwnerToken" = ${input.ownerToken}
+        AND "barrierFence" = ${input.fence}
+        AND "barrierExpiresAt" > clock_timestamp()
+        AND "state" NOT IN ('CLEANED', 'MANUAL_INTERVENTION')
+      RETURNING "barrierExpiresAt"
+    `;
+
+    return rows[0]?.barrierExpiresAt.toISOString();
+  }
+
+  async assertProjectCheckpointBarrier(input: { checkpointId: string; ownerToken: string; fence: number }) {
+    const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
+      SELECT "id" FROM "ProjectCheckpoint"
+      WHERE "id" = ${input.checkpointId}
+        AND "barrierProjectId" = "projectId"
+        AND "barrierOwnerToken" = ${input.ownerToken}
+        AND "barrierFence" = ${input.fence}
+        AND "barrierExpiresAt" > clock_timestamp()
+    `;
+
+    if (!rows[0]) {
+      throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_LOST')), {
+        statusCode: 409,
+        code: 'CHECKPOINT_BARRIER_LOST',
+      });
+    }
+  }
+
+  async transitionProjectCheckpoint(input: {
+    checkpointId: string;
+    ownerToken: string;
+    fence: number;
+    from: string;
+    to: string;
+    patch?: {
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      retentionSeconds?: number;
+    };
+    retainBarrier?: boolean;
+  }) {
+    if (input.to === 'COMMITTED') {
+      const manifest = JSON.stringify(input.patch?.manifest ?? null);
+      const rows = await this.prisma.$queryRaw<Array<{ id: string }>>`
+        UPDATE "ProjectCheckpoint"
+        SET "state" = 'COMMITTED',
+            "consistencyLevel" = ${input.patch?.consistencyLevel ?? null},
+            "manifest" = CAST(${manifest} AS jsonb),
+            "error" = NULL,
+            "expiresAt" = clock_timestamp() + make_interval(secs => ${input.patch?.retentionSeconds ?? 0}),
+            "barrierProjectId" = CASE WHEN ${input.retainBarrier === true} THEN "barrierProjectId" ELSE NULL END,
+            "barrierOwnerToken" = CASE WHEN ${input.retainBarrier === true} THEN "barrierOwnerToken" ELSE NULL END,
+            "barrierExpiresAt" = CASE WHEN ${input.retainBarrier === true} THEN "barrierExpiresAt" ELSE NULL END,
+            "updatedAt" = clock_timestamp()
+        WHERE "id" = ${input.checkpointId}
+          AND "state" = ${input.from}
+          AND "barrierProjectId" = "projectId"
+          AND "barrierOwnerToken" = ${input.ownerToken}
+          AND "barrierFence" = ${input.fence}
+          AND "barrierExpiresAt" > clock_timestamp()
+        RETURNING "id"
+      `;
+
+      if (!rows[0]) {
+        throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_LOST')), {
+          statusCode: 409,
+          code: 'CHECKPOINT_BARRIER_LOST',
+        });
+      }
+      return;
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      const lease = await tx.$queryRaw<Array<{ id: string }>>`
+        SELECT "id" FROM "ProjectCheckpoint"
+        WHERE "id" = ${input.checkpointId}
+          AND "state" = ${input.from}
+          AND "barrierProjectId" = "projectId"
+          AND "barrierOwnerToken" = ${input.ownerToken}
+          AND "barrierFence" = ${input.fence}
+          AND "barrierExpiresAt" > clock_timestamp()
+        FOR UPDATE
+      `;
+
+      if (!lease[0]) {
+        throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_BARRIER_LOST')), {
+          statusCode: 409,
+          code: 'CHECKPOINT_BARRIER_LOST',
+        });
+      }
+
+      await tx.projectCheckpoint.update({
+        where: { id: input.checkpointId },
+        data: {
+          state: input.to,
+          ...(input.patch?.consistencyLevel !== undefined ? { consistencyLevel: input.patch.consistencyLevel } : {}),
+          ...(input.patch?.manifest !== undefined ? { manifest: input.patch.manifest as object } : {}),
+          ...(input.patch?.error !== undefined ? { error: input.patch.error } : {}),
+          ...(input.patch?.expiresAt !== undefined ? { expiresAt: new Date(input.patch.expiresAt) } : {}),
+        },
+      });
+
+      if (input.patch?.retentionSeconds !== undefined) {
+        await tx.$executeRaw`
+          UPDATE "ProjectCheckpoint"
+          SET "expiresAt" = clock_timestamp() + make_interval(secs => ${input.patch.retentionSeconds})
+          WHERE "id" = ${input.checkpointId}
+        `;
+      }
+    });
+  }
+
+  async releaseProjectCheckpointBarrier(input: { checkpointId: string; ownerToken: string; fence: number }) {
+    const changed = await this.prisma.$executeRaw`
+      UPDATE "ProjectCheckpoint"
+      SET "barrierProjectId" = NULL,
+          "barrierOwnerToken" = NULL,
+          "barrierExpiresAt" = NULL,
+          "updatedAt" = clock_timestamp()
+      WHERE "id" = ${input.checkpointId}
+        AND "barrierOwnerToken" = ${input.ownerToken}
+        AND "barrierFence" = ${input.fence}
+    `;
+
+    return changed === 1;
+  }
+
+  async updateProjectCheckpoint(
+    id: string,
+    patch: {
+      state?: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+    },
+  ) {
+    await this.prisma.projectCheckpoint.update({
+      where: { id },
+      data: {
+        ...(patch.state !== undefined ? { state: patch.state } : {}),
+        ...(patch.logicalBarrierId !== undefined ? { logicalBarrierId: patch.logicalBarrierId } : {}),
+        ...(patch.consistencyLevel !== undefined ? { consistencyLevel: patch.consistencyLevel } : {}),
+        ...(patch.manifest !== undefined ? { manifest: patch.manifest as object } : {}),
+        ...(patch.error !== undefined ? { error: patch.error } : {}),
+        ...(patch.expiresAt !== undefined ? { expiresAt: new Date(patch.expiresAt) } : {}),
+      },
+    });
+  }
+
+  async getActiveCheckpointBarrier(projectId: string) {
+    /*
+     * Indexed on (projectId, barrierExpiresAt). `gt: now` means an expired lease
+     * reads as thawed without needing a sweeper — the deadline itself IS the
+     * guaranteed thaw if the orchestrating replica dies holding the barrier.
+     */
+    const rows = await this.prisma.$queryRaw<
+      Array<{ id: string; logicalBarrierId: string | null; barrierExpiresAt: Date }>
+    >`
+      SELECT "id", "logicalBarrierId", "barrierExpiresAt"
+      FROM "ProjectCheckpoint"
+      WHERE "barrierProjectId" = ${projectId}
+        AND "barrierExpiresAt" > clock_timestamp()
+      LIMIT 1
+    `;
+    const row = rows[0];
+
+    if (!row?.barrierExpiresAt || !row.logicalBarrierId) {
+      return undefined;
+    }
+
+    return {
+      checkpointId: row.id,
+      barrierId: row.logicalBarrierId,
+      expiresAt: row.barrierExpiresAt.toISOString(),
+    };
+  }
+
+  async getProjectCheckpoint(id: string) {
+    const row = await this.prisma.projectCheckpoint.findUnique({ where: { id } });
+
+    if (!row) {
+      return undefined;
+    }
+
+    return {
+      id: row.id,
+      projectId: row.projectId,
+      state: row.state,
+      logicalBarrierId: row.logicalBarrierId ?? undefined,
+      consistencyLevel: row.consistencyLevel ?? undefined,
+      manifest: row.manifest as unknown,
+      error: row.error ?? undefined,
+      expiresAt: row.expiresAt?.toISOString(),
+      createdAt: row.createdAt.toISOString(),
+    };
+  }
+
   async createRemixJob(input: {
     sourceProjectId: string;
     organizationId: string;
@@ -2028,17 +2352,6 @@ export class PrismaApiStore implements ApiStore {
   async getRemixJob(id: string, organizationId?: string) {
     const row = await this.prisma.remixJob.findFirst({ where: { id, ...(organizationId ? { organizationId } : {}) } });
     return row ? mapRemixJob(row) : undefined;
-  }
-
-  async getDatabaseTime() {
-    const rows = await this.prisma.$queryRaw<Array<{ now: Date }>>`SELECT CURRENT_TIMESTAMP AS "now"`;
-    const now = rows[0]?.now;
-
-    if (!(now instanceof Date) || Number.isNaN(now.getTime())) {
-      throw new Error(appPublicEnglish('DATABASE_TIME_UNAVAILABLE'));
-    }
-
-    return now.toISOString();
   }
 
   async createRemixStorageShare(input: {

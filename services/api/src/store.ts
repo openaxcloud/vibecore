@@ -1577,6 +1577,90 @@ export interface ApiStore {
   upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }): Promise<ProjectSecretRecord>;
   listProjectSecrets(projectId: string): Promise<Array<Omit<ProjectSecretRecord, 'valueEncrypted'>>>;
   getProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
+  /** Checkpoint PROJET coordonné (plan §15). */
+  /** Shared authority for timestamps used in cross-replica leases/manifests. */
+  getDatabaseTime(): Promise<string>;
+  createProjectCheckpoint(input: {
+    projectId: string;
+    createdByUserId?: string;
+    idempotencyKey?: string;
+    requestHash?: string;
+  }): Promise<{ id: string; state: string; replayed: boolean }>;
+  acquireProjectCheckpointBarrier(input: {
+    checkpointId: string;
+    projectId: string;
+    barrierId: string;
+    ownerToken: string;
+    ttlSeconds: number;
+  }): Promise<
+    | {
+        checkpointId: string;
+        barrierId: string;
+        ownerToken: string;
+        fence: number;
+        expiresAt: string;
+      }
+    | undefined
+  >;
+  renewProjectCheckpointBarrier(input: {
+    checkpointId: string;
+    ownerToken: string;
+    fence: number;
+    ttlSeconds: number;
+  }): Promise<string | undefined>;
+  assertProjectCheckpointBarrier(input: { checkpointId: string; ownerToken: string; fence: number }): Promise<void>;
+  transitionProjectCheckpoint(input: {
+    checkpointId: string;
+    ownerToken: string;
+    fence: number;
+    from: string;
+    to: string;
+    patch?: {
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+      retentionSeconds?: number;
+    };
+    /** Keep the same fenced barrier for an immediately-following restore. */
+    retainBarrier?: boolean;
+  }): Promise<void>;
+  releaseProjectCheckpointBarrier(input: { checkpointId: string; ownerToken: string; fence: number }): Promise<boolean>;
+  updateProjectCheckpoint(
+    id: string,
+    patch: {
+      state?: string;
+      logicalBarrierId?: string;
+      consistencyLevel?: string;
+      manifest?: unknown;
+      error?: string;
+      expiresAt?: string;
+    },
+  ): Promise<void>;
+  /**
+   * The write barrier in force for a project, read from the DATABASE so every
+   * API replica observes it (an in-process barrier freezes only its own pod).
+   * Rows whose lease has expired are treated as thawed — expiry is the
+   * guaranteed thaw when the orchestrating process dies mid-checkpoint.
+   */
+  getActiveCheckpointBarrier(
+    projectId: string,
+  ): Promise<{ checkpointId: string; barrierId: string; expiresAt: string } | undefined>;
+  getProjectCheckpoint(id: string): Promise<
+    | {
+        id: string;
+        projectId: string;
+        state: string;
+        logicalBarrierId?: string;
+        consistencyLevel?: string;
+        manifest?: unknown;
+        error?: string;
+        expiresAt?: string;
+        createdAt: string;
+      }
+    | undefined
+  >;
+
   /** Create-or-replay the tenant-scoped durable remix authority. */
   createRemixJob(input: {
     sourceProjectId: string;

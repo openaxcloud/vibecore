@@ -211,6 +211,23 @@ import {
 } from './import-pipeline.js';
 import { estimateImportReservation } from './import-billing.js';
 import {
+  assertCheckpointTransition,
+  checkpointManifestVisible,
+  projectCheckpointAdmissible,
+  quiesceAdmissible,
+  type CheckpointComponentSnapshot,
+  type CheckpointState,
+} from './lifecycle-state-machines.js';
+import { CheckpointBarrierError, withCheckpointBarrier } from './checkpoint-barrier-storage.js';
+import { ProjectCheckpointLeaseManager, type ProjectCheckpointLease } from './checkpoint-lease.js';
+import {
+  declareCheckpointConsistency,
+  declareDatabaseConsistency,
+  declareFilesConsistency,
+  type BarrierScope,
+  type ConsistencyDeclaration,
+} from './checkpoint-consistency.js';
+import {
   REMIX_CONSENT_VERSION,
   REMIX_STORAGE_CONSENT_VERSION,
   REMIX_STORAGE_POLICIES,
@@ -351,6 +368,7 @@ import {
   type ProjectFile,
   type ProjectStorage,
   type StoredArchive,
+  withProjectLock,
 } from './project-storage.js';
 import { aggregateProviderMetrics } from './provider-metrics.js';
 import {
@@ -4514,6 +4532,21 @@ export function projectFilesRevision(files: ReadonlyArray<{ path: string; update
   return createHash('sha256').update(lines.join('\n')).digest('hex').slice(0, 32);
 }
 
+/**
+ * Canonical content hash used by checkpoint create, verify, restore and
+ * rollback. Storage adapters are free to return files in a different order;
+ * order must never turn identical bytes into a false restore failure.
+ */
+export function checkpointFilesHash(
+  files: ReadonlyArray<{ path: string; content: string; encoding?: string }>,
+): string {
+  const canonical = files
+    .map((file) => ({ path: file.path, encoding: file.encoding ?? 'utf8', content: file.content }))
+    .sort((a, b) => a.path.localeCompare(b.path) || a.encoding.localeCompare(b.encoding));
+
+  return createHash('sha256').update(JSON.stringify(canonical)).digest('hex');
+}
+
 async function listProjectFilesIncludingIdeState(
   store: ApiStore,
   projectStorage: ProjectStorage,
@@ -8497,8 +8530,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const diagnosticsDb = store instanceof PrismaApiStore ? store.prisma : undefined;
 
-  const projectStorage = options.projectStorage ?? new LocalProjectStorage();
-  const gitProvider = options.gitProvider ?? new GitCliProvider();
+  /*
+   * `rawProjectStorage` = accès direct, réservé à l'orchestrateur de checkpoint :
+   * lui seul doit pouvoir écrire l'arbre pendant que SA propre barrière tient
+   * (restauration). Tout le reste du processus passe par `projectStorage`, qui
+   * refuse les mutations d'arbre sous barrière — garde posée au point
+   * d'étranglement et non route par route (checkpoint-barrier-storage.ts).
+   */
+  const checkpointBarrierLookup = (projectId: string) => store.getActiveCheckpointBarrier(projectId);
+  const checkpointMutationGuard = async (projectId: string) => {
+    const barrier = await checkpointBarrierLookup(projectId);
+    if (barrier) throw new CheckpointBarrierError(barrier.barrierId);
+  };
+  const rawProjectStorage = options.projectStorage ?? new LocalProjectStorage();
+  /*
+   * Production's LocalProjectStorage executes the database guard WHILE its
+   * NFS-safe per-project lock is held. Barrier acquisition takes the same lock,
+   * closing the check→write race across API replicas. Injected test adapters
+   * retain the generic proxy contract.
+   */
+  const projectStorage = options.projectStorage
+    ? withCheckpointBarrier(rawProjectStorage, checkpointBarrierLookup)
+    : new LocalProjectStorage(checkpointMutationGuard);
+  const gitProvider = options.gitProvider ?? new GitCliProvider(checkpointMutationGuard);
   const staticBuildRunner = options.staticBuildRunner ?? runStaticBuild;
 
   /*
@@ -8920,6 +8974,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         code: 'VALIDATION_ERROR',
         issues: localizeAppValidationIssues(error.issues, locale),
       });
+    }
+
+    /*
+     * Refus au point d'étranglement du stockage : la barrière peut être levée
+     * loin du handler (helper, écriture depuis un GET). Sans cette branche, un
+     * gel légitime remonterait en 500 au lieu du 423 contractuel.
+     */
+    if (error instanceof CheckpointBarrierError) {
+      return reply.code(423).send({ error: error.message, code: error.code, barrierId: error.barrierId });
     }
 
     const statusCode = typeof error.statusCode === 'number' ? error.statusCode : 500;
@@ -16636,6 +16699,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { workspaceId } = parse(workspaceParams, request.params);
     const body = parse(runtimeFileWriteSchema, request.body);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:write');
+    // The runtime volume is outside the API project-tree snapshot, so this is
+    // an admission barrier only; the manifest still declares in-pod writers as
+    // unfrozen. It prevents a new API-authorized write from starting while the
+    // checkpoint establishes its project-tree barrier.
+    if (authorized.projectId && (await rejectIfCheckpointBarrier(reply, authorized.projectId))) {
+      return reply;
+    }
+
     try {
       await agentMutateEnsuring(request, authorized, '/files/write', { method: 'POST', body: JSON.stringify(body) });
     } catch (error) {
@@ -22553,7 +22624,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       runtime: { mode: 'remote-kubernetes', autosave: true, conflictDetection: true, offlineWarning: true },
     };
   });
-
   /*
    * Empreinte bon marché de l'arborescence persistée, pour que la réouverture
    * puisse distinguer « le pod chaud est encore à jour » de « le stockage a
@@ -22573,13 +22643,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { revision: projectFilesRevision(files) };
   });
-  app.post('/projects/:projectId/files/import/zip', async (request) => {
+  app.post('/projects/:projectId/files/import/zip', async (request, reply) => {
     const project = await requireProject(
       request,
       store,
       parse(projectParams, request.params).projectId,
       'projects:write',
     );
+
+    // Barrière de checkpoint (plan §15) : écritures gelées pendant le quiesce.
+    if (await rejectIfCheckpointBarrier(reply, project.id)) {
+      return reply;
+    }
 
     const body = parse(zipImportSchema.pick({ zipBase64: true, replaceExisting: true }), request.body);
 
@@ -24261,7 +24336,750 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return { project: transferred };
   });
+  /*
+   * ---- Checkpoint PROJET coordonné (plan §15, CTR-CHECKPOINT) ----
+   * Câblage RÉEL de la machine lifecycle-state-machines : barrière d'écriture
+   * à timeout avec DÉGEL GARANTI (finally), snapshots par composant sous la
+   * MÊME barrière logique, manifeste visible seulement une fois tout vérifié.
+   * Un snapshot de pod seul n'est JAMAIS un checkpoint projet.
+   */
+  /*
+   * La barrière est PERSISTÉE (ProjectCheckpoint.barrierExpiresAt), pas gardée en
+   * mémoire de processus. L'API tourne en 2 replicas (HPA → 6) en prod
+   * (values-prod.yaml) : une Map in-process n'est vue que par le pod qui la pose,
+   * donc les écritures routées vers un autre replica passaient à travers la
+   * « barrière ». Le bail en base est commun à tous les replicas ; son expiration
+   * EST le dégel garanti si le processus porteur meurt en vol.
+   */
+  const activeCheckpointBarrier = (projectId: string) => store.getActiveCheckpointBarrier(projectId);
 
+  /** 423 pendant la barrière : les écritures API attendent le dégel. */
+  const rejectIfCheckpointBarrier = async (reply: FastifyReply, projectId: string) => {
+    const b = await activeCheckpointBarrier(projectId);
+
+    if (b) {
+      reply.status(423).send({
+        error: appPublicEnglish('CHECKPOINT_BARRIER_ACTIVE_MESSAGE'),
+        code: 'CHECKPOINT_BARRIER_ACTIVE',
+        barrierId: b.barrierId,
+      });
+      return true;
+    }
+
+    return false;
+  };
+
+  const CHECKPOINT_LEASE_TTL_SECONDS = 60;
+  const CHECKPOINT_LEASE_RENEW_MS = 10_000;
+  const CHECKPOINT_RETENTION_SECONDS = 30 * 86_400;
+
+  type CheckpointRunSuccess = {
+    ok: true;
+    checkpointId: string;
+    manifest: Record<string, unknown>;
+    lease?: ProjectCheckpointLease;
+    leaseManager?: ProjectCheckpointLeaseManager;
+  };
+  type CheckpointRunFailure = { ok: false; code: string; error: string };
+
+  const runProjectCheckpoint = async (params: {
+    request: FastifyRequest;
+    projectId: string;
+    includePod?: boolean;
+    retainBarrier?: boolean;
+    idempotencyKey?: string;
+  }): Promise<CheckpointRunSuccess | CheckpointRunFailure> => {
+    const { request, projectId } = params;
+    const headerKey = request.headers['idempotency-key'];
+    const idempotencyKey =
+      params.idempotencyKey ?? (typeof headerKey === 'string' && headerKey.trim() ? headerKey.trim() : undefined);
+    const requestHash = createHash('sha256')
+      .update(JSON.stringify({ projectId, includePod: params.includePod === true }))
+      .digest('hex');
+    const ckpt = await store.createProjectCheckpoint({
+      projectId,
+      createdByUserId: request.currentUser?.id,
+      idempotencyKey,
+      requestHash,
+    });
+
+    if (ckpt.replayed) {
+      const existing = await store.getProjectCheckpoint(ckpt.id);
+      if (existing?.state === 'COMMITTED' && existing.manifest && typeof existing.manifest === 'object') {
+        return { ok: true, checkpointId: existing.id, manifest: existing.manifest as Record<string, unknown> };
+      }
+
+      return {
+        ok: false,
+        code: 'CHECKPOINT_ALREADY_ACTIVE',
+        error: appPublicEnglish('CHECKPOINT_IDEMPOTENCY_IN_PROGRESS'),
+      };
+    }
+
+    if (!quiesceAdmissible({ timeoutMs: CHECKPOINT_LEASE_TTL_SECONDS * 1000, thawGuaranteed: true })) {
+      await store
+        .updateProjectCheckpoint(ckpt.id, {
+          state: 'CLEANED',
+          error: appPublicEnglish('CHECKPOINT_QUIESCE_INADMISSIBLE'),
+        })
+        .catch(() => undefined);
+      return {
+        ok: false,
+        code: 'CHECKPOINT_QUIESCE_INADMISSIBLE',
+        error: appPublicEnglish('CHECKPOINT_QUIESCE_INADMISSIBLE'),
+      };
+    }
+
+    const barrierId = `bar_${randomUUID()}`;
+    const ownerToken = `ckowner_${randomUUID()}`;
+    const lease = await withProjectLock(projectId, () =>
+      store.acquireProjectCheckpointBarrier({
+        checkpointId: ckpt.id,
+        projectId,
+        barrierId,
+        ownerToken,
+        ttlSeconds: CHECKPOINT_LEASE_TTL_SECONDS,
+      }),
+    );
+
+    if (!lease) {
+      await store
+        .updateProjectCheckpoint(ckpt.id, {
+          state: 'CLEANED',
+          error: appPublicEnglish('CHECKPOINT_ALREADY_ACTIVE'),
+        })
+        .catch(() => undefined);
+      return {
+        ok: false,
+        code: 'CHECKPOINT_ALREADY_ACTIVE',
+        error: appPublicEnglish('CHECKPOINT_ALREADY_ACTIVE'),
+      };
+    }
+
+    const leaseManager = new ProjectCheckpointLeaseManager(
+      store,
+      lease,
+      CHECKPOINT_LEASE_TTL_SECONDS,
+      CHECKPOINT_LEASE_RENEW_MS,
+    );
+    leaseManager.start();
+    let state: CheckpointState = 'BARRIER_ESTABLISHED';
+    let retainLease = false;
+
+    const advance = async (
+      to: CheckpointState,
+      patch: {
+        consistencyLevel?: string;
+        manifest?: unknown;
+        error?: string;
+        retentionSeconds?: number;
+      } = {},
+      retainBarrier = false,
+    ) => {
+      assertCheckpointTransition(state, to);
+      await leaseManager.guard();
+      await store.transitionProjectCheckpoint({
+        checkpointId: ckpt.id,
+        ownerToken: lease.ownerToken,
+        fence: lease.fence,
+        from: state,
+        to,
+        patch,
+        retainBarrier,
+      });
+      state = to;
+    };
+
+    try {
+      const startedAt = await store.getDatabaseTime();
+      const components: CheckpointComponentSnapshot[] = [];
+      /*
+       * Portée RÉELLE de la barrière, source unique du niveau annoncé (P0-V3-09).
+       * `inPodWritersReachable` est vrai dès qu'un workspace existe : on ne peut
+       * pas prouver qu'un dev server / terminal / agent est muet, donc on suppose
+       * qu'il écrit — c'est l'hypothèse qui sous-revendique, jamais l'inverse.
+       */
+      const workspacesForProject = await store.listWorkspaces(projectId).catch(() => []);
+      const barrierScope: BarrierScope = {
+        apiWritesFrozenAllReplicas: true, // bail persisté, lu par tous les replicas
+        inPodWritersReachable: workspacesForProject.length > 0,
+        dbClientWritesReachable: true,
+      };
+      const componentConsistency: Array<{ componentKind: string; consistency: ConsistencyDeclaration }> = [];
+      /** Composants tentés mais NON prouvés — consignés, jamais comptés comme couverture. */
+      const bestEffortComponents: Array<Record<string, unknown>> = [];
+
+      // (1) VOLUME (fichiers projet) — snapshot réel + hash du contenu archivé.
+      await advance('VOLUME_SNAPSHOTTING');
+      // rawProjectStorage : l'orchestrateur écrit LÉGITIMEMENT sous sa propre barrière.
+      await leaseManager.guard();
+      const files = await listProjectFilesIncludingIdeState(store, rawProjectStorage, projectId);
+      await leaseManager.guard();
+      const archive = await rawProjectStorage.createSnapshot({
+        projectId,
+        label: appPublicEnglish('CHECKPOINT_SNAPSHOT_LABEL', { barrierId }),
+        files,
+      });
+      await leaseManager.guard();
+      const filesHash = checkpointFilesHash(files);
+      const fileSnapshot = await store.createSnapshot({
+        projectId,
+        kind: 'manual',
+        manifest: {
+          checkpoint: true,
+          files: files.map((f) => f.path),
+          logicalBarrierId: barrierId,
+          contentHash: filesHash,
+        },
+        storageKey: archive.storageKey,
+        byteLength: archive.byteLength,
+        createdByUserId: request.currentUser?.id,
+      });
+      const filesConsistency = declareFilesConsistency(barrierScope);
+      componentConsistency.push({ componentKind: 'FILES', consistency: filesConsistency });
+      components.push({
+        componentKind: 'FILES',
+        snapshotId: fileSnapshot.id,
+        logicalBarrierId: barrierId,
+        startedAt,
+        completedAt: await store.getDatabaseTime(),
+        consistencyLevel: filesConsistency.level,
+        consistencyBasis: filesConsistency.basis,
+        unfrozenWriters: filesConsistency.unfrozenWriters,
+        encryptionKeyVersion: 'storage-default',
+        restoreCompatibility: 'project-files-v1',
+        verified: false,
+      });
+
+      // (2) DATABASE — backup physique CNPG si flag actif + base provisionnée ;
+      // sinon DÉPENDANCE DÉCLARÉE (jamais un silence).
+      await advance('DB_SNAPSHOTTING');
+      const dbInstance = await store.getDatabaseInstanceByProject(projectId).catch(() => undefined);
+      const databaseProvisioned = Boolean(dbInstance);
+      let databaseDependencyDeclared = false;
+
+      /*
+       * Le backup CNPG est soumis quand le flag est actif, mais il n'est JAMAIS
+       * compté comme composant vérifié du checkpoint : `takeSnapshot` rend la main
+       * dès que le CR `Backup` est accepté (database-provisioner.ts) — il n'attend
+       * ni la fin du backup ni sa restaurabilité. Le compter « verified » ferait
+       * croire à une couverture base prouvée. Il est donc consigné en
+       * `bestEffortComponents` avec son état exact, et la base est déclarée en
+       * dépendance ouverte dans les deux cas.
+       */
+      if (databaseProvisioned && isDatabaseRollbackEnabled()) {
+        const provisioner = resolveDefaultDatabaseProvisioner();
+        const dbSnapId = `ckdb_${randomUUID().slice(0, 12)}`;
+        await leaseManager.guard();
+        const applied = await provisioner.takeSnapshot({ projectId, snapshotId: dbSnapId });
+        await leaseManager.guard();
+        const dbConsistency = declareDatabaseConsistency(barrierScope);
+        bestEffortComponents.push({
+          componentKind: 'DATABASE',
+          snapshotId: dbSnapId,
+          logicalBarrierId: barrierId,
+          backupRequestAccepted: applied.applied,
+          /*
+           * Ni le CR terminé ni un restore rejoué : on ne sait pas si ce backup est
+           * restaurable, donc on l'écrit au lieu de le taire.
+           */
+          completionAwaited: false,
+          restoreProven: false,
+          consistencyLevelIfRestorable: dbConsistency.level,
+          consistencyBasis: dbConsistency.basis,
+          restoreCompatibility: 'cnpg-pitr-v1',
+        });
+        databaseDependencyDeclared = true;
+      } else if (databaseProvisioned) {
+        // Base réelle mais infra de snapshot DORMANTE (DB_ROLLBACK_ENABLED off).
+        databaseDependencyDeclared = true;
+      }
+
+      if (params.includePod) {
+        await advance('POD_SNAPSHOTTING');
+        // Un snapshot de pod n'est PAS implémenté — le déclarer serait mentir.
+      }
+
+      await advance('VERIFYING');
+      // VÉRIFICATION RÉELLE : relire l'archive et recomparer le hash du contenu.
+      await leaseManager.guard();
+      const reread = await projectStorage.getSnapshotFiles(archive.storageKey);
+      await leaseManager.guard();
+      const rereadHash = checkpointFilesHash(reread);
+
+      for (const c of components) {
+        if (c.componentKind === 'FILES') {
+          // Seule vérification réellement faite : relecture de l'archive + re-hash.
+          c.verified = rereadHash === filesHash;
+          c.verificationMethod = 'archive-reread-sha256-match';
+        }
+      }
+
+      const admissible = projectCheckpointAdmissible(components, {
+        databaseProvisioned,
+        databaseDependencyDeclared,
+      });
+
+      if (!admissible.admissible) {
+        throw Object.assign(new Error(admissible.reason ?? appPublicEnglish('CHECKPOINT_INADMISSIBLE')), {
+          code: 'CHECKPOINT_INADMISSIBLE',
+        });
+      }
+
+      const visibility = checkpointManifestVisible(components, barrierId);
+
+      if (!visibility.visible) {
+        throw Object.assign(new Error(visibility.reason ?? appPublicEnglish('CHECKPOINT_UNVERIFIED')), {
+          code: 'CHECKPOINT_UNVERIFIED',
+        });
+      }
+
+      /*
+       * Niveau DÉRIVÉ du composant le plus faible, jamais du plus fort, et
+       * accompagné de sa justification + des niveaux explicitement non
+       * revendiqués. C'est la réponse directe au refus P0-V3-09.
+       */
+      const consistency = declareCheckpointConsistency(componentConsistency);
+
+      const databaseNow = new Date(await store.getDatabaseTime());
+      const manifest: Record<string, unknown> = {
+        logicalBarrierId: barrierId,
+        consistencyLevel: consistency.level,
+        consistencyBasis: consistency.basis,
+        /*
+         * Les composants sont snapshottés en SÉQUENCE : partager un
+         * `logicalBarrierId` ordonne les étapes, ça ne crée pas un instant
+         * atomique commun. Dit tel quel plutôt que sous-entendu.
+         */
+        crossComponentAtomic: consistency.crossComponentAtomic,
+        notClaimed: consistency.notClaimed,
+        barrierScope: {
+          apiWritesFrozenAllReplicas: barrierScope.apiWritesFrozenAllReplicas,
+          inPodWritersReachable: barrierScope.inPodWritersReachable,
+          dbClientWritesReachable: barrierScope.dbClientWritesReachable,
+        },
+        components,
+        bestEffortComponents,
+        contentHashes: { files: filesHash },
+        restoreCompatibility: { files: 'project-files-v1', database: databaseProvisioned ? 'cnpg-pitr-v1' : 'n/a' },
+        dependenciesDeclared: databaseDependencyDeclared
+          ? [
+              isDatabaseRollbackEnabled()
+                ? 'DATABASE : backup CNPG soumis mais NI attendu NI rejoué — couverture base non prouvée, checkpoint restaurable sur les FICHIERS seulement'
+                : 'DATABASE : base provisionnée mais snapshot CNPG dormant (DB_ROLLBACK_ENABLED off) — checkpoint fichiers-seuls, dit tel quel',
+            ]
+          : [],
+        expiresAt: new Date(databaseNow.getTime() + CHECKPOINT_RETENTION_SECONDS * 1000).toISOString(),
+      };
+
+      await leaseManager.guard();
+      await audit(request, store, {
+        action: 'project.checkpoint',
+        resourceType: 'project',
+        resourceId: projectId,
+        metadata: { checkpointId: ckpt.id, logicalBarrierId: barrierId, consistencyLevel: manifest.consistencyLevel },
+      });
+      await advance(
+        'COMMITTED',
+        {
+          consistencyLevel: String(manifest.consistencyLevel),
+          manifest,
+          retentionSeconds: CHECKPOINT_RETENTION_SECONDS,
+        },
+        params.retainBarrier === true,
+      );
+      retainLease = params.retainBarrier === true;
+
+      return {
+        ok: true,
+        checkpointId: ckpt.id,
+        manifest,
+        ...(retainLease ? { lease, leaseManager } : {}),
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (!leaseManager.isLost() && !['COMMITTED', 'CLEANED', 'MANUAL_INTERVENTION'].includes(state)) {
+        let abortRecorded = false;
+        await advance('ABORTING', { error: message })
+          .then(() => {
+            abortRecorded = true;
+          })
+          .catch(() => undefined);
+        if (abortRecorded) await advance('CLEANED').catch(() => undefined);
+      }
+      return { ok: false, code: (error as { code?: string }).code ?? 'CHECKPOINT_FAILED', error: message };
+    } finally {
+      if (!retainLease) {
+        await leaseManager.stop();
+        await store
+          .releaseProjectCheckpointBarrier({
+            checkpointId: ckpt.id,
+            ownerToken: lease.ownerToken,
+            fence: lease.fence,
+          })
+          .catch(() => false);
+      }
+    }
+  };
+
+  app.post('/projects/:projectId/checkpoints', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const result = await runProjectCheckpoint({ request, projectId: project.id });
+
+    if (!result.ok) {
+      const status =
+        result.code === 'CHECKPOINT_INADMISSIBLE' ? 422 : result.code === 'CHECKPOINT_ALREADY_ACTIVE' ? 409 : 500;
+      return reply.status(status).send({ error: result.error, code: result.code });
+    }
+
+    const ckpt = await store.getProjectCheckpoint(result.checkpointId);
+    return reply.code(201).send({ checkpoint: ckpt });
+  });
+
+  app.get('/projects/:projectId/checkpoints/:checkpointId', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+    const ckptId = z
+      .string()
+      .min(1)
+      .parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id) {
+      return reply.status(404).send({ error: appPublicEnglish('CHECKPOINT_NOT_FOUND'), code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    return { checkpoint: ckpt };
+  });
+
+  /*
+   * Restore VÉRIFIÉ : rejoue le composant FILES dans un projet JETABLE tout
+   * neuf et compare le hash de contenu au manifeste — le restore n'écrase
+   * jamais le projet source. (Restore DB = PITR CNPG, chantier flag dormant.)
+   */
+  app.post('/projects/:projectId/checkpoints/:checkpointId/restore-verify', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const ckptId = z
+      .string()
+      .min(1)
+      .parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
+      return reply
+        .status(404)
+        .send({ error: appPublicEnglish('CHECKPOINT_COMMITTED_NOT_FOUND'), code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    const manifest = ckpt.manifest as {
+      components: Array<{ componentKind: string; snapshotId: string }>;
+      contentHashes: { files: string };
+    };
+    const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
+
+    if (!filesComponent) {
+      return reply.status(422).send({ error: appPublicEnglish('CHECKPOINT_NO_FILES'), code: 'CHECKPOINT_NO_FILES' });
+    }
+
+    const snapshot = await store.getSnapshot(filesComponent.snapshotId);
+
+    if (!snapshot) {
+      return reply
+        .status(409)
+        .send({ error: appPublicEnglish('CHECKPOINT_SNAPSHOT_MISSING'), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
+    }
+
+    const files = await getSnapshotFiles(snapshot);
+    const restoredHash = checkpointFilesHash(files);
+    const matches = restoredHash === manifest.contentHashes.files;
+
+    // Restore effectif dans un projet jetable (preuve de restaurabilité).
+    const target = await store.withSerializedMutation(`projects:${project.organizationId}`, async () => {
+      await ensureQuota(request, project.organizationId, 'projects.count');
+      return store.duplicateProject({
+        projectId: project.id,
+        organizationId: project.organizationId,
+        name: `${project.name} (restore-verify)`,
+        slug: `restore-verify-${Date.now().toString(36)}`,
+      });
+    });
+    await projectStorage.writeFiles(target.id, files);
+
+    await audit(request, store, {
+      action: 'project.checkpoint.restore_verify',
+      resourceType: 'project',
+      resourceId: project.id,
+      metadata: { checkpointId: ckpt.id, targetProjectId: target.id, hashMatches: matches },
+    });
+
+    return {
+      restoreVerified: matches,
+      restoredHash,
+      expectedHash: manifest.contentHashes.files,
+      targetProjectId: target.id,
+    };
+  });
+
+  /*
+   * RESTORE RÉEL (P0-V3-09) — remet le PROJET LUI-MÊME dans l'état du checkpoint.
+   *
+   * `restore-verify` ci-dessus prouve seulement qu'une archive est relisible dans
+   * un projet jetable ; il ne prouve pas qu'on sait *ramener* un projet cassé.
+   * Ce chemin-ci écrase le projet source, donc il est encadré :
+   *   1. un checkpoint de SÛRETÉ est pris d'abord — sans point de retour on ne
+   *      détruit rien (si sa prise échoue, le restore est refusé) ;
+   *   2. la barrière est réarmée pendant la restauration, sinon une écriture
+   *      concurrente atterrit au milieu de l'arbre en cours de réécriture ;
+   *   3. l'état APRÈS restauration est relu depuis le stockage et re-hashé : la
+   *      réussite est prouvée par le contenu réel, pas par l'absence d'erreur ;
+   *   4. un hash divergent renvoie 409 et le dit — jamais un succès silencieux.
+   */
+  app.post('/projects/:projectId/checkpoints/:checkpointId/restore', async (request, reply) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:write',
+    );
+    await requireOrg(request, store, project.organizationId, 'projects:write');
+
+    const ckptId = z
+      .string()
+      .min(1)
+      .parse((request.params as { checkpointId: string }).checkpointId);
+    const ckpt = await store.getProjectCheckpoint(ckptId);
+
+    if (!ckpt || ckpt.projectId !== project.id || ckpt.state !== 'COMMITTED') {
+      return reply
+        .status(404)
+        .send({ error: appPublicEnglish('CHECKPOINT_COMMITTED_NOT_FOUND'), code: 'CHECKPOINT_NOT_FOUND' });
+    }
+
+    const manifest = ckpt.manifest as {
+      components: Array<{ componentKind: string; snapshotId: string }>;
+      contentHashes: { files: string };
+      dependenciesDeclared?: string[];
+    };
+    const filesComponent = manifest.components.find((c) => c.componentKind === 'FILES');
+
+    if (!filesComponent) {
+      return reply.status(422).send({ error: appPublicEnglish('CHECKPOINT_NO_FILES'), code: 'CHECKPOINT_NO_FILES' });
+    }
+
+    const snapshot = await store.getSnapshot(filesComponent.snapshotId);
+
+    if (!snapshot) {
+      return reply
+        .status(409)
+        .send({ error: appPublicEnglish('CHECKPOINT_SNAPSHOT_MISSING'), code: 'CHECKPOINT_SNAPSHOT_MISSING' });
+    }
+
+    const files = await getSnapshotFiles(snapshot);
+
+    /*
+     * Do not short-circuit from an unfenced pre-read when the tree already
+     * appears to match. A concurrent writer could land immediately after that
+     * read and turn a "replayed" response into a false success. Even a no-op
+     * restore therefore takes the same safety checkpoint + continuous barrier
+     * as every destructive restore; the verified hash below is the sole
+     * success linearization point.
+     */
+
+    const restoreHeader = request.headers['idempotency-key'];
+    const restoreKey = typeof restoreHeader === 'string' && restoreHeader.trim() ? restoreHeader.trim() : randomUUID();
+
+    // (1) Point de retour AVANT toute écriture destructive. Its barrier is
+    // deliberately retained: there is no thaw/re-arm window before restore.
+    const safety = await runProjectCheckpoint({
+      request,
+      projectId: project.id,
+      retainBarrier: true,
+      idempotencyKey: `checkpoint-restore-safety:${project.id}:${ckpt.id}:${restoreKey}`,
+    });
+
+    if (!safety.ok) {
+      return reply.status(409).send({
+        error: appPublicEnglish('CHECKPOINT_SAFETY_FAILED', { detail: safety.error }),
+        code: 'CHECKPOINT_SAFETY_FAILED',
+      });
+    }
+
+    if (!safety.lease || !safety.leaseManager) {
+      return reply.status(409).send({
+        error: appPublicEnglish('CHECKPOINT_SAFETY_BARRIER_MISSING'),
+        code: 'CHECKPOINT_SAFETY_BARRIER_MISSING',
+      });
+    }
+
+    const safetyLease = safety.lease;
+    const safetyLeaseManager = safety.leaseManager;
+    const safetyManifest = safety.manifest as {
+      components: Array<{ componentKind: string; snapshotId: string }>;
+      contentHashes: { files: string };
+    };
+    const releaseSafetyBarrier = async () => {
+      await safetyLeaseManager.stop();
+      await store
+        .releaseProjectCheckpointBarrier({
+          checkpointId: safety.checkpointId,
+          ownerToken: safetyLease.ownerToken,
+          fence: safetyLease.fence,
+        })
+        .catch(() => false);
+    };
+    const safetyFilesComponent = safetyManifest.components.find((component) => component.componentKind === 'FILES');
+    let safetyFiles: ProjectFile[];
+
+    try {
+      const safetySnapshot = safetyFilesComponent
+        ? await store.getSnapshot(safetyFilesComponent.snapshotId)
+        : undefined;
+      if (!safetySnapshot) {
+        throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_SAFETY_SNAPSHOT_MISSING')), {
+          code: 'CHECKPOINT_SAFETY_SNAPSHOT_MISSING',
+        });
+      }
+      safetyFiles = await getSnapshotFiles(safetySnapshot);
+      if (checkpointFilesHash(safetyFiles) !== safetyManifest.contentHashes.files) {
+        throw Object.assign(new Error(appPublicEnglish('CHECKPOINT_SAFETY_SNAPSHOT_HASH_MISMATCH')), {
+          code: 'CHECKPOINT_SAFETY_SNAPSHOT_HASH_MISMATCH',
+        });
+      }
+    } catch (error) {
+      await releaseSafetyBarrier();
+      return reply.status(409).send({
+        error: appPublicEnglish('CHECKPOINT_SAFETY_ARCHIVE_INVALID'),
+        code: (error as { code?: string }).code ?? 'CHECKPOINT_SAFETY_ARCHIVE_INVALID',
+      });
+    }
+    const hashProjectTree = async () => {
+      const current = await listProjectFilesIncludingIdeState(store, rawProjectStorage, project.id);
+      const hash = checkpointFilesHash(current);
+      return { current, hash };
+    };
+    const rollbackToSafety = async () => {
+      await safetyLeaseManager.guard();
+      await rawProjectStorage.restoreSnapshot({ projectId: project.id, files: safetyFiles }, () =>
+        safetyLeaseManager.guard(),
+      );
+      await safetyLeaseManager.guard();
+      const rolledBack = await hashProjectTree();
+      return {
+        ...rolledBack,
+        verified: rolledBack.hash === safetyManifest.contentHashes.files,
+      };
+    };
+
+    try {
+      await safetyLeaseManager.guard();
+      await rawProjectStorage.restoreSnapshot({ projectId: project.id, files }, () => safetyLeaseManager.guard());
+      await safetyLeaseManager.guard();
+
+      // (3) Preuve par le contenu : relire le PROJET (pas l'archive) et re-hasher.
+      const { current: afterRestore, hash: restoredHash } = await hashProjectTree();
+      const matches = restoredHash === manifest.contentHashes.files;
+
+      if (!matches) {
+        // Fail closed and immediately put the original bytes back while the same
+        // barrier is still fenced. A mismatch never leaves the project silently
+        // on the divergent tree.
+        const rollback = await rollbackToSafety();
+        await audit(request, store, {
+          action: 'project.checkpoint.restore_failed_rolled_back',
+          resourceType: 'project',
+          resourceId: project.id,
+          metadata: {
+            checkpointId: ckpt.id,
+            safetyCheckpointId: safety.checkpointId,
+            restoredHash,
+            rollbackVerified: rollback.verified,
+          },
+        });
+        return reply.status(409).send({
+          error: rollback.verified
+            ? appPublicEnglish('CHECKPOINT_RESTORE_ROLLED_BACK')
+            : appPublicEnglish('CHECKPOINT_RESTORE_ROLLBACK_FAILED'),
+          code: 'CHECKPOINT_RESTORE_HASH_MISMATCH',
+          expectedHash: manifest.contentHashes.files,
+          restoredHash,
+          safetyCheckpointId: safety.checkpointId,
+          rollbackVerified: rollback.verified,
+        });
+      }
+
+      await safetyLeaseManager.guard();
+      await audit(request, store, {
+        action: 'project.checkpoint.restore',
+        resourceType: 'project',
+        resourceId: project.id,
+        metadata: {
+          checkpointId: ckpt.id,
+          safetyCheckpointId: safety.checkpointId,
+          hashMatches: true,
+          restoredHash,
+        },
+      });
+      await store.recordProjectActivity({
+        projectId: project.id,
+        actorUserId: request.currentUser?.id,
+        action: 'project.checkpoint.restore',
+        metadata: { checkpointId: ckpt.id, safetyCheckpointId: safety.checkpointId },
+      });
+
+      return {
+        restored: true,
+        checkpointId: ckpt.id,
+        /** Point de retour pour annuler CE restore. */
+        safetyCheckpointId: safety.checkpointId,
+        restoredHash,
+        expectedHash: manifest.contentHashes.files,
+        fileCount: afterRestore.length,
+        /*
+         * Le restore ne couvre QUE les fichiers : la base n'est pas rejouée ici.
+         * Repris du manifeste pour que l'appelant ne déduise pas une couverture
+         * qu'il n'a pas.
+         */
+        dependenciesDeclared: manifest.dependenciesDeclared ?? [],
+      };
+    } catch (error) {
+      let rollbackVerified = false;
+      if (!safetyLeaseManager.isLost()) {
+        rollbackVerified = await rollbackToSafety()
+          .then((result) => result.verified)
+          .catch(() => false);
+      }
+
+      const code = (error as { code?: string }).code ?? 'CHECKPOINT_RESTORE_FAILED';
+      return reply.status(code === 'CHECKPOINT_BARRIER_LOST' ? 409 : 500).send({
+        error: rollbackVerified
+          ? appPublicEnglish('CHECKPOINT_RESTORE_FAILED_ROLLED_BACK')
+          : appPublicEnglish('CHECKPOINT_RESTORE_FAILED_RECOVERY_AVAILABLE'),
+        code,
+        safetyCheckpointId: safety.checkpointId,
+        rollbackVerified,
+      });
+    } finally {
+      await releaseSafetyBarrier();
+    }
+  });
   const remixSchema = z.object({
     name: z.string().trim().min(1).max(120),
     slug: z.string().trim().min(2).max(120).optional(),
