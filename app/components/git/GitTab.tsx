@@ -15,6 +15,7 @@ import {
   resolveConflictContentState,
   type MergeContentState,
 } from './git-conflict-content';
+import { includeSubmitterValue } from './git-form-data';
 import { findUnserializableStagedFiles, pathBreaksCommaSerialization } from './git-staged-files';
 import { GitBranchSyncControls } from '~/components/git/GitBranchSyncControls';
 import { GitDiffView } from '~/components/git/GitDiffView';
@@ -765,7 +766,8 @@ export function GitTab({ projectId }: GitTabProps) {
       }
 
       const form = event.currentTarget;
-      const formData = new FormData(form);
+      const submitter = (event.nativeEvent as SubmitEvent).submitter;
+      const formData = includeSubmitterValue(new FormData(form), submitter);
       const intent = String(formData.get('intent') ?? 'default');
 
       /*
