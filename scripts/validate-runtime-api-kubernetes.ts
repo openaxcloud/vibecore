@@ -1,25 +1,39 @@
-import { RemoteKubernetesRuntimeAdapter } from '@vibecore/runtime-remote';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { execFile as execFileCallback } from 'node:child_process';
+import { isAbsolute } from 'node:path';
 import { promisify } from 'node:util';
+import { RemoteKubernetesRuntimeAdapter } from '@vibecore/runtime-remote';
 
 const execFile = promisify(execFileCallback);
 
-const apiBaseUrl = (process.env.RUNTIME_API_E2E_API_URL ?? process.env.SAAS_API_URL ?? 'http://127.0.0.1:3001').replace(/\/+$/, '');
-const runtimeBaseUrl = (process.env.RUNTIME_API_E2E_RUNTIME_URL ?? `${apiBaseUrl}/api/runtime`).replace(/\/+$/, '');
-const workspaceManagerBaseUrl = (process.env.RUNTIME_API_E2E_WORKSPACE_MANAGER_URL ?? process.env.WORKSPACE_MANAGER_URL ?? 'http://127.0.0.1:3010').replace(
+const apiBaseUrl = (process.env.RUNTIME_API_E2E_API_URL ?? process.env.SAAS_API_URL ?? 'http://127.0.0.1:3001').replace(
   /\/+$/,
   '',
 );
+
+const runtimeBaseUrl = (process.env.RUNTIME_API_E2E_RUNTIME_URL ?? `${apiBaseUrl}/api/runtime`).replace(/\/+$/, '');
+
+const workspaceManagerBaseUrl = (
+  process.env.RUNTIME_API_E2E_WORKSPACE_MANAGER_URL ??
+  process.env.WORKSPACE_MANAGER_URL ??
+  'http://127.0.0.1:3010'
+).replace(/\/+$/, '');
+
 const namespace = process.env.RUNTIME_API_E2E_NAMESPACE ?? process.env.WORKSPACE_RUNTIME_NAMESPACE ?? 'workspaces';
 const agentLocalPort = Number(process.env.RUNTIME_API_E2E_AGENT_PORT ?? '18081');
 const password = process.env.RUNTIME_API_E2E_PASSWORD ?? 'RuntimeApiE2E!12345';
+const clusterName = process.env.E2E_RUNTIME_CLUSTER_NAME ?? '';
+const kubeconfig = process.env.RUNTIME_API_E2E_KUBECONFIG ?? process.env.E2E_RUNTIME_KUBECONFIG ?? '';
+const kubeContext = process.env.RUNTIME_API_E2E_KUBE_CONTEXT ?? (clusterName ? `kind-${clusterName}` : '');
+
 let portForward: ChildProcess | undefined;
 
 async function main() {
   await preflight();
 
   const runId = Date.now();
+  const previewPort = 4173;
+
   const auth = await registerUser({
     email: `runtime-api-e2e-${runId}@vibecore.local`,
     password,
@@ -42,47 +56,141 @@ async function main() {
   });
 
   await adapter.boot();
-  const session = await adapter.startWorkspace({ id: project.project.id, metadata: { projectId: project.project.id, validation: 'runtime-api-kubernetes' } });
+
+  const session = await adapter.startWorkspace({
+    id: project.project.id,
+    metadata: { projectId: project.project.id, validation: 'runtime-api-kubernetes' },
+  });
   assert(session.status === 'running', `workspace did not start: ${JSON.stringify(session)}`);
 
   portForward = await startPortForward(session.id);
 
   await adapter.writeFile('src/index.js', 'console.log("runtime-api-kubernetes")\n');
+
   const { content } = await adapter.readFile('src/index.js');
   assert(content.includes('runtime-api-kubernetes'), 'readFile did not return content written through the API runtime');
 
-  await adapter.createFile('README.md', '# Runtime API Kubernetes\n');
+  /*
+   * Runtime start deliberately reseeds persisted project files (including the
+   * default README).  Exercise the create-only contract with a run-scoped path
+   * so the validator cannot fail merely because the real seed completed first.
+   */
+  const createdPath = `runtime-api-e2e-${runId}.md`;
+  await adapter.createFile(createdPath, '# Runtime API Kubernetes\n');
+
   const files = await adapter.listFiles();
   assert(files.length > 0, 'listFiles returned no files');
 
   const matches = await adapter.searchFiles('Runtime API Kubernetes');
-  assert(matches.some((match) => match.path === 'README.md'), 'searchFiles did not find README.md content');
+  assert(
+    matches.some((match) => match.path === createdPath),
+    `searchFiles did not find ${createdPath} content`,
+  );
 
   const patch = await adapter.applyPatch({
     operations: [{ type: 'write', path: 'src/patched.txt', content: 'patched via real API runtime\n' }],
   });
-  assert(patch.some((change) => change.path === 'src/patched.txt'), 'applyPatch did not report src/patched.txt');
+  assert(
+    patch.some((change) => change.path === 'src/patched.txt'),
+    'applyPatch did not report src/patched.txt',
+  );
 
-  const command = await adapter.runCommand({ command: 'node', args: ['-e', 'console.log("command-through-runtime-api")'] });
-  assert(command.exitCode === 0 && command.output.includes('command-through-runtime-api'), `runCommand failed: ${JSON.stringify(command)}`);
+  const command = await adapter.runCommand({
+    command: 'node',
+    args: ['-e', 'console.log("command-through-runtime-api")'],
+  });
+  assert(
+    command.exitCode === 0 && command.output.includes('command-through-runtime-api'),
+    `runCommand failed: ${JSON.stringify(command)}`,
+  );
 
   const terminal = await adapter.openTerminal({ terminal: { cols: 100, rows: 30 } });
-  // Drain terminal events until the jsh readiness marker appears rather than
-  // asserting on the very first event: a real PTY emits shell-init output (and
-  // the rcfile sources bashrc) before PROMPT_COMMAND/PS1 emit the OSC markers,
-  // so the marker is rarely the first chunk.
+
+  /*
+   * Drain terminal events until the jsh readiness marker appears rather than
+   * asserting on the very first event: a real PTY emits shell-init output (and
+   * the rcfile sources bashrc) before PROMPT_COMMAND/PS1 emit the OSC markers,
+   * so the marker is rarely the first chunk.
+   */
   const terminalReady = await waitForTerminalMarker(terminal.events, 25_000);
   assert(terminalReady, 'terminal did not become ready (no jsh prompt/interactive marker within 25s)');
   await terminal.kill();
 
-  const ports = await adapter.listPorts();
-  assert(Array.isArray(ports), 'listPorts did not return an array');
+  let previewServerError: Error | undefined;
+  let previewServerFinished = false;
+  let previewServerOutput = '';
 
-  const preview = await adapter.getPreviewUrl(8080);
-  assert(preview.ready && preview.url.length > 0, `getPreviewUrl failed: ${JSON.stringify(preview)}`);
+  const previewServerTask = consumeCommandStream(
+    adapter.streamCommand({
+      command: 'node',
+      args: [
+        '-e',
+        `require("node:http").createServer((_request,response)=>response.end("runtime-preview-ok")).listen(${previewPort},"0.0.0.0")`,
+      ],
+    }),
+    (data) => {
+      previewServerOutput = `${previewServerOutput}${data}`.slice(-8_192);
+    },
+  )
+    .catch((error: unknown) => {
+      previewServerError = error instanceof Error ? error : new Error(String(error));
+    })
+    .finally(() => {
+      previewServerFinished = true;
+    });
+
+  const ports = await waitForValue(
+    async () => {
+      if (previewServerError) {
+        throw previewServerError;
+      }
+
+      if (previewServerFinished) {
+        throw new Error(`preview server exited before opening its port: ${previewServerOutput}`);
+      }
+
+      const value = await adapter.listPorts();
+
+      return value.some((port) => port.port === previewPort) ? value : undefined;
+    },
+    30_000,
+    `workspace agent to report the real port ${previewPort}`,
+  );
+  assert(
+    ports.some((port) => port.port === previewPort),
+    `listPorts did not return the listening port ${previewPort}`,
+  );
+
+  const preview = await waitForValue(
+    async () => {
+      const value = await adapter.getPreviewUrl(previewPort);
+      return value.ready ? value : undefined;
+    },
+    30_000,
+    `preview route ${previewPort} to become ready`,
+  );
+  assert(preview.url.length > 0, `getPreviewUrl returned no URL: ${JSON.stringify(preview)}`);
+
+  const previewResponse = await fetch(preview.url);
+  const previewBody = await previewResponse.text();
+  assert(
+    previewResponse.ok && previewBody === 'runtime-preview-ok',
+    `preview proxy did not reach the workspace server: ${previewResponse.status} ${previewBody}`,
+  );
+
+  const previewProcess = (await adapter.listProcesses()).find((process) =>
+    process.command.includes('runtime-preview-ok'),
+  );
+  assert(previewProcess, 'listProcesses did not expose the running preview server');
+  await adapter.killProcess(previewProcess.id);
+  await previewServerTask;
+  assert(!previewServerError, `preview server command stream failed: ${previewServerError?.message}`);
 
   const snapshot = await adapter.createSnapshot('runtime-api-e2e');
-  assert(snapshot.files.some((file) => file.path === 'src/index.js'), 'createSnapshot did not include src/index.js');
+  assert(
+    snapshot.files.some((file) => file.path === 'src/index.js'),
+    'createSnapshot did not include src/index.js',
+  );
 
   const zip = await adapter.exportZip();
   assert(zip.byteLength > 0, 'exportZip returned an empty zip');
@@ -128,17 +236,33 @@ async function main() {
 }
 
 async function preflight() {
+  assert(
+    clusterName.startsWith('vibecore-e2e-runtime-'),
+    `refusing non-ephemeral runtime cluster name: ${clusterName || '<empty>'}`,
+  );
+  assert(isAbsolute(kubeconfig), 'E2E runtime validator requires an absolute, explicit kubeconfig path');
+  assert(
+    kubeContext === `kind-${clusterName}`,
+    `E2E runtime context must match the guarded cluster name: ${kubeContext || '<empty>'}`,
+  );
+
   await assertJsonHealth(`${apiBaseUrl}/health`, 'API');
   await assertJsonHealth(`${workspaceManagerBaseUrl}/health`, 'workspace-manager');
 
   try {
-    await execFile('kubectl', ['version', '--client=true'], { maxBuffer: 2 * 1024 * 1024 });
+    await execFile('kubectl', ['--kubeconfig', kubeconfig, '--context', kubeContext, 'version', '--client=true'], {
+      maxBuffer: 2 * 1024 * 1024,
+    });
   } catch (error) {
     throw new Error(`kubectl client is required for runtime API Kubernetes validation: ${errorMessage(error)}`);
   }
 
   try {
-    await execFile('kubectl', ['-n', namespace, 'get', 'namespace', namespace], { maxBuffer: 2 * 1024 * 1024 });
+    await execFile(
+      'kubectl',
+      ['--kubeconfig', kubeconfig, '--context', kubeContext, '-n', namespace, 'get', 'namespace', namespace],
+      { maxBuffer: 2 * 1024 * 1024 },
+    );
   } catch (error) {
     throw new Error(
       `Kubernetes namespace "${namespace}" is not reachable. Configure the staging kube context and namespace before running runtime:validate:api-kubernetes: ${errorMessage(
@@ -196,13 +320,24 @@ async function api<T>(path: string, token: string | undefined, init: RequestInit
 }
 
 async function startPortForward(workspaceId: string) {
-  await execFile('kubectl', ['-n', namespace, 'wait', '--for=condition=Ready', `pod/workspace-${workspaceId}`, '--timeout=180s'], {
-    maxBuffer: 20 * 1024 * 1024,
-  });
+  const target = ['--kubeconfig', kubeconfig, '--context', kubeContext, '-n', namespace];
 
-  const child = spawn('kubectl', ['-n', namespace, 'port-forward', `service/workspace-${workspaceId}`, `${agentLocalPort}:8080`], {
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  await execFile(
+    'kubectl',
+    [...target, 'wait', '--for=condition=Ready', `pod/workspace-${workspaceId}`, '--timeout=180s'],
+    {
+      maxBuffer: 20 * 1024 * 1024,
+    },
+  );
+
+  const child = spawn(
+    'kubectl',
+    [...target, 'port-forward', `service/workspace-${workspaceId}`, `${agentLocalPort}:8080`],
+    {
+      stdio: ['ignore', 'pipe', 'pipe'],
+    },
+  );
+
   let output = '';
   child.stdout?.on('data', (chunk) => {
     output += chunk.toString();
@@ -228,6 +363,7 @@ async function waitForTerminalMarker(
 ): Promise<boolean> {
   const deadline = Date.now() + timeoutMs;
   const iterator = events[Symbol.asyncIterator]();
+
   let buffer = '';
 
   const hasMarker = () =>
@@ -235,6 +371,7 @@ async function waitForTerminalMarker(
 
   while (Date.now() < deadline) {
     const remaining = deadline - Date.now();
+
     let value: { type?: string; data?: unknown } | null | undefined;
 
     try {
@@ -266,17 +403,19 @@ async function waitForTerminalMarker(
   return false;
 }
 
-async function nextEvent<T>(events: AsyncIterable<T>, timeoutMs: number): Promise<T> {
-  return Promise.race([
-    events[Symbol.asyncIterator]().next().then((result) => {
-      if (result.done) {
-        throw new Error('event stream closed');
-      }
+async function consumeCommandStream(
+  events: AsyncIterable<{ type?: string; data?: unknown; error?: unknown }>,
+  onOutput: (data: string) => void,
+) {
+  for await (const event of events) {
+    if ((event.type === 'stdout' || event.type === 'stderr') && event.data !== undefined) {
+      onOutput(String(event.data));
+    }
 
-      return result.value;
-    }),
-    new Promise<T>((_resolve, reject) => setTimeout(() => reject(new Error('timed out waiting for runtime event')), timeoutMs)),
-  ]);
+    if (event.type === 'error') {
+      throw new Error(`streamed runtime command failed: ${errorMessage(event.error)}`);
+    }
+  }
 }
 
 async function waitFor(predicate: () => boolean, timeoutMs: number) {
@@ -291,6 +430,29 @@ async function waitFor(predicate: () => boolean, timeoutMs: number) {
   }
 
   throw new Error(`timed out after ${timeoutMs}ms`);
+}
+
+async function waitForValue<T>(read: () => Promise<T | undefined>, timeoutMs: number, description: string): Promise<T> {
+  const startedAt = Date.now();
+
+  let lastError: unknown;
+
+  while (Date.now() - startedAt < timeoutMs) {
+    try {
+      const value = await read();
+
+      if (value !== undefined) {
+        return value;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+
+  const suffix = lastError ? `: ${errorMessage(lastError)}` : '';
+  throw new Error(`timed out waiting for ${description} after ${timeoutMs}ms${suffix}`);
 }
 
 function assert(condition: unknown, message: string): asserts condition {
