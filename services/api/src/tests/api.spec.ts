@@ -9,6 +9,7 @@ import JSZip from 'jszip';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import WebSocket, { WebSocketServer } from 'ws';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
+import { runtimeWebSocketProtocols } from '../runtime-websocket-ticket.js';
 import type { EmailMessage, EmailProvider } from '../email.js';
 import type { GitProvider, ProjectFile, ProjectStorage, StoredArchive } from '../project-storage.js';
 import { TestApiStore } from './test-api-store.js';
@@ -5297,12 +5298,20 @@ ReactDOM.createRoot(document.getElementById('root')!).render(<main>Recovered pre
     });
     const projectId = project.json().project.id as string;
 
+    const ticketResponse = await app.inject({
+      method: 'POST',
+      url: `/api/runtime/workspaces/${projectId}/socket-ticket`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { endpoint: 'terminal' },
+    });
+    expect(ticketResponse.statusCode).toBe(200);
+    const ticket = ticketResponse.json().ticket as string;
+
     const address = await app.listen({ port: 0, host: '127.0.0.1' });
 
     const socket = new WebSocket(
-      `${address.replace(/^http/, 'ws')}/api/runtime/workspaces/${projectId}/terminal?sessionId=test-shell&token=${encodeURIComponent(
-        auth.token,
-      )}`,
+      `${address.replace(/^http/, 'ws')}/api/runtime/workspaces/${projectId}/terminal?sessionId=test-shell`,
+      runtimeWebSocketProtocols(ticket),
     );
 
     try {

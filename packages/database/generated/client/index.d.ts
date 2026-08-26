@@ -368,6 +368,11 @@ export type EmailVerificationToken = $Result.DefaultSelection<Prisma.$EmailVerif
  */
 export type SamlAssertion = $Result.DefaultSelection<Prisma.$SamlAssertionPayload>
 /**
+ * Model RuntimeWebSocketTicket
+ * 
+ */
+export type RuntimeWebSocketTicket = $Result.DefaultSelection<Prisma.$RuntimeWebSocketTicketPayload>
+/**
  * Model PasswordResetToken
  * 
  */
@@ -1819,6 +1824,16 @@ export class PrismaClient<
   get samlAssertion(): Prisma.SamlAssertionDelegate<ExtArgs, ClientOptions>;
 
   /**
+   * `prisma.runtimeWebSocketTicket`: Exposes CRUD operations for the **RuntimeWebSocketTicket** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more RuntimeWebSocketTickets
+    * const runtimeWebSocketTickets = await prisma.runtimeWebSocketTicket.findMany()
+    * ```
+    */
+  get runtimeWebSocketTicket(): Prisma.RuntimeWebSocketTicketDelegate<ExtArgs, ClientOptions>;
+
+  /**
    * `prisma.passwordResetToken`: Exposes CRUD operations for the **PasswordResetToken** model.
     * Example usage:
     * ```ts
@@ -2877,6 +2892,7 @@ export namespace Prisma {
     SystemSetting: 'SystemSetting',
     EmailVerificationToken: 'EmailVerificationToken',
     SamlAssertion: 'SamlAssertion',
+    RuntimeWebSocketTicket: 'RuntimeWebSocketTicket',
     PasswordResetToken: 'PasswordResetToken',
     MfaRecoveryCode: 'MfaRecoveryCode',
     EnterpriseOrganizationSettings: 'EnterpriseOrganizationSettings',
@@ -2948,7 +2964,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
+      modelProps: "user" | "account" | "session" | "organization" | "organizationMember" | "organizationInvite" | "role" | "permission" | "rolePermission" | "project" | "projectSlugRedirect" | "agentMemory" | "agentMemoryPreference" | "projectIdeState" | "agentPatchProposal" | "agentRepairEvent" | "projectSkill" | "installedSkill" | "skillAuditEvent" | "projectEnvironment" | "projectSecret" | "projectEnvVar" | "projectCollaborator" | "projectActivity" | "collaborationPresence" | "collaborationComment" | "projectShareLink" | "projectTemplate" | "workspace" | "workspaceIdeState" | "workspaceSession" | "workspacePort" | "fileSnapshot" | "projectSnapshot" | "projectStorageObject" | "deployment" | "deploymentEnvironment" | "releaseManifest" | "rateCard" | "auditLog" | "securityEventResolution" | "adminAuditLog" | "billingCustomer" | "subscription" | "plan" | "stripeConfig" | "loginProviderConfig" | "usageEvent" | "quotaLedger" | "quotaOverride" | "stripeEvent" | "stripeWebhookFailure" | "aiConversation" | "aiMessage" | "aiToolCall" | "aiTokenUsage" | "providerRequestMetric" | "aiMessageFeedback" | "aiCostLedger" | "abuseEvent" | "supportTicket" | "ticketMessage" | "featureFlag" | "systemSetting" | "emailVerificationToken" | "samlAssertion" | "runtimeWebSocketTicket" | "passwordResetToken" | "mfaRecoveryCode" | "enterpriseOrganizationSettings" | "verifiedDomain" | "ssoConfiguration" | "scimToken" | "customRole" | "siemWebhook" | "apiKey" | "oAuthConnection" | "mcpCatalogEntry" | "mcpInstall" | "mcpUserConfig" | "mcpGlobalPolicy" | "chatShare" | "agentRun" | "agentRunResult" | "consensusRecord" | "workspaceRuntime" | "connectorCatalog" | "userConnection" | "projectConnectionLink" | "organizationOAuthAppOverride" | "organizationConnectorPolicy" | "reconnectionAlert" | "notification" | "newsletterSubscriber" | "contactRequest" | "integrationFeatureRequest" | "emailDeliveryEvent" | "creditWallet" | "creditPack" | "creditLedger" | "agentCheckpoint" | "userSpendLimit" | "providerConfig" | "modelConfig" | "databaseInstance" | "databaseSnapshot" | "databaseRestore" | "scheduledTask" | "scheduledTaskRun" | "agentRoutingCard" | "agentCallLog" | "remixJob" | "importJob" | "galleryListing" | "ledgerAccount" | "ledgerTransaction" | "ledgerEntry" | "ledgerReservation" | "ledgerFxRate" | "ledgerReconciliationRun" | "previewReadinessBeacon" | "workspaceLifecycleEvent" | "workspacePostMortem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -7820,6 +7836,80 @@ export namespace Prisma {
           }
         }
       }
+      RuntimeWebSocketTicket: {
+        payload: Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>
+        fields: Prisma.RuntimeWebSocketTicketFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.RuntimeWebSocketTicketFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeWebSocketTicketPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.RuntimeWebSocketTicketFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeWebSocketTicketPayload>
+          }
+          findFirst: {
+            args: Prisma.RuntimeWebSocketTicketFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeWebSocketTicketPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.RuntimeWebSocketTicketFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeWebSocketTicketPayload>
+          }
+          findMany: {
+            args: Prisma.RuntimeWebSocketTicketFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeWebSocketTicketPayload>[]
+          }
+          create: {
+            args: Prisma.RuntimeWebSocketTicketCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeWebSocketTicketPayload>
+          }
+          createMany: {
+            args: Prisma.RuntimeWebSocketTicketCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.RuntimeWebSocketTicketCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeWebSocketTicketPayload>[]
+          }
+          delete: {
+            args: Prisma.RuntimeWebSocketTicketDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeWebSocketTicketPayload>
+          }
+          update: {
+            args: Prisma.RuntimeWebSocketTicketUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeWebSocketTicketPayload>
+          }
+          deleteMany: {
+            args: Prisma.RuntimeWebSocketTicketDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.RuntimeWebSocketTicketUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.RuntimeWebSocketTicketUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeWebSocketTicketPayload>[]
+          }
+          upsert: {
+            args: Prisma.RuntimeWebSocketTicketUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$RuntimeWebSocketTicketPayload>
+          }
+          aggregate: {
+            args: Prisma.RuntimeWebSocketTicketAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateRuntimeWebSocketTicket>
+          }
+          groupBy: {
+            args: Prisma.RuntimeWebSocketTicketGroupByArgs<ExtArgs>
+            result: $Utils.Optional<RuntimeWebSocketTicketGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.RuntimeWebSocketTicketCountArgs<ExtArgs>
+            result: $Utils.Optional<RuntimeWebSocketTicketCountAggregateOutputType> | number
+          }
+        }
+      }
       PasswordResetToken: {
         payload: Prisma.$PasswordResetTokenPayload<ExtArgs>
         fields: Prisma.PasswordResetTokenFieldRefs
@@ -12138,6 +12228,7 @@ export namespace Prisma {
     systemSetting?: SystemSettingOmit
     emailVerificationToken?: EmailVerificationTokenOmit
     samlAssertion?: SamlAssertionOmit
+    runtimeWebSocketTicket?: RuntimeWebSocketTicketOmit
     passwordResetToken?: PasswordResetTokenOmit
     mfaRecoveryCode?: MfaRecoveryCodeOmit
     enterpriseOrganizationSettings?: EnterpriseOrganizationSettingsOmit
@@ -12306,6 +12397,7 @@ export namespace Prisma {
     aiMessageFeedback: number
     spendLimits: number
     agentRoutingCards: number
+    runtimeWebSocketTickets: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -12341,6 +12433,7 @@ export namespace Prisma {
     aiMessageFeedback?: boolean | UserCountOutputTypeCountAiMessageFeedbackArgs
     spendLimits?: boolean | UserCountOutputTypeCountSpendLimitsArgs
     agentRoutingCards?: boolean | UserCountOutputTypeCountAgentRoutingCardsArgs
+    runtimeWebSocketTickets?: boolean | UserCountOutputTypeCountRuntimeWebSocketTicketsArgs
   }
 
   // Custom InputTypes
@@ -12576,6 +12669,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountAgentRoutingCardsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: AgentRoutingCardWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountRuntimeWebSocketTicketsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RuntimeWebSocketTicketWhereInput
   }
 
 
@@ -12989,6 +13089,7 @@ export namespace Prisma {
     skills: number
     repairEvents: number
     slugRedirects: number
+    runtimeWebSocketTickets: number
   }
 
   export type ProjectCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -13016,6 +13117,7 @@ export namespace Prisma {
     skills?: boolean | ProjectCountOutputTypeCountSkillsArgs
     repairEvents?: boolean | ProjectCountOutputTypeCountRepairEventsArgs
     slugRedirects?: boolean | ProjectCountOutputTypeCountSlugRedirectsArgs
+    runtimeWebSocketTickets?: boolean | ProjectCountOutputTypeCountRuntimeWebSocketTicketsArgs
   }
 
   // Custom InputTypes
@@ -13195,6 +13297,13 @@ export namespace Prisma {
    */
   export type ProjectCountOutputTypeCountSlugRedirectsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ProjectSlugRedirectWhereInput
+  }
+
+  /**
+   * ProjectCountOutputType without action
+   */
+  export type ProjectCountOutputTypeCountRuntimeWebSocketTicketsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RuntimeWebSocketTicketWhereInput
   }
 
 
@@ -14035,6 +14144,7 @@ export namespace Prisma {
     aiMessageFeedback?: boolean | User$aiMessageFeedbackArgs<ExtArgs>
     spendLimits?: boolean | User$spendLimitsArgs<ExtArgs>
     agentRoutingCards?: boolean | User$agentRoutingCardsArgs<ExtArgs>
+    runtimeWebSocketTickets?: boolean | User$runtimeWebSocketTicketsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -14124,6 +14234,7 @@ export namespace Prisma {
     aiMessageFeedback?: boolean | User$aiMessageFeedbackArgs<ExtArgs>
     spendLimits?: boolean | User$spendLimitsArgs<ExtArgs>
     agentRoutingCards?: boolean | User$agentRoutingCardsArgs<ExtArgs>
+    runtimeWebSocketTickets?: boolean | User$runtimeWebSocketTicketsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -14165,6 +14276,7 @@ export namespace Prisma {
       aiMessageFeedback: Prisma.$AiMessageFeedbackPayload<ExtArgs>[]
       spendLimits: Prisma.$UserSpendLimitPayload<ExtArgs>[]
       agentRoutingCards: Prisma.$AgentRoutingCardPayload<ExtArgs>[]
+      runtimeWebSocketTickets: Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -14608,6 +14720,7 @@ export namespace Prisma {
     aiMessageFeedback<T extends User$aiMessageFeedbackArgs<ExtArgs> = {}>(args?: Subset<T, User$aiMessageFeedbackArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiMessageFeedbackPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     spendLimits<T extends User$spendLimitsArgs<ExtArgs> = {}>(args?: Subset<T, User$spendLimitsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserSpendLimitPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     agentRoutingCards<T extends User$agentRoutingCardsArgs<ExtArgs> = {}>(args?: Subset<T, User$agentRoutingCardsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRoutingCardPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    runtimeWebSocketTickets<T extends User$runtimeWebSocketTicketsArgs<ExtArgs> = {}>(args?: Subset<T, User$runtimeWebSocketTicketsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -15828,6 +15941,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: AgentRoutingCardScalarFieldEnum | AgentRoutingCardScalarFieldEnum[]
+  }
+
+  /**
+   * User.runtimeWebSocketTickets
+   */
+  export type User$runtimeWebSocketTicketsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketInclude<ExtArgs> | null
+    where?: RuntimeWebSocketTicketWhereInput
+    orderBy?: RuntimeWebSocketTicketOrderByWithRelationInput | RuntimeWebSocketTicketOrderByWithRelationInput[]
+    cursor?: RuntimeWebSocketTicketWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RuntimeWebSocketTicketScalarFieldEnum | RuntimeWebSocketTicketScalarFieldEnum[]
   }
 
   /**
@@ -25724,6 +25861,7 @@ export namespace Prisma {
     skills?: boolean | Project$skillsArgs<ExtArgs>
     repairEvents?: boolean | Project$repairEventsArgs<ExtArgs>
     slugRedirects?: boolean | Project$slugRedirectsArgs<ExtArgs>
+    runtimeWebSocketTickets?: boolean | Project$runtimeWebSocketTicketsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["project"]>
 
@@ -25811,6 +25949,7 @@ export namespace Prisma {
     skills?: boolean | Project$skillsArgs<ExtArgs>
     repairEvents?: boolean | Project$repairEventsArgs<ExtArgs>
     slugRedirects?: boolean | Project$slugRedirectsArgs<ExtArgs>
+    runtimeWebSocketTickets?: boolean | Project$runtimeWebSocketTicketsArgs<ExtArgs>
     _count?: boolean | ProjectCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProjectIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -25849,6 +25988,7 @@ export namespace Prisma {
       skills: Prisma.$ProjectSkillPayload<ExtArgs>[]
       repairEvents: Prisma.$AgentRepairEventPayload<ExtArgs>[]
       slugRedirects: Prisma.$ProjectSlugRedirectPayload<ExtArgs>[]
+      runtimeWebSocketTickets: Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -26286,6 +26426,7 @@ export namespace Prisma {
     skills<T extends Project$skillsArgs<ExtArgs> = {}>(args?: Subset<T, Project$skillsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSkillPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     repairEvents<T extends Project$repairEventsArgs<ExtArgs> = {}>(args?: Subset<T, Project$repairEventsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AgentRepairEventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     slugRedirects<T extends Project$slugRedirectsArgs<ExtArgs> = {}>(args?: Subset<T, Project$slugRedirectsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ProjectSlugRedirectPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    runtimeWebSocketTickets<T extends Project$runtimeWebSocketTicketsArgs<ExtArgs> = {}>(args?: Subset<T, Project$runtimeWebSocketTicketsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -27323,6 +27464,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ProjectSlugRedirectScalarFieldEnum | ProjectSlugRedirectScalarFieldEnum[]
+  }
+
+  /**
+   * Project.runtimeWebSocketTickets
+   */
+  export type Project$runtimeWebSocketTicketsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketInclude<ExtArgs> | null
+    where?: RuntimeWebSocketTicketWhereInput
+    orderBy?: RuntimeWebSocketTicketOrderByWithRelationInput | RuntimeWebSocketTicketOrderByWithRelationInput[]
+    cursor?: RuntimeWebSocketTicketWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: RuntimeWebSocketTicketScalarFieldEnum | RuntimeWebSocketTicketScalarFieldEnum[]
   }
 
   /**
@@ -89833,6 +89998,1142 @@ export namespace Prisma {
      * Omit specific fields from the SamlAssertion
      */
     omit?: SamlAssertionOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model RuntimeWebSocketTicket
+   */
+
+  export type AggregateRuntimeWebSocketTicket = {
+    _count: RuntimeWebSocketTicketCountAggregateOutputType | null
+    _min: RuntimeWebSocketTicketMinAggregateOutputType | null
+    _max: RuntimeWebSocketTicketMaxAggregateOutputType | null
+  }
+
+  export type RuntimeWebSocketTicketMinAggregateOutputType = {
+    id: string | null
+    tokenHash: string | null
+    userId: string | null
+    workspaceId: string | null
+    projectId: string | null
+    resolvedWorkspaceId: string | null
+    endpoint: string | null
+    expiresAt: Date | null
+    consumedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type RuntimeWebSocketTicketMaxAggregateOutputType = {
+    id: string | null
+    tokenHash: string | null
+    userId: string | null
+    workspaceId: string | null
+    projectId: string | null
+    resolvedWorkspaceId: string | null
+    endpoint: string | null
+    expiresAt: Date | null
+    consumedAt: Date | null
+    createdAt: Date | null
+  }
+
+  export type RuntimeWebSocketTicketCountAggregateOutputType = {
+    id: number
+    tokenHash: number
+    userId: number
+    workspaceId: number
+    projectId: number
+    resolvedWorkspaceId: number
+    endpoint: number
+    expiresAt: number
+    consumedAt: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type RuntimeWebSocketTicketMinAggregateInputType = {
+    id?: true
+    tokenHash?: true
+    userId?: true
+    workspaceId?: true
+    projectId?: true
+    resolvedWorkspaceId?: true
+    endpoint?: true
+    expiresAt?: true
+    consumedAt?: true
+    createdAt?: true
+  }
+
+  export type RuntimeWebSocketTicketMaxAggregateInputType = {
+    id?: true
+    tokenHash?: true
+    userId?: true
+    workspaceId?: true
+    projectId?: true
+    resolvedWorkspaceId?: true
+    endpoint?: true
+    expiresAt?: true
+    consumedAt?: true
+    createdAt?: true
+  }
+
+  export type RuntimeWebSocketTicketCountAggregateInputType = {
+    id?: true
+    tokenHash?: true
+    userId?: true
+    workspaceId?: true
+    projectId?: true
+    resolvedWorkspaceId?: true
+    endpoint?: true
+    expiresAt?: true
+    consumedAt?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type RuntimeWebSocketTicketAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RuntimeWebSocketTicket to aggregate.
+     */
+    where?: RuntimeWebSocketTicketWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RuntimeWebSocketTickets to fetch.
+     */
+    orderBy?: RuntimeWebSocketTicketOrderByWithRelationInput | RuntimeWebSocketTicketOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: RuntimeWebSocketTicketWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RuntimeWebSocketTickets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RuntimeWebSocketTickets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned RuntimeWebSocketTickets
+    **/
+    _count?: true | RuntimeWebSocketTicketCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: RuntimeWebSocketTicketMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: RuntimeWebSocketTicketMaxAggregateInputType
+  }
+
+  export type GetRuntimeWebSocketTicketAggregateType<T extends RuntimeWebSocketTicketAggregateArgs> = {
+        [P in keyof T & keyof AggregateRuntimeWebSocketTicket]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateRuntimeWebSocketTicket[P]>
+      : GetScalarType<T[P], AggregateRuntimeWebSocketTicket[P]>
+  }
+
+
+
+
+  export type RuntimeWebSocketTicketGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: RuntimeWebSocketTicketWhereInput
+    orderBy?: RuntimeWebSocketTicketOrderByWithAggregationInput | RuntimeWebSocketTicketOrderByWithAggregationInput[]
+    by: RuntimeWebSocketTicketScalarFieldEnum[] | RuntimeWebSocketTicketScalarFieldEnum
+    having?: RuntimeWebSocketTicketScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: RuntimeWebSocketTicketCountAggregateInputType | true
+    _min?: RuntimeWebSocketTicketMinAggregateInputType
+    _max?: RuntimeWebSocketTicketMaxAggregateInputType
+  }
+
+  export type RuntimeWebSocketTicketGroupByOutputType = {
+    id: string
+    tokenHash: string
+    userId: string
+    workspaceId: string
+    projectId: string
+    resolvedWorkspaceId: string
+    endpoint: string
+    expiresAt: Date
+    consumedAt: Date | null
+    createdAt: Date
+    _count: RuntimeWebSocketTicketCountAggregateOutputType | null
+    _min: RuntimeWebSocketTicketMinAggregateOutputType | null
+    _max: RuntimeWebSocketTicketMaxAggregateOutputType | null
+  }
+
+  type GetRuntimeWebSocketTicketGroupByPayload<T extends RuntimeWebSocketTicketGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<RuntimeWebSocketTicketGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof RuntimeWebSocketTicketGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], RuntimeWebSocketTicketGroupByOutputType[P]>
+            : GetScalarType<T[P], RuntimeWebSocketTicketGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type RuntimeWebSocketTicketSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tokenHash?: boolean
+    userId?: boolean
+    workspaceId?: boolean
+    projectId?: boolean
+    resolvedWorkspaceId?: boolean
+    endpoint?: boolean
+    expiresAt?: boolean
+    consumedAt?: boolean
+    createdAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["runtimeWebSocketTicket"]>
+
+  export type RuntimeWebSocketTicketSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tokenHash?: boolean
+    userId?: boolean
+    workspaceId?: boolean
+    projectId?: boolean
+    resolvedWorkspaceId?: boolean
+    endpoint?: boolean
+    expiresAt?: boolean
+    consumedAt?: boolean
+    createdAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["runtimeWebSocketTicket"]>
+
+  export type RuntimeWebSocketTicketSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    tokenHash?: boolean
+    userId?: boolean
+    workspaceId?: boolean
+    projectId?: boolean
+    resolvedWorkspaceId?: boolean
+    endpoint?: boolean
+    expiresAt?: boolean
+    consumedAt?: boolean
+    createdAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["runtimeWebSocketTicket"]>
+
+  export type RuntimeWebSocketTicketSelectScalar = {
+    id?: boolean
+    tokenHash?: boolean
+    userId?: boolean
+    workspaceId?: boolean
+    projectId?: boolean
+    resolvedWorkspaceId?: boolean
+    endpoint?: boolean
+    expiresAt?: boolean
+    consumedAt?: boolean
+    createdAt?: boolean
+  }
+
+  export type RuntimeWebSocketTicketOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "tokenHash" | "userId" | "workspaceId" | "projectId" | "resolvedWorkspaceId" | "endpoint" | "expiresAt" | "consumedAt" | "createdAt", ExtArgs["result"]["runtimeWebSocketTicket"]>
+  export type RuntimeWebSocketTicketInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type RuntimeWebSocketTicketIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+  export type RuntimeWebSocketTicketIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    project?: boolean | ProjectDefaultArgs<ExtArgs>
+  }
+
+  export type $RuntimeWebSocketTicketPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "RuntimeWebSocketTicket"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+      project: Prisma.$ProjectPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      tokenHash: string
+      userId: string
+      workspaceId: string
+      projectId: string
+      resolvedWorkspaceId: string
+      endpoint: string
+      expiresAt: Date
+      consumedAt: Date | null
+      createdAt: Date
+    }, ExtArgs["result"]["runtimeWebSocketTicket"]>
+    composites: {}
+  }
+
+  type RuntimeWebSocketTicketGetPayload<S extends boolean | null | undefined | RuntimeWebSocketTicketDefaultArgs> = $Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload, S>
+
+  type RuntimeWebSocketTicketCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<RuntimeWebSocketTicketFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: RuntimeWebSocketTicketCountAggregateInputType | true
+    }
+
+  export interface RuntimeWebSocketTicketDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['RuntimeWebSocketTicket'], meta: { name: 'RuntimeWebSocketTicket' } }
+    /**
+     * Find zero or one RuntimeWebSocketTicket that matches the filter.
+     * @param {RuntimeWebSocketTicketFindUniqueArgs} args - Arguments to find a RuntimeWebSocketTicket
+     * @example
+     * // Get one RuntimeWebSocketTicket
+     * const runtimeWebSocketTicket = await prisma.runtimeWebSocketTicket.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends RuntimeWebSocketTicketFindUniqueArgs>(args: SelectSubset<T, RuntimeWebSocketTicketFindUniqueArgs<ExtArgs>>): Prisma__RuntimeWebSocketTicketClient<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one RuntimeWebSocketTicket that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {RuntimeWebSocketTicketFindUniqueOrThrowArgs} args - Arguments to find a RuntimeWebSocketTicket
+     * @example
+     * // Get one RuntimeWebSocketTicket
+     * const runtimeWebSocketTicket = await prisma.runtimeWebSocketTicket.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends RuntimeWebSocketTicketFindUniqueOrThrowArgs>(args: SelectSubset<T, RuntimeWebSocketTicketFindUniqueOrThrowArgs<ExtArgs>>): Prisma__RuntimeWebSocketTicketClient<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RuntimeWebSocketTicket that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeWebSocketTicketFindFirstArgs} args - Arguments to find a RuntimeWebSocketTicket
+     * @example
+     * // Get one RuntimeWebSocketTicket
+     * const runtimeWebSocketTicket = await prisma.runtimeWebSocketTicket.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends RuntimeWebSocketTicketFindFirstArgs>(args?: SelectSubset<T, RuntimeWebSocketTicketFindFirstArgs<ExtArgs>>): Prisma__RuntimeWebSocketTicketClient<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first RuntimeWebSocketTicket that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeWebSocketTicketFindFirstOrThrowArgs} args - Arguments to find a RuntimeWebSocketTicket
+     * @example
+     * // Get one RuntimeWebSocketTicket
+     * const runtimeWebSocketTicket = await prisma.runtimeWebSocketTicket.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends RuntimeWebSocketTicketFindFirstOrThrowArgs>(args?: SelectSubset<T, RuntimeWebSocketTicketFindFirstOrThrowArgs<ExtArgs>>): Prisma__RuntimeWebSocketTicketClient<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more RuntimeWebSocketTickets that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeWebSocketTicketFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all RuntimeWebSocketTickets
+     * const runtimeWebSocketTickets = await prisma.runtimeWebSocketTicket.findMany()
+     * 
+     * // Get first 10 RuntimeWebSocketTickets
+     * const runtimeWebSocketTickets = await prisma.runtimeWebSocketTicket.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const runtimeWebSocketTicketWithIdOnly = await prisma.runtimeWebSocketTicket.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends RuntimeWebSocketTicketFindManyArgs>(args?: SelectSubset<T, RuntimeWebSocketTicketFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a RuntimeWebSocketTicket.
+     * @param {RuntimeWebSocketTicketCreateArgs} args - Arguments to create a RuntimeWebSocketTicket.
+     * @example
+     * // Create one RuntimeWebSocketTicket
+     * const RuntimeWebSocketTicket = await prisma.runtimeWebSocketTicket.create({
+     *   data: {
+     *     // ... data to create a RuntimeWebSocketTicket
+     *   }
+     * })
+     * 
+     */
+    create<T extends RuntimeWebSocketTicketCreateArgs>(args: SelectSubset<T, RuntimeWebSocketTicketCreateArgs<ExtArgs>>): Prisma__RuntimeWebSocketTicketClient<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many RuntimeWebSocketTickets.
+     * @param {RuntimeWebSocketTicketCreateManyArgs} args - Arguments to create many RuntimeWebSocketTickets.
+     * @example
+     * // Create many RuntimeWebSocketTickets
+     * const runtimeWebSocketTicket = await prisma.runtimeWebSocketTicket.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends RuntimeWebSocketTicketCreateManyArgs>(args?: SelectSubset<T, RuntimeWebSocketTicketCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many RuntimeWebSocketTickets and returns the data saved in the database.
+     * @param {RuntimeWebSocketTicketCreateManyAndReturnArgs} args - Arguments to create many RuntimeWebSocketTickets.
+     * @example
+     * // Create many RuntimeWebSocketTickets
+     * const runtimeWebSocketTicket = await prisma.runtimeWebSocketTicket.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many RuntimeWebSocketTickets and only return the `id`
+     * const runtimeWebSocketTicketWithIdOnly = await prisma.runtimeWebSocketTicket.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends RuntimeWebSocketTicketCreateManyAndReturnArgs>(args?: SelectSubset<T, RuntimeWebSocketTicketCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a RuntimeWebSocketTicket.
+     * @param {RuntimeWebSocketTicketDeleteArgs} args - Arguments to delete one RuntimeWebSocketTicket.
+     * @example
+     * // Delete one RuntimeWebSocketTicket
+     * const RuntimeWebSocketTicket = await prisma.runtimeWebSocketTicket.delete({
+     *   where: {
+     *     // ... filter to delete one RuntimeWebSocketTicket
+     *   }
+     * })
+     * 
+     */
+    delete<T extends RuntimeWebSocketTicketDeleteArgs>(args: SelectSubset<T, RuntimeWebSocketTicketDeleteArgs<ExtArgs>>): Prisma__RuntimeWebSocketTicketClient<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one RuntimeWebSocketTicket.
+     * @param {RuntimeWebSocketTicketUpdateArgs} args - Arguments to update one RuntimeWebSocketTicket.
+     * @example
+     * // Update one RuntimeWebSocketTicket
+     * const runtimeWebSocketTicket = await prisma.runtimeWebSocketTicket.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends RuntimeWebSocketTicketUpdateArgs>(args: SelectSubset<T, RuntimeWebSocketTicketUpdateArgs<ExtArgs>>): Prisma__RuntimeWebSocketTicketClient<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more RuntimeWebSocketTickets.
+     * @param {RuntimeWebSocketTicketDeleteManyArgs} args - Arguments to filter RuntimeWebSocketTickets to delete.
+     * @example
+     * // Delete a few RuntimeWebSocketTickets
+     * const { count } = await prisma.runtimeWebSocketTicket.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends RuntimeWebSocketTicketDeleteManyArgs>(args?: SelectSubset<T, RuntimeWebSocketTicketDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RuntimeWebSocketTickets.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeWebSocketTicketUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many RuntimeWebSocketTickets
+     * const runtimeWebSocketTicket = await prisma.runtimeWebSocketTicket.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends RuntimeWebSocketTicketUpdateManyArgs>(args: SelectSubset<T, RuntimeWebSocketTicketUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more RuntimeWebSocketTickets and returns the data updated in the database.
+     * @param {RuntimeWebSocketTicketUpdateManyAndReturnArgs} args - Arguments to update many RuntimeWebSocketTickets.
+     * @example
+     * // Update many RuntimeWebSocketTickets
+     * const runtimeWebSocketTicket = await prisma.runtimeWebSocketTicket.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more RuntimeWebSocketTickets and only return the `id`
+     * const runtimeWebSocketTicketWithIdOnly = await prisma.runtimeWebSocketTicket.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends RuntimeWebSocketTicketUpdateManyAndReturnArgs>(args: SelectSubset<T, RuntimeWebSocketTicketUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one RuntimeWebSocketTicket.
+     * @param {RuntimeWebSocketTicketUpsertArgs} args - Arguments to update or create a RuntimeWebSocketTicket.
+     * @example
+     * // Update or create a RuntimeWebSocketTicket
+     * const runtimeWebSocketTicket = await prisma.runtimeWebSocketTicket.upsert({
+     *   create: {
+     *     // ... data to create a RuntimeWebSocketTicket
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the RuntimeWebSocketTicket we want to update
+     *   }
+     * })
+     */
+    upsert<T extends RuntimeWebSocketTicketUpsertArgs>(args: SelectSubset<T, RuntimeWebSocketTicketUpsertArgs<ExtArgs>>): Prisma__RuntimeWebSocketTicketClient<$Result.GetResult<Prisma.$RuntimeWebSocketTicketPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of RuntimeWebSocketTickets.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeWebSocketTicketCountArgs} args - Arguments to filter RuntimeWebSocketTickets to count.
+     * @example
+     * // Count the number of RuntimeWebSocketTickets
+     * const count = await prisma.runtimeWebSocketTicket.count({
+     *   where: {
+     *     // ... the filter for the RuntimeWebSocketTickets we want to count
+     *   }
+     * })
+    **/
+    count<T extends RuntimeWebSocketTicketCountArgs>(
+      args?: Subset<T, RuntimeWebSocketTicketCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], RuntimeWebSocketTicketCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a RuntimeWebSocketTicket.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeWebSocketTicketAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends RuntimeWebSocketTicketAggregateArgs>(args: Subset<T, RuntimeWebSocketTicketAggregateArgs>): Prisma.PrismaPromise<GetRuntimeWebSocketTicketAggregateType<T>>
+
+    /**
+     * Group by RuntimeWebSocketTicket.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {RuntimeWebSocketTicketGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends RuntimeWebSocketTicketGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: RuntimeWebSocketTicketGroupByArgs['orderBy'] }
+        : { orderBy?: RuntimeWebSocketTicketGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, RuntimeWebSocketTicketGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetRuntimeWebSocketTicketGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the RuntimeWebSocketTicket model
+   */
+  readonly fields: RuntimeWebSocketTicketFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for RuntimeWebSocketTicket.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__RuntimeWebSocketTicketClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    project<T extends ProjectDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProjectDefaultArgs<ExtArgs>>): Prisma__ProjectClient<$Result.GetResult<Prisma.$ProjectPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the RuntimeWebSocketTicket model
+   */
+  interface RuntimeWebSocketTicketFieldRefs {
+    readonly id: FieldRef<"RuntimeWebSocketTicket", 'String'>
+    readonly tokenHash: FieldRef<"RuntimeWebSocketTicket", 'String'>
+    readonly userId: FieldRef<"RuntimeWebSocketTicket", 'String'>
+    readonly workspaceId: FieldRef<"RuntimeWebSocketTicket", 'String'>
+    readonly projectId: FieldRef<"RuntimeWebSocketTicket", 'String'>
+    readonly resolvedWorkspaceId: FieldRef<"RuntimeWebSocketTicket", 'String'>
+    readonly endpoint: FieldRef<"RuntimeWebSocketTicket", 'String'>
+    readonly expiresAt: FieldRef<"RuntimeWebSocketTicket", 'DateTime'>
+    readonly consumedAt: FieldRef<"RuntimeWebSocketTicket", 'DateTime'>
+    readonly createdAt: FieldRef<"RuntimeWebSocketTicket", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * RuntimeWebSocketTicket findUnique
+   */
+  export type RuntimeWebSocketTicketFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketInclude<ExtArgs> | null
+    /**
+     * Filter, which RuntimeWebSocketTicket to fetch.
+     */
+    where: RuntimeWebSocketTicketWhereUniqueInput
+  }
+
+  /**
+   * RuntimeWebSocketTicket findUniqueOrThrow
+   */
+  export type RuntimeWebSocketTicketFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketInclude<ExtArgs> | null
+    /**
+     * Filter, which RuntimeWebSocketTicket to fetch.
+     */
+    where: RuntimeWebSocketTicketWhereUniqueInput
+  }
+
+  /**
+   * RuntimeWebSocketTicket findFirst
+   */
+  export type RuntimeWebSocketTicketFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketInclude<ExtArgs> | null
+    /**
+     * Filter, which RuntimeWebSocketTicket to fetch.
+     */
+    where?: RuntimeWebSocketTicketWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RuntimeWebSocketTickets to fetch.
+     */
+    orderBy?: RuntimeWebSocketTicketOrderByWithRelationInput | RuntimeWebSocketTicketOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RuntimeWebSocketTickets.
+     */
+    cursor?: RuntimeWebSocketTicketWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RuntimeWebSocketTickets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RuntimeWebSocketTickets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RuntimeWebSocketTickets.
+     */
+    distinct?: RuntimeWebSocketTicketScalarFieldEnum | RuntimeWebSocketTicketScalarFieldEnum[]
+  }
+
+  /**
+   * RuntimeWebSocketTicket findFirstOrThrow
+   */
+  export type RuntimeWebSocketTicketFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketInclude<ExtArgs> | null
+    /**
+     * Filter, which RuntimeWebSocketTicket to fetch.
+     */
+    where?: RuntimeWebSocketTicketWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RuntimeWebSocketTickets to fetch.
+     */
+    orderBy?: RuntimeWebSocketTicketOrderByWithRelationInput | RuntimeWebSocketTicketOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for RuntimeWebSocketTickets.
+     */
+    cursor?: RuntimeWebSocketTicketWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RuntimeWebSocketTickets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RuntimeWebSocketTickets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RuntimeWebSocketTickets.
+     */
+    distinct?: RuntimeWebSocketTicketScalarFieldEnum | RuntimeWebSocketTicketScalarFieldEnum[]
+  }
+
+  /**
+   * RuntimeWebSocketTicket findMany
+   */
+  export type RuntimeWebSocketTicketFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketInclude<ExtArgs> | null
+    /**
+     * Filter, which RuntimeWebSocketTickets to fetch.
+     */
+    where?: RuntimeWebSocketTicketWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of RuntimeWebSocketTickets to fetch.
+     */
+    orderBy?: RuntimeWebSocketTicketOrderByWithRelationInput | RuntimeWebSocketTicketOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing RuntimeWebSocketTickets.
+     */
+    cursor?: RuntimeWebSocketTicketWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` RuntimeWebSocketTickets from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` RuntimeWebSocketTickets.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of RuntimeWebSocketTickets.
+     */
+    distinct?: RuntimeWebSocketTicketScalarFieldEnum | RuntimeWebSocketTicketScalarFieldEnum[]
+  }
+
+  /**
+   * RuntimeWebSocketTicket create
+   */
+  export type RuntimeWebSocketTicketCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketInclude<ExtArgs> | null
+    /**
+     * The data needed to create a RuntimeWebSocketTicket.
+     */
+    data: XOR<RuntimeWebSocketTicketCreateInput, RuntimeWebSocketTicketUncheckedCreateInput>
+  }
+
+  /**
+   * RuntimeWebSocketTicket createMany
+   */
+  export type RuntimeWebSocketTicketCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many RuntimeWebSocketTickets.
+     */
+    data: RuntimeWebSocketTicketCreateManyInput | RuntimeWebSocketTicketCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * RuntimeWebSocketTicket createManyAndReturn
+   */
+  export type RuntimeWebSocketTicketCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * The data used to create many RuntimeWebSocketTickets.
+     */
+    data: RuntimeWebSocketTicketCreateManyInput | RuntimeWebSocketTicketCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * RuntimeWebSocketTicket update
+   */
+  export type RuntimeWebSocketTicketUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketInclude<ExtArgs> | null
+    /**
+     * The data needed to update a RuntimeWebSocketTicket.
+     */
+    data: XOR<RuntimeWebSocketTicketUpdateInput, RuntimeWebSocketTicketUncheckedUpdateInput>
+    /**
+     * Choose, which RuntimeWebSocketTicket to update.
+     */
+    where: RuntimeWebSocketTicketWhereUniqueInput
+  }
+
+  /**
+   * RuntimeWebSocketTicket updateMany
+   */
+  export type RuntimeWebSocketTicketUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update RuntimeWebSocketTickets.
+     */
+    data: XOR<RuntimeWebSocketTicketUpdateManyMutationInput, RuntimeWebSocketTicketUncheckedUpdateManyInput>
+    /**
+     * Filter which RuntimeWebSocketTickets to update
+     */
+    where?: RuntimeWebSocketTicketWhereInput
+    /**
+     * Limit how many RuntimeWebSocketTickets to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * RuntimeWebSocketTicket updateManyAndReturn
+   */
+  export type RuntimeWebSocketTicketUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * The data used to update RuntimeWebSocketTickets.
+     */
+    data: XOR<RuntimeWebSocketTicketUpdateManyMutationInput, RuntimeWebSocketTicketUncheckedUpdateManyInput>
+    /**
+     * Filter which RuntimeWebSocketTickets to update
+     */
+    where?: RuntimeWebSocketTicketWhereInput
+    /**
+     * Limit how many RuntimeWebSocketTickets to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * RuntimeWebSocketTicket upsert
+   */
+  export type RuntimeWebSocketTicketUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketInclude<ExtArgs> | null
+    /**
+     * The filter to search for the RuntimeWebSocketTicket to update in case it exists.
+     */
+    where: RuntimeWebSocketTicketWhereUniqueInput
+    /**
+     * In case the RuntimeWebSocketTicket found by the `where` argument doesn't exist, create a new RuntimeWebSocketTicket with this data.
+     */
+    create: XOR<RuntimeWebSocketTicketCreateInput, RuntimeWebSocketTicketUncheckedCreateInput>
+    /**
+     * In case the RuntimeWebSocketTicket was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<RuntimeWebSocketTicketUpdateInput, RuntimeWebSocketTicketUncheckedUpdateInput>
+  }
+
+  /**
+   * RuntimeWebSocketTicket delete
+   */
+  export type RuntimeWebSocketTicketDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketInclude<ExtArgs> | null
+    /**
+     * Filter which RuntimeWebSocketTicket to delete.
+     */
+    where: RuntimeWebSocketTicketWhereUniqueInput
+  }
+
+  /**
+   * RuntimeWebSocketTicket deleteMany
+   */
+  export type RuntimeWebSocketTicketDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which RuntimeWebSocketTickets to delete
+     */
+    where?: RuntimeWebSocketTicketWhereInput
+    /**
+     * Limit how many RuntimeWebSocketTickets to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * RuntimeWebSocketTicket without action
+   */
+  export type RuntimeWebSocketTicketDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the RuntimeWebSocketTicket
+     */
+    select?: RuntimeWebSocketTicketSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the RuntimeWebSocketTicket
+     */
+    omit?: RuntimeWebSocketTicketOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: RuntimeWebSocketTicketInclude<ExtArgs> | null
   }
 
 
@@ -155654,6 +156955,22 @@ export namespace Prisma {
   export type SamlAssertionScalarFieldEnum = (typeof SamlAssertionScalarFieldEnum)[keyof typeof SamlAssertionScalarFieldEnum]
 
 
+  export const RuntimeWebSocketTicketScalarFieldEnum: {
+    id: 'id',
+    tokenHash: 'tokenHash',
+    userId: 'userId',
+    workspaceId: 'workspaceId',
+    projectId: 'projectId',
+    resolvedWorkspaceId: 'resolvedWorkspaceId',
+    endpoint: 'endpoint',
+    expiresAt: 'expiresAt',
+    consumedAt: 'consumedAt',
+    createdAt: 'createdAt'
+  };
+
+  export type RuntimeWebSocketTicketScalarFieldEnum = (typeof RuntimeWebSocketTicketScalarFieldEnum)[keyof typeof RuntimeWebSocketTicketScalarFieldEnum]
+
+
   export const PasswordResetTokenScalarFieldEnum: {
     id: 'id',
     userId: 'userId',
@@ -157104,6 +158421,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackListRelationFilter
     spendLimits?: UserSpendLimitListRelationFilter
     agentRoutingCards?: AgentRoutingCardListRelationFilter
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -157154,6 +158472,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackOrderByRelationAggregateInput
     spendLimits?: UserSpendLimitOrderByRelationAggregateInput
     agentRoutingCards?: AgentRoutingCardOrderByRelationAggregateInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -157207,6 +158526,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackListRelationFilter
     spendLimits?: UserSpendLimitListRelationFilter
     agentRoutingCards?: AgentRoutingCardListRelationFilter
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
   }, "id" | "email">
 
   export type UserOrderByWithAggregationInput = {
@@ -157879,6 +159199,7 @@ export namespace Prisma {
     skills?: ProjectSkillListRelationFilter
     repairEvents?: AgentRepairEventListRelationFilter
     slugRedirects?: ProjectSlugRedirectListRelationFilter
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
   }
 
   export type ProjectOrderByWithRelationInput = {
@@ -157923,6 +159244,7 @@ export namespace Prisma {
     skills?: ProjectSkillOrderByRelationAggregateInput
     repairEvents?: AgentRepairEventOrderByRelationAggregateInput
     slugRedirects?: ProjectSlugRedirectOrderByRelationAggregateInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketOrderByRelationAggregateInput
   }
 
   export type ProjectWhereUniqueInput = Prisma.AtLeast<{
@@ -157971,6 +159293,7 @@ export namespace Prisma {
     skills?: ProjectSkillListRelationFilter
     repairEvents?: AgentRepairEventListRelationFilter
     slugRedirects?: ProjectSlugRedirectListRelationFilter
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketListRelationFilter
   }, "id" | "organizationId_slug">
 
   export type ProjectOrderByWithAggregationInput = {
@@ -162129,6 +163452,89 @@ export namespace Prisma {
     assertionId?: StringWithAggregatesFilter<"SamlAssertion"> | string
     expiresAt?: DateTimeWithAggregatesFilter<"SamlAssertion"> | Date | string
     consumedAt?: DateTimeWithAggregatesFilter<"SamlAssertion"> | Date | string
+  }
+
+  export type RuntimeWebSocketTicketWhereInput = {
+    AND?: RuntimeWebSocketTicketWhereInput | RuntimeWebSocketTicketWhereInput[]
+    OR?: RuntimeWebSocketTicketWhereInput[]
+    NOT?: RuntimeWebSocketTicketWhereInput | RuntimeWebSocketTicketWhereInput[]
+    id?: StringFilter<"RuntimeWebSocketTicket"> | string
+    tokenHash?: StringFilter<"RuntimeWebSocketTicket"> | string
+    userId?: StringFilter<"RuntimeWebSocketTicket"> | string
+    workspaceId?: StringFilter<"RuntimeWebSocketTicket"> | string
+    projectId?: StringFilter<"RuntimeWebSocketTicket"> | string
+    resolvedWorkspaceId?: StringFilter<"RuntimeWebSocketTicket"> | string
+    endpoint?: StringFilter<"RuntimeWebSocketTicket"> | string
+    expiresAt?: DateTimeFilter<"RuntimeWebSocketTicket"> | Date | string
+    consumedAt?: DateTimeNullableFilter<"RuntimeWebSocketTicket"> | Date | string | null
+    createdAt?: DateTimeFilter<"RuntimeWebSocketTicket"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }
+
+  export type RuntimeWebSocketTicketOrderByWithRelationInput = {
+    id?: SortOrder
+    tokenHash?: SortOrder
+    userId?: SortOrder
+    workspaceId?: SortOrder
+    projectId?: SortOrder
+    resolvedWorkspaceId?: SortOrder
+    endpoint?: SortOrder
+    expiresAt?: SortOrder
+    consumedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+    project?: ProjectOrderByWithRelationInput
+  }
+
+  export type RuntimeWebSocketTicketWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    tokenHash?: string
+    AND?: RuntimeWebSocketTicketWhereInput | RuntimeWebSocketTicketWhereInput[]
+    OR?: RuntimeWebSocketTicketWhereInput[]
+    NOT?: RuntimeWebSocketTicketWhereInput | RuntimeWebSocketTicketWhereInput[]
+    userId?: StringFilter<"RuntimeWebSocketTicket"> | string
+    workspaceId?: StringFilter<"RuntimeWebSocketTicket"> | string
+    projectId?: StringFilter<"RuntimeWebSocketTicket"> | string
+    resolvedWorkspaceId?: StringFilter<"RuntimeWebSocketTicket"> | string
+    endpoint?: StringFilter<"RuntimeWebSocketTicket"> | string
+    expiresAt?: DateTimeFilter<"RuntimeWebSocketTicket"> | Date | string
+    consumedAt?: DateTimeNullableFilter<"RuntimeWebSocketTicket"> | Date | string | null
+    createdAt?: DateTimeFilter<"RuntimeWebSocketTicket"> | Date | string
+    user?: XOR<UserScalarRelationFilter, UserWhereInput>
+    project?: XOR<ProjectScalarRelationFilter, ProjectWhereInput>
+  }, "id" | "tokenHash">
+
+  export type RuntimeWebSocketTicketOrderByWithAggregationInput = {
+    id?: SortOrder
+    tokenHash?: SortOrder
+    userId?: SortOrder
+    workspaceId?: SortOrder
+    projectId?: SortOrder
+    resolvedWorkspaceId?: SortOrder
+    endpoint?: SortOrder
+    expiresAt?: SortOrder
+    consumedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: RuntimeWebSocketTicketCountOrderByAggregateInput
+    _max?: RuntimeWebSocketTicketMaxOrderByAggregateInput
+    _min?: RuntimeWebSocketTicketMinOrderByAggregateInput
+  }
+
+  export type RuntimeWebSocketTicketScalarWhereWithAggregatesInput = {
+    AND?: RuntimeWebSocketTicketScalarWhereWithAggregatesInput | RuntimeWebSocketTicketScalarWhereWithAggregatesInput[]
+    OR?: RuntimeWebSocketTicketScalarWhereWithAggregatesInput[]
+    NOT?: RuntimeWebSocketTicketScalarWhereWithAggregatesInput | RuntimeWebSocketTicketScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"RuntimeWebSocketTicket"> | string
+    tokenHash?: StringWithAggregatesFilter<"RuntimeWebSocketTicket"> | string
+    userId?: StringWithAggregatesFilter<"RuntimeWebSocketTicket"> | string
+    workspaceId?: StringWithAggregatesFilter<"RuntimeWebSocketTicket"> | string
+    projectId?: StringWithAggregatesFilter<"RuntimeWebSocketTicket"> | string
+    resolvedWorkspaceId?: StringWithAggregatesFilter<"RuntimeWebSocketTicket"> | string
+    endpoint?: StringWithAggregatesFilter<"RuntimeWebSocketTicket"> | string
+    expiresAt?: DateTimeWithAggregatesFilter<"RuntimeWebSocketTicket"> | Date | string
+    consumedAt?: DateTimeNullableWithAggregatesFilter<"RuntimeWebSocketTicket"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"RuntimeWebSocketTicket"> | Date | string
   }
 
   export type PasswordResetTokenWhereInput = {
@@ -167073,6 +168479,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -167123,6 +168530,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -167173,6 +168581,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -167223,6 +168632,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -167944,6 +169354,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateInput = {
@@ -167987,6 +169398,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUpdateInput = {
@@ -168030,6 +169442,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateInput = {
@@ -168073,6 +169486,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateManyInput = {
@@ -172480,6 +173894,95 @@ export namespace Prisma {
     assertionId?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
     consumedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeWebSocketTicketCreateInput = {
+    id?: string
+    tokenHash: string
+    workspaceId: string
+    resolvedWorkspaceId: string
+    endpoint: string
+    expiresAt: Date | string
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+    user: UserCreateNestedOneWithoutRuntimeWebSocketTicketsInput
+    project: ProjectCreateNestedOneWithoutRuntimeWebSocketTicketsInput
+  }
+
+  export type RuntimeWebSocketTicketUncheckedCreateInput = {
+    id?: string
+    tokenHash: string
+    userId: string
+    workspaceId: string
+    projectId: string
+    resolvedWorkspaceId: string
+    endpoint: string
+    expiresAt: Date | string
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type RuntimeWebSocketTicketUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    resolvedWorkspaceId?: StringFieldUpdateOperationsInput | string
+    endpoint?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutRuntimeWebSocketTicketsNestedInput
+    project?: ProjectUpdateOneRequiredWithoutRuntimeWebSocketTicketsNestedInput
+  }
+
+  export type RuntimeWebSocketTicketUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    resolvedWorkspaceId?: StringFieldUpdateOperationsInput | string
+    endpoint?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeWebSocketTicketCreateManyInput = {
+    id?: string
+    tokenHash: string
+    userId: string
+    workspaceId: string
+    projectId: string
+    resolvedWorkspaceId: string
+    endpoint: string
+    expiresAt: Date | string
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type RuntimeWebSocketTicketUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    resolvedWorkspaceId?: StringFieldUpdateOperationsInput | string
+    endpoint?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeWebSocketTicketUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    resolvedWorkspaceId?: StringFieldUpdateOperationsInput | string
+    endpoint?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PasswordResetTokenCreateInput = {
@@ -178293,6 +179796,12 @@ export namespace Prisma {
     none?: AgentRoutingCardWhereInput
   }
 
+  export type RuntimeWebSocketTicketListRelationFilter = {
+    every?: RuntimeWebSocketTicketWhereInput
+    some?: RuntimeWebSocketTicketWhereInput
+    none?: RuntimeWebSocketTicketWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -178423,6 +179932,10 @@ export namespace Prisma {
   }
 
   export type AgentRoutingCardOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type RuntimeWebSocketTicketOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -181681,6 +183194,45 @@ export namespace Prisma {
     assertionId?: SortOrder
     expiresAt?: SortOrder
     consumedAt?: SortOrder
+  }
+
+  export type RuntimeWebSocketTicketCountOrderByAggregateInput = {
+    id?: SortOrder
+    tokenHash?: SortOrder
+    userId?: SortOrder
+    workspaceId?: SortOrder
+    projectId?: SortOrder
+    resolvedWorkspaceId?: SortOrder
+    endpoint?: SortOrder
+    expiresAt?: SortOrder
+    consumedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RuntimeWebSocketTicketMaxOrderByAggregateInput = {
+    id?: SortOrder
+    tokenHash?: SortOrder
+    userId?: SortOrder
+    workspaceId?: SortOrder
+    projectId?: SortOrder
+    resolvedWorkspaceId?: SortOrder
+    endpoint?: SortOrder
+    expiresAt?: SortOrder
+    consumedAt?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type RuntimeWebSocketTicketMinOrderByAggregateInput = {
+    id?: SortOrder
+    tokenHash?: SortOrder
+    userId?: SortOrder
+    workspaceId?: SortOrder
+    projectId?: SortOrder
+    resolvedWorkspaceId?: SortOrder
+    endpoint?: SortOrder
+    expiresAt?: SortOrder
+    consumedAt?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type PasswordResetTokenCountOrderByAggregateInput = {
@@ -185060,6 +186612,13 @@ export namespace Prisma {
     connect?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
   }
 
+  export type RuntimeWebSocketTicketCreateNestedManyWithoutUserInput = {
+    create?: XOR<RuntimeWebSocketTicketCreateWithoutUserInput, RuntimeWebSocketTicketUncheckedCreateWithoutUserInput> | RuntimeWebSocketTicketCreateWithoutUserInput[] | RuntimeWebSocketTicketUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: RuntimeWebSocketTicketCreateOrConnectWithoutUserInput | RuntimeWebSocketTicketCreateOrConnectWithoutUserInput[]
+    createMany?: RuntimeWebSocketTicketCreateManyUserInputEnvelope
+    connect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+  }
+
   export type AccountUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -185285,6 +186844,13 @@ export namespace Prisma {
     connectOrCreate?: AgentRoutingCardCreateOrConnectWithoutCreatedByInput | AgentRoutingCardCreateOrConnectWithoutCreatedByInput[]
     createMany?: AgentRoutingCardCreateManyCreatedByInputEnvelope
     connect?: AgentRoutingCardWhereUniqueInput | AgentRoutingCardWhereUniqueInput[]
+  }
+
+  export type RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<RuntimeWebSocketTicketCreateWithoutUserInput, RuntimeWebSocketTicketUncheckedCreateWithoutUserInput> | RuntimeWebSocketTicketCreateWithoutUserInput[] | RuntimeWebSocketTicketUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: RuntimeWebSocketTicketCreateOrConnectWithoutUserInput | RuntimeWebSocketTicketCreateOrConnectWithoutUserInput[]
+    createMany?: RuntimeWebSocketTicketCreateManyUserInputEnvelope
+    connect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -185761,6 +187327,20 @@ export namespace Prisma {
     deleteMany?: AgentRoutingCardScalarWhereInput | AgentRoutingCardScalarWhereInput[]
   }
 
+  export type RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput = {
+    create?: XOR<RuntimeWebSocketTicketCreateWithoutUserInput, RuntimeWebSocketTicketUncheckedCreateWithoutUserInput> | RuntimeWebSocketTicketCreateWithoutUserInput[] | RuntimeWebSocketTicketUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: RuntimeWebSocketTicketCreateOrConnectWithoutUserInput | RuntimeWebSocketTicketCreateOrConnectWithoutUserInput[]
+    upsert?: RuntimeWebSocketTicketUpsertWithWhereUniqueWithoutUserInput | RuntimeWebSocketTicketUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: RuntimeWebSocketTicketCreateManyUserInputEnvelope
+    set?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    disconnect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    delete?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    connect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    update?: RuntimeWebSocketTicketUpdateWithWhereUniqueWithoutUserInput | RuntimeWebSocketTicketUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: RuntimeWebSocketTicketUpdateManyWithWhereWithoutUserInput | RuntimeWebSocketTicketUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: RuntimeWebSocketTicketScalarWhereInput | RuntimeWebSocketTicketScalarWhereInput[]
+  }
+
   export type AccountUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<AccountCreateWithoutUserInput, AccountUncheckedCreateWithoutUserInput> | AccountCreateWithoutUserInput[] | AccountUncheckedCreateWithoutUserInput[]
     connectOrCreate?: AccountCreateOrConnectWithoutUserInput | AccountCreateOrConnectWithoutUserInput[]
@@ -186213,6 +187793,20 @@ export namespace Prisma {
     update?: AgentRoutingCardUpdateWithWhereUniqueWithoutCreatedByInput | AgentRoutingCardUpdateWithWhereUniqueWithoutCreatedByInput[]
     updateMany?: AgentRoutingCardUpdateManyWithWhereWithoutCreatedByInput | AgentRoutingCardUpdateManyWithWhereWithoutCreatedByInput[]
     deleteMany?: AgentRoutingCardScalarWhereInput | AgentRoutingCardScalarWhereInput[]
+  }
+
+  export type RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<RuntimeWebSocketTicketCreateWithoutUserInput, RuntimeWebSocketTicketUncheckedCreateWithoutUserInput> | RuntimeWebSocketTicketCreateWithoutUserInput[] | RuntimeWebSocketTicketUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: RuntimeWebSocketTicketCreateOrConnectWithoutUserInput | RuntimeWebSocketTicketCreateOrConnectWithoutUserInput[]
+    upsert?: RuntimeWebSocketTicketUpsertWithWhereUniqueWithoutUserInput | RuntimeWebSocketTicketUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: RuntimeWebSocketTicketCreateManyUserInputEnvelope
+    set?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    disconnect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    delete?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    connect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    update?: RuntimeWebSocketTicketUpdateWithWhereUniqueWithoutUserInput | RuntimeWebSocketTicketUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: RuntimeWebSocketTicketUpdateManyWithWhereWithoutUserInput | RuntimeWebSocketTicketUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: RuntimeWebSocketTicketScalarWhereInput | RuntimeWebSocketTicketScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutAccountsInput = {
@@ -188070,6 +189664,13 @@ export namespace Prisma {
     connect?: ProjectSlugRedirectWhereUniqueInput | ProjectSlugRedirectWhereUniqueInput[]
   }
 
+  export type RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput = {
+    create?: XOR<RuntimeWebSocketTicketCreateWithoutProjectInput, RuntimeWebSocketTicketUncheckedCreateWithoutProjectInput> | RuntimeWebSocketTicketCreateWithoutProjectInput[] | RuntimeWebSocketTicketUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: RuntimeWebSocketTicketCreateOrConnectWithoutProjectInput | RuntimeWebSocketTicketCreateOrConnectWithoutProjectInput[]
+    createMany?: RuntimeWebSocketTicketCreateManyProjectInputEnvelope
+    connect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+  }
+
   export type ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -188239,6 +189840,13 @@ export namespace Prisma {
     connectOrCreate?: ProjectSlugRedirectCreateOrConnectWithoutProjectInput | ProjectSlugRedirectCreateOrConnectWithoutProjectInput[]
     createMany?: ProjectSlugRedirectCreateManyProjectInputEnvelope
     connect?: ProjectSlugRedirectWhereUniqueInput | ProjectSlugRedirectWhereUniqueInput[]
+  }
+
+  export type RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput = {
+    create?: XOR<RuntimeWebSocketTicketCreateWithoutProjectInput, RuntimeWebSocketTicketUncheckedCreateWithoutProjectInput> | RuntimeWebSocketTicketCreateWithoutProjectInput[] | RuntimeWebSocketTicketUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: RuntimeWebSocketTicketCreateOrConnectWithoutProjectInput | RuntimeWebSocketTicketCreateOrConnectWithoutProjectInput[]
+    createMany?: RuntimeWebSocketTicketCreateManyProjectInputEnvelope
+    connect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
   }
 
   export type OrganizationUpdateOneRequiredWithoutProjectsNestedInput = {
@@ -188591,6 +190199,20 @@ export namespace Prisma {
     deleteMany?: ProjectSlugRedirectScalarWhereInput | ProjectSlugRedirectScalarWhereInput[]
   }
 
+  export type RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<RuntimeWebSocketTicketCreateWithoutProjectInput, RuntimeWebSocketTicketUncheckedCreateWithoutProjectInput> | RuntimeWebSocketTicketCreateWithoutProjectInput[] | RuntimeWebSocketTicketUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: RuntimeWebSocketTicketCreateOrConnectWithoutProjectInput | RuntimeWebSocketTicketCreateOrConnectWithoutProjectInput[]
+    upsert?: RuntimeWebSocketTicketUpsertWithWhereUniqueWithoutProjectInput | RuntimeWebSocketTicketUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: RuntimeWebSocketTicketCreateManyProjectInputEnvelope
+    set?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    disconnect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    delete?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    connect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    update?: RuntimeWebSocketTicketUpdateWithWhereUniqueWithoutProjectInput | RuntimeWebSocketTicketUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: RuntimeWebSocketTicketUpdateManyWithWhereWithoutProjectInput | RuntimeWebSocketTicketUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: RuntimeWebSocketTicketScalarWhereInput | RuntimeWebSocketTicketScalarWhereInput[]
+  }
+
   export type ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput = {
     create?: XOR<ProjectEnvironmentCreateWithoutProjectInput, ProjectEnvironmentUncheckedCreateWithoutProjectInput> | ProjectEnvironmentCreateWithoutProjectInput[] | ProjectEnvironmentUncheckedCreateWithoutProjectInput[]
     connectOrCreate?: ProjectEnvironmentCreateOrConnectWithoutProjectInput | ProjectEnvironmentCreateOrConnectWithoutProjectInput[]
@@ -188931,6 +190553,20 @@ export namespace Prisma {
     update?: ProjectSlugRedirectUpdateWithWhereUniqueWithoutProjectInput | ProjectSlugRedirectUpdateWithWhereUniqueWithoutProjectInput[]
     updateMany?: ProjectSlugRedirectUpdateManyWithWhereWithoutProjectInput | ProjectSlugRedirectUpdateManyWithWhereWithoutProjectInput[]
     deleteMany?: ProjectSlugRedirectScalarWhereInput | ProjectSlugRedirectScalarWhereInput[]
+  }
+
+  export type RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput = {
+    create?: XOR<RuntimeWebSocketTicketCreateWithoutProjectInput, RuntimeWebSocketTicketUncheckedCreateWithoutProjectInput> | RuntimeWebSocketTicketCreateWithoutProjectInput[] | RuntimeWebSocketTicketUncheckedCreateWithoutProjectInput[]
+    connectOrCreate?: RuntimeWebSocketTicketCreateOrConnectWithoutProjectInput | RuntimeWebSocketTicketCreateOrConnectWithoutProjectInput[]
+    upsert?: RuntimeWebSocketTicketUpsertWithWhereUniqueWithoutProjectInput | RuntimeWebSocketTicketUpsertWithWhereUniqueWithoutProjectInput[]
+    createMany?: RuntimeWebSocketTicketCreateManyProjectInputEnvelope
+    set?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    disconnect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    delete?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    connect?: RuntimeWebSocketTicketWhereUniqueInput | RuntimeWebSocketTicketWhereUniqueInput[]
+    update?: RuntimeWebSocketTicketUpdateWithWhereUniqueWithoutProjectInput | RuntimeWebSocketTicketUpdateWithWhereUniqueWithoutProjectInput[]
+    updateMany?: RuntimeWebSocketTicketUpdateManyWithWhereWithoutProjectInput | RuntimeWebSocketTicketUpdateManyWithWhereWithoutProjectInput[]
+    deleteMany?: RuntimeWebSocketTicketScalarWhereInput | RuntimeWebSocketTicketScalarWhereInput[]
   }
 
   export type ProjectCreateNestedOneWithoutSlugRedirectsInput = {
@@ -190396,6 +192032,34 @@ export namespace Prisma {
     upsert?: UserUpsertWithoutEmailVerificationTokensInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutEmailVerificationTokensInput, UserUpdateWithoutEmailVerificationTokensInput>, UserUncheckedUpdateWithoutEmailVerificationTokensInput>
+  }
+
+  export type UserCreateNestedOneWithoutRuntimeWebSocketTicketsInput = {
+    create?: XOR<UserCreateWithoutRuntimeWebSocketTicketsInput, UserUncheckedCreateWithoutRuntimeWebSocketTicketsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutRuntimeWebSocketTicketsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type ProjectCreateNestedOneWithoutRuntimeWebSocketTicketsInput = {
+    create?: XOR<ProjectCreateWithoutRuntimeWebSocketTicketsInput, ProjectUncheckedCreateWithoutRuntimeWebSocketTicketsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutRuntimeWebSocketTicketsInput
+    connect?: ProjectWhereUniqueInput
+  }
+
+  export type UserUpdateOneRequiredWithoutRuntimeWebSocketTicketsNestedInput = {
+    create?: XOR<UserCreateWithoutRuntimeWebSocketTicketsInput, UserUncheckedCreateWithoutRuntimeWebSocketTicketsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutRuntimeWebSocketTicketsInput
+    upsert?: UserUpsertWithoutRuntimeWebSocketTicketsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutRuntimeWebSocketTicketsInput, UserUpdateWithoutRuntimeWebSocketTicketsInput>, UserUncheckedUpdateWithoutRuntimeWebSocketTicketsInput>
+  }
+
+  export type ProjectUpdateOneRequiredWithoutRuntimeWebSocketTicketsNestedInput = {
+    create?: XOR<ProjectCreateWithoutRuntimeWebSocketTicketsInput, ProjectUncheckedCreateWithoutRuntimeWebSocketTicketsInput>
+    connectOrCreate?: ProjectCreateOrConnectWithoutRuntimeWebSocketTicketsInput
+    upsert?: ProjectUpsertWithoutRuntimeWebSocketTicketsInput
+    connect?: ProjectWhereUniqueInput
+    update?: XOR<XOR<ProjectUpdateToOneWithWhereWithoutRuntimeWebSocketTicketsInput, ProjectUpdateWithoutRuntimeWebSocketTicketsInput>, ProjectUncheckedUpdateWithoutRuntimeWebSocketTicketsInput>
   }
 
   export type UserCreateNestedOneWithoutPasswordResetTokensInput = {
@@ -193631,6 +195295,40 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type RuntimeWebSocketTicketCreateWithoutUserInput = {
+    id?: string
+    tokenHash: string
+    workspaceId: string
+    resolvedWorkspaceId: string
+    endpoint: string
+    expiresAt: Date | string
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+    project: ProjectCreateNestedOneWithoutRuntimeWebSocketTicketsInput
+  }
+
+  export type RuntimeWebSocketTicketUncheckedCreateWithoutUserInput = {
+    id?: string
+    tokenHash: string
+    workspaceId: string
+    projectId: string
+    resolvedWorkspaceId: string
+    endpoint: string
+    expiresAt: Date | string
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type RuntimeWebSocketTicketCreateOrConnectWithoutUserInput = {
+    where: RuntimeWebSocketTicketWhereUniqueInput
+    create: XOR<RuntimeWebSocketTicketCreateWithoutUserInput, RuntimeWebSocketTicketUncheckedCreateWithoutUserInput>
+  }
+
+  export type RuntimeWebSocketTicketCreateManyUserInputEnvelope = {
+    data: RuntimeWebSocketTicketCreateManyUserInput | RuntimeWebSocketTicketCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
   export type AccountUpsertWithWhereUniqueWithoutUserInput = {
     where: AccountWhereUniqueInput
     update: XOR<AccountUpdateWithoutUserInput, AccountUncheckedUpdateWithoutUserInput>
@@ -194654,6 +196352,38 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"AgentRoutingCard"> | Date | string
   }
 
+  export type RuntimeWebSocketTicketUpsertWithWhereUniqueWithoutUserInput = {
+    where: RuntimeWebSocketTicketWhereUniqueInput
+    update: XOR<RuntimeWebSocketTicketUpdateWithoutUserInput, RuntimeWebSocketTicketUncheckedUpdateWithoutUserInput>
+    create: XOR<RuntimeWebSocketTicketCreateWithoutUserInput, RuntimeWebSocketTicketUncheckedCreateWithoutUserInput>
+  }
+
+  export type RuntimeWebSocketTicketUpdateWithWhereUniqueWithoutUserInput = {
+    where: RuntimeWebSocketTicketWhereUniqueInput
+    data: XOR<RuntimeWebSocketTicketUpdateWithoutUserInput, RuntimeWebSocketTicketUncheckedUpdateWithoutUserInput>
+  }
+
+  export type RuntimeWebSocketTicketUpdateManyWithWhereWithoutUserInput = {
+    where: RuntimeWebSocketTicketScalarWhereInput
+    data: XOR<RuntimeWebSocketTicketUpdateManyMutationInput, RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type RuntimeWebSocketTicketScalarWhereInput = {
+    AND?: RuntimeWebSocketTicketScalarWhereInput | RuntimeWebSocketTicketScalarWhereInput[]
+    OR?: RuntimeWebSocketTicketScalarWhereInput[]
+    NOT?: RuntimeWebSocketTicketScalarWhereInput | RuntimeWebSocketTicketScalarWhereInput[]
+    id?: StringFilter<"RuntimeWebSocketTicket"> | string
+    tokenHash?: StringFilter<"RuntimeWebSocketTicket"> | string
+    userId?: StringFilter<"RuntimeWebSocketTicket"> | string
+    workspaceId?: StringFilter<"RuntimeWebSocketTicket"> | string
+    projectId?: StringFilter<"RuntimeWebSocketTicket"> | string
+    resolvedWorkspaceId?: StringFilter<"RuntimeWebSocketTicket"> | string
+    endpoint?: StringFilter<"RuntimeWebSocketTicket"> | string
+    expiresAt?: DateTimeFilter<"RuntimeWebSocketTicket"> | Date | string
+    consumedAt?: DateTimeNullableFilter<"RuntimeWebSocketTicket"> | Date | string | null
+    createdAt?: DateTimeFilter<"RuntimeWebSocketTicket"> | Date | string
+  }
+
   export type UserCreateWithoutAccountsInput = {
     id?: string
     email: string
@@ -194701,6 +196431,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAccountsInput = {
@@ -194750,6 +196481,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAccountsInput = {
@@ -194815,6 +196547,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAccountsInput = {
@@ -194864,6 +196597,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -194913,6 +196647,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -194962,6 +196697,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -195027,6 +196763,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -195076,6 +196813,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationMemberCreateWithoutOrganizationInput = {
@@ -195172,6 +196910,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutOrganizationInput = {
@@ -195214,6 +196953,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutOrganizationInput = {
@@ -197179,6 +198919,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMembershipsInput = {
@@ -197228,6 +198969,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMembershipsInput = {
@@ -197411,6 +199153,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMembershipsInput = {
@@ -197460,6 +199203,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type RoleUpsertWithoutMembersInput = {
@@ -198877,6 +200621,40 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type RuntimeWebSocketTicketCreateWithoutProjectInput = {
+    id?: string
+    tokenHash: string
+    workspaceId: string
+    resolvedWorkspaceId: string
+    endpoint: string
+    expiresAt: Date | string
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+    user: UserCreateNestedOneWithoutRuntimeWebSocketTicketsInput
+  }
+
+  export type RuntimeWebSocketTicketUncheckedCreateWithoutProjectInput = {
+    id?: string
+    tokenHash: string
+    userId: string
+    workspaceId: string
+    resolvedWorkspaceId: string
+    endpoint: string
+    expiresAt: Date | string
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
+  export type RuntimeWebSocketTicketCreateOrConnectWithoutProjectInput = {
+    where: RuntimeWebSocketTicketWhereUniqueInput
+    create: XOR<RuntimeWebSocketTicketCreateWithoutProjectInput, RuntimeWebSocketTicketUncheckedCreateWithoutProjectInput>
+  }
+
+  export type RuntimeWebSocketTicketCreateManyProjectInputEnvelope = {
+    data: RuntimeWebSocketTicketCreateManyProjectInput | RuntimeWebSocketTicketCreateManyProjectInput[]
+    skipDuplicates?: boolean
+  }
+
   export type OrganizationUpsertWithoutProjectsInput = {
     update: XOR<OrganizationUpdateWithoutProjectsInput, OrganizationUncheckedUpdateWithoutProjectsInput>
     create: XOR<OrganizationCreateWithoutProjectsInput, OrganizationUncheckedCreateWithoutProjectsInput>
@@ -199568,6 +201346,22 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"ProjectSlugRedirect"> | Date | string
   }
 
+  export type RuntimeWebSocketTicketUpsertWithWhereUniqueWithoutProjectInput = {
+    where: RuntimeWebSocketTicketWhereUniqueInput
+    update: XOR<RuntimeWebSocketTicketUpdateWithoutProjectInput, RuntimeWebSocketTicketUncheckedUpdateWithoutProjectInput>
+    create: XOR<RuntimeWebSocketTicketCreateWithoutProjectInput, RuntimeWebSocketTicketUncheckedCreateWithoutProjectInput>
+  }
+
+  export type RuntimeWebSocketTicketUpdateWithWhereUniqueWithoutProjectInput = {
+    where: RuntimeWebSocketTicketWhereUniqueInput
+    data: XOR<RuntimeWebSocketTicketUpdateWithoutProjectInput, RuntimeWebSocketTicketUncheckedUpdateWithoutProjectInput>
+  }
+
+  export type RuntimeWebSocketTicketUpdateManyWithWhereWithoutProjectInput = {
+    where: RuntimeWebSocketTicketScalarWhereInput
+    data: XOR<RuntimeWebSocketTicketUpdateManyMutationInput, RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectInput>
+  }
+
   export type ProjectCreateWithoutSlugRedirectsInput = {
     id?: string
     name: string
@@ -199608,6 +201402,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSlugRedirectsInput = {
@@ -199650,6 +201445,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSlugRedirectsInput = {
@@ -199708,6 +201504,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSlugRedirectsInput = {
@@ -199750,6 +201547,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoriesInput = {
@@ -199799,6 +201597,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoriesInput = {
@@ -199848,6 +201647,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoriesInput = {
@@ -199913,6 +201713,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -199962,6 +201763,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutAgentMemoriesInput = {
@@ -200188,6 +201990,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoriesInput = {
@@ -200230,6 +202033,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoriesInput = {
@@ -200288,6 +202092,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoriesInput = {
@@ -200330,6 +202135,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutAgentMemoryPreferencesInput = {
@@ -200379,6 +202185,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -200428,6 +202235,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -200564,6 +202372,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentMemoryPreferencesInput = {
@@ -200606,6 +202415,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentMemoryPreferencesInput = {
@@ -200671,6 +202481,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -200720,6 +202531,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentMemoryPreferencesInput = {
@@ -200868,6 +202680,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentMemoryPreferencesInput = {
@@ -200910,6 +202723,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutIdeStateInput = {
@@ -200952,6 +202766,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutIdeStateInput = {
@@ -200994,6 +202809,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutIdeStateInput = {
@@ -201048,6 +202864,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectIdeStateUpdatesInput = {
@@ -201097,6 +202914,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectIdeStateUpdatesInput = {
@@ -201155,6 +202973,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutIdeStateInput = {
@@ -201197,6 +203016,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectIdeStateUpdatesInput = {
@@ -201257,6 +203077,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectIdeStateUpdatesInput = {
@@ -201306,6 +203127,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutAgentPatchProposalsInput = {
@@ -201348,6 +203170,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutAgentPatchProposalsInput = {
@@ -201390,6 +203213,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutAgentPatchProposalsInput = {
@@ -201448,6 +203272,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutAgentPatchProposalsInput = {
@@ -201490,6 +203315,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutRepairEventsInput = {
@@ -201532,6 +203358,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutRepairEventsInput = {
@@ -201574,6 +203401,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutRepairEventsInput = {
@@ -201632,6 +203460,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutRepairEventsInput = {
@@ -201674,6 +203503,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSkillsInput = {
@@ -201716,6 +203546,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSkillsInput = {
@@ -201758,6 +203589,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSkillsInput = {
@@ -201816,6 +203648,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSkillsInput = {
@@ -201858,6 +203691,7 @@ export namespace Prisma {
     databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvironmentsInput = {
@@ -201900,6 +203734,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvironmentsInput = {
@@ -201942,6 +203777,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvironmentsInput = {
@@ -202000,6 +203836,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvironmentsInput = {
@@ -202042,6 +203879,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutSecretsInput = {
@@ -202084,6 +203922,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSecretsInput = {
@@ -202126,6 +203965,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSecretsInput = {
@@ -202184,6 +204024,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSecretsInput = {
@@ -202226,6 +204067,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutEnvVarsInput = {
@@ -202268,6 +204110,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutEnvVarsInput = {
@@ -202310,6 +204153,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutEnvVarsInput = {
@@ -202368,6 +204212,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutEnvVarsInput = {
@@ -202410,6 +204255,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutCollaboratorsInput = {
@@ -202452,6 +204298,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaboratorsInput = {
@@ -202494,6 +204341,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaboratorsInput = {
@@ -202548,6 +204396,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectCollaborationsInput = {
@@ -202597,6 +204446,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectCollaborationsInput = {
@@ -202655,6 +204505,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaboratorsInput = {
@@ -202697,6 +204548,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectCollaborationsInput = {
@@ -202757,6 +204609,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectCollaborationsInput = {
@@ -202806,6 +204659,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutActivityInput = {
@@ -202848,6 +204702,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutActivityInput = {
@@ -202890,6 +204745,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutActivityInput = {
@@ -202944,6 +204800,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectActivityInput = {
@@ -202993,6 +204850,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectActivityInput = {
@@ -203051,6 +204909,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutActivityInput = {
@@ -203093,6 +204952,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectActivityInput = {
@@ -203153,6 +205013,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectActivityInput = {
@@ -203202,6 +205063,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationPresenceInput = {
@@ -203244,6 +205106,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -203286,6 +205149,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -203340,6 +205204,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationPresenceInput = {
@@ -203389,6 +205254,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationPresenceInput = {
@@ -203447,6 +205313,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -203489,6 +205356,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationPresenceInput = {
@@ -203549,6 +205417,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationPresenceInput = {
@@ -203598,6 +205467,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutCollaborationCommentsInput = {
@@ -203640,6 +205510,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -203682,6 +205553,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -203736,6 +205608,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationCommentsInput = {
@@ -203785,6 +205658,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationCommentsInput = {
@@ -203843,6 +205717,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -203885,6 +205760,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationCommentsInput = {
@@ -203945,6 +205821,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationCommentsInput = {
@@ -203994,6 +205871,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutShareLinksInput = {
@@ -204036,6 +205914,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutShareLinksInput = {
@@ -204078,6 +205957,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutShareLinksInput = {
@@ -204132,6 +206012,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutCollaborationShareLinksInput = {
@@ -204181,6 +206062,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutCollaborationShareLinksInput = {
@@ -204239,6 +206121,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutShareLinksInput = {
@@ -204281,6 +206164,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutCollaborationShareLinksInput = {
@@ -204341,6 +206225,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutCollaborationShareLinksInput = {
@@ -204390,6 +206275,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutTemplatesInput = {
@@ -204432,6 +206318,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutTemplatesInput = {
@@ -204474,6 +206361,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutTemplatesInput = {
@@ -204621,6 +206509,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutTemplatesInput = {
@@ -204663,6 +206552,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type OrganizationUpsertWithoutProjectTemplatesInput = {
@@ -204800,6 +206690,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutWorkspacesInput = {
@@ -204842,6 +206733,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutWorkspacesInput = {
@@ -205087,6 +206979,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutWorkspacesInput = {
@@ -205129,6 +207022,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceSessionUpsertWithWhereUniqueWithoutWorkspaceInput = {
@@ -205633,6 +207527,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutFileSnapshotsInput = {
@@ -205675,6 +207570,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutFileSnapshotsInput = {
@@ -205776,6 +207672,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutFileSnapshotsInput = {
@@ -205818,6 +207715,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type WorkspaceUpsertWithoutSnapshotsInput = {
@@ -205909,6 +207807,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutSnapshotsInput = {
@@ -205951,6 +207850,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutSnapshotsInput = {
@@ -206005,6 +207905,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutProjectSnapshotsInput = {
@@ -206054,6 +207955,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutProjectSnapshotsInput = {
@@ -206112,6 +208014,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutSnapshotsInput = {
@@ -206154,6 +208057,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutProjectSnapshotsInput = {
@@ -206214,6 +208118,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutProjectSnapshotsInput = {
@@ -206263,6 +208168,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutStorageObjectsInput = {
@@ -206305,6 +208211,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutStorageObjectsInput = {
@@ -206347,6 +208254,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutStorageObjectsInput = {
@@ -206405,6 +208313,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutStorageObjectsInput = {
@@ -206447,6 +208356,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectCreateWithoutDeploymentsInput = {
@@ -206489,6 +208399,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDeploymentsInput = {
@@ -206531,6 +208442,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDeploymentsInput = {
@@ -206604,6 +208516,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDeploymentsInput = {
@@ -206646,6 +208559,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DeploymentEnvironmentUpsertWithoutDeploymentsInput = {
@@ -206889,6 +208803,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAuditLogsInput = {
@@ -206938,6 +208853,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAuditLogsInput = {
@@ -207098,6 +209014,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAuditLogsInput = {
@@ -207147,6 +209064,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutAdminAuditLogsInput = {
@@ -207196,6 +209114,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAdminAuditLogsInput = {
@@ -207245,6 +209164,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAdminAuditLogsInput = {
@@ -207310,6 +209230,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAdminAuditLogsInput = {
@@ -207359,6 +209280,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutBillingCustomerInput = {
@@ -208631,6 +210553,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConversationsInput = {
@@ -208673,6 +210596,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConversationsInput = {
@@ -208727,6 +210651,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutConversationsInput = {
@@ -208776,6 +210701,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutConversationsInput = {
@@ -208862,6 +210788,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConversationsInput = {
@@ -208904,6 +210831,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutConversationsInput = {
@@ -208964,6 +210892,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConversationsInput = {
@@ -209013,6 +210942,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type AiMessageUpsertWithWhereUniqueWithoutConversationInput = {
@@ -209351,6 +211281,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAiMessageFeedbackInput = {
@@ -209400,6 +211331,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAiMessageFeedbackInput = {
@@ -209465,6 +211397,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAiMessageFeedbackInput = {
@@ -209514,6 +211447,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutAiCostLedgerInput = {
@@ -210020,6 +211954,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSupportTicketsInput = {
@@ -210069,6 +212004,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSupportTicketsInput = {
@@ -210255,6 +212191,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSupportTicketsInput = {
@@ -210304,6 +212241,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type TicketMessageUpsertWithWhereUniqueWithoutTicketInput = {
@@ -210625,6 +212563,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutEmailVerificationTokensInput = {
@@ -210674,6 +212613,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutEmailVerificationTokensInput = {
@@ -210739,6 +212679,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutEmailVerificationTokensInput = {
@@ -210788,6 +212729,411 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserCreateWithoutRuntimeWebSocketTicketsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogCreateNestedManyWithoutActorInput
+    conversations?: AiConversationCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserUncheckedCreateWithoutRuntimeWebSocketTicketsInput = {
+    id?: string
+    email: string
+    name?: string | null
+    passwordHash?: string | null
+    emailVerifiedAt?: Date | string | null
+    mfaEnabled?: boolean
+    mfaSecretCiphertext?: string | null
+    platformAdmin?: boolean
+    language?: string | null
+    timezone?: string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    accounts?: AccountUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    memberships?: OrganizationMemberUncheckedCreateNestedManyWithoutUserInput
+    apiKeys?: ApiKeyUncheckedCreateNestedManyWithoutUserInput
+    auditLogs?: AuditLogUncheckedCreateNestedManyWithoutActorInput
+    adminAuditLogs?: AdminAuditLogUncheckedCreateNestedManyWithoutActorInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutUserInput
+    supportTickets?: SupportTicketUncheckedCreateNestedManyWithoutUserInput
+    oauthConnections?: OAuthConnectionUncheckedCreateNestedManyWithoutUserInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedCreateNestedManyWithoutUserInput
+    passwordResetTokens?: PasswordResetTokenUncheckedCreateNestedManyWithoutUserInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedCreateNestedManyWithoutUserInput
+    projectCollaborations?: ProjectCollaboratorUncheckedCreateNestedManyWithoutUserInput
+    projectActivity?: ProjectActivityUncheckedCreateNestedManyWithoutActorInput
+    projectSnapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutCreatedByInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutAuthorInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedCreateNestedManyWithoutUpdatedByInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutUserInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutUserInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutCreatedByInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutUserInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutUserInput
+    mcpInstalls?: McpInstallUncheckedCreateNestedManyWithoutUserInput
+    mcpUserConfig?: McpUserConfigUncheckedCreateNestedOneWithoutUserInput
+    agentRuns?: AgentRunUncheckedCreateNestedManyWithoutUserInput
+    userConnections?: UserConnectionUncheckedCreateNestedManyWithoutUserInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutLinkedByUserInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedCreateNestedManyWithoutConfiguredByUserInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
+    spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+  }
+
+  export type UserCreateOrConnectWithoutRuntimeWebSocketTicketsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutRuntimeWebSocketTicketsInput, UserUncheckedCreateWithoutRuntimeWebSocketTicketsInput>
+  }
+
+  export type ProjectCreateWithoutRuntimeWebSocketTicketsInput = {
+    id?: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    organization: OrganizationCreateNestedOneWithoutProjectsInput
+    environments?: ProjectEnvironmentCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectUncheckedCreateWithoutRuntimeWebSocketTicketsInput = {
+    id?: string
+    organizationId: string
+    name: string
+    slug: string
+    description?: string | null
+    sourceType?: string
+    templateName?: string | null
+    gitRepositoryUrl?: string | null
+    gitDefaultBranch?: string | null
+    persistentVolumeClaim?: string | null
+    thumbnailUrl?: string | null
+    thumbnailUpdatedAt?: Date | string | null
+    deletedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    environments?: ProjectEnvironmentUncheckedCreateNestedManyWithoutProjectInput
+    envVars?: ProjectEnvVarUncheckedCreateNestedManyWithoutProjectInput
+    secrets?: ProjectSecretUncheckedCreateNestedManyWithoutProjectInput
+    collaborators?: ProjectCollaboratorUncheckedCreateNestedManyWithoutProjectInput
+    activity?: ProjectActivityUncheckedCreateNestedManyWithoutProjectInput
+    templates?: ProjectTemplateUncheckedCreateNestedManyWithoutSourceProjectInput
+    galleryListings?: GalleryListingUncheckedCreateNestedManyWithoutSourceProjectInput
+    workspaces?: WorkspaceUncheckedCreateNestedManyWithoutProjectInput
+    snapshots?: ProjectSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    storageObjects?: ProjectStorageObjectUncheckedCreateNestedManyWithoutProjectInput
+    deployments?: DeploymentUncheckedCreateNestedManyWithoutProjectInput
+    fileSnapshots?: FileSnapshotUncheckedCreateNestedManyWithoutProjectInput
+    conversations?: AiConversationUncheckedCreateNestedManyWithoutProjectInput
+    ideState?: ProjectIdeStateUncheckedCreateNestedOneWithoutProjectInput
+    collaborationPresence?: CollaborationPresenceUncheckedCreateNestedManyWithoutProjectInput
+    collaborationComments?: CollaborationCommentUncheckedCreateNestedManyWithoutProjectInput
+    shareLinks?: ProjectShareLinkUncheckedCreateNestedManyWithoutProjectInput
+    agentMemories?: AgentMemoryUncheckedCreateNestedManyWithoutProjectInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedCreateNestedManyWithoutProjectInput
+    agentPatchProposals?: AgentPatchProposalUncheckedCreateNestedManyWithoutProjectInput
+    connectionLinks?: ProjectConnectionLinkUncheckedCreateNestedManyWithoutProjectInput
+    databaseInstances?: DatabaseInstanceUncheckedCreateNestedManyWithoutProjectInput
+    skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
+    repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
+    slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+  }
+
+  export type ProjectCreateOrConnectWithoutRuntimeWebSocketTicketsInput = {
+    where: ProjectWhereUniqueInput
+    create: XOR<ProjectCreateWithoutRuntimeWebSocketTicketsInput, ProjectUncheckedCreateWithoutRuntimeWebSocketTicketsInput>
+  }
+
+  export type UserUpsertWithoutRuntimeWebSocketTicketsInput = {
+    update: XOR<UserUpdateWithoutRuntimeWebSocketTicketsInput, UserUncheckedUpdateWithoutRuntimeWebSocketTicketsInput>
+    create: XOR<UserCreateWithoutRuntimeWebSocketTicketsInput, UserUncheckedCreateWithoutRuntimeWebSocketTicketsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutRuntimeWebSocketTicketsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutRuntimeWebSocketTicketsInput, UserUncheckedUpdateWithoutRuntimeWebSocketTicketsInput>
+  }
+
+  export type UserUpdateWithoutRuntimeWebSocketTicketsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutRuntimeWebSocketTicketsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    name?: NullableStringFieldUpdateOperationsInput | string | null
+    passwordHash?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    mfaEnabled?: BoolFieldUpdateOperationsInput | boolean
+    mfaSecretCiphertext?: NullableStringFieldUpdateOperationsInput | string | null
+    platformAdmin?: BoolFieldUpdateOperationsInput | boolean
+    language?: NullableStringFieldUpdateOperationsInput | string | null
+    timezone?: NullableStringFieldUpdateOperationsInput | string | null
+    preferences?: NullableJsonNullValueInput | InputJsonValue
+    lastActiveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    accounts?: AccountUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    memberships?: OrganizationMemberUncheckedUpdateManyWithoutUserNestedInput
+    apiKeys?: ApiKeyUncheckedUpdateManyWithoutUserNestedInput
+    auditLogs?: AuditLogUncheckedUpdateManyWithoutActorNestedInput
+    adminAuditLogs?: AdminAuditLogUncheckedUpdateManyWithoutActorNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutUserNestedInput
+    supportTickets?: SupportTicketUncheckedUpdateManyWithoutUserNestedInput
+    oauthConnections?: OAuthConnectionUncheckedUpdateManyWithoutUserNestedInput
+    emailVerificationTokens?: EmailVerificationTokenUncheckedUpdateManyWithoutUserNestedInput
+    passwordResetTokens?: PasswordResetTokenUncheckedUpdateManyWithoutUserNestedInput
+    recoveryCodes?: MfaRecoveryCodeUncheckedUpdateManyWithoutUserNestedInput
+    projectCollaborations?: ProjectCollaboratorUncheckedUpdateManyWithoutUserNestedInput
+    projectActivity?: ProjectActivityUncheckedUpdateManyWithoutActorNestedInput
+    projectSnapshots?: ProjectSnapshotUncheckedUpdateManyWithoutCreatedByNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutAuthorNestedInput
+    projectIdeStateUpdates?: ProjectIdeStateUncheckedUpdateManyWithoutUpdatedByNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutUserNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutUserNestedInput
+    collaborationShareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutCreatedByNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutUserNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutUserNestedInput
+    mcpInstalls?: McpInstallUncheckedUpdateManyWithoutUserNestedInput
+    mcpUserConfig?: McpUserConfigUncheckedUpdateOneWithoutUserNestedInput
+    agentRuns?: AgentRunUncheckedUpdateManyWithoutUserNestedInput
+    userConnections?: UserConnectionUncheckedUpdateManyWithoutUserNestedInput
+    linkedProjectConnections?: ProjectConnectionLinkUncheckedUpdateManyWithoutLinkedByUserNestedInput
+    configuredOauthAppOverrides?: OrganizationOAuthAppOverrideUncheckedUpdateManyWithoutConfiguredByUserNestedInput
+    integrationFeatureRequests?: IntegrationFeatureRequestUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
+    spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+  }
+
+  export type ProjectUpsertWithoutRuntimeWebSocketTicketsInput = {
+    update: XOR<ProjectUpdateWithoutRuntimeWebSocketTicketsInput, ProjectUncheckedUpdateWithoutRuntimeWebSocketTicketsInput>
+    create: XOR<ProjectCreateWithoutRuntimeWebSocketTicketsInput, ProjectUncheckedCreateWithoutRuntimeWebSocketTicketsInput>
+    where?: ProjectWhereInput
+  }
+
+  export type ProjectUpdateToOneWithWhereWithoutRuntimeWebSocketTicketsInput = {
+    where?: ProjectWhereInput
+    data: XOR<ProjectUpdateWithoutRuntimeWebSocketTicketsInput, ProjectUncheckedUpdateWithoutRuntimeWebSocketTicketsInput>
+  }
+
+  export type ProjectUpdateWithoutRuntimeWebSocketTicketsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    organization?: OrganizationUpdateOneRequiredWithoutProjectsNestedInput
+    environments?: ProjectEnvironmentUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+  }
+
+  export type ProjectUncheckedUpdateWithoutRuntimeWebSocketTicketsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    organizationId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    slug?: StringFieldUpdateOperationsInput | string
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    sourceType?: StringFieldUpdateOperationsInput | string
+    templateName?: NullableStringFieldUpdateOperationsInput | string | null
+    gitRepositoryUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    gitDefaultBranch?: NullableStringFieldUpdateOperationsInput | string | null
+    persistentVolumeClaim?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    thumbnailUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    deletedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    environments?: ProjectEnvironmentUncheckedUpdateManyWithoutProjectNestedInput
+    envVars?: ProjectEnvVarUncheckedUpdateManyWithoutProjectNestedInput
+    secrets?: ProjectSecretUncheckedUpdateManyWithoutProjectNestedInput
+    collaborators?: ProjectCollaboratorUncheckedUpdateManyWithoutProjectNestedInput
+    activity?: ProjectActivityUncheckedUpdateManyWithoutProjectNestedInput
+    templates?: ProjectTemplateUncheckedUpdateManyWithoutSourceProjectNestedInput
+    galleryListings?: GalleryListingUncheckedUpdateManyWithoutSourceProjectNestedInput
+    workspaces?: WorkspaceUncheckedUpdateManyWithoutProjectNestedInput
+    snapshots?: ProjectSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    storageObjects?: ProjectStorageObjectUncheckedUpdateManyWithoutProjectNestedInput
+    deployments?: DeploymentUncheckedUpdateManyWithoutProjectNestedInput
+    fileSnapshots?: FileSnapshotUncheckedUpdateManyWithoutProjectNestedInput
+    conversations?: AiConversationUncheckedUpdateManyWithoutProjectNestedInput
+    ideState?: ProjectIdeStateUncheckedUpdateOneWithoutProjectNestedInput
+    collaborationPresence?: CollaborationPresenceUncheckedUpdateManyWithoutProjectNestedInput
+    collaborationComments?: CollaborationCommentUncheckedUpdateManyWithoutProjectNestedInput
+    shareLinks?: ProjectShareLinkUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemories?: AgentMemoryUncheckedUpdateManyWithoutProjectNestedInput
+    agentMemoryPreferences?: AgentMemoryPreferenceUncheckedUpdateManyWithoutProjectNestedInput
+    agentPatchProposals?: AgentPatchProposalUncheckedUpdateManyWithoutProjectNestedInput
+    connectionLinks?: ProjectConnectionLinkUncheckedUpdateManyWithoutProjectNestedInput
+    databaseInstances?: DatabaseInstanceUncheckedUpdateManyWithoutProjectNestedInput
+    skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
+    repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
+    slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserCreateWithoutPasswordResetTokensInput = {
@@ -210837,6 +213183,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPasswordResetTokensInput = {
@@ -210886,6 +213233,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPasswordResetTokensInput = {
@@ -210951,6 +213299,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPasswordResetTokensInput = {
@@ -211000,6 +213349,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutRecoveryCodesInput = {
@@ -211049,6 +213399,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutRecoveryCodesInput = {
@@ -211098,6 +213449,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutRecoveryCodesInput = {
@@ -211163,6 +213515,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRecoveryCodesInput = {
@@ -211212,6 +213565,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutEnterpriseSettingsInput = {
@@ -212454,6 +214808,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutApiKeysInput = {
@@ -212503,6 +214858,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutApiKeysInput = {
@@ -212663,6 +215019,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutApiKeysInput = {
@@ -212712,6 +215069,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutOauthConnectionsInput = {
@@ -212761,6 +215119,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOauthConnectionsInput = {
@@ -212810,6 +215169,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOauthConnectionsInput = {
@@ -212875,6 +215235,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOauthConnectionsInput = {
@@ -212924,6 +215285,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type McpInstallCreateWithoutCatalogEntryInput = {
@@ -213080,6 +215442,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMcpInstallsInput = {
@@ -213129,6 +215492,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMcpInstallsInput = {
@@ -213348,6 +215712,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpInstallsInput = {
@@ -213397,6 +215762,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutMcpInstallsInput = {
@@ -213541,6 +215907,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutMcpUserConfigInput = {
@@ -213590,6 +215957,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutMcpUserConfigInput = {
@@ -213655,6 +216023,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutMcpUserConfigInput = {
@@ -213704,6 +216073,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type AgentRunResultCreateWithoutRunInput = {
@@ -213824,6 +216194,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentRunsInput = {
@@ -213873,6 +216244,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentRunsInput = {
@@ -214100,6 +216472,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRunsInput = {
@@ -214149,6 +216522,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutAgentRunsInput = {
@@ -214453,6 +216827,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutUserConnectionsInput = {
@@ -214502,6 +216877,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutUserConnectionsInput = {
@@ -214654,6 +217030,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutUserConnectionsInput = {
@@ -214703,6 +217080,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationOAuthAppOverrideUpsertWithoutUserConnectionsInput = {
@@ -214830,6 +217208,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutConnectionLinksInput = {
@@ -214872,6 +217251,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutConnectionLinksInput = {
@@ -214979,6 +217359,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutLinkedProjectConnectionsInput = {
@@ -215028,6 +217409,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutLinkedProjectConnectionsInput = {
@@ -215086,6 +217468,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutConnectionLinksInput = {
@@ -215128,6 +217511,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserConnectionUpsertWithoutProjectLinksInput = {
@@ -215247,6 +217631,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLinkedProjectConnectionsInput = {
@@ -215296,6 +217681,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationCreateWithoutOauthAppOverridesInput = {
@@ -215434,6 +217820,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutConfiguredOauthAppOverridesInput = {
@@ -215483,6 +217870,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutConfiguredOauthAppOverridesInput = {
@@ -215701,6 +218089,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutConfiguredOauthAppOverridesInput = {
@@ -215750,6 +218139,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserConnectionUpsertWithWhereUniqueWithoutOauthAppOverrideInput = {
@@ -216111,6 +218501,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -216160,6 +218551,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -216225,6 +218617,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -216274,6 +218667,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutIntegrationFeatureRequestsInput = {
@@ -216323,6 +218717,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutIntegrationFeatureRequestsInput = {
@@ -216372,6 +218767,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutIntegrationFeatureRequestsInput = {
@@ -216526,6 +218922,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutIntegrationFeatureRequestsInput = {
@@ -216575,6 +218972,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OrganizationUpsertWithoutIntegrationFeatureRequestsInput = {
@@ -217666,6 +220064,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSpendLimitsInput = {
@@ -217715,6 +220114,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSpendLimitsInput = {
@@ -217875,6 +220275,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSpendLimitsInput = {
@@ -217924,6 +220325,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ModelConfigCreateWithoutProviderConfigInput = {
@@ -218109,6 +220511,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutDatabaseInstancesInput = {
@@ -218151,6 +220554,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutDatabaseInstancesInput = {
@@ -218277,6 +220681,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutDatabaseInstancesInput = {
@@ -218319,6 +220724,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type DatabaseSnapshotUpsertWithWhereUniqueWithoutDatabaseInstanceInput = {
@@ -218794,6 +221200,7 @@ export namespace Prisma {
     notifications?: NotificationCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutAgentRoutingCardsInput = {
@@ -218843,6 +221250,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutAgentRoutingCardsInput = {
@@ -218908,6 +221316,7 @@ export namespace Prisma {
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutAgentRoutingCardsInput = {
@@ -218957,6 +221366,7 @@ export namespace Prisma {
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ProjectCreateWithoutGalleryListingsInput = {
@@ -218999,6 +221409,7 @@ export namespace Prisma {
     skills?: ProjectSkillCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectUncheckedCreateWithoutGalleryListingsInput = {
@@ -219041,6 +221452,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedCreateNestedManyWithoutProjectInput
     repairEvents?: AgentRepairEventUncheckedCreateNestedManyWithoutProjectInput
     slugRedirects?: ProjectSlugRedirectUncheckedCreateNestedManyWithoutProjectInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutProjectInput
   }
 
   export type ProjectCreateOrConnectWithoutGalleryListingsInput = {
@@ -219095,6 +221507,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutGalleryListingsInput = {
@@ -219144,6 +221557,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedCreateNestedManyWithoutUserInput
     spendLimits?: UserSpendLimitUncheckedCreateNestedManyWithoutUserInput
     agentRoutingCards?: AgentRoutingCardUncheckedCreateNestedManyWithoutCreatedByInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutGalleryListingsInput = {
@@ -219202,6 +221616,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutGalleryListingsInput = {
@@ -219244,6 +221659,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type UserUpsertWithoutGalleryListingsInput = {
@@ -219304,6 +221720,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutGalleryListingsInput = {
@@ -219353,6 +221770,7 @@ export namespace Prisma {
     aiMessageFeedback?: AiMessageFeedbackUncheckedUpdateManyWithoutUserNestedInput
     spendLimits?: UserSpendLimitUncheckedUpdateManyWithoutUserNestedInput
     agentRoutingCards?: AgentRoutingCardUncheckedUpdateManyWithoutCreatedByNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type LedgerEntryCreateWithoutAccountInput = {
@@ -220306,6 +222724,18 @@ export namespace Prisma {
     effectiveFrom?: Date | string
     effectiveTo?: Date | string | null
     sourceDate?: string | null
+    createdAt?: Date | string
+  }
+
+  export type RuntimeWebSocketTicketCreateManyUserInput = {
+    id?: string
+    tokenHash: string
+    workspaceId: string
+    projectId: string
+    resolvedWorkspaceId: string
+    endpoint: string
+    expiresAt: Date | string
+    consumedAt?: Date | string | null
     createdAt?: Date | string
   }
 
@@ -221409,6 +223839,42 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type RuntimeWebSocketTicketUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    resolvedWorkspaceId?: StringFieldUpdateOperationsInput | string
+    endpoint?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    project?: ProjectUpdateOneRequiredWithoutRuntimeWebSocketTicketsNestedInput
+  }
+
+  export type RuntimeWebSocketTicketUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    resolvedWorkspaceId?: StringFieldUpdateOperationsInput | string
+    endpoint?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeWebSocketTicketUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    projectId?: StringFieldUpdateOperationsInput | string
+    resolvedWorkspaceId?: StringFieldUpdateOperationsInput | string
+    endpoint?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type OrganizationMemberCreateManyOrganizationInput = {
     id?: string
     userId: string
@@ -221822,6 +224288,7 @@ export namespace Prisma {
     skills?: ProjectSkillUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateWithoutOrganizationInput = {
@@ -221864,6 +224331,7 @@ export namespace Prisma {
     skills?: ProjectSkillUncheckedUpdateManyWithoutProjectNestedInput
     repairEvents?: AgentRepairEventUncheckedUpdateManyWithoutProjectNestedInput
     slugRedirects?: ProjectSlugRedirectUncheckedUpdateManyWithoutProjectNestedInput
+    runtimeWebSocketTickets?: RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectNestedInput
   }
 
   export type ProjectUncheckedUpdateManyWithoutOrganizationInput = {
@@ -223195,6 +225663,18 @@ export namespace Prisma {
     createdAt?: Date | string
   }
 
+  export type RuntimeWebSocketTicketCreateManyProjectInput = {
+    id?: string
+    tokenHash: string
+    userId: string
+    workspaceId: string
+    resolvedWorkspaceId: string
+    endpoint: string
+    expiresAt: Date | string
+    consumedAt?: Date | string | null
+    createdAt?: Date | string
+  }
+
   export type ProjectEnvironmentUpdateWithoutProjectInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
@@ -224088,6 +226568,42 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     oldSlug?: StringFieldUpdateOperationsInput | string
     expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeWebSocketTicketUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    resolvedWorkspaceId?: StringFieldUpdateOperationsInput | string
+    endpoint?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutRuntimeWebSocketTicketsNestedInput
+  }
+
+  export type RuntimeWebSocketTicketUncheckedUpdateWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    resolvedWorkspaceId?: StringFieldUpdateOperationsInput | string
+    endpoint?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type RuntimeWebSocketTicketUncheckedUpdateManyWithoutProjectInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    workspaceId?: StringFieldUpdateOperationsInput | string
+    resolvedWorkspaceId?: StringFieldUpdateOperationsInput | string
+    endpoint?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    consumedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

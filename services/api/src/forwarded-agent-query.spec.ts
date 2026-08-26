@@ -22,8 +22,9 @@ describe('forwardedAgentQuery', () => {
     expect(params.get('rows')).toBe('30');
   });
 
-  it('préfixe par & pour se coller au token déjà présent', () => {
+  it('préfixe par & par défaut et par ? quand aucun query param ne précède', () => {
     expect(forwardedAgentQuery({ sessionId: 'abc' }).startsWith('&')).toBe(true);
+    expect(forwardedAgentQuery({ sessionId: 'abc' }, '?')).toBe('?sessionId=abc');
   });
 
   /** Le token est re-minté par saut : relayer celui du client serait une fuite. */

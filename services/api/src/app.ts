@@ -126,7 +126,7 @@ import {
   type AgentMemoryScope,
   type AgentMemoryType,
 } from './agent-memory.js';
-import { createWorkspaceBuildAgent, type WsLike } from './deploy-workspace-agent.js';
+import { createWorkspaceBuildAgent } from './deploy-workspace-agent.js';
 import {
   detectPodPackageManager,
   runWorkspaceStaticBuild,
@@ -362,6 +362,11 @@ import { recordIbanMasked, recordUnknownIbanCountry, shouldLogUnknownIbanCountry
 import { computeWorkspaceRestorePlan, isPortReadyFromProbe, type PortProbeResult } from './runtime-readiness.js';
 import { aggregatePreviewReadiness } from './runtime-readiness.js';
 import { flattenRuntimeTreeFilePaths, normalizeRuntimePath, persistedFileContentMatches } from './runtime-reseed.js';
+import {
+  RUNTIME_WEBSOCKET_PROTOCOL,
+  runtimeWebSocketTargetFromUrl,
+  runtimeWebSocketTicketFromProtocolHeader,
+} from './runtime-websocket-ticket.js';
 import { describeCron } from './scheduled-tasks-cron.js';
 import {
   PostgresScheduledTaskRepository,
@@ -410,6 +415,7 @@ import {
   type ProjectIdeStateRecord,
   type ProjectRecord,
   type ProviderConfigRecord,
+  type RuntimeWebSocketEndpoint,
   type SessionRecord,
   type SkillAuditEventRecord,
   type SnapshotRecord,
@@ -728,6 +734,9 @@ const projectResolveQuerySchema = z.object({
 });
 
 const workspaceParams = z.object({ workspaceId: z.string().min(1) });
+const runtimeWebSocketTicketSchema = z.object({
+  endpoint: z.enum(['commands/stream', 'terminal', 'logs', 'files/watch', 'ports/watch']),
+});
 
 const createProjectSchema = z.object({
   /*
@@ -1851,16 +1860,16 @@ function bearerToken(request: FastifyRequest) {
   }
 
   /*
-   * Query-string tokens are only honoured for WS/SSE upgrades that genuinely
-   * cannot send an Authorization header. Accepting them on every route turns any
-   * logged/referred URL (access logs, Referer to third-party origins, browser
-   * history, intermediary proxies) into a credential-theft vector.
+   * EventSource cannot set Authorization and the deployment-log stream is
+   * same-origin/cookie-backed. Runtime WebSockets no longer use this escape
+   * hatch: they authenticate with a short-lived, single-use handshake ticket
+   * in Sec-WebSocket-Protocol. Keeping bearer credentials out of WebSocket URLs
+   * prevents leakage through ingress/access logs, browser tooling and history.
    */
-  const isUpgrade =
-    request.headers.upgrade?.toLowerCase() === 'websocket' ||
-    (typeof request.headers.accept === 'string' && request.headers.accept.includes('text/event-stream'));
+  const isEventStream =
+    typeof request.headers.accept === 'string' && request.headers.accept.includes('text/event-stream');
 
-  if (isUpgrade) {
+  if (isEventStream) {
     if (typeof (request.query as { token?: unknown } | undefined)?.token === 'string') {
       return (request.query as { token: string }).token;
     }
@@ -1873,6 +1882,95 @@ function bearerToken(request: FastifyRequest) {
   }
 
   return request.cookies.session;
+}
+
+async function authenticateRuntimeWebSocketTicket(request: FastifyRequest, reply: FastifyReply, store: ApiStore) {
+  if (String(request.headers.upgrade ?? '').toLowerCase() !== 'websocket') {
+    return 'not-ticketed' as const;
+  }
+
+  const target = runtimeWebSocketTargetFromUrl(request.url);
+
+  if (!target) {
+    return 'not-ticketed' as const;
+  }
+
+  const rawTicket = runtimeWebSocketTicketFromProtocolHeader(request.headers['sec-websocket-protocol']);
+
+  if (!rawTicket) {
+    authError(reply);
+    return 'rejected' as const;
+  }
+
+  const ticket = await store.consumeRuntimeWebSocketTicket({
+    tokenHash: hashToken(rawTicket),
+    workspaceId: target.workspaceId,
+    endpoint: target.endpoint,
+  });
+
+  if (!ticket) {
+    authError(reply);
+    return 'rejected' as const;
+  }
+
+  const user = await store.findUserById(ticket.userId);
+
+  if (!user || (await isUserSuspended(store, user.id))) {
+    authError(reply);
+    return 'rejected' as const;
+  }
+
+  /*
+   * Re-resolve the resource from durable records after the atomic claim. A
+   * project-id alias can map to a runtime workspace, so binding only the URL
+   * segment would allow scope drift if that mapping changed between mint and
+   * upgrade. The ticket carries all three scopes and any mismatch burns it
+   * fail-closed before the WebSocket route can touch the runtime.
+   */
+  const directWorkspace = await store.getWorkspace(target.workspaceId);
+  const project = directWorkspace
+    ? await store.getProject(directWorkspace.projectId)
+    : await store.getProject(target.workspaceId);
+  const resolvedWorkspaceId = directWorkspace
+    ? directWorkspace.id
+    : project
+      ? await resolveProjectWorkspaceId(store, project.id, user.id)
+      : undefined;
+
+  if (
+    !project ||
+    project.id !== ticket.projectId ||
+    !resolvedWorkspaceId ||
+    resolvedWorkspaceId !== ticket.resolvedWorkspaceId
+  ) {
+    authError(reply);
+    return 'rejected' as const;
+  }
+
+  request.currentUser = {
+    id: user.id,
+    email: user.email,
+    name: user.name,
+    emailVerifiedAt: user.emailVerifiedAt,
+    mfaEnabled: user.mfaEnabled,
+    platformAdmin: user.platformAdmin,
+  };
+
+  /*
+   * The common preHandler cannot infer an org from a :workspaceId route. Resolve
+   * it from the authoritative workspace/project record so ticket auth never
+   * bypasses an enterprise IP allowlist.
+   */
+  {
+    const settings = await store.getEnterpriseSettings(project.organizationId);
+
+    if (!isIpAllowed(request.ip, settings.ipAllowlist)) {
+      reply.code(403).send({ error: appPublicEnglish('IP_ALLOWLIST_BLOCKED'), code: 'IP_ALLOWLIST_BLOCKED' });
+      return 'rejected' as const;
+    }
+  }
+
+  return 'authenticated' as const;
 }
 
 /*
@@ -4048,7 +4146,6 @@ function normalizeProjectPath(path?: string) {
   return normalized;
 }
 
-
 /*
  * Accepts either ProjectIdeStateRecord or WorkspaceIdeStateRecord — both
  * expose the same `.state` payload, and downstream readers only touch that
@@ -4308,7 +4405,6 @@ function persistedIdeMessageContent(message: unknown) {
     .filter(Boolean)
     .join('\n');
 }
-
 
 async function ensureProjectStorageFromIdeState(
   store: ApiStore,
@@ -8503,18 +8599,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     logger: {
       level: process.env.LOG_LEVEL ?? 'info',
-      redact: ['req.headers.authorization', 'req.headers.cookie', 'password', '*.password', '*.token', '*.secret'],
+      redact: [
+        'req.headers.authorization',
+        'req.headers.cookie',
+        'req.headers["sec-websocket-protocol"]',
+        'password',
+        '*.password',
+        '*.token',
+        '*.secret',
+      ],
       serializers: {
         req(request): any {
           /*
            * Mask credentials that travel in the URL — both the capability tokens
            * in the PATH (chat-share links are GET /chat-shares/<token>,
            * auth-allowlisted) and the bearer tokens in the QUERY STRING. The
-           * runtime WebSocket endpoints (ports/watch, files/watch, terminal)
-           * must pass their token as `?token=` because a browser cannot set
-           * headers on a WS handshake, so logging the raw URL wrote a WORKING
-           * credential into the logs on every connection. Pino's `redact`
-           * option only walks object properties, so it never saw it.
+           * Runtime WebSockets now use a one-time `Sec-WebSocket-Protocol`
+           * ticket, but URL redaction stays structural for legacy/rejected
+           * clients and other capability-bearing endpoints. Pino's `redact`
+           * option only walks object properties, so it cannot sanitize a token
+           * embedded inside a URL string.
            */
           const safeUrl = redactUrlCredentials(request.url as string);
 
@@ -10264,6 +10368,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       requireCsrfToken(request.headers as Record<string, string | string[] | undefined>, request.method);
     }
 
+    const runtimeTicketAuth = await authenticateRuntimeWebSocketTicket(request, reply, store);
+
+    if (runtimeTicketAuth === 'rejected') {
+      return;
+    }
+
     const collaborationTicketAuth = await authenticateCollaborationWebSocketTicket(request, reply, store);
 
     if (collaborationTicketAuth !== 'not-ticketed') {
@@ -10278,7 +10388,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return;
     }
 
-    await requireAuth(request, reply, store);
+    if (runtimeTicketAuth !== 'authenticated') {
+      await requireAuth(request, reply, store);
+    }
 
     /*
      * requireAuth sends a 401 and returns; without bailing here an
@@ -13923,12 +14035,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { handled: false };
     }
 
-    const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
-
-    if (!WebSocketCtor) {
-      return { handled: false };
-    }
-
     const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
@@ -13950,7 +14056,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       agentWsBaseUrl: agentBaseUrl(workspaceId).replace(/^http/i, 'ws'),
       token,
       deadlineMs: Math.max(1, body.timeoutSeconds) * 1000,
-      wsFactory: (url) => new WebSocketCtor(url),
+      wsFactory: (url, headers) => new WebSocket(url, { headers }),
       agentGet: <T>(path: string) => agentRequest<T>(workspaceId, path, { method: 'GET' }),
     });
 
@@ -14039,9 +14145,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     | { ok: false; reason: string }
   > => {
     const userId = request.currentUser?.id;
-    const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
-
-    if (!userId || !WebSocketCtor) {
+    if (!userId) {
       return { ok: false, reason: 'Open the project workspace before deploying.' };
     }
 
@@ -14066,7 +14170,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       agentWsBaseUrl: agentBaseUrl(workspaceId).replace(/^http/i, 'ws'),
       token,
       deadlineMs: Math.max(1, timeoutSeconds) * 1000,
-      wsFactory: (url) => new WebSocketCtor(url),
+      wsFactory: (url, headers) => new WebSocket(url, { headers }),
       agentGet: <T>(path: string) => agentRequest<T>(workspaceId, path, { method: 'GET' }),
     });
 
@@ -17356,8 +17460,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const upstream = new WebSocket(
       `${agentBaseUrl(workspaceId)
         .replace(/^http:/, 'ws:')
-        .replace(/^https:/, 'wss:')}${agentPath}?token=${encodeURIComponent(token)}${forwardedAgentQuery(clientQuery)}`,
-      { headers: { 'accept-language': locale } },
+        .replace(/^https:/, 'wss:')}${agentPath}${forwardedAgentQuery(clientQuery, '?')}`,
+      { headers: { authorization: `Bearer ${token}`, 'accept-language': locale } },
     );
 
     const pendingMessages: string[] = [];
@@ -17560,6 +17664,53 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return false;
   };
+
+  const parsedRuntimeWebSocketTicketRateLimit = Number(process.env.RUNTIME_WEBSOCKET_TICKET_RATE_LIMIT_MAX ?? 120);
+  const runtimeWebSocketTicketRateLimit =
+    Number.isFinite(parsedRuntimeWebSocketTicketRateLimit) && parsedRuntimeWebSocketTicketRateLimit >= 1
+      ? Math.floor(parsedRuntimeWebSocketTicketRateLimit)
+      : 120;
+
+  app.post(
+    '/api/runtime/workspaces/:workspaceId/socket-ticket',
+    {
+      config: {
+        rateLimit: { max: runtimeWebSocketTicketRateLimit, timeWindow: '1 minute' },
+      },
+    },
+    async (request, reply) => {
+      const { workspaceId } = parse(workspaceParams, request.params);
+      const { endpoint } = parse(runtimeWebSocketTicketSchema, request.body);
+      const permission: PermissionKey =
+        endpoint === 'commands/stream' || endpoint === 'terminal' ? 'workspaces:write' : 'workspaces:read';
+
+      /* Authorization and resource scope are recalculated server-side. */
+      const authorized = await authorizeRuntimeWorkspace(request, workspaceId, permission);
+
+      const ticket = createOpaqueToken('runtime_ws');
+      const parsedTtl = Number(process.env.RUNTIME_WEBSOCKET_TICKET_TTL_MS);
+      const ttlMs = Math.max(5_000, Math.min(Number.isFinite(parsedTtl) ? parsedTtl : 30_000, 60_000));
+
+      await store.createRuntimeWebSocketTicket({
+        tokenHash: hashToken(ticket),
+        userId: request.currentUser!.id,
+        workspaceId,
+        projectId: authorized.projectId,
+        resolvedWorkspaceId: authorized.workspaceId,
+        endpoint: endpoint as RuntimeWebSocketEndpoint,
+        ttlMs,
+      });
+
+      /* The response carries a live credential and must never enter a cache. */
+      reply.header('cache-control', 'no-store').header('pragma', 'no-cache');
+
+      return {
+        ticket,
+        protocol: RUNTIME_WEBSOCKET_PROTOCOL,
+        expiresInSeconds: Math.floor(ttlMs / 1000),
+      };
+    },
+  );
 
   app.get('/api/runtime/workspaces/:workspaceId/commands/stream', { websocket: true }, async (socket, request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
@@ -18976,12 +19127,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       const members = await store.listMembers(orgId);
 
       if (members.some((existingMember) => (existingMember.userEmail ?? '').trim().toLowerCase() === inviteEmail)) {
-        return reply
-          .code(409)
-          .send({
-            error: appPublicCopy('ALREADY_MEMBER', transactionalLocaleForRequest(request)),
-            code: 'ALREADY_MEMBER',
-          });
+        return reply.code(409).send({
+          error: appPublicCopy('ALREADY_MEMBER', transactionalLocaleForRequest(request)),
+          code: 'ALREADY_MEMBER',
+        });
       }
 
       /*
@@ -19000,12 +19149,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       );
 
       if (hasPending) {
-        return reply
-          .code(409)
-          .send({
-            error: appPublicCopy('ALREADY_INVITED', transactionalLocaleForRequest(request)),
-            code: 'ALREADY_INVITED',
-          });
+        return reply.code(409).send({
+          error: appPublicCopy('ALREADY_INVITED', transactionalLocaleForRequest(request)),
+          code: 'ALREADY_INVITED',
+        });
       }
 
       const token = createOpaqueToken('invite');
@@ -32253,8 +32400,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * artifact, installs (dev deps included), builds, then execs the start command.
        */
       const userId = request.currentUser?.id;
-      const WebSocketCtor = (globalThis as { WebSocket?: new (url: string) => WsLike }).WebSocket;
-
       let bootCommand: string[] | undefined;
 
       /*
@@ -32318,7 +32463,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ...body.envVars,
         };
         bootCommand = ['node', '-e', SERVER_DEPLOY_PROBE_SCRIPT];
-      } else if (!userId || !WebSocketCtor) {
+      } else if (!userId) {
         serverError = 'Open the project workspace before deploying a server.';
       } else {
         const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
@@ -32333,7 +32478,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             agentWsBaseUrl: agentBaseUrl(workspaceId).replace(/^http/i, 'ws'),
             token,
             deadlineMs: Math.max(1, body.timeoutSeconds) * 1000,
-            wsFactory: (url) => new WebSocketCtor(url),
+            wsFactory: (url, headers) => new WebSocket(url, { headers }),
             agentGet: <T>(path: string) => agentRequest<T>(workspaceId, path, { method: 'GET' }),
           });
 

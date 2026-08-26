@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { promises as dnsPromises } from 'node:dns';
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
@@ -73,6 +74,7 @@ import type {
   DatabaseRestoreRecord,
   GalleryListingRecord,
   RecoveryCodeRecord,
+  RuntimeWebSocketTicketRecord,
   ScimTokenRecord,
   SessionRecord,
   SiemWebhookRecord,
@@ -507,6 +509,104 @@ export class PrismaApiStore implements ApiStore {
     const session = await this.prisma.session.findUnique({ where: { id: sessionId } });
 
     return session ? mapSession(session) : undefined;
+  }
+
+  async createRuntimeWebSocketTicket(input: {
+    tokenHash: string;
+    userId: string;
+    workspaceId: string;
+    projectId: string;
+    resolvedWorkspaceId: string;
+    endpoint: RuntimeWebSocketTicketRecord['endpoint'];
+    ttlMs: number;
+  }) {
+    if (!Number.isFinite(input.ttlMs) || input.ttlMs < 1 || input.ttlMs > 60_000) {
+      throw new TypeError('Runtime WebSocket ticket TTL must be between 1 and 60000 milliseconds');
+    }
+
+    /* Best-effort pruning uses the same authoritative DB clock as consumption. */
+    await this.prisma
+      .$executeRaw(
+        Prisma.sql`
+        DELETE FROM "RuntimeWebSocketTicket"
+        WHERE "expiresAt" <= CURRENT_TIMESTAMP
+      `,
+      )
+      .catch(() => {});
+
+    const [ticket] = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        tokenHash: string;
+        userId: string;
+        workspaceId: string;
+        projectId: string;
+        resolvedWorkspaceId: string;
+        endpoint: string;
+        expiresAt: Date;
+        consumedAt: Date | null;
+        createdAt: Date;
+      }>
+    >(Prisma.sql`
+      INSERT INTO "RuntimeWebSocketTicket" (
+        "id", "tokenHash", "userId", "workspaceId", "projectId",
+        "resolvedWorkspaceId", "endpoint", "expiresAt"
+      ) VALUES (
+        ${`runtime_ws_ticket_${randomUUID()}`}, ${input.tokenHash}, ${input.userId}, ${input.workspaceId},
+        ${input.projectId}, ${input.resolvedWorkspaceId}, ${input.endpoint},
+        CURRENT_TIMESTAMP + (${Math.floor(input.ttlMs)} * INTERVAL '1 millisecond')
+      )
+      RETURNING
+        "id", "tokenHash", "userId", "workspaceId", "projectId",
+        "resolvedWorkspaceId", "endpoint", "expiresAt", "consumedAt", "createdAt"
+    `);
+
+    if (!ticket) {
+      throw new Error('Runtime WebSocket ticket insert returned no row');
+    }
+
+    return mapRuntimeWebSocketTicket(ticket);
+  }
+
+  async consumeRuntimeWebSocketTicket(input: {
+    tokenHash: string;
+    workspaceId: string;
+    endpoint: RuntimeWebSocketTicketRecord['endpoint'];
+  }) {
+    /*
+     * This conditional UPDATE is the linearization point. Expiry is evaluated
+     * by PostgreSQL (`CURRENT_TIMESTAMP`), not an API replica's wall clock, and
+     * `consumedAt IS NULL` makes replay protection atomic across replicas.
+     * RETURNING avoids a claim-then-read gap if the user's cascade delete races
+     * consumption: a deleted row simply cannot be returned as authenticated.
+     */
+    const [ticket] = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        tokenHash: string;
+        userId: string;
+        workspaceId: string;
+        projectId: string;
+        resolvedWorkspaceId: string;
+        endpoint: string;
+        expiresAt: Date;
+        consumedAt: Date;
+        createdAt: Date;
+      }>
+    >(Prisma.sql`
+      UPDATE "RuntimeWebSocketTicket"
+      SET "consumedAt" = CURRENT_TIMESTAMP
+      WHERE "tokenHash" = ${input.tokenHash}
+        AND "workspaceId" = ${input.workspaceId}
+        AND "endpoint" = ${input.endpoint}
+        AND "consumedAt" IS NULL
+        AND "expiresAt" > CURRENT_TIMESTAMP
+      RETURNING
+        "id", "tokenHash", "userId", "workspaceId", "projectId",
+        "resolvedWorkspaceId", "endpoint", "expiresAt", "consumedAt", "createdAt"
+    `);
+
+    return ticket ? mapRuntimeWebSocketTicket(ticket) : undefined;
   }
 
   async createEmailVerification(input: { userId: string; token: string; expiresAt: Date; email?: string }) {
@@ -5998,6 +6098,21 @@ function mapSession(session: any): SessionRecord {
     revokedAt: toIso(session.revokedAt),
     lastReauthAt: toIso(session.lastReauthAt),
     impersonatedBy: session.impersonatedBy ?? undefined,
+  };
+}
+
+function mapRuntimeWebSocketTicket(ticket: any): RuntimeWebSocketTicketRecord {
+  return {
+    id: ticket.id,
+    tokenHash: ticket.tokenHash,
+    userId: ticket.userId,
+    workspaceId: ticket.workspaceId,
+    projectId: ticket.projectId,
+    resolvedWorkspaceId: ticket.resolvedWorkspaceId,
+    endpoint: ticket.endpoint,
+    expiresAt: ticket.expiresAt.toISOString(),
+    consumedAt: toIso(ticket.consumedAt),
+    createdAt: ticket.createdAt.toISOString(),
   };
 }
 

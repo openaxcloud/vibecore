@@ -21,7 +21,7 @@ export interface WsLike {
   addEventListener(type: 'open' | 'message' | 'error' | 'close', listener: (event: any) => void): void;
 }
 
-export type WsFactory = (url: string) => WsLike;
+export type WsFactory = (url: string, headers: Record<string, string>) => WsLike;
 
 interface AgentTreeNode {
   path: string;
@@ -77,9 +77,6 @@ export function streamAgentCommand(
   wsFactory: WsFactory,
 ): Promise<WorkspaceBuildStepResult> {
   return new Promise((resolve) => {
-    const sep = wsUrl.includes('?') ? '&' : '?';
-    const url = `${wsUrl}${sep}token=${encodeURIComponent(token)}`;
-
     let settled = false;
     let socket: WsLike | undefined;
 
@@ -113,7 +110,7 @@ export function streamAgentCommand(
     };
 
     try {
-      socket = wsFactory(url);
+      socket = wsFactory(wsUrl, { authorization: `Bearer ${token}` });
     } catch {
       finish({ exitCode: null, timedOut: false, error: 'WORKSPACE_STREAM_OPEN_FAILED' });
       return;
@@ -169,7 +166,7 @@ export function streamAgentCommand(
 export interface WorkspaceBuildAgentDeps {
   /** ws:// base for the workspace-agent, e.g. ws://workspace-<id>.<ns>.svc:8080 */
   agentWsBaseUrl: string;
-  /** Per-workspace agent bearer token (query-param auth for the WS). */
+  /** Per-workspace agent bearer token, sent only in the Authorization header. */
   token: string;
   /** HTTP GET against the agent (already authed), returns parsed JSON. */
   agentGet: <T>(path: string) => Promise<T>;

@@ -819,7 +819,13 @@ export function buildWorkspaceAgentApp(options: WorkspaceAgentOptions = {}) {
     });
   });
 
-  app.addHook('onRequest', async (request, reply) => {
+  /*
+   * Use preHandler for authentication: @fastify/websocket can otherwise take
+   * ownership of an Upgrade before an onRequest rejection is flushed, leaving
+   * an unauthenticated client hanging instead of receiving the 401. This hook
+   * still runs before every HTTP and WebSocket route handler.
+   */
+  app.addHook('preHandler', async (request, reply) => {
     /*
      * /health and /busy are unauthenticated, cluster-internal liveness/activity
      * probes for the workspace-manager (start-gate + GC busy guard). Both are
@@ -1806,22 +1812,10 @@ function readBearerToken(request: FastifyRequest) {
   }
 
   /*
-   * Query-param tokens are honored ONLY for WebSocket upgrades (terminal /
-   * commands-stream): browsers can't set Authorization on a WS handshake. For
-   * plain HTTP a ?token= would leak the bearer credential into proxy/access
-   * logs, Referer headers and history, so require the Authorization header —
-   * every REST caller (the API runtime proxy) already sends it.
+   * Every caller is server-side (API proxy or deploy worker) and can set an
+   * Authorization header. Query credentials are deliberately unsupported even
+   * on upgrades, so an agent bearer can never enter service/proxy access logs.
    */
-  const isWebSocketUpgrade = String(request.headers.upgrade ?? '').toLowerCase() === 'websocket';
-
-  if (isWebSocketUpgrade) {
-    if (typeof (request.query as { token?: unknown } | undefined)?.token === 'string') {
-      return (request.query as { token: string }).token;
-    }
-
-    return new URL(request.url, 'http://workspace-agent.local').searchParams.get('token') ?? undefined;
-  }
-
   return undefined;
 }
 

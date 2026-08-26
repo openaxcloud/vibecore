@@ -21,7 +21,10 @@ class FakeWebSocket implements WebSocketLike {
    */
   static authCloseNextOpenCount = 0;
 
-  constructor(readonly url: string) {
+  constructor(
+    readonly url: string,
+    readonly protocols?: string | string[],
+  ) {
     FakeWebSocket.instances.push(this);
     queueMicrotask(() => {
       if (FakeWebSocket.authCloseNextOpenCount > 0) {
@@ -69,8 +72,19 @@ class FakeWebSocket implements WebSocketLike {
 }
 
 function createFetchMock() {
+  let socketTicket = 0;
+
   return vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = String(input);
+
+    if (url.endsWith('/socket-ticket') && init?.method === 'POST') {
+      socketTicket += 1;
+      return Response.json({
+        ticket: `runtime_ws_ticket_${socketTicket.toString().padStart(8, '0')}`,
+        protocol: 'vibecore.runtime.v1',
+        expiresInSeconds: 30,
+      });
+    }
 
     if (url.endsWith('/runtime/boot')) {
       return new Response(null, { status: 204 });
@@ -702,7 +716,12 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
 
     const terminalSocket = FakeWebSocket.instances[0];
     expect(terminalSocket.url).toContain('wss://runtime.example.com/workspaces/ws-1/terminal');
-    expect(terminalSocket.url).toContain('token=token-456');
+    expect(terminalSocket.url).not.toContain('token=');
+    expect(terminalSocket.url).not.toContain('token-456');
+    expect(terminalSocket.protocols).toEqual([
+      'vibecore.runtime.v1',
+      'vibecore.runtime.ticket.runtime_ws_ticket_00000001',
+    ]);
     expect(terminalSocket.sent).toContain(JSON.stringify({ type: 'stdin', data: 'pnpm test\n' }));
     expect(terminalSocket.sent).toContain(JSON.stringify({ type: 'resize', cols: 100, rows: 30 }));
 
@@ -924,9 +943,7 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
      * Let #openSocket resolve (open is emitted on a microtask) and the generator register
      * its message listener before we push frames.
      */
-    for (let i = 0; i < 5 && FakeWebSocket.instances.length === 0; i += 1) {
-      await Promise.resolve();
-    }
+    await expect.poll(() => FakeWebSocket.instances.length).toBeGreaterThan(0);
 
     const socket = FakeWebSocket.instances.at(-1)!;
 
@@ -1190,7 +1207,11 @@ describe('RemoteKubernetesRuntimeAdapter', () => {
     // First socket got an auth close, so a second one was opened after the refresh.
     expect(invalidateAuthToken).toHaveBeenCalledTimes(1);
     expect(FakeWebSocket.instances.length).toBe(2);
-    expect(FakeWebSocket.instances.at(-1)!.url).toContain('token=fresh-socket-token');
+    expect(FakeWebSocket.instances.at(-1)!.url).not.toContain('token=');
+    expect(FakeWebSocket.instances.at(-1)!.protocols).toEqual([
+      'vibecore.runtime.v1',
+      'vibecore.runtime.ticket.runtime_ws_ticket_00000002',
+    ]);
 
     terminal.kill();
     FakeWebSocket.authCloseNextOpenCount = 0;
@@ -1398,9 +1419,7 @@ describe('BUG-AGENT-006/002 — 425 Too Early : backoff, Retry-After et attente 
   it('respecte Retry-After quand le serveur en fournit un', async () => {
     vi.useFakeTimers();
 
-    const { adapter, writes } = adapterWith(
-      () => new Response('{}', { status: 425, headers: { 'retry-after': '2' } }),
-    );
+    const { adapter, writes } = adapterWith(() => new Response('{}', { status: 425, headers: { 'retry-after': '2' } }));
 
     const pending = adapter.writeFile('src/App.tsx', 'x').catch(() => 'rejeté');
 
@@ -1481,4 +1500,4 @@ describe('BUG-AGENT-006 — 425 WORKSPACE_NOT_STARTED déclenche le provisionnem
     // le point du ticket : au moins UN provisionnement a été demandé
     expect(provisions.length).toBeGreaterThanOrEqual(1);
   });
-})
+});
