@@ -1557,6 +1557,20 @@ export function getMarketingPageCopy(slug: string, language?: string | null): Ma
   return null;
 }
 
+/**
+ * Keep the public-page title suffix in the i18n boundary. Besides making the
+ * punctuation consistent across static and dynamic marketing routes, this
+ * prevents route components from reintroducing user-visible title fragments
+ * outside the catalogues.
+ */
+export function formatMarketingPageTitle(title: string): string {
+  return `${title} - E-Code`;
+}
+
+export function missingMarketingCatalogEntryError(kind: 'page' | 'auxiliary', slug: string): Error {
+  return new Error(`MARKETING_${kind.toUpperCase()}_CATALOG_ENTRY_MISSING:${slug}`);
+}
+
 export function getMarketingFigureCopy(
   slug: string,
   language?: string | null,

@@ -2,7 +2,10 @@ import { useTranslation } from 'react-i18next';
 import { data as json, redirect, type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 
 import { MarketingDynamicPage, solutionPages } from '~/components/marketing/EcodeMarketingPages';
-import { getMarketingSolutionsRouteCopy } from '~/lib/i18n/catalogs/marketing-solutions-route';
+import {
+  formatMarketingSolutionTitle,
+  getMarketingSolutionsRouteCopy,
+} from '~/lib/i18n/catalogs/marketing-solutions-route';
 import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 /**
@@ -30,7 +33,7 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
   const copy = getMarketingSolutionsRouteCopy(data?.language);
 
   return [
-    { title: data?.title ? `${data.title} — E-Code` : copy['marketingSolutions.seo.title'] },
+    { title: data?.title ? formatMarketingSolutionTitle(data.title) : copy['marketingSolutions.seo.title'] },
     { name: 'description', content: data?.description ?? copy['marketingSolutions.seo.description'] },
   ];
 };

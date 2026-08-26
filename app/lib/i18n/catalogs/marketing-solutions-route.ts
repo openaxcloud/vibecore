@@ -34,6 +34,10 @@ export function getMarketingSolutionsRouteCopy(language?: string | null): Market
   return normalizeSupportedLanguage(language) === 'fr' ? marketingSolutionsRouteFr : marketingSolutionsRouteEn;
 }
 
+export function formatMarketingSolutionTitle(title: string): string {
+  return `${title} — E-Code`;
+}
+
 export function buildMarketingSolutionsMeta(language?: string | null) {
   const copy = getMarketingSolutionsRouteCopy(language);
   const french = normalizeSupportedLanguage(language) === 'fr';

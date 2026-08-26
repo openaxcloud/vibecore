@@ -34,8 +34,11 @@ import {
   getMarketingFigureCopy,
   getMarketingPageCopy,
   getMarketingUiCopy,
+  formatMarketingPageTitle,
   marketingAuxiliaryPageCopyEn,
   marketingPageCopyEn,
+  marketingSolutionCardCopyEn,
+  missingMarketingCatalogEntryError,
 } from '~/lib/i18n/catalogs/marketing';
 import { socialMetaTags } from '~/utils/social-meta';
 
@@ -197,7 +200,7 @@ function makeCatalogMarketingPage(slug: CatalogMarketingPageKey, language: strin
   const copy = getMarketingPageCopy(slug, language);
 
   if (!copy) {
-    throw new Error(`Missing marketing catalog entry: ${slug}`);
+    throw missingMarketingCatalogEntryError('page', slug);
   }
 
   return {
@@ -224,62 +227,58 @@ export const marketingPages = Object.fromEntries(
   (Object.keys(marketingPageChrome) as CatalogMarketingPageKey[]).map((slug) => [slug, makeCatalogMarketingPage(slug)]),
 ) as { readonly [Key in CatalogMarketingPageKey]: MarketingPageDefinition };
 
+const solutionPageChrome = {
+  kind: 'solution',
+  icon: PlayCircle,
+  primaryActionTo: '/signup',
+  secondaryActionTo: '/contact-sales',
+} as const;
+
+/*
+ * Enterprise predates the dedicated solution-card catalogue and remains in
+ * the main marketing catalogue. Unite both catalogue sources here without
+ * duplicating any visible copy in the component.
+ */
+const solutionPageCopyEn = {
+  ...marketingSolutionCardCopyEn,
+  enterprise: marketingPageCopyEn.enterprise,
+} as const;
+
+function makeCatalogSolutionPage(slug: keyof typeof solutionPageCopyEn): MarketingPageDefinition {
+  const copy = solutionPageCopyEn[slug];
+
+  return {
+    slug,
+    title: copy.title,
+    eyebrow: copy.eyebrow,
+    description: copy.description,
+    kind: solutionPageChrome.kind,
+    icon: solutionPageChrome.icon,
+    primaryAction: copy.primaryActionLabel ? [copy.primaryActionLabel, solutionPageChrome.primaryActionTo] : undefined,
+    secondaryAction: copy.secondaryActionLabel
+      ? [copy.secondaryActionLabel, solutionPageChrome.secondaryActionTo]
+      : undefined,
+    highlights: copy.highlights,
+    sections: copy.sections,
+  };
+}
+
+/*
+ * The complete EN and FR solution copy already lives in the marketing
+ * catalogues. This explicit key registry keeps route typing exact while every
+ * visible string still comes from that canonical catalogue.
+ */
 export const solutionPages = {
-  'app-builder': makeSolution(
-    'app-builder',
-    'App Builder',
-    'Describe a business workflow and turn it into responsive screens, typed application logic, structured data and a deployable codebase.',
-    ['Responsive product screens', 'Typed routes and logic', 'Structured data model', 'Deployable source code'],
-  ),
-  'website-builder': makeSolution(
-    'website-builder',
-    'Website Builder',
-    'Create polished marketing sites, launch pages and content systems with production-ready responsive layouts.',
-    ['Landing pages', 'Company sites', 'Docs surfaces', 'Lead capture'],
-  ),
-  'game-builder': makeSolution(
-    'game-builder',
-    'Game Builder',
-    'Design and launch interactive browser experiences while keeping assets, code and preview feedback in one workspace.',
-    ['Canvas games', 'Interactive demos', 'Prototype loops', 'Deployment previews'],
-  ),
-  'dashboard-builder': makeSolution(
-    'dashboard-builder',
-    'Dashboard Builder',
-    'Build data-rich dashboards with authentication, charts, filters, team access and operational telemetry.',
-    ['Analytics views', 'Admin panels', 'KPI tracking', 'Real-time status'],
-  ),
-  'chatbot-builder': makeSolution(
-    'chatbot-builder',
-    'Chatbot / AI Agent Builder',
-    'Deploy conversational assistants and task agents with reviewable prompts, tools, memory and audit boundaries.',
-    ['Support assistants', 'Internal copilots', 'Workflow agents', 'Knowledge bots'],
-  ),
-  'internal-ai-builder': makeSolution(
-    'internal-ai-builder',
-    'Internal AI Builder',
-    'Bring private AI tools to every team with secure project context, approvals and enterprise observability.',
-    ['Operations tools', 'Sales assistants', 'Support automation', 'Knowledge workflows'],
-  ),
-  enterprise: makeSolution(
-    'enterprise',
-    'Enterprise',
-    'Roll out E-Code with SSO, SCIM, audit logs, security controls, private runtime planning and support.',
-    ['SSO and SCIM', 'Audit export', 'Private rollout', 'Premium support'],
-  ),
-  startups: makeSolution(
-    'startups',
-    'Startups',
-    'Ship products quickly with templates, AI generation, hosted previews and a path from prototype to production.',
-    ['MVP launch', 'Investor demos', 'SaaS starters', 'Fast iteration'],
-  ),
-  freelancers: makeSolution(
-    'freelancers',
-    'Freelancers',
-    'Deliver client projects faster with repeatable templates, preview links and production handoff workflows.',
-    ['Client portals', 'Portfolio sites', 'Retainers', 'Handoff docs'],
-  ),
-} as const satisfies Record<string, MarketingPageDefinition>;
+  'app-builder': makeCatalogSolutionPage('app-builder'),
+  'website-builder': makeCatalogSolutionPage('website-builder'),
+  'game-builder': makeCatalogSolutionPage('game-builder'),
+  'dashboard-builder': makeCatalogSolutionPage('dashboard-builder'),
+  'chatbot-builder': makeCatalogSolutionPage('chatbot-builder'),
+  'internal-ai-builder': makeCatalogSolutionPage('internal-ai-builder'),
+  enterprise: makeCatalogSolutionPage('enterprise'),
+  startups: makeCatalogSolutionPage('startups'),
+  freelancers: makeCatalogSolutionPage('freelancers'),
+} as const satisfies Record<keyof typeof solutionPageCopyEn, MarketingPageDefinition>;
 
 type AuxiliaryMarketingPageKey = keyof typeof marketingAuxiliaryPageCopyEn;
 
@@ -295,7 +294,7 @@ function makeAuxiliaryMarketingPage(
   const copy = getMarketingPageCopy(slug, 'en');
 
   if (!copy) {
-    throw new Error(`Missing auxiliary marketing catalog entry: ${slug}`);
+    throw missingMarketingCatalogEntryError('auxiliary', slug);
   }
 
   return {
@@ -454,10 +453,10 @@ export function makeMarketingMeta(page: MarketingPageDefinition): MetaFunction {
     const localizedPage = localizeMarketingPage(page, routeLanguage ?? rootLanguage);
 
     return [
-      { title: `${localizedPage.title} - E-Code` },
+      { title: formatMarketingPageTitle(localizedPage.title) },
       { name: 'description', content: localizedPage.description },
       ...socialMetaTags({
-        title: `${localizedPage.title} - E-Code`,
+        title: formatMarketingPageTitle(localizedPage.title),
         description: localizedPage.description,
         path: location?.pathname,
       }),
@@ -770,35 +769,4 @@ function routeForPage(page: MarketingPageDefinition) {
   }
 
   return `/${page.slug}`;
-}
-
-function makeSolution(
-  slug: string,
-  title: string,
-  description: string,
-  highlights: readonly string[],
-): MarketingPageDefinition {
-  return {
-    slug,
-    title,
-    eyebrow: 'Solutions',
-    description,
-    kind: 'solution',
-    icon: PlayCircle,
-    primaryAction: ['Start building', '/signup'],
-    secondaryAction: ['Contact sales', '/contact-sales'],
-    highlights,
-    sections: [
-      {
-        title: 'What you can build',
-        body: `${title} gives teams a faster path from idea to a typed, reviewable project with a running preview.`,
-        items: highlights,
-      },
-      {
-        title: 'Production workflow',
-        body: 'Every generated project should be inspectable, testable and ready for deployment planning.',
-        items: ['Prompt to project', 'Code review', 'Runtime preview', 'Deployment path'],
-      },
-    ],
-  };
 }
