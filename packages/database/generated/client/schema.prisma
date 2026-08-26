@@ -2428,54 +2428,106 @@ model AgentCallLog {
 }
 
 /// A secure project remix (fork) run. Tracks the normative state machine
-/// (SNAPSHOT_PINNED → CREDENTIALS_DETACHED → CLONING → DB_FORKING →
-/// STORAGE_POLICY_APPLIED → SCANNING → INDEXING → COMPLETED) so the
+/// (PENDING → SNAPSHOT_PINNED → CREDENTIALS_DETACHED → SOURCE_SANITIZED
+/// → CLONING → SCANNING → STORAGE_PINNED → STORAGE_POLICY_APPLIED
+/// → DATABASE_PINNED → DB_FORKING → INDEXING → COMPLETED) so the
 /// credentials-detached-before-cloning invariant is auditable. `detachedKeys`
 /// holds ONLY secret/env KEYS (references) — never a value. `scanFindings`
 /// records materialized-secret hits (key + location, never the value).
 model RemixJob {
-  id               String   @id @default(cuid())
-  sourceProjectId  String
-  targetProjectId  String?
-  organizationId   String
-  actorUserId      String?
-  state            String   @default("SNAPSHOT_PINNED")
+  id                       String    @id @default(cuid())
+  sourceProjectId          String
+  targetProjectId          String?
+  organizationId           String
+  actorUserId              String?
+  state                    String    @default("PENDING")
+  /// Tenant-scoped retry key. Legacy rows may be null; every new API job has one.
+  idempotencyKey           String?
+  /// SHA-256 of the non-secret, authorization-relevant request shape.
+  requestHash              String?
+  /// Optimistic-concurrency fence for state/ownership transitions.
+  version                  Int       @default(0)
+  /// Fencing token and renewable lease held by the current executor.
+  operationToken           String?
+  operationExpiresAt       DateTime?
   /// IMMUTABLE source release the clone reproduces. When set, CLONING reads the
   /// files from this pinned ProjectSnapshot archive (not the live source), so a
   /// gallery remix is reproducible from the exact published release. NULL for a
   /// legacy live-source remix. This is the provenance pin (I-RMX-PIN).
-  sourceSnapshotId String?
+  sourceSnapshotId         String?
+  /// SHA-256 of the pinned ProjectSnapshot archive bytes.
+  sourceSnapshotHash       String?
   /// The gallery listing this remix was launched from, if any (provenance).
-  sourceListingId  String?
+  sourceListingId          String?
   /// { secretKeys: string[], envVarKeys: string[] } — references only.
-  detachedKeys     Json?
+  detachedKeys             Json?
   /// DETACH | CLONE | SHARE_WITH_CONSENT
-  storagePolicy    String   @default("DETACH")
+  storagePolicy            String    @default("DETACH")
+  /// Versioned explicit consent for SHARE_WITH_CONSENT; null for other policies.
+  storageConsentVersion    String?
+  /// Redacted per-object source/target verification facts (key,size,generation,hash).
+  storageInventory         Json?
+  /// Read-only source binding created for SHARE_WITH_CONSENT.
+  storageShareId           String?
   /// SecretScanFinding[] { path, secretKey, line } — never the value.
-  scanFindings     Json?
+  scanFindings             Json?
   /// Count of value-lines scrubbed out of the clone during CLONING.
-  scrubbedCount    Int      @default(0)
+  scrubbedCount            Int       @default(0)
   /// VERSIONED license captured at remix time from the source listing —
   /// { licenseId, licenseTextSha256, sourceListingId, capturedAt }. Immutable on
   /// the job: later edits to the listing's license never rewrite what THIS remix
   /// was accepted under (I-RMX-3, P0-V3-05). Null for a same-org self-remix.
-  licenseSnapshot  Json?
+  licenseSnapshot          Json?
   /// Version of the remix consent text the REMIXER explicitly accepted before
   /// the clone ran (REMIX_CONSENT_VERSION at accept time). Null = no consent
   /// captured (same-org self-remix only — a gallery remix REQUIRES it).
-  consentVersion   String?
+  consentVersion           String?
   /// PiiFinding[] { path, kind, line } — kind of PII masked, never the value.
-  piiFindings      Json?
+  piiFindings              Json?
   /// Count of PII spans masked out of the clone during SOURCE_SANITIZED.
-  piiMaskedCount   Int      @default(0)
+  piiMaskedCount           Int       @default(0)
   /// Honest marker: was a physical isolated DB provisioned, or deferred?
-  dbForked         Boolean  @default(false)
-  error            String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  dbForked                 Boolean   @default(false)
+  /// { instanceId, environment, targetTime, lsn? } — never a connection URI.
+  sourceDatabasePin        Json?
+  /// Target DatabaseInstance row while the isolated CNPG recovery is running.
+  targetDatabaseInstanceId String?
+  /// Desired terminal state while physical cleanup is in progress.
+  cleanupTerminalState     String?
+  /// Stable public code; `error` remains a redacted user-facing message.
+  errorCode                String?
+  error                    String?
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
 
+  @@unique([organizationId, idempotencyKey])
   @@index([sourceProjectId])
   @@index([organizationId, createdAt])
+  @@index([targetProjectId])
+  @@index([state, operationExpiresAt])
+}
+
+/// Explicit read-only object-storage sharing created by a remix. The source
+/// bucket is never inferred from project lineage: without this durable,
+/// versioned consent row, a target project cannot read source objects.
+model RemixStorageShare {
+  id                   String    @id @default(cuid())
+  sourceProjectId      String
+  targetProjectId      String    @unique
+  sourceOrganizationId String
+  targetOrganizationId String
+  consentVersion       String
+  consentedByUserId    String?
+  consentedAt          DateTime  @default(now())
+  sourceInventory      Json
+  state                String    @default("ACTIVE")
+  revokedAt            DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([sourceProjectId])
+  @@index([sourceOrganizationId])
+  @@index([targetOrganizationId])
 }
 
 /// A secure project import run (DOMAIN_MODEL §2). Tracks the normative state

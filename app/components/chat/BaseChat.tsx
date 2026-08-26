@@ -49,6 +49,7 @@ import {
   describeSnapshotRestoreFailure,
   isPanelAuthError,
   panelAuthRedirectTarget,
+  shouldShowObjectStorageProvisioningCta,
   shouldSuppressAutoApplyFailureToast,
 } from './base-chat-panels';
 
@@ -15936,6 +15937,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
   const language = resolvedBaseChatLanguage(i18n);
   const [prefix, setPrefix] = useState('');
   const [enabled, setEnabled] = useState<boolean | null>(null);
+  const [storageMode, setStorageMode] = useState<'OWNED' | 'SHARED_READ_ONLY' | null>(null);
 
   // Per-project bucket provisioning (Replit App Storage first-run). null = unknown.
   const [provisioned, setProvisioned] = useState<boolean | null>(null);
@@ -16050,6 +16052,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
 
       setEnabled(Boolean(result.enabled));
       setProvisioned(result.enabled ? Boolean(result.provisioned) : false);
+      setStorageMode(result.mode === 'SHARED_READ_ONLY' ? 'SHARED_READ_ONLY' : 'OWNED');
     } catch (error) {
       console.error('Object storage status request failed', error);
       setEnabled(false);
@@ -16057,6 +16060,29 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
       setStatus(t('baseChatAst.storage.unreachable'));
     }
   }, [postIntent, projectId, t]);
+
+  const revokeReadOnlyShare = useCallback(async () => {
+    setWorking(true);
+    setStatus(null);
+
+    try {
+      const result = await postIntent({ intent: 'revoke-share' });
+
+      if (!result?.ok) {
+        setStatus(t('baseChatAst.storage.shareRevokeFailed'));
+        return;
+      }
+
+      setStorageMode('OWNED');
+      setStatus(t('baseChatAst.storage.shareRevoked'));
+      await loadStatus();
+    } catch (error) {
+      console.error('Object storage share revoke failed', error);
+      setStatus(t('baseChatAst.storage.shareRevokeFailed'));
+    } finally {
+      setWorking(false);
+    }
+  }, [loadStatus, postIntent, t]);
 
   useEffect(() => {
     void loadStatus();
@@ -16303,7 +16329,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
    * Platform storage is available but this project has no bucket yet — offer the
    * one-click "Enable" (create bucket) CTA, Replit App Storage style.
    */
-  if (provisioned === false) {
+  if (shouldShowObjectStorageProvisioningCta(provisioned, storageMode)) {
     return (
       <div className="bolt-project-managed-panel bolt-project-object-storage-panel">
         <div className="bolt-project-empty-panel grid gap-3 text-sm">
@@ -16331,7 +16357,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
     <div
       className="bolt-project-managed-panel bolt-project-object-storage-panel relative"
       onDragOver={(event) => {
-        if (view !== 'objects' || working) {
+        if (view !== 'objects' || working || storageMode === 'SHARED_READ_ONLY') {
           return;
         }
 
@@ -16350,7 +16376,7 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         }
       }}
       onDrop={(event) => {
-        if (view !== 'objects' || working) {
+        if (view !== 'objects' || working || storageMode === 'SHARED_READ_ONLY') {
           return;
         }
 
@@ -16415,6 +16441,28 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
         variant="destructive"
       />
       <section className="grid gap-3">
+        {storageMode === 'SHARED_READ_ONLY' ? (
+          <div className="flex flex-col gap-3 rounded-lg border border-amber-500/35 bg-amber-500/10 p-3 text-sm sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0">
+              <strong className="block text-bolt-elements-textPrimary">
+                {t('baseChatAst.storage.sharedReadOnlyTitle')}
+              </strong>
+              <span className="mt-1 block text-xs leading-5 text-bolt-elements-textSecondary">
+                {t('baseChatAst.storage.sharedReadOnlyDescription')}
+              </span>
+            </div>
+            <PanelButton
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              disabled={busy || working}
+              onClick={() => void revokeReadOnlyShare()}
+            >
+              {t('baseChatAst.storage.revokeShare')}
+            </PanelButton>
+          </div>
+        ) : null}
         {/* Bucket header + Objects | Settings switch (Replit App Storage parity). */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-sm text-bolt-elements-textPrimary">
@@ -16435,44 +16483,48 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
 
         {view === 'settings' ? (
           <div className="grid gap-4 text-sm">
-            <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
-              <PanelSectionTitle level="group">{t('chat.copy.bucket_40dafe4c')}</PanelSectionTitle>
-              <p className="text-xs text-bolt-elements-textSecondary">
-                {t('chat.copy.aSingleGcsBucketIsProvisioned_0d81fecc')}
-              </p>
-              <PanelButton
-                type="button"
-                variant="outline"
-                size="sm"
-                className="w-fit"
-                onClick={() => void runOperation({ intent: 'ensure-bucket' }, t('baseChatAst.storage.bucketReady'))}
-                disabled={busy || working}
-              >
-                {t('chat.copy.ensureBucketExists_5c9d55b8')}
-              </PanelButton>
-            </section>
+            {storageMode === 'OWNED' ? (
+              <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
+                <PanelSectionTitle level="group">{t('chat.copy.bucket_40dafe4c')}</PanelSectionTitle>
+                <p className="text-xs text-bolt-elements-textSecondary">
+                  {t('chat.copy.aSingleGcsBucketIsProvisioned_0d81fecc')}
+                </p>
+                <PanelButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-fit"
+                  onClick={() => void runOperation({ intent: 'ensure-bucket' }, t('baseChatAst.storage.bucketReady'))}
+                  disabled={busy || working}
+                >
+                  {t('chat.copy.ensureBucketExists_5c9d55b8')}
+                </PanelButton>
+              </section>
+            ) : null}
             <section className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3">
               <PanelSectionTitle level="group">{t('chat.copy.sharing_78779bad')}</PanelSectionTitle>
               <p className="text-xs text-bolt-elements-textTertiary">
                 {t('chat.copy.addingOrRemovingThisBucketFrom_63b69b72')}
               </p>
             </section>
-            <section className="grid gap-2 rounded-lg border border-[var(--status-error-border)] bg-bolt-elements-background-depth-2 p-3">
-              <PanelSectionTitle level="group">{t('chat.copy.deleteBucket_0d2c8e99')}</PanelSectionTitle>
-              <p className="text-xs text-bolt-elements-textTertiary">
-                {t('chat.copy.permanentlyDeletesTheProjectBucketAnd_850cc916')}
-              </p>
-              <PanelButton
-                type="button"
-                variant="danger"
-                size="sm"
-                className="w-fit"
-                disabled={busy || working}
-                onClick={() => setConfirmDeleteBucket(true)}
-              >
-                {t('chat.copy.deleteBucket_0d2c8e99')}
-              </PanelButton>
-            </section>
+            {storageMode === 'OWNED' ? (
+              <section className="grid gap-2 rounded-lg border border-[var(--status-error-border)] bg-bolt-elements-background-depth-2 p-3">
+                <PanelSectionTitle level="group">{t('chat.copy.deleteBucket_0d2c8e99')}</PanelSectionTitle>
+                <p className="text-xs text-bolt-elements-textTertiary">
+                  {t('chat.copy.permanentlyDeletesTheProjectBucketAnd_850cc916')}
+                </p>
+                <PanelButton
+                  type="button"
+                  variant="danger"
+                  size="sm"
+                  className="w-fit"
+                  disabled={busy || working}
+                  onClick={() => setConfirmDeleteBucket(true)}
+                >
+                  {t('chat.copy.deleteBucket_0d2c8e99')}
+                </PanelButton>
+              </section>
+            ) : null}
             {status ? (
               <p className="text-xs text-bolt-elements-textSecondary" role="status">
                 {status}
@@ -16503,41 +16555,49 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
               >
                 {loading ? t('chat.copy.loading_33ce4174') : t('chat.copy.refresh_56e3badc')}
               </PanelButton>
-              <PanelButton
-                type="button"
-                size="sm"
-                onClick={() => uploadInputRef.current?.click()}
-                disabled={busy || working}
-              >
-                {t('chat.copy.uploadFiles_41aca16f')}
-              </PanelButton>
-              <PanelButton
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => folderInputRef.current?.click()}
-                disabled={busy || working}
-              >
-                {t('chat.copy.uploadFolder_e77a1496')}
-              </PanelButton>
-              <PanelButton
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setCreateFolderOpen(true)}
-                disabled={busy || working}
-              >
-                {t('chat.copy.createFolder_e59f63fa')}
-              </PanelButton>
-              <PanelButton
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => void runOperation({ intent: 'ensure-bucket' }, t('baseChatAst.storage.bucketReady'))}
-                disabled={busy || working}
-              >
-                {t('chat.copy.ensureBucket_59b7cad5')}
-              </PanelButton>
+              {storageMode === 'OWNED' ? (
+                <PanelButton
+                  type="button"
+                  size="sm"
+                  onClick={() => uploadInputRef.current?.click()}
+                  disabled={busy || working}
+                >
+                  {t('chat.copy.uploadFiles_41aca16f')}
+                </PanelButton>
+              ) : null}
+              {storageMode === 'OWNED' ? (
+                <PanelButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => folderInputRef.current?.click()}
+                  disabled={busy || working}
+                >
+                  {t('chat.copy.uploadFolder_e77a1496')}
+                </PanelButton>
+              ) : null}
+              {storageMode === 'OWNED' ? (
+                <PanelButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCreateFolderOpen(true)}
+                  disabled={busy || working}
+                >
+                  {t('chat.copy.createFolder_e59f63fa')}
+                </PanelButton>
+              ) : null}
+              {storageMode === 'OWNED' ? (
+                <PanelButton
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void runOperation({ intent: 'ensure-bucket' }, t('baseChatAst.storage.bucketReady'))}
+                  disabled={busy || working}
+                >
+                  {t('chat.copy.ensureBucket_59b7cad5')}
+                </PanelButton>
+              ) : null}
               <input
                 ref={uploadInputRef}
                 type="file"
@@ -16596,20 +16656,22 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                       {folder.replace(prefix, '').replace(/\/$/, '')}
                     </button>
                     {/* UNIF lot 7 — croix typographique remplacée par l'icône Phosphor standard. */}
-                    <button
-                      type="button"
-                      onClick={() =>
-                        void runOperation(
-                          { intent: 'delete-object', prefix: folder },
-                          t('baseChatAst.storage.folderDeleted'),
-                        )
-                      }
-                      aria-label={t('chat.copy.deleteFolderValue0_f97d9e9f', { value0: folder })}
-                      className="inline-flex items-center rounded p-0.5 text-bolt-elements-textTertiary transition-colors hover:text-bolt-elements-item-contentDanger disabled:cursor-not-allowed disabled:opacity-60"
-                      disabled={working}
-                    >
-                      <span className="i-ph:x" aria-hidden />
-                    </button>
+                    {storageMode === 'OWNED' ? (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          void runOperation(
+                            { intent: 'delete-object', prefix: folder },
+                            t('baseChatAst.storage.folderDeleted'),
+                          )
+                        }
+                        aria-label={t('chat.copy.deleteFolderValue0_f97d9e9f', { value0: folder })}
+                        className="inline-flex items-center rounded p-0.5 text-bolt-elements-textTertiary transition-colors hover:text-bolt-elements-item-contentDanger disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={working}
+                      >
+                        <span className="i-ph:x" aria-hidden />
+                      </button>
+                    ) : null}
                   </span>
                 ))}
               </div>
@@ -16647,29 +16709,33 @@ function ProjectObjectStoragePanel({ projectId, busy }: { projectId?: string; bu
                       >
                         {t('chat.copy.download_a479c9c3')}
                       </PanelButton>
-                      <PanelButton
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setRenameKey(object.key)}
-                        disabled={working}
-                      >
-                        {t('chat.copy.move_76cdb950')}
-                      </PanelButton>
-                      <PanelButton
-                        type="button"
-                        variant="danger"
-                        size="sm"
-                        onClick={() =>
-                          void runOperation(
-                            { intent: 'delete-object', key: object.key },
-                            t('baseChatAst.storage.objectDeleted'),
-                          )
-                        }
-                        disabled={working}
-                      >
-                        {t('chat.copy.delete_f6fdbe48')}
-                      </PanelButton>
+                      {storageMode === 'OWNED' ? (
+                        <PanelButton
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setRenameKey(object.key)}
+                          disabled={working}
+                        >
+                          {t('chat.copy.move_76cdb950')}
+                        </PanelButton>
+                      ) : null}
+                      {storageMode === 'OWNED' ? (
+                        <PanelButton
+                          type="button"
+                          variant="danger"
+                          size="sm"
+                          onClick={() =>
+                            void runOperation(
+                              { intent: 'delete-object', key: object.key },
+                              t('baseChatAst.storage.objectDeleted'),
+                            )
+                          }
+                          disabled={working}
+                        >
+                          {t('chat.copy.delete_f6fdbe48')}
+                        </PanelButton>
+                      ) : null}
                     </div>
                   </div>
                 ))}

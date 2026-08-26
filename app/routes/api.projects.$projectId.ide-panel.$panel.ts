@@ -2056,6 +2056,15 @@ async function actionHandler({ request, params }: EnterpriseActionArgs) {
       } catch (error) {
         return objectStorageResultOrDisabled(error);
       }
+    } else if (intent === 'revoke-share') {
+      try {
+        const result = await apiRequest(request, `/projects/${projectId}/object-storage/share`, {
+          method: 'DELETE',
+        });
+        return json({ enabled: true, ok: true, ...(result as any) });
+      } catch (error) {
+        return objectStorageResultOrDisabled(error);
+      }
     } else if (intent === 'upload-url') {
       const key = (body.key ?? '').trim();
 

@@ -233,11 +233,20 @@ export interface ProjectStorage {
     projectId: string,
     files: Array<{ path: string; content: string; encoding?: FileEncoding }>,
     workspaceId?: string,
+    guard?: () => Promise<void>,
   ): Promise<ProjectFile[]>;
   listFiles(projectId: string, workspaceId?: string): Promise<ProjectFile[]>;
   exportZip(projectId: string): Promise<StoredArchive & { base64: string }>;
   importZip(projectId: string, base64: string, options?: { replaceExisting?: boolean }): Promise<ProjectFile[]>;
-  createSnapshot(input: { projectId: string; label?: string; files: ProjectFile[] }): Promise<StoredArchive>;
+  createSnapshot(input: {
+    projectId: string;
+    label?: string;
+    files: ProjectFile[];
+    /** Server-chosen deterministic key for crash-safe, idempotent snapshots. */
+    storageKey?: string;
+    /** Revalidate durable remix ownership immediately before every file-system mutation. */
+    guard?: () => Promise<void>;
+  }): Promise<StoredArchive>;
   getSnapshotFiles(storageKey: string): Promise<ProjectFile[]>;
   restoreSnapshot(input: { projectId: string; workspaceId?: string; files: ProjectFile[] }): Promise<ProjectFile[]>;
   /**
@@ -245,7 +254,7 @@ export interface ProjectStorage {
    * deliberately separate from `restoreSnapshot([])`, which preserves `.git`
    * and secondary workspaces and therefore cannot certify rollback cleanup.
    */
-  deleteProjectFiles(projectId: string): Promise<void>;
+  deleteProjectFiles(projectId: string, guard?: () => Promise<void>): Promise<void>;
 }
 
 export const SECONDARY_WORKSPACES_DIR = '.vibecore-workspaces';
@@ -638,11 +647,14 @@ export class LocalProjectStorage implements ProjectStorage {
     projectId: string,
     files: Array<{ path: string; content: string; encoding?: FileEncoding }>,
     workspaceId?: string,
+    guard?: () => Promise<void>,
   ) {
     return withProjectLock(projectId, async () => {
       for (const file of files) {
         const target = safeWorkspacePath(projectId, workspaceId, file.path);
+        await guard?.();
         await mkdir(dirname(target), { recursive: true });
+        await guard?.();
         await writeFile(target, decodeFileContent(file.content, file.encoding));
       }
 
@@ -691,12 +703,20 @@ export class LocalProjectStorage implements ProjectStorage {
     });
   }
 
-  async createSnapshot(input: { projectId: string; label?: string; files: ProjectFile[] }) {
+  async createSnapshot(input: {
+    projectId: string;
+    label?: string;
+    files: ProjectFile[];
+    storageKey?: string;
+    guard?: () => Promise<void>;
+  }) {
     return withProjectLock(input.projectId, async () => {
       const content = await archiveFiles(input.files);
-      const storageKey = archiveKey('snapshots', input.projectId);
+      const storageKey = input.storageKey ?? archiveKey('snapshots', input.projectId);
       const target = safeProjectPath('_objects', storageKey);
+      await input.guard?.();
       await mkdir(dirname(target), { recursive: true });
+      await input.guard?.();
       await writeFile(target, content);
 
       return { storageKey, byteLength: content.byteLength, base64: content.toString('base64'), createdAt: now() };
@@ -736,8 +756,9 @@ export class LocalProjectStorage implements ProjectStorage {
     });
   }
 
-  async deleteProjectFiles(projectId: string): Promise<void> {
+  async deleteProjectFiles(projectId: string, guard?: () => Promise<void>): Promise<void> {
     await withProjectLock(projectId, async () => {
+      await guard?.();
       await resilientRm(safeProjectPath(projectId));
     });
   }

@@ -169,14 +169,26 @@ describe('ide-panel object-storage action (functional browser round-trip)', () =
     expect((thrown as any)?.data).not.toMatchObject({ enabled: false });
   });
 
-  it('status: reports { enabled, provisioned } from the project-scoped status endpoint', async () => {
-    apiRequest.mockResolvedValueOnce({ enabled: true, provisioned: false });
+  it('status: reports the durable read-only share mode from the project-scoped status endpoint', async () => {
+    apiRequest.mockResolvedValueOnce({ enabled: true, provisioned: true, mode: 'SHARED_READ_ONLY' });
 
     const { action } = await import('./api.projects.$projectId.ide-panel.$panel');
     const body = readJson(await action(actionArgs({ intent: 'status' })));
 
     expect(apiRequest.mock.calls[0][1]).toBe('/projects/proj-42/object-storage/status');
-    expect(body).toEqual({ enabled: true, provisioned: false });
+    expect(body).toEqual({ enabled: true, provisioned: true, mode: 'SHARED_READ_ONLY' });
+  });
+
+  it('revoke-share: proxies a target-scoped DELETE so the read-only grant is explicitly revocable', async () => {
+    apiRequest.mockResolvedValueOnce({ revoked: true, revokedAt: '2026-08-26T00:00:00.000Z' });
+
+    const { action } = await import('./api.projects.$projectId.ide-panel.$panel');
+    const body = readJson(await action(actionArgs({ intent: 'revoke-share' })));
+
+    const [, url, init] = apiRequest.mock.calls[0];
+    expect(url).toBe('/projects/proj-42/object-storage/share');
+    expect(init.method).toBe('DELETE');
+    expect(body).toMatchObject({ enabled: true, ok: true, revoked: true });
   });
 
   it('status: FEATURE_NOT_ENABLED degrades to { enabled: false, provisioned: false }', async () => {

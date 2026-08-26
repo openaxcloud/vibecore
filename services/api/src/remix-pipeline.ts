@@ -3,13 +3,15 @@
  *
  * NORMATIVE state machine — the order is a SECURITY property, not a convenience:
  *
- *   SNAPSHOT_PINNED → CREDENTIALS_DETACHED → SOURCE_SANITIZED → CLONING
- *     → DB_FORKING → STORAGE_POLICY_APPLIED → SCANNING → INDEXING → COMPLETED
+ *   PENDING → SNAPSHOT_PINNED → CREDENTIALS_DETACHED → SOURCE_SANITIZED
+ *     → CLONING → SCANNING → STORAGE_PINNED → STORAGE_POLICY_APPLIED
+ *     → DATABASE_PINNED → DB_FORKING → INDEXING → COMPLETED
  *
  * Hard invariants:
- *  - I-RMX-1: a secret VALUE never enters the clone artifact. Secrets are
- *    references (keys only). `CREDENTIALS_DETACHED` records the source's secret
- *    KEYS; the clone is seeded with empty-valued references, never the values.
+ *  - I-RMX-1: a secret VALUE never enters either the immutable source pin or
+ *    the clone artifact. Secrets are references (keys only).
+ *    `CREDENTIALS_DETACHED` records the source's secret KEYS; the pin and clone
+ *    retain only empty-valued references, never the values.
  *  - I-RMX-2: `CREDENTIALS_DETACHED` is a hard precondition of `CLONING`. The
  *    reverse order is a design defect and is rejected here (advance() throws).
  *  - I-RMX-6 (SCANNING): the cloned artifact is scanned for any MATERIALIZED
@@ -27,26 +29,33 @@
  */
 
 export type RemixState =
+  | 'PENDING'
   | 'SNAPSHOT_PINNED'
   | 'CREDENTIALS_DETACHED'
   | 'SOURCE_SANITIZED'
   | 'CLONING'
-  | 'DB_FORKING'
+  | 'STORAGE_PINNED'
   | 'STORAGE_POLICY_APPLIED'
   | 'SCANNING'
+  | 'DATABASE_PINNED'
+  | 'DB_FORKING'
   | 'INDEXING'
   | 'COMPLETED'
+  | 'CLEANUP_PENDING'
   | 'FAILED';
 
 /** The normative forward order. FAILED is reachable from any non-terminal state. */
 export const REMIX_STATE_ORDER: RemixState[] = [
+  'PENDING',
   'SNAPSHOT_PINNED',
   'CREDENTIALS_DETACHED',
   'SOURCE_SANITIZED',
   'CLONING',
-  'DB_FORKING',
-  'STORAGE_POLICY_APPLIED',
   'SCANNING',
+  'STORAGE_PINNED',
+  'STORAGE_POLICY_APPLIED',
+  'DATABASE_PINNED',
+  'DB_FORKING',
   'INDEXING',
   'COMPLETED',
 ];
@@ -57,6 +66,9 @@ export const REMIX_STATE_ORDER: RemixState[] = [
  * records the version that was actually accepted, never "latest".
  */
 export const REMIX_CONSENT_VERSION = '2026-07-20.1';
+
+/** Versioned disclosure for a live, read-only object-storage share. */
+export const REMIX_STORAGE_CONSENT_VERSION = '2026-08-26.1';
 
 /** App-storage handling at remix time. Bucket is per-project (`vc-<projid>`). */
 export type RemixStoragePolicy = 'DETACH' | 'CLONE' | 'SHARE_WITH_CONSENT';
@@ -81,11 +93,15 @@ export class RemixInvariantError extends Error {
  * {@link RemixInvariantError} on an illegal transition.
  */
 export function assertRemixTransition(from: RemixState, to: RemixState): void {
+  if (to === 'CLEANUP_PENDING' && from !== 'COMPLETED' && from !== 'FAILED') {
+    return;
+  }
+
   if (to === 'FAILED') {
     return; // any non-terminal state may fail
   }
 
-  if (from === 'COMPLETED' || from === 'FAILED') {
+  if (from === 'COMPLETED' || from === 'FAILED' || from === 'CLEANUP_PENDING') {
     throw new RemixInvariantError(`Cannot transition out of terminal state ${from}`, 'REMIX_TERMINAL_STATE');
   }
 
@@ -244,6 +260,55 @@ export function scrubSecretsFromFiles(
   });
 
   return { files: cleaned, removed };
+}
+
+/**
+ * Blank assignments for every credential KEY even when its source value cannot
+ * be decrypted or is too short for safe substring scanning. This closes the
+ * structural `.env`/JSON/YAML path while value scanning still catches secrets
+ * materialized elsewhere in source code.
+ */
+export function scrubCredentialAssignments(
+  files: RemixFile[],
+  credentialKeys: readonly string[],
+): { files: RemixFile[]; removed: SecretScanFinding[] } {
+  const keys = [...new Set(credentialKeys)].filter(Boolean);
+  const removed: SecretScanFinding[] = [];
+
+  if (keys.length === 0) return { files, removed };
+
+  const escaped = keys.map((key) => key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const dotenv = new RegExp(`^(\\s*(?:export\\s+)?(${escaped})\\s*=).*$`, 'u');
+  const yaml = new RegExp(`^(\\s*(${escaped})\\s*:\\s*).*$`, 'u');
+  const json = new RegExp(`^(\\s*"(${escaped})"\\s*:\\s*)"[^"]*"(\\s*,?\\s*)$`, 'u');
+
+  return {
+    files: files.map((file) => {
+      if (file.encoding && file.encoding !== 'utf-8' && file.encoding !== 'utf8') return file;
+
+      const lines = file.content.split('\n').map((line, index) => {
+        const jsonMatch = json.exec(line);
+        if (jsonMatch) {
+          removed.push({ path: file.path, secretKey: jsonMatch[2], line: index + 1 });
+          return `${jsonMatch[1]}""${jsonMatch[3]}`;
+        }
+
+        const dotenvMatch = dotenv.exec(line);
+        if (dotenvMatch) {
+          removed.push({ path: file.path, secretKey: dotenvMatch[2], line: index + 1 });
+          return `${dotenvMatch[1]} # detached on remix (reference only)`;
+        }
+
+        const yamlMatch = yaml.exec(line);
+        if (!yamlMatch) return line;
+        removed.push({ path: file.path, secretKey: yamlMatch[2], line: index + 1 });
+        return `${yamlMatch[1]}"" # detached on remix (reference only)`;
+      });
+
+      return { ...file, content: lines.join('\n') };
+    }),
+    removed,
+  };
 }
 
 /*

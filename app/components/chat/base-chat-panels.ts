@@ -181,3 +181,11 @@ export function shouldAutoLoadDatabaseSchema(input: {
 
   return input.schema === undefined || input.schema === null;
 }
+
+/** An empty consented share must still surface its revoke control, not a create-bucket CTA. */
+export function shouldShowObjectStorageProvisioningCta(
+  provisioned: boolean | null,
+  mode: 'OWNED' | 'SHARED_READ_ONLY' | null,
+): boolean {
+  return provisioned === false && mode !== 'SHARED_READ_ONLY';
+}

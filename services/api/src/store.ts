@@ -183,6 +183,80 @@ export interface ImportJobTransitionPatch {
   error?: string | null;
 }
 
+export interface RemixJobRecord {
+  id: string;
+  sourceProjectId: string;
+  targetProjectId?: string;
+  organizationId: string;
+  actorUserId?: string;
+  state: string;
+  idempotencyKey?: string;
+  requestHash?: string;
+  version: number;
+  detachedKeys?: unknown;
+  storagePolicy: string;
+  storageConsentVersion?: string;
+  storageInventory?: unknown;
+  storageShareId?: string;
+  scanFindings?: unknown;
+  scrubbedCount: number;
+  dbForked: boolean;
+  sourceSnapshotId?: string;
+  sourceSnapshotHash?: string;
+  sourceListingId?: string;
+  licenseSnapshot?: unknown;
+  consentVersion?: string;
+  piiFindings?: unknown;
+  piiMaskedCount: number;
+  sourceDatabasePin?: unknown;
+  targetDatabaseInstanceId?: string;
+  /** Internal fencing fields. HTTP handlers must never return these. */
+  operationToken?: string;
+  operationExpiresAt?: string;
+  cleanupTerminalState?: string;
+  errorCode?: string;
+  error?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RemixJobTransitionPatch {
+  targetProjectId?: string | null;
+  sourceSnapshotId?: string | null;
+  sourceSnapshotHash?: string | null;
+  detachedKeys?: unknown;
+  scanFindings?: unknown;
+  scrubbedCount?: number;
+  dbForked?: boolean;
+  storageConsentVersion?: string | null;
+  storageInventory?: unknown;
+  storageShareId?: string | null;
+  sourceDatabasePin?: unknown;
+  targetDatabaseInstanceId?: string | null;
+  sourceListingId?: string | null;
+  piiFindings?: unknown;
+  piiMaskedCount?: number;
+  operationToken?: string | null;
+  operationExpiresAt?: string | null;
+  cleanupTerminalState?: string | null;
+  errorCode?: string | null;
+  error?: string | null;
+}
+
+export interface RemixStorageShareRecord {
+  id: string;
+  sourceProjectId: string;
+  targetProjectId: string;
+  sourceOrganizationId: string;
+  targetOrganizationId: string;
+  consentVersion: string;
+  consentedByUserId?: string;
+  consentedAt: string;
+  sourceInventory: unknown;
+  state: 'ACTIVE' | 'REVOKED';
+  revokedAt?: string;
+}
+
 export interface WorkspaceRecord {
   id: string;
   projectId: string;
@@ -1503,12 +1577,15 @@ export interface ApiStore {
   upsertProjectSecret(input: { projectId: string; key: string; valueEncrypted: string }): Promise<ProjectSecretRecord>;
   listProjectSecrets(projectId: string): Promise<Array<Omit<ProjectSecretRecord, 'valueEncrypted'>>>;
   getProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
-  /** Create a remix-job row (state machine + audit of the secure fork pipeline). */
+  /** Create-or-replay the tenant-scoped durable remix authority. */
   createRemixJob(input: {
     sourceProjectId: string;
     organizationId: string;
     actorUserId?: string;
     storagePolicy: string;
+    idempotencyKey: string;
+    requestHash: string;
+    storageConsentVersion?: string;
     /** Immutable release pin (ProjectSnapshot id) the clone reproduces. */
     sourceSnapshotId?: string;
     /** The gallery listing the remix was launched from (provenance). */
@@ -1517,47 +1594,98 @@ export interface ApiStore {
     licenseSnapshot?: unknown;
     /** Consent-text version the remixer explicitly accepted. */
     consentVersion?: string;
-  }): Promise<{ id: string; state: string }>;
-  /** Advance / annotate a remix job. Partial patch. */
-  updateRemixJob(
-    id: string,
-    patch: {
-      state?: string;
-      targetProjectId?: string;
-      detachedKeys?: unknown;
-      scanFindings?: unknown;
-      scrubbedCount?: number;
-      dbForked?: boolean;
-      error?: string;
-      sourceSnapshotId?: string;
-      sourceListingId?: string;
-      piiFindings?: unknown;
-      piiMaskedCount?: number;
-    },
-  ): Promise<void>;
-  getRemixJob(id: string): Promise<
-    | {
-        id: string;
-        sourceProjectId: string;
-        targetProjectId?: string;
-        organizationId: string;
-        state: string;
-        detachedKeys?: unknown;
-        storagePolicy: string;
-        scanFindings?: unknown;
-        scrubbedCount: number;
-        dbForked: boolean;
-        error?: string;
-        sourceSnapshotId?: string;
-        sourceListingId?: string;
-        licenseSnapshot?: unknown;
-        consentVersion?: string;
-        piiFindings?: unknown;
-        piiMaskedCount: number;
-        createdAt: string;
-      }
-    | undefined
-  >;
+  }): Promise<{ job: RemixJobRecord; replayed: boolean }>;
+  /** Acquire/steal an expired execution lease via CAS. */
+  claimRemixJob(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+    leaseDurationMs: number;
+  }): Promise<RemixJobRecord | undefined>;
+  renewRemixJobLease(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+    expectedVersion: number;
+    leaseDurationMs: number;
+  }): Promise<RemixJobRecord | undefined>;
+  transitionRemixJob(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+    expectedVersion: number;
+    expectedStates: string[];
+    state: string;
+    patch?: RemixJobTransitionPatch;
+  }): Promise<RemixJobRecord | undefined>;
+  releaseRemixJobLease(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+  }): Promise<RemixJobRecord | undefined>;
+  createClaimedRemixProject(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    name: string;
+    slug: string;
+  }): Promise<ProjectRecord>;
+  completeClaimedRemixDatabase(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    databaseInstanceId: string;
+    projectId: string;
+    valueEncrypted: string;
+  }): Promise<RemixJobRecord | undefined>;
+  finalizeClaimedRemix(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+  }): Promise<RemixJobRecord | undefined>;
+  beginRemixCleanup(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    terminalState: 'FAILED';
+    errorCode: string;
+    error: string;
+  }): Promise<RemixJobRecord | undefined>;
+  deleteClaimedRemixProject(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+  }): Promise<boolean>;
+  finishRemixCleanup(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+  }): Promise<RemixJobRecord | undefined>;
+  getRemixJob(id: string, organizationId?: string): Promise<RemixJobRecord | undefined>;
+  /** Authoritative timestamp for PITR pins; Prisma implementations use PostgreSQL CURRENT_TIMESTAMP. */
+  getDatabaseTime(): Promise<string>;
+  createRemixStorageShare(input: {
+    sourceProjectId: string;
+    targetProjectId: string;
+    sourceOrganizationId: string;
+    targetOrganizationId: string;
+    consentVersion: string;
+    consentedByUserId?: string;
+    sourceInventory: unknown;
+  }): Promise<RemixStorageShareRecord>;
+  getRemixStorageShareByTarget(targetProjectId: string): Promise<RemixStorageShareRecord | undefined>;
+  revokeRemixStorageShare(input: {
+    targetProjectId: string;
+    targetOrganizationId: string;
+  }): Promise<RemixStorageShareRecord | undefined>;
+  deleteClaimedRemixStorageShare(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+  }): Promise<boolean>;
   /** Create a curated Gallery listing (TPL-02). Not self-service — curator/seed. */
   createGalleryListing(input: {
     slug: string;
@@ -1953,6 +2081,8 @@ export interface ApiStore {
     }>
   >;
   createSnapshot(input: {
+    /** Optional deterministic id for crash-safe idempotent snapshot creation. */
+    id?: string;
     projectId: string;
     label?: string;
     kind?: SnapshotRecord['kind'];

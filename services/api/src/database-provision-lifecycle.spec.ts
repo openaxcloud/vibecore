@@ -35,6 +35,9 @@ function provisioner(uri?: string): DatabaseProvisioner {
     takeSnapshot: vi.fn(async () => ({ applied: true })),
     startRestore: vi.fn(async () => ({ applied: true, clusterName: 'restore' })),
     restoreProgress: vi.fn(async () => ({ ready: false, clusterName: 'restore' })),
+    forkInstance: vi.fn(async () => ({ applied: true, clusterName: 'fork' })),
+    forkProgress: vi.fn(async () => ({ ready: false, clusterName: 'fork' })),
+    teardownFork: vi.fn(async () => undefined),
     teardown: vi.fn(async () => undefined),
   };
 }

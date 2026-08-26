@@ -21,6 +21,7 @@ export const remainingApiRoutesEn = {
   PROJECT_EXPORT_ARCHIVE_CORRUPT: 'The project export produced an invalid archive. Please try again.',
   PROJECT_ACTION_AUTH_REQUIRED: 'You do not have permission to perform this project action.',
   PROJECT_ACTION_FAILED: 'The project action could not be completed. Please try again.',
+  PROJECT_REMIX_STORAGE_POLICY_INVALID: 'The selected remix storage policy is not supported.',
   SELF_REPAIR_PROMPT_REQUIRED: 'Provide a non-empty self-repair prompt.',
   SELF_REPAIR_PROMPT_TOO_LARGE: 'The self-repair prompt exceeds the {maximum}-byte limit.',
   SELF_REPAIR_COOKIE_INVALID: 'The saved provider settings are invalid. Review them and try again.',
@@ -112,6 +113,8 @@ export const remainingApiRoutesFr: RemainingApiRouteCopy = {
   PROJECT_EXPORT_ARCHIVE_CORRUPT: 'L’export du projet a produit une archive invalide. Veuillez réessayer.',
   PROJECT_ACTION_AUTH_REQUIRED: 'Vous n’avez pas l’autorisation d’effectuer cette action sur le projet.',
   PROJECT_ACTION_FAILED: 'Impossible d’effectuer l’action sur le projet. Veuillez réessayer.',
+  PROJECT_REMIX_STORAGE_POLICY_INVALID:
+    'La politique de stockage sélectionnée pour le remix n’est pas prise en charge.',
   SELF_REPAIR_PROMPT_REQUIRED: 'Saisissez un prompt d’autoréparation non vide.',
   SELF_REPAIR_PROMPT_TOO_LARGE: 'Le prompt d’autoréparation dépasse la limite de {maximum} octets.',
   SELF_REPAIR_COOKIE_INVALID: 'Les paramètres de fournisseur enregistrés sont invalides. Vérifiez-les, puis réessayez.',

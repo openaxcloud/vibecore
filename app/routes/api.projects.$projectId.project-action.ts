@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import {
   apiRequest,
   formObject,
@@ -15,6 +16,26 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
   }
 
   const url = new URL(request.url);
+
+  if (url.searchParams.get('intent') === 'remix-policy') {
+    try {
+      const contract = await apiRequest<{
+        policies: Array<'DETACH' | 'CLONE' | 'SHARE_WITH_CONSENT'>;
+        storageConsentVersion: string;
+      }>(request, `/projects/${projectId}/remix-policy`);
+
+      return json({ ok: true, ...contract });
+    } catch (error) {
+      const status = error instanceof Response && error.status !== 500 ? error.status : 502;
+
+      return remainingApiErrorResponse(
+        request,
+        status === 401 || status === 403 ? 'PROJECT_ACTION_AUTH_REQUIRED' : 'PROJECT_ACTION_FAILED',
+        status,
+        { extra: { ok: false } },
+      );
+    }
+  }
 
   if (url.searchParams.get('intent') !== 'export') {
     throw remainingApiErrorResponse(request, 'PROJECT_ACTION_UNSUPPORTED', 404);
@@ -77,8 +98,8 @@ export async function action({ request, params }: EnterpriseActionArgs) {
    * tripping the route ErrorBoundary.
    */
   try {
-    if (intent === 'duplicate' || intent === 'fork') {
-      const suffix = remainingApiRouteMessage(request, intent === 'fork' ? 'projectForkSuffix' : 'projectCopySuffix');
+    if (intent === 'duplicate') {
+      const suffix = remainingApiRouteMessage(request, 'projectCopySuffix');
       const fallbackName = remainingApiRouteMessage(request, 'projectFallbackName');
 
       const duplicated = await apiRequest(request, `/projects/${projectId}/duplicate`, {
@@ -87,6 +108,56 @@ export async function action({ request, params }: EnterpriseActionArgs) {
       });
 
       return json({ ok: true, project: duplicated });
+    }
+
+    if (intent === 'fork') {
+      const suffix = remainingApiRouteMessage(request, 'projectForkSuffix');
+      const fallbackName = remainingApiRouteMessage(request, 'projectFallbackName');
+      const idempotencyKey = body.idempotencyKey || randomUUID();
+
+      const supportedStoragePolicies = ['DETACH', 'CLONE', 'SHARE_WITH_CONSENT'] as const;
+
+      if (
+        body.storagePolicy &&
+        !supportedStoragePolicies.includes(body.storagePolicy as (typeof supportedStoragePolicies)[number])
+      ) {
+        return remainingApiErrorResponse(request, 'PROJECT_REMIX_STORAGE_POLICY_INVALID', 400, {
+          extra: { ok: false },
+        });
+      }
+
+      const storagePolicy = body.storagePolicy || 'DETACH';
+
+      const remixed = await apiRequest<{
+        project: { id: string; slug?: string } | null;
+        remix: { id?: string; remixJobId?: string; state: string };
+        retryAfterMs?: number;
+      }>(request, `/projects/${projectId}/remix`, {
+        method: 'POST',
+        headers: { 'Idempotency-Key': idempotencyKey },
+        body: JSON.stringify({
+          name: body.name || `${body.projectName || fallbackName} ${suffix}`,
+          storagePolicy,
+          idempotencyKey,
+          ...(storagePolicy === 'SHARE_WITH_CONSENT' && body.storageConsentVersion
+            ? {
+                storageConsent: {
+                  granted: true,
+                  version: body.storageConsentVersion,
+                },
+              }
+            : {}),
+        }),
+      });
+
+      return json({
+        ok: true,
+        project: remixed.project,
+        remix: remixed.remix,
+        pending: remixed.project === null,
+        retryAfterMs: remixed.retryAfterMs,
+        idempotencyKey,
+      });
     }
 
     /*

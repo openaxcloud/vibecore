@@ -30,6 +30,9 @@ import type {
   ImportJobRecord,
   ImportJobTransitionPatch,
   ImportStagedFile,
+  RemixJobRecord,
+  RemixJobTransitionPatch,
+  RemixStorageShareRecord,
   AiMessageFeedbackRecord,
   AiMessageFeedbackVote,
   NotificationRecord,
@@ -115,6 +118,22 @@ function toIso(value: Date | string | null | undefined) {
   return value ? new Date(value).toISOString() : undefined;
 }
 
+async function databaseNow(tx: Prisma.TransactionClient): Promise<Date> {
+  const rows = await tx.$queryRaw<Array<{ now: Date }>>`SELECT CURRENT_TIMESTAMP AS "now"`;
+  const value = rows[0]?.now;
+
+  if (!(value instanceof Date)) {
+    throw new Error(appPublicEnglish('DATABASE_TIME_UNAVAILABLE'));
+  }
+
+  return value;
+}
+
+function databaseLeaseExpiry(now: Date, durationMs: number): Date {
+  const bounded = Math.max(1_000, Math.min(Math.trunc(durationMs), 30 * 60_000));
+  return new Date(now.getTime() + bounded);
+}
+
 /** Parse a JSON column that should hold an array; tolerate null/garbage → []. */
 function parseJsonArray<T>(value: string | null | undefined): T[] {
   if (!value) {
@@ -178,6 +197,95 @@ function mapImportReservation(row: any): ImportCreditReservationRecord {
     debitedCredits: row.debitedCredits,
     state: row.state as ImportCreditReservationRecord['state'],
     version: row.version,
+  };
+}
+
+function mapRemixJob(row: any): RemixJobRecord {
+  return {
+    id: row.id,
+    sourceProjectId: row.sourceProjectId,
+    targetProjectId: row.targetProjectId ?? undefined,
+    organizationId: row.organizationId,
+    actorUserId: row.actorUserId ?? undefined,
+    state: row.state,
+    idempotencyKey: row.idempotencyKey ?? undefined,
+    requestHash: row.requestHash ?? undefined,
+    version: row.version,
+    detachedKeys: row.detachedKeys ?? undefined,
+    storagePolicy: row.storagePolicy,
+    storageConsentVersion: row.storageConsentVersion ?? undefined,
+    storageInventory: row.storageInventory ?? undefined,
+    storageShareId: row.storageShareId ?? undefined,
+    scanFindings: row.scanFindings ?? undefined,
+    scrubbedCount: row.scrubbedCount,
+    dbForked: row.dbForked,
+    sourceSnapshotId: row.sourceSnapshotId ?? undefined,
+    sourceSnapshotHash: row.sourceSnapshotHash ?? undefined,
+    sourceListingId: row.sourceListingId ?? undefined,
+    licenseSnapshot: row.licenseSnapshot ?? undefined,
+    consentVersion: row.consentVersion ?? undefined,
+    piiFindings: row.piiFindings ?? undefined,
+    piiMaskedCount: row.piiMaskedCount,
+    sourceDatabasePin: row.sourceDatabasePin ?? undefined,
+    targetDatabaseInstanceId: row.targetDatabaseInstanceId ?? undefined,
+    operationToken: row.operationToken ?? undefined,
+    operationExpiresAt: toIso(row.operationExpiresAt),
+    cleanupTerminalState: row.cleanupTerminalState ?? undefined,
+    errorCode: row.errorCode ?? undefined,
+    error: row.error ?? undefined,
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
+  };
+}
+
+function remixTransitionData(patch: RemixJobTransitionPatch | undefined): Prisma.RemixJobUpdateManyMutationInput {
+  if (!patch) {
+    return {};
+  }
+
+  const json = (value: unknown) => value as Prisma.InputJsonValue;
+
+  return {
+    ...(patch.targetProjectId !== undefined ? { targetProjectId: patch.targetProjectId } : {}),
+    ...(patch.sourceSnapshotId !== undefined ? { sourceSnapshotId: patch.sourceSnapshotId } : {}),
+    ...(patch.sourceSnapshotHash !== undefined ? { sourceSnapshotHash: patch.sourceSnapshotHash } : {}),
+    ...(patch.detachedKeys !== undefined ? { detachedKeys: json(patch.detachedKeys) } : {}),
+    ...(patch.scanFindings !== undefined ? { scanFindings: json(patch.scanFindings) } : {}),
+    ...(patch.scrubbedCount !== undefined ? { scrubbedCount: patch.scrubbedCount } : {}),
+    ...(patch.dbForked !== undefined ? { dbForked: patch.dbForked } : {}),
+    ...(patch.storageConsentVersion !== undefined ? { storageConsentVersion: patch.storageConsentVersion } : {}),
+    ...(patch.storageInventory !== undefined ? { storageInventory: json(patch.storageInventory) } : {}),
+    ...(patch.storageShareId !== undefined ? { storageShareId: patch.storageShareId } : {}),
+    ...(patch.sourceDatabasePin !== undefined ? { sourceDatabasePin: json(patch.sourceDatabasePin) } : {}),
+    ...(patch.targetDatabaseInstanceId !== undefined
+      ? { targetDatabaseInstanceId: patch.targetDatabaseInstanceId }
+      : {}),
+    ...(patch.sourceListingId !== undefined ? { sourceListingId: patch.sourceListingId } : {}),
+    ...(patch.piiFindings !== undefined ? { piiFindings: json(patch.piiFindings) } : {}),
+    ...(patch.piiMaskedCount !== undefined ? { piiMaskedCount: patch.piiMaskedCount } : {}),
+    ...(patch.operationToken !== undefined ? { operationToken: patch.operationToken } : {}),
+    ...(patch.operationExpiresAt !== undefined
+      ? { operationExpiresAt: patch.operationExpiresAt ? new Date(patch.operationExpiresAt) : null }
+      : {}),
+    ...(patch.cleanupTerminalState !== undefined ? { cleanupTerminalState: patch.cleanupTerminalState } : {}),
+    ...(patch.errorCode !== undefined ? { errorCode: patch.errorCode } : {}),
+    ...(patch.error !== undefined ? { error: patch.error } : {}),
+  };
+}
+
+function mapRemixStorageShare(row: any): RemixStorageShareRecord {
+  return {
+    id: row.id,
+    sourceProjectId: row.sourceProjectId,
+    targetProjectId: row.targetProjectId,
+    sourceOrganizationId: row.sourceOrganizationId,
+    targetOrganizationId: row.targetOrganizationId,
+    consentVersion: row.consentVersion,
+    consentedByUserId: row.consentedByUserId ?? undefined,
+    consentedAt: toIso(row.consentedAt)!,
+    sourceInventory: row.sourceInventory,
+    state: row.state,
+    revokedAt: toIso(row.revokedAt),
   };
 }
 
@@ -1140,9 +1248,29 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async listProjects(organizationId: string, options: { includeArchived?: boolean } = {}) {
+    const partialTargets = options.includeArchived
+      ? (
+          await this.prisma.remixJob.findMany({
+            where: {
+              organizationId,
+              targetProjectId: { not: null },
+              state: { notIn: ['COMPLETED', 'FAILED'] },
+            },
+            select: { targetProjectId: true },
+          })
+        ).flatMap((job) => (job.targetProjectId ? [job.targetProjectId] : []))
+      : [];
+
     return (
       await this.prisma.project.findMany({
-        where: { organizationId, ...(options.includeArchived ? {} : { deletedAt: null }) },
+        where: {
+          organizationId,
+          ...(options.includeArchived
+            ? partialTargets.length > 0
+              ? { id: { notIn: partialTargets } }
+              : {}
+            : { deletedAt: null }),
+        },
         orderBy: { createdAt: 'desc' },
         include: { _count: { select: { deployments: true } } },
       })
@@ -1150,7 +1278,18 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async countProjects(organizationId: string) {
-    return this.prisma.project.count({ where: { organizationId, deletedAt: null } });
+    const [visible, partial] = await Promise.all([
+      this.prisma.project.count({ where: { organizationId, deletedAt: null } }),
+      this.prisma.remixJob.count({
+        where: {
+          organizationId,
+          targetProjectId: { not: null },
+          state: { notIn: ['COMPLETED', 'FAILED'] },
+        },
+      }),
+    ]);
+
+    return visible + partial;
   }
 
   async subscribeNewsletter(input: { email: string; source?: string }) {
@@ -1383,89 +1522,612 @@ export class PrismaApiStore implements ApiStore {
     organizationId: string;
     actorUserId?: string;
     storagePolicy: string;
+    idempotencyKey: string;
+    requestHash: string;
+    storageConsentVersion?: string;
     sourceSnapshotId?: string;
     sourceListingId?: string;
     licenseSnapshot?: unknown;
     consentVersion?: string;
   }) {
-    const row = await this.prisma.remixJob.create({
-      data: {
-        sourceProjectId: input.sourceProjectId,
-        organizationId: input.organizationId,
-        actorUserId: input.actorUserId ?? null,
-        storagePolicy: input.storagePolicy,
-        sourceSnapshotId: input.sourceSnapshotId ?? null,
-        sourceListingId: input.sourceListingId ?? null,
-        licenseSnapshot: (input.licenseSnapshot as object | undefined) ?? undefined,
-        consentVersion: input.consentVersion ?? null,
-        state: 'SNAPSHOT_PINNED',
-      },
-    });
+    try {
+      const row = await this.prisma.remixJob.create({
+        data: {
+          sourceProjectId: input.sourceProjectId,
+          organizationId: input.organizationId,
+          actorUserId: input.actorUserId ?? null,
+          storagePolicy: input.storagePolicy,
+          idempotencyKey: input.idempotencyKey,
+          requestHash: input.requestHash,
+          storageConsentVersion: input.storageConsentVersion ?? null,
+          sourceSnapshotId: input.sourceSnapshotId ?? null,
+          sourceListingId: input.sourceListingId ?? null,
+          licenseSnapshot: (input.licenseSnapshot as Prisma.InputJsonValue | undefined) ?? undefined,
+          consentVersion: input.consentVersion ?? null,
+          state: 'PENDING',
+        },
+      });
 
-    return { id: row.id, state: row.state };
+      return { job: mapRemixJob(row), replayed: false };
+    } catch (error) {
+      if (!isPrismaKnownRequestError(error) || error.code !== 'P2002') {
+        throw error;
+      }
+
+      const existing = await this.prisma.remixJob.findUnique({
+        where: {
+          organizationId_idempotencyKey: {
+            organizationId: input.organizationId,
+            idempotencyKey: input.idempotencyKey,
+          },
+        },
+      });
+
+      if (!existing || existing.requestHash !== input.requestHash) {
+        throw Object.assign(new Error(appPublicEnglish('REMIX_IDEMPOTENCY_CONFLICT')), {
+          statusCode: 409,
+          code: 'REMIX_IDEMPOTENCY_CONFLICT',
+        });
+      }
+
+      return { job: mapRemixJob(existing), replayed: true };
+    }
   }
 
-  async updateRemixJob(
-    id: string,
-    patch: {
-      state?: string;
-      targetProjectId?: string;
-      detachedKeys?: unknown;
-      scanFindings?: unknown;
-      scrubbedCount?: number;
-      dbForked?: boolean;
-      error?: string;
-      sourceSnapshotId?: string;
-      sourceListingId?: string;
-      piiFindings?: unknown;
-      piiMaskedCount?: number;
-    },
-  ) {
-    await this.prisma.remixJob.update({
-      where: { id },
-      data: {
-        ...(patch.state !== undefined ? { state: patch.state } : {}),
-        ...(patch.targetProjectId !== undefined ? { targetProjectId: patch.targetProjectId } : {}),
-        ...(patch.detachedKeys !== undefined ? { detachedKeys: patch.detachedKeys as object } : {}),
-        ...(patch.scanFindings !== undefined ? { scanFindings: patch.scanFindings as object } : {}),
-        ...(patch.scrubbedCount !== undefined ? { scrubbedCount: patch.scrubbedCount } : {}),
-        ...(patch.dbForked !== undefined ? { dbForked: patch.dbForked } : {}),
-        ...(patch.error !== undefined ? { error: patch.error } : {}),
-        ...(patch.sourceSnapshotId !== undefined ? { sourceSnapshotId: patch.sourceSnapshotId } : {}),
-        ...(patch.sourceListingId !== undefined ? { sourceListingId: patch.sourceListingId } : {}),
-        ...(patch.piiFindings !== undefined ? { piiFindings: patch.piiFindings as object } : {}),
-        ...(patch.piiMaskedCount !== undefined ? { piiMaskedCount: patch.piiMaskedCount } : {}),
-      },
+  async claimRemixJob(input: { id: string; organizationId: string; operationToken: string; leaseDurationMs: number }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.id,
+        input.organizationId,
+      );
+      const now = await databaseNow(tx);
+      const job = await tx.remixJob.findFirst({ where: { id: input.id, organizationId: input.organizationId } });
+
+      if (!job || ['COMPLETED', 'FAILED'].includes(job.state)) {
+        return undefined;
+      }
+
+      const activeOtherOwner =
+        job.operationToken &&
+        job.operationToken !== input.operationToken &&
+        job.operationExpiresAt &&
+        job.operationExpiresAt > now;
+
+      if (activeOtherOwner) {
+        return undefined;
+      }
+
+      return mapRemixJob(
+        await tx.remixJob.update({
+          where: { id: job.id },
+          data: {
+            operationToken: input.operationToken,
+            operationExpiresAt: databaseLeaseExpiry(now, input.leaseDurationMs),
+            version: { increment: 1 },
+          },
+        }),
+      );
     });
   }
 
-  async getRemixJob(id: string) {
-    const row = await this.prisma.remixJob.findUnique({ where: { id } });
+  async renewRemixJobLease(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+    expectedVersion: number;
+    leaseDurationMs: number;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.id,
+        input.organizationId,
+      );
+      const now = await databaseNow(tx);
+      const row = await tx.remixJob.findFirst({
+        where: {
+          id: input.id,
+          organizationId: input.organizationId,
+          operationToken: input.operationToken,
+          operationExpiresAt: { gt: now },
+          version: input.expectedVersion,
+          state: { notIn: ['COMPLETED', 'FAILED'] },
+        },
+      });
 
-    if (!row) {
+      if (!row) return undefined;
+
+      return mapRemixJob(
+        await tx.remixJob.update({
+          where: { id: row.id },
+          data: {
+            operationExpiresAt: databaseLeaseExpiry(now, input.leaseDurationMs),
+            version: { increment: 1 },
+          },
+        }),
+      );
+    });
+  }
+
+  async transitionRemixJob(input: {
+    id: string;
+    organizationId: string;
+    operationToken: string;
+    expectedVersion: number;
+    expectedStates: string[];
+    state: string;
+    patch?: RemixJobTransitionPatch;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.id,
+        input.organizationId,
+      );
+      const now = await databaseNow(tx);
+      const row = await tx.remixJob.findFirst({
+        where: {
+          id: input.id,
+          organizationId: input.organizationId,
+          operationToken: input.operationToken,
+          operationExpiresAt: { gt: now },
+          version: input.expectedVersion,
+          state: { in: input.expectedStates },
+        },
+      });
+
+      if (!row) return undefined;
+
+      return mapRemixJob(
+        await tx.remixJob.update({
+          where: { id: row.id },
+          data: { state: input.state, version: { increment: 1 }, ...remixTransitionData(input.patch) },
+        }),
+      );
+    });
+  }
+
+  async releaseRemixJobLease(input: { id: string; organizationId: string; operationToken: string }) {
+    const updated = await this.prisma.remixJob.updateMany({
+      where: { id: input.id, organizationId: input.organizationId, operationToken: input.operationToken },
+      data: { operationToken: null, operationExpiresAt: null, version: { increment: 1 } },
+    });
+
+    if (updated.count !== 1) {
       return undefined;
     }
 
-    return {
-      id: row.id,
-      sourceProjectId: row.sourceProjectId,
-      targetProjectId: row.targetProjectId ?? undefined,
-      organizationId: row.organizationId,
-      state: row.state,
-      detachedKeys: row.detachedKeys as unknown,
-      storagePolicy: row.storagePolicy,
-      scanFindings: row.scanFindings as unknown,
-      scrubbedCount: row.scrubbedCount,
-      dbForked: row.dbForked,
-      error: row.error ?? undefined,
-      sourceSnapshotId: row.sourceSnapshotId ?? undefined,
-      sourceListingId: row.sourceListingId ?? undefined,
-      licenseSnapshot: row.licenseSnapshot as unknown,
-      consentVersion: row.consentVersion ?? undefined,
-      piiFindings: row.piiFindings as unknown,
-      piiMaskedCount: row.piiMaskedCount,
-      createdAt: row.createdAt.toISOString(),
-    };
+    const row = await this.prisma.remixJob.findFirst({ where: { id: input.id, organizationId: input.organizationId } });
+    return row ? mapRemixJob(row) : undefined;
+  }
+
+  async createClaimedRemixProject(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    name: string;
+    slug: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.remixJobId,
+        input.organizationId,
+      );
+      const now = await databaseNow(tx);
+      const job = await tx.remixJob.findFirst({
+        where: { id: input.remixJobId, organizationId: input.organizationId },
+      });
+
+      if (
+        !job ||
+        job.operationToken !== input.operationToken ||
+        !job.operationExpiresAt ||
+        job.operationExpiresAt <= now ||
+        ['COMPLETED', 'FAILED', 'CLEANUP_PENDING'].includes(job.state)
+      ) {
+        throw Object.assign(new Error(appPublicEnglish('REMIX_OWNERSHIP_LOST')), {
+          statusCode: 409,
+          code: 'REMIX_OWNERSHIP_LOST',
+        });
+      }
+
+      if (job.targetProjectId) {
+        const existing = await tx.project.findFirst({
+          where: { id: job.targetProjectId, organizationId: input.organizationId },
+        });
+
+        if (existing) {
+          return mapProject(existing);
+        }
+      }
+
+      const source = assertFound(
+        await tx.project.findUnique({ where: { id: job.sourceProjectId } }),
+        appPublicEnglish('PROJECT_NOT_FOUND'),
+        'PROJECT_NOT_FOUND',
+      );
+      const baseSlug = slugify(input.slug) || `remix-${job.id.slice(-8)}`;
+      const occupied = await tx.project.findUnique({
+        where: { organizationId_slug: { organizationId: input.organizationId, slug: baseSlug } },
+        select: { id: true },
+      });
+      const slug = occupied ? `${baseSlug}-${job.id.slice(-8).toLowerCase()}` : baseSlug;
+      const project = await tx.project.create({
+        data: {
+          organizationId: input.organizationId,
+          name: input.name,
+          slug,
+          description: source.description,
+          sourceType: 'duplicate',
+          templateName: source.templateName,
+          gitRepositoryUrl: source.gitRepositoryUrl,
+          gitDefaultBranch: source.gitDefaultBranch,
+          persistentVolumeClaim: `pvc-${input.organizationId}-${slug}`,
+          // Keep a partially-provisioned target out of normal project listings.
+          // finalizeClaimedRemix clears this atomically with COMPLETED.
+          deletedAt: new Date(),
+        },
+      });
+      await tx.remixJob.update({
+        where: { id: job.id },
+        data: { targetProjectId: project.id, version: { increment: 1 } },
+      });
+
+      return mapProject(project);
+    });
+  }
+
+  async completeClaimedRemixDatabase(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    databaseInstanceId: string;
+    projectId: string;
+    valueEncrypted: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.remixJobId,
+        input.organizationId,
+      );
+      const now = await databaseNow(tx);
+      const job = await tx.remixJob.findFirst({
+        where: {
+          id: input.remixJobId,
+          organizationId: input.organizationId,
+          state: 'DB_FORKING',
+          operationToken: input.operationToken,
+          operationExpiresAt: { gt: now },
+          targetProjectId: input.projectId,
+          targetDatabaseInstanceId: input.databaseInstanceId,
+        },
+      });
+
+      if (!job) {
+        return undefined;
+      }
+
+      const activated = await tx.databaseInstance.updateMany({
+        where: {
+          id: input.databaseInstanceId,
+          projectId: input.projectId,
+          organizationId: input.organizationId,
+          status: 'PROVISIONING',
+        },
+        data: {
+          status: 'ACTIVE',
+          pitrEnabled: true,
+          provisioningDeadlineAt: null,
+          lastErrorCode: null,
+          lastErrorAt: null,
+        },
+      });
+
+      if (activated.count !== 1) {
+        return undefined;
+      }
+
+      await tx.projectSecret.upsert({
+        where: { projectId_key: { projectId: input.projectId, key: 'DATABASE_URL' } },
+        create: {
+          projectId: input.projectId,
+          key: 'DATABASE_URL',
+          valueEncrypted: input.valueEncrypted,
+          valueHash: hashToken(input.valueEncrypted),
+        },
+        update: {
+          valueEncrypted: input.valueEncrypted,
+          valueHash: hashToken(input.valueEncrypted),
+        },
+      });
+
+      return mapRemixJob(
+        await tx.remixJob.update({
+          where: { id: job.id },
+          data: { state: 'INDEXING', dbForked: true, version: { increment: 1 } },
+        }),
+      );
+    });
+  }
+
+  async finalizeClaimedRemix(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.remixJobId,
+        input.organizationId,
+      );
+      const now = await databaseNow(tx);
+      const job = await tx.remixJob.findFirst({
+        where: {
+          id: input.remixJobId,
+          organizationId: input.organizationId,
+          state: 'INDEXING',
+          operationToken: input.operationToken,
+          operationExpiresAt: { gt: now },
+          targetProjectId: input.targetProjectId,
+        },
+      });
+
+      if (!job) {
+        return undefined;
+      }
+
+      const activated = await tx.project.updateMany({
+        where: { id: input.targetProjectId, organizationId: input.organizationId },
+        data: { deletedAt: null },
+      });
+
+      if (activated.count !== 1) {
+        return undefined;
+      }
+
+      return mapRemixJob(
+        await tx.remixJob.update({
+          where: { id: job.id },
+          data: {
+            state: 'COMPLETED',
+            operationToken: null,
+            operationExpiresAt: null,
+            cleanupTerminalState: null,
+            errorCode: null,
+            error: null,
+            version: { increment: 1 },
+          },
+        }),
+      );
+    });
+  }
+
+  async beginRemixCleanup(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    terminalState: 'FAILED';
+    errorCode: string;
+    error: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.remixJobId,
+        input.organizationId,
+      );
+      const now = await databaseNow(tx);
+      const job = await tx.remixJob.findFirst({
+        where: { id: input.remixJobId, organizationId: input.organizationId },
+      });
+
+      if (
+        !job ||
+        job.state === 'COMPLETED' ||
+        job.operationToken !== input.operationToken ||
+        !job.operationExpiresAt ||
+        job.operationExpiresAt <= now
+      ) {
+        return undefined;
+      }
+
+      return mapRemixJob(
+        await tx.remixJob.update({
+          where: { id: job.id },
+          data: {
+            state: 'CLEANUP_PENDING',
+            cleanupTerminalState: input.terminalState,
+            errorCode: input.errorCode,
+            error: input.error,
+            operationToken: input.operationToken,
+            operationExpiresAt: databaseLeaseExpiry(now, 5 * 60_000),
+            version: { increment: 1 },
+          },
+        }),
+      );
+    });
+  }
+
+  async deleteClaimedRemixProject(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.remixJobId,
+        input.organizationId,
+      );
+      const now = await databaseNow(tx);
+      const job = await tx.remixJob.findFirst({
+        where: {
+          id: input.remixJobId,
+          organizationId: input.organizationId,
+          state: 'CLEANUP_PENDING',
+          operationToken: input.operationToken,
+          operationExpiresAt: { gt: now },
+          targetProjectId: input.targetProjectId,
+        },
+      });
+
+      if (!job) {
+        return false;
+      }
+
+      await tx.project.deleteMany({ where: { id: input.targetProjectId, organizationId: input.organizationId } });
+      return true;
+    });
+  }
+
+  async finishRemixCleanup(input: { remixJobId: string; organizationId: string; operationToken: string }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.remixJobId,
+        input.organizationId,
+      );
+      const now = await databaseNow(tx);
+      const job = await tx.remixJob.findFirst({
+        where: {
+          id: input.remixJobId,
+          organizationId: input.organizationId,
+          state: 'CLEANUP_PENDING',
+          operationToken: input.operationToken,
+          operationExpiresAt: { gt: now },
+        },
+      });
+
+      if (!job || job.targetProjectId || job.cleanupTerminalState !== 'FAILED') {
+        return undefined;
+      }
+
+      return mapRemixJob(
+        await tx.remixJob.update({
+          where: { id: job.id },
+          data: {
+            state: 'FAILED',
+            operationToken: null,
+            operationExpiresAt: null,
+            cleanupTerminalState: null,
+            storageShareId: null,
+            targetDatabaseInstanceId: null,
+            version: { increment: 1 },
+          },
+        }),
+      );
+    });
+  }
+
+  async getRemixJob(id: string, organizationId?: string) {
+    const row = await this.prisma.remixJob.findFirst({ where: { id, ...(organizationId ? { organizationId } : {}) } });
+    return row ? mapRemixJob(row) : undefined;
+  }
+
+  async getDatabaseTime() {
+    const rows = await this.prisma.$queryRaw<Array<{ now: Date }>>`SELECT CURRENT_TIMESTAMP AS "now"`;
+    const now = rows[0]?.now;
+
+    if (!(now instanceof Date) || Number.isNaN(now.getTime())) {
+      throw new Error(appPublicEnglish('DATABASE_TIME_UNAVAILABLE'));
+    }
+
+    return now.toISOString();
+  }
+
+  async createRemixStorageShare(input: {
+    sourceProjectId: string;
+    targetProjectId: string;
+    sourceOrganizationId: string;
+    targetOrganizationId: string;
+    consentVersion: string;
+    consentedByUserId?: string;
+    sourceInventory: unknown;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const existing = await tx.remixStorageShare.findUnique({ where: { targetProjectId: input.targetProjectId } });
+
+      if (existing) {
+        if (
+          existing.sourceProjectId !== input.sourceProjectId ||
+          existing.consentVersion !== input.consentVersion ||
+          existing.state !== 'ACTIVE'
+        ) {
+          throw Object.assign(new Error(appPublicEnglish('REMIX_STORAGE_SHARE_CONFLICT')), {
+            statusCode: 409,
+            code: 'REMIX_STORAGE_SHARE_CONFLICT',
+          });
+        }
+
+        return mapRemixStorageShare(existing);
+      }
+
+      return mapRemixStorageShare(
+        await tx.remixStorageShare.create({
+          data: {
+            ...input,
+            consentedByUserId: input.consentedByUserId ?? null,
+            sourceInventory: input.sourceInventory as Prisma.InputJsonValue,
+          },
+        }),
+      );
+    });
+  }
+
+  async getRemixStorageShareByTarget(targetProjectId: string) {
+    const row = await this.prisma.remixStorageShare.findUnique({ where: { targetProjectId } });
+    return row && row.state === 'ACTIVE' ? mapRemixStorageShare(row) : undefined;
+  }
+
+  async revokeRemixStorageShare(input: { targetProjectId: string; targetOrganizationId: string }) {
+    const updated = await this.prisma.remixStorageShare.updateMany({
+      where: {
+        targetProjectId: input.targetProjectId,
+        targetOrganizationId: input.targetOrganizationId,
+        state: 'ACTIVE',
+      },
+      data: { state: 'REVOKED', revokedAt: new Date() },
+    });
+
+    if (updated.count !== 1) return undefined;
+    const row = await this.prisma.remixStorageShare.findUnique({ where: { targetProjectId: input.targetProjectId } });
+    return row ? mapRemixStorageShare(row) : undefined;
+  }
+
+  async deleteClaimedRemixStorageShare(input: {
+    remixJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "RemixJob" WHERE "id" = $1 AND "organizationId" = $2 FOR UPDATE',
+        input.remixJobId,
+        input.organizationId,
+      );
+      const now = await databaseNow(tx);
+      const job = await tx.remixJob.findFirst({
+        where: {
+          id: input.remixJobId,
+          organizationId: input.organizationId,
+          state: 'CLEANUP_PENDING',
+          operationToken: input.operationToken,
+          operationExpiresAt: { gt: now },
+          targetProjectId: input.targetProjectId,
+        },
+        select: { id: true },
+      });
+
+      if (!job) return false;
+      return (await tx.remixStorageShare.deleteMany({ where: { targetProjectId: input.targetProjectId } })).count > 0;
+    });
   }
 
   private mapGalleryListing(row: {
@@ -3211,6 +3873,7 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async createSnapshot(input: {
+    id?: string;
     projectId: string;
     label?: string;
     kind?: SnapshotRecord['kind'];
@@ -3221,21 +3884,42 @@ export class PrismaApiStore implements ApiStore {
     conversationId?: string;
     turnIndex?: number;
   }) {
-    return mapSnapshot(
-      await this.prisma.projectSnapshot.create({
-        data: {
-          projectId: input.projectId,
-          label: input.label,
-          kind: input.kind ?? 'manual',
-          manifest: input.manifest as any,
-          storageKey: input.storageKey,
-          byteLength: input.byteLength,
-          createdByUserId: input.createdByUserId,
-          conversationId: input.conversationId,
-          turnIndex: input.turnIndex,
-        },
-      }),
-    );
+    const data = {
+      ...(input.id ? { id: input.id } : {}),
+      projectId: input.projectId,
+      label: input.label,
+      kind: input.kind ?? 'manual',
+      manifest: input.manifest as any,
+      storageKey: input.storageKey,
+      byteLength: input.byteLength,
+      createdByUserId: input.createdByUserId,
+      conversationId: input.conversationId,
+      turnIndex: input.turnIndex,
+    };
+
+    if (!input.id) {
+      return mapSnapshot(await this.prisma.projectSnapshot.create({ data }));
+    }
+
+    const existing = await this.prisma.projectSnapshot.findUnique({ where: { id: input.id } });
+    if (existing) {
+      if (existing.projectId !== input.projectId || existing.storageKey !== input.storageKey) {
+        throw Object.assign(new Error(appPublicEnglish('SNAPSHOT_IDEMPOTENCY_CONFLICT')), {
+          statusCode: 409,
+          code: 'SNAPSHOT_IDEMPOTENCY_CONFLICT',
+        });
+      }
+      return mapSnapshot(existing);
+    }
+
+    try {
+      return mapSnapshot(await this.prisma.projectSnapshot.create({ data }));
+    } catch (error) {
+      if (!isPrismaKnownRequestError(error) || error.code !== 'P2002') throw error;
+      const raced = await this.prisma.projectSnapshot.findUnique({ where: { id: input.id } });
+      if (!raced || raced.projectId !== input.projectId || raced.storageKey !== input.storageKey) throw error;
+      return mapSnapshot(raced);
+    }
   }
 
   async getSnapshot(id: string) {

@@ -46,7 +46,17 @@ const renderNull: ThumbnailRenderer = {
 
 function listingWith(updatedIso: string): ListObjectsResult {
   return {
-    objects: [{ key: 'thumbnails/preview.png', size: 10, updated: updatedIso, contentType: 'image/png', etag: 'e' }],
+    objects: [
+      {
+        key: 'thumbnails/preview.png',
+        size: 10,
+        updated: updatedIso,
+        contentType: 'image/png',
+        etag: 'e',
+        generation: '1',
+        contentHash: 'md5:e',
+      },
+    ],
     folders: [],
   };
 }

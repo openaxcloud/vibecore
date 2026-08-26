@@ -163,16 +163,32 @@ export async function action({ request, params }: EnterpriseActionArgs) {
    */
   const form = await request.formData();
   const acceptLicense = form.get('acceptLicense') === 'on' || form.get('acceptLicense') === 'true';
+  const submittedKey = form.get('idempotencyKey');
+
+  const idempotencyKey =
+    typeof submittedKey === 'string' && submittedKey.trim().length >= 8
+      ? submittedKey.trim()
+      : globalThis.crypto.randomUUID();
 
   try {
-    const result = await apiRequest<{ project: { id: string; slug?: string } }>(
-      request,
-      `/gallery/${encodeURIComponent(slug)}/remix`,
-      {
-        method: 'POST',
-        body: JSON.stringify({ organizationId: organization.id, acceptLicense }),
-      },
-    );
+    const result = await apiRequest<{
+      project: { id: string; slug?: string } | null;
+      remix: { id?: string; remixJobId?: string; state: string };
+      retryAfterMs?: number;
+    }>(request, `/gallery/${encodeURIComponent(slug)}/remix`, {
+      method: 'POST',
+      headers: { 'Idempotency-Key': idempotencyKey },
+      body: JSON.stringify({ organizationId: organization.id, acceptLicense, idempotencyKey }),
+    });
+
+    if (!result.project) {
+      return json({
+        pending: true,
+        idempotencyKey,
+        remixState: result.remix.state,
+        retryAfterMs: result.retryAfterMs ?? 2_000,
+      });
+    }
 
     // Clone created — open the IDE on it.
     return redirect(
@@ -197,7 +213,11 @@ export default function GalleryDetailRoute() {
   const { listing, language: loadedLanguage } = useLoaderData<typeof loader>();
   const language = i18n.resolvedLanguage ?? i18n.language ?? loadedLanguage;
   const copy = getPublicGalleryCopy(language);
-  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+
+  const actionData = useActionData<typeof action>() as
+    | { error?: string; pending?: boolean; idempotencyKey?: string; remixState?: string }
+    | undefined;
+
   const navigation = useNavigation();
   const remixing = navigation.state !== 'idle' && navigation.formMethod === 'POST';
   const [licenseAccepted, setLicenseAccepted] = useState(false);
@@ -323,7 +343,18 @@ export default function GalleryDetailRoute() {
               </div>
 
               {listing.remixAllowed ? (
-                <Form method="post" className="mt-4">
+                <Form
+                  method="post"
+                  className="mt-4"
+                  onSubmit={(event) => {
+                    const input = event.currentTarget.elements.namedItem('idempotencyKey');
+
+                    if (input instanceof HTMLInputElement && !input.value) {
+                      input.value = globalThis.crypto.randomUUID();
+                    }
+                  }}
+                >
+                  <input type="hidden" name="idempotencyKey" defaultValue={actionData?.idempotencyKey ?? ''} />
                   <label className="flex min-h-[44px] cursor-pointer items-start gap-2 py-1 text-[12px] leading-5 text-[var(--ecode-text-secondary)]">
                     <input
                       type="checkbox"
@@ -368,6 +399,16 @@ export default function GalleryDetailRoute() {
                   role="alert"
                 >
                   {actionData.error}
+                </p>
+              ) : null}
+
+              {actionData?.pending ? (
+                <p
+                  className="mt-3 break-words rounded-md border border-[var(--status-info-border)] bg-[var(--status-info-bg)] px-3 py-2 text-[13px] text-[var(--status-info-text)]"
+                  role="status"
+                  data-testid="gallery-remix-pending"
+                >
+                  {copy['publicGallery.detail.remixPending']}
                 </p>
               ) : null}
 
