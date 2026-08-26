@@ -11,7 +11,7 @@ HERMETIC BY DESIGN — no third-party imports. This gate exists to protect the
 supply chain; a control that itself pulls an unpinned dependency (PyYAML, whose
 presence on the runner was incidental, never guaranteed or version-pinned) is a
 weaker control and a reproducibility hole. Cloud Build configs are 2-space
-indented and we author all three, so a structural split on step boundaries is
+indented and we author all four, so a structural split on step boundaries is
 sufficient and depends on nothing outside the Python 3 standard library. Run
 `python3 scripts/validate-image-signing-wired.py --self-test` to exercise the
 parser against synthetic pass/fail fixtures.
@@ -29,6 +29,7 @@ from pathlib import Path
 CONFIGS = [
     "infra/cloudbuild/runtime-tier.yaml",
     "infra/cloudbuild/single-web.yaml",
+    "infra/cloudbuild/single-admin.yaml",
     "infra/cloudbuild/workspace-agent.yaml",
 ]
 SIGN_SCRIPT = "scripts/cosign-sign-images.sh"

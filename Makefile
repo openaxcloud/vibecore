@@ -119,8 +119,13 @@ deploy-api: ## Rebuild api only (against pinned deps).
 deploy-worker: ## Rebuild worker only (against pinned deps).
 	@$(call _deploy_node_service,worker,@vibecore/worker,tsx dist/index.js)
 
-deploy-admin: ## Rebuild admin only (against pinned deps).
-	@$(call _deploy_node_service,admin,@vibecore/admin,node serve.mjs)
+deploy-admin: ## Rebuild + sign admin only (against pinned deps).
+	@$(resolve_deps_tag); \
+	echo "::: signed admin tier → SHORT_SHA=$(SHORT_SHA) DEPS_TAG=$$deps_tag"; \
+	$(GCLOUD) \
+		--config=infra/cloudbuild/single-admin.yaml \
+		--substitutions=_DEPS_TAG=$$deps_tag,_SHORT_SHA=$(SHORT_SHA) \
+		--timeout=$(TIMEOUT_SINGLE) .
 
 deploy-ai-gateway: ## Rebuild ai-gateway only (against pinned deps).
 	@$(call _deploy_node_service,ai-gateway,@vibecore/ai-gateway,tsx dist/server.js)

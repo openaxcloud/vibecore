@@ -6,22 +6,21 @@
 #
 # Relationship to deploy-prod.yml: that workflow is the *gated, manual* path
 # (staging-validation gate + rollback confirmation + immutable pinned tag).
-# This workflow is the *continuous* path: it builds the two prod image tiers
+# This workflow is the *continuous* path: it builds only the affected prod image tiers
 # from the pushed commit and rolls them out. Both deploy the same chart/release;
 # they are intentionally separate because the manual path's required inputs and
 # `confirm_rollback_plan == READY` gate cannot be satisfied by a push event.
 #
 # Build constraints (see infra/cloudbuild/*.yaml and docs/INFRASTRUCTURE.md):
 #   * Only ONE Cloud Build worker slot exists, and cloudbuild.yaml's 7 parallel
-#     builds deadlock an 8GB VM. So we run the two tier builds SEQUENTIALLY via
-#     two blocking `gcloud builds submit` calls (no --async).
-#   * runtime-tier.yaml rebuilds the `deps` base image; single-web.yaml only
-#     *consumes* a deps image via _DEPS_TAG. Runtime therefore builds first and
-#     publishes deps:<sha>, then web builds against that exact deps tag so the
-#     web image matches this commit's lockfile.
+#     builds deadlock an 8GB VM. So we run selected tier builds SEQUENTIALLY via
+#     blocking `gcloud builds submit` calls (no --async).
+#   * runtime-tier.yaml rebuilds the `deps` base image; single-web.yaml and
+#     single-admin.yaml only *consume* a deps image via _DEPS_TAG. Runtime
+#     therefore builds first and publishes deps:<sha>; affected frontend tiers
+#     then build against that exact tag so their images match this commit's lockfile.
 #   * runtime-tier.yaml serializes api, workspace-manager, preview-proxy,
-#     ai-gateway, worker and screenshotter on the 8 GB worker. Admin is not built
-#     by this continuous path; its current tag is preserved by `--reuse-values`.
+#     ai-gateway, worker and screenshotter on the 8 GB worker.
 
 name: Deploy Production (Continuous)
 
@@ -42,7 +41,7 @@ on:
         required: false
       force_tiers:
         description: >-
-          Force which tiers to build (comma list of web/runtime/wsagent, or 'all'),
+          Force which tiers to build (comma list of web/admin/runtime/wsagent, or 'all'),
           bypassing path detection. For validating conditional builds via dispatch.
         required: false
 
@@ -117,11 +116,18 @@ jobs:
           python3 scripts/validate-image-signing-wired.py --self-test
           python3 scripts/validate-image-signing-wired.py
 
+      - name: Pipeline policy — admin deploy tier must stay complete
+        run: |
+          set -euo pipefail
+          node --test scripts/detect-deploy-tiers.test.mjs
+          node scripts/validate-admin-deploy-tier.mjs --self-test
+          node scripts/validate-admin-deploy-tier.mjs
+
   build-and-deploy:
     name: Build tiers sequentially, then helm upgrade
     needs: [preflight-gates]
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     environment:
       name: production
 
@@ -169,61 +175,34 @@ jobs:
           FORCE_TIERS: ${{ inputs.force_tiers }}
         run: |
           set -euo pipefail
-          RUNTIME=true; WEB=true; WSAGENT=true
-
-          # Manual override (dispatch only) to validate conditional builds without a
-          # real push. e.g. force_tiers=web exercises the web-only skip path live.
-          if [ -n "${FORCE_TIERS:-}" ]; then
-            if [ "${FORCE_TIERS}" = "all" ]; then
-              RUNTIME=true; WEB=true; WSAGENT=true
-            else
-              RUNTIME=false; WEB=false; WSAGENT=false
-              case ",${FORCE_TIERS}," in *,web,*) WEB=true;; esac
-              case ",${FORCE_TIERS}," in *,runtime,*) RUNTIME=true;; esac
-              case ",${FORCE_TIERS}," in *,wsagent,*) WSAGENT=true;; esac
-            fi
-            echo "FORCE_TIERS=${FORCE_TIERS} -> runtime=${RUNTIME} web=${WEB} wsagent=${WSAGENT}"
-            {
-              echo "runtime=${RUNTIME}"; echo "web=${WEB}"; echo "wsagent=${WSAGENT}"
-            } >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
+          ARGS=()
           BASE=""
-          if printf '%s' "${BEFORE_SHA:-}" | grep -Eq '^[0-9a-f]{40}$' && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
-            BASE="${BEFORE_SHA}"            # push event: diff against the pushed-from SHA
-          elif git rev-parse --verify -q HEAD~1 >/dev/null 2>&1; then
-            BASE="$(git rev-parse HEAD~1)"  # dispatch / shallow fallback: diff the last commit
-          fi
 
-          if [ -n "${BASE}" ]; then
-            CHANGED="$(git diff --name-only "${BASE}" HEAD || true)"
-            echo "Changed files since ${BASE}:"; printf '%s\n' "${CHANGED}"
-
-            # Shared inputs that feed EVERY tier -> rebuild all (don't try to be clever).
-            if printf '%s\n' "${CHANGED}" | grep -Eq '^(packages/|pnpm-lock\.yaml|package\.json|pnpm-workspace\.yaml|Dockerfile|infra/docker/|infra/cloudbuild/cloudbuild\.yaml|\.github/workflows/deploy-main\.yml)'; then
-              echo "Shared/base input changed -> build ALL tiers"
-            else
-              RUNTIME=false; WEB=false; WSAGENT=false
-              printf '%s\n' "${CHANGED}" | grep -Eq '^(services/(api|workspace-manager|preview-proxy|ai-gateway|worker)/|infra/cloudbuild/runtime-tier\.yaml)' && RUNTIME=true || true
-              printf '%s\n' "${CHANGED}" | grep -Eq '^(app/|electron/|vite\.config|uno\.config|tsconfig|infra/cloudbuild/single-web\.yaml)' && WEB=true || true
-              printf '%s\n' "${CHANGED}" | grep -Eq '^(services/workspace-agent/|infra/cloudbuild/workspace-agent\.yaml)' && WSAGENT=true || true
-
-              # If nothing tier-specific matched (docs/CI-only push), still roll web+runtime
-              # as a safe no-op-ish default rather than deploying nothing unexpectedly.
-              if [ "${RUNTIME}" = false ] && [ "${WEB}" = false ] && [ "${WSAGENT}" = false ]; then
-                echo "No tier-specific change detected -> default to web+runtime"
-                RUNTIME=true; WEB=true
-              fi
-            fi
+          # The classifier is executable production logic with hermetic node:test
+          # coverage. Keeping path rules out of inline shell makes dependencies
+          # (especially admin's two app/i18n imports) reviewable and mutation-testable.
+          if [ -n "${FORCE_TIERS:-}" ]; then
+            ARGS=( --force "${FORCE_TIERS}" )
           else
-            echo "No resolvable base SHA -> build ALL tiers"
+            if printf '%s' "${BEFORE_SHA:-}" | grep -Eq '^[0-9a-f]{40}$' && git cat-file -e "${BEFORE_SHA}^{commit}" 2>/dev/null; then
+              BASE="${BEFORE_SHA}"            # push event: diff against the pushed-from SHA
+            elif git rev-parse --verify -q HEAD~1 >/dev/null 2>&1; then
+              BASE="$(git rev-parse HEAD~1)"  # dispatch fallback: diff the last commit
+            fi
+
+            if [ -n "${BASE}" ]; then
+              CHANGED_FILE="${RUNNER_TEMP}/deploy-changed-paths.txt"
+              git diff --name-only "${BASE}" HEAD > "${CHANGED_FILE}"
+              echo "Changed files since ${BASE}:"
+              sed -n '1,500p' "${CHANGED_FILE}"
+              ARGS=( --changed-file-list "${CHANGED_FILE}" )
+            else
+              echo "No resolvable base SHA -> build ALL tiers"
+              ARGS=( --all )
+            fi
           fi
 
-          echo "runtime=${RUNTIME}" >> "$GITHUB_OUTPUT"
-          echo "web=${WEB}" >> "$GITHUB_OUTPUT"
-          echo "wsagent=${WSAGENT}" >> "$GITHUB_OUTPUT"
-          echo "Tiers to build -> runtime=${RUNTIME} web=${WEB} wsagent=${WSAGENT}"
+          node scripts/detect-deploy-tiers.mjs "${ARGS[@]}" | tee -a "$GITHUB_OUTPUT"
 
       - name: Authenticate to Google Cloud (Workload Identity Federation)
         uses: google-github-actions/auth@v2
@@ -236,7 +215,7 @@ jobs:
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
-      # ---- Build 1/2: runtime tier (six serialized backend service images) ----
+      # ---- Build 1/4: runtime tier (six serialized backend service images) ----
       # Builds the deps base and runtime images first; publishes deps:<sha> +
       # deps:latest so the web build can pin _DEPS_TAG. Blocking by design.
       - name: Build runtime tier (Cloud Build)
@@ -254,7 +233,7 @@ jobs:
             .
           echo "::endgroup::"
 
-      # ---- Build 2/2: web tier ----
+      # ---- Build 2/4: web tier ----
       # Runs only after the runtime build above succeeds (sequential — single
       # worker slot). Pins _DEPS_TAG to this commit's freshly built deps image.
       - name: Build web tier (Cloud Build)
@@ -291,7 +270,31 @@ jobs:
             .
           echo "::endgroup::"
 
-      # ---- Build 3/3: workspace-agent runtime image ----
+      # ---- Build 3/4: admin tier ----
+      # Admin is an independent SPA image. An apps/admin-only change therefore
+      # builds exactly one image, while shared lock/deps changes build runtime
+      # first and pin this build to deps:<same sha>.
+      - name: Build admin tier (Cloud Build)
+        if: steps.tiers.outputs.admin == 'true'
+        run: |
+          set -euo pipefail
+          if [ "${{ steps.tiers.outputs.runtime }}" = "true" ]; then
+            DEPS_TAG="${SHORT_SHA}"
+          else
+            DEPS_TAG="latest"
+          fi
+          echo "::group::gcloud builds submit — single-admin (deps:${DEPS_TAG})"
+          gcloud builds submit \
+            --project="${GCP_PROJECT_ID}" \
+            --region="${GAR_LOCATION}" \
+            --config=infra/cloudbuild/single-admin.yaml \
+            --substitutions=_DEPS_TAG="${DEPS_TAG}",_SHORT_SHA="${SHORT_SHA}" \
+            --machine-type=e2-highcpu-8 \
+            --timeout=1800s \
+            .
+          echo "::endgroup::"
+
+      # ---- Build 4/4: workspace-agent runtime image ----
       # The agent runs INSIDE each workspace pod (its own Dockerfile, node-pty
       # native build, NOT the deps base), so it can't join the runtime tier.
       # Tag matches the prod convention `sha-<short>`; helm --set below points
@@ -349,6 +352,9 @@ jobs:
           if [ "${{ steps.tiers.outputs.web }}" = "true" ]; then
             IMAGES="${IMAGES} ${REG}/web:${SHORT_SHA}"
           fi
+          if [ "${{ steps.tiers.outputs.admin }}" = "true" ]; then
+            IMAGES="${IMAGES} ${REG}/admin:${SHORT_SHA}"
+          fi
           if [ "${{ steps.tiers.outputs.runtime }}" = "true" ]; then
             for s in api workspace-manager preview-proxy ai-gateway worker screenshotter; do
               IMAGES="${IMAGES} ${REG}/${s}:${SHORT_SHA}"
@@ -388,6 +394,9 @@ jobs:
         with:
           version: v3.16.2
 
+      - name: Helm render test — admin tier (blocking)
+        run: node scripts/validate-helm-admin-tier.mjs
+
       # D2 (approved 2026-07-17): MANDATORY render test before any upgrade. The
       # rollback flag used to live only in a `kubectl set env`, which the next
       # helm upgrade wiped — silently reviving the fake URL-copy rollback. This
@@ -424,8 +433,8 @@ jobs:
           helm history "${HELM_RELEASE}" -n "${HELM_NAMESPACE}" || true
           echo "Rollback: helm rollback ${HELM_RELEASE} <REVISION> -n ${HELM_NAMESPACE}"
 
-      # --reuse-values preserves every existing value (admin imageTag + all prod
-      # config) and overrides only the tiers rebuilt above: web, api,
+      # --reuse-values preserves every existing production value and overrides
+      # only the tiers rebuilt above: web, admin, api,
       # workspace-manager, preview-proxy, ai-gateway, worker, and the
       # workspace-agent runtime image. NOTE: because --reuse-values keeps the
       # release's stored configmap values, a change to values-prod.yaml alone
@@ -436,7 +445,7 @@ jobs:
       # --atomic auto-rolls-back on a failed
       # upgrade (a bad ai-gateway/worker container fails readiness → rollback;
       # the agent image is a configmap value the api re-reads on its restart).
-      - name: Helm upgrade (web + runtime image tags)
+      - name: Helm upgrade (affected image tags)
         run: |
           set -euo pipefail
           # Only --set the imageTag of a tier we actually rebuilt this run; a skipped
@@ -454,6 +463,9 @@ jobs:
           SETS+=( --set-string "platformEnv.runtime.serverDeployRollbackFromDigest=1" )
           if [ "${{ steps.tiers.outputs.web }}" = "true" ]; then
             SETS+=( --set "services.web.imageTag=${SHORT_SHA}" )
+          fi
+          if [ "${{ steps.tiers.outputs.admin }}" = "true" ]; then
+            SETS+=( --set "services.admin.imageTag=${SHORT_SHA}" )
           fi
           if [ "${{ steps.tiers.outputs.runtime }}" = "true" ]; then
             SETS+=(
@@ -491,7 +503,7 @@ jobs:
       - name: Verify rollout
         run: |
           set -euo pipefail
-          for svc in web api workspace-manager preview-proxy ai-gateway worker; do
+          for svc in web admin api workspace-manager preview-proxy ai-gateway worker; do
             dep="$(kubectl -n "${HELM_NAMESPACE}" get deploy \
               -l "app.kubernetes.io/name=${svc}" -o name 2>/dev/null | head -n1)"
             if [ -z "${dep}" ]; then
@@ -502,6 +514,19 @@ jobs:
             kubectl -n "${HELM_NAMESPACE}" rollout status "${dep}" --timeout=5m
             echo "::endgroup::"
           done
+          # A successful rollout alone does not prove Helm used the image this
+          # run just signed. Verify the live Deployment template is pinned to the
+          # exact admin tag whenever the admin tier was rebuilt.
+          if [ "${{ steps.tiers.outputs.admin }}" = "true" ]; then
+            ADMIN_DEPLOY="${HELM_RELEASE}-vibecore-platform-admin"
+            EXPECTED_ADMIN="${GAR_LOCATION}-docker.pkg.dev/${GCP_PROJECT_ID}/${GAR_REPO}/admin:${SHORT_SHA}"
+            LIVE_ADMIN="$(kubectl -n "${HELM_NAMESPACE}" get deploy "${ADMIN_DEPLOY}" -o jsonpath='{.spec.template.spec.containers[0].image}')"
+            echo "admin deployment image: ${LIVE_ADMIN}"
+            if [ "${LIVE_ADMIN}" != "${EXPECTED_ADMIN}" ]; then
+              echo "::error::admin rollout used '${LIVE_ADMIN}', expected '${EXPECTED_ADMIN}'" >&2
+              exit 1
+            fi
+          fi
           # P11 screenshotter — only exists once a runtime-tier deploy has asserted
           # services.screenshotter.enabled=true (see the helm SETS above), so check
           # for the Deployment instead of failing a web-only deploy that predates it.

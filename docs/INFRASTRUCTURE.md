@@ -527,15 +527,17 @@ are driven by the top-level `Makefile`.
 
 There are two variants, picked by **whether the lockfile changed**:
 
-| Lockfile changed? | Source changes touch       | Use                             | Approx duration |
-| ----------------- | -------------------------- | ------------------------------- | --------------- |
-| No                | one service                | `make deploy-<service>`          | 90-180 s        |
-| Yes               | runtime services           | `make deploy-runtime`          | 15-35 min       |
-| Yes               | anything else, or multiple tiers | `make deploy-all`         | 8-12 min        |
+| Lockfile changed? | Source changes touch             | Use                     | Approx duration |
+| ----------------- | -------------------------------- | ----------------------- | --------------- |
+| No                | one service                      | `make deploy-<service>` | 90-180 s        |
+| Yes               | runtime services                 | `make deploy-runtime`   | 15-35 min       |
+| Yes               | anything else, or multiple tiers | `make deploy-all`       | 8-12 min        |
 
 **Pinned-deps single-service builds** (`infra/cloudbuild/single-service.yaml`,
-`infra/cloudbuild/single-web.yaml`) skip `build-deps` entirely and reuse an
-existing deps image from Artifact Registry. The `Makefile` auto-detects
+`infra/cloudbuild/single-web.yaml`, `infra/cloudbuild/single-admin.yaml`) skip
+`build-deps` entirely and reuse an existing deps image from Artifact Registry.
+The dedicated web/admin configs also sign the pushed digest with Cosign + Cloud
+KMS so their images satisfy production admission policy. The `Makefile` auto-detects
 the latest deps SHA tag; override with `DEPS_TAG=<sha>`:
 
 ```bash
@@ -547,6 +549,9 @@ make deploy-api DEPS_TAG=9b9c9a037b SHORT_SHA=hotfix1
 
 # Web is built from the root Dockerfile (Remix), not node-service.Dockerfile
 make deploy-web
+
+# Admin is built alone and signed by digest (no web/runtime rebuild)
+make deploy-admin
 
 # List the deps tags Artifact Registry currently has
 make list-deps-tags
@@ -577,7 +582,7 @@ make deploy-runtime
 >
 > Option 1 is the usual choice — Cloud Build's targeted configs already
 > push `:latest` for the rebuilt service, and a quick `gcloud artifacts
-> docker tags add` loop covers the rest.
+docker tags add` loop covers the rest.
 
 ---
 
