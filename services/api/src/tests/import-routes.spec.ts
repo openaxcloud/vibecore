@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { hashPassword } from '@vibecore/auth';
+import JSZip from 'jszip';
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildApiApp } from '../app.js';
@@ -41,6 +42,9 @@ class MemoryProjectStorage implements ProjectStorage {
     return undefined;
   }
   async deleteFiles() {}
+  async deleteProjectFiles(projectId: string) {
+    this.files.delete(projectId);
+  }
   async exportZip() {
     return { storageKey: 'export', byteLength: 0, base64: '', createdAt: new Date().toISOString() };
   }
@@ -223,6 +227,59 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
     expect((await store.getImportJob(freshId))?.state).toBe('AWAITING_USER_ACTION');
   });
 
+  it('stages all five archive tiles without creating a project before explicit commit', async () => {
+    const { app, store, org, projectStorage } = await setup();
+    const archive = new JSZip();
+    archive.file('src/index.ts', 'export const imported = true;\n');
+    archive.file('README.md', '# Portable export\n');
+    const zipBase64 = await archive.generateAsync({ type: 'base64' });
+    const providers = ['zip', 'bolt', 'lovable', 'base44', 'previous-agent-export'] as const;
+
+    for (const provider of providers) {
+      const staged = await app.inject({
+        method: 'POST',
+        url: `/orgs/${org.id}/imports`,
+        headers: auth('imp-token'),
+        payload: {
+          idempotencyKey: `archive-stage-${provider}`,
+          provider,
+          sourceRef: `${provider}.zip`,
+          zipBase64,
+        },
+      });
+
+      expect(staged.statusCode).toBe(201);
+      expect(staged.json().import.state).toBe('READY_TO_COMMIT');
+      expect(store.projects.size).toBe(0);
+      expect(projectStorage.writeCalls).toEqual([]);
+
+      const importJobId = staged.json().import.importJobId as string;
+      const preview = await app.inject({
+        method: 'GET',
+        url: `/orgs/${org.id}/imports/${importJobId}`,
+        headers: auth('imp-token'),
+      });
+      expect(preview.statusCode).toBe(200);
+      expect(preview.json().import.stagedFiles).toEqual(
+        expect.arrayContaining([
+          { path: 'README.md', sizeBytes: 18 },
+          { path: 'src/index.ts', sizeBytes: 30 },
+        ]),
+      );
+
+      const cancelled = await app.inject({
+        method: 'POST',
+        url: `/orgs/${org.id}/imports/${importJobId}/cancel`,
+        headers: auth('imp-token'),
+      });
+      expect(cancelled.statusCode).toBe(200);
+      expect(cancelled.json().import.state).toBe('CANCELLED');
+    }
+
+    expect(store.projects.size).toBe(0);
+    expect(projectStorage.files.size).toBe(0);
+  });
+
   it('commit WITHOUT resolving findings is BLOCKED (409, no silent write)', async () => {
     const { app, org, projectStorage } = await setup();
 
@@ -332,8 +389,13 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
 
     const importJobId = created.json().import.importJobId;
 
-    // Force the atomic write to fail.
-    const spy = vi.spyOn(projectStorage, 'writeFiles').mockRejectedValueOnce(new Error('disk exploded'));
+    // Inject the failure AFTER bytes landed: cleanup must remove both the
+    // physical tree and the Project row, not merely flip the job state.
+    const realWrite = projectStorage.writeFiles.bind(projectStorage);
+    const spy = vi.spyOn(projectStorage, 'writeFiles').mockImplementationOnce(async (...args) => {
+      await realWrite(...args);
+      throw new Error('disk exploded after partial write');
+    });
 
     const res = await app.inject({
       method: 'POST',
@@ -346,7 +408,96 @@ describe('POST /orgs/:orgId/imports — secure import, no silent deletion, dispo
     const job = await store.getImportJob(importJobId);
     expect(job?.state).toBe('ROLLING_BACK'); // cleanup ran on the sad path
     expect(job?.targetProjectId).toBeUndefined(); // no partial target persisted
+    expect(projectStorage.files.size).toBe(0);
+    expect(store.projects.size).toBe(0);
+    expect(await store.getImportReservationByJob(importJobId, org.id)).toMatchObject({
+      state: 'COMPENSATED',
+      debitedCredits: 0,
+    });
     spy.mockRestore();
+  });
+
+  it('two concurrent commit POSTs create/write/debit exactly once; loser is honest or idempotent', async () => {
+    const { app, store, org, projectStorage } = await setup();
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('imp-token'),
+      payload: {
+        idempotencyKey: 'concurrent-commit-route',
+        provider: 'zip',
+        files: [{ path: 'index.ts', content: 'export const once = true;\n' }],
+      },
+    });
+    const importJobId = created.json().import.importJobId;
+    const commit = () =>
+      app.inject({
+        method: 'POST',
+        url: `/orgs/${org.id}/imports/${importJobId}/commit`,
+        headers: auth('imp-token'),
+        payload: { consent: {} },
+      });
+    const [first, second] = await Promise.all([commit(), commit()]);
+    const statuses = [first.statusCode, second.statusCode];
+
+    expect(statuses.filter((status) => status === 201)).toHaveLength(1);
+    expect(statuses.every((status) => status === 201 || status === 200 || status === 409)).toBe(true);
+    expect(store.projects.size).toBe(1);
+    expect(projectStorage.writeCalls).toHaveLength(1);
+    expect(await store.getImportReservationByJob(importJobId, org.id)).toMatchObject({
+      state: 'SETTLED',
+      debitedCredits: 1,
+      version: 1,
+    });
+  });
+
+  it('cleanup failure remains compensated+CLEANUP_PENDING and a later reaper finishes it', async () => {
+    const { app, store, org, projectStorage } = await setup();
+    const created = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports`,
+      headers: auth('imp-token'),
+      payload: {
+        idempotencyKey: 'cleanup-recovery-route',
+        provider: 'zip',
+        files: [{ path: 'partial.txt', content: 'partial\n' }],
+      },
+    });
+    const importJobId = created.json().import.importJobId;
+    const realWrite = projectStorage.writeFiles.bind(projectStorage);
+    const writeSpy = vi.spyOn(projectStorage, 'writeFiles').mockImplementationOnce(async (...args) => {
+      await realWrite(...args);
+      throw new Error('write failed after bytes landed');
+    });
+    const cleanupSpy = vi.spyOn(projectStorage, 'deleteProjectFiles').mockRejectedValueOnce(new Error('storage down'));
+    const failed = await app.inject({
+      method: 'POST',
+      url: `/orgs/${org.id}/imports/${importJobId}/commit`,
+      headers: auth('imp-token'),
+      payload: { consent: {} },
+    });
+
+    expect(failed.statusCode).toBe(500);
+    expect(await store.getImportJob(importJobId)).toMatchObject({ state: 'CLEANUP_PENDING' });
+    expect(await store.getImportReservationByJob(importJobId, org.id)).toMatchObject({
+      state: 'COMPENSATED',
+      debitedCredits: 0,
+    });
+    expect(store.projects.size).toBe(1);
+    expect(projectStorage.files.size).toBe(1);
+
+    writeSpy.mockRestore();
+    cleanupSpy.mockRestore();
+    const pending = (await store.getImportJob(importJobId))!;
+    pending.operationExpiresAt = new Date(Date.now() - 1_000).toISOString();
+    const reaped = await (
+      app as typeof app & { reapExpiredImports(nowIso?: string): Promise<string[]> }
+    ).reapExpiredImports(new Date().toISOString());
+
+    expect(reaped).toContain(importJobId);
+    expect(await store.getImportJob(importJobId)).toMatchObject({ state: 'EXPIRED', targetProjectId: undefined });
+    expect(store.projects.size).toBe(0);
+    expect(projectStorage.files.size).toBe(0);
   });
 
   it('redacted LOGS: the raw secret value never appears in the import logs', async () => {

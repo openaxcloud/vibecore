@@ -208,7 +208,7 @@ import {
   type ImportFile,
   type ImportState,
 } from './import-pipeline.js';
-import { ImportCreditLedger, estimateImportReservation } from './import-billing.js';
+import { estimateImportReservation } from './import-billing.js';
 import {
   REMIX_CONSENT_VERSION,
   RemixInvariantError,
@@ -8637,27 +8637,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         : /^\d+$/.test(trustProxyEnv)
           ? Number(trustProxyEnv)
           : trustProxyEnv;
-
-  /*
-   * DISPOSABLE import staging (I-IMP-2). Staged files live here, in-process and
-   * ephemeral, keyed by importJobId — NEVER in a target project's storage. The
-   * target is written ONLY at the atomic commit; cancel/rollback/timeout/failure
-   * clear this map and no target project is ever created. (A multi-replica prod
-   * would back this with a shared ephemeral store; the invariant — no target
-   * mount until commit — holds regardless of the backing store.)
-   */
-  const importStaging = new Map<string, ImportFile[]>();
-  const importPreviews = new Map<string, CredentialImportPreview>();
-
-  /*
-   * SAFETY billing ledger (in-process, mirrors importStaging): idempotent credit
-   * reservation reserved BEFORE any paid work, settled ONLY on COMMITTED, and
-   * compensated on every non-committed exit (cancel/timeout/rollback/failure).
-   * `importIdemIndex` maps a client idempotency key → jobId so a retried create
-   * replays the same import instead of double-creating + double-reserving.
-   */
-  const importLedger = new ImportCreditLedger();
-  const importIdemIndex = new Map<string, string>();
 
   const app = Fastify({
     bodyLimit: Number(process.env.API_BODY_LIMIT_BYTES ?? 25 * 1024 * 1024),
@@ -20309,6 +20288,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .string()
       .max(2 * 1024 * 1024)
       .optional(),
+    zipBase64: z
+      .string()
+      .max(24 * 1024 * 1024)
+      .optional(),
     targetPath: z.string().max(240).optional(),
 
     /*
@@ -20326,37 +20309,90 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     consent: z.record(z.string(), z.enum(['keep', 'redact'])).default({}),
   });
 
-  /*
-   * Cleanup is reachable on EVERY non-committed exit — cancel, timeout, rollback
-   * and failure alike. It disposes the disposable staging (the target is NEVER
-   * mounted before COMMITTED) and COMPENSATES the credit reservation to zero
-   * debit — so an import that never committed is never charged (safety rule 3).
+  const IMPORT_OPERATION_LEASE_MS = 30 * 60_000;
+
+  /**
+   * Finish a durable cleanup claim. Physical files are removed first, then the
+   * tenant-scoped Project row (whose manifests cascade), and only then is the
+   * terminal state published. Any failure intentionally leaves CLEANUP_PENDING
+   * with a compensated reservation for a later cross-replica reaper retry.
    */
-  const cleanupImport = async (importJobId: string, terminal: ImportState, error?: string) => {
-    importStaging.delete(importJobId); // dispose the staging — target never mounted
-    importPreviews.delete(importJobId);
-    importLedger.compensateByJob(importJobId); // release the reservation, zero debit
-    await store.updateImportJob(importJobId, { state: terminal, ...(error ? { error } : {}) }).catch(() => undefined);
+  const finishClaimedImportCleanup = async (job: Awaited<ReturnType<ApiStore['getImportJob']>>) => {
+    if (!job || job.state !== 'CLEANUP_PENDING' || !job.operationToken) {
+      return false;
+    }
+
+    if (job.targetProjectId) {
+      await projectStorage.deleteProjectFiles(job.targetProjectId);
+      const deleted = await store.deleteClaimedImportProject({
+        importJobId: job.id,
+        organizationId: job.organizationId,
+        operationToken: job.operationToken,
+        targetProjectId: job.targetProjectId,
+      });
+
+      if (!deleted) {
+        return false;
+      }
+    }
+
+    return Boolean(
+      await store.finishImportCleanup({
+        importJobId: job.id,
+        organizationId: job.organizationId,
+        operationToken: job.operationToken,
+      }),
+    );
+  };
+
+  const cleanupImport = async (input: {
+    importJobId: string;
+    organizationId: string;
+    terminalState: 'ROLLING_BACK' | 'EXPIRED' | 'FAILED';
+    expectedStates: string[];
+    operationToken?: string;
+    error?: string;
+  }) => {
+    const operationToken = input.operationToken ?? randomUUID();
+    const pending = await store.beginImportCleanup({
+      importJobId: input.importJobId,
+      organizationId: input.organizationId,
+      operationToken,
+      expectedStates: input.expectedStates,
+      terminalState: input.terminalState,
+      error: input.error,
+    });
+
+    if (!pending) {
+      return false;
+    }
+
+    try {
+      return await finishClaimedImportCleanup(pending);
+    } catch {
+      // Honest durable state: cleanup was not verified, so remain recoverable.
+      return false;
+    }
   };
 
   /*
-   * IMP-4 timeout sweeper: an import abandoned in a non-terminal state (user
-   * never resolved findings, closed the tab, …) must not linger forever holding
-   * staged files. Expire every job past its expiresAt to EXPIRED (the store move
-   * NEVER writes targetProjectId, so the target is still untouched) and dispose
-   * this process's staging for the reaped ids. Exposed for tests + driven by a
-   * periodic timer in production.
+   * IMP-4 timeout sweeper: target-less jobs expire and clear their durable
+   * staging atomically. A claimed commit whose operation lease expired moves to
+   * CLEANUP_PENDING and is physically deleted here before a terminal state is
+   * published. Exposed for tests and driven by a periodic production timer.
    */
   const reapExpiredImports = async (nowIso: string = new Date().toISOString()): Promise<string[]> => {
-    const expired = await store.reapExpiredImportJobs(nowIso).catch((): string[] => []);
+    const claimed = await store.reapExpiredImportJobs(nowIso).catch((): string[] => []);
 
-    for (const id of expired) {
-      importStaging.delete(id);
-      importPreviews.delete(id);
-      importLedger.compensateByJob(id); // timeout is a non-committed exit → release, zero debit
+    for (const id of claimed) {
+      const job = await store.getImportJob(id);
+
+      if (job?.state === 'CLEANUP_PENDING') {
+        await finishClaimedImportCleanup(job).catch(() => false);
+      }
     }
 
-    return expired;
+    return claimed;
   };
 
   const importReaper = setInterval(() => {
@@ -20364,11 +20400,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   }, 60_000);
   importReaper.unref();
 
-  /*
-   * Expose the app-level reaper (store sweep + staging dispose + reservation
-   * compensation) so operational tooling and tests can drive the SAME timeout
-   * path the periodic timer runs — never a partial store-only sweep.
-   */
+  /* Expose the complete durable-claim + physical-cleanup path to tests/ops. */
   app.decorate('reapExpiredImports', reapExpiredImports);
 
   /*
@@ -20383,54 +20415,80 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireOrganizationNotSuspended(store, orgId);
 
     const body = parse(importCreateSchema, request.body);
+    const inputFiles = body.files ?? [];
 
-    /*
-     * IDEMPOTENT CREATE: a retried POST with the same key replays the SAME import
-     * (re-fetched current status) instead of creating a second job + a second
-     * reservation. In-process index; durable idempotency = UsageReservation follow-up.
-     */
-    const idemMapKey = `${orgId}:${body.idempotencyKey}`;
-    const existingJobId = importIdemIndex.get(idemMapKey);
+    /* Hash only the request shape/digests: idempotency mismatch detection never
+     * persists a caller's source payload or file contents outside staging. */
+    const requestHash = createHash('sha256')
+      .update(
+        JSON.stringify({
+          provider: body.provider,
+          sourceRef: body.sourceRef ?? null,
+          scopeRef: body.scopeRef ?? null,
+          targetPath: body.targetPath ?? null,
+          sourcePayloadHash: body.sourcePayload ? createHash('sha256').update(body.sourcePayload).digest('hex') : null,
+          zipHash: body.zipBase64 ? createHash('sha256').update(body.zipBase64).digest('hex') : null,
+          files: inputFiles.map((file) => ({
+            path: file.path,
+            encoding: file.encoding ?? null,
+            contentHash: createHash('sha256').update(file.content).digest('hex'),
+          })),
+        }),
+      )
+      .digest('hex');
 
-    if (existingJobId) {
-      const existing = await store.getImportJob(existingJobId);
-
-      if (existing && existing.organizationId === orgId) {
-        const requiresConsent = existing.state === 'QUARANTINED' || existing.state === 'AWAITING_USER_ACTION';
-
-        return reply.code(existing.state === 'AWAITING_USER_ACTION' ? 202 : 200).send({
-          import: {
-            importJobId: existing.id,
-            state: existing.state,
-            provider: existing.provider,
-            findings: (existing.findings as unknown[]) ?? [],
-            stagedFileCount: existing.stagedFileCount,
-            requiresConsent,
-            preview: importPreviews.get(existing.id) ?? null,
-            replayed: true,
-          },
-        });
-      }
-    }
-
-    // Staging expires (idle) — the sweeper / timeout path uses this.
+    // Staging expires (idle) — the durable sweeper / timeout path uses this.
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-
-    const job = await store.createImportJob({
+    const created = await store.createImportJob({
       organizationId: orgId,
       actorUserId: request.currentUser?.id,
       provider: body.provider,
       sourceRef: body.sourceRef,
       expiresAt,
+      idempotencyKey: body.idempotencyKey,
+      requestHash,
+      reservedCredits: estimateImportReservation(inputFiles.length),
     });
-    importIdemIndex.set(idemMapKey, job.id);
 
-    let state: ImportState = 'RECEIVED';
+    if (created.replayed) {
+      const existing = created.job;
+      const staged = await store.getImportStaging(existing.id, orgId);
+      const requiresConsent = existing.state === 'QUARANTINED' || existing.state === 'AWAITING_USER_ACTION';
 
-    const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
+      return reply.code(existing.state === 'AWAITING_USER_ACTION' ? 202 : 200).send({
+        import: {
+          importJobId: existing.id,
+          state: existing.state,
+          provider: existing.provider,
+          findings: (existing.findings as unknown[]) ?? [],
+          stagedFileCount: existing.stagedFileCount,
+          requiresConsent,
+          preview: staged?.preview ?? null,
+          replayed: true,
+        },
+      });
+    }
+
+    let current = created.job;
+    let state = current.state as ImportState;
+
+    const advance = async (to: ImportState, patch: Parameters<ApiStore['transitionImportJob']>[0]['patch'] = {}) => {
       assertImportTransition(state, to);
+      const updated = await store.transitionImportJob({
+        id: current.id,
+        organizationId: orgId,
+        expectedVersion: current.version,
+        expectedStates: [state],
+        state: to,
+        patch,
+      });
+
+      if (!updated) {
+        throw new ImportInvariantError('Another worker changed this import state.', 'IMPORT_STATE_CONFLICT');
+      }
+
+      current = updated;
       state = to;
-      await store.updateImportJob(job.id, { state: to, ...patch });
     };
 
     try {
@@ -20440,15 +20498,24 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * with the same key never double-reserves. The debit is recorded ONLY if
        * the import reaches COMMITTED (settle); every other exit compensates.
        */
-      let stagedFiles: ImportFile[] = body.files ?? [];
-      importLedger.reserve({
-        key: body.idempotencyKey,
-        organizationId: orgId,
-        importJobId: job.id,
-        reservedCredits: estimateImportReservation(stagedFiles.length),
-      });
-      await store.updateImportJob(job.id, { creditsReserved: true });
+      let stagedFiles: ImportFile[] = inputFiles;
 
+      if (body.zipBase64) {
+        const archiveProviders = new Set(['zip', 'bolt', 'lovable', 'base44', 'previous-agent-export']);
+
+        if (!archiveProviders.has(body.provider)) {
+          throw Object.assign(new Error(appPublicEnglish('IMPORT_ARCHIVE_PROVIDER_INVALID')), {
+            statusCode: 400,
+            code: 'IMPORT_ARCHIVE_PROVIDER_INVALID',
+          });
+        }
+
+        stagedFiles = (await filesFromZipBase64(body.zipBase64)).map((file) => ({
+          path: file.path,
+          content: file.content,
+          ...(file.encoding ? { encoding: file.encoding } : {}),
+        }));
+      }
       /*
        * Credential providers are fetched server-side from the caller's own
        * active encrypted UserConnection. Client-supplied `files` are ignored for
@@ -20525,15 +20592,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
 
         stagedFiles = fetched.files;
-        importPreviews.set(job.id, fetched.preview);
+        const preview: CredentialImportPreview = {
+          provider: fetched.preview.provider,
+          title: fetched.preview.title,
+          sourceRef: fetched.preview.sourceRef,
+          fileCount: fetched.preview.fileCount,
+          byteCount: fetched.preview.byteCount,
+          facts: fetched.preview.facts.map(({ key, value }) => ({ key, value })),
+          warnings: [...fetched.preview.warnings],
+          paths: [...fetched.preview.paths],
+        };
 
-        /* Use the provider-resolved title for the eventual target project. */
-        await store.updateImportJob(job.id, { sourceRef: fetched.resolvedSourceRef });
+        await advance('STAGING_ISOLATED', {
+          sourceRef: fetched.resolvedSourceRef,
+          stagedFiles,
+          connectorPreview: preview,
+          stagedFileCount: stagedFiles.length,
+        });
+      } else {
+        await advance('STAGING_ISOLATED', { stagedFiles, stagedFileCount: stagedFiles.length });
       }
-
-      // STAGING_ISOLATED — files into the disposable staging, NOT the target.
-      importStaging.set(job.id, stagedFiles);
-      await advance('STAGING_ISOLATED', { stagedFileCount: stagedFiles.length });
 
       // SCANNING — read-only detection; content is never mutated here.
       await advance('SCANNING');
@@ -20544,7 +20622,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log?.info?.(
         {
           event: 'import.scan',
-          importJobId: job.id,
+          importJobId: current.id,
           findingCount: findings.length,
           kinds: findings.map((f) => f.kind),
         },
@@ -20566,13 +20644,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         return reply.code(202).send({
           import: {
-            importJobId: job.id,
+            importJobId: current.id,
             state,
             provider: body.provider,
             findings, // redacted previews only
             stagedFileCount: stagedFiles.length,
             requiresConsent: true,
-            preview: importPreviews.get(job.id) ?? null,
+            preview: (await store.getImportStaging(current.id, orgId))?.preview ?? null,
           },
         });
       }
@@ -20582,25 +20660,31 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       return reply.code(201).send({
         import: {
-          importJobId: job.id,
+          importJobId: current.id,
           state,
           provider: body.provider,
           findings: [],
           stagedFileCount: stagedFiles.length,
           requiresConsent: false,
-          preview: importPreviews.get(job.id) ?? null,
+          preview: (await store.getImportStaging(current.id, orgId))?.preview ?? null,
         },
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      await cleanupImport(job.id, 'FAILED', message);
+      await cleanupImport({
+        importJobId: current.id,
+        organizationId: orgId,
+        terminalState: 'FAILED',
+        expectedStates: [current.state],
+        error: message,
+      });
 
       if (error instanceof ImportInvariantError) {
-        return reply.status(error.statusCode).send({ error: message, code: error.code, importJobId: job.id });
+        return reply.status(error.statusCode).send({ error: message, code: error.code, importJobId: current.id });
       }
 
       if (error instanceof CredentialImportError) {
-        return reply.status(error.statusCode).send({ error: error.code, code: error.code, importJobId: job.id });
+        return reply.status(error.statusCode).send({ error: error.code, code: error.code, importJobId: current.id });
       }
 
       throw error;
@@ -20611,7 +20695,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * Commit an import ATOMICALLY into a NEW target project — the ONLY place the
    * target is written. With unresolved findings and no per-finding consent, the
    * commit is BLOCKED (409). Consent 'redact' rewrites the staged copy only;
-   * 'keep' leaves it byte-for-byte. Any failure → ROLLING_BACK, no target left.
+   * 'keep' leaves it byte-for-byte. A failed claimed commit is compensated and
+   * reaches ROLLING_BACK only after physical and database cleanup is verified;
+   * cleanup failures remain durably CLEANUP_PENDING for the reaper.
    */
   app.post('/orgs/:orgId/imports/:importJobId/commit', async (request, reply) => {
     const { orgId } = parse(orgParams, request.params);
@@ -20634,7 +20720,39 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const staged = importStaging.get(importJobId);
+    if (job.state === 'COMMITTED') {
+      const project = job.targetProjectId ? await store.getProject(job.targetProjectId) : undefined;
+
+      if (!project || project.organizationId !== orgId) {
+        throw Object.assign(new Error(appPublicEnglish('IMPORT_STAGING_GONE')), {
+          statusCode: 409,
+          code: 'IMPORT_COMMITTED_TARGET_MISSING',
+        });
+      }
+
+      return reply.code(200).send({
+        project,
+        import: {
+          importJobId,
+          state: 'COMMITTED',
+          redactedCount: job.redactedCount,
+          targetProjectId: project.id,
+          replayed: true,
+        },
+      });
+    }
+
+    if (['COMMITTING', 'CLEANUP_PENDING'].includes(job.state)) {
+      return reply.status(409).send({
+        error: appPublicEnglish('IMPORT_JOB_FAILED'),
+        code: 'IMPORT_COMMIT_IN_PROGRESS',
+        importJobId,
+        state: job.state,
+      });
+    }
+
+    const staging = await store.getImportStaging(importJobId, orgId);
+    const staged = staging?.files;
 
     if (!staged) {
       throw Object.assign(new Error(appPublicEnglish('IMPORT_STAGING_GONE')), {
@@ -20658,13 +20776,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    let state = job.state as ImportState;
+    let current = job;
+    let state = current.state as ImportState;
 
-    const advance = async (to: ImportState, patch: Record<string, unknown> = {}) => {
+    const advance = async (to: ImportState, patch: Parameters<ApiStore['transitionImportJob']>[0]['patch'] = {}) => {
       assertImportTransition(state, to);
+      const updated = await store.transitionImportJob({
+        id: importJobId,
+        organizationId: orgId,
+        expectedVersion: current.version,
+        expectedStates: [state],
+        state: to,
+        patch,
+      });
+
+      if (!updated) {
+        throw new ImportInvariantError('Another worker changed this import state.', 'IMPORT_STATE_CONFLICT');
+      }
+
+      current = updated;
       state = to;
-      await store.updateImportJob(importJobId, { state: to, ...patch });
     };
+
+    let operationToken: string | undefined;
 
     try {
       // Apply ONLY consented redactions (never silent).
@@ -20700,26 +20834,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         await advance('READY_TO_COMMIT', { consent, redactedCount: redacted.length });
       }
 
-      // COMMITTING may ONLY depart from READY_TO_COMMIT (assertImportTransition).
-      await advance('COMMITTING', { consent, redactedCount: redacted.length });
+      // PostgreSQL CAS is the commit point: exactly one replica receives this
+      // fencing token. A loser never creates a project or writes target files.
+      operationToken = randomUUID();
+      await advance('COMMITTING', {
+        consent,
+        redactedCount: redacted.length,
+        operationToken,
+        operationExpiresAt: new Date(Date.now() + IMPORT_OPERATION_LEASE_MS).toISOString(),
+      });
 
       // Atomic target write — the first and only touch of a target project.
       const name =
-        job.sourceRef
+        current.sourceRef
           ?.split('/')
           .pop()
-          ?.replace(/\.git$/, '') || `Imported ${job.provider}`;
+          ?.replace(/\.git$/, '') || `Imported ${current.provider}`;
 
       /* Record every executing connector origin on the target project. */
       const sourceType = (['github', 'gitlab', 'bitbucket', 'zip', 'vercel', 'figma', 'claude'] as const).includes(
-        job.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'vercel' | 'figma' | 'claude',
+        current.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'vercel' | 'figma' | 'claude',
       )
-        ? (job.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'vercel' | 'figma' | 'claude')
+        ? (current.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'vercel' | 'figma' | 'claude')
         : ('blank' as const);
       const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
         await ensureQuota(request, orgId, 'projects.count');
-        return store.createProject({
+        return store.createClaimedImportProject({
+          importJobId,
           organizationId: orgId,
+          operationToken: operationToken!,
           name,
           slug: name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + importJobId.slice(-6),
           sourceType,
@@ -20731,22 +20874,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         finalFiles.map((file) => ({ path: file.path, content: file.content })),
       );
       await persistProjectFileManifest(store, project.id, written, request.currentUser!.id);
-      await recordUsage(request, orgId, 'projects.count');
+      const finalized = await store.finalizeImportCommit({
+        importJobId,
+        organizationId: orgId,
+        operationToken,
+        targetProjectId: project.id,
+        actualCredits: estimateImportReservation(finalFiles.length),
+      });
 
-      importStaging.delete(importJobId); // staging disposed after successful commit
-      importPreviews.delete(importJobId);
-      await advance('COMMITTED', { targetProjectId: project.id });
+      if (!finalized) {
+        throw Object.assign(new Error(appPublicEnglish('IMPORT_COMMIT_OWNERSHIP_LOST')), {
+          statusCode: 409,
+          code: 'IMPORT_COMMIT_OWNERSHIP_LOST',
+        });
+      }
 
-      /*
-       * SAFETY BILLING: settle the reservation — the ONLY place a debit is
-       * recorded, and only now that the import actually COMMITTED. `settleByJob`
-       * enforces "committed === true" and the no-debit-without-commit invariant.
-       */
-      const settled = importLedger.settleByJob(importJobId, true, estimateImportReservation(finalFiles.length));
+      current = finalized.job;
+      state = 'COMMITTED';
       request.log?.info?.(
-        { event: 'import.billing.settle', importJobId, debitedCredits: settled.debitedCredits },
+        {
+          event: 'import.billing.settle',
+          importJobId,
+          debitedCredits: finalized.reservation.debitedCredits,
+        },
         'import reservation settled',
       );
+
+      // Ancillary usage/audit writes happen only after durable commit. Their
+      // failure cannot reinterpret a committed project as rolled back.
+      await recordUsage(request, orgId, 'projects.count').catch((error) => {
+        request.log.warn({ err: error, importJobId }, 'failed to record committed import project usage');
+      });
 
       await audit(request, store, {
         organizationId: orgId,
@@ -20755,11 +20913,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         resourceId: project.id,
         metadata: {
           importJobId,
-          provider: job.provider,
+          provider: current.provider,
           findingCount: findings.length,
           redactedCount: redacted.length,
           keptCount: findings.length - redacted.length,
         },
+      }).catch((error) => {
+        request.log.warn({ err: error, importJobId }, 'failed to append committed import audit');
       });
 
       return reply.code(201).send({
@@ -20767,13 +20927,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         import: { importJobId, state, redactedCount: redacted.length, targetProjectId: project.id },
       });
     } catch (error) {
-      /*
-       * Failure path: full rollback — no partial target, staging disposed, and the
-       * reservation COMPENSATED (zero debit) via cleanupImport. A failure after
-       * reservation therefore never charges. ROLLING_BACK is the terminal here.
-       */
       const message = error instanceof Error ? error.message : String(error);
-      await cleanupImport(importJobId, 'ROLLING_BACK', message);
+
+      if (operationToken && current.state !== 'COMMITTED') {
+        const cleaned = await cleanupImport({
+          importJobId,
+          organizationId: orgId,
+          terminalState: 'ROLLING_BACK',
+          expectedStates: ['COMMITTING'],
+          operationToken,
+          error: message,
+        });
+
+        if (!cleaned) {
+          request.log.error(
+            { importJobId, state: 'CLEANUP_PENDING' },
+            'import target cleanup remains pending for the reaper',
+          );
+        }
+      }
+
       throw error;
     }
   });
@@ -20796,7 +20969,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    await cleanupImport(importJobId, 'CANCELLED');
+    const cancelled = await store.cancelImportJob(importJobId, orgId);
+
+    if (!cancelled) {
+      const latest = await store.getImportJob(importJobId);
+
+      return reply.status(409).send({
+        error: appPublicEnglish('IMPORT_JOB_FAILED'),
+        code: latest?.state === 'COMMITTING' ? 'IMPORT_COMMIT_IN_PROGRESS' : 'IMPORT_CANNOT_CANCEL',
+        importJobId,
+        state: latest?.state,
+      });
+    }
 
     return reply.send({ import: { importJobId, state: 'CANCELLED' } });
   });
@@ -20820,18 +21004,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     /*
-     * Surface the safety-billing reservation state (in-process ledger) so the
-     * reservation lifecycle is observable: RESERVED before commit, SETTLED with a
-     * positive debit only on COMMITTED, COMPENSATED (zero debit) on any cleanup.
+     * Surface the durable billing reservation so the lifecycle is observable:
+     * RESERVED before commit, SETTLED with a positive debit only on COMMITTED,
+     * COMPENSATED (zero debit) on any cleanup.
      */
-    const reservation = importLedger.getByJob(importJobId);
+    const reservation = await store.getImportReservationByJob(importJobId, orgId);
+    const staging = await store.getImportStaging(importJobId, orgId);
     const localizedJobError = job.error
       ? localizeAppPublicMessage(job.error, transactionalLocaleForRequest(request))
       : undefined;
 
     return {
       import: {
-        ...job,
+        id: job.id,
+        organizationId: job.organizationId,
+        provider: job.provider,
+        state: job.state,
+        sourceRef: job.sourceRef,
+        findings: job.findings,
+        consent: job.consent,
+        targetProjectId: job.targetProjectId,
+        stagedFileCount: job.stagedFileCount,
+        redactedCount: job.redactedCount,
+        creditsReserved: job.creditsReserved,
+        expiresAt: job.expiresAt,
+        createdAt: job.createdAt,
+        updatedAt: job.updatedAt,
         error: localizedJobError
           ? localizedJobError.matched
             ? localizedJobError.value
@@ -20844,7 +21042,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               debitedCredits: reservation.debitedCredits,
             }
           : null,
-        preview: importPreviews.get(importJobId) ?? null,
+        preview: staging?.preview ?? null,
+        stagedFiles:
+          staging?.files.map((file) => ({
+            path: file.path,
+            sizeBytes: Buffer.byteLength(file.content, file.encoding === 'base64' ? 'base64' : 'utf8'),
+          })) ?? [],
       },
     };
   });

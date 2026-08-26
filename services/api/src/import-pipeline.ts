@@ -70,8 +70,9 @@ const IMPORT_FORWARD: Record<ImportState, ImportState[]> = {
   COMMITTING: ['COMMITTED'],
   COMMITTED: [],
   ROLLING_BACK: [],
-  // CLEANUP_PENDING is a transient marker ("cleanup in flight") that resolves to a
-  // terminal cleanup state; it never touches a target.
+  // CLEANUP_PENDING is a durable recovery marker. A target may exist only after a
+  // claimed commit; cleanup must verify physical + database deletion before moving
+  // to a terminal state.
   CLEANUP_PENDING: ['ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED'],
   EXPIRED: [],
   CANCELLED: [],
@@ -80,8 +81,8 @@ const IMPORT_FORWARD: Record<ImportState, ImportState[]> = {
 
 /**
  * Cleanup states — reachable from ANY non-terminal state (the sad path must
- * always be reachable). CLEANUP_PENDING is the transient marker; the rest are
- * terminal. None of these ever writes a target project.
+ * always be reachable). CLEANUP_PENDING is the recoverable marker; the rest are
+ * terminal states reached only after target cleanup is verified.
  */
 const CLEANUP_STATES: ImportState[] = ['ROLLING_BACK', 'CLEANUP_PENDING', 'EXPIRED', 'CANCELLED', 'FAILED'];
 

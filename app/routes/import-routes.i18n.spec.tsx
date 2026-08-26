@@ -233,4 +233,42 @@ describe('localized import routes', () => {
     expect(readData(zipResult)).toEqual({ errorCode: 'archiveRequired' });
     expect((zipResult as { init?: { headers?: Headers } }).init?.headers?.get('Content-Language')).toBe('fr');
   });
+
+  it('sends ZIP/Bolt exports to durable staging and redirects to consent preview', async () => {
+    firstOrganizationMock.mockResolvedValue({ id: 'org-1', slug: 'acme' });
+    apiRequestMock.mockResolvedValue({ import: { importJobId: 'job-durable-1' } });
+
+    const form = new FormData();
+    form.set('name', 'Portable app');
+
+    const archive = new File(['real zip bytes'], 'portable.zip', { type: 'application/zip', lastModified: 42 });
+    Object.defineProperty(archive, 'arrayBuffer', {
+      value: async () => new TextEncoder().encode('real zip bytes').buffer,
+    });
+    form.set('archive', archive);
+
+    const request = {
+      url: 'https://e-code.ai/import-zip?source=bolt',
+      headers: new Headers({ 'accept-language': 'en' }),
+      formData: async () => form,
+    } as Request;
+
+    const result = (await zipAction({ request } as never)) as Response;
+
+    expect(result.status).toBe(302);
+    expect(result.headers.get('Location')).toBe('/import/preview/job-durable-1');
+    expect(apiRequestMock).toHaveBeenCalledTimes(1);
+
+    const [forwardedRequest, path, init] = apiRequestMock.mock.calls[0] as [Request, string, RequestInit];
+    expect(forwardedRequest).toBe(request);
+    expect(path).toBe('/orgs/org-1/imports');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      provider: 'bolt',
+      sourceRef: 'Portable app',
+      idempotencyKey: 'zip:org-1:portable.zip:14:42',
+      zipBase64: 'cmVhbCB6aXAgYnl0ZXM=',
+    });
+    expect(path).not.toContain('/projects/import/zip');
+  });
 });

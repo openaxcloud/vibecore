@@ -67,6 +67,9 @@ class SnapshotProjectStorage implements ProjectStorage {
   async restoreSnapshot() {
     return [];
   }
+  async deleteProjectFiles(projectId: string) {
+    this.files.delete(projectId);
+  }
 }
 
 const auth = (token: string) => ({ authorization: `Bearer ${token}` });

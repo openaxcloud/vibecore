@@ -240,6 +240,12 @@ export interface ProjectStorage {
   createSnapshot(input: { projectId: string; label?: string; files: ProjectFile[] }): Promise<StoredArchive>;
   getSnapshotFiles(storageKey: string): Promise<ProjectFile[]>;
   restoreSnapshot(input: { projectId: string; workspaceId?: string; files: ProjectFile[] }): Promise<ProjectFile[]>;
+  /**
+   * Remove the complete physical tree of a partially-created project. This is
+   * deliberately separate from `restoreSnapshot([])`, which preserves `.git`
+   * and secondary workspaces and therefore cannot certify rollback cleanup.
+   */
+  deleteProjectFiles(projectId: string): Promise<void>;
 }
 
 export const SECONDARY_WORKSPACES_DIR = '.vibecore-workspaces';
@@ -727,6 +733,12 @@ export class LocalProjectStorage implements ProjectStorage {
       }
 
       return walkFiles(safeWorkspacePath(input.projectId, input.workspaceId));
+    });
+  }
+
+  async deleteProjectFiles(projectId: string): Promise<void> {
+    await withProjectLock(projectId, async () => {
+      await resilientRm(safeProjectPath(projectId));
     });
   }
 }

@@ -38,6 +38,9 @@ class MemoryProjectStorage implements ProjectStorage {
   }
 
   async deleteFiles() {}
+  async deleteProjectFiles(projectId: string) {
+    this.files.delete(projectId);
+  }
   async exportZip() {
     return { storageKey: 'export', byteLength: 0, base64: '', createdAt: new Date().toISOString() };
   }

@@ -24,6 +24,10 @@ import type {
   AiConversationRecord,
   AiMessageRecord,
   IntegrationFeatureRequestRecord,
+  ImportCreditReservationRecord,
+  ImportJobRecord,
+  ImportJobTransitionPatch,
+  ImportStagedFile,
   AiMessageFeedbackRecord,
   AiMessageFeedbackVote,
   NotificationRecord,
@@ -1967,13 +1971,7 @@ export class TestApiStore implements ApiStore {
     patch: Partial<
       Pick<
         DatabaseInstanceRecord,
-        | 'status'
-        | 'sizeBytes'
-        | 'pitrEnabled'
-        | 'region'
-        | 'provisioningDeadlineAt'
-        | 'lastErrorCode'
-        | 'lastErrorAt'
+        'status' | 'sizeBytes' | 'pitrEnabled' | 'region' | 'provisioningDeadlineAt' | 'lastErrorCode' | 'lastErrorAt'
       >
     >,
   ) {
@@ -2483,25 +2481,8 @@ export class TestApiStore implements ApiStore {
     }
   }
 
-  importJobs = new Map<
-    string,
-    {
-      id: string;
-      organizationId: string;
-      provider: string;
-      state: string;
-      sourceRef?: string;
-      findings?: unknown;
-      consent?: unknown;
-      targetProjectId?: string;
-      stagedFileCount: number;
-      redactedCount: number;
-      creditsReserved: boolean;
-      error?: string;
-      expiresAt?: string;
-      createdAt: string;
-    }
-  >();
+  importJobs = new Map<string, ImportJobRecord & { stagedFiles?: ImportStagedFile[]; connectorPreview?: unknown }>();
+  importReservations = new Map<string, ImportCreditReservationRecord>();
 
   async createImportJob(input: {
     organizationId: string;
@@ -2509,43 +2490,309 @@ export class TestApiStore implements ApiStore {
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
+    idempotencyKey: string;
+    requestHash: string;
+    reservedCredits: number;
   }) {
-    const row = {
+    const existing = [...this.importJobs.values()].find(
+      (job) => job.organizationId === input.organizationId && job.idempotencyKey === input.idempotencyKey,
+    );
+
+    if (existing) {
+      if (existing.requestHash !== input.requestHash) {
+        throw Object.assign(new Error('This import idempotency key is already bound to another request.'), {
+          statusCode: 409,
+          code: 'IMPORT_IDEMPOTENCY_CONFLICT',
+        });
+      }
+
+      return {
+        job: existing,
+        reservation: this.importReservations.get(existing.id)!,
+        replayed: true,
+      };
+    }
+
+    const timestamp = now();
+    const row: ImportJobRecord & { stagedFiles?: ImportStagedFile[]; connectorPreview?: unknown } = {
       id: id('import'),
       organizationId: input.organizationId,
+      actorUserId: input.actorUserId,
       provider: input.provider,
       state: 'RECEIVED',
       sourceRef: input.sourceRef,
+      idempotencyKey: input.idempotencyKey,
+      requestHash: input.requestHash,
       stagedFileCount: 0,
       redactedCount: 0,
-      creditsReserved: false,
+      creditsReserved: true,
+      version: 0,
       expiresAt: input.expiresAt,
-      createdAt: now(),
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    };
+    const reservation: ImportCreditReservationRecord = {
+      key: input.idempotencyKey,
+      organizationId: input.organizationId,
+      importJobId: row.id,
+      reservedCredits: input.reservedCredits,
+      debitedCredits: 0,
+      state: 'RESERVED',
+      version: 0,
     };
     this.importJobs.set(row.id, row);
+    this.importReservations.set(row.id, reservation);
 
-    return { id: row.id, state: row.state };
+    return { job: row, reservation, replayed: false };
   }
 
-  async updateImportJob(
-    id: string,
-    patch: {
-      state?: string;
-      sourceRef?: string;
-      findings?: unknown;
-      consent?: unknown;
-      targetProjectId?: string;
-      stagedFileCount?: number;
-      redactedCount?: number;
-      creditsReserved?: boolean;
-      error?: string;
-    },
-  ) {
+  async getImportStaging(id: string, organizationId: string) {
     const row = this.importJobs.get(id);
 
-    if (row) {
-      Object.assign(row, patch);
+    return row?.organizationId === organizationId && row.stagedFiles
+      ? { files: row.stagedFiles, preview: row.connectorPreview }
+      : undefined;
+  }
+
+  async getImportReservationByJob(importJobId: string, organizationId: string) {
+    const row = this.importReservations.get(importJobId);
+
+    return row?.organizationId === organizationId ? row : undefined;
+  }
+
+  async transitionImportJob(input: {
+    id: string;
+    organizationId: string;
+    expectedVersion: number;
+    expectedStates: string[];
+    state: string;
+    patch?: ImportJobTransitionPatch;
+  }) {
+    const row = this.importJobs.get(input.id);
+
+    if (
+      !row ||
+      row.organizationId !== input.organizationId ||
+      row.version !== input.expectedVersion ||
+      !input.expectedStates.includes(row.state)
+    ) {
+      return undefined;
     }
+
+    Object.assign(row, input.patch, { state: input.state, version: row.version + 1, updatedAt: now() });
+
+    if (input.patch?.targetProjectId === null) row.targetProjectId = undefined;
+    if (input.patch?.operationToken === null) row.operationToken = undefined;
+    if (input.patch?.operationExpiresAt === null) row.operationExpiresAt = undefined;
+    if (input.patch?.cleanupTerminalState === null) row.cleanupTerminalState = undefined;
+    if (input.patch?.error === null) row.error = undefined;
+
+    return row;
+  }
+
+  async createClaimedImportProject(input: {
+    importJobId: string;
+    organizationId: string;
+    operationToken: string;
+    name: string;
+    slug: string;
+    sourceType: ProjectRecord['sourceType'];
+  }) {
+    const job = this.importJobs.get(input.importJobId);
+
+    if (
+      !job ||
+      job.organizationId !== input.organizationId ||
+      job.state !== 'COMMITTING' ||
+      job.operationToken !== input.operationToken ||
+      !job.operationExpiresAt ||
+      new Date(job.operationExpiresAt).getTime() <= Date.now()
+    ) {
+      throw Object.assign(new Error('Import commit ownership was lost.'), {
+        statusCode: 409,
+        code: 'IMPORT_COMMIT_OWNERSHIP_LOST',
+      });
+    }
+
+    if (job.targetProjectId) {
+      const existing = this.projects.get(job.targetProjectId);
+
+      if (existing) return existing;
+    }
+
+    const project = await this.createProject({
+      organizationId: input.organizationId,
+      name: input.name,
+      slug: input.slug,
+      sourceType: input.sourceType,
+    });
+    job.targetProjectId = project.id;
+    job.version += 1;
+    job.updatedAt = now();
+
+    return project;
+  }
+
+  async finalizeImportCommit(input: {
+    importJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+    actualCredits: number;
+  }) {
+    const job = this.importJobs.get(input.importJobId);
+    const reservation = this.importReservations.get(input.importJobId);
+
+    if (
+      !job ||
+      !reservation ||
+      job.organizationId !== input.organizationId ||
+      job.state !== 'COMMITTING' ||
+      job.targetProjectId !== input.targetProjectId ||
+      job.operationToken !== input.operationToken ||
+      reservation.state !== 'RESERVED'
+    ) {
+      return undefined;
+    }
+
+    reservation.state = 'SETTLED';
+    reservation.debitedCredits = input.actualCredits;
+    reservation.version += 1;
+    Object.assign(job, {
+      state: 'COMMITTED',
+      stagedFiles: undefined,
+      connectorPreview: undefined,
+      operationToken: undefined,
+      operationExpiresAt: undefined,
+      cleanupTerminalState: undefined,
+      error: undefined,
+      version: job.version + 1,
+      updatedAt: now(),
+    });
+
+    return { job, reservation };
+  }
+
+  async beginImportCleanup(input: {
+    importJobId: string;
+    organizationId: string;
+    operationToken: string;
+    expectedStates: string[];
+    terminalState: 'ROLLING_BACK' | 'EXPIRED' | 'FAILED';
+    error?: string;
+  }) {
+    const job = this.importJobs.get(input.importJobId);
+    const reservation = this.importReservations.get(input.importJobId);
+    const otherOwnerActive =
+      job?.operationToken &&
+      job.operationToken !== input.operationToken &&
+      job.operationExpiresAt &&
+      new Date(job.operationExpiresAt).getTime() > Date.now();
+
+    if (
+      !job ||
+      job.organizationId !== input.organizationId ||
+      !input.expectedStates.includes(job.state) ||
+      otherOwnerActive
+    ) {
+      return undefined;
+    }
+
+    if (reservation?.state === 'SETTLED') return undefined;
+    if (reservation) {
+      reservation.state = 'COMPENSATED';
+      reservation.debitedCredits = 0;
+      reservation.version += 1;
+    }
+    Object.assign(job, {
+      state: 'CLEANUP_PENDING',
+      stagedFiles: undefined,
+      connectorPreview: undefined,
+      operationToken: input.operationToken,
+      operationExpiresAt: new Date(Date.now() + 5 * 60_000).toISOString(),
+      cleanupTerminalState: input.terminalState,
+      error: input.error,
+      version: job.version + 1,
+      updatedAt: now(),
+    });
+
+    return job;
+  }
+
+  async deleteClaimedImportProject(input: {
+    importJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+  }) {
+    const job = this.importJobs.get(input.importJobId);
+
+    if (
+      !job ||
+      job.organizationId !== input.organizationId ||
+      job.state !== 'CLEANUP_PENDING' ||
+      job.operationToken !== input.operationToken ||
+      job.targetProjectId !== input.targetProjectId
+    ) {
+      return false;
+    }
+
+    this.projects.delete(input.targetProjectId);
+    this.projectIdeStates.delete(input.targetProjectId);
+
+    return true;
+  }
+
+  async finishImportCleanup(input: { importJobId: string; organizationId: string; operationToken: string }) {
+    const job = this.importJobs.get(input.importJobId);
+
+    if (
+      !job ||
+      job.organizationId !== input.organizationId ||
+      job.state !== 'CLEANUP_PENDING' ||
+      job.operationToken !== input.operationToken ||
+      !job.cleanupTerminalState
+    ) {
+      return undefined;
+    }
+
+    Object.assign(job, {
+      state: job.cleanupTerminalState,
+      targetProjectId: undefined,
+      operationToken: undefined,
+      operationExpiresAt: undefined,
+      cleanupTerminalState: undefined,
+      version: job.version + 1,
+      updatedAt: now(),
+    });
+
+    return job;
+  }
+
+  async cancelImportJob(importJobId: string, organizationId: string) {
+    const job = this.importJobs.get(importJobId);
+
+    if (!job || job.organizationId !== organizationId) return undefined;
+    if (job.state === 'CANCELLED') return job;
+    if (['COMMITTED', 'COMMITTING', 'CLEANUP_PENDING', 'ROLLING_BACK', 'EXPIRED', 'FAILED'].includes(job.state)) {
+      return undefined;
+    }
+
+    const reservation = this.importReservations.get(importJobId);
+    if (reservation?.state === 'RESERVED') {
+      reservation.state = 'COMPENSATED';
+      reservation.debitedCredits = 0;
+      reservation.version += 1;
+    }
+    Object.assign(job, {
+      state: 'CANCELLED',
+      stagedFiles: undefined,
+      connectorPreview: undefined,
+      version: job.version + 1,
+      updatedAt: now(),
+    });
+
+    return job;
   }
 
   async getImportJob(id: string) {
@@ -2554,15 +2801,31 @@ export class TestApiStore implements ApiStore {
 
   async reapExpiredImportJobs(nowIso: string): Promise<string[]> {
     const now = new Date(nowIso).getTime();
-    const terminal = new Set(['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED']);
+    const terminal = new Set(['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED']);
     const ids: string[] = [];
 
     for (const row of this.importJobs.values()) {
-      if (!terminal.has(row.state) && row.expiresAt && new Date(row.expiresAt).getTime() < now) {
-        row.state = 'EXPIRED';
-        row.error = 'Import staging expired before it was committed.';
+      const operationExpired = row.operationExpiresAt && new Date(row.operationExpiresAt).getTime() < now;
+      const stagingExpired = row.expiresAt && new Date(row.expiresAt).getTime() < now;
 
-        // targetProjectId is intentionally left untouched (never mounted).
+      if (!terminal.has(row.state) && (operationExpired || stagingExpired)) {
+        row.state = row.targetProjectId ? 'CLEANUP_PENDING' : 'EXPIRED';
+        row.error = 'Import staging expired before it was committed.';
+        row.stagedFiles = undefined;
+        row.connectorPreview = undefined;
+        row.version += 1;
+
+        if (row.targetProjectId) {
+          row.cleanupTerminalState = 'EXPIRED';
+          row.operationToken = id('reap');
+          row.operationExpiresAt = new Date(now + 5 * 60_000).toISOString();
+        }
+
+        const reservation = this.importReservations.get(row.id);
+        if (reservation?.state === 'RESERVED') {
+          reservation.state = 'COMPENSATED';
+          reservation.version += 1;
+        }
         ids.push(row.id);
       }
     }

@@ -10,11 +10,9 @@
  *      the import actually COMMITTED; every non-committed exit COMPENSATES to 0.
  *
  * This is a PURE reducer (`reserveReservation` / `settleReservation` /
- * `compensateReservation`) plus a small in-process ledger (`ImportCreditLedger`)
- * that mirrors the existing in-process `importStaging` map. Durable persistence
- * (surviving a process restart) is the separate UsageReservation follow-up; the
- * SAFETY invariants here hold regardless of backend and are what the endpoint
- * relies on so a failed/cancelled/timed-out import can never leave a debit.
+ * `compensateReservation`) plus a small in-memory ledger (`ImportCreditLedger`)
+ * kept for reducer-level tests. Production import jobs persist reservations and
+ * settle/compensate them atomically through the store implementation.
  */
 
 export type ReservationState = 'RESERVED' | 'SETTLED' | 'COMPENSATED';
@@ -161,11 +159,9 @@ export function assertNoDebitWithoutCommit(reservation: ImportReservation): void
 }
 
 /**
- * In-process idempotent ledger, keyed by idempotency key. Mirrors the existing
- * in-process `importStaging` map: it lives for the API process lifetime and is
- * the authority for the reservation lifecycle across the create/commit/cancel
- * requests of a single import. Durable persistence is a follow-up; the safety
- * invariants above hold either way.
+ * In-memory idempotent ledger kept as a reducer/test helper. Production request
+ * correctness never relies on this process-local class; its ledger is durable in
+ * PostgreSQL through ApiStore.
  */
 export class ImportCreditLedger {
   private readonly byKey = new Map<string, ImportReservation>();

@@ -125,6 +125,64 @@ export interface ProjectRecord {
   deploymentCount?: number;
 }
 
+export interface ImportStagedFile {
+  path: string;
+  content: string;
+  encoding?: string;
+}
+
+export interface ImportCreditReservationRecord {
+  key: string;
+  organizationId: string;
+  importJobId: string;
+  reservedCredits: number;
+  debitedCredits: number;
+  state: 'RESERVED' | 'SETTLED' | 'COMPENSATED';
+  version: number;
+}
+
+export interface ImportJobRecord {
+  id: string;
+  organizationId: string;
+  actorUserId?: string;
+  provider: string;
+  state: string;
+  sourceRef?: string;
+  idempotencyKey: string;
+  requestHash: string;
+  findings?: unknown;
+  consent?: unknown;
+  targetProjectId?: string;
+  stagedFileCount: number;
+  redactedCount: number;
+  creditsReserved: boolean;
+  version: number;
+  /** Internal fencing fields. HTTP handlers must never return these. */
+  operationToken?: string;
+  operationExpiresAt?: string;
+  cleanupTerminalState?: string;
+  error?: string;
+  expiresAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ImportJobTransitionPatch {
+  sourceRef?: string;
+  findings?: unknown;
+  consent?: unknown;
+  targetProjectId?: string | null;
+  stagedFiles?: ImportStagedFile[];
+  connectorPreview?: unknown;
+  stagedFileCount?: number;
+  redactedCount?: number;
+  creditsReserved?: boolean;
+  operationToken?: string | null;
+  operationExpiresAt?: string | null;
+  cleanupTerminalState?: string | null;
+  error?: string | null;
+}
+
 export interface WorkspaceRecord {
   id: string;
   projectId: string;
@@ -1539,53 +1597,106 @@ export interface ApiStore {
   getGalleryListingById(id: string): Promise<GalleryListingRecord | undefined>;
   incrementGalleryListingViews(id: string): Promise<void>;
   incrementGalleryListingUses(id: string): Promise<void>;
-  /** Create an import-job row (secure import state machine). */
+  /**
+   * Atomically create the tenant-scoped idempotency row and its credit hold.
+   * A same-input replay returns the existing job; a reused key with a different
+   * request hash fails closed with IMPORT_IDEMPOTENCY_CONFLICT.
+   */
   createImportJob(input: {
     organizationId: string;
     actorUserId?: string;
     provider: string;
     sourceRef?: string;
     expiresAt?: string;
-  }): Promise<{ id: string; state: string }>;
-  updateImportJob(
+    idempotencyKey: string;
+    requestHash: string;
+    reservedCredits: number;
+  }): Promise<{ job: ImportJobRecord; reservation: ImportCreditReservationRecord; replayed: boolean }>;
+
+  /** Internal staging read. Never expose this record by spreading it into HTTP. */
+  getImportStaging(
     id: string,
-    patch: {
-      state?: string;
-      sourceRef?: string;
-      findings?: unknown;
-      consent?: unknown;
-      targetProjectId?: string;
-      stagedFileCount?: number;
-      redactedCount?: number;
-      creditsReserved?: boolean;
-      error?: string;
-    },
-  ): Promise<void>;
-  getImportJob(id: string): Promise<
+    organizationId: string,
+  ): Promise<
     | {
-        id: string;
-        organizationId: string;
-        provider: string;
-        state: string;
-        sourceRef?: string;
-        findings?: unknown;
-        consent?: unknown;
-        targetProjectId?: string;
-        stagedFileCount: number;
-        redactedCount: number;
-        creditsReserved: boolean;
-        error?: string;
-        expiresAt?: string;
-        createdAt: string;
+        files: ImportStagedFile[];
+        preview?: unknown;
       }
     | undefined
   >;
+
+  /** Tenant-scoped observable reservation state. */
+  getImportReservationByJob(
+    importJobId: string,
+    organizationId: string,
+  ): Promise<ImportCreditReservationRecord | undefined>;
+
+  /** Optimistic state transition. `undefined` means another replica won. */
+  transitionImportJob(input: {
+    id: string;
+    organizationId: string;
+    expectedVersion: number;
+    expectedStates: string[];
+    state: string;
+    patch?: ImportJobTransitionPatch;
+  }): Promise<ImportJobRecord | undefined>;
+
+  /**
+   * Under the COMMITTING fencing token, create the target Project and attach it
+   * to the job in one PostgreSQL transaction. Replays return the same project.
+   */
+  createClaimedImportProject(input: {
+    importJobId: string;
+    organizationId: string;
+    operationToken: string;
+    name: string;
+    slug: string;
+    sourceType: ProjectRecord['sourceType'];
+  }): Promise<ProjectRecord>;
+
+  /** Atomically publish COMMITTED and SETTLED, disposing Json staging/preview. */
+  finalizeImportCommit(input: {
+    importJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+    actualCredits: number;
+  }): Promise<{ job: ImportJobRecord; reservation: ImportCreditReservationRecord } | undefined>;
+
+  /** Move an owned/claimed job to durable cleanup and compensate in one tx. */
+  beginImportCleanup(input: {
+    importJobId: string;
+    organizationId: string;
+    operationToken: string;
+    expectedStates: string[];
+    terminalState: 'ROLLING_BACK' | 'EXPIRED' | 'FAILED';
+    error?: string;
+  }): Promise<ImportJobRecord | undefined>;
+
+  /** Delete only the partial target fenced to this cleanup owner. */
+  deleteClaimedImportProject(input: {
+    importJobId: string;
+    organizationId: string;
+    operationToken: string;
+    targetProjectId: string;
+  }): Promise<boolean>;
+
+  /** Publish cleanup completion only after storage + project deletion succeed. */
+  finishImportCleanup(input: {
+    importJobId: string;
+    organizationId: string;
+    operationToken: string;
+  }): Promise<ImportJobRecord | undefined>;
+
+  /** Atomic, tenant-scoped cancellation + compensation. */
+  cancelImportJob(importJobId: string, organizationId: string): Promise<ImportJobRecord | undefined>;
+
+  getImportJob(id: string): Promise<ImportJobRecord | undefined>;
   /*
-   * IMP-4 timeout sweeper: move every NON-terminal import job whose expiresAt has
-   * passed to EXPIRED. targetProjectId is NEVER written (the target is only mounted
-   * at COMMITTED), so an abandoned import can never leave a partial target — the
-   * same target-never-touched invariant as cancel/rollback, now for timeout too.
-   * Returns the ids it expired so the caller can dispose their in-process staging.
+   * IMP-4 timeout sweeper: claim expired jobs with compare-and-swap. Jobs with a
+   * partial target move to CLEANUP_PENDING so the caller can remove physical data
+   * before publishing a terminal state; target-less jobs expire and compensate
+   * atomically in storage.
    */
   reapExpiredImportJobs(nowIso: string): Promise<string[]>;
   deleteProjectSecret(projectId: string, key: string): Promise<ProjectSecretRecord | undefined>;
@@ -1921,13 +2032,7 @@ export interface ApiStore {
     patch: Partial<
       Pick<
         DatabaseInstanceRecord,
-        | 'status'
-        | 'sizeBytes'
-        | 'pitrEnabled'
-        | 'region'
-        | 'provisioningDeadlineAt'
-        | 'lastErrorCode'
-        | 'lastErrorAt'
+        'status' | 'sizeBytes' | 'pitrEnabled' | 'region' | 'provisioningDeadlineAt' | 'lastErrorCode' | 'lastErrorAt'
       >
     >,
   ): Promise<DatabaseInstanceRecord | undefined>;

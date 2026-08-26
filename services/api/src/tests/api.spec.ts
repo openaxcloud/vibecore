@@ -246,6 +246,10 @@ class MemoryProjectStorage implements ProjectStorage {
 
     return this.writeFiles(input.projectId, input.files);
   }
+
+  async deleteProjectFiles(projectId: string) {
+    this.files.delete(projectId);
+  }
 }
 
 async function startRuntimeServices(
