@@ -6125,9 +6125,7 @@ function starterFiles(input: {
       return demoApp.files.map((demoFile) => ({ path: demoFile.path, content: demoFile.content }));
     }
 
-    throw Object.assign(new Error('PROJECT_TEMPLATE_CATALOG_INVARIANT'), {
-      code: 'PROJECT_TEMPLATE_CATALOG_INVARIANT',
-    });
+    throw Object.assign(new Error(), { code: 'PROJECT_TEMPLATE_CATALOG_INVARIANT' });
   }
 
   if (input.sourceType === 'ai') {
@@ -15313,7 +15311,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const reconcileManagedDatabase = async (
     instance: DatabaseInstanceRecord,
-    options: { planKey?: string; nowMs?: number; warn?: (context: Record<string, unknown>, message: string) => void } = {},
+    options: {
+      planKey?: string;
+      nowMs?: number;
+      warn?: (context: Record<string, unknown>, message: string) => void;
+    } = {},
   ) => {
     const provisioner = resolveDefaultDatabaseProvisioner();
     const result = await reconcileDatabaseProvisioning({
@@ -22648,10 +22650,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             planKey: billing?.plan.key,
             warn: (context, message) => request.log?.warn?.(context, message),
           }).catch((error) => {
-            request.log?.warn?.(
-              { err: error, databaseInstanceId: instance.id },
-              'managed database reconcile failed',
-            );
+            request.log?.warn?.({ err: error, databaseInstanceId: instance.id }, 'managed database reconcile failed');
 
             return instance;
           });
@@ -31989,16 +31988,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       metadata: { environment, tier, retry: !acquisition.created },
     });
 
-    return reply
-      .code(202)
-      .send({
-        instance: acquisition.instance,
-        created: acquisition.created,
-        retried: !acquisition.created,
-        clusterName: outcome.clusterName || clusterName(project.id, environment),
-        tier,
-        environment,
-      });
+    return reply.code(202).send({
+      instance: acquisition.instance,
+      created: acquisition.created,
+      retried: !acquisition.created,
+      clusterName: outcome.clusterName || clusterName(project.id, environment),
+      tier,
+      environment,
+    });
   });
 
   /** Take a manual snapshot of a project's database (Phase 2, dormant). */
@@ -34689,7 +34686,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * is enabled, and a no-op once the production instance already exists. The
      * production DATABASE_URL is reconciled+stored (as PROD_DATABASE_URL) by
      * GET /projects/:id/database?environment=production.
-    */
+     */
     if (isDatabaseRollbackEnabled()) {
       let acquiredProdInstanceId: string | undefined;
 
