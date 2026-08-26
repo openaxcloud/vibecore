@@ -23,7 +23,7 @@ vi.mock('~/lib/enterprise-api.server', async () => {
   };
 });
 
-function actionArgs(fields: Record<string, string>, projectId = 'proj-42') {
+function actionArgs(fields: Record<string, string>, projectId = 'proj-42', language?: 'en' | 'fr') {
   const form = new FormData();
 
   for (const [key, value] of Object.entries(fields)) {
@@ -34,6 +34,7 @@ function actionArgs(fields: Record<string, string>, projectId = 'proj-42') {
     request: new Request(`https://app.test/api/projects/${projectId}/ide-panel/object-storage`, {
       method: 'POST',
       body: form,
+      headers: language ? { 'accept-language': language } : undefined,
     }),
     params: { projectId, panel: 'object-storage' },
   } as any;
@@ -166,6 +167,27 @@ describe('ide-panel object-storage action (functional browser round-trip)', () =
     expect((thrown as any)?.init?.status).toBe(404);
     expect((thrown as any)?.data).toMatchObject({ code: 'PANEL_REQUEST_FAILED' });
     expect((thrown as any)?.data?.error).toMatch(/not found/i);
+    expect((thrown as any)?.data).not.toMatchObject({ enabled: false });
+  });
+
+  it('list: a code-less 404 stays an honest localized failure in French too', async () => {
+    apiRequest.mockRejectedValueOnce(
+      new Response(JSON.stringify({ error: 'bucket missing' }), {
+        status: 404,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
+
+    const { action } = await import('./api.projects.$projectId.ide-panel.$panel');
+
+    const thrown = await action(actionArgs({ intent: 'list' }, 'proj-42', 'fr')).then(
+      () => null,
+      (error: unknown) => error,
+    );
+
+    expect((thrown as any)?.init?.status).toBe(404);
+    expect((thrown as any)?.data).toMatchObject({ code: 'PANEL_REQUEST_FAILED' });
+    expect((thrown as any)?.data?.error).toMatch(/introuvable/i);
     expect((thrown as any)?.data).not.toMatchObject({ enabled: false });
   });
 
