@@ -160,40 +160,18 @@ const PREP_SOURCE_PACKAGE_JSON_MISSING = 87;
 const PREP_SANDBOX_EMPTY = 88;
 const PREP_SANDBOX_PACKAGE_JSON_MISSING = 89;
 
-function preparationFailure(exitCode: number | null): {
-  code: WorkspaceStaticBuildErrorCode;
-  message: string;
-} {
+function preparationFailure(exitCode: number | null): WorkspaceStaticBuildErrorCode {
   switch (exitCode) {
     case PREP_SOURCE_EMPTY:
-      return {
-        code: 'SOURCE_WORKSPACE_EMPTY',
-        message:
-          'Workspace deploy audit: the source directory contained no copyable top-level entries; preparation stopped before install.',
-      };
+      return 'SOURCE_WORKSPACE_EMPTY';
     case PREP_SOURCE_PACKAGE_JSON_MISSING:
-      return {
-        code: 'SOURCE_PACKAGE_JSON_MISSING',
-        message:
-          'Workspace deploy audit: package.json was absent from the source directory; preparation stopped before install.',
-      };
+      return 'SOURCE_PACKAGE_JSON_MISSING';
     case PREP_SANDBOX_EMPTY:
-      return {
-        code: 'SANDBOX_PREPARE_EMPTY',
-        message:
-          'Workspace deploy audit: the isolated sandbox contained no top-level entries after the copy; install was not started.',
-      };
+      return 'SANDBOX_PREPARE_EMPTY';
     case PREP_SANDBOX_PACKAGE_JSON_MISSING:
-      return {
-        code: 'SANDBOX_PACKAGE_JSON_MISSING',
-        message:
-          'Workspace deploy audit: package.json existed in the source but was absent from the isolated sandbox after the copy; install was not started.',
-      };
+      return 'SANDBOX_PACKAGE_JSON_MISSING';
     default:
-      return {
-        code: 'INSTALL_FAILED',
-        message: `Workspace deploy: failed to prepare the isolated build sandbox (exit ${exitCode ?? 'null'}).`,
-      };
+      return 'INSTALL_FAILED';
   }
 }
 
@@ -249,9 +227,6 @@ function outputPrefix(cwd: string, outputDirectory: string): string {
  * inlines the same rules against the on-disk package.json + source scan.
  * ---------------------------------------------------------------------------
  */
-
-/** React 18-only client entry API — does not exist before React 18. */
-const REACT18_CLIENT_API_RE = /\breact-dom\/client\b|\bcreateRoot\s*\(|\bhydrateRoot\s*\(/;
 
 /** Supported React range forced when the code needs the 18-only client API. */
 export const DEPLOY_REACT18_RANGE = '^18.3.1';
@@ -452,9 +427,16 @@ export async function runWorkspaceStaticBuild(
       }
 
       if (prep.exitCode !== 0) {
-        const failure = preparationFailure(prep.exitCode);
-        log.push('error', failure.message);
-        return { ok: false, logs: log.logs, error: failure.code };
+        const errorCode = preparationFailure(prep.exitCode);
+
+        /*
+         * Keep the persisted operational log factual and locale-neutral. The
+         * structured code is the user-facing contract and can be translated by
+         * the web surface; the numeric exit value is safe diagnostic context.
+         */
+        log.push('error', `[deploy-audit] prepare failed code=${errorCode} exit=${prep.exitCode ?? 'null'}`);
+
+        return { ok: false, logs: log.logs, error: errorCode };
       }
     }
 

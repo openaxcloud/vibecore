@@ -1,5 +1,5 @@
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -160,6 +160,7 @@ describe('runWorkspaceStaticBuild', () => {
   it('persists the exact deployment/project/runtime target without exposing file contents', async () => {
     const dir = await materializeDir();
     const logged: string[] = [];
+
     const agent = fakeAgent({
       runStep: vi.fn(async () => ({ exitCode: 86, timedOut: false })),
     });
@@ -194,7 +195,9 @@ describe('runWorkspaceStaticBuild', () => {
 
     const dir = await materializeDir();
     const logged: string[] = [];
+
     let step = 0;
+
     const agent = fakeAgent({
       runStep: vi.fn(
         async ({
@@ -255,6 +258,7 @@ describe('runWorkspaceStaticBuild', () => {
   ] as const)('fails before install with factual prepare postcondition code %s -> %s', async (exitCode, code) => {
     const dir = await materializeDir();
     const calls: string[] = [];
+
     const agent = fakeAgent({
       runStep: vi.fn(async ({ command }: { command: string }) => {
         calls.push(command);
@@ -269,6 +273,7 @@ describe('runWorkspaceStaticBuild', () => {
 
     expect(result.ok).toBe(false);
     expect(result.error).toBe(code);
+    expect(result.logs.at(-1)?.message).toBe(`[deploy-audit] prepare failed code=${code} exit=${exitCode}`);
     expect(calls).not.toContain('npm');
     expect(calls.at(-1)).toBe('sh'); // finally cleanup remains idempotent
   });
@@ -349,6 +354,7 @@ describe('runWorkspaceStaticBuild', () => {
     const agent = fakeAgent({
       runStep: vi.fn(async () => {
         call += 1;
+
         // call 1 = React-18 guard, call 2 = install (both succeed); call 3 = build (times out).
         return call <= 2 ? { exitCode: 0, timedOut: false } : { exitCode: null, timedOut: true };
       }),
@@ -421,8 +427,10 @@ describe('computeReactManifestRepair (P0-2 deploy guard)', () => {
   });
 
   it('adds react-dom when it is omitted entirely (the real react-notes-app failure)', () => {
-    // src/main.tsx imports react-dom/client but package.json has no react-dom → the
-    // deploy build died with `Rollup failed to resolve import "react-dom/client"`.
+    /*
+     * src/main.tsx imports react-dom/client but package.json has no react-dom → the
+     * deploy build died with `Rollup failed to resolve import "react-dom/client"`.
+     */
     const r = computeReactManifestRepair({ dependencies: { react: '^18.3.1' } }, true);
     expect(r.forced).toEqual({ 'react-dom': DEPLOY_REACT18_RANGE });
     expect(r.changed).toBe(true);
