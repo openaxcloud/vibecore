@@ -8,7 +8,8 @@ locals {
     "stripe-webhook-secret",
     "openai-api-key",
     "anthropic-api-key",
-    "sentry-dsn"
+    "sentry-dsn",
+    "artifact-promotion-config-json"
   ])
 }
 

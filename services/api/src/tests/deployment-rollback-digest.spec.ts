@@ -113,6 +113,31 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
     projectId: string,
     over: { image?: unknown; secretPolicy?: string } = {},
   ) {
+    const project = await store.getProject(projectId);
+
+    const promotion = {
+      promotionId: 'promo-retained-release',
+      sourceRepo: IMAGE_REF,
+      sourceDigest: DIGEST,
+      targetRepo: IMAGE_REF,
+      targetTenant: project!.organizationId,
+      retentionTag: `active-promo-${'a'.repeat(32)}`,
+      attachments: ['signature', 'sbom', 'provenance'].map((type, index) => ({
+        type,
+        digest: `sha256:${String(index + 1).repeat(64)}`,
+        subjectDigest: DIGEST,
+        relinked: true,
+      })),
+      binaryAuthorizationResult: 'PASSED',
+      binaryAuthorizationPolicy: 'projects/policy-proj/platforms/gke/policies/release-policy',
+      binaryAuthorizationPolicyEtag: 'policy-etag-0001',
+      binaryAuthorizationEvaluatedImage: `${IMAGE_REF}@${DIGEST}`,
+      binaryAuthorizationEvaluatedAt: '2026-08-26T00:00:00.500Z',
+      state: 'PROMOTION_COMMITTED',
+      preparedAt: '2026-08-26T00:00:00.000Z',
+      committedAt: '2026-08-26T00:00:01.000Z',
+    };
+
     return store.createDeployment({
       projectId,
       provider: 'server',
@@ -125,6 +150,7 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
           ready: true,
           applied: true,
           image: 'image' in over ? over.image : { imageRef: IMAGE_REF, imageDigest: DIGEST },
+          promotion,
           ...(over.secretPolicy ? { secretPolicy: over.secretPolicy } : {}),
         },
       },
@@ -152,6 +178,79 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
     const row = res.json().deployment;
     expect(row.status).toBe('READY');
     expect((row.metadata.serverDeploy as Record<string, unknown>).rolledBackFromDigest).toBe(DIGEST);
+
+    await app.close();
+  });
+
+  it('rolls back from the immutable manifest + audit proof after the prior Deployment was pruned', async () => {
+    const { app, store, auth, projectId } = await setup();
+    const captured = stubManagerStart();
+
+    const commitRelease = async (imageDigest: string, promotionId: string) => {
+      const project = await store.getProject(projectId);
+
+      const promotion = {
+        promotionId,
+        sourceRepo: IMAGE_REF,
+        sourceDigest: imageDigest,
+        targetRepo: IMAGE_REF,
+        targetTenant: project!.organizationId,
+        retentionTag: `active-promo-${'a'.repeat(32)}`,
+        attachments: ['signature', 'sbom', 'provenance'].map((type, index) => ({
+          type,
+          digest: `sha256:${String(index + 1).repeat(64)}`,
+          subjectDigest: imageDigest,
+          relinked: true,
+        })),
+        binaryAuthorizationResult: 'PASSED',
+        binaryAuthorizationPolicy: 'projects/policy-proj/platforms/gke/policies/release-policy',
+        binaryAuthorizationPolicyEtag: 'policy-etag-0001',
+        binaryAuthorizationEvaluatedImage: `${IMAGE_REF}@${imageDigest}`,
+        binaryAuthorizationEvaluatedAt: '2026-08-26T00:00:00.500Z',
+        state: 'PROMOTION_COMMITTED',
+        preparedAt: '2026-08-26T00:00:00.000Z',
+        committedAt: '2026-08-26T00:00:01.000Z',
+      };
+      const deployment = await store.createDeployment({
+        projectId,
+        provider: 'server',
+        environment: 'preview',
+        status: 'BUILDING',
+        metadata: { serverDeploy: { image: { imageRef: IMAGE_REF, imageDigest }, promotion } },
+      });
+      await store.commitServerImageRelease({
+        projectId,
+        organizationId: project!.organizationId,
+        deploymentId: deployment.id,
+        environment: 'preview',
+        artifactRef: IMAGE_REF,
+        artifactDigest: imageDigest,
+        url: `https://${deployment.id}.preview.e-code.ai`,
+        previewUrl: `https://${deployment.id}.preview.e-code.ai`,
+        metadata: deployment.metadata as Record<string, unknown>,
+        logs: [],
+        finishedAt: '2026-08-26T00:00:02.000Z',
+      });
+
+      return deployment;
+    };
+
+    const previous = await commitRelease(DIGEST, 'promo-pruned-v1');
+    await commitRelease(`sha256:${'c'.repeat(64)}`, 'promo-current-v2');
+    store.deployments.delete(previous.id);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/rollback-to-previous`,
+      headers: { authorization: `Bearer ${auth.token}` },
+      payload: { environment: 'preview' },
+    });
+
+    expect(response.statusCode).toBe(201);
+    expect(response.json()).toMatchObject({ restoredFromVersion: 1, verifiedArtifactDigest: DIGEST });
+    expect(response.json().deployment.status).toBe('READY');
+    expect(captured.starts.at(-1)?.image).toBe(`${IMAGE_REF}@${DIGEST}`);
+    expect((await store.listReleaseManifests(projectId, 'preview'))[0]?.version).toBe(3);
 
     await app.close();
   });

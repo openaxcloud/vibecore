@@ -6,6 +6,7 @@ import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { createDatabaseClient, Prisma, type DatabaseClient } from '@vibecore/database';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from './app-public-copy.js';
+import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from './server-image-promotion.js';
 import { slugify } from './slugify.js';
 import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
 import type {
@@ -47,6 +48,8 @@ import type {
   CustomRoleRecord,
   DeploymentRecord,
   ReleaseManifestRecord,
+  ServerImageReleaseCommitInput,
+  ServerImageReleaseCommitResult,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -257,7 +260,11 @@ export class PrismaApiStore implements ApiStore {
     await this.prisma.$queryRaw`SELECT 1`;
   }
 
-  async withSerializedMutation<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  async withSerializedMutation<T>(
+    key: string,
+    fn: () => Promise<T>,
+    options?: { transactionTimeoutMs?: number },
+  ): Promise<T> {
     /*
      * Hold a transaction-scoped advisory lock for the duration of `fn`. A second
      * caller with the same key blocks on pg_advisory_xact_lock until this
@@ -272,10 +279,17 @@ export class PrismaApiStore implements ApiStore {
      * deadlocking the pool. Isolating lock-wait connections keeps the main pool
      * free for fn() (only one fn runs at a time, so it needs just one connection).
      */
-    return this.lockClient.$transaction(async (tx) => {
-      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', key);
-      return fn();
-    });
+    return this.lockClient.$transaction(
+      async (tx) => {
+        await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', key);
+        return fn();
+      },
+      options?.transactionTimeoutMs
+        ? {
+            timeout: Math.max(30_000, Math.min(options.transactionTimeoutMs, 2 * 60 * 60 * 1_000)),
+          }
+        : undefined,
+    );
   }
 
   /*
@@ -3268,6 +3282,134 @@ export class PrismaApiStore implements ApiStore {
         take: options?.take ?? 100,
       })
     ).map(mapReleaseManifest);
+  }
+
+  async commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult> {
+    return this.prisma.$transaction(async (tx) => {
+      /*
+       * Linearization point shared with cancel/update: the row lock makes
+       * ReleaseManifest creation and READY one atomic publication. A cancel
+       * that commits first wins and no manifest is written; a cancel that waits
+       * sees READY afterwards and the monotonic terminal guard refuses it.
+       */
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "Deployment" WHERE "id" = $1 AND "projectId" = $2 FOR UPDATE',
+        input.deploymentId,
+        input.projectId,
+      );
+
+      const deployment = await tx.deployment.findFirstOrThrow({
+        where: { id: input.deploymentId, projectId: input.projectId },
+        include: { project: { select: { organizationId: true } } },
+      });
+      const serverDeploy = (input.metadata as Record<string, unknown>).serverDeploy as
+        | Record<string, unknown>
+        | undefined;
+      const image = serverDeploy?.image as Record<string, unknown> | undefined;
+
+      if (
+        deployment.project.organizationId !== input.organizationId ||
+        deployment.provider !== 'server' ||
+        deployment.environmentName !== input.environment ||
+        image?.imageRef !== input.artifactRef ||
+        image?.imageDigest !== input.artifactDigest ||
+        !isCommittedPromotionForTenant(
+          serverDeploy?.promotion,
+          deployment.project.organizationId,
+          input.artifactDigest,
+          input.artifactRef,
+        )
+      ) {
+        throw new Error('SERVER_RELEASE_PROMOTION_NOT_COMMITTED');
+      }
+
+      const existing = await tx.releaseManifest.findFirst({
+        where: { deploymentId: input.deploymentId },
+        orderBy: { version: 'desc' },
+      });
+
+      if (existing) {
+        if (
+          existing.artifactKind !== 'server-image' ||
+          existing.artifactRef !== input.artifactRef ||
+          existing.artifactDigest !== input.artifactDigest
+        ) {
+          throw new Error('SERVER_RELEASE_MANIFEST_CONFLICT');
+        }
+
+        if (deployment.status !== 'READY') {
+          throw new Error('SERVER_RELEASE_MANIFEST_WITHOUT_READY');
+        }
+
+        return { committed: true, deployment: mapDeployment(deployment), manifest: mapReleaseManifest(existing) };
+      }
+
+      if (['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
+        return { committed: false, deployment: mapDeployment(deployment) };
+      }
+
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        `release-manifest:${input.projectId}:${input.environment}`,
+      );
+      const latest = await tx.releaseManifest.findFirst({
+        where: { projectId: input.projectId, environment: input.environment },
+        orderBy: { version: 'desc' },
+        select: { version: true },
+      });
+      const manifest = await tx.releaseManifest.create({
+        data: {
+          projectId: input.projectId,
+          deploymentId: input.deploymentId,
+          environment: input.environment,
+          version: (latest?.version ?? 0) + 1,
+          provider: 'server',
+          artifactKind: 'server-image',
+          artifactRef: input.artifactRef,
+          artifactDigest: input.artifactDigest,
+          storeGeneration: input.storeGeneration ?? null,
+          configDigest: input.configDigest ?? null,
+        },
+      });
+      await tx.adminAuditLog.create({
+        data: {
+          action: SERVER_IMAGE_RELEASE_AUDIT_ACTION,
+          metadata: {
+            organizationId: input.organizationId,
+            projectId: input.projectId,
+            deploymentId: input.deploymentId,
+            releaseManifestId: manifest.id,
+            promotion: serverDeploy.promotion,
+          } as unknown as Prisma.InputJsonValue,
+        },
+      });
+      const ready = await tx.deployment.update({
+        where: { id: input.deploymentId },
+        data: {
+          status: 'READY',
+          url: input.url,
+          previewUrl: input.previewUrl ?? null,
+          productionUrl: input.productionUrl ?? null,
+          metadata: input.metadata as Prisma.InputJsonValue,
+          logs: input.logs as unknown as Prisma.InputJsonValue,
+          finishedAt: new Date(input.finishedAt),
+        },
+      });
+
+      return { committed: true, deployment: mapDeployment(ready), manifest: mapReleaseManifest(manifest) };
+    });
+  }
+
+  async getServerImageReleasePromotion(deploymentId: string): Promise<unknown | undefined> {
+    const audit = await this.prisma.adminAuditLog.findFirst({
+      where: {
+        action: SERVER_IMAGE_RELEASE_AUDIT_ACTION,
+        metadata: { path: ['deploymentId'], equals: deploymentId },
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { metadata: true },
+    });
+    return (audit?.metadata as Record<string, unknown> | null)?.promotion;
   }
 
   async getActiveRateCard() {

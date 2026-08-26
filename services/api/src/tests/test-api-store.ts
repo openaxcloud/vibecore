@@ -3,6 +3,7 @@ import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
+import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from '../server-image-promotion.js';
 import type {
   EnvVarScope,
   AbuseEventRecord,
@@ -45,6 +46,8 @@ import type {
   CustomRoleRecord,
   DeploymentRecord,
   ReleaseManifestRecord,
+  ServerImageReleaseCommitInput,
+  ServerImageReleaseCommitResult,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -220,7 +223,11 @@ export class TestApiStore implements ApiStore {
    */
   readonly #mutationChains = new Map<string, Promise<unknown>>();
 
-  async withSerializedMutation<T>(key: string, fn: () => Promise<T>): Promise<T> {
+  async withSerializedMutation<T>(
+    key: string,
+    fn: () => Promise<T>,
+    _options?: { transactionTimeoutMs?: number },
+  ): Promise<T> {
     const previous = this.#mutationChains.get(key) ?? Promise.resolve();
 
     /*
@@ -2220,6 +2227,111 @@ export class TestApiStore implements ApiStore {
       .filter((m) => m.projectId === projectId && m.environment === environment)
       .sort((a, b) => b.version - a.version)
       .slice(0, options?.take ?? 100);
+  }
+
+  async commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult> {
+    return this.withSerializedMutation(`server-release:${input.deploymentId}`, async () => {
+      const deployment = this.deployments.get(input.deploymentId);
+
+      if (!deployment || deployment.projectId !== input.projectId) {
+        throw new Error(`Deployment not found: ${input.deploymentId}`);
+      }
+
+      const project = this.projects.get(input.projectId);
+      const serverDeploy = input.metadata.serverDeploy as Record<string, unknown> | undefined;
+      const image = serverDeploy?.image as Record<string, unknown> | undefined;
+
+      if (
+        !project ||
+        project.organizationId !== input.organizationId ||
+        deployment.provider !== 'server' ||
+        deployment.environment !== input.environment ||
+        image?.imageRef !== input.artifactRef ||
+        image?.imageDigest !== input.artifactDigest ||
+        !isCommittedPromotionForTenant(
+          serverDeploy?.promotion,
+          project.organizationId,
+          input.artifactDigest,
+          input.artifactRef,
+        )
+      ) {
+        throw new Error('SERVER_RELEASE_PROMOTION_NOT_COMMITTED');
+      }
+
+      const existing = this.releaseManifests.find((manifest) => manifest.deploymentId === input.deploymentId);
+
+      if (existing) {
+        if (
+          existing.artifactKind !== 'server-image' ||
+          existing.artifactRef !== input.artifactRef ||
+          existing.artifactDigest !== input.artifactDigest
+        ) {
+          throw new Error('SERVER_RELEASE_MANIFEST_CONFLICT');
+        }
+
+        if (deployment.status !== 'READY') {
+          throw new Error('SERVER_RELEASE_MANIFEST_WITHOUT_READY');
+        }
+
+        return { committed: true, deployment, manifest: existing };
+      }
+
+      if (['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
+        return { committed: false, deployment };
+      }
+
+      const latestVersion = this.releaseManifests
+        .filter((manifest) => manifest.projectId === input.projectId && manifest.environment === input.environment)
+        .reduce((max, manifest) => Math.max(max, manifest.version), 0);
+      const manifest: ReleaseManifestRecord = {
+        id: `rm-${this.releaseManifests.length + 1}-${input.deploymentId}`,
+        projectId: input.projectId,
+        deploymentId: input.deploymentId,
+        environment: input.environment,
+        version: latestVersion + 1,
+        provider: 'server',
+        artifactKind: 'server-image',
+        artifactRef: input.artifactRef,
+        artifactDigest: input.artifactDigest,
+        storeGeneration: input.storeGeneration,
+        configDigest: input.configDigest,
+        createdAt: now(),
+      };
+      const ready: DeploymentRecord = {
+        ...deployment,
+        status: 'READY',
+        url: input.url,
+        previewUrl: input.previewUrl,
+        productionUrl: input.productionUrl,
+        metadata: input.metadata,
+        logs: input.logs,
+        finishedAt: input.finishedAt,
+        updatedAt: now(),
+      };
+
+      this.releaseManifests.push(manifest);
+      this.adminAuditLogs.push({
+        action: SERVER_IMAGE_RELEASE_AUDIT_ACTION,
+        metadata: {
+          organizationId: input.organizationId,
+          projectId: input.projectId,
+          deploymentId: input.deploymentId,
+          releaseManifestId: manifest.id,
+          promotion: serverDeploy.promotion,
+        },
+        createdAt: now(),
+      });
+      this.deployments.set(ready.id, ready);
+      return { committed: true, deployment: ready, manifest };
+    });
+  }
+
+  async getServerImageReleasePromotion(deploymentId: string): Promise<unknown | undefined> {
+    return [...this.adminAuditLogs]
+      .reverse()
+      .find(
+        (event) => event.action === SERVER_IMAGE_RELEASE_AUDIT_ACTION && event.metadata?.deploymentId === deploymentId,
+      )?.metadata?.promotion;
   }
 
   /** No DB-backed rate card in tests: callers fall back to the built-in card. */

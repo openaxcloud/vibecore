@@ -5,3 +5,11 @@ preview_domain = "preview.staging.example.com"
 labels = {
   owner = "platform"
 }
+
+# Fail-closed default. Populate all four values only after the matching
+# repositories, policy, KMS key and promotion Secret exist in this environment.
+artifact_promotion_repositories       = []
+binary_authorization_policy_projects  = []
+server_deploy_builder_repository      = null
+server_deploy_builder_pull_repositories = []
+server_deploy_cosign_kms_key_id          = ""

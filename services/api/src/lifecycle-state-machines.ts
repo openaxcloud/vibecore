@@ -282,10 +282,23 @@ export interface PromotionManifest {
   sourceDigest: string;
   targetRepo: string;
   targetTenant: string;
+  retentionTag?: string;
 
   /** Every OCI referrer copied+relinked (signature/SBOM/provenance/…). */
-  attachments: Array<{ type: string; digest: string; subjectDigest: string; relinked: boolean }>;
+  attachments: Array<{
+    type: string;
+    digest: string;
+    subjectDigest: string;
+    relinked: boolean;
+    payloadDigests?: string[];
+    predicateType?: string;
+    evidenceFormat?: string;
+  }>;
   binaryAuthorizationResult: 'PASSED' | 'DENIED' | 'UNKNOWN';
+  binaryAuthorizationPolicy: string;
+  binaryAuthorizationPolicyEtag: string;
+  binaryAuthorizationEvaluatedImage: string;
+  binaryAuthorizationEvaluatedAt: string;
   state: PromotionState;
   preparedAt: string;
   committedAt?: string;
@@ -331,6 +344,19 @@ export function releaseMayBeCut(promotion: PromotionManifest): { allowed: boolea
     return { allowed: false, reason: `Binary Authorization is ${promotion.binaryAuthorizationResult}, not PASSED` };
   }
 
+  if (
+    !promotion.binaryAuthorizationPolicy ||
+    !promotion.binaryAuthorizationPolicyEtag ||
+    promotion.binaryAuthorizationEvaluatedImage !== `${promotion.targetRepo}@${promotion.sourceDigest}` ||
+    !promotion.binaryAuthorizationEvaluatedAt
+  ) {
+    return { allowed: false, reason: 'Binary Authorization evidence is incomplete or targets another image' };
+  }
+
+  if (!promotion.retentionTag || !/^active-promo-[a-f0-9]{32}$/u.test(promotion.retentionTag)) {
+    return { allowed: false, reason: 'promotion has no immutable active-* retention tag' };
+  }
+
   return { allowed: true };
 }
 
@@ -350,22 +376,25 @@ export type WorkspaceLifecycleState = 'PENDING' | 'STARTING' | 'RUNNING' | 'STOP
 
 const WORKSPACE_LIFECYCLE_NEXT: Record<WorkspaceLifecycleState, WorkspaceLifecycleState[]> = {
   PENDING: ['STARTING', 'FAILED'],
-  // A user can stop (or a probe can fail) mid-startup; this system never emits an
-  // intermediate STOPPING status, so STARTING may go straight to STOPPED.
+
+  /*
+   * A user can stop (or a probe can fail) mid-startup; this system never emits an
+   * intermediate STOPPING status, so STARTING may go straight to STOPPED.
+   */
   STARTING: ['RUNNING', 'STOPPING', 'STOPPED', 'FAILED'],
   RUNNING: ['STOPPING', 'STOPPED', 'FAILED'],
   STOPPING: ['STOPPED', 'FAILED'],
+
   // Terminal-ish, but a workspace is re-openable: a reopen/self-heal restarts it.
   STOPPED: ['STARTING'],
   FAILED: ['STARTING'],
 };
 
-export function assertWorkspaceLifecycleTransition(
-  from: WorkspaceLifecycleState,
-  to: WorkspaceLifecycleState,
-): void {
-  // Idempotent re-assertion of the same state is a no-op, not an error: two
-  // manager replicas can both observe the same transition.
+export function assertWorkspaceLifecycleTransition(from: WorkspaceLifecycleState, to: WorkspaceLifecycleState): void {
+  /*
+   * Idempotent re-assertion of the same state is a no-op, not an error: two
+   * manager replicas can both observe the same transition.
+   */
   if (from === to) {
     return;
   }

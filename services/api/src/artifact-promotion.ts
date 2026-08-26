@@ -19,9 +19,12 @@
  * This module is adapter-driven and PURE of GCP SDKs: `RegistryAdapter` abstracts
  * the OCI referrers API so the whole contract is unit-testable (incl. the
  * negative "missing attachment ⇒ refused" path). The live Artifact Registry
- * adapter is a thin implementation of this interface (follow-up, needs infra
- * credentials) — the security logic lives and is proven here.
+ * adapter lives in `artifact-registry-adapter.ts`.
  */
+
+import { createHash } from 'node:crypto';
+
+import type { PromotionManifest } from './lifecycle-state-machines.js';
 
 export type AttestationKind = 'signature' | 'sbom' | 'provenance';
 
@@ -29,15 +32,29 @@ export type AttestationKind = 'signature' | 'sbom' | 'provenance';
 export function classifyArtifactType(artifactType: string): AttestationKind | undefined {
   const t = artifactType.toLowerCase();
 
-  if (t.includes('cosign') || t.includes('signature') || t.includes('simplesigning')) {
+  if (
+    t === 'application/vnd.dev.cosign.simplesigning.v1+json' ||
+    t === 'application/vnd.dev.cosign.signature' ||
+    t === 'application/vnd.cncf.notary.signature'
+  ) {
     return 'signature';
   }
 
-  if (t.includes('spdx') || t.includes('cyclonedx') || t.includes('sbom')) {
+  if (
+    t === 'application/spdx+json' ||
+    t === 'application/vnd.cyclonedx+json' ||
+    t === 'application/vnd.syft+json' ||
+    t === 'application/vnd.dev.cosign.artifact.sbom.v1+json'
+  ) {
     return 'sbom';
   }
 
-  if (t.includes('in-toto') || t.includes('slsa') || t.includes('provenance') || t.includes('attestation')) {
+  if (
+    t === 'application/vnd.in-toto+json' ||
+    t === 'application/vnd.in-toto.provenance+dsse' ||
+    t === 'application/vnd.in-toto.statement.v1+json' ||
+    t === 'application/vnd.slsa.provenance.v1+json'
+  ) {
     return 'provenance';
   }
 
@@ -53,6 +70,19 @@ export interface OciAttachment {
 
   /** The image digest this attachment refers to (OCI `subject`). */
   subjectDigest: string;
+
+  /** Content-addressed evidence payloads verified readable in this repository. */
+  payloadDigests?: string[];
+  payloadVerified?: boolean;
+
+  /**
+   * Kind derived from the authenticated payload shape, never merely from an
+   * attacker-controlled artifactType. The live adapter sets this only after it
+   * parses DSSE/in-toto and binds statement.subject to the image digest.
+   */
+  verifiedKind?: AttestationKind;
+  predicateType?: string;
+  evidenceFormat?: 'sigstore-bundle-message-signature' | 'sigstore-bundle-dsse' | 'cloud-build-dsse';
 }
 
 export interface RegistryRef {
@@ -73,7 +103,7 @@ export interface RegistryAdapter {
   listReferrers(repo: string, digest: string): Promise<OciAttachment[]>;
 
   /** Copy the image manifest + config + layers by digest. */
-  copyImage(source: RegistryRef, targetRepo: string): Promise<void>;
+  copyImage(source: RegistryRef, targetRepo: string): Promise<{ created: boolean }>;
 
   /**
    * Copy an attachment blob into `targetRepo` and RE-LINK its subject to
@@ -83,10 +113,16 @@ export interface RegistryAdapter {
     source: { repo: string; attachment: OciAttachment },
     targetRepo: string,
     newSubjectDigest: string,
-  ): Promise<void>;
+  ): Promise<{ attachment: OciAttachment; created: boolean }>;
 
-  /** Best-effort cleanup of a partially-promoted target (rollback). */
-  deleteImageAndReferrers(repo: string, digest: string): Promise<void>;
+  /** Delete one attachment manifest created by this attempt. */
+  deleteReferrer(repo: string, digest: string): Promise<void>;
+
+  /** Delete the image manifest created by this attempt. */
+  deleteImage(repo: string, digest: string): Promise<void>;
+
+  /** Pin the verified digest under an immutable cleanup-policy retention tag. */
+  pinImage(repo: string, digest: string, tag: string): Promise<{ created: boolean }>;
 }
 
 export const DEFAULT_REQUIRED_ATTESTATIONS: AttestationKind[] = ['signature', 'sbom', 'provenance'];
@@ -108,6 +144,72 @@ export interface PromotionResult {
   ok: true;
   target: RegistryRef;
   promotedAttestations: AttestationKind[];
+  manifest: PromotionManifest;
+
+  /** True when an already-complete target was verified and reused without writes. */
+  reused: boolean;
+}
+
+export interface BinaryAuthorizationGateResult {
+  admitted: boolean;
+  policy: string;
+  policyEtag: string;
+  evaluatedImage: string;
+  evaluatedAt: string;
+}
+
+function promotionId(source: RegistryRef, targetRepo: string, policy: string, policyEtag: string): string {
+  return `promo-${createHash('sha256')
+    .update(`${source.repo}\0${source.digest}\0${targetRepo}\0${policy}\0${policyEtag}`, 'utf8')
+    .digest('hex')
+    .slice(0, 32)}`;
+}
+
+function retentionTag(source: RegistryRef, targetRepo: string, policy: string, policyEtag: string): string {
+  return `active-${promotionId(source, targetRepo, policy, policyEtag)}`;
+}
+
+function committedManifest(input: {
+  source: RegistryRef;
+  target: RegistryRef;
+  targetTenant: string;
+  targetReferrers: OciAttachment[];
+  preparedAt: string;
+  binaryAuthorization: BinaryAuthorizationGateResult;
+  retentionTag: string;
+}): PromotionManifest {
+  return {
+    promotionId: promotionId(
+      input.source,
+      input.target.repo,
+      input.binaryAuthorization.policy,
+      input.binaryAuthorization.policyEtag,
+    ),
+    sourceRepo: input.source.repo,
+    sourceDigest: input.source.digest,
+    targetRepo: input.target.repo,
+    targetTenant: input.targetTenant,
+    retentionTag: input.retentionTag,
+    attachments: input.targetReferrers
+      .filter((attachment) => attachment.subjectDigest === input.target.digest)
+      .map((attachment) => ({
+        type: attachment.verifiedKind ?? classifyArtifactType(attachment.artifactType) ?? attachment.artifactType,
+        digest: attachment.digest,
+        subjectDigest: attachment.subjectDigest,
+        relinked: true,
+        ...(attachment.payloadDigests ? { payloadDigests: attachment.payloadDigests } : {}),
+        ...(attachment.predicateType ? { predicateType: attachment.predicateType } : {}),
+        ...(attachment.evidenceFormat ? { evidenceFormat: attachment.evidenceFormat } : {}),
+      })),
+    binaryAuthorizationResult: 'PASSED',
+    binaryAuthorizationPolicy: input.binaryAuthorization.policy,
+    binaryAuthorizationPolicyEtag: input.binaryAuthorization.policyEtag,
+    binaryAuthorizationEvaluatedImage: input.binaryAuthorization.evaluatedImage,
+    binaryAuthorizationEvaluatedAt: input.binaryAuthorization.evaluatedAt,
+    state: 'PROMOTION_COMMITTED',
+    preparedAt: input.preparedAt,
+    committedAt: new Date().toISOString(),
+  };
 }
 
 /**
@@ -122,15 +224,38 @@ export function missingAttestations(
   const present = new Set<AttestationKind>();
 
   for (const attachment of attachments) {
-    const kind = classifyArtifactType(attachment.artifactType);
+    const kind = attachment.verifiedKind;
 
     // Only count an attachment that ACTUALLY refers to this image digest.
-    if (kind && attachment.subjectDigest === imageDigest) {
+    if (kind && attachment.subjectDigest === imageDigest && attachment.payloadVerified === true) {
       present.add(kind);
     }
   }
 
   return required.filter((kind) => !present.has(kind));
+}
+
+function targetContainsSourceEvidence(
+  sourceReferrers: OciAttachment[],
+  targetReferrers: OciAttachment[],
+  imageDigest: string,
+): boolean {
+  return sourceReferrers
+    .filter((attachment) => attachment.subjectDigest === imageDigest)
+    .every((source) =>
+      targetReferrers.some(
+        (target) =>
+          target.digest === source.digest &&
+          target.artifactType === source.artifactType &&
+          target.subjectDigest === imageDigest &&
+          target.payloadVerified === true &&
+          target.verifiedKind === source.verifiedKind &&
+          target.predicateType === source.predicateType &&
+          target.evidenceFormat === source.evidenceFormat &&
+          JSON.stringify([...(target.payloadDigests ?? [])].sort()) ===
+            JSON.stringify([...(source.payloadDigests ?? [])].sort()),
+      ),
+    );
 }
 
 /**
@@ -142,6 +267,9 @@ export function missingAttestations(
 export async function promoteArtifact(input: {
   source: RegistryRef;
   targetRepo: string;
+
+  /** Organization/tenant that exclusively owns targetRepo. */
+  targetTenant: string;
   adapter: RegistryAdapter;
   required?: AttestationKind[];
 
@@ -150,20 +278,28 @@ export async function promoteArtifact(input: {
    * false to block (e.g. policy demands a specific signer). Defaults to
    * "all required kinds present" (already guaranteed by the verify step).
    */
-  binaryAuthorization?: (verified: AttestationKind[]) => boolean | Promise<boolean>;
+  binaryAuthorization?: (
+    verified: AttestationKind[],
+  ) => boolean | BinaryAuthorizationGateResult | Promise<boolean | BinaryAuthorizationGateResult>;
 }): Promise<PromotionResult> {
   const required = input.required ?? DEFAULT_REQUIRED_ATTESTATIONS;
   const { adapter, source } = input;
   const target: RegistryRef = { repo: input.targetRepo, digest: source.digest };
+  const preparedAt = new Date().toISOString();
 
   // 0. Source image must exist.
   if (!(await adapter.imageExists(source.repo, source.digest))) {
-    throw new PromotionBlockedError(`Source image ${source.repo}@${source.digest} not found`, 'PROMOTION_SOURCE_MISSING');
+    throw new PromotionBlockedError(
+      `Source image ${source.repo}@${source.digest} not found`,
+      'PROMOTION_SOURCE_MISSING',
+    );
   }
 
-  // 1. Discover ALL referrers at the source and pre-check completeness. An image
-  //    whose attestations are already incomplete at the source must never be
-  //    promoted — it is unverifiable by construction.
+  /*
+   * 1. Discover ALL referrers at the source and pre-check completeness. An image
+   *    whose attestations are already incomplete at the source must never be
+   *    promoted — it is unverifiable by construction.
+   */
   const sourceReferrers = await adapter.listReferrers(source.repo, source.digest);
   const missingAtSource = missingAttestations(sourceReferrers, required, source.digest);
 
@@ -175,23 +311,144 @@ export async function promoteArtifact(input: {
     );
   }
 
-  try {
-    // 2. Copy image by digest, then copy + RE-LINK each required attachment into
-    //    the tenant repo (re-linked to the image digest in the target context).
-    await adapter.copyImage(source, target.repo);
+  const targetExisted = await adapter.imageExists(target.repo, target.digest);
 
-    const requiredAttachments = sourceReferrers.filter((attachment) => {
-      const kind = classifyArtifactType(attachment.artifactType);
-      return kind && required.includes(kind) && attachment.subjectDigest === source.digest;
-    });
+  /*
+   * Referrers may have been pushed before their subject on OCI 1.1 registries.
+   * Snapshot them even when the subject manifest is absent so rollback never
+   * deletes evidence that predates this attempt.
+   */
+  const targetBefore = await adapter.listReferrers(target.repo, target.digest);
 
-    for (const attachment of requiredAttachments) {
-      await adapter.copyAndRelinkReferrer({ repo: source.repo, attachment }, target.repo, target.digest);
+  const targetWasComplete =
+    targetExisted &&
+    missingAttestations(targetBefore, required, target.digest).length === 0 &&
+    targetContainsSourceEvidence(sourceReferrers, targetBefore, target.digest);
+
+  if (targetWasComplete) {
+    const verified = required.filter((kind) =>
+      targetBefore.some((attachment) => attachment.verifiedKind === kind && attachment.subjectDigest === target.digest),
+    );
+    const gate =
+      input.binaryAuthorization ??
+      ((v: AttestationKind[]): BinaryAuthorizationGateResult => ({
+        admitted: required.every((kind) => v.includes(kind)),
+        policy: 'builtin:required-attestation-contract',
+        policyEtag: 'builtin-contract-v1',
+        evaluatedImage: `${target.repo}@${target.digest}`,
+        evaluatedAt: new Date().toISOString(),
+      }));
+
+    const rawGate = await gate(verified);
+
+    const gateResult: BinaryAuthorizationGateResult =
+      typeof rawGate === 'boolean'
+        ? {
+            admitted: rawGate,
+            policy: 'test:boolean-gate',
+            policyEtag: 'test-boolean-v1',
+            evaluatedImage: `${target.repo}@${target.digest}`,
+            evaluatedAt: new Date().toISOString(),
+          }
+        : rawGate;
+
+    if (!gateResult.admitted || gateResult.evaluatedImage !== `${target.repo}@${target.digest}`) {
+      /*
+       * A retry must never destroy a complete target created by an earlier
+       * successful attempt merely because today's policy evaluation failed.
+       */
+      throw new PromotionBlockedError(
+        'Binary Authorization denied the existing promoted image.',
+        'PROMOTION_BINAUTHZ_DENIED',
+      );
     }
 
-    // 3. VERIFY in the TARGET context: re-list referrers at the target and confirm
-    //    every required kind is present AND its subjectDigest matches the target
-    //    image digest. This catches a silent copy/relink failure.
+    const finalReferrers = await adapter.listReferrers(target.repo, target.digest);
+
+    if (
+      !(await adapter.imageExists(target.repo, target.digest)) ||
+      missingAttestations(finalReferrers, required, target.digest).length > 0 ||
+      !targetContainsSourceEvidence(sourceReferrers, finalReferrers, target.digest)
+    ) {
+      throw new PromotionBlockedError(
+        'Existing target changed during policy evaluation.',
+        'PROMOTION_TARGET_UNVERIFIED',
+      );
+    }
+
+    const targetRetentionTag = retentionTag(source, target.repo, gateResult.policy, gateResult.policyEtag);
+    await adapter.pinImage(target.repo, target.digest, targetRetentionTag);
+
+    return {
+      ok: true,
+      target,
+      promotedAttestations: verified,
+      manifest: committedManifest({
+        source,
+        target,
+        targetTenant: input.targetTenant,
+        targetReferrers: finalReferrers,
+        preparedAt,
+        binaryAuthorization: gateResult,
+        retentionTag: targetRetentionTag,
+      }),
+      reused: true,
+    };
+  }
+
+  let imageCreated = false;
+
+  const createdReferrers: string[] = [];
+  const preexistingReferrers = new Set(targetBefore.map((attachment) => attachment.digest));
+
+  try {
+    /*
+     * 2. Copy image by digest, then copy + RE-LINK each required attachment into
+     *    the tenant repo (re-linked to the image digest in the target context).
+     * Pre-register for rollback for the same "PUT accepted, response lost"
+     * ambiguity handled for referrers below.
+     */
+    imageCreated = !targetExisted;
+
+    const imageReceipt = await adapter.copyImage(source, target.repo);
+
+    if (!imageReceipt.created) {
+      imageCreated = false;
+    }
+
+    /*
+     * Copy every well-formed source referrer, not only the three release gates.
+     * This preserves extra security evidence (vulnerability reports, custom
+     * attestations) while the required set below remains fail-closed.
+     */
+    const attachmentsToCopy = sourceReferrers.filter((attachment) => attachment.subjectDigest === source.digest);
+
+    for (const attachment of attachmentsToCopy) {
+      /*
+       * Register the rollback candidate BEFORE the adapter call. A registry can
+       * accept the PUT and then lose the response/verification read; in that
+       * failure mode the call throws even though the manifest now exists.
+       */
+      if (!preexistingReferrers.has(attachment.digest)) {
+        createdReferrers.push(attachment.digest);
+      }
+
+      const copied = await adapter.copyAndRelinkReferrer({ repo: source.repo, attachment }, target.repo, target.digest);
+
+      if (!copied.created) {
+        const index = createdReferrers.lastIndexOf(copied.attachment.digest);
+
+        if (index >= 0) {
+          createdReferrers.splice(index, 1);
+        }
+      }
+    }
+
+    /*
+     * 3. VERIFY in the TARGET context: re-list referrers at the target and confirm
+     *    every required kind is present AND its subjectDigest matches the target
+     *    image digest. This catches a silent copy/relink failure.
+     */
     const targetReferrers = await adapter.listReferrers(target.repo, target.digest);
     const missingAtTarget = missingAttestations(targetReferrers, required, target.digest);
 
@@ -205,15 +462,35 @@ export async function promoteArtifact(input: {
 
     const verified = required.filter((kind) =>
       targetReferrers.some(
-        (attachment) => classifyArtifactType(attachment.artifactType) === kind && attachment.subjectDigest === target.digest,
+        (attachment) => attachment.verifiedKind === kind && attachment.subjectDigest === target.digest,
       ),
     );
 
     // 4. Binary Authorization gate over the verified attestations.
-    const gate = input.binaryAuthorization ?? ((v: AttestationKind[]) => required.every((k) => v.includes(k)));
-    const admitted = await gate(verified);
+    const gate =
+      input.binaryAuthorization ??
+      ((v: AttestationKind[]): BinaryAuthorizationGateResult => ({
+        admitted: required.every((kind) => v.includes(kind)),
+        policy: 'builtin:required-attestation-contract',
+        policyEtag: 'builtin-contract-v1',
+        evaluatedImage: `${target.repo}@${target.digest}`,
+        evaluatedAt: new Date().toISOString(),
+      }));
 
-    if (!admitted) {
+    const rawGate = await gate(verified);
+
+    const gateResult: BinaryAuthorizationGateResult =
+      typeof rawGate === 'boolean'
+        ? {
+            admitted: rawGate,
+            policy: 'test:boolean-gate',
+            policyEtag: 'test-boolean-v1',
+            evaluatedImage: `${target.repo}@${target.digest}`,
+            evaluatedAt: new Date().toISOString(),
+          }
+        : rawGate;
+
+    if (!gateResult.admitted || gateResult.evaluatedImage !== `${target.repo}@${target.digest}`) {
       throw new PromotionBlockedError(
         'Binary Authorization denied the promoted image.',
         'PROMOTION_BINAUTHZ_DENIED',
@@ -221,10 +498,69 @@ export async function promoteArtifact(input: {
       );
     }
 
-    return { ok: true, target, promotedAttestations: verified };
+    /*
+     * The policy service is an external await. Re-read at the point of commit so
+     * a concurrent cleanup/rewrite cannot turn stale pre-policy evidence into a
+     * committed release proof.
+     */
+    const finalReferrers = await adapter.listReferrers(target.repo, target.digest);
+    const missingAtCommit = missingAttestations(finalReferrers, required, target.digest);
+
+    if (
+      !(await adapter.imageExists(target.repo, target.digest)) ||
+      missingAtCommit.length > 0 ||
+      !targetContainsSourceEvidence(sourceReferrers, finalReferrers, target.digest)
+    ) {
+      throw new PromotionBlockedError(
+        'Target changed during Binary Authorization evaluation.',
+        'PROMOTION_TARGET_UNVERIFIED',
+        missingAtCommit,
+      );
+    }
+
+    const targetRetentionTag = retentionTag(source, target.repo, gateResult.policy, gateResult.policyEtag);
+    await adapter.pinImage(target.repo, target.digest, targetRetentionTag);
+
+    return {
+      ok: true,
+      target,
+      promotedAttestations: verified,
+      manifest: committedManifest({
+        source,
+        target,
+        targetTenant: input.targetTenant,
+        targetReferrers: finalReferrers,
+        preparedAt,
+        binaryAuthorization: gateResult,
+        retentionTag: targetRetentionTag,
+      }),
+      reused: false,
+    };
   } catch (error) {
-    // Any failure after we began copying: roll the tenant target back to clean.
-    await adapter.deleteImageAndReferrers(target.repo, target.digest).catch(() => undefined);
+    /*
+     * Roll back only objects THIS attempt created. Deleting a pre-existing image
+     * here is the subtle retry/concurrency bug that used to let a losing worker
+     * erase a winner's already-verified target.
+     */
+    const rollbackErrors: unknown[] = [];
+
+    for (const digest of [...new Set(createdReferrers)].reverse()) {
+      await adapter.deleteReferrer(target.repo, digest).catch((rollbackError) => rollbackErrors.push(rollbackError));
+    }
+
+    if (imageCreated) {
+      await adapter
+        .deleteImage(target.repo, target.digest)
+        .catch((rollbackError) => rollbackErrors.push(rollbackError));
+    }
+
+    if (rollbackErrors.length > 0) {
+      throw new PromotionBlockedError(
+        'Artifact promotion failed and its partial target could not be completely rolled back.',
+        'PROMOTION_ROLLBACK_FAILED',
+      );
+    }
+
     throw error;
   }
 }

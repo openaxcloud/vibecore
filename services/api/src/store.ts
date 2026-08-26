@@ -394,6 +394,34 @@ export interface ReleaseManifestRecord {
   createdAt: string;
 }
 
+/**
+ * Atomic READY + ReleaseManifest commit for a promoted server image. The store
+ * owns the transaction so a concurrent cancel can never leave an immutable
+ * manifest for a deployment that did not actually become READY.
+ */
+export interface ServerImageReleaseCommitInput {
+  projectId: string;
+  organizationId: string;
+  deploymentId: string;
+  environment: DeploymentRecord['environment'];
+  artifactRef: string;
+  artifactDigest: string;
+  storeGeneration?: string;
+  configDigest?: string;
+  url: string;
+  previewUrl?: string;
+  productionUrl?: string;
+  metadata: Record<string, unknown>;
+  logs: DeploymentRecord['logs'];
+  finishedAt: string;
+}
+
+export interface ServerImageReleaseCommitResult {
+  committed: boolean;
+  deployment: DeploymentRecord;
+  manifest?: ReleaseManifestRecord;
+}
+
 export interface SupportTicketRecord {
   id: string;
   organizationId: string;
@@ -1254,9 +1282,11 @@ export interface ApiStore {
    * Postgres transaction-scoped advisory lock keyed by `key`. Concurrent callers
    * with the same key run strictly one-at-a-time, so check-then-mutate guards
    * (last-owner / last-admin / quota) can't be defeated by a TOCTOU race. The
-   * callback should be short (it runs while the lock is held).
+   * callback should normally be short (it runs while the lock is held). A
+   * bounded longer timeout may be requested for an external operation whose
+   * rollback must remain serialized, such as an OCI graph promotion.
    */
-  withSerializedMutation<T>(key: string, fn: () => Promise<T>): Promise<T>;
+  withSerializedMutation<T>(key: string, fn: () => Promise<T>, options?: { transactionTimeoutMs?: number }): Promise<T>;
   createUser(input: {
     email: string;
     name?: string;
@@ -2032,6 +2062,10 @@ export interface ApiStore {
     environment: string,
     options?: { take?: number },
   ): Promise<ReleaseManifestRecord[]>;
+  /** Atomically append the server-image manifest and transition to READY. */
+  commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult>;
+  /** Durable promotion evidence retained independently of a prunable Deployment row. */
+  getServerImageReleasePromotion(deploymentId: string): Promise<unknown | undefined>;
   /**
    * The ACTIVE versioned Rate Card row (undefined when none is active — the
    * caller falls back to the built-in card). `data` is the serialized RateCard.

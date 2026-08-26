@@ -33,10 +33,15 @@ module "artifact_registry" {
 }
 
 module "iam" {
-  source      = "./modules/iam"
-  project_id  = var.project_id
-  name_prefix = local.name_prefix
-  labels      = local.labels
+  source                                  = "./modules/iam"
+  project_id                              = var.project_id
+  name_prefix                             = local.name_prefix
+  labels                                  = local.labels
+  artifact_promotion_repositories         = var.artifact_promotion_repositories
+  binary_authorization_policy_projects    = var.binary_authorization_policy_projects
+  server_deploy_builder_repository        = var.server_deploy_builder_repository
+  server_deploy_builder_pull_repositories = var.server_deploy_builder_pull_repositories
+  server_deploy_cosign_kms_key_id         = var.server_deploy_cosign_kms_key_id
 }
 
 module "cloud_sql" {

@@ -186,6 +186,39 @@ kubectl create secret generic vibecore-platform-secrets \
 shred -u "$TMP" 2>/dev/null || rm -f "$TMP"
 ```
 
+### Activate verified server-image promotion (currently OFF)
+
+Do not add `ARTIFACT_PROMOTION_CONFIG_JSON` to the map above, or set
+`SERVER_DEPLOY_BUILD_SERVICE_ACCOUNT`, until this entire sequence has completed.
+The API deliberately refuses snapshot-image publication without both values;
+it never falls back to the project's default Compute/Cloud Build identity and
+never cuts a release from an unpromoted image.
+
+1. Provision one dedicated target Artifact Registry repository per tenant and a
+   non-empty GKE Binary Authorization platform policy for each tenant. The
+   source repository and the Cosign CryptoKey must already exist.
+2. Populate the environment Terraform variables
+   `server_deploy_builder_repository`, `server_deploy_cosign_kms_key_id`,
+   `server_deploy_builder_pull_repositories` (including the private workspace
+   base-image repository),
+   `artifact_promotion_repositories` (source reader + isolated target
+   `repoAdmin` grants), and `binary_authorization_policy_projects`; apply. This
+   creates the dedicated builder GSA, grants the API `actAs`, scopes build output
+   to the source repo, and scopes KMS signing to one CryptoKey.
+3. Add a Secret Manager version for
+   `vibecore-prod-artifact-promotion-config-json` containing the strictly
+   validated source/tenant repository and policy map. Then add
+   `ARTIFACT_PROMOTION_CONFIG_JSON` to the sync map above.
+4. Set Helm `platformEnv.runtime.serverDeployBuildServiceAccount` to the full
+   `projects/<project>/serviceAccounts/<dedicated-builder-email>` resource and
+   deploy. Verify a real build produces the image signature, signed SPDX
+   attestation and Cloud Build provenance against one immutable digest before
+   enabling another tenant.
+
+As of the repository audit on 2026-08-26, the production source repo and KMS
+key exist, but the promotion Secret and platform policies do not; activation
+therefore remains intentionally blocked.
+
 ### Stripe checkout readiness
 
 `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` stay in Secret Manager,

@@ -222,6 +222,16 @@ data:
   # ignores newly-added values keys until they are `--set` once by hand).
   SERVER_DEPLOY_SNAPSHOT_IMAGE: {{ .Values.platformEnv.runtime.serverDeploySnapshotImage | default "1" | quote }}
   SERVER_DEPLOY_IMAGE_REPO: {{ .Values.platformEnv.runtime.serverDeployImageRepo | quote }}
+  {{- if .Values.platformEnv.runtime.serverDeployCosignKmsKey }}
+  # Resource name only; signing runs in Cloud Build under ADC and private key
+  # material never enters this ConfigMap or the API pod.
+  SERVER_DEPLOY_COSIGN_KMS_KEY: {{ .Values.platformEnv.runtime.serverDeployCosignKmsKey | quote }}
+  {{- end }}
+  {{- if .Values.platformEnv.runtime.serverDeployBuildServiceAccount }}
+  # Explicit dedicated Cloud Build identity; missing means image publication
+  # fails closed before a build is submitted (no implicit default SA).
+  SERVER_DEPLOY_BUILD_SERVICE_ACCOUNT: {{ .Values.platformEnv.runtime.serverDeployBuildServiceAccount | quote }}
+  {{- end }}
   {{- if .Values.platformEnv.runtime.serverDeployRevisionProjects }}
   # Reproducible pipeline rollout gate (docs/DEPLOY_REPRODUCIBLE_PIPELINE.md):
   # for the listed project ids ('*' = all) the docker-build context is produced
