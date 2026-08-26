@@ -64,6 +64,24 @@ function assertDnsClusterIpPolicy(content, name, cidr, description) {
   }
 }
 
+function assertApiMetadataPolicy(content) {
+  const policy = renderedResource(content, 'allow-api-metadata-egress');
+  assertIncludes(policy, 'app.kubernetes.io/name: api', 'metadata policy API pod selector');
+  assertIncludes(policy, 'cidr: 169.254.169.254/32', 'metadata policy single-host CIDR');
+  assertIncludes(policy, 'protocol: TCP\n          port: 80', 'metadata policy HTTP port');
+  assertIncludes(policy, 'protocol: TCP\n          port: 988', 'metadata policy GKE proxy port');
+
+  const ports = [...policy.matchAll(/port:\s*(\d+)/g)].map((match) => Number(match[1]));
+
+  if (ports.length !== 2 || ports.some((port) => port !== 80 && port !== 988)) {
+    throw new Error(`Metadata policy must expose only TCP/80 and TCP/988; rendered ports: ${ports.join(', ')}`);
+  }
+
+  if (policy.includes('namespaceSelector:') || policy.includes('cidr: 0.0.0.0/0')) {
+    throw new Error('Metadata policy scope widened beyond the API pod and metadata host');
+  }
+}
+
 for (const path of [
   '../apps',
   '../services',
@@ -131,6 +149,7 @@ assertIncludes(defaultPlatform, 'name: allow-dns-clusterip', 'platform DNS Clust
 assertDnsClusterIpPolicy(defaultPlatform, 'allow-dns-clusterip', '10.30.0.10/32', 'platform DNS policy');
 assertIncludes(defaultPlatform, 'name: allow-platform-required-egress', 'platform required-egress policy');
 assertIncludes(defaultPlatform, '169.254.169.254/32', 'platform metadata-server egress block');
+assertApiMetadataPolicy(defaultPlatform);
 assertIncludes(defaultPlatform, 'app.kubernetes.io/name: "ingress-nginx"', 'default ingress controller app label');
 assertIncludes(
   defaultPlatform,
