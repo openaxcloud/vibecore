@@ -42,7 +42,7 @@ describe('admin api-key connector catalog', () => {
     const res = await app.inject({ method: 'GET', url: '/admin/connectors/api-key', headers: auth('admin-token') });
     expect(res.statusCode).toBe(200);
     const connectors = res.json().connectors as Array<{ provider: string; authType: string; tokenConsoleUrl: string }>;
-    expect(connectors.map((c) => c.provider).sort()).toEqual(['netlify', 'supabase', 'vercel']);
+    expect(connectors.map((c) => c.provider).sort()).toEqual(['claude', 'figma', 'netlify', 'supabase', 'vercel']);
     for (const c of connectors) {
       expect(c.authType).toBe('api_key');
       expect(c.tokenConsoleUrl).toMatch(/^https:\/\//);

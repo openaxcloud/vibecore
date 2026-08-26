@@ -101,7 +101,18 @@ export interface ProjectRecord {
   name: string;
   slug: string;
   description?: string;
-  sourceType: 'blank' | 'template' | 'ai' | 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'duplicate';
+  sourceType:
+    | 'blank'
+    | 'template'
+    | 'ai'
+    | 'github'
+    | 'gitlab'
+    | 'bitbucket'
+    | 'zip'
+    | 'vercel'
+    | 'figma'
+    | 'claude'
+    | 'duplicate';
   templateName?: string;
   gitRepositoryUrl?: string;
   gitDefaultBranch?: string;
@@ -1537,6 +1548,7 @@ export interface ApiStore {
     id: string,
     patch: {
       state?: string;
+      sourceRef?: string;
       findings?: unknown;
       consent?: unknown;
       targetProjectId?: string;

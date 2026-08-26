@@ -206,13 +206,12 @@ describe('import hub inventory (CONFIRMED — 12 entries)', () => {
     expect(IMPORT_HUB_PROVIDERS).not.toContain('screenshot');
   });
 
-  it('marks which providers actually execute today vs modeled-only', () => {
+  it('marks the credential-backed providers as executing real import paths', () => {
     for (const p of IMPORT_PROVIDERS_EXECUTED) {
       expect(IMPORT_HUB_PROVIDERS).toContain(p);
     }
 
-    // e.g. figma / lovable are modeled but not executed yet.
-    expect(IMPORT_PROVIDERS_EXECUTED).not.toContain('figma');
+    expect(IMPORT_PROVIDERS_EXECUTED).toEqual(expect.arrayContaining(['vercel', 'figma', 'claude']));
   });
 });
 

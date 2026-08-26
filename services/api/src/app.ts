@@ -259,6 +259,12 @@ import {
   type StaticBuildLog,
 } from './deployments.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
+import {
+  CredentialImportError,
+  fetchCredentialImportSource,
+  isCredentialImportProvider,
+  type CredentialImportPreview,
+} from './credential-import.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
 import { forwardedAgentQuery } from './forwarded-agent-query.js';
 import {
@@ -267,6 +273,8 @@ import {
   verifyIntegrationOauthState,
 } from './integrations/oauth-state.js';
 import { bitbucketConnector, resolveBitbucketCredentials } from './integrations/providers/bitbucket.js';
+import { claudeConnector } from './integrations/providers/claude.js';
+import { figmaConnector } from './integrations/providers/figma.js';
 import { githubConnector, resolveGithubCredentials } from './integrations/providers/github.js';
 import { gitlabConnector, resolveGitLabCredentials } from './integrations/providers/gitlab.js';
 import { netlifyConnector } from './integrations/providers/netlify.js';
@@ -7301,6 +7309,10 @@ function connectorProviderFor(provider: string): ConnectorProvider | undefined {
       return bitbucketConnector;
     case 'vercel':
       return vercelConnector;
+    case 'figma':
+      return figmaConnector;
+    case 'claude':
+      return claudeConnector;
     case 'supabase':
       return supabaseConnector;
     case 'netlify':
@@ -8586,6 +8598,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * mount until commit — holds regardless of the backing store.)
    */
   const importStaging = new Map<string, ImportFile[]>();
+  const importPreviews = new Map<string, CredentialImportPreview>();
 
   /*
    * SAFETY billing ledger (in-process, mirrors importStaging): idempotent credit
@@ -20202,7 +20215,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
   const importCreateSchema = z.object({
     provider: z.enum(IMPORT_HUB_PROVIDERS as [string, ...string[]]),
-    sourceRef: z.string().optional(),
+    sourceRef: z.string().max(500).optional(),
+    scopeRef: z.string().max(160).optional(),
+    sourcePayload: z
+      .string()
+      .max(2 * 1024 * 1024)
+      .optional(),
+    targetPath: z.string().max(240).optional(),
 
     /*
      * Mandatory idempotency key (safety billing): a retried create with the same
@@ -20227,6 +20246,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const cleanupImport = async (importJobId: string, terminal: ImportState, error?: string) => {
     importStaging.delete(importJobId); // dispose the staging — target never mounted
+    importPreviews.delete(importJobId);
     importLedger.compensateByJob(importJobId); // release the reservation, zero debit
     await store.updateImportJob(importJobId, { state: terminal, ...(error ? { error } : {}) }).catch(() => undefined);
   };
@@ -20244,6 +20264,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     for (const id of expired) {
       importStaging.delete(id);
+      importPreviews.delete(id);
       importLedger.compensateByJob(id); // timeout is a non-committed exit → release, zero debit
     }
 
@@ -20297,6 +20318,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             findings: (existing.findings as unknown[]) ?? [],
             stagedFileCount: existing.stagedFileCount,
             requiresConsent,
+            preview: importPreviews.get(existing.id) ?? null,
             replayed: true,
           },
         });
@@ -20330,7 +20352,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * with the same key never double-reserves. The debit is recorded ONLY if
        * the import reaches COMMITTED (settle); every other exit compensates.
        */
-      const stagedFiles: ImportFile[] = body.files ?? [];
+      let stagedFiles: ImportFile[] = body.files ?? [];
       importLedger.reserve({
         key: body.idempotencyKey,
         organizationId: orgId,
@@ -20338,6 +20360,88 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         reservedCredits: estimateImportReservation(stagedFiles.length),
       });
       await store.updateImportJob(job.id, { creditsReserved: true });
+
+      /*
+       * Credential providers are fetched server-side from the caller's own
+       * active encrypted UserConnection. Client-supplied `files` are ignored for
+       * these providers, so a caller cannot bypass connection validation or
+       * forge the provider preview. Tokens live only in this request scope and
+       * never enter staging, responses, audit metadata, or logs.
+       */
+      if (isCredentialImportProvider(body.provider)) {
+        const catalog = await store.getConnectorOAuthCatalog(body.provider);
+
+        if (catalog && !catalog.enabled) {
+          throw Object.assign(new Error(appPublicEnglish('CONNECTOR_DISABLED', { value1: body.provider })), {
+            statusCode: 403,
+            code: 'CONNECTOR_DISABLED',
+          });
+        }
+
+        const connections = await store.listUserConnectionsByUser(request.currentUser!.id, {
+          provider: body.provider,
+        });
+        const activeConnection = connections.find((connection) => connection.status === 'active');
+
+        if (!activeConnection) {
+          throw Object.assign(new Error(appPublicEnglish('CONNECTOR_NOT_LINKED', { value1: body.provider })), {
+            statusCode: 424,
+            code: 'IMPORT_CONNECTOR_NOT_LINKED',
+          });
+        }
+
+        if (activeConnection.tokenExpiresAt && new Date(activeConnection.tokenExpiresAt).getTime() <= Date.now()) {
+          throw Object.assign(new Error(appPublicEnglish('CONNECTOR_API_KEY_EXPIRED')), {
+            statusCode: 424,
+            code: 'IMPORT_CONNECTOR_CREDENTIAL_EXPIRED',
+          });
+        }
+
+        if (!activeConnection.accessTokenEncrypted) {
+          throw Object.assign(new Error(appPublicEnglish('CONNECTOR_TOKEN_UNAVAILABLE', { value1: body.provider })), {
+            statusCode: 424,
+            code: 'IMPORT_CONNECTOR_CREDENTIAL_UNAVAILABLE',
+          });
+        }
+
+        let accessToken: string;
+
+        try {
+          const decrypted = decryptJson<{ value?: unknown }>(activeConnection.accessTokenEncrypted);
+
+          if (typeof decrypted.value !== 'string' || decrypted.value.length === 0) {
+            throw new TypeError();
+          }
+
+          accessToken = decrypted.value;
+        } catch {
+          throw Object.assign(
+            new Error(appPublicEnglish('CONNECTOR_TOKEN_DECRYPT_FAILED', { value1: body.provider })),
+            {
+              statusCode: 424,
+              code: 'IMPORT_CONNECTOR_CREDENTIAL_UNAVAILABLE',
+            },
+          );
+        }
+
+        const connectorFetch: typeof fetch = (input, init) =>
+          fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(20_000) });
+        const fetched = await fetchCredentialImportSource({
+          provider: body.provider,
+          accessToken,
+          sourceRef: body.sourceRef ?? '',
+          scopeRef: body.scopeRef,
+          sourcePayload: body.sourcePayload,
+          targetPath: body.targetPath,
+          fetchImpl: connectorFetch,
+        });
+
+        stagedFiles = fetched.files;
+        importPreviews.set(job.id, fetched.preview);
+
+        /* Use the provider-resolved title for the eventual target project. */
+        await store.updateImportJob(job.id, { sourceRef: fetched.resolvedSourceRef });
+      }
 
       // STAGING_ISOLATED — files into the disposable staging, NOT the target.
       importStaging.set(job.id, stagedFiles);
@@ -20380,6 +20484,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             findings, // redacted previews only
             stagedFileCount: stagedFiles.length,
             requiresConsent: true,
+            preview: importPreviews.get(job.id) ?? null,
           },
         });
       }
@@ -20395,6 +20500,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           findings: [],
           stagedFileCount: stagedFiles.length,
           requiresConsent: false,
+          preview: importPreviews.get(job.id) ?? null,
         },
       });
     } catch (error) {
@@ -20403,6 +20509,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       if (error instanceof ImportInvariantError) {
         return reply.status(error.statusCode).send({ error: message, code: error.code, importJobId: job.id });
+      }
+
+      if (error instanceof CredentialImportError) {
+        return reply.status(error.statusCode).send({ error: error.code, code: error.code, importJobId: job.id });
       }
 
       throw error;
@@ -20512,15 +20622,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           .pop()
           ?.replace(/\.git$/, '') || `Imported ${job.provider}`;
 
-      /*
-       * Record the origin in the fixed sourceType enum where a member exists
-       * (github/gitlab/bitbucket/zip); other hub tiles fall back to 'blank'
-       * (the audit metadata carries the exact provider regardless).
-       */
-      const sourceType = (['github', 'gitlab', 'bitbucket', 'zip'] as const).includes(
-        job.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip',
+      /* Record every executing connector origin on the target project. */
+      const sourceType = (['github', 'gitlab', 'bitbucket', 'zip', 'vercel', 'figma', 'claude'] as const).includes(
+        job.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'vercel' | 'figma' | 'claude',
       )
-        ? (job.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip')
+        ? (job.provider as 'github' | 'gitlab' | 'bitbucket' | 'zip' | 'vercel' | 'figma' | 'claude')
         : ('blank' as const);
       const project = await store.withSerializedMutation(`projects:${orgId}`, async () => {
         await ensureQuota(request, orgId, 'projects.count');
@@ -20540,6 +20646,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       await recordUsage(request, orgId, 'projects.count');
 
       importStaging.delete(importJobId); // staging disposed after successful commit
+      importPreviews.delete(importJobId);
       await advance('COMMITTED', { targetProjectId: project.id });
 
       /*
@@ -20649,6 +20756,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               debitedCredits: reservation.debitedCredits,
             }
           : null,
+        preview: importPreviews.get(importJobId) ?? null,
       },
     };
   });
@@ -28389,11 +28497,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   const API_KEY_CONNECTOR_PROVIDERS = [
     { provider: 'vercel', tokenConsoleUrl: 'https://vercel.com/account/tokens' },
+    { provider: 'figma', tokenConsoleUrl: 'https://www.figma.com/developers/api#access-tokens' },
+    { provider: 'claude', tokenConsoleUrl: 'https://console.anthropic.com/settings/keys' },
     { provider: 'netlify', tokenConsoleUrl: 'https://app.netlify.com/user/applications#personal-access-tokens' },
     { provider: 'supabase', tokenConsoleUrl: 'https://supabase.com/dashboard/account/tokens' },
   ] as const;
 
-  const API_KEY_CONNECTOR_KEYS = ['vercel', 'netlify', 'supabase'] as const;
+  const API_KEY_CONNECTOR_KEYS = ['vercel', 'figma', 'claude', 'netlify', 'supabase'] as const;
 
   app.get('/admin/connectors/api-key', async (request) => {
     await requirePlatformAdmin(request);

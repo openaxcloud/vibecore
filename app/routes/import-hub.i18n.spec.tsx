@@ -2,15 +2,20 @@
 
 import { readFileSync } from 'node:fs';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
-import type { AnchorHTMLAttributes, ReactNode } from 'react';
+import type { AnchorHTMLAttributes, FormHTMLAttributes, ReactNode } from 'react';
+import { I18nextProvider } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ImportCredentialProviderPage, { loader as credentialLoader, meta as credentialMeta } from './import.$provider';
 import ImportHubPage, { loader as importHubLoader, meta as importHubMeta } from './import._index';
 import { formatImportHubCopy, getImportHubCopy, importHubEn, importHubFr } from '~/lib/i18n/catalogs/import-hub';
+import { createI18nInstance } from '~/lib/i18n/runtime';
 
 const mocks = vi.hoisted(() => ({
   loaderData: undefined as unknown,
   firstOrganization: vi.fn(),
+  apiRequest: vi.fn(),
+  actionData: undefined as unknown,
+  navigationState: 'idle' as 'idle' | 'submitting',
   revalidate: vi.fn(),
   revalidatorState: 'idle' as 'idle' | 'loading',
 }));
@@ -25,7 +30,10 @@ vi.mock('react-router', async (importOriginal) => {
         {children}
       </a>
     ),
+    Form: ({ children, ...props }: FormHTMLAttributes<HTMLFormElement>) => <form {...props}>{children}</form>,
     useLoaderData: () => mocks.loaderData,
+    useActionData: () => mocks.actionData,
+    useNavigation: () => ({ state: mocks.navigationState, formData: undefined }),
     useRevalidator: () => ({ state: mocks.revalidatorState, revalidate: mocks.revalidate }),
   };
 });
@@ -36,6 +44,11 @@ vi.mock('./dashboard-nav', () => ({
 
 vi.mock('~/lib/enterprise-api.server', () => ({
   firstOrganizationOrNull: (...args: unknown[]) => mocks.firstOrganization(...args),
+  firstOrganization: (...args: unknown[]) => mocks.firstOrganization(...args),
+  apiRequest: (...args: unknown[]) => mocks.apiRequest(...args),
+  isApiResponse: (error: unknown, status?: number) =>
+    error instanceof Response && (status === undefined || error.status === status),
+  json: (data: unknown) => data,
   redirect: (location: string) =>
     new Response(null, {
       status: 302,
@@ -83,6 +96,9 @@ describe('import hub routes i18n', () => {
   beforeEach(() => {
     mocks.loaderData = undefined;
     mocks.firstOrganization.mockReset().mockResolvedValue({ id: 'organization-user-id' });
+    mocks.apiRequest.mockReset().mockResolvedValue({ connections: [] });
+    mocks.actionData = undefined;
+    mocks.navigationState = 'idle';
     mocks.revalidate.mockReset();
     mocks.revalidatorState = 'idle';
   });
@@ -192,54 +208,66 @@ describe('import hub routes i18n', () => {
     );
   });
 
-  it('localizes the credential-gated provider page and keeps provider values intact', () => {
-    const data = credentialLoader({
+  it('localizes the credential-gated provider page and keeps provider values intact', async () => {
+    mocks.firstOrganization.mockResolvedValueOnce({ id: 'organization-user-id', slug: 'acme' });
+
+    const data = await credentialLoader({
       params: { provider: 'figma' },
       request: new Request('https://e-code.ai/import/figma?lang=fr'),
     } as never);
 
-    expect(data).toEqual({
+    expect(data).toMatchObject({
       provider: 'figma',
       language: 'fr',
       label: 'Figma',
-      requirement: 'un jeton d’accès personnel Figma et la clé du fichier de design à importer',
+      organizationId: 'organization-user-id',
+      organizationSlug: 'acme',
+      connection: null,
+      loadError: false,
     });
     expect(credentialMeta({ data } as never)).toContainEqual({ title: 'Importer depuis Figma - E-Code' });
 
     mocks.loaderData = data;
-    render(<ImportCredentialProviderPage />);
+
+    const i18n = createI18nInstance('fr');
+    render(
+      <I18nextProvider i18n={i18n}>
+        <ImportCredentialProviderPage />
+      </I18nextProvider>,
+    );
 
     expect(screen.getByRole('heading', { level: 1, name: 'Importer depuis Figma' })).toBeTruthy();
-    expect(screen.getByText(/L’import depuis Figma nécessite un jeton d’accès personnel Figma/u)).toBeTruthy();
-    expect(screen.getByRole('status').textContent).toContain('Identifiants requis — connectez Figma');
+    expect(screen.getByText(/L’identifiant est validé par Figma/u)).toBeTruthy();
+    expect(screen.getByRole('status').textContent).toContain('Connectez Figma avant de sélectionner une source');
+    expect((screen.getByLabelText('URL ou clé du fichier Figma') as HTMLInputElement).disabled).toBe(true);
     expect(screen.getByRole('link', { name: 'Revenir à toutes les sources d’import' }).getAttribute('href')).toBe(
       '/import',
     );
 
-    const panel = screen.getByRole('status').parentElement;
     const backLink = screen.getByRole('link', { name: 'Revenir à toutes les sources d’import' });
 
-    expect(panel?.className).toContain('overflow-x-hidden');
     expect(backLink.className).toContain('min-h-11');
-    expect(backLink.className).toContain('break-words');
+    expect(document.querySelector('.overflow-x-hidden')).toBeTruthy();
   });
 
-  it('returns 404 for an unknown provider and falls back to English for unsupported locales', () => {
-    expect(() =>
+  it('returns 404 for an unknown provider and falls back to English for unsupported locales', async () => {
+    await expect(
       credentialLoader({
         params: { provider: 'unknown-user-source' },
         request: new Request('https://e-code.ai/import/unknown-user-source?lang=fr'),
       } as never),
-    ).toThrow(expect.objectContaining({ status: 404 }));
+    ).rejects.toMatchObject({ status: 404 });
 
-    const data = credentialLoader({
+    mocks.firstOrganization.mockResolvedValueOnce({ id: 'organization-user-id', slug: 'acme' });
+
+    const data = await credentialLoader({
       params: { provider: 'claude' },
       request: new Request('https://e-code.ai/import/claude?lang=es'),
     } as never);
 
     expect(data.language).toBe('es');
     expect(data.label).toBe('Claude');
-    expect(data.requirement).toBe('a connected Claude source for the design or artifact you want to import');
+    expect(data.connection).toBeNull();
   });
 
   it('has zero targeted hardcoded-copy scanner findings', async () => {
