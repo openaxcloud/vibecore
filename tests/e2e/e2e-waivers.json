@@ -30,7 +30,7 @@
     "  - section 12 measured the add-tab '+' button, which a dedicated rule rounds",
     "    to 6px, instead of a regular tab action carrying the 4px button token."
   ],
-  "expires": "2026-08-27",
+  "expires": "2026-09-25",
   "owner": "avi@snatchbot.me",
   "waived": []
 }
