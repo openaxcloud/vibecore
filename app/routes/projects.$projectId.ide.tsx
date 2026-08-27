@@ -15,6 +15,7 @@ import {
   PenLine,
   Play,
   Rocket,
+  Search,
   Settings,
   Share2,
   Square,
@@ -581,6 +582,23 @@ function IdeProjectTopBar({
           data-priority="overflow"
           aria-label={copy['projectIde.actions.more']}
         >
+          {/*
+            RPL-IDE-001.8 — le déclencheur de Spotlight. Le rappel, les
+            traductions et l'écouteur côté coque existaient déjà ; seul ce
+            bouton manquait, si bien que la palette n'était joignable depuis
+            aucun endroit de l'IDE.
+          */}
+          <button
+            type="button"
+            data-testid="ide-spotlight-trigger"
+            className="bolt-project-topbar-icon-button"
+            aria-label={text(copy['projectIde.project.spotlightAria'], { project: displayProjectName })}
+            title={copy['projectIde.project.spotlight']}
+            data-vc-tooltip={copy['projectIde.project.spotlight']}
+            onClick={openProjectSpotlight}
+          >
+            <Search className="h-3.5 w-3.5" aria-hidden />
+          </button>
           <button
             type="button"
             data-testid="ide-files-panel-toggle"
