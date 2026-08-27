@@ -2551,6 +2551,10 @@
     "en": "Your plan limits could not be verified right now. Try again in a moment — no deployment was created.",
     "fr": "Impossible de vérifier les limites de votre plan pour le moment. Réessayez dans un instant — aucune publication n’a été créée."
   },
+  "DATABASE_PROVISION_UNAVAILABLE": {
+    "en": "The managed database could not be provisioned, so nothing was created. This is usually temporary — try again in a moment.",
+    "fr": "La base de données managée n'a pas pu être provisionnée, rien n'a donc été créé. C'est généralement temporaire : réessayez dans un instant."
+  },
   "WORKSPACE_RESOURCES_UNAVAILABLE": {
     "en": "Workspace resource metrics are not available right now.",
     "fr": "Les mesures de ressources de l’espace de travail ne sont pas disponibles pour le moment."

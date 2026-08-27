@@ -80,8 +80,11 @@ export const chatResidualsEn = {
   'chatResiduals.messages.streaming': 'The agent is responding…',
   'chatResiduals.progress.agent': 'Agent',
   'chatResiduals.progress.done': 'Done',
+  'chatResiduals.progress.doneWithIssues': 'Done, with errors',
   'chatResiduals.progress.interrupted': 'Interrupted',
   'chatResiduals.progress.ariaInterrupted': 'Agent, interrupted at {percent}% — the run did not finish',
+  'chatResiduals.progress.ariaDoneWithIssues':
+    'Agent, finished at {percent}% but the project still has errors — check the Problems panel',
   'chatResiduals.progress.working': 'Working',
   'chatResiduals.progress.aria': 'Agent, {phase}, {percent}% complete',
   'chatResiduals.progress.percent': '{percent}%',
@@ -180,8 +183,11 @@ export const chatResidualsFr: ChatResidualsCopy = {
   'chatResiduals.messages.streaming': 'L’agent répond…',
   'chatResiduals.progress.agent': 'Agent',
   'chatResiduals.progress.done': 'Terminé',
+  'chatResiduals.progress.doneWithIssues': 'Terminé avec des erreurs',
   'chatResiduals.progress.interrupted': 'Interrompu',
   'chatResiduals.progress.ariaInterrupted': 'Agent, interrompu à {percent} % — l’exécution ne s’est pas terminée',
+  'chatResiduals.progress.ariaDoneWithIssues':
+    'Agent, terminé à {percent} % mais le projet contient encore des erreurs — consultez le panneau Problèmes',
   'chatResiduals.progress.working': 'En cours',
   'chatResiduals.progress.aria': 'Agent, {phase}, progression {percent} %',
   'chatResiduals.progress.percent': '{percent} %',

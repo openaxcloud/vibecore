@@ -22,7 +22,6 @@ export const WEBSITE_BUILDER_COPY = {
       microcopy:
         'Start from the pages you already have in mind. Source files, the running Preview, and publishing controls stay visible as the site evolves.',
     },
-    languageSwitch: { label: 'Choose the Website Builder page language', english: 'English', french: 'Français' },
     demo: {
       badge: 'Fictional demo data',
       brand: 'Meridian Studio',
@@ -252,13 +251,13 @@ export const WEBSITE_BUILDER_COPY = {
     seo: {
       title: 'Générateur de site web avec vrai code | E-Code',
       description:
-        'Décrivez les pages, les sections et le contenu de votre site. E-Code les transforme en un site responsive dans des fichiers source modifiables, avec un aperçu actif, l’export du projet et la publication des builds statiques pris en charge.',
+        'Décrivez les pages, les sections et le contenu de votre site. E-Code les transforme en un site adaptatif dans des fichiers source modifiables, avec un aperçu actif, l’export du projet et la publication des compilations statiques prises en charge.',
     },
     hero: {
       eyebrow: 'Générateur de site pour de vrais sites de contenu',
       title: 'Transformez votre studio et son travail en un site que vous inspectez et façonnez',
       subtitle:
-        'Décrivez les pages, le récit et le travail à montrer. E-Code en fait un site vitrine responsive dans un vrai code source modifiable. Inspectez chaque fichier, exécutez le site dans l’aperçu, affinez-le avec l’Agent et publiez les builds statiques pris en charge vers une URL en ligne.',
+        'Décrivez les pages, le récit et le travail à montrer. E-Code en fait un site vitrine adaptatif dans un vrai code source modifiable. Inspectez chaque fichier, exécutez le site dans l’aperçu, affinez-le avec l’Agent et publiez les compilations statiques prises en charge vers une URL en ligne.',
       primaryCta: { label: 'Décrivez votre site', ariaLabel: 'Décrivez votre site web avec E-Code' },
       secondaryCta: {
         label: 'Voir la construction',
@@ -267,11 +266,6 @@ export const WEBSITE_BUILDER_COPY = {
       microcopy:
         'Partez des pages que vous avez déjà en tête. Les fichiers source, l’aperçu actif et les contrôles de publication restent visibles à mesure que le site évolue.',
     },
-    languageSwitch: {
-      label: 'Choisir la langue de la page Générateur de site',
-      english: 'English',
-      french: 'Français',
-    },
     demo: {
       badge: 'Données fictives',
       brand: 'Studio Meridian',
@@ -279,7 +273,7 @@ export const WEBSITE_BUILDER_COPY = {
       nav: ['Projets', 'Studio', 'Contact'],
       eyebrow: 'Travaux sélectionnés',
       title: 'Des bâtiments façonnés par la lumière, le lieu et la matière.',
-      intro: 'Un site portfolio responsive qui présente les projets, le studio et un parcours de contact clair.',
+      intro: 'Un site portfolio adaptatif qui présente les projets, le studio et un parcours de contact clair.',
       primaryHeading: 'Projets mis en avant',
       primaryRows: [
         { label: 'Maison littorale, Biarritz', meta: 'Résidentiel · 2025', status: 'À la une' },
@@ -293,21 +287,21 @@ export const WEBSITE_BUILDER_COPY = {
         { label: 'Échéance', value: 'T3 2026' },
       ],
       asideCta: 'Demander un rendez-vous',
-      disclaimer: 'Démonstration responsive intégrée · données de studio fictives · pas une trace de génération',
+      disclaimer: 'Démonstration adaptative intégrée · données de studio fictives · pas une trace de génération',
       caption: {
         title: 'Un site de contenu qui se lit comme une vraie agence',
-        body: 'Cette démonstration intégrée présente une grille de projets, une entrée de profil du studio et un formulaire de contact dans une mise en page responsive.',
+        body: 'Cette démonstration intégrée présente une grille de projets, une entrée de profil du studio et un formulaire de contact dans une mise en page adaptative.',
       },
       alt: 'Démonstration de site d’agence d’architecture avec une liste de projets mis en avant et un panneau de demande de projet.',
     },
     problem: {
-      eyebrow: 'Du carcan des templates à une source que vous maîtrisez',
-      title: 'Les créateurs de site paraissent simples jusqu’à ce que le contenu et la marque se heurtent au template',
+      eyebrow: 'Du carcan des modèles à une source que vous maîtrisez',
+      title: 'Les créateurs de site paraissent simples jusqu’à ce que le contenu et la marque se heurtent au modèle',
       intro:
         'Un studio a besoin d’un site qui montre son travail exactement comme il le souhaite. Les créateurs de sites démarrent vite, puis contraignent la mise en page, la typographie et la structure, et l’export correspond rarement à un code que l’équipe peut faire évoluer.',
       obstacles: [
         {
-          title: 'Les templates contraignent le récit',
+          title: 'Les modèles contraignent le récit',
           body: 'Des sections figées et des grilles rigides forcent le travail dans une mise en page qui n’a pas été pensée pour lui, et toute structure sur mesure revient à lutter contre l’outil.',
         },
         {
@@ -320,18 +314,18 @@ export const WEBSITE_BUILDER_COPY = {
         },
       ],
       bridge:
-        'E-Code part des pages que vous décrivez et produit un site responsive dans de vrais fichiers source. Vous inspectez le balisage, l’exécutez dans l’aperçu et demandez le changement suivant sans abandonner le code.',
+        'E-Code part des pages que vous décrivez et produit un site adaptatif dans de vrais fichiers source. Vous inspectez le balisage, l’exécutez dans l’aperçu et demandez le changement suivant sans abandonner le code.',
     },
     build: {
       eyebrow: 'Un prompt lance le site',
       title: 'Décrivez les pages, pas le framework',
       intro:
-        'La demande ci-dessous se lit comme un mot d’un propriétaire de studio. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un template verrouillé.',
+        'La demande ci-dessous se lit comme un mot d’un propriétaire de studio. Les quatre éléments cartographient son périmètre d’implémentation dans de vrais fichiers source, pas un modèle verrouillé.',
       label: 'Exemple de prompt',
       promptText: 'Fais-moi un site vitrine pour mon cabinet d’architecte, avec portfolio, contact et blog.',
       outputs: [
         {
-          title: 'Pages responsives',
+          title: 'Pages adaptatives',
           body: 'Accueil, portfolio, détail de projet, studio et contact s’affichent sur desktop, tablette et mobile à partir de vrais composants et routes.',
         },
         {
@@ -344,38 +338,39 @@ export const WEBSITE_BUILDER_COPY = {
         },
         {
           title: 'Aperçu et publication',
-          body: 'E-Code exécute le site dans l’aperçu à toutes les tailles d’écran. Les builds statiques pris en charge se publient vers une URL en ligne ; les autres projets restent exportables pour tout hébergeur.',
+          body: 'E-Code exécute le site dans l’aperçu à toutes les tailles d’écran. Les compilations statiques prises en charge se publient vers une URL en ligne ; les autres projets restent exportables pour tout hébergeur.',
         },
       ],
     },
     proofLink: {
-      eyebrow: 'Le workflow de création de site, capturé dans l’IDE',
+      eyebrow: 'Le processus de création de site, capturé dans l’IDE',
       title: 'Voyez le prompt, l’Agent, les fichiers et la Webview rester réunis',
-      body: 'La page App Builder montre un vrai workspace E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un site de contenu comme celui-ci.',
-      galleryLabel: 'Référence réelle du workflow : le workspace de réservation du salon',
+      body: 'La page Générateur d’applications montre un vrai espace de travail E-Code capturé — le prompt, le plan de l’agent, les fichiers générés et l’aperçu actif — pour une application de réservation. La même boucle de construction s’applique à un site de contenu comme celui-ci.',
+      galleryLabel: 'Référence réelle du processus : l’espace de travail de réservation du salon',
       disclaimer:
-        'Note de preuve : ces deux images proviennent du vrai run App Builder du salon. Le site Studio Meridian présenté plus haut est une mise en page scénarisée avec du contenu fictif, pas la capture d’une génération E-Code.',
-      openFullSizeLabel: 'Ouvrir la preuve du workspace de réservation en grand',
+        'Note de preuve : ces deux images proviennent du vrai run Générateur d’applications du salon. Le site Studio Meridian présenté plus haut est une mise en page scénarisée avec du contenu fictif, pas la capture d’une génération E-Code.',
+      openFullSizeLabel: 'Ouvrir la preuve de l’espace de travail de réservation en grand',
       preview: {
         title: 'L’application du salon active à côté de ses fichiers source',
         body: 'Cette première capture réunit dans l’IDE E-Code le vrai prompt de réservation, le plan de l’Agent, l’arborescence du projet et le tableau de bord du salon en fonctionnement.',
-        alt: 'Vrai workspace App Builder E-Code avec le prompt et le plan de l’agent pour un salon à gauche, le tableau de bord de réservation actif dans la Webview et les fichiers modifiables à droite.',
+        alt: 'Vrai espace de travail Générateur d’applications E-Code avec le prompt et le plan de l’agent pour un salon à gauche, le tableau de bord de réservation actif dans la Webview et les fichiers modifiables à droite.',
       },
       iteration: {
-        title: 'Une correction runtime demandée sans quitter le workspace',
+        title: 'Une correction d’exécution demandée sans quitter l’espace de travail',
         body: 'La seconde capture conserve l’aperçu de réservation visible pendant qu’un prompt de suivi demande le diagnostic d’une erreur de contexte React.',
-        alt: 'Vrai workspace App Builder E-Code montrant un prompt de réparation d’une erreur runtime React à côté de la Webview du salon et de l’arborescence générée.',
+        alt: 'Vrai espace de travail Générateur d’applications E-Code montrant un prompt de réparation d’une erreur d’exécution React à côté de la Webview du salon et de l’arborescence générée.',
       },
       cta: {
-        label: 'Inspecter le workflow capturé',
-        ariaLabel: 'Inspecter le vrai workflow App Builder E-Code utilisé comme référence du Générateur de site',
+        label: 'Inspecter le processus capturé',
+        ariaLabel:
+          'Inspecter le vrai processus Générateur d’applications E-Code utilisé comme référence du Générateur de site',
       },
     },
     deliverables: {
       eyebrow: 'Ce que vous recevez',
-      title: 'Un site responsive que vous inspectez, exportez et faites évoluer',
+      title: 'Un site adaptatif que vous inspectez, exportez et faites évoluer',
       intro:
-        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les builds statiques pris en charge ajoutent une mise en ligne guidée sans masquer le code.',
+        'Le projet reste inspectable du premier fichier généré jusqu’à l’aperçu et l’export. Les compilations statiques prises en charge ajoutent une mise en ligne guidée sans masquer le code.',
       items: [
         {
           title: 'La source du site reste inspectable',
@@ -386,16 +381,16 @@ export const WEBSITE_BUILDER_COPY = {
           body: 'Les fiches projet, les champs média, les informations du studio et le point de branchement des demandes vivent dans le code. Reliez-les à votre CMS, votre base et votre service d’envoi avant d’utiliser de vrais contenus ou formulaires.',
         },
         {
-          title: 'Le site responsive tourne dans l’aperçu',
+          title: 'Le site adaptatif tourne dans l’aperçu',
           body: 'Ouvrez le portfolio et le parcours de contact dans l’aperçu actif, puis inspectez les mises en page desktop, tablette et mobile pendant vos ajustements.',
         },
         {
           title: 'Mise en ligne guidée des sites statiques pris en charge',
-          body: 'Quand le site correspond à un build statique compatible, E-Code l’accompagne dans le parcours de publication sans masquer sa source.',
+          body: 'Quand le site correspond à une compilation statique compatible, E-Code l’accompagne dans le parcours de publication sans masquer sa source.',
         },
         {
           title: 'Une URL E-Code ou un projet serveur exportable',
-          body: 'Un site statique pris en charge reçoit une URL E-Code en ligne après publication. Si le projet exige un runtime serveur, exportez sa source et déployez-la chez l’hébergeur choisi.',
+          body: 'Un site statique pris en charge reçoit une URL E-Code en ligne après publication. Si le projet exige un environnement d’exécution serveur, exportez sa source et déployez-la chez l’hébergeur choisi.',
         },
         {
           title: 'Continuez à briefer l’Agent',
@@ -423,20 +418,19 @@ export const WEBSITE_BUILDER_COPY = {
         },
         { title: 'SEO et métadonnées sociales', body: 'Titres, descriptions et balises Open Graph générés par page.' },
         {
-          title: 'Responsive par défaut',
-          body: 'Les mises en page s’adaptent du grand écran au téléphone sans build mobile séparé.',
+          title: 'Adaptatif par défaut',
+          body: 'Les mises en page s’adaptent du grand écran au téléphone sans compilation mobile séparée.',
         },
         {
           title: 'Gardez la source accessible',
-          body: 'Exportez le projet ou publiez les builds statiques pris en charge tout en conservant des fichiers source modifiables.',
+          body: 'Exportez le projet ou publiez les compilations statiques prises en charge tout en conservant des fichiers source modifiables.',
         },
       ],
     },
     useCases: {
       eyebrow: 'Qui construit avec',
       title: 'Les sites que les équipes livrent avec le Générateur de site',
-      intro:
-        'D’un portfolio de studio à une page de lancement produit, la même boucle produit un vrai site responsive.',
+      intro: 'D’un portfolio de studio à une page de lancement produit, la même boucle produit un vrai site adaptatif.',
       items: [
         {
           title: 'Sites studio et portfolio',
@@ -451,7 +445,7 @@ export const WEBSITE_BUILDER_COPY = {
           body: 'Pages ciblées avec capture de leads et métadonnées sociales prêtes à partager.',
         },
         {
-          title: 'Docs et surfaces de contenu',
+          title: 'Documentation et surfaces de contenu',
           body: 'Sites de contenu lisibles et structurés, faciles à mettre à jour.',
         },
       ],
@@ -462,20 +456,20 @@ export const WEBSITE_BUILDER_COPY = {
       intro: 'Ce que produit le parcours Générateur de site, et où sont ses limites.',
       items: [
         {
-          title: 'J’obtiens du vrai code ou un template verrouillé ?',
+          title: 'J’obtiens du vrai code ou un modèle verrouillé ?',
           body: 'Vous obtenez des fichiers source modifiables — composants, routes, styles et contenu — que vous lisez, versionnez et exportez. Aucun verrouillage propriétaire.',
         },
         {
-          title: 'Le site est-il responsive ?',
+          title: 'Le site est-il adaptatif ?',
           body: 'Oui. Les mises en page sont générées pour s’adapter à desktop, tablette et mobile, et vous les vérifiez dans l’aperçu à chaque taille avant de publier.',
         },
         {
           title: 'Puis-je publier vers une URL en ligne ?',
-          body: 'Les builds statiques pris en charge se publient vers une URL en ligne via la publication guidée. Les autres projets restent exportables pour votre propre hébergement.',
+          body: 'Les compilations statiques prises en charge se publient vers une URL en ligne via la publication guidée. Les autres projets restent exportables pour votre propre hébergement.',
         },
         {
           title: 'Puis-je connecter un CMS ou une base ?',
-          body: 'Le modèle de contenu généré est du code que vous étendez et branchez à des services externes. La démonstration intégrée de cette page utilise des données fictives et aucun backend connecté.',
+          body: 'Le modèle de contenu généré est du code que vous étendez et branchez à des services externes. La démonstration intégrée de cette page utilise des données fictives et aucun service applicatif connecté.',
         },
         {
           title: 'Comment modifier le site ensuite ?',
@@ -485,7 +479,7 @@ export const WEBSITE_BUILDER_COPY = {
     },
     finalCta: {
       title: 'Décrivez votre site et voyez-le tourner',
-      body: 'Transformez les pages que vous avez en tête en un site responsive dans du vrai code source, exécutez-le dans l’aperçu et publiez les builds statiques pris en charge.',
+      body: 'Transformez les pages que vous avez en tête en un site adaptatif dans du vrai code source, exécutez-le dans l’aperçu et publiez les compilations statiques prises en charge.',
       primaryCta: { label: 'Décrivez votre site', ariaLabel: 'Décrivez votre site web avec E-Code' },
       secondaryCta: {
         label: 'Voir la construction',
@@ -499,7 +493,7 @@ export const WEBSITE_BUILDER_COPY = {
       problemLabel: 'Le problème de la création de site',
       buildLabel: 'Comment fonctionne le Générateur de site',
       outputListLabel: 'Résultats de la génération de site',
-      proofLinkLabel: 'Inspecter la preuve du workflow Générateur de site',
+      proofLinkLabel: 'Inspecter la preuve du processus Générateur de site',
       deliverablesLabel: 'Ce que livre le Générateur de site',
       featuresLabel: 'Capacités du Générateur de site',
       useCasesLabel: 'Cas d’usage du Générateur de site',

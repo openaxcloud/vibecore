@@ -12,6 +12,7 @@ export const fr: TranslationBundle = {
   'common.unavailable': 'Indisponible',
   'locale.switchLabel': "Choisir la langue d'affichage",
   'locale.current': 'Langue actuelle : {language}',
+  'locale.automatic': 'Automatique (langue du navigateur)',
   'locale.english': 'Anglais',
   'locale.french': 'Français',
   'root.loadingEcode': 'Chargement d’E-Code',

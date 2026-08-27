@@ -4,36 +4,35 @@ import { useTranslation } from 'react-i18next';
 import { clientStoresServicesText } from '~/lib/i18n/catalogs/client-stores-services';
 import { createRuntimeAdapter, getRuntimeMode, RuntimeAdapterProvider } from '~/lib/runtime/RuntimeAdapterProvider';
 import { isTransientRuntimeError, withRuntimeRetry } from '~/lib/runtime/retry';
+import { fetchAnyPortServing } from '~/lib/runtime/serving-ports';
 import { workspaceQuotaPrompt } from '~/lib/runtime/workspace-quota';
-import { reseedWorkspacePreservingOnFailure, shouldReattachWarmWorkspace } from '~/lib/runtime/workspace-reattach';
-import { hasLivePreviewPort } from '~/lib/runtime/workspace-status';
+import {
+  hasAdoptablePreviewPort,
+  reseedWorkspacePreservingOnFailure,
+  shouldReattachWarmWorkspace,
+} from '~/lib/runtime/workspace-reattach';
+import { archiveFilePaths, clearProjectTreeForReseed } from '~/lib/runtime/workspace-reseed';
+import { readSeedMarker, writeSeedMarker } from '~/lib/runtime/workspace-seed-marker';
 import { workbenchStore } from '~/lib/stores/workbench';
 
-/**
- * Workspace ids (sessionId = workspaceId ?? projectId) this client page-session
- * has already cold-seeded. A remount (StrictMode double-mount, route-return) finds
- * its id here and reattaches to the still-running pod instead of wiping+reseeding;
- * a genuinely new page-session (fresh load, possibly with cross-device edits) has
- * no entry and cold-seeds. Module scope so it survives provider remounts within
- * the same page load, and is naturally empty on a full reload.
- */
-const seededWorkspaceSessions = new Map<string, string | undefined>();
-
-/**
- * Cheap "persisted files revision" for a project: the ETag of the persisted
- * ide-state, which is `"${ideState.version}"` and bumps on every persist —
- * including the file manifest (state.files.entries). Used to decide whether a
- * warm pod may be reattached: the pod is only adopted AS-IS when the persisted
- * revision still equals the one it was seeded from. If the persisted files
- * changed since the seed (e.g. a cross-device / another-tab edit that the warm
- * pod never received), the revision differs and we reseed so the running
- * workspace reflects the persisted files instead of serving a stale tree.
- * Returns undefined on any failure so the caller falls back to the prior
- * (marker-only) behaviour rather than forcing a spurious reseed.
+/*
+ * BUG-RUNTIME-DIVERGENCE (option A, signal 3) — révision des FICHIERS persistés.
+ *
+ * Lisait auparavant l'ETag de l'ide-state, c'est-à-dire `ideState.version`, que
+ * les écritures d'INTERFACE incrémentent : ouvrir un onglet ou déplacer le
+ * curseur la fait avancer. Mesuré en réel : 5 → 9 en une seule session, sans
+ * qu'un seul fichier ait changé. La comparaison concluait donc « le stockage a
+ * bougé » à presque chaque réouverture et forçait le reseed — le symptôme même
+ * qu'on cherche à corriger.
+ *
+ * `GET /files-revision` ne dépend que des chemins, dates et tailles (voir
+ * `projectFilesRevision` côté API). Renvoie `undefined` en cas d'échec, pour que
+ * l'appelant retombe sur le comportement antérieur plutôt que de provoquer un
+ * reseed injustifié.
  */
 export async function fetchPersistedProjectRevision(projectId: string): Promise<string | undefined> {
   try {
-    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/ide-state`, {
+    const response = await fetch(`/api/projects/${encodeURIComponent(projectId)}/files-revision`, {
       credentials: 'include',
       headers: { accept: 'application/json' },
     });
@@ -42,15 +41,9 @@ export async function fetchPersistedProjectRevision(projectId: string): Promise<
       return undefined;
     }
 
-    const etag = response.headers.get('etag');
+    const body = (await response.json()) as { revision?: unknown };
 
-    if (etag) {
-      return etag;
-    }
-
-    const body = (await response.json()) as { ideState?: { version?: number | string } | null };
-
-    return body.ideState?.version != null ? String(body.ideState.version) : undefined;
+    return typeof body.revision === 'string' && body.revision.length > 0 ? body.revision : undefined;
   } catch {
     return undefined;
   }
@@ -157,12 +150,31 @@ export function ProjectWorkspaceProvider({
          * startPreviewServer, which then short-circuits to the live preview). If ANY
          * signal is unknown/false we fall through to the safe cold wipe+reseed.
          *
-         * Probe the runtime's live ports first so hasLivePreviewPort sees the warm
+         * Probe the runtime's live ports first so the adoptable-port check sees the warm
          * pod's forwarded dev-server port (listPorts repopulates the previews store).
          */
-        const sessionAlreadySeeded = seededWorkspaceSessions.has(sessionId);
-        const seededRevision = seededWorkspaceSessions.get(sessionId);
-        await workbenchStore.refreshRuntimePorts().catch(() => undefined);
+        /*
+         * Signal 1 — marqueur DURABLE. Une `Map` de portée module est vide à
+         * chaque chargement de page, donc `seededThisSession` était toujours
+         * faux à la réouverture : la réouverture reseedait quoi qu'il arrive.
+         */
+        const seedMarker = readSeedMarker(sessionId, Date.now());
+        const sessionAlreadySeeded = seedMarker !== undefined;
+        const seededRevision = seedMarker?.revision;
+
+        /*
+         * Signal 2 — l'échec de la sonde n'est plus avalé. « La sonde a échoué »
+         * et « le pod n'écoute rien » menaient tous deux à `hasLivePort: false`
+         * et étaient donc indiscernables.
+         */
+        let portProbeSucceeded = true;
+
+        try {
+          await workbenchStore.refreshRuntimePorts();
+        } catch (error) {
+          portProbeSucceeded = false;
+          console.error('Runtime port probe failed before the reattach decision:', error);
+        }
 
         if (cancelled) {
           await stopRemoteWorkspace(runtime, activeWorkspaceId ?? session.id);
@@ -183,10 +195,28 @@ export function ProjectWorkspaceProvider({
           return;
         }
 
+        /*
+         * Le signal « un port sert » vient du SERVEUR, pas du magasin client.
+         *
+         * Mesuré à l'écran : `previews` est VIDE au montage alors que le serveur
+         * répond `serving: true` au même instant. `setRuntime()` remet le magasin
+         * à `[]` à chaque configuration de l'adaptateur et relance `watchPorts`
+         * en fire-and-forget ; la décision tombe dans cette fenêtre
+         * d'hydratation. Interroger la source d'autorité supprime la course.
+         *
+         * Ce signal reste observationnel — il ne conditionne plus l'adoption
+         * (voir `shouldReattachWarmWorkspace`) — mais il doit être JUSTE : c'est
+         * lui qu'on lit dans la trace pour diagnostiquer une réouverture.
+         */
+        const portsFromStore = hasAdoptablePreviewPort(workbenchStore.previews.get());
+        const portsFromServer = await fetchAnyPortServing(projectId);
+        const canAdoptPort = portsFromServer ?? portsFromStore;
+
         const reattachWarmWorkspace = shouldReattachWarmWorkspace({
           reused: session.reused === true,
           seededThisSession: sessionAlreadySeeded,
-          hasLivePort: hasLivePreviewPort(workbenchStore.previews.get()),
+          hasLivePort: canAdoptPort,
+          portProbeSucceeded,
 
           /*
            * The persisted files changed after this pod was seeded (another tab or
@@ -200,6 +230,29 @@ export function ProjectWorkspaceProvider({
             seededRevision !== undefined && currentRevision !== undefined
               ? currentRevision !== seededRevision
               : undefined,
+        });
+
+        /*
+         * Trace PERMANENTE des entrées de la décision. L'enquête d'origine a dû
+         * déployer une instrumentation ad hoc pour obtenir ces quatre valeurs à
+         * l'instant exact du choix : les journaliser une fois par montage coûte
+         * une ligne et évite de refaire ce détour au prochain doute.
+         */
+        console.info('[workspace] reattach decision', {
+          reused: session.reused === true,
+          seededThisSession: sessionAlreadySeeded,
+          hasLivePort: canAdoptPort,
+          portProbeSucceeded,
+          portsFromStore,
+          portsFromServer,
+          storeSnapshot: workbenchStore.previews.get().map((preview) => ({
+            port: preview.port,
+            ready: preview.ready,
+            serving: preview.serving,
+          })),
+          seededRevision,
+          currentRevision,
+          decision: reattachWarmWorkspace ? 'reattach' : 'reseed',
         });
 
         if (reattachWarmWorkspace) {
@@ -227,17 +280,39 @@ export function ProjectWorkspaceProvider({
              * lag — so each remote step retries through that window instead of
              * failing on the first error (which previously tore the pod down).
              */
+            /*
+             * BUG-CREATE-010 — un reseed (typiquement : réouverture sur un
+             * appareil qui n'a pas de marqueur de seed) ne WIPE plus l'arbre.
+             * Les chemins de l'archive canonique sont extraits une fois dans
+             * fetchArchive, puis clearTree ne supprime QUE ce que l'archive ne
+             * couvre pas, en préservant lockfiles/node_modules/.git. Archive
+             * illisible => `undefined` => wipe historique (repli inchangé).
+             */
+            let canonicalArchivePaths: ReadonlySet<string> | undefined;
+
             await reseedWorkspacePreservingOnFailure({
-              fetchArchive: () =>
-                withRuntimeRetry(() => fetchProjectStorageArchive(projectId), {
+              fetchArchive: async () => {
+                const archive = await withRuntimeRetry(() => fetchProjectStorageArchive(projectId), {
                   attempts: 5,
                   baseDelayMs: 1500,
-                }),
+                });
+
+                canonicalArchivePaths = await archiveFilePaths(archive);
+
+                return archive;
+              },
               clearTree: () =>
-                clearRuntimeProjectTree(runtime).catch((error) => {
-                  console.error('Project workspace cleanup failed:', error);
-                  workbenchStore.appendWorkspaceLog(clientStoresServicesText('clientRuntime.workspace.cleanupSkipped'));
-                }),
+                clearProjectTreeForReseed(runtime, canonicalArchivePaths)
+                  .then((outcome) => {
+                    // Trace permanente : même rôle que la trace de la décision de reattach.
+                    console.info('[workspace] reseed clear', outcome);
+                  })
+                  .catch((error) => {
+                    console.error('Project workspace cleanup failed:', error);
+                    workbenchStore.appendWorkspaceLog(
+                      clientStoresServicesText('clientRuntime.workspace.cleanupSkipped'),
+                    );
+                  }),
               applyArchive: (archive) =>
                 withRuntimeRetry(() => applyProjectStorageArchive(runtime, archive), {
                   attempts: 5,
@@ -275,8 +350,19 @@ export function ProjectWorkspaceProvider({
            * Mark seeded only AFTER a successful cold seed (a failed seed returns
            * above, so a retry still reseeds), so a later remount within this page-
            * session reattaches to a genuinely-seeded, warm pod.
+           *
+           * La révision est RELUE ici, elle n'est pas celle d'avant le seed.
+           * Mesuré en réel : enregistrer la valeur pré-seed créait une seconde
+           * boucle auto-entretenue. Le seed et l'hydratation qui le suit font
+           * bouger le stockage ; le marqueur portait alors une révision déjà
+           * périmée à l'instant où il était écrit, si bien que la réouverture
+           * suivante concluait « le stockage a changé » et reseedait — ce qui
+           * refaisait bouger le stockage, indéfiniment. Une relecture coûte un
+           * GET déjà bon marché, au moment précis où l'état est stabilisé.
            */
-          seededWorkspaceSessions.set(sessionId, currentRevision);
+          const seededRevisionNow = (await fetchPersistedProjectRevision(projectId)) ?? currentRevision;
+
+          writeSeedMarker(sessionId, seededRevisionNow, Date.now());
         }
 
         /*
@@ -475,14 +561,6 @@ function formatProjectApiError(message: string) {
   }
 
   return clientStoresServicesText('clientRuntime.workspace.projectApiFailed');
-}
-
-async function clearRuntimeProjectTree(runtime: RuntimeAdapter) {
-  const nodes = await runtime.listFiles('.').catch(() => []);
-
-  for (const node of nodes) {
-    await runtime.deleteFile(node.path);
-  }
 }
 
 async function stopRemoteWorkspace(runtime: RuntimeAdapter, workspaceId: string) {

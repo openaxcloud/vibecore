@@ -167,7 +167,9 @@ import {
   type AppPublicCopyKey,
 } from './app-public-copy.js';
 import { generateAuthJwtSecret, generateAuthScaffoldFiles, isAuthScaffoldEnabled } from './auth-scaffold.js';
+import { boltFileActionsFromContent } from './bolt-file-actions.js';
 import { shouldRetirePresenceRow } from './collaboration-presence-cleanup.js';
+import { slugifyRouteSegment } from './slugify.js';
 import {
   checkServiceShutdown,
   openCheckpoint,
@@ -182,7 +184,12 @@ import {
   deletionStatus,
   purgeDueAtMs,
 } from './data-deletion.js';
-import { clusterName, resolveDatabaseTier, resolveDefaultDatabaseProvisioner } from './database-provisioner.js';
+import {
+  clusterName,
+  resolveDatabaseTier,
+  resolveDefaultDatabaseProvisioner,
+  type ProvisionResult,
+} from './database-provisioner.js';
 import {
   IMPORT_HUB_PROVIDERS,
   ImportInvariantError,
@@ -253,6 +260,7 @@ import {
 } from './deployments.js';
 import { createEmailProvider, type EmailProvider } from './email.js';
 import { evaluateFeatureFlag, flagEnabledForUser } from './feature-flags.js';
+import { forwardedAgentQuery } from './forwarded-agent-query.js';
 import {
   resolveIntegrationOauthStateSecret,
   signIntegrationOauthState,
@@ -417,7 +425,10 @@ import {
   higherConsequence,
   permissionsForAction,
 } from './strike-system.js';
+import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline } from './storage-deadline.js';
+import { decideWorkspaceSlot } from './workspace-slot.js';
 import { createThumbnailCapturer, ThumbnailCapturer, type ThumbnailLogger } from './thumbnail-capture.js';
+import { redactUrlCredentials } from './log-redaction.js';
 import {
   recordPreviewBeacon,
   readClientBeacon,
@@ -4031,14 +4042,6 @@ function normalizeProjectPath(path?: string) {
   return normalized;
 }
 
-function slugifyRouteSegment(value: string) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/^@+/, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '');
-}
 
 /*
  * Accepts either ProjectIdeStateRecord or WorkspaceIdeStateRecord — both
@@ -4136,7 +4139,7 @@ function projectFilesFromIdeStateRoot(root: Record<string, unknown>): Array<{ pa
       continue;
     }
 
-    for (const file of boltFileActionsFromContent(content)) {
+    for (const file of boltFileActionsFromContent(content, normalizeProjectPath)) {
       files.set(file.path, file.content);
     }
   }
@@ -4300,54 +4303,6 @@ function persistedIdeMessageContent(message: unknown) {
     .join('\n');
 }
 
-function boltFileActionsFromContent(content: string) {
-  const files: Array<{ path: string; content: string }> = [];
-  const actionPattern = /<boltAction\b([^>]*)>([\s\S]*?)<\/boltAction>/gi;
-
-  let match: RegExpExecArray | null;
-
-  while ((match = actionPattern.exec(content))) {
-    const attributes = boltActionAttributes(match[1]);
-
-    if (attributes.type !== 'file' || !attributes.filePath) {
-      continue;
-    }
-
-    const normalizedPath = normalizeProjectPath(attributes.filePath);
-
-    if (!normalizedPath) {
-      continue;
-    }
-
-    files.push({ path: normalizedPath, content: match[2].replace(/^\n/, '').replace(/\n$/, '') });
-  }
-
-  return files;
-}
-
-function boltActionAttributes(source: string) {
-  const attributes: Record<string, string> = {};
-  const attributePattern = /([A-Za-z_:][\w:.-]*)\s*=\s*(["'])(.*?)\2/g;
-
-  let match: RegExpExecArray | null;
-
-  while ((match = attributePattern.exec(source))) {
-    attributes[match[1]] = decodeHtmlAttribute(match[3]);
-  }
-
-  return attributes;
-}
-
-function decodeHtmlAttribute(value: string) {
-  return value
-    .replaceAll('&quot;', '"')
-    .replaceAll('&#34;', '"')
-    .replaceAll('&apos;', "'")
-    .replaceAll('&#39;', "'")
-    .replaceAll('&amp;', '&')
-    .replaceAll('&lt;', '<')
-    .replaceAll('&gt;', '>');
-}
 
 async function ensureProjectStorageFromIdeState(
   store: ApiStore,
@@ -4373,6 +4328,28 @@ async function ensureProjectStorageFromIdeState(
   }
 
   return projectStorage.writeFiles(projectId, recoveredFiles);
+}
+
+/*
+ * BUG-RUNTIME-DIVERGENCE (option A, signal 3) — une révision dérivée des
+ * FICHIERS.
+ *
+ * La décision de reattach comparait jusqu'ici `ideState.version`, que les
+ * écritures d'INTERFACE incrémentent : ouvrir un onglet ou bouger le curseur la
+ * fait avancer. Mesuré en réel : 5 → 9 en une seule session, sans qu'aucun
+ * fichier ait changé. Toute comparaison bâtie dessus conclut « le stockage a
+ * bougé » à presque chaque réouverture et force le reseed — c'est-à-dire
+ * exactement le symptôme d'Avi.
+ *
+ * Cette empreinte ne dépend que de ce qui compte pour savoir si le pod chaud est
+ * périmé : l'ensemble des chemins, leur date de modification et leur taille. Le
+ * contenu n'est pas haché — inutile, et cela rendrait la route coûteuse.
+ */
+export function projectFilesRevision(files: ReadonlyArray<{ path: string; updatedAt?: string; content?: string }>) {
+  const SEP = '\u0000';
+  const lines = files.map((file) => [file.path, file.updatedAt ?? '', file.content?.length ?? 0].join(SEP)).sort();
+
+  return createHash('sha256').update(lines.join('\n')).digest('hex').slice(0, 32);
 }
 
 async function listProjectFilesIncludingIdeState(
@@ -6026,24 +6003,31 @@ function starterFiles(input: {
   }
 
   if (input.sourceType === 'ai') {
-    const generationContext = [
-      input.artifactType
-        ? appPublicCopy('PROJECT_STARTER_ARTIFACT_TYPE', locale, { value: input.artifactType })
-        : undefined,
-      input.framework ? appPublicCopy('PROJECT_STARTER_FRAMEWORK', locale, { value: input.framework }) : undefined,
-      input.model ? appPublicCopy('PROJECT_STARTER_MODEL', locale, { value: input.model }) : undefined,
-    ]
-      .filter(Boolean)
-      .join('\n');
-
+    /*
+     * BUG-QA-PROMPT-IN-README. This README is a PROJECT FILE: it is exported in
+     * the ZIP, committed to the user's git, shipped inside deployment artifacts
+     * and visible to every collaborator. It must therefore carry nothing that
+     * belongs to the platform or to the user's private input.
+     *
+     * It previously embedded, verbatim:
+     *   - the platform's own scaffolding wording ("Application files are
+     *     intentionally left for the IDE agent to produce…"),
+     *   - the generation context, INCLUDING the exact model identifier
+     *     (e.g. "Requested model: claude-sonnet-4-5-20250929"),
+     *   - the raw user prompt — which routinely contains secrets. Proven live:
+     *     a prompt carrying an API key and a Postgres URL with its password was
+     *     recovered intact from `GET /projects/:id/export/zip`.
+     *
+     * The prompt now travels through `ProjectIdeState.chat.pendingPrompt`
+     * (written by the caller right after creation), which is exactly what the
+     * IDE already reads (`Chat.client.tsx` → `memory.chat?.pendingPrompt`).
+     * `extractGenerationPrompt` keeps its README fallback so projects created
+     * BEFORE this change stay recoverable.
+     */
     return [
       {
         path: 'README.md',
-        content: `# ${input.name}\n\n${appPublicCopy('PROJECT_STARTER_AI_DESCRIPTION', locale)}\n\n${
-          generationContext
-            ? `${appPublicCopy('PROJECT_STARTER_GENERATION_CONTEXT', locale)}\n\n${generationContext}\n\n`
-            : ''
-        }${appPublicCopy('PROJECT_STARTER_PROMPT_LABEL', locale)}\n\n${input.prompt}\n`,
+        content: `# ${input.name}\n\n${appPublicCopy('PROJECT_STARTER_AI_DESCRIPTION', locale)}\n`,
       },
     ];
   }
@@ -7316,9 +7300,71 @@ function runtimeSession(
   };
 }
 
-function runtimeWorkspaceId(projectId: string, userId: string) {
+export function runtimeWorkspaceId(projectId: string, userId: string) {
   const digest = createHash('sha256').update(`${projectId}:${userId}`).digest('hex').slice(0, 16);
   return `ws-${digest}`;
+}
+
+/** Shape of an id produced by `runtimeWorkspaceId` — `ws-` + 16 hex chars. */
+const DERIVED_WORKSPACE_ID = /^ws-[0-9a-f]{16}$/;
+
+/*
+ * BUG-WS-ID-SPLIT (D1) — résoudre le workspace du projet au lieu d'en DÉRIVER
+ * un id.
+ *
+ * Quatre chemins créent un workspace ; trois d'entre eux (API publique,
+ * planificateur, publish) laissent Prisma poser un `cuid()`. Huit sites — build
+ * statique, build de déploiement, outils de l'agent, restore de snapshot, et
+ * `authorizeRuntimeWorkspace` lui-même — recalculaient au contraire
+ * `ws-sha256(projectId:userId)[:16]`. Quand les deux diffèrent, l'écriture va
+ * dans `workspace-<cuid>` pendant que le build provisionne `workspace-ws-<hash>`,
+ * VIDE : `ENOENT package.json`. C'est la même racine que BUG-IDE-001.
+ *
+ * Le projet a légitimement PLUSIEURS workspaces — le schéma le dit : « a project
+ * keeps multiple dev workspaces (primary + secondary agent-run checkouts) », et
+ * le checkout de publication est celui dont `environment` vaut `production`. Il
+ * fallait donc trancher « lequel est actif ». Règle retenue, dans cet ordre :
+ *
+ *   1. l'id dérivé s'il existe VRAIMENT en base — c'est le cas courant, et le
+ *      comportement actuel est alors strictement inchangé ;
+ *   2. sinon le workspace de développement PRIMAIRE du projet, en reprenant la
+ *      définition que `resolveGitWorkspaceId` utilise déjà (le plus ancien par
+ *      `createdAt`) — mais UNIQUEMENT s'il n'a pas la forme d'un id dérivé ;
+ *   3. sinon l'id dérivé, comme avant (tout premier provisionnement).
+ *
+ * L'exclusion des ids en `ws-<hash>` à l'étape 2 est délibérée et porte la
+ * sûreté de la règle : un id dérivé qui n'est pas le mien appartient à un AUTRE
+ * utilisateur — la table ne porte pas de `userId`, l'id est la seule trace du
+ * propriétaire — et l'adopter ferait travailler deux personnes dans le même pod
+ * à leur insu. Les ids `cuid()` sont exactement la population du défaut : ceux
+ * qu'aucun utilisateur ne s'est vu attribuer.
+ */
+export async function resolveProjectWorkspaceId(
+  store: Pick<ApiStore, 'listWorkspaces'>,
+  projectId: string,
+  userId: string | undefined,
+): Promise<string> {
+  const derived = userId ? runtimeWorkspaceId(projectId, userId) : projectId;
+
+  let workspaces: WorkspaceRecord[];
+
+  try {
+    workspaces = await store.listWorkspaces(projectId);
+  } catch {
+    // Un store indisponible ne doit pas changer la cible : on retombe sur l'id dérivé.
+    return derived;
+  }
+
+  if (workspaces.some((workspace) => workspace.id === derived)) {
+    return derived;
+  }
+
+  const adoptable = workspaces
+    .filter((workspace) => (workspace.environment ?? 'development') === 'development')
+    .filter((workspace) => !DERIVED_WORKSPACE_ID.test(workspace.id))
+    .sort((a, b) => String(a.createdAt ?? '').localeCompare(String(b.createdAt ?? '')));
+
+  return adoptable[0]?.id ?? derived;
 }
 
 function mapRuntimeNodes(nodes: AgentNode[]): RuntimeFileNode[] {
@@ -8163,6 +8209,36 @@ export async function seedProviderRegistry(store: ApiStore) {
  * `http` 502/503/504 came FROM the agent, so a write may have applied — only
  * retry idempotent reads. Never retry once the attempt budget is exhausted.
  */
+/*
+ * True when a fetch failed because the workspace Service name did not resolve
+ * yet. The Service and its endpoints are created together with the pod, so a
+ * DNS miss right after provisioning is a propagation window, not a fault.
+ *
+ * Node wraps connection errors (AggregateError / TypeError with `cause`), so
+ * walk the cause chain and any aggregated errors instead of string-matching the
+ * message, which differs between Node versions and resolvers.
+ */
+export function isWorkspaceDnsNotResolvedYet(error: unknown, depth = 0): boolean {
+  if (!error || depth > 5) {
+    return false;
+  }
+
+  const candidate = error as { code?: unknown; errors?: unknown; cause?: unknown };
+
+  if (typeof candidate.code === 'string' && (candidate.code === 'ENOTFOUND' || candidate.code === 'EAI_AGAIN')) {
+    return true;
+  }
+
+  if (
+    Array.isArray(candidate.errors) &&
+    candidate.errors.some((nested) => isWorkspaceDnsNotResolvedYet(nested, depth + 1))
+  ) {
+    return true;
+  }
+
+  return isWorkspaceDnsNotResolvedYet(candidate.cause, depth + 1);
+}
+
 export function shouldRetryAgentHop(opts: {
   kind: 'connection' | 'http';
   status?: number;
@@ -8425,11 +8501,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       serializers: {
         req(request): any {
           /*
-           * Mask capability tokens that travel in the URL path (chat-share links
-           * are GET /chat-shares/<token>, auth-allowlisted). Logging the raw path
-           * would persist a working, unexpirable share credential in cleartext.
+           * Mask credentials that travel in the URL — both the capability tokens
+           * in the PATH (chat-share links are GET /chat-shares/<token>,
+           * auth-allowlisted) and the bearer tokens in the QUERY STRING. The
+           * runtime WebSocket endpoints (ports/watch, files/watch, terminal)
+           * must pass their token as `?token=` because a browser cannot set
+           * headers on a WS handshake, so logging the raw URL wrote a WORKING
+           * credential into the logs on every connection. Pino's `redact`
+           * option only walks object properties, so it never saw it.
            */
-          const safeUrl = (request.url as string).replace(/\/chat-shares\/[^/?#]+/, '/chat-shares/[redacted]');
+          const safeUrl = redactUrlCredentials(request.url as string);
 
           return redactSecrets({
             method: request.method,
@@ -13513,6 +13594,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
 
         /*
+         * A DNS failure on the workspace Service name is NOT a server error: the
+         * Service and its endpoints are created with the pod, and there is a
+         * short window where kube-dns has not propagated the record yet. During
+         * IDE load that window produced bursts of user-visible
+         * `502 WORKSPACE_AGENT_REQUEST_FAILED` /
+         * `getaddrinfo ENOTFOUND workspace-ws-<id>.workspaces.svc.cluster.local`
+         * for a workspace that was simply still coming up (42 occurrences over a
+         * ~4s window in one measured load).
+         *
+         * Report it with the SAME provisioning contract the write path already
+         * uses (425 WORKSPACE_NOT_STARTED / WORKSPACE_STARTING), so the UI shows
+         * "starting" instead of a server error.
+         */
+        if (isWorkspaceDnsNotResolvedYet(error)) {
+          throw Object.assign(new Error(appPublicEnglish('WORKSPACE_STARTING')), {
+            statusCode: 425,
+            code: 'WORKSPACE_NOT_STARTED',
+            publicMessage: appPublicEnglish('WORKSPACE_STARTING'),
+            cause: error,
+          });
+        }
+
+        /*
          * The agent pod may not be reachable yet (workspace still provisioning)
          * or may have been reclaimed. Surface the same coded 502 as a non-ok
          * agent response so callers (and the local-runtime fallback) treat it as
@@ -13796,7 +13900,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { handled: false };
     }
 
-    const workspaceId = runtimeWorkspaceId(project.id, userId);
+    const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
     try {
@@ -13906,7 +14010,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return { ok: false, reason: 'Open the project workspace before deploying.' };
     }
 
-    const workspaceId = runtimeWorkspaceId(project.id, userId);
+    const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
     try {
@@ -14148,9 +14252,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * per-user runtime workspace id so every runtime call targets the real pod,
      * exactly as the POST /workspaces start handler computes it.
      */
-    const resolvedWorkspaceId = request.currentUser
-      ? runtimeWorkspaceId(project.id, request.currentUser.id)
-      : project.id;
+    const resolvedWorkspaceId = await resolveProjectWorkspaceId(store, project.id, request.currentUser?.id);
 
     return { workspaceId: resolvedWorkspaceId, projectId: project.id, organizationId: project.organizationId };
   };
@@ -15423,9 +15525,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * named `workspace-ws-<hash>` — so every AI tool call (list_files,
      * read_file, write_file, run_command, …) 502'd with ENOTFOUND.
      */
-    const defaultWorkspaceId = request.currentUser
-      ? runtimeWorkspaceId(project.id, request.currentUser.id)
-      : project.id;
+    const defaultWorkspaceId = await resolveProjectWorkspaceId(store, project.id, request.currentUser?.id);
 
     /*
      * An explicit workspaceId is caller-supplied and must be bound to this
@@ -15626,6 +15726,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * for the free tier that is at most one extra manager call, and only on the
    * paths that would otherwise 429.
    */
+  /*
+   * Au-delà de ce délai sans changement d'état côté manager, un espace de
+   * travail PENDING/STARTING n'est plus en train de démarrer : il a échoué. La
+   * valeur est large devant un démarrage à froid mesuré (~17 s pod chaud, une
+   * poignée de minutes dans le pire cas observé) pour ne jamais libérer le
+   * créneau d'un provisionnement encore légitime.
+   */
+  const WORKSPACE_PROVISION_DEADLINE_MS = 10 * 60_000;
+
   const reconcileOrphanedActiveWorkspaces = async (organizationId: string, skipWorkspaceId: string): Promise<void> => {
     const active = await store.listActiveWorkspaces(organizationId).catch(() => []);
     const stale = active.filter((workspace) => workspace.id !== skipWorkspaceId);
@@ -15639,7 +15748,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         let shouldStop = false;
 
         try {
-          const managerWorkspace = await managerRequest<{ status?: string }>(
+          const managerWorkspace = await managerRequest<{ status?: string; updatedAt?: string }>(
             `/workspaces/${encodeURIComponent(workspace.id)}`,
           );
 
@@ -15648,9 +15757,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
            * slot. An absent status is ambiguous — leave the record untouched
            * rather than guess it's dead.
            */
-          if (managerWorkspace?.status) {
-            shouldStop = !['RUNNING', 'STARTING', 'PENDING'].includes(String(managerWorkspace.status));
-          }
+          shouldStop =
+            decideWorkspaceSlot(managerWorkspace, {
+              now: Date.now(),
+              deadlineMs: WORKSPACE_PROVISION_DEADLINE_MS,
+            }) === 'free';
         } catch (error) {
           /*
            * Only a genuine "gone" (manager 404) frees the slot. A TRANSIENT
@@ -15685,7 +15796,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const workspaceId =
       !requestedWorkspaceId || requestedWorkspaceId === project.id
-        ? runtimeWorkspaceId(project.id, request.currentUser!.id)
+        ? await resolveProjectWorkspaceId(store, project.id, request.currentUser!.id)
         : requestedWorkspaceId;
 
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
@@ -16698,6 +16809,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             ...port,
             type: 'open',
             ready: true,
+            serving: true,
             url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
           };
         }
@@ -16719,6 +16831,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ...port,
           type: 'open',
           ready: verdict.ready,
+
+          /*
+           * `serving` ne retient que les deux signaux qui disent si le pod chaud
+           * peut être ADOPTÉ : le port répond, un processus vivant le détient.
+           * `ready` y ajoute le statut manager et le beacon client — pertinents
+           * pour décider d'AFFICHER un aperçu, hors sujet pour décider de ne pas
+           * effacer un espace de travail qui tourne. Le statut manager retarde
+           * notoirement à la réouverture (« that row legitimately lags at
+           * PENDING/STARTING »), et le beacon reflète le rendu de la page
+           * précédente : tous deux faisaient reseeder un pod parfaitement sain.
+           */
+          serving: portReady && Boolean(port.processId),
           ...(verdict.blockedBy ? { notReadyReason: verdict.blockedBy } : {}),
           url: previewUrlForWorkspacePort(authorized.workspaceId, port.port),
         };
@@ -17189,6 +17313,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     agentPath: string,
     wrapMessages = true,
     locale: TransactionalLocale = 'en',
+    clientQuery?: unknown,
   ) => {
     const token = await agentToken(workspaceId);
     const client = normalizeRuntimeApiWebSocket(rawSocket);
@@ -17196,7 +17321,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const upstream = new WebSocket(
       `${agentBaseUrl(workspaceId)
         .replace(/^http:/, 'ws:')
-        .replace(/^https:/, 'wss:')}${agentPath}?token=${encodeURIComponent(token)}`,
+        .replace(/^https:/, 'wss:')}${agentPath}?token=${encodeURIComponent(token)}${forwardedAgentQuery(clientQuery)}`,
       { headers: { 'accept-language': locale } },
     );
 
@@ -17416,6 +17541,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       '/commands/stream',
       false,
       transactionalLocaleForRequest(request),
+      request.query,
     );
   });
 
@@ -17487,6 +17613,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       '/terminal',
       false,
       transactionalLocaleForRequest(request),
+      request.query,
     );
   });
   app.get('/api/runtime/workspaces/:workspaceId/logs', { websocket: true }, async (socket, request) => {
@@ -19826,6 +19953,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }),
     );
     await persistProjectFileManifest(store, project.id, files, request.currentUser!.id);
+
+    /*
+     * Carry the generation prompt OUT of the delivered files
+     * (BUG-QA-PROMPT-IN-README). `ProjectIdeState` is platform state, not a
+     * project file: it is never exported, committed or deployed. This is also
+     * the channel the IDE already consumes — `Chat.client.tsx` reads
+     * `memory.chat?.pendingPrompt` to auto-run the first generation — so the
+     * prompt→app flow is preserved without shipping the prompt to the customer.
+     */
+    await mutateProjectIdeState(store, project.id, request.currentUser!.id, (_ctx, existing) =>
+      mergeProjectIdeState(existing?.state, {
+        chat: {
+          pendingPrompt: {
+            id: randomUUID(),
+            prompt: body.prompt,
+            ...(body.model ? { model: body.model } : {}),
+            ...(body.framework ? { framework: body.framework } : {}),
+            ...(body.artifactType ? { artifactType: body.artifactType } : {}),
+            createdAt: new Date().toISOString(),
+          },
+        },
+      }),
+    );
     await commitInitialScaffold(gitProvider, project.id);
     await recordUsage(request, orgId, 'projects.count');
     await store.recordProjectActivity({
@@ -21779,6 +21929,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       files: publicFiles(files),
       runtime: { mode: 'remote-kubernetes', autosave: true, conflictDetection: true, offlineWarning: true },
     };
+  });
+
+  /*
+   * Empreinte bon marché de l'arborescence persistée, pour que la réouverture
+   * puisse distinguer « le pod chaud est encore à jour » de « le stockage a
+   * changé depuis qu'il a été semé » SANS repasser par `ideState.version`, que
+   * les écritures d'interface incrémentent (voir `projectFilesRevision`).
+   * Renvoie uniquement le hachage : aucun contenu de fichier ne transite.
+   */
+  app.get('/projects/:projectId/files/revision', async (request) => {
+    const project = await requireProject(
+      request,
+      store,
+      parse(projectParams, request.params).projectId,
+      'projects:read',
+    );
+
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id);
+
+    return { revision: projectFilesRevision(files) };
   });
   app.post('/projects/:projectId/files/import/zip', async (request) => {
     const project = await requireProject(
@@ -24778,7 +24948,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * terminal and preview actually rewind too — not just project storage / the
      * editor. Best-effort: a stopped/GC'd pod must not fail the restore.
      */
-    await syncRestoredFilesToWorkspace(runtimeWorkspaceId(project.id, request.currentUser!.id), restored);
+    await syncRestoredFilesToWorkspace(
+      await resolveProjectWorkspaceId(store, project.id, request.currentUser!.id),
+      restored,
+    );
 
     await store.recordProjectActivity({
       projectId: project.id,
@@ -30430,7 +30603,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const query = parse(gitWorkspaceQuerySchema, request.query ?? {});
     const workspaceId = await resolveGitWorkspaceId(store, project.id, query.workspaceId);
 
-    return { status: await gitProvider.status(project.id, workspaceId) };
+    /*
+     * Hand the provider the files as the user currently sees them (project
+     * storage + ide-state) so a hand-edited file actually shows up as changed.
+     * The same list is what `commit` receives, so the panel and the commit agree
+     * on what "changed" means.
+     */
+    const files = await listProjectFilesIncludingIdeState(store, projectStorage, project.id, workspaceId);
+
+    return { status: await gitProvider.status(project.id, workspaceId, files) };
   });
   app.post('/projects/:projectId/git/commit', async (request) => {
     const project = await requireProject(
@@ -31324,18 +31505,26 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const state = await billingState(project.organizationId).catch(() => undefined);
     const entitlement = databaseRollbackEntitlement(toCreditPlanKey(state?.plan.key));
 
-    const instance = await store.createDatabaseInstance({
-      projectId: project.id,
-      organizationId: project.organizationId,
-      retentionDays: entitlement.retentionDays,
-      environment,
-    });
-
     const provisioner = resolveDefaultDatabaseProvisioner();
     const tier = resolveDatabaseTier(state?.plan.key);
 
+    /*
+     * BUG-QA-DB-PROVISIONING-STUCK — un provisionnement qui n'a pas démarré ne
+     * doit pas être enregistré comme « en cours ».
+     *
+     * La ligne était créée en PROVISIONING, puis l'appel au provisionneur était
+     * avalé (`non-fatal`) : quand il échouait, PLUS RIEN ne réconciliait la
+     * ligne. L'utilisateur voyait « provisionnement » indéfiniment, et le
+     * réessai était impossible — la ligne zombie faisait répondre
+     * `{ created: false }` à toute nouvelle demande.
+     *
+     * Même règle transverse que pour la progression de l'agent : ne jamais
+     * déduire « c'est en cours » de l'ABSENCE d'un signal d'échec. Si le
+     * provisionnement ne part pas, on retire la ligne et on nomme la cause, ce
+     * qui rend le réessai possible.
+     */
     if (provisioner.active) {
-      await provisioner
+      const outcome = await provisioner
         .provisionInstance({
           projectId: project.id,
           organizationId: project.organizationId,
@@ -31343,8 +31532,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           tier,
           environment,
         })
-        .catch((error) => request.log?.warn?.({ err: error }, 'db provision kickoff failed (non-fatal)'));
+        .catch((error) => {
+          request.log?.warn?.({ err: error }, 'db provision kickoff failed');
+
+          /* Une exception ne dit pas POURQUOI : on ne lui invente pas de raison. */
+          const failed: ProvisionResult = { clusterName: '', applied: false };
+
+          return failed;
+        });
+
+      if (!outcome.applied) {
+        return reply.code(503).send({
+          error: appPublicEnglish('DATABASE_PROVISION_UNAVAILABLE'),
+          code: 'DATABASE_PROVISION_UNAVAILABLE',
+          reason: outcome.reason,
+        });
+      }
     }
+
+    /*
+     * La ligne n'est ecrite qu'ICI : une fois le provisionnement reellement
+     * accepte. Aucune ligne zombie ne peut donc subsister en PROVISIONING, et
+     * un reessai repart d'un etat propre (la contrainte unique
+     * (projectId, environment) rendait sinon la reprise impossible).
+     */
+    const instance = await store.createDatabaseInstance({
+      projectId: project.id,
+      organizationId: project.organizationId,
+      retentionDays: entitlement.retentionDays,
+      environment,
+    });
 
     return reply
       .code(202)
@@ -31828,15 +32045,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * Only sign a URL when a screenshot has actually been captured, so a
        * project with none 404s and the card keeps its "No preview yet" state
        * instead of pointing <img> at a would-be-broken signed URL.
+       *
+       * Borné dans le temps : le client GCS réessaie sans plafond, si bien
+       * qu'un bucket injoignable faisait tenir la requête 30 s avant que le
+       * loader Remix n'abandonne (502). Pendant ce temps la carte de projet
+       * restait un rectangle vide — l'`<img>` ne charge pas et n'échoue pas
+       * non plus, donc l'état de repli « Aucun aperçu » n'apparaissait jamais.
+       * Une vignette est décorative : elle ne doit jamais retenir une requête.
        */
-      const { objects } = await storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY });
+      const { objects } = await withStorageDeadline(
+        storage.listObjects(project.id, { prefix: PROJECT_THUMBNAIL_KEY }),
+        THUMBNAIL_LOOKUP_DEADLINE_MS,
+      );
 
       if (!objects.some((object) => object.key === PROJECT_THUMBNAIL_KEY)) {
         return reply.code(404).send({ error: appPublicEnglish('THUMBNAIL_NOT_FOUND'), code: 'THUMBNAIL_NOT_FOUND' });
       }
 
-      return reply.send(await storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }));
+      return reply.send(
+        await withStorageDeadline(
+          storage.createDownloadUrl(project.id, { key: PROJECT_THUMBNAIL_KEY }),
+          THUMBNAIL_LOOKUP_DEADLINE_MS,
+        ),
+      );
     } catch (error) {
+      /*
+       * Un dépassement de délai se lit comme « pas de vignette pour l'instant » :
+       * le web mappe ce 404 sur un 204, l'`<img>` bascule sur son état de repli
+       * et la carte reste présentable. On le journalise pour ne pas transformer
+       * une panne de stockage en silence.
+       */
+      if (error instanceof StorageDeadlineError) {
+        request.log.warn({ projectId: project.id }, 'thumbnail lookup timed out');
+
+        return reply.code(404).send({ error: appPublicEnglish('THUMBNAIL_NOT_FOUND'), code: 'THUMBNAIL_UNAVAILABLE' });
+      }
+
       return sendObjectStorageError(reply, error);
     }
   });
@@ -32042,7 +32286,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       } else if (!userId || !WebSocketCtor) {
         serverError = 'Open the project workspace before deploying a server.';
       } else {
-        const workspaceId = runtimeWorkspaceId(project.id, userId);
+        const workspaceId = await resolveProjectWorkspaceId(store, project.id, userId);
         const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
         try {
@@ -32863,7 +33107,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const content = serializeEcodeLock(lock);
-    const workspaceId = runtimeWorkspaceId(project.id, request.currentUser!.id);
+    const workspaceId = await resolveProjectWorkspaceId(store, project.id, request.currentUser!.id);
     const authorized = { workspaceId, projectId: project.id, organizationId: project.organizationId };
 
     await agentMutateEnsuring(request, authorized, '/files/write', {

@@ -31,6 +31,26 @@ export interface WarmReattachSignals {
   /** A forwarded port is actively serving (hasLivePreviewPort over the runtime ports). */
   hasLivePort: boolean;
 
+  /*
+   * BUG-RUNTIME-DIVERGENCE (option A, signal 2) — la sonde de ports a-t-elle
+   * ABOUTI ?
+   *
+   * `refreshRuntimePorts()` était appelée en `.catch(() => undefined)` juste
+   * avant la décision : « la sonde a échoué » et « le pod n'écoute rien »
+   * devenaient indiscernables, tous deux réduits à `hasLivePort: false`. Mesuré
+   * en réel : le magasin `previews` était VIDE au moment de la décision alors
+   * que l'API répondait « port 5173, ready:true » à l'instant même.
+   *
+   * Les deux cas doivent rester distincts parce qu'ils ne se valent pas : un pod
+   * qui n'écoute rien DOIT être reseedé, tandis qu'une sonde en échec ne dit
+   * rien du pod. Le second reste conservateur — on reseede aussi — mais il est
+   * désormais nommé, donc observable dans les journaux au lieu d'être avalé.
+   *
+   * `undefined` = ancienne sémantique (sonde non instrumentée), traitée comme
+   * un échec pour rester du côté sûr.
+   */
+  portProbeSucceeded?: boolean;
+
   /**
    * Project storage was modified AFTER this pod was last seeded (a cross-device /
    * out-of-band edit that the warm pod hasn't got). When KNOWN true, reattaching
@@ -49,12 +69,71 @@ export interface WarmReattachSignals {
  *   warm + seeded-this-session + live-port + NOT storage-newer  -> reattach
  *   cold pod / not seeded / no live port / storage newer        -> reseed
  */
+/*
+ * BUG-RUNTIME-DIVERGENCE (option A, signal 2 — second volet).
+ *
+ * `hasLivePreviewPort` exige `ready === true` STRICTEMENT, là où le code voisin
+ * qui répond à la même question (`workbenchStore.refreshRuntimePorts`) accepte
+ * `ready !== false`. Un port réellement en écoute mais dont l'état `ready` n'est
+ * pas encore confirmé par le flux de surveillance compte donc comme « mort » à
+ * l'instant de la décision — et la réouverture reseede un pod parfaitement sain.
+ *
+ * Le prédicat partagé n'est délibérément PAS modifié : il sert aussi à
+ * `isWorkspaceReallyRunning` et à `preview-recovery`, où sa sévérité est voulue
+ * et a déjà été corrigée en ce sens. Cette variante est donc locale à la
+ * décision de reattach, et alignée sur le voisin qui pose la même question.
+ */
+export function hasAdoptablePreviewPort(ports?: readonly { ready?: boolean; serving?: boolean }[] | null): boolean {
+  return (ports ?? []).some((port) => {
+    /*
+     * Quand le runtime sait répondre « ce port SERT » (le port répond ET un
+     * processus vivant le détient), c'est CE signal qui décide — c'est
+     * exactement la question posée ici. `ready` y ajoute le statut manager et le
+     * beacon client : le premier retarde à la réouverture, le second reflète le
+     * rendu de la page PRÉCÉDENTE. Mesuré en réel sur un pod sain servant
+     * `port 5173` : `ready:false, notReadyReason:'manager'` — et la réouverture
+     * effaçait l'espace de travail.
+     */
+    if (typeof port.serving === 'boolean') {
+      return port.serving;
+    }
+
+    // Runtime qui ne calcule pas `serving` (WebContainer, API antérieure).
+    return port.ready !== false;
+  });
+}
+
 export function shouldReattachWarmWorkspace(signals: WarmReattachSignals): boolean {
   if (signals.storageNewerThanSeed === true) {
     return false;
   }
 
-  return signals.reused && signals.seededThisSession && signals.hasLivePort;
+  /*
+   * BUG-RUNTIME-DIVERGENCE — un port vivant n'est plus une CONDITION d'adoption.
+   *
+   * Mesuré en réel : l'exiger créait une boucle qui s'auto-entretenait. Le
+   * reseed tue le serveur de dev ; à la réouverture suivante, quelques secondes
+   * plus tard, le port n'est pas encore revenu ; `hasLivePort` est donc faux et
+   * on reseede de nouveau — indéfiniment. Attendre plus longtemps ne corrige
+   * rien : cela ne fait que payer le démarrage à froid de vite à chaque
+   * ouverture.
+   *
+   * Surtout, l'absence de port ne dit RIEN sur la validité de l'arborescence, et
+   * reseeder ne la répare pas : cela efface des fichiers puis relance le serveur
+   * — or `startPreviewServer()` le relance de toute façon juste après, sans rien
+   * effacer.
+   *
+   * Ce qui garantit que le pod est adoptable, ce sont les trois autres
+   * conditions : le pod est CHAUD (`reused`), c'est CE navigateur qui l'a semé
+   * (`seededThisSession`, marqueur durable portant la révision), et le stockage
+   * n'a pas bougé depuis (`storageNewerThanSeed !== true`). L'arborescence est
+   * alors exactement celle qu'on y a mise.
+   *
+   * Un port vivant reste un signal utile — il est journalisé et sert de
+   * raccourci de confiance — mais son absence ne peut plus détruire un espace de
+   * travail sain.
+   */
+  return signals.reused && signals.seededThisSession;
 }
 
 /**

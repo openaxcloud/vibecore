@@ -106,7 +106,14 @@ export const TabTile: React.FC<TabTileProps> = ({
 
                 {/* Label and Description */}
                 <div className="flex flex-col items-center mt-4 w-full">
-                  <h3
+                  {/*
+                   * `h2` : ces tuiles sont les sections de premier rang sous le
+                   * `h1` de la page. En `h3` elles créaient un saut h1→h3, mesuré
+                   * aux trois formats — un niveau sauté reste un défaut WCAG
+                   * 1.3.1. La taille est portée par la classe, rien ne bouge
+                   * visuellement.
+                   */}
+                  <h2
                     className={classNames(
                       'text-[15px] font-medium leading-snug mb-2',
                       'text-bolt-elements-textSecondary',
@@ -116,7 +123,7 @@ export const TabTile: React.FC<TabTileProps> = ({
                     )}
                   >
                     {resolvedLabel}
-                  </h3>
+                  </h2>
                   {description && (
                     <p
                       className={classNames(

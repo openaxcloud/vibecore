@@ -35,15 +35,14 @@ import {
   type MouseEvent,
   type ReactNode,
 } from 'react';
-import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { type LoaderFunctionArgs, type MetaFunction } from 'react-router';
 import { useLoaderData } from 'react-router';
 import { Link } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { buildIdeNotifications, restartWorkspace, type IdeNotificationKind } from './projects.$projectId.ide.helpers';
+import { shouldRevalidateProjectIde } from './projects.$projectId.ide.revalidate';
 import { BaseChat } from '~/components/chat/BaseChat';
-import { LanguageSwitch } from '~/components/i18n/LanguageSwitch';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
 import { InputDialog } from '~/components/ui/InputDialog';
@@ -78,64 +77,13 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   ];
 };
 
-const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit', 'peWindow']);
-
-function routeKeyWithoutClientIdeParams(url: URL) {
-  const searchParams = new URLSearchParams(url.search);
-
-  for (const param of IDE_CLIENT_SEARCH_PARAMS) {
-    searchParams.delete(param);
-  }
-
-  const search = searchParams.toString();
-
-  return `${url.pathname}${search ? `?${search}` : ''}`;
-}
-
-export function MobileIdeLanguageSwitchPortal() {
-  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
-
-  useEffect(() => {
-    setPortalHost(document.body);
-  }, []);
-
-  if (!portalHost) {
-    return null;
-  }
-
-  return createPortal(
-    <div className="bolt-project-mobile-language-switch-slot" data-testid="mobile-ide-language-switch-slot">
-      <LanguageSwitch className="bolt-project-mobile-language-switch" />
-    </div>,
-    portalHost,
-  );
-}
-
-export const shouldRevalidate = ({
-  currentUrl,
-  nextUrl,
-  formMethod,
-  defaultShouldRevalidate,
-}: {
-  currentUrl: URL;
-  nextUrl: URL;
-  formMethod?: string;
-  defaultShouldRevalidate: boolean;
-}) => {
-  if (formMethod && formMethod.toUpperCase() !== 'GET') {
-    return defaultShouldRevalidate;
-  }
-
-  if (
-    currentUrl.origin === nextUrl.origin &&
-    routeKeyWithoutClientIdeParams(currentUrl) === routeKeyWithoutClientIdeParams(nextUrl) &&
-    currentUrl.search !== nextUrl.search
-  ) {
-    return false;
-  }
-
-  return defaultShouldRevalidate;
-};
+/*
+ * Revalidation policy extracted to projects.$projectId.ide.revalidate.ts (pure,
+ * unit-tested). BUG-IDE-PANEL-RECLICK-REPROVISION-001: it now also skips the
+ * loader on a SAME-URL navigation (re-click of the already-active panel), which
+ * React Router otherwise treats as a refresh and revalidates.
+ */
+export const shouldRevalidate = shouldRevalidateProjectIde;
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) =>
   loadProjectIdeData(request, params.projectId ?? '');
@@ -190,7 +138,6 @@ export default function ProjectIdeRoute() {
             projectApiError={projectApiError}
             projectUrl={projectUrl}
           />
-          <MobileIdeLanguageSwitchPortal />
           <main className="h-dvh pt-9">
             <ClientOnly fallback={optimisticShell}>
               {() => (
@@ -511,35 +458,31 @@ function IdeProjectTopBar({
                 >
                   <span className="bolt-project-breadcrumb-kicker">{copy['projectIde.project.kicker']}</span>
                   {/*
-                    RPL-IDE-001.8 — clicking the app NAME opens Spotlight; the
-                    chevron keeps the existing project menu (Settings, Fork,
-                    Rename…). `preventDefault` stops the click from toggling the
-                    surrounding <details>, so the two targets stay distinct
-                    instead of one swallowing the other.
-                  */}
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="bolt-project-breadcrumb-value bolt-project-spotlight-trigger truncate"
-                    title={copy['projectIde.project.spotlight']}
-                    aria-label={text(copy['projectIde.project.spotlightAria'], { project: projectLabel.display })}
-                    aria-haspopup="dialog"
-                    data-testid="project-spotlight-trigger"
+                   * SCR-006 — « le clic sur le NOM du projet ouvre la recherche ».
+                   *
+                   * Le nom vit dans le `<summary>` d'un `<details>` dont le rôle est
+                   * d'ouvrir le menu projet (Paramètres, renommage). Remplacer le
+                   * `<summary>` en entier aurait supprimé ces accès. On sépare donc
+                   * les deux gestes : le NOM ouvre la recherche, le chevron garde le
+                   * menu. `preventDefault` empêche le `<details>` de basculer sous le
+                   * clic, `stopPropagation` empêche le `<summary>` de le récupérer.
+                   */}
+                  <button
+                    type="button"
+                    className="bolt-project-breadcrumb-value truncate"
+                    title={projectTooltip}
+                    aria-label={copy['projectIde.project.search']}
+                    data-testid="button-project-name-search"
                     onClick={(event) => {
                       event.preventDefault();
                       event.stopPropagation();
-                      openProjectSpotlight();
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        openProjectSpotlight();
-                      }
+                      window.dispatchEvent(
+                        new CustomEvent('vibecore:open-command-palette', { detail: { mode: 'all' } }),
+                      );
                     }}
                   >
                     {projectLabel.display}
-                  </span>
+                  </button>
                   <ChevronDown className="h-3.5 w-3.5" aria-hidden />
                 </summary>
                 {projectMenuOpen && (
@@ -632,9 +575,6 @@ function IdeProjectTopBar({
         <ProjectResourcesPanel projectId={projectId} workspaceId={effectiveWorkspace?.id} />
       </div>
       <div className="bolt-project-topbar-actions">
-        <div className="bolt-project-action-group bolt-project-action-group--language" data-priority="high">
-          <LanguageSwitch className="bolt-project-language-switch" />
-        </div>
         <div
           ref={overflowMenuRef}
           className="bolt-project-action-group bolt-project-action-group--overflow"

@@ -89,6 +89,20 @@ export interface CommandRequest {
    * already occupies the single slot and the user shell can never connect.
    */
   managed?: boolean;
+
+  /*
+   * Stable identity of the terminal PANE, reused across every reconnect and
+   * remount. The workspace agent keys its persistent shell on `?sessionId`, so a
+   * caller that supplies the same `sessionKey` reattaches to its existing shell
+   * (scrollback intact) instead of spawning a new one and burning a slot of the
+   * per-workspace session budget.
+   *
+   * Omit it and the adapter falls back to a random per-call id — correct but
+   * non-reattachable, which is what BUG-TERM-002 was: every `openTerminal()`
+   * minted a fresh identity, so the IDE piled up orphan shells until the budget
+   * ran out and every further terminal was rejected with 429.
+   */
+  sessionKey?: string;
 }
 
 export interface CommandEvent {
@@ -131,6 +145,24 @@ export interface WorkspacePort {
   type: 'open' | 'close';
   url?: string;
   ready?: boolean;
+
+  /*
+   * BUG-RUNTIME-DIVERGENCE — « ce port SERT-il réellement ? »
+   *
+   * `ready` répond à une AUTRE question : « cet aperçu est-il sûr à afficher ».
+   * Il agrège quatre signaux, dont le statut côté manager et le dernier compte
+   * rendu de rendu du client. Ces deux-là sont des vetos légitimes pour décider
+   * d'afficher ou de relancer un aperçu — et hors sujet pour décider si l'on
+   * peut ADOPTER un pod chaud plutôt que de l'effacer : le statut manager
+   * retarde notoirement à la réouverture, et le beacon reflète le rendu de la
+   * page PRÉCÉDENTE.
+   *
+   * `serving` ne porte que les deux signaux qui répondent à la question
+   * d'adoption : le port répond à une sonde ET un processus vivant le détient.
+   * Absent quand le runtime ne sait pas le calculer (WebContainer, API
+   * antérieure) : l'appelant retombe alors sur `ready`.
+   */
+  serving?: boolean;
 }
 
 export interface PreviewRoute {
@@ -194,6 +226,7 @@ export interface RuntimeAdapter {
   getWorkspaceStatus(workspaceId?: string): Promise<WorkspaceSession>;
 
   listFiles(path?: string): Promise<FileNode[]>;
+
   /**
    * Read a file's content. Binary files (images/fonts/wasm) come back base64-
    * encoded with `encoding: 'base64'`; text comes back as utf8 (encoding 'utf8'

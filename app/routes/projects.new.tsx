@@ -1271,7 +1271,7 @@ export default function NewProjectPage() {
             type="button"
             className="vc-new-project-advanced-toggle"
             aria-expanded={advancedOpen}
-            aria-controls="vc-new-project-advanced-content vc-new-project-templates"
+            aria-controls="vc-new-project-advanced-content"
             onClick={() => setAdvancedOpen((open) => !open)}
           >
             <span className="vc-new-project-advanced-label">
@@ -1355,12 +1355,7 @@ export default function NewProjectPage() {
         </Form>
       </div>
 
-      <section
-        id="vc-new-project-templates"
-        className="vc-new-project-templates"
-        aria-label={copy.templates.aria}
-        data-open={advancedOpen ? 'true' : 'false'}
-      >
+      <section id="vc-new-project-templates" className="vc-new-project-templates" aria-label={copy.templates.aria}>
         <header className="vc-new-project-templates-header">
           <div>
             <p className="vc-new-project-meta-label">{copy.templates.eyebrow}</p>

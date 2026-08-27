@@ -103,12 +103,9 @@ export const meta: MetaFunction<typeof loader> = ({ data }) => {
     { title: seo.title },
     { name: 'description', content: seo.description },
     ...social,
-    { property: 'og:type', content: 'website' },
     { property: 'og:url', content: TEMPLATES_LANGUAGES_CANONICAL_URL },
     { property: 'og:locale', content: language === 'fr' ? 'fr_FR' : 'en_US' },
     { property: 'og:locale:alternate', content: language === 'fr' ? 'en_US' : 'fr_FR' },
-    { name: 'twitter:title', content: seo.title },
-    { name: 'twitter:description', content: seo.description },
     { tagName: 'link', rel: 'canonical', href: TEMPLATES_LANGUAGES_CANONICAL_URL },
     {
       tagName: 'link',
@@ -184,7 +181,7 @@ function TemplatesLanguagesLoadingState({ language }: { language: string }) {
         {Array.from({ length: 8 }, (_, index) => (
           <div
             key={index}
-            className="h-16 animate-pulse rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] motion-reduce:animate-none"
+            className="h-14 animate-pulse rounded-xl border border-[var(--ecode-border)] bg-[var(--ecode-surface)] motion-reduce:animate-none"
           />
         ))}
       </div>

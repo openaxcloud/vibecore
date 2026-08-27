@@ -1383,7 +1383,23 @@ export async function snapshotStaticBuild(deploymentId: string, outputDir: strin
 
   if (await pathExists(indexHtmlPath)) {
     const original = await readFile(indexHtmlPath, 'utf8');
-    const rewritten = rewriteHtmlAbsoluteUrls(original, `/static-deployments/${deploymentId}/`);
+
+    /*
+     * BUG-DEPLOY-LIVE. The prefix rewrite below only makes sense for the LEGACY
+     * path-based serving mode (`<api>/static-deployments/<id>/...`). When a
+     * dedicated origin exists (PREVIEW_DOMAIN set — i.e. production and every
+     * real deployment), the snapshot is served at the ROOT of
+     * `s-<id>.preview.<domain>`, so a rewritten `/static-deployments/<id>/assets/x.js`
+     * is looked up as a file INSIDE the snapshot and 404s
+     * (`STATIC_DEPLOY_FILE_NOT_FOUND`) — the document loads but every asset
+     * fails, leaving `<div id="root">` empty: a blank deployed app.
+     *
+     * The legacy path keeps working either way: that route 302-redirects to the
+     * dedicated origin whenever one exists, so the prefix is never needed there.
+     */
+    const rewritten = staticDeployDedicatedOrigin(deploymentId)
+      ? original
+      : rewriteHtmlAbsoluteUrls(original, `/static-deployments/${deploymentId}/`);
 
     if (rewritten !== original) {
       const { writeFile } = await import('node:fs/promises');
@@ -1606,8 +1622,15 @@ export function createDeploymentLogs(
   /*
    * Same lie for server deploys: readiness is logged by the pipeline when the
    * Deployment really answers, never at queue time.
+   *
+   * 2026-08-17: `static` had exactly the same problem and was still exempt. Its
+   * pipeline installs and builds inside the workspace pod AFTER queueing, so a
+   * deploy that then died on `npm install` had already announced
+   * "Déploiement ready: https://s-…/" in its own log — an address that serves
+   * nothing. Measured live on two consecutive failed deploys. A provider that
+   * still has work to do cannot report readiness up front.
    */
-  if (deployment.provider !== 'server') {
+  if (deployment.provider !== 'server' && deployment.provider !== 'static') {
     baseLogs.push(
       `Deployment ready: ${deployment.url ?? deployment.previewUrl ?? deployment.productionUrl ?? 'pending URL'}`,
     );

@@ -41,11 +41,17 @@ describe('status public route', () => {
       },
       { name: 'twitter:image', content: 'https://e-code.ai/social_preview_index.jpg' },
       { name: 'twitter:image:alt', content: 'E-Code system status and service availability' },
-      { name: 'twitter:title', content: 'System Status — E-Code' },
-      {
-        name: 'twitter:description',
-        content: 'Check the live status, uptime and recent incidents for E-Code services.',
-      },
     ]);
+
+    /*
+     * This list used to end with a SECOND `twitter:title` and `twitter:description`
+     * — the route re-declared what it already spread from `socialMetaTags()`, and
+     * this assertion froze that duplication as expected behaviour. Every public
+     * page shipped both tags twice, which is what kept the "French i18n live
+     * audit" workflow red on every pull request.
+     */
+    expect(metadata.filter((tag) => 'name' in tag && tag.name === 'twitter:title')).toHaveLength(1);
+    expect(metadata.filter((tag) => 'name' in tag && tag.name === 'twitter:description')).toHaveLength(1);
+    expect(metadata.filter((tag) => 'property' in tag && tag.property === 'og:type')).toHaveLength(1);
   });
 });
