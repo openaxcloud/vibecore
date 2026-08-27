@@ -92,6 +92,7 @@ import type {
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
   FeatureFlagRecord,
+  FencedServerReadyCommitInput,
   MembershipRecord,
   ResourceAccessGrantRecord,
   OAuthConnectionRecord,
@@ -107,6 +108,7 @@ import type {
   ProjectEnvironmentRecord,
   ProjectIdeStateRecord,
   ProjectManifestRevisionRecord,
+  ProjectReleaseBarrierLease,
   ProjectRecord,
   ProjectSecretRecord,
   ProjectShareLinkRecord,
@@ -1299,14 +1301,11 @@ export class TestApiStore implements ApiStore {
       const hasActiveMigration = [...this.migrationExecutions.values()].some(
         (execution) =>
           execution.projectId === project.id &&
-          ['LOCK_ACQUIRED', 'BACKUP_VERIFIED', 'APPLYING', 'VALIDATING', 'RECOVERING', 'MANUAL_RECOVERY'].includes(
-            execution.state,
-          ),
+          !['COMMITTED', 'FAILED_SAFE'].includes(execution.state),
       );
       const hasActiveImport = [...this.importJobs.values()].some(
         (job) =>
-          job.targetProjectId === project.id &&
-          !['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED'].includes(job.state),
+          job.targetProjectId === project.id && !['COMMITTED', 'EXPIRED', 'CANCELLED', 'FAILED'].includes(job.state),
       );
       const hasActiveRemix = [...this.remixJobs.values()].some(
         (job) =>
@@ -1317,8 +1316,8 @@ export class TestApiStore implements ApiStore {
         (share) =>
           share.state === 'ACTIVE' && (share.sourceProjectId === project.id || share.targetProjectId === project.id),
       );
-      const hasReadyDeployment = [...this.deployments.values()].some(
-        (deployment) => deployment.projectId === project.id && deployment.status === 'READY',
+      const hasLiveDeployment = [...this.deployments.values()].some(
+        (deployment) => deployment.projectId === project.id && !['FAILED', 'CANCELED'].includes(deployment.status),
       );
 
       const hasReleaseManifest = this.releaseManifests.some((manifest) => manifest.projectId === project.id);
@@ -1329,7 +1328,7 @@ export class TestApiStore implements ApiStore {
         hasActiveImport ||
         hasActiveRemix ||
         hasActiveStorageShare ||
-        hasReadyDeployment ||
+        hasLiveDeployment ||
         hasReleaseManifest ||
         this.cloudProjectBindingProjectIds.has(project.id)
       ) {
@@ -4372,6 +4371,7 @@ export class TestApiStore implements ApiStore {
 
   async commitStaticRollbackRelease(input: StaticRollbackReleaseCommitInput) {
     return this.withSerializedMutation(`release-manifest:${input.projectId}:${input.environment}`, async () => {
+      await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
       const operation = this._requireRollbackLease(input);
       const source = this._requireRollbackSource(operation);
       const deployment = this.deployments.get(input.deploymentId);
@@ -4384,6 +4384,7 @@ export class TestApiStore implements ApiStore {
         operation.phase !== 'EFFECT_STARTED' ||
         operation.effectFencingToken !== input.fencingToken ||
         operation.environment !== input.environment ||
+        operation.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
         source.artifactKind !== 'static-snapshot' ||
         source.provider !== input.provider ||
         source.artifactDigest !== input.artifactDigest ||
@@ -4492,6 +4493,7 @@ export class TestApiStore implements ApiStore {
 
   async commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult> {
     return this.withSerializedMutation(`release-manifest:${input.projectId}:${input.environment}`, async () => {
+      await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
       const deployment = this.deployments.get(input.deploymentId);
 
       if (!deployment || deployment.projectId !== input.projectId) {
@@ -4519,6 +4521,8 @@ export class TestApiStore implements ApiStore {
       if (
         !project ||
         project.organizationId !== input.organizationId ||
+        input.organizationId !== input.releaseFence.expectedOrganizationId ||
+        input.metadata.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
         deployment.provider !== 'server' ||
         deployment.environment !== input.environment ||
         image?.imageRef !== input.artifactRef ||
@@ -4665,6 +4669,40 @@ export class TestApiStore implements ApiStore {
         );
       }
       return { committed: true, deployment: ready, manifest };
+    });
+  }
+
+  async commitFencedServerReady(input: FencedServerReadyCommitInput): Promise<DeploymentRecord> {
+    return this.withSerializedMutation(`fenced-server-ready:${input.deploymentId}`, async () => {
+      await this.assertProjectReleaseBarrier({ projectId: input.projectId, ...input.releaseFence });
+      const deployment = this.deployments.get(input.deploymentId);
+
+      if (
+        !deployment ||
+        deployment.projectId !== input.projectId ||
+        deployment.provider !== 'server' ||
+        input.metadata.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
+        ['READY', 'FAILED', 'CANCELED'].includes(deployment.status)
+      ) {
+        throw Object.assign(new Error('SERVER_RELEASE_FENCE_CONFLICT'), {
+          code: 'SERVER_RELEASE_FENCE_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      const ready: DeploymentRecord = {
+        ...deployment,
+        status: 'READY',
+        url: input.url,
+        previewUrl: input.previewUrl,
+        productionUrl: input.productionUrl,
+        metadata: input.metadata,
+        logs: input.logs,
+        finishedAt: input.finishedAt,
+        updatedAt: now(),
+      };
+      this.deployments.set(ready.id, ready);
+      return ready;
     });
   }
 
@@ -4988,6 +5026,152 @@ export class TestApiStore implements ApiStore {
     row.barrierExpiresAt = null;
 
     return true;
+  }
+
+  async acquireProjectReleaseBarrier(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    expectedManifestDigest: string;
+    operationId: string;
+    ownerToken: string;
+    ttlSeconds: number;
+  }): Promise<ProjectReleaseBarrierLease | undefined> {
+    return this.withSerializedMutation(`project-release:${input.projectId}`, async () => {
+      const project = this.projects.get(input.projectId);
+      const manifest = await this.getLatestProjectManifest(input.projectId);
+
+      if (!project) {
+        throw Object.assign(new Error('Project not found'), { code: 'PROJECT_NOT_FOUND', statusCode: 404 });
+      }
+
+      if (project.organizationId !== input.expectedOrganizationId) {
+        throw Object.assign(new Error('Project organization changed before release.'), {
+          code: 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE',
+          statusCode: 409,
+        });
+      }
+
+      if (!manifest || manifest.digest !== input.expectedManifestDigest) {
+        throw Object.assign(new Error('Project manifest changed before publish.'), {
+          code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+          statusCode: 409,
+        });
+      }
+
+      const at = Date.now();
+
+      for (const [idv, candidate] of this.projectCheckpoints) {
+        if (
+          candidate.state === 'RELEASE_BARRIER' &&
+          candidate.projectId === input.projectId &&
+          candidate.barrierExpiresAt &&
+          new Date(candidate.barrierExpiresAt).getTime() <= at
+        ) {
+          this.projectCheckpoints.delete(idv);
+        }
+      }
+
+      if (
+        [...this.projectCheckpoints.values()].some(
+          (candidate) =>
+            candidate.barrierProjectId === input.projectId &&
+            candidate.barrierExpiresAt &&
+            new Date(candidate.barrierExpiresAt).getTime() > at,
+        )
+      ) {
+        return undefined;
+      }
+
+      const checkpointId = id('release_barrier');
+      const barrierId = `release:${input.operationId}`;
+      const expiresAt = new Date(at + input.ttlSeconds * 1000).toISOString();
+      this.projectCheckpoints.set(checkpointId, {
+        id: checkpointId,
+        projectId: input.projectId,
+        state: 'RELEASE_BARRIER',
+        logicalBarrierId: barrierId,
+        requestHash: hashToken(
+          `${input.projectId}:${input.expectedOrganizationId}:${input.expectedManifestDigest}:${input.operationId}`,
+        ),
+        barrierProjectId: input.projectId,
+        barrierOwnerToken: input.ownerToken,
+        barrierFence: 1,
+        barrierExpiresAt: expiresAt,
+        createdAt: now(),
+      });
+
+      return {
+        checkpointId,
+        projectId: input.projectId,
+        barrierId,
+        ownerToken: input.ownerToken,
+        fence: 1,
+        expiresAt,
+      };
+    });
+  }
+
+  async assertProjectReleaseBarrier(input: {
+    checkpointId: string;
+    projectId: string;
+    expectedOrganizationId: string;
+    expectedManifestDigest: string;
+    ownerToken: string;
+    fence: number;
+  }): Promise<void> {
+    const project = this.projects.get(input.projectId);
+    const manifest = await this.getLatestProjectManifest(input.projectId);
+    const barrier = this.projectCheckpoints.get(input.checkpointId);
+
+    if (
+      !barrier ||
+      barrier.state !== 'RELEASE_BARRIER' ||
+      barrier.barrierProjectId !== input.projectId ||
+      barrier.barrierOwnerToken !== input.ownerToken ||
+      barrier.barrierFence !== input.fence ||
+      !barrier.barrierExpiresAt ||
+      new Date(barrier.barrierExpiresAt).getTime() <= Date.now()
+    ) {
+      throw Object.assign(new Error('Project release barrier was lost.'), {
+        code: 'PROJECT_RELEASE_BARRIER_LOST',
+        statusCode: 409,
+      });
+    }
+
+    if (!project || project.organizationId !== input.expectedOrganizationId) {
+      throw Object.assign(new Error('Project organization changed during release.'), {
+        code: 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE',
+        statusCode: 409,
+      });
+    }
+
+    if (!manifest || manifest.digest !== input.expectedManifestDigest) {
+      throw Object.assign(new Error('Project manifest changed before publish.'), {
+        code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+        statusCode: 409,
+      });
+    }
+  }
+
+  async releaseProjectReleaseBarrier(input: {
+    checkpointId: string;
+    projectId: string;
+    ownerToken: string;
+    fence: number;
+  }): Promise<boolean> {
+    const barrier = this.projectCheckpoints.get(input.checkpointId);
+
+    if (
+      !barrier ||
+      barrier.projectId !== input.projectId ||
+      barrier.state !== 'RELEASE_BARRIER' ||
+      barrier.barrierOwnerToken !== input.ownerToken ||
+      barrier.barrierFence !== input.fence
+    ) {
+      return false;
+    }
+
+    return this.projectCheckpoints.delete(input.checkpointId);
   }
 
   async updateProjectCheckpoint(idv: string, patch: Record<string, unknown>) {

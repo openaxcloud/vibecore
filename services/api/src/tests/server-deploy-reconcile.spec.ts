@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
 import { TestApiStore } from './test-api-store.js';
 import type { EmailProvider } from '../email.js';
+import { createDefaultProjectManifest, projectManifestDigest } from '../project-manifest.js';
 
 /*
  * Reconcile-on-read for provider='server' deployments.
@@ -64,8 +65,11 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
       payload: { name: 'Server Reconcile Project' },
     });
     const projectId = (project.json() as { project: { id: string } }).project.id;
+    const manifest = await store.getLatestProjectManifest(projectId);
 
-    return { app, store, auth, projectId };
+    if (!manifest) throw new Error('TEST_PROJECT_MANIFEST_MISSING');
+
+    return { app, store, auth, projectId, projectManifestDigest: manifest.digest };
   }
 
   /** Stub the manager `/server-deployments/:id/status` GET with a fixed readiness. */
@@ -110,7 +114,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
   });
 
   it('promotes a BUILDING server deploy to READY when the manager reports a ready replica', async () => {
-    const { app, store, auth, projectId } = await setup();
+    const { app, store, auth, projectId, projectManifestDigest } = await setup();
     stubManagerStatus(1);
 
     const host = 'd-reconcileready.preview.e-code.ai';
@@ -119,7 +123,10 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
       provider: 'server',
       environment: 'preview',
       status: 'BUILDING',
-      metadata: { serverDeploy: { host, applied: true, ready: false, readyReplicas: 0 } },
+      metadata: {
+        projectManifestDigest,
+        serverDeploy: { host, applied: true, ready: false, readyReplicas: 0 },
+      },
     });
 
     const res = await app.inject({
@@ -193,7 +200,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
   });
 
   it('atomically commits ReleaseManifest + READY for a fully promoted server image', async () => {
-    const { app, store, auth, projectId } = await setup();
+    const { app, store, auth, projectId, projectManifestDigest } = await setup();
     stubManagerStatus(1);
     const host = 'd-promoted.preview.e-code.ai';
     const deployment = await store.createDeployment({
@@ -202,6 +209,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
       environment: 'preview',
       status: 'BUILDING',
       metadata: {
+        projectManifestDigest,
         serverDeploy: {
           host,
           applied: true,
@@ -228,11 +236,60 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
     await app.close();
   });
 
-  it.each([
-    ['absent', undefined],
-    ['incomplete', promotion('placeholder', { attachments: [], binaryAuthorizationResult: 'UNKNOWN' })],
-  ])('fails closed when image promotion evidence is %s: no READY and no release', async (_label, evidence) => {
-    const { app, store, auth, projectId } = await setup();
+  it('fails terminally with no manifest when the release fence is lost immediately before commit', async () => {
+    const { app, store, auth, projectId, projectManifestDigest } = await setup();
+    stubManagerStatus(1);
+    const host = 'd-fence-lost.preview.e-code.ai';
+    const deployment = await store.createDeployment({
+      projectId,
+      provider: 'server',
+      environment: 'preview',
+      status: 'BUILDING',
+      metadata: {
+        projectManifestDigest,
+        serverDeploy: {
+          host,
+          applied: true,
+          image: { imageRef: IMAGE_REF, imageUri: `${IMAGE_REF}@${DIGEST}`, imageDigest: DIGEST },
+          promotion: promotion(auth.organization.id),
+          releaseConfigDigest: DIGEST,
+        },
+      },
+    });
+    const assertBarrier = store.assertProjectReleaseBarrier.bind(store);
+    let assertions = 0;
+
+    vi.spyOn(store, 'assertProjectReleaseBarrier').mockImplementation(async (input) => {
+      assertions += 1;
+
+      if (assertions === 3) {
+        const barrier = store.projectCheckpoints.get(input.checkpointId);
+        if (barrier) barrier.barrierExpiresAt = new Date(Date.now() - 1_000).toISOString();
+      }
+
+      return assertBarrier(input);
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/deployments/${deployment.id}`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().deployment.status).toBe('FAILED');
+    expect(store.releaseManifests).toEqual([]);
+    expect([...store.projectCheckpoints.values()].filter((row) => row.state === 'RELEASE_BARRIER')).toEqual([]);
+    expect((globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls).toEqual(
+      expect.arrayContaining([
+        [expect.stringContaining(`/server-deployments/${deployment.id}/stop`), expect.anything()],
+      ]),
+    );
+    await app.close();
+  });
+
+  it('refuses an artifact whose bound manifest changed before reconcile', async () => {
+    const { app, store, auth, projectId, projectManifestDigest: builtManifestDigest } = await setup();
     stubManagerStatus(1);
     const deployment = await store.createDeployment({
       projectId,
@@ -240,6 +297,59 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
       environment: 'preview',
       status: 'BUILDING',
       metadata: {
+        projectManifestDigest: builtManifestDigest,
+        serverDeploy: {
+          host: 'd-stale-manifest.preview.e-code.ai',
+          applied: true,
+          image: { imageRef: IMAGE_REF, imageUri: `${IMAGE_REF}@${DIGEST}`, imageDigest: DIGEST },
+          promotion: promotion(auth.organization.id),
+          releaseConfigDigest: DIGEST,
+        },
+      },
+    });
+    const nextManifest = { ...createDefaultProjectManifest(projectId), manifestVersion: 2 };
+    await store.createProjectManifestRevision({
+      projectId,
+      schemaVersion: nextManifest.schemaVersion,
+      manifestVersion: nextManifest.manifestVersion,
+      expectedDigest: builtManifestDigest,
+      digest: projectManifestDigest(nextManifest),
+      manifest: nextManifest,
+    });
+
+    const res = await app.inject({
+      method: 'GET',
+      url: `/projects/${projectId}/deployments/${deployment.id}`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(res.json().deployment).toMatchObject({
+      status: 'FAILED',
+      metadata: { serverDeploy: { releaseErrorCode: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH' } },
+    });
+    expect(store.releaseManifests).toEqual([]);
+    expect((globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls).toEqual(
+      expect.arrayContaining([
+        [expect.stringContaining(`/server-deployments/${deployment.id}/stop`), expect.anything()],
+      ]),
+    );
+    await app.close();
+  });
+
+  it.each([
+    ['absent', undefined],
+    ['incomplete', promotion('placeholder', { attachments: [], binaryAuthorizationResult: 'UNKNOWN' })],
+  ])('fails closed when image promotion evidence is %s: no READY and no release', async (_label, evidence) => {
+    const { app, store, auth, projectId, projectManifestDigest } = await setup();
+    stubManagerStatus(1);
+    const deployment = await store.createDeployment({
+      projectId,
+      provider: 'server',
+      environment: 'preview',
+      status: 'BUILDING',
+      metadata: {
+        projectManifestDigest,
         serverDeploy: {
           host: 'd-unverified.preview.e-code.ai',
           applied: true,
@@ -267,7 +377,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
   });
 
   it('is idempotent under concurrent reconcile requests: one manifest, one version', async () => {
-    const { app, store, auth, projectId } = await setup();
+    const { app, store, auth, projectId, projectManifestDigest } = await setup();
     stubManagerStatus(1);
     const deployment = await store.createDeployment({
       projectId,
@@ -275,6 +385,7 @@ describe('server deploy reconcile-on-read (false-FAILED self-heal)', () => {
       environment: 'preview',
       status: 'BUILDING',
       metadata: {
+        projectManifestDigest,
         serverDeploy: {
           host: 'd-concurrent.preview.e-code.ai',
           applied: true,

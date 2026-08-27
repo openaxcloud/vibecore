@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 import { TestApiStore } from './test-api-store.js';
 
 const FINGERPRINT = 'a'.repeat(64);
@@ -208,14 +209,25 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
 
   it('freezes the source/head and refuses corrupt bytes or a terminal deployment', async () => {
     const store = new TestApiStore();
+    const owner = await store.createUser({ email: 'rollback-fence@example.test', passwordHash: 'test-hash' });
+    const organization = await store.createOrganization({
+      name: 'Rollback Fence',
+      slug: 'rollback-fence',
+      ownerUserId: owner.id,
+    });
+    const project = await store.createProject({
+      organizationId: organization.id,
+      name: 'Rollback Fence',
+      slug: 'rollback-fence',
+    });
     const sourceDeployment = await store.createDeployment({
-      projectId: 'project-target',
+      projectId: project.id,
       provider: 'static',
       environment: 'preview',
       status: 'READY',
     });
     const currentDeployment = await store.createDeployment({
-      projectId: 'project-target',
+      projectId: project.id,
       provider: 'static',
       environment: 'preview',
       status: 'READY',
@@ -223,7 +235,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     });
 
     const source = await store.createReleaseManifest({
-      projectId: 'project-target',
+      projectId: project.id,
       deploymentId: sourceDeployment.id,
       environment: 'preview',
       version: 1,
@@ -235,7 +247,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       accessPolicyVersion: sourceDeployment.accessPolicyVersion,
     });
     await store.createReleaseManifest({
-      projectId: 'project-target',
+      projectId: project.id,
       deploymentId: currentDeployment.id,
       environment: 'preview',
       version: 2,
@@ -247,7 +259,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
     });
 
     const acquired = await store.acquireRollbackOperation({
-      projectId: 'project-target',
+      projectId: project.id,
       idempotencyKey: 'target-key',
       requestFingerprint: FINGERPRINT,
       environment: 'preview',
@@ -261,12 +273,12 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       deploymentId: 'deployment-rollback',
       expectedHeadVersion: 2,
       previousManifestId: source.id,
-      projectManifestDigest: PROJECT_MANIFEST_DIGEST,
+      projectManifestDigest: (await store.getLatestProjectManifest(project.id))!.digest,
     });
     const metadata = {
       rollbackToPrevious: true,
       rollbackOperationId: operation.id,
-      projectManifestDigest: PROJECT_MANIFEST_DIGEST,
+      projectManifestDigest: operation.projectManifestDigest,
       restoredFromVersion: 1,
       restoredFromDeploymentId: source.deploymentId,
       supersededVersion: 2,
@@ -275,7 +287,7 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       fence: { operationId: operation.id, ownerToken: 'owner-target', fencingToken: 1 },
       deployment: {
         id: 'deployment-rollback',
-        projectId: 'project-target',
+        projectId: project.id,
         provider: 'static',
         environment: 'preview',
         status: 'QUEUED',
@@ -300,13 +312,18 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
       }),
     ).rejects.toThrow('ROLLBACK_CLEANUP_UNCONFIRMED');
 
+    const release = await acquireTestProjectReleaseFence(store, {
+      projectId: project.id,
+      organizationId: organization.id,
+    });
+
     const commit = (artifactDigest = ARTIFACT_DIGEST) =>
       store.commitStaticRollbackRelease({
         operationId: operation.id,
         ownerToken: 'owner-target',
         fencingToken: 1,
         expectedHeadVersion: 2,
-        projectId: 'project-target',
+        projectId: project.id,
         deploymentId: 'deployment-rollback',
         environment: 'preview',
         provider: 'static',
@@ -318,18 +335,19 @@ describe('durable rollback operation — lease, fencing, and frozen target', () 
         metadata,
         logs: [],
         finishedAt: new Date().toISOString(),
+        releaseFence: release.releaseFence,
       });
 
     await expect(commit(`sha256:${'0'.repeat(64)}`)).rejects.toThrow('STATIC_ROLLBACK_RELEASE_CONFLICT');
     expect(store.releaseManifests).toHaveLength(2);
     await store.updateRollbackDeployment({
       fence: { operationId: operation.id, ownerToken: 'owner-target', fencingToken: 1 },
-      projectId: 'project-target',
+      projectId: project.id,
       deploymentId: 'deployment-rollback',
       patch: { status: 'FAILED' },
     });
     await expect(commit()).rejects.toThrow('STATIC_ROLLBACK_RELEASE_CONFLICT');
     expect(store.releaseManifests).toHaveLength(2);
-    expect((await store.getDeployment('project-target', 'deployment-rollback'))?.status).toBe('FAILED');
+    expect((await store.getDeployment(project.id, 'deployment-rollback'))?.status).toBe('FAILED');
   });
 });

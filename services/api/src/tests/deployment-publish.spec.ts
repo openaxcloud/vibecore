@@ -81,8 +81,11 @@ async function setup(options: ApiAppOptions = {}) {
   const org = await store.createOrganization({ name: 'Pub Org', slug: 'pub-org', ownerUserId: user.id });
   await store.createSession({ userId: user.id, token: 'pub-token', expiresAt: new Date(Date.now() + 3600_000) });
   const project = await store.createProject({ organizationId: org.id, name: 'Pub Project', slug: 'pub-project' });
+  const manifest = await store.getLatestProjectManifest(project.id);
 
-  return { app, store, token: 'pub-token', project };
+  if (!manifest) throw new Error('TEST_PROJECT_MANIFEST_MISSING');
+
+  return { app, store, token: 'pub-token', project, projectManifestDigest: manifest.digest };
 }
 
 describe('POST /projects/:id/deployments/:id/publish', () => {
@@ -220,17 +223,19 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
           },
         };
       });
-      const { app, store, token, project } = await setup({ serverImagePromotionRuntime: { promote } });
+      const { app, store, token, project, projectManifestDigest } = await setup({
+        serverImagePromotionRuntime: { promote },
+      });
       globalThis.fetch = vi.fn(async (url: unknown, init?: RequestInit) => {
         const href = String(url);
 
         if (href.includes('/server-deployments/start')) {
           events.push('manager-start');
           const body = JSON.parse(String(init?.body)) as { host: string };
-          return new Response(
-            JSON.stringify({ ready: true, readyReplicas: 1, url: `https://${body.host}` }),
-            { status: 200, headers: { 'content-type': 'application/json' } },
-          );
+          return new Response(JSON.stringify({ ready: true, readyReplicas: 1, url: `https://${body.host}` }), {
+            status: 200,
+            headers: { 'content-type': 'application/json' },
+          });
         }
 
         return new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } });
@@ -243,6 +248,7 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
         status: 'READY',
         url: 'https://preview-server.example/',
         metadata: {
+          projectManifestDigest,
           serverDeploy: {
             image: { sourceImageRef: sourceRepo, imageRef: sourceRepo, imageDigest: digest },
           },
@@ -284,7 +290,9 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
 
     try {
       globalThis.fetch = vi.fn() as unknown as typeof fetch;
-      const { app, store, token, project } = await setup({ serverImagePromotionRuntime: { promote } });
+      const { app, store, token, project, projectManifestDigest } = await setup({
+        serverImagePromotionRuntime: { promote },
+      });
       const digest = `sha256:${'a'.repeat(64)}`;
       const sourceRepo = `europe-west9-docker.pkg.dev/build-project/build-repo/p-${project.id.toLowerCase()}`;
       const source = await store.createDeployment({
@@ -292,7 +300,10 @@ describe('POST /projects/:id/deployments/:id/publish', () => {
         provider: 'server',
         environment: 'preview',
         status: 'READY',
-        metadata: { serverDeploy: { image: { sourceImageRef: sourceRepo, imageDigest: digest } } },
+        metadata: {
+          projectManifestDigest,
+          serverDeploy: { image: { sourceImageRef: sourceRepo, imageDigest: digest } },
+        },
       });
 
       const response = await app.inject({

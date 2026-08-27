@@ -26,6 +26,7 @@ import {
   type ProjectManifestCloneMode,
 } from './project-manifest.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from './server-image-promotion.js';
+import { lockProjectMutation } from './project-mutation-lock.js';
 import { slugify } from './slugify.js';
 import { API_KEY_SCOPES, DEFAULT_ENV_VAR_SCOPE, ENV_VAR_SCOPES } from './store.js';
 import type {
@@ -88,6 +89,7 @@ import type {
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
   FeatureFlagRecord,
+  FencedServerReadyCommitInput,
   MembershipRecord,
   ResourceAccessGrantRecord,
   OAuthConnectionRecord,
@@ -102,6 +104,8 @@ import type {
   ProjectEnvironmentRecord,
   ProjectIdeStateRecord,
   ProjectManifestRevisionRecord,
+  ProjectReleaseBarrierLease,
+  ProjectReleaseFence,
   ProjectRecord,
   ProjectSecretRecord,
   ProjectShareLinkRecord,
@@ -276,6 +280,52 @@ async function requireRollbackLease(tx: Prisma.TransactionClient, input: Rollbac
   }
 
   return row;
+}
+
+async function requireProjectReleaseFence(
+  tx: Prisma.TransactionClient,
+  projectId: string,
+  input: ProjectReleaseFence,
+): Promise<void> {
+  const lease = await tx.$queryRaw<Array<{ id: string }>>`
+    SELECT "id" FROM "ProjectCheckpoint"
+    WHERE "id" = ${input.checkpointId}
+      AND "projectId" = ${projectId}
+      AND "state" = 'RELEASE_BARRIER'
+      AND "barrierProjectId" = ${projectId}
+      AND "barrierOwnerToken" = ${input.ownerToken}
+      AND "barrierFence" = ${input.fence}
+      AND "barrierExpiresAt" > clock_timestamp()
+  `;
+
+  if (!lease[0]) {
+    throw Object.assign(new Error('Project release barrier was lost.'), {
+      code: 'PROJECT_RELEASE_BARRIER_LOST',
+      statusCode: 409,
+    });
+  }
+
+  const project = await tx.project.findUnique({ where: { id: projectId }, select: { organizationId: true } });
+
+  if (!project || project.organizationId !== input.expectedOrganizationId) {
+    throw Object.assign(new Error('Project organization changed during release.'), {
+      code: 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE',
+      statusCode: 409,
+    });
+  }
+
+  const manifest = await tx.projectManifestRevision.findFirst({
+    where: { projectId },
+    orderBy: { manifestVersion: 'desc' },
+    select: { digest: true },
+  });
+
+  if (!manifest || manifest.digest !== input.expectedManifestDigest) {
+    throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH')), {
+      code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+      statusCode: 409,
+    });
+  }
 }
 
 function deploymentMutationData(
@@ -1828,7 +1878,6 @@ export class PrismaApiStore implements ApiStore {
   }
 
   async transferProject(input: { projectId: string; targetOrganizationId: string; actorUserId?: string }) {
-    return this.withSerializedMutation(`project-manifest:${input.projectId}`, async () => {
       const current = assertFound(
         await this.prisma.project.findUnique({ where: { id: input.projectId } }),
         'Project not found',
@@ -1853,10 +1902,15 @@ export class PrismaApiStore implements ApiStore {
 
         try {
           return await this.prisma.$transaction(async (tx) => {
-            await tx.$executeRaw(
-              Prisma.sql`SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint:${input.projectId}`}, 0))`,
-            );
-            await tx.$queryRawUnsafe('SELECT "id" FROM "Project" WHERE "id" = $1 FOR UPDATE', input.projectId);
+          /*
+           * The account-purge topology lock is always first. Grant creation,
+           * CloudTenant binding, release barriers, and transfer all follow
+           * topology -> checkpoint -> Project, so none can hold the Project
+           * row while waiting for topology (the former deadlock inversion).
+           */
+          await this.accountPurge.assertProjectMutable(tx, input.projectId);
+          await this.accountPurge.assertMembershipMutable(tx, input.targetOrganizationId);
+          await lockProjectMutation(tx, input.projectId);
 
             const locked = assertFound(
               await tx.project.findUnique({ where: { id: input.projectId } }),
@@ -1867,9 +1921,6 @@ export class PrismaApiStore implements ApiStore {
             if (locked.organizationId === input.targetOrganizationId) {
               return mapProject(locked);
             }
-
-            await this.accountPurge.assertProjectMutable(tx, input.projectId);
-            await this.accountPurge.assertMembershipMutable(tx, input.targetOrganizationId);
 
             const checkpointBarrier = await tx.projectCheckpoint.findFirst({
               where: {
@@ -1903,7 +1954,7 @@ export class PrismaApiStore implements ApiStore {
               activeImportCount,
               activeRemixCount,
               activeStorageShareCount,
-              readyDeploymentCount,
+            liveDeploymentCount,
               releaseManifestCount,
             ] = await Promise.all([
               tx.databaseInstance.count({ where: { projectId: input.projectId, status: { not: 'DELETED' } } }),
@@ -1911,15 +1962,19 @@ export class PrismaApiStore implements ApiStore {
               tx.dBMigrationExecution.count({
                 where: {
                   projectId: input.projectId,
-                  state: {
-                    in: ['LOCK_ACQUIRED', 'BACKUP_VERIFIED', 'APPLYING', 'VALIDATING', 'RECOVERING', 'MANUAL_RECOVERY'],
-                  },
+                /*
+                 * Fail closed for future states too. MANUAL_RECOVERY is
+                 * deliberately not terminal-safe: the production schema may
+                 * still need operator repair under the source tenant.
+                 */
+                state: { notIn: ['COMMITTED', 'FAILED_SAFE'] },
                 },
               }),
               tx.importJob.count({
                 where: {
                   targetProjectId: input.projectId,
-                  state: { notIn: ['COMMITTED', 'ROLLING_BACK', 'EXPIRED', 'CANCELLED', 'FAILED'] },
+                /* ROLLING_BACK/CLEANUP_PENDING still own and mutate the target. */
+                state: { notIn: ['COMMITTED', 'EXPIRED', 'CANCELLED', 'FAILED'] },
                 },
               }),
               tx.remixJob.count({
@@ -1934,7 +1989,10 @@ export class PrismaApiStore implements ApiStore {
                   OR: [{ sourceProjectId: input.projectId }, { targetProjectId: input.projectId }],
                 },
               }),
-              tx.deployment.count({ where: { projectId: input.projectId, status: 'READY' } }),
+            /* QUEUED/BUILDING still own an external build/runtime; future non-terminals fail closed too. */
+            tx.deployment.count({
+              where: { projectId: input.projectId, status: { notIn: ['FAILED', 'CANCELED'] } },
+            }),
               tx.releaseManifest.count({ where: { projectId: input.projectId } }),
             ]);
 
@@ -1945,7 +2003,7 @@ export class PrismaApiStore implements ApiStore {
                 activeImportCount +
                 activeRemixCount +
                 activeStorageShareCount +
-                readyDeploymentCount +
+              liveDeploymentCount +
                 releaseManifestCount >
               0
             ) {
@@ -2038,7 +2096,6 @@ export class PrismaApiStore implements ApiStore {
           throw error;
         }
       }
-    });
   }
 
   async duplicateProject(input: {
@@ -2218,9 +2275,8 @@ export class PrismaApiStore implements ApiStore {
     ttlSeconds: number;
   }) {
     return this.prisma.$transaction(async (tx) => {
-      await tx.$executeRaw`
-        SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint:${input.projectId}`}, 0))
-      `;
+      await this.accountPurge.assertProjectMutable(tx, input.projectId);
+      await lockProjectMutation(tx, input.projectId);
 
       /*
        * Expiry is a durable fail-open thaw. Clear a dead singleton while the
@@ -2415,6 +2471,194 @@ export class PrismaApiStore implements ApiStore {
     `;
 
     return changed === 1;
+  }
+
+  async acquireProjectReleaseBarrier(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    expectedManifestDigest: string;
+    operationId: string;
+    ownerToken: string;
+    ttlSeconds: number;
+  }): Promise<ProjectReleaseBarrierLease | undefined> {
+    if (!Number.isInteger(input.ttlSeconds) || input.ttlSeconds < 10 || input.ttlSeconds > 300) {
+      throw Object.assign(new Error('Project release barrier TTL must be between 10 and 300 seconds.'), {
+        code: 'PROJECT_RELEASE_BARRIER_TTL_INVALID',
+        statusCode: 400,
+      });
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertProjectMutable(tx, input.projectId);
+      await lockProjectMutation(tx, input.projectId);
+
+      const project = await tx.project.findUnique({
+        where: { id: input.projectId },
+        select: { organizationId: true },
+      });
+
+      if (!project) {
+        throw Object.assign(new Error('Project not found'), { code: 'PROJECT_NOT_FOUND', statusCode: 404 });
+      }
+
+      if (project.organizationId !== input.expectedOrganizationId) {
+        throw Object.assign(new Error('Project organization changed before release.'), {
+          code: 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE',
+          statusCode: 409,
+        });
+      }
+
+      const manifest = await tx.projectManifestRevision.findFirst({
+        where: { projectId: input.projectId },
+        orderBy: { manifestVersion: 'desc' },
+        select: { digest: true },
+      });
+
+      if (!manifest || manifest.digest !== input.expectedManifestDigest) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH')), {
+          code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+          statusCode: 409,
+        });
+      }
+
+      /*
+       * Expired checkpoint barriers thaw in place; expired release-only rows
+       * are disposable. Both operations run under the same project lock before
+       * the unique barrierProjectId insert.
+       */
+      await tx.$executeRaw`
+        UPDATE "ProjectCheckpoint"
+        SET "barrierProjectId" = NULL,
+            "barrierOwnerToken" = NULL,
+            "barrierExpiresAt" = NULL,
+            "barrierFence" = "barrierFence" + 1,
+            "updatedAt" = clock_timestamp()
+        WHERE "projectId" = ${input.projectId}
+          AND "state" <> 'RELEASE_BARRIER'
+          AND "barrierProjectId" = ${input.projectId}
+          AND "barrierExpiresAt" <= clock_timestamp()
+      `;
+      await tx.$executeRaw`
+        DELETE FROM "ProjectCheckpoint"
+        WHERE "projectId" = ${input.projectId}
+          AND "state" = 'RELEASE_BARRIER'
+          AND "barrierExpiresAt" <= clock_timestamp()
+      `;
+
+      const checkpointId = `release_barrier_${randomUUID()}`;
+      const barrierId = `release:${input.operationId}`;
+      const rows = await tx.$queryRaw<
+        Array<{ id: string; logicalBarrierId: string; barrierFence: number; barrierExpiresAt: Date }>
+      >`
+        INSERT INTO "ProjectCheckpoint" (
+          "id", "projectId", "state", "logicalBarrierId", "requestHash",
+          "barrierProjectId", "barrierOwnerToken", "barrierFence",
+          "barrierExpiresAt", "createdAt", "updatedAt"
+        )
+        SELECT
+          ${checkpointId}, ${input.projectId}, 'RELEASE_BARRIER', ${barrierId},
+          ${hashToken(
+            `${input.projectId}:${input.expectedOrganizationId}:${input.expectedManifestDigest}:${input.operationId}`,
+          )},
+          ${input.projectId}, ${input.ownerToken}, 1,
+          clock_timestamp() + make_interval(secs => ${input.ttlSeconds}),
+          clock_timestamp(), clock_timestamp()
+        WHERE NOT EXISTS (
+          SELECT 1 FROM "ProjectCheckpoint" active
+          WHERE active."barrierProjectId" = ${input.projectId}
+            AND active."barrierExpiresAt" > clock_timestamp()
+        )
+        RETURNING "id", "logicalBarrierId", "barrierFence", "barrierExpiresAt"
+      `;
+      const row = rows[0];
+
+      return row
+        ? {
+            checkpointId: row.id,
+            projectId: input.projectId,
+            barrierId: row.logicalBarrierId,
+            ownerToken: input.ownerToken,
+            fence: row.barrierFence,
+            expiresAt: row.barrierExpiresAt.toISOString(),
+          }
+        : undefined;
+    });
+  }
+
+  async assertProjectReleaseBarrier(input: {
+    checkpointId: string;
+    projectId: string;
+    expectedOrganizationId: string;
+    expectedManifestDigest: string;
+    ownerToken: string;
+    fence: number;
+  }): Promise<void> {
+    await this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertProjectMutable(tx, input.projectId);
+      await lockProjectMutation(tx, input.projectId);
+
+      const [project, manifest, lease] = await Promise.all([
+        tx.project.findUnique({ where: { id: input.projectId }, select: { organizationId: true } }),
+        tx.projectManifestRevision.findFirst({
+          where: { projectId: input.projectId },
+          orderBy: { manifestVersion: 'desc' },
+          select: { digest: true },
+        }),
+        tx.$queryRaw<Array<{ id: string }>>`
+          SELECT "id" FROM "ProjectCheckpoint"
+          WHERE "id" = ${input.checkpointId}
+            AND "projectId" = ${input.projectId}
+            AND "state" = 'RELEASE_BARRIER'
+            AND "barrierProjectId" = ${input.projectId}
+            AND "barrierOwnerToken" = ${input.ownerToken}
+            AND "barrierFence" = ${input.fence}
+            AND "barrierExpiresAt" > clock_timestamp()
+        `,
+      ]);
+
+      if (!lease[0]) {
+        throw Object.assign(new Error('Project release barrier was lost.'), {
+          code: 'PROJECT_RELEASE_BARRIER_LOST',
+          statusCode: 409,
+        });
+      }
+
+      if (!project || project.organizationId !== input.expectedOrganizationId) {
+        throw Object.assign(new Error('Project organization changed during release.'), {
+          code: 'PROJECT_ORGANIZATION_CHANGED_DURING_RELEASE',
+          statusCode: 409,
+        });
+      }
+
+      if (!manifest || manifest.digest !== input.expectedManifestDigest) {
+        throw Object.assign(new Error(appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH')), {
+          code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+          statusCode: 409,
+        });
+      }
+    });
+  }
+
+  async releaseProjectReleaseBarrier(input: {
+    checkpointId: string;
+    projectId: string;
+    ownerToken: string;
+    fence: number;
+  }): Promise<boolean> {
+    return this.prisma.$transaction(async (tx) => {
+      await lockProjectMutation(tx, input.projectId);
+      const deleted = await tx.projectCheckpoint.deleteMany({
+        where: {
+          id: input.checkpointId,
+          projectId: input.projectId,
+          state: 'RELEASE_BARRIER',
+          barrierOwnerToken: input.ownerToken,
+          barrierFence: input.fence,
+        },
+      });
+
+      return deleted.count === 1;
+    });
   }
 
   async updateProjectCheckpoint(
@@ -4732,7 +4976,7 @@ export class PrismaApiStore implements ApiStore {
        * the project ever returns to A.
        */
       if (input.resourceType === 'PROJECT') {
-        await tx.$queryRawUnsafe('SELECT "id" FROM "Project" WHERE "id" = $1 FOR UPDATE', input.resourceId);
+        await lockProjectMutation(tx, input.resourceId);
 
         const project = await tx.project.findUnique({
           where: { id: input.resourceId },
@@ -7904,6 +8148,11 @@ export class PrismaApiStore implements ApiStore {
 
   async commitStaticRollbackRelease(input: StaticRollbackReleaseCommitInput) {
     return this.prisma.$transaction(async (tx) => {
+      /* Common release order: topology -> checkpoint -> Project -> rollback/deployment/manifest. */
+      await this.accountPurge.assertProjectMutable(tx, input.projectId);
+      await lockProjectMutation(tx, input.projectId);
+      await requireProjectReleaseFence(tx, input.projectId, input.releaseFence);
+
       const operation = await requireRollbackLease(tx, input);
       const source = await requireRollbackSourceManifest(tx, operation);
 
@@ -7914,6 +8163,7 @@ export class PrismaApiStore implements ApiStore {
         operation.phase !== 'EFFECT_STARTED' ||
         operation.effectFencingToken !== input.fencingToken ||
         operation.environment !== input.environment ||
+        operation.projectManifestDigest !== input.releaseFence.expectedManifestDigest ||
         source.artifactKind !== 'static-snapshot' ||
         source.provider !== input.provider ||
         source.artifactDigest !== input.artifactDigest ||
@@ -8084,6 +8334,11 @@ export class PrismaApiStore implements ApiStore {
 
   async commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult> {
     return this.prisma.$transaction(async (tx) => {
+      /* Common release order: topology -> checkpoint -> Project -> rollback/deployment/manifest. */
+      await this.accountPurge.assertProjectMutable(tx, input.projectId);
+      await lockProjectMutation(tx, input.projectId);
+      await requireProjectReleaseFence(tx, input.projectId, input.releaseFence);
+
       const rollbackOperation = input.rollbackFence ? await requireRollbackLease(tx, input.rollbackFence) : undefined;
 
       const rollbackSource = rollbackOperation ? await requireRollbackSourceManifest(tx, rollbackOperation) : undefined;
@@ -8113,6 +8368,9 @@ export class PrismaApiStore implements ApiStore {
 
       if (
         deployment.project.organizationId !== input.organizationId ||
+        input.organizationId !== input.releaseFence.expectedOrganizationId ||
+        (input.metadata as Record<string, unknown>).projectManifestDigest !==
+          input.releaseFence.expectedManifestDigest ||
         deployment.provider !== 'server' ||
         deployment.environmentName !== input.environment ||
         image?.imageRef !== input.artifactRef ||
@@ -8306,6 +8564,50 @@ export class PrismaApiStore implements ApiStore {
     });
   }
 
+  async commitFencedServerReady(input: FencedServerReadyCommitInput): Promise<DeploymentRecord> {
+    return this.prisma.$transaction(async (tx) => {
+      await this.accountPurge.assertProjectMutable(tx, input.projectId);
+      await lockProjectMutation(tx, input.projectId);
+      await requireProjectReleaseFence(tx, input.projectId, input.releaseFence);
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "Deployment" WHERE "id" = $1 AND "projectId" = $2 FOR UPDATE',
+        input.deploymentId,
+        input.projectId,
+      );
+
+      const deployment = await tx.deployment.findFirstOrThrow({
+        where: { id: input.deploymentId, projectId: input.projectId },
+      });
+
+      if (
+        deployment.provider !== 'server' ||
+        (input.metadata as Record<string, unknown>).projectManifestDigest !==
+          input.releaseFence.expectedManifestDigest ||
+        ['READY', 'FAILED', 'CANCELED'].includes(deployment.status)
+      ) {
+        throw Object.assign(new Error('SERVER_RELEASE_FENCE_CONFLICT'), {
+          code: 'SERVER_RELEASE_FENCE_CONFLICT',
+          statusCode: 409,
+        });
+      }
+
+      return mapDeployment(
+        await tx.deployment.update({
+          where: { id: input.deploymentId },
+          data: {
+            status: 'READY',
+            url: input.url,
+            previewUrl: input.previewUrl ?? null,
+            productionUrl: input.productionUrl ?? null,
+            metadata: input.metadata as Prisma.InputJsonValue,
+            logs: input.logs as unknown as Prisma.InputJsonValue,
+            finishedAt: new Date(input.finishedAt),
+          },
+        }),
+      );
+    });
+  }
+
   async getServerImageReleasePromotion(deploymentId: string): Promise<unknown | undefined> {
     const audit = await this.prisma.adminAuditLog.findFirst({
       where: {
@@ -8338,17 +8640,21 @@ export class PrismaApiStore implements ApiStore {
   }): Promise<ProjectManifestRevisionRecord> {
     const manifest = verifyStoredProjectManifestRevision(input, input.projectId);
 
-    return this.withSerializedMutation(`project-manifest:${input.projectId}`, async () => {
       return this.prisma.$transaction(async (tx) => {
         /*
-         * The checkpoint barrier and manifest append share this PostgreSQL lock.
-         * A route-level preflight alone has a check→barrier→insert race; under
-         * this lock we either append before the checkpoint pins, or observe its
-         * durable live barrier and refuse the write.
+       * The checkpoint barrier and manifest append share the global mutation
+       * order. A route-level preflight alone has a check->barrier->insert race;
+       * under topology -> checkpoint -> Project we either append first, or
+       * observe the durable live barrier and refuse the write.
          */
-        await tx.$executeRaw`
-          SELECT pg_advisory_xact_lock(hashtextextended(${`project-checkpoint:${input.projectId}`}, 0))
-        `;
+      await this.accountPurge.assertProjectMutable(tx, input.projectId);
+      await lockProjectMutation(tx, input.projectId);
+
+      const project = await tx.project.findUnique({ where: { id: input.projectId }, select: { id: true } });
+
+      if (!project) {
+        throw Object.assign(new Error('Project not found'), { code: 'PROJECT_NOT_FOUND', statusCode: 404 });
+      }
 
         const activeBarrier = await tx.$queryRaw<Array<{ id: string }>>`
           SELECT "id" FROM "ProjectCheckpoint"
@@ -8397,7 +8703,6 @@ export class PrismaApiStore implements ApiStore {
           }),
         );
       });
-    });
   }
 
   async getActiveRateCard() {
