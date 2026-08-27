@@ -245,6 +245,32 @@ data:
   # URL-copy row that re-deploys nothing.
   SERVER_DEPLOY_ROLLBACK_FROM_DIGEST: {{ .Values.platformEnv.runtime.serverDeployRollbackFromDigest | default "1" | quote }}
 
+  # P104 / SEC-8 — two-phase activation of deployment password protection.
+  #
+  # THE HAZARD this sequences around: api builds BEFORE the P104 cutover served a
+  # public static deployment with `Cache-Control: public, max-age=60`. That entry
+  # stays FRESH — reusable by a shared cache with NO revalidation — for 60s after
+  # it was emitted. An origin cannot purge what a third-party cache already stored.
+  # So if an owner could switch a deployment to `password` inside that 60s window,
+  # an anonymous visitor would still be served the pre-protection PUBLIC copy from
+  # cache. Post-cutover builds emit `public, no-cache, must-revalidate`, which
+  # forces revalidation through the gate and closes the window permanently — but
+  # only once every last pre-cutover pod is gone AND its final response has aged
+  # out (see scripts/deploy-cache-window.mjs).
+  #
+  # This flag is that interlock. '0' = the api REFUSES to activate protection
+  # (503 DEPLOYMENT_ACCESS_ACTIVATION_DISABLED); '1' = activation is open.
+  # ENFORCEMENT is never gated by it: an already-protected deployment stays gated
+  # at '0'. Un-protecting (mode=public) also stays allowed at '0' — it only ever
+  # de-escalates, and must not trap an owner.
+  #
+  # `default "0"` is deliberately the INVERSE of the rollback flag above: the safe
+  # state here is "not yet activated". A release whose stored values pre-date this
+  # key (--reuse-values), a chart rollback to a pre-cutover revision, or a typo
+  # that drops the value all land on '0' — fail-closed, and the deploy workflow
+  # simply re-runs the drain barrier before re-arming it.
+  DEPLOYMENT_ACCESS_ACTIVATION_ENABLED: {{ .Values.platformEnv.runtime.deploymentAccessActivationEnabled | default "0" | quote }}
+
   {{- if .Values.platformEnv.runtime.nixStorePvc }}
   # Shared RO Nix store (candidate E) — per-project rollout gate. The api
   # threads the PVC into workspace pods AND published-app pods for the projects
