@@ -90,6 +90,23 @@ describe('meterServerDeploymentRuntime', () => {
     expect(meta.serverDeploy.runtimeMeteredAt).toBe(new Date(NOW).toISOString());
   });
 
+  it('never sends Reserved VM through the Autoscale usage meter', async () => {
+    const { store, usageEvents, state } = makeStore([deployment({ runtimeKind: 'reserved-vm' })]);
+    const getLiveStatus = vi.fn(async () => ({ exists: true, replicas: 1, readyReplicas: 1, requestCount: 42 }));
+
+    const result = await meterServerDeploymentRuntime(store, {
+      card: BUILTIN_RATE_CARD,
+      getLiveStatus,
+      nowMs: NOW,
+      shadow: true,
+    });
+
+    expect(result).toMatchObject({ scanned: 1, billed: 0, slept: 0, computeUnits: 0, requests: 0 });
+    expect(getLiveStatus).not.toHaveBeenCalled();
+    expect(usageEvents).toHaveLength(0);
+    expect(state.get('dep1')!.metadata).toEqual({ serverDeploy: { host: 'd-dep1.preview.e-code.ai' } });
+  });
+
   it('caps a single window (no invented history after a sweep outage)', async () => {
     const { store, usageEvents } = makeStore([
       deployment({ finishedAt: new Date(NOW - 6 * 3600_000).toISOString() }), // 6h ago

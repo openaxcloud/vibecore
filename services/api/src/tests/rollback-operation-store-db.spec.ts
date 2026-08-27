@@ -479,4 +479,85 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
       await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
     }
   });
+
+  it('rejects a Reserved VM release under the project lock before inserting rollback authority', async () => {
+    const prisma = createDatabaseClient();
+    const store = new PrismaApiStore(prisma);
+    const unique = suffix();
+    let organizationId: string | undefined;
+    let actorId: string | undefined;
+    let projectId: string | undefined;
+
+    try {
+      const actor = await prisma.user.create({ data: { email: `reserved-rollback-${unique}@example.test` } });
+      actorId = actor.id;
+      const organization = await prisma.organization.create({
+        data: { name: `Reserved rollback ${unique}`, slug: `reserved-rollback-${unique}` },
+      });
+      organizationId = organization.id;
+      const project = await prisma.project.create({
+        data: { organizationId: organization.id, name: 'Reserved rollback', slug: `reserved-rollback-${unique}` },
+      });
+      projectId = project.id;
+      const created = await store.createDeployment({
+        projectId: project.id,
+        provider: 'server',
+        environment: 'preview',
+        status: 'READY',
+        machineSize: 'dedicated-1',
+        accessPolicy: { mode: 'PUBLIC' },
+      });
+      const claim = `reserved-data-${created.id}`;
+      await prisma.deployment.update({
+        where: { id: created.id },
+        data: {
+          runtimeKind: 'reserved-vm',
+          reservedVmTier: 'dedicated-1',
+          persistentStorageClaim: claim,
+        },
+      });
+      for (const version of [1, 2]) {
+        await store.createReleaseManifest({
+          projectId: project.id,
+          deploymentId: created.id,
+          environment: 'preview',
+          version,
+          provider: 'server',
+          artifactKind: 'server-image',
+          artifactRef: `registry.example.test/reserved@sha256:${String(version).repeat(64)}`,
+          artifactDigest: `sha256:${String(version).repeat(64)}`,
+          accessPolicyVersion: created.accessPolicyVersion,
+        });
+      }
+
+      await expect(
+        store.acquireRollbackOperation({
+          projectId: project.id,
+          actorUserId: actor.id,
+          idempotencyKey: `reserved-refused-${unique}`,
+          requestFingerprint: FINGERPRINT,
+          environment: 'preview',
+          ownerToken: 'reserved-refused-owner',
+          leaseDurationMs: 30_000,
+        }),
+      ).rejects.toMatchObject({ code: 'RESERVED_VM_ROLLBACK_UNPINNED', statusCode: 409 });
+      await expect(
+        prisma.rollbackIdempotencyRequest.count({ where: { projectId: project.id } }),
+      ).resolves.toBe(0);
+      await expect(prisma.deployment.findUnique({ where: { id: created.id } })).resolves.toMatchObject({
+        runtimeKind: 'reserved-vm',
+        persistentStorageClaim: claim,
+        status: 'READY',
+      });
+    } finally {
+      if (projectId) {
+        await prisma.releaseManifest.deleteMany({ where: { projectId } }).catch(() => undefined);
+      }
+      if (organizationId) {
+        await prisma.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
+      }
+      if (actorId) await prisma.user.delete({ where: { id: actorId } }).catch(() => undefined);
+      await prisma.$disconnect();
+    }
+  });
 });

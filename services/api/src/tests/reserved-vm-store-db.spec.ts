@@ -216,6 +216,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
         targetRuntimeKind: 'reserved-vm',
         targetTier: 'dedicated-2',
         targetMachineSize: 'dedicated-2',
+        targetCpuMillicores: 2_000,
+        targetMemoryMb: 8_192,
         targetPriceCents: 8_000,
         termsVersion: TERMS,
         rateCardVersion: 1,
@@ -238,6 +240,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
           targetRuntimeKind: 'reserved-vm',
           targetTier: 'dedicated-1',
           targetMachineSize: 'dedicated-1',
+          targetCpuMillicores: 1_000,
+          targetMemoryMb: 4_096,
           targetPriceCents: 4_000,
           termsVersion: TERMS,
           rateCardVersion: 1,
@@ -252,6 +256,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
           expectedRuntimeVersion: initial.deployment.runtimeVersion!,
           targetRuntimeKind: 'autoscale',
           targetMachineSize: 'shared-0.5',
+          targetCpuMillicores: 500,
+          targetMemoryMb: 2_048,
           targetPriceCents: 0,
           termsVersion: TERMS,
           rateCardVersion: 1,
@@ -318,6 +324,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
           targetRuntimeKind: 'reserved-vm',
           targetTier: 'dedicated-4',
           targetMachineSize: 'dedicated-4',
+          targetCpuMillicores: 4_000,
+          targetMemoryMb: 16_384,
           targetPriceCents: 16_000,
           termsVersion: TERMS,
           rateCardVersion: 1,
@@ -332,6 +340,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
           expectedRuntimeVersion: afterVersion,
           targetRuntimeKind: 'autoscale',
           targetMachineSize: 'shared-0.5',
+          targetCpuMillicores: 500,
+          targetMemoryMb: 2_048,
           targetPriceCents: 0,
           termsVersion: TERMS,
           rateCardVersion: 1,
@@ -373,6 +383,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
         expectedRuntimeVersion: afterVersion,
         targetRuntimeKind: 'autoscale',
         targetMachineSize: 'shared-0.5',
+        targetCpuMillicores: 500,
+        targetMemoryMb: 2_048,
         targetPriceCents: 0,
         termsVersion: TERMS,
         rateCardVersion: 1,
@@ -415,6 +427,71 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
           where: { organizationId: organization.id, reason: 'reservation.settle' },
         }),
       ).toBe(2);
+
+      await expect(storeA.softDeleteProject(project.id)).rejects.toMatchObject({
+        code: 'PROJECT_RESERVED_VM_DECOMMISSION_REQUIRED',
+      });
+      const decommissionKey = `reserved-decommission-${token}`;
+      const decommission = await storeA.createReservedVmDecommissionOperation({
+        projectId: project.id,
+        deploymentId: deployment.id,
+        organizationId: organization.id,
+        actorUserId: user.id,
+        idempotencyKey: decommissionKey,
+        requestHash: '4'.repeat(64),
+        expectedRuntimeVersion: converted.deployment.runtimeVersion!,
+        targetMachineSize: 'shared-0.5',
+        targetCpuMillicores: 500,
+        targetMemoryMb: 2_048,
+      });
+      expect(decommission.deployment.persistentStorageClaim).toBe(initial.deployment.persistentStorageClaim);
+      const decommissionOwner = `decommission-owner-${token}`;
+      const decommissionLease = await storeB.acquireReservedVmOperation({
+        projectId: project.id,
+        idempotencyKey: decommissionKey,
+        ownerToken: decommissionOwner,
+        ttlMs: 60_000,
+      });
+      await storeB.markReservedVmRuntimeApplied({
+        operationId: decommissionLease.operation.id,
+        ownerToken: decommissionOwner,
+        fencingToken: decommissionLease.operation.fencingToken,
+      });
+      await expect(
+        storeB.commitReservedVmDecommissionOperation({
+          operationId: decommissionLease.operation.id,
+          ownerToken: decommissionOwner,
+          fencingToken: decommissionLease.operation.fencingToken,
+          deletedPersistentStorageClaim: 'reserved-data-some-other-deployment',
+          response: { persistentVolumeClaimAbsent: true },
+        }),
+      ).rejects.toMatchObject({ code: 'RESERVED_VM_RUNTIME_VERSION_CONFLICT' });
+      const erased = await storeA.commitReservedVmDecommissionOperation({
+        operationId: decommissionLease.operation.id,
+        ownerToken: decommissionOwner,
+        fencingToken: decommissionLease.operation.fencingToken,
+        deletedPersistentStorageClaim: initial.deployment.persistentStorageClaim!,
+        response: {
+          decommissioned: true,
+          persistentVolumeClaimName: initial.deployment.persistentStorageClaim,
+          persistentVolumeClaimAbsent: true,
+        },
+      });
+      expect(erased.deployment).toMatchObject({
+        runtimeKind: 'autoscale',
+        runtimeVersion: converted.deployment.runtimeVersion! + 1,
+      });
+      expect(erased.deployment.persistentStorageClaim).toBeUndefined();
+      await expect(
+        storeB.commitReservedVmDecommissionOperation({
+          operationId: decommissionLease.operation.id,
+          ownerToken: 'stale-decommission-owner',
+          fencingToken: 0,
+          deletedPersistentStorageClaim: initial.deployment.persistentStorageClaim!,
+          response: { ignored: true },
+        }),
+      ).resolves.toMatchObject({ deployment: { persistentStorageClaim: undefined } });
+      await expect(storeA.softDeleteProject(project.id)).resolves.toMatchObject({ id: project.id });
     } finally {
       if (organizationId) {
         await prismaA.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
@@ -427,6 +504,7 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
     const prisma = createDatabaseClient();
     let ownerOrganizationId: string | undefined;
     let attackerOrganizationId: string | undefined;
+    let actorUserId: string | undefined;
 
     try {
       const store = new PrismaApiStore(prisma);
@@ -435,6 +513,8 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
       const attacker = await prisma.organization.create({
         data: { name: `Attacker ${token}`, slug: `attacker-${token}` },
       });
+      const actor = await prisma.user.create({ data: { email: `reserved-attacker-${token}@example.test` } });
+      actorUserId = actor.id;
       ownerOrganizationId = owner.id;
       attackerOrganizationId = attacker.id;
       const project = await prisma.project.create({
@@ -447,6 +527,7 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
           provider: 'server',
           reservedVm: {
             organizationId: attacker.id,
+            actorUserId: actor.id,
             idempotencyKey: `cross-tenant-${token}`,
             requestHash: '9'.repeat(64),
             tier: 'shared-0.5',
@@ -466,7 +547,137 @@ runDbTests('Reserved VM durable saga — real PostgreSQL multi-client', () => {
       if (attackerOrganizationId) {
         await prisma.organization.delete({ where: { id: attackerOrganizationId } }).catch(() => undefined);
       }
+      if (actorUserId) {
+        await prisma.user.delete({ where: { id: actorUserId } }).catch(() => undefined);
+      }
       await prisma.$disconnect();
+    }
+  });
+
+  it('serializes CREATE cancellation, excludes late build recovery, and releases hold/PVC state only after fenced cleanup', async () => {
+    const prismaA = createDatabaseClient();
+    const prismaB = createDatabaseClient();
+    let organizationId: string | undefined;
+
+    try {
+      const storeA = new PrismaApiStore(prismaA);
+      const storeB = new PrismaApiStore(prismaB);
+      const token = suffix();
+      const actor = await prismaA.user.create({ data: { email: `reserved-cancel-${token}@example.test` } });
+      const organization = await prismaA.organization.create({
+        data: { name: `Reserved cancel ${token}`, slug: `reserved-cancel-${token}` },
+      });
+      organizationId = organization.id;
+      const project = await prismaA.project.create({
+        data: { organizationId: organization.id, name: 'Reserved cancel', slug: `reserved-cancel-${token}` },
+      });
+      const createKey = `reserved-cancel-create-${token}`;
+      const deployment = await storeA.createDeployment({
+        projectId: project.id,
+        provider: 'server',
+        status: 'BUILDING',
+        machineSize: 'shared-0.5',
+        reservedVm: {
+          organizationId: organization.id,
+          actorUserId: actor.id,
+          idempotencyKey: createKey,
+          requestHash: '5'.repeat(64),
+          tier: 'shared-0.5',
+          termsVersion: TERMS,
+          monthlyPriceCents: 2_000,
+          rateCardVersion: 1,
+        },
+      });
+      const [cancelA, cancelB] = await Promise.all([
+        storeA.acquireReservedVmCreateCancellation({
+          projectId: project.id,
+          deploymentId: deployment.id,
+          actorUserId: actor.id,
+          ownerToken: `cancel-a-${token}`,
+          ttlMs: 60_000,
+        }),
+        storeB.acquireReservedVmCreateCancellation({
+          projectId: project.id,
+          deploymentId: deployment.id,
+          actorUserId: actor.id,
+          ownerToken: `cancel-b-${token}`,
+          ttlMs: 60_000,
+        }),
+      ]);
+      const firstCancel = cancelA.acquired ? cancelA : cancelB;
+      expect([cancelA, cancelB].filter((result) => result.acquired)).toHaveLength(1);
+      expect(firstCancel.operation).toMatchObject({
+        kind: 'CREATE',
+        status: 'APPLYING',
+        phase: 'LEASED',
+        errorCode: 'RESERVED_VM_CANCEL_REQUESTED',
+      });
+      await expect(
+        storeA.acquireReservedVmOperation({
+          projectId: project.id,
+          idempotencyKey: createKey,
+          ownerToken: `late-build-${token}`,
+          ttlMs: 60_000,
+        }),
+      ).resolves.toMatchObject({ acquired: false, operation: { errorCode: 'RESERVED_VM_CANCEL_REQUESTED' } });
+
+      await prismaA.$executeRaw`
+        UPDATE "ReservedVmOperation"
+        SET "leaseExpiresAt" = clock_timestamp() - INTERVAL '1 second'
+        WHERE "id" = ${firstCancel.operation.id}
+      `;
+      const recovered = await storeB.claimNextReservedVmCreateCancellation({
+        ownerToken: `cancel-recovery-${token}`,
+        ttlMs: 60_000,
+      });
+      expect(recovered?.operation.fencingToken).toBeGreaterThan(firstCancel.operation.fencingToken);
+      await expect(
+        storeA.claimNextRecoverableReservedVmOperation({
+          ownerToken: `generic-recovery-${token}`,
+          ttlMs: 60_000,
+          kinds: ['CREATE'],
+        }),
+      ).resolves.toBeUndefined();
+
+      const dbBefore = await prismaA.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS "now"`;
+      const committed = await storeB.commitReservedVmCreateCancellation({
+        operationId: recovered!.operation.id,
+        ownerToken: recovered!.operation.leaseOwner!,
+        fencingToken: recovered!.operation.fencingToken,
+        deletedPersistentStorageClaim: `reserved-data-${deployment.id}`,
+        logs: [],
+      });
+      const dbAfter = await prismaA.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS "now"`;
+
+      expect(committed).toMatchObject({
+        replayed: false,
+        operation: {
+          status: 'FAILED',
+          phase: 'ROLLED_BACK',
+          errorCode: 'DEPLOYMENT_CANCELED_BY_USER',
+        },
+        deployment: { status: 'CANCELED', runtimeKind: 'autoscale' },
+      });
+      expect(committed.deployment.persistentStorageClaim).toBeUndefined();
+      expect(Date.parse(committed.deployment.canceledAt!)).toBeGreaterThanOrEqual(dbBefore[0]!.now.getTime());
+      expect(Date.parse(committed.deployment.canceledAt!)).toBeLessThanOrEqual(dbAfter[0]!.now.getTime());
+      expect(
+        await prismaA.ledgerReservation.findFirstOrThrow({ where: { organizationId: organization.id } }),
+      ).toMatchObject({ status: 'RELEASED', releaseReason: 'cancel' });
+      await expect(
+        storeA.commitReservedVmCreateCancellation({
+          operationId: recovered!.operation.id,
+          ownerToken: 'stale-cancel-owner',
+          fencingToken: 0,
+          deletedPersistentStorageClaim: `reserved-data-${deployment.id}`,
+          logs: [],
+        }),
+      ).resolves.toMatchObject({ replayed: true, deployment: { status: 'CANCELED' } });
+    } finally {
+      if (organizationId) {
+        await prismaA.organization.delete({ where: { id: organizationId } }).catch(() => undefined);
+      }
+      await Promise.allSettled([prismaA.$disconnect(), prismaB.$disconnect()]);
     }
   });
 });

@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto';
 import { mkdtemp, mkdir, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApiApp } from '../app.js';
 import { computeStaticSnapshotDigest, staticDeploymentSnapshotDir } from '../deployments.js';
 import type { EmailProvider } from '../email.js';
@@ -156,6 +156,61 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
         (deployment) => (deployment.metadata as Record<string, unknown> | undefined)?.rollbackToPrevious === true,
       ),
     ).toHaveLength(0);
+  });
+
+  it('refuses unpinned Reserved VM rollback before creating an operation, deployment, or manager effect', async () => {
+    const { app, store, auth, projectId } = await setup();
+    const created = await store.createDeployment({
+      projectId,
+      provider: 'server',
+      environment: 'preview',
+      status: 'READY',
+      machineSize: 'dedicated-1',
+      url: 'https://reserved-rollback.example.test',
+    });
+    const reserved = await store.updateDeployment(projectId, created.id, {
+      runtimeKind: 'reserved-vm',
+      runtimeVersion: 3,
+      reservedVmTier: 'dedicated-1',
+      persistentStorageClaim: `reserved-data-${created.id}`,
+    });
+    for (const version of [1, 2]) {
+      await store.createReleaseManifest({
+        projectId,
+        deploymentId: reserved.id,
+        environment: 'preview',
+        version,
+        provider: 'server',
+        artifactKind: 'server-image',
+        artifactRef: `registry.example.test/reserved@sha256:${String(version).repeat(64)}`,
+        artifactDigest: `sha256:${String(version).repeat(64)}`,
+        accessPolicyVersion: reserved.accessPolicyVersion,
+      });
+    }
+    const deploymentCount = (await store.listDeployments(projectId)).length;
+    const manager = vi.fn(async () => new Response('unexpected manager call', { status: 500 }));
+    globalThis.fetch = manager as typeof fetch;
+
+    const previous = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/rollback-to-previous`,
+      headers: { authorization: `Bearer ${auth.token}`, 'idempotency-key': 'reserved-rollback-refused-0001' },
+      payload: { environment: 'preview' },
+    });
+    const direct = await app.inject({
+      method: 'POST',
+      url: `/projects/${projectId}/deployments/${reserved.id}/rollback`,
+      headers: { authorization: `Bearer ${auth.token}` },
+    });
+
+    expect(previous.statusCode).toBe(409);
+    expect(previous.json()).toMatchObject({ code: 'RESERVED_VM_ROLLBACK_UNPINNED' });
+    expect(direct.statusCode).toBe(409);
+    expect(direct.json()).toMatchObject({ code: 'RESERVED_VM_ROLLBACK_UNPINNED' });
+    expect(store.rollbackOperations.size).toBe(0);
+    expect(await store.listDeployments(projectId)).toHaveLength(deploymentCount);
+    expect(manager).not.toHaveBeenCalled();
+    await app.close();
   });
 
   it('replays the exact durable 201 and creates one deployment + one release', async () => {

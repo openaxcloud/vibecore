@@ -19,6 +19,7 @@ const baseRequest = {
   artifactSizeLimitMb: 250,
   envVars: {},
   injectSecrets: [],
+  runtimeKind: 'autoscale' as const,
   githubIntegration: undefined,
 };
 

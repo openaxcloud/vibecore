@@ -73,6 +73,15 @@ export const createDeploymentSchema = z.object({
     .max(40)
     .regex(/^[a-z0-9.-]+$/)
     .optional(),
+  runtimeKind: z.enum(['autoscale', 'reserved-vm']).default('autoscale'),
+  reservedVmTier: z.enum(['shared-0.5', 'dedicated-1', 'dedicated-2', 'dedicated-4']).optional(),
+  reservedVmConfirmation: z
+    .object({
+      accepted: z.literal(true),
+      termsVersion: z.string().trim().min(1).max(80),
+      monthlyPriceCents: z.number().int().positive(),
+    })
+    .optional(),
   githubIntegration: z
     .object({
       repositoryUrl: z.string().url().optional(),

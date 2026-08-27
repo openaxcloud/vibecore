@@ -3006,5 +3006,93 @@
   "TENANT_RESOURCE_LIMIT_EXCEEDED": {
     "en": "The requested resources exceed this organization’s current safety limit.",
     "fr": "Les ressources demandées dépassent la limite de sécurité actuelle de cette organisation."
+  },
+  "RESERVED_VM_CONFIRMATION_REQUIRED": {
+    "en": "Explicit Reserved VM billing confirmation is required.",
+    "fr": "Une confirmation explicite de la facturation de la VM réservée est requise."
+  },
+  "RESERVED_VM_PRICE_MISMATCH": {
+    "en": "Reserved VM price confirmation is stale.",
+    "fr": "La confirmation du tarif de la VM réservée n’est plus à jour."
+  },
+  "RESERVED_VM_OPERATION_FAILED": {
+    "en": "The Reserved VM operation failed and was safely rolled back.",
+    "fr": "L’opération sur la VM réservée a échoué et a été annulée en toute sécurité."
+  },
+  "RESERVED_VM_IDEMPOTENCY_KEY_REQUIRED": {
+    "en": "Provide a valid Idempotency-Key containing 16 to 128 safe characters.",
+    "fr": "Fournissez une clé Idempotency-Key valide de 16 à 128 caractères autorisés."
+  },
+  "RESERVED_VM_IDEMPOTENCY_CONFLICT": {
+    "en": "This idempotency key was already used for a different Reserved VM request.",
+    "fr": "Cette clé d’idempotence a déjà été utilisée pour une autre demande de VM réservée."
+  },
+  "RESERVED_VM_DECOMMISSION_NOT_READY": {
+    "en": "Convert the deployment to Autoscale before permanently deleting its Reserved VM data.",
+    "fr": "Convertissez le déploiement en Autoscale avant de supprimer définitivement les données de sa VM réservée."
+  },
+  "RESERVED_VM_DECOMMISSION_FAILED": {
+    "en": "Reserved VM data deletion could not be verified. The operation will be retried safely.",
+    "fr": "La suppression des données de la VM réservée n’a pas pu être vérifiée. L’opération sera réessayée en toute sécurité."
+  },
+  "RESERVED_VM_PAID_PLAN_REQUIRED": {
+    "en": "Reserved VM requires an active paid plan.",
+    "fr": "La VM réservée nécessite un abonnement payant actif."
+  },
+  "RESERVED_VM_INFRASTRUCTURE_INACTIVE": {
+    "en": "Reserved VM infrastructure is not active.",
+    "fr": "L’infrastructure des VM réservées n’est pas active."
+  },
+  "RESERVED_VM_TIER_CAPACITY_UNAVAILABLE": {
+    "en": "The selected Reserved VM tier has no schedulable operator capacity.",
+    "fr": "Aucune capacité opérateur planifiable n’est disponible pour l’offre de VM réservée sélectionnée."
+  },
+  "RESERVED_VM_TIER_CONFLICT": {
+    "en": "Reserved VM machine size must match its confirmed tier.",
+    "fr": "La taille de la VM réservée doit correspondre à l’offre confirmée."
+  },
+  "RESERVED_VM_FIELDS_REQUIRE_RESERVED_RUNTIME": {
+    "en": "Reserved VM fields require the Reserved VM runtime.",
+    "fr": "Les champs de VM réservée nécessitent le runtime VM réservée."
+  },
+  "RESERVED_VM_SERVER_PROVIDER_REQUIRED": {
+    "en": "Reserved VM requires the server deployment provider.",
+    "fr": "La VM réservée nécessite le fournisseur de déploiement serveur."
+  },
+  "RESERVED_VM_RUNTIME_NOT_READY": {
+    "en": "Only a ready server deployment can change runtime in place.",
+    "fr": "Seul un déploiement serveur prêt peut changer de runtime sur place."
+  },
+  "RESERVED_VM_AUTOSCALE_FIELDS_INVALID": {
+    "en": "Autoscale cannot carry Reserved VM confirmation fields.",
+    "fr": "Autoscale ne peut pas contenir les champs de confirmation d’une VM réservée."
+  },
+  "RESERVED_VM_CREATE_JOB_MISMATCH": {
+    "en": "The Reserved VM build job does not match its durable operation.",
+    "fr": "La tâche de compilation de la VM réservée ne correspond pas à son opération durable."
+  },
+  "RESERVED_VM_CREATE_NOT_BUILDABLE": {
+    "en": "This Reserved VM operation can no longer start a build.",
+    "fr": "Cette opération de VM réservée ne peut plus démarrer de compilation."
+  },
+  "RESERVED_VM_REDEPLOY_JOB_MISMATCH": {
+    "en": "The Reserved VM redeploy job does not match its durable operation.",
+    "fr": "La tâche de redéploiement de la VM réservée ne correspond pas à son opération durable."
+  },
+  "RESERVED_VM_REDEPLOY_PAYLOAD_INTEGRITY_FAILED": {
+    "en": "The Reserved VM redeploy payload failed its integrity check.",
+    "fr": "Le contrôle d’intégrité des données du redéploiement de la VM réservée a échoué."
+  },
+  "RESERVED_VM_REDEPLOY_NOT_READY": {
+    "en": "Only a ready Reserved VM can be redeployed in place.",
+    "fr": "Seule une VM réservée prête peut être redéployée sur place."
+  },
+  "RESERVED_VM_PROVISIONING_FAILED": {
+    "en": "Reserved VM provisioning failed.",
+    "fr": "Le provisionnement de la VM réservée a échoué."
+  },
+  "RESERVED_VM_ROLLBACK_UNPINNED": {
+    "en": "This Reserved VM release does not pin the exact runtime configuration and secrets required for a safe rollback. Redeploy a verified revision instead.",
+    "fr": "Cette version de VM réservée ne référence pas la configuration de runtime et les secrets exacts nécessaires à une restauration sûre. Redéployez plutôt une révision vérifiée."
   }
 }

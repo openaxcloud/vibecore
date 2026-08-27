@@ -289,7 +289,7 @@ import {
   retentionFloorMs,
   validateRestoreTarget,
 } from './database-rollback-service.js';
-import { enqueueDeployBuildJob } from './deploy-queue.js';
+import { enqueueDeployBuildJob, type DeployBuildJobInput } from './deploy-queue.js';
 import { reapStaleDeployments, resolveDeployBuildTimeoutMs } from './deploy-reaper.js';
 import { meterServerDeploymentRuntime } from './deploy-runtime-metering.js';
 import { shouldRecordDeploymentUsage } from './deployment-billing.js';
@@ -486,6 +486,13 @@ import {
   type WorkflowResolver,
 } from './scheduled-tasks.js';
 import { nextSpendAlertPct, spendAlertEmailContent } from './spend-alerts.js';
+import {
+  RESERVED_VM_PUBLIC_TIERS,
+  RESERVED_VM_TERMS_VERSION,
+  assertReservedVmConfirmation,
+  queryReservedVmCapability,
+  reservedVmRequestHash,
+} from './reserved-vm.js';
 import { StorageDeadlineError, THUMBNAIL_LOOKUP_DEADLINE_MS, withStorageDeadline } from './storage-deadline.js';
 import {
   API_KEY_SCOPES,
@@ -494,6 +501,11 @@ import {
   type CollaborationPresenceRecord,
   type DatabaseInstanceRecord,
   type DeploymentRecord,
+  type DeploymentRuntimeKind,
+  type ReservedVmBillingStore,
+  type ReservedVmEncryptedPayload,
+  type ReservedVmOperationRecord,
+  type ReservedVmTier,
   type InstalledSkillRecord,
   type ImportJobRecord,
   type ProjectIdeStateRecord,
@@ -501,6 +513,7 @@ import {
   type ProjectReleaseFence,
   type ProviderConfigRecord,
   type RollbackLeaseFence,
+  type ServerImageReleaseCommitInput,
   type RuntimeWebSocketEndpoint,
   type SessionRecord,
   type SkillAuditEventRecord,
@@ -3845,17 +3858,66 @@ function setAppLocaleResponseHeaders(reply: FastifyReply, locale: TransactionalL
   reply.header('vary', varyValues.join(', '));
 }
 
+/**
+ * The encrypted recovery envelope is durable worker state, not API data.  Keep
+ * this as a response-boundary defence in addition to the deployment serializer:
+ * admin/list/SSE routes can legitimately return records assembled by different
+ * stores and must never expose a key id or ciphertext by spreading metadata.
+ */
+function stripReservedVmRecoveryEnvelopes(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(stripReservedVmRecoveryEnvelopes);
+  }
+
+  if (
+    !value ||
+    typeof value !== 'object' ||
+    value instanceof Date ||
+    Buffer.isBuffer(value) ||
+    value instanceof Uint8Array
+  ) {
+    return value;
+  }
+
+  const output: Record<string, unknown> = {};
+
+  for (const [key, item] of Object.entries(value)) {
+    if (key === 'encryptedBuildInput') continue;
+    output[key] = stripReservedVmRecoveryEnvelopes(item);
+  }
+
+  return output;
+}
+
 function localizeDeploymentRecord<T extends Pick<DeploymentRecord, 'logs'>>(
   deployment: T,
   locale: TransactionalLocale,
 ): T {
-  return {
+  const localized = {
     ...deployment,
     logs: deployment.logs.map((log) => ({
       ...log,
       message: localizeBackendOwnedText(log.message, locale),
     })),
-  };
+  } as T;
+  const metadata = (localized as T & { metadata?: unknown }).metadata;
+
+  if (metadata && typeof metadata === 'object' && !Array.isArray(metadata)) {
+    const publicMetadata = { ...(metadata as Record<string, unknown>) };
+
+    for (const key of ['reservedVmCreate', 'reservedVmRedeploy'] as const) {
+      const durable = publicMetadata[key];
+
+      if (durable && typeof durable === 'object' && !Array.isArray(durable)) {
+        const { encryptedBuildInput: _ciphertext, ...safe } = durable as Record<string, unknown>;
+        publicMetadata[key] = safe;
+      }
+    }
+
+    (localized as T & { metadata?: unknown }).metadata = publicMetadata;
+  }
+
+  return localized;
 }
 
 function serverRuntimeDetectionMessage(
@@ -4310,6 +4372,7 @@ async function commitPromotedServerImageRelease(input: {
   dbMigrationPoint?: string;
   rollbackFence?: RollbackLeaseFence;
   releaseFence: ProjectReleaseFence;
+  reservedVmFence?: ServerImageReleaseCommitInput['reservedVmFence'];
 }): Promise<DeploymentRecord> {
   const release = requireCommittedServerImagePromotion(input.deployment, input.organizationId);
 
@@ -4343,6 +4406,7 @@ async function commitPromotedServerImageRelease(input: {
     finishedAt: new Date().toISOString(),
     releaseFence: input.releaseFence,
     ...(input.rollbackFence ? { rollbackFence: input.rollbackFence } : {}),
+    ...(input.reservedVmFence ? { reservedVmFence: input.reservedVmFence } : {}),
   });
 
   if (!result.committed || !result.manifest || result.deployment.status !== 'READY') {
@@ -4350,6 +4414,208 @@ async function commitPromotedServerImageRelease(input: {
   }
 
   return result.deployment;
+}
+
+interface ReservedVmRedeployMetadata {
+  operationId: string;
+  idempotencyKey: string;
+  expectedRuntimeVersion: number;
+  buildInput: Record<string, unknown>;
+}
+
+/** Internal saga invariant; HTTP responses use the EN/FR public-copy catalogue. */
+function reservedVmInternalError(message: string): Error {
+  return new Error(message);
+}
+
+const RESERVED_VM_CAPACITY_REASON = 'capacity' as const;
+
+function reservedVmPayloadKeyring(options: { production?: boolean } = {}): {
+  currentId: string;
+  keys: Map<string, string>;
+} {
+  const production = options.production ?? process.env.NODE_ENV === 'production';
+  const configuredCurrentId = process.env.RESERVED_VM_PAYLOAD_ENCRYPTION_KEY_ID?.trim();
+  const currentId = configuredCurrentId || 'current';
+
+  if ((production && !configuredCurrentId) || !/^[A-Za-z0-9._:-]{1,64}$/.test(currentId)) {
+    throw Object.assign(reservedVmInternalError('RESERVED_VM_PAYLOAD_KEY_CONFIG_INVALID'), {
+      code: 'RESERVED_VM_PAYLOAD_KEY_CONFIG_INVALID',
+      statusCode: 500,
+    });
+  }
+
+  const currentSecret = requireProductionSecret(
+    'RESERVED_VM_PAYLOAD_ENCRYPTION_KEY',
+    process.env.RESERVED_VM_PAYLOAD_ENCRYPTION_KEY,
+    'dev-reserved-vm-payload-key-change-me',
+  );
+
+  if (production && (!process.env.RESERVED_VM_PAYLOAD_ENCRYPTION_KEY?.trim() || currentSecret.length < 32)) {
+    throw Object.assign(reservedVmInternalError('RESERVED_VM_PAYLOAD_KEY_CONFIG_INVALID'), {
+      code: 'RESERVED_VM_PAYLOAD_KEY_CONFIG_INVALID',
+      statusCode: 500,
+    });
+  }
+  const keys = new Map<string, string>([[currentId, currentSecret]]);
+  const previousRaw = process.env.RESERVED_VM_PAYLOAD_DECRYPTION_KEYS_JSON?.trim();
+
+  if (previousRaw) {
+    try {
+      const parsed = JSON.parse(previousRaw) as unknown;
+
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw reservedVmInternalError('invalid keyring');
+
+      for (const [keyId, secret] of Object.entries(parsed as Record<string, unknown>)) {
+        if (!/^[A-Za-z0-9._:-]{1,64}$/.test(keyId) || typeof secret !== 'string' || secret.length < 32) {
+          throw reservedVmInternalError('invalid keyring entry');
+        }
+        if (!keys.has(keyId)) keys.set(keyId, secret);
+      }
+    } catch {
+      throw Object.assign(reservedVmInternalError('RESERVED_VM_PAYLOAD_KEY_CONFIG_INVALID'), {
+        code: 'RESERVED_VM_PAYLOAD_KEY_CONFIG_INVALID',
+        statusCode: 500,
+      });
+    }
+  }
+
+  return { currentId, keys };
+}
+
+function encryptReservedVmBuildInput(buildInput: Record<string, unknown>): ReservedVmEncryptedPayload {
+  const keyring = reservedVmPayloadKeyring();
+  return {
+    keyId: keyring.currentId,
+    ciphertext: encryptJson({ buildInput }, keyring.keys.get(keyring.currentId)),
+  };
+}
+
+function decryptReservedVmBuildInput(payload: ReservedVmEncryptedPayload): Record<string, unknown> {
+  try {
+    const secret = reservedVmPayloadKeyring().keys.get(payload.keyId);
+
+    if (!secret) throw reservedVmInternalError('unknown key');
+    const decrypted = decryptJson<{ buildInput?: unknown }>(payload.ciphertext, secret);
+
+    if (!decrypted.buildInput || typeof decrypted.buildInput !== 'object' || Array.isArray(decrypted.buildInput)) {
+      throw reservedVmInternalError('invalid payload');
+    }
+
+    return decrypted.buildInput as Record<string, unknown>;
+  } catch {
+    throw Object.assign(reservedVmInternalError('RESERVED_VM_PAYLOAD_DECRYPTION_FAILED'), {
+      code: 'RESERVED_VM_PAYLOAD_DECRYPTION_FAILED',
+      statusCode: 503,
+    });
+  }
+}
+
+interface ReservedVmCreateMetadata {
+  idempotencyKey: string;
+  actorUserId: string;
+  inputHash: string;
+  payloadHash: string;
+  buildInput: Record<string, unknown>;
+  projectManifest: Record<string, unknown>;
+  publishMigrationPlan: unknown;
+  accessPolicy: Record<string, unknown>;
+}
+
+function readReservedVmCreateMetadata(deployment: DeploymentRecord): ReservedVmCreateMetadata | undefined {
+  const metadata = deployment.metadata as Record<string, unknown> | undefined;
+  const candidate = metadata?.reservedVmCreate;
+
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return undefined;
+  const value = candidate as Record<string, unknown>;
+  const encryptedBuildInput = value.encryptedBuildInput as ReservedVmEncryptedPayload | undefined;
+  const projectManifest = value.projectManifest;
+  const accessPolicy = value.accessPolicy;
+
+  if (
+    typeof value.idempotencyKey !== 'string' ||
+    typeof value.actorUserId !== 'string' ||
+    typeof value.inputHash !== 'string' ||
+    typeof value.payloadHash !== 'string' ||
+    !encryptedBuildInput ||
+    typeof encryptedBuildInput.keyId !== 'string' ||
+    typeof encryptedBuildInput.ciphertext !== 'string' ||
+    !projectManifest ||
+    typeof projectManifest !== 'object' ||
+    Array.isArray(projectManifest) ||
+    !accessPolicy ||
+    typeof accessPolicy !== 'object' ||
+    Array.isArray(accessPolicy) ||
+    metadata?.reservedVmOperationKey !== value.idempotencyKey
+  ) {
+    throw Object.assign(reservedVmInternalError('RESERVED_VM_CREATE_METADATA_INVALID'), {
+      code: 'RESERVED_VM_CREATE_METADATA_INVALID',
+      statusCode: 409,
+    });
+  }
+
+  const buildInput = decryptReservedVmBuildInput(encryptedBuildInput);
+
+  const expectedPayloadHash = reservedVmRequestHash({
+    buildInput,
+    projectManifest,
+    publishMigrationPlan: value.publishMigrationPlan ?? null,
+    accessPolicy,
+  });
+
+  if (expectedPayloadHash !== value.payloadHash) {
+    throw Object.assign(reservedVmInternalError('RESERVED_VM_CREATE_PAYLOAD_INTEGRITY_FAILED'), {
+      code: 'RESERVED_VM_CREATE_PAYLOAD_INTEGRITY_FAILED',
+      statusCode: 409,
+    });
+  }
+
+  return {
+    idempotencyKey: value.idempotencyKey,
+    actorUserId: value.actorUserId,
+    inputHash: value.inputHash,
+    payloadHash: value.payloadHash,
+    buildInput: buildInput as Record<string, unknown>,
+    projectManifest: projectManifest as Record<string, unknown>,
+    publishMigrationPlan: value.publishMigrationPlan ?? null,
+    accessPolicy: accessPolicy as Record<string, unknown>,
+  };
+}
+
+function readReservedVmRedeployMetadata(deployment: DeploymentRecord): ReservedVmRedeployMetadata | undefined {
+  const metadata = deployment.metadata as Record<string, unknown> | undefined;
+  const candidate = metadata?.reservedVmRedeploy;
+
+  if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+    return undefined;
+  }
+
+  const value = candidate as Record<string, unknown>;
+  const encryptedBuildInput = value.encryptedBuildInput as ReservedVmEncryptedPayload | undefined;
+
+  if (
+    typeof value.operationId !== 'string' ||
+    typeof value.idempotencyKey !== 'string' ||
+    !Number.isInteger(value.expectedRuntimeVersion) ||
+    !encryptedBuildInput ||
+    typeof encryptedBuildInput.keyId !== 'string' ||
+    typeof encryptedBuildInput.ciphertext !== 'string' ||
+    metadata?.reservedVmOperationKey !== value.idempotencyKey
+  ) {
+    throw Object.assign(reservedVmInternalError('Reserved VM redeploy metadata is invalid.'), {
+      code: 'RESERVED_VM_REDEPLOY_METADATA_INVALID',
+      statusCode: 409,
+    });
+  }
+
+  const buildInput = decryptReservedVmBuildInput(encryptedBuildInput);
+
+  return {
+    operationId: value.operationId,
+    idempotencyKey: value.idempotencyKey,
+    expectedRuntimeVersion: value.expectedRuntimeVersion as number,
+    buildInput: buildInput as Record<string, unknown>,
+  };
 }
 
 async function reconcileDeploymentStatus(store: ApiStore, deployment: DeploymentRecord): Promise<DeploymentRecord> {
@@ -4409,6 +4675,129 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
 
       if (live && live.readyReplicas >= 1) {
         const url = `https://${serverMeta.host}`;
+        let runtimeDeployment = deployment;
+        let reservedVmReleaseFence: ServerImageReleaseCommitInput['reservedVmFence'];
+        let reservedVmReleaseKind: ReservedVmOperationRecord['kind'] | undefined;
+        const reservedVmOperationKey = (deployment.metadata as Record<string, unknown> | undefined)
+          ?.reservedVmOperationKey;
+
+        if (typeof reservedVmOperationKey === 'string') {
+          const ownerToken = randomUUID();
+          const claimed = await store.acquireReservedVmOperation({
+            projectId: deployment.projectId,
+            idempotencyKey: reservedVmOperationKey,
+            ownerToken,
+            ttlMs: serverDeployStartTimeoutMs() + 60_000,
+          });
+
+          if (claimed.operation.status === 'FAILED') {
+            await stopServerDeploymentViaManager(deployment.id).catch(() => undefined);
+            return store.updateDeployment(deployment.projectId, deployment.id, {
+              status: 'FAILED',
+              logs: [
+                ...deployment.logs,
+                {
+                  timestamp: new Date().toISOString(),
+                  level: 'error',
+                  message: claimed.operation.errorMessage ?? appPublicEnglish('RESERVED_VM_PROVISIONING_FAILED'),
+                },
+              ],
+              finishedAt: new Date().toISOString(),
+            });
+          }
+
+          if (claimed.operation.status === 'COMPLETED') {
+            runtimeDeployment = claimed.deployment;
+          } else if (!claimed.acquired) {
+            return deployment;
+          } else {
+            try {
+              /*
+               * A DB reclaim always owns a NEW deployment-global fence. Readiness
+               * from the old manifest is not authority to commit billing: reapply
+               * the accepted immutable target under the freshly claimed token and
+               * require the manager to echo that exact token first.
+               */
+              const targetSize = machineSizeFromCard(
+                await getActiveRateCard(store),
+                claimed.operation.targetMachineSize,
+              );
+              const reapplied = await reconfigureServerDeploymentViaManager({
+                deploymentId: deployment.id,
+                runtimeKind: claimed.operation.targetRuntimeKind,
+                reservedVmTier: claimed.operation.targetTier,
+                operationId: claimed.operation.id,
+                fencingToken: claimed.operation.fencingToken,
+                ...machineSizeResources(targetSize),
+              });
+
+              if (reapplied.appliedFencingToken !== claimed.operation.fencingToken) {
+                throw Object.assign(reservedVmInternalError('Reserved VM runtime fence was not applied.'), {
+                  code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+                  statusCode: 409,
+                });
+              }
+
+              const marked = await store.markReservedVmRuntimeApplied({
+                operationId: claimed.operation.id,
+                ownerToken,
+                fencingToken: claimed.operation.fencingToken,
+              });
+              if (!marked) return deployment;
+
+              if (serverMeta.image) {
+                runtimeDeployment = claimed.deployment;
+                reservedVmReleaseKind = claimed.operation.kind;
+                reservedVmReleaseFence = {
+                  operationId: claimed.operation.id,
+                  ownerToken,
+                  fencingToken: claimed.operation.fencingToken,
+                  response: { ready: true, url, readyReplicas: reapplied.readyReplicas },
+                };
+              } else {
+                runtimeDeployment = (
+                  await store.commitReservedVmOperation({
+                    operationId: claimed.operation.id,
+                    ownerToken,
+                    fencingToken: claimed.operation.fencingToken,
+                    response: { ready: true, url, readyReplicas: reapplied.readyReplicas },
+                  })
+                ).deployment;
+              }
+            } catch (error) {
+              if ((error as { rolledBack?: boolean }).rolledBack === true && claimed.operation.kind === 'CREATE') {
+                /* A failed CREATE has no previously paid runtime to keep alive. */
+                const deletedPersistentStorageClaim = await proveFailedReservedVmCreateStorageAbsent({
+                  deploymentId: deployment.id,
+                  operationId: claimed.operation.id,
+                  fencingToken: claimed.operation.fencingToken,
+                });
+                const failed = await store.failReservedVmOperation({
+                  operationId: claimed.operation.id,
+                  ownerToken,
+                  fencingToken: claimed.operation.fencingToken,
+                  errorCode: (error as { code?: string }).code ?? 'RESERVED_VM_RECONFIGURE_FAILED',
+                  errorMessage: (error as Error).message,
+                  createCleanup: { deletedPersistentStorageClaim },
+                });
+                return store.updateDeployment(deployment.projectId, deployment.id, {
+                  status: 'FAILED',
+                  logs: [
+                    ...deployment.logs,
+                    {
+                      timestamp: new Date().toISOString(),
+                      level: 'error',
+                      message: failed.errorMessage ?? appPublicEnglish('RESERVED_VM_PROVISIONING_FAILED'),
+                    },
+                  ],
+                  finishedAt: new Date().toISOString(),
+                });
+              }
+
+              throw error;
+            }
+          }
+        }
 
         const readyMessage = appPublicEnglish('DEPLOY_SERVER_READY', {
           replicas: live.readyReplicas,
@@ -4455,6 +4844,7 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
                     readyReplicas: live.readyReplicas,
                     readyMessage,
                     releaseFence: releaseGuard.fence,
+                    reservedVmFence: reservedVmReleaseFence,
                   });
                 }
 
@@ -4466,11 +4856,11 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
                   previewUrl: candidate.environment !== 'production' ? url : undefined,
                   productionUrl: candidate.environment === 'production' ? url : undefined,
                   metadata: {
-                    ...(candidate.metadata as Record<string, unknown>),
+                    ...(runtimeDeployment.metadata as Record<string, unknown>),
                     serverDeploy: { ...serverMeta, ready: true, readyReplicas: live.readyReplicas },
                   },
                   logs: [
-                    ...candidate.logs,
+                    ...runtimeDeployment.logs,
                     { timestamp: new Date().toISOString(), level: 'info', message: readyMessage },
                   ],
                   finishedAt: new Date().toISOString(),
@@ -4479,12 +4869,31 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
             );
           });
         } catch (error) {
-          /* A live pod without a valid release fence is not a release. */
-          await stopServerDeploymentViaManager(deployment.id).catch(() => undefined);
+          if (reservedVmReleaseFence && reservedVmReleaseKind !== 'CREATE') {
+            /* Existing paid runtimes remain served while their fenced saga retries. */
+            throw error;
+          }
+
+          if (reservedVmReleaseFence) {
+            const deletedPersistentStorageClaim = await proveFailedReservedVmCreateStorageAbsent({
+              deploymentId: deployment.id,
+              operationId: reservedVmReleaseFence.operationId,
+              fencingToken: reservedVmReleaseFence.fencingToken,
+            });
+            await store.failReservedVmOperation({
+              operationId: reservedVmReleaseFence.operationId,
+              ownerToken: reservedVmReleaseFence.ownerToken,
+              fencingToken: reservedVmReleaseFence.fencingToken,
+              errorCode: (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED',
+              errorMessage: (error as Error).message,
+              createCleanup: { deletedPersistentStorageClaim },
+            });
+          } else {
+            await stopServerDeploymentViaManager(deployment.id).catch(() => undefined);
+          }
 
           const code = (error as { code?: string }).code ?? 'PROMOTION_NOT_COMMITTED';
           const message = appPublicEnglish(serverImagePromotionErrorCopyKey(code));
-
           return store.updateDeployment(deployment.projectId, deployment.id, {
             status: 'FAILED',
             metadata: {
@@ -4509,7 +4918,44 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
        * pod would otherwise keep the autoscaler retrying scale-up indefinitely).
        */
       if (deployment.provider === 'server') {
-        await stopServerDeploymentViaManager(deployment.id).catch(() => undefined);
+        const operationKey = (deployment.metadata as Record<string, unknown> | undefined)?.reservedVmOperationKey;
+
+        if (typeof operationKey === 'string') {
+          // A Reserved VM reservation is only released after runtime cleanup is
+          // confirmed. If cleanup is uncertain, keep the saga recoverable.
+          const ownerToken = randomUUID();
+          const claimed = await store.acquireReservedVmOperation({
+            projectId: deployment.projectId,
+            idempotencyKey: operationKey,
+            ownerToken,
+            ttlMs: 60_000,
+          });
+
+          if (claimed.acquired) {
+            const createCleanup =
+              claimed.operation.kind === 'CREATE'
+                ? {
+                    deletedPersistentStorageClaim: await proveFailedReservedVmCreateStorageAbsent({
+                      deploymentId: deployment.id,
+                      operationId: claimed.operation.id,
+                      fencingToken: claimed.operation.fencingToken,
+                    }),
+                  }
+                : undefined;
+            await store.failReservedVmOperation({
+              operationId: claimed.operation.id,
+              ownerToken,
+              fencingToken: claimed.operation.fencingToken,
+              errorCode: 'RESERVED_VM_START_TIMEOUT',
+              errorMessage: appPublicEnglish('DEPLOYMENT_BUILD_TIMEOUT'),
+              ...(createCleanup ? { createCleanup } : {}),
+            });
+          } else if (claimed.operation.status !== 'FAILED') {
+            return deployment;
+          }
+        } else {
+          await stopServerDeploymentViaManager(deployment.id).catch(() => undefined);
+        }
       }
 
       return store.updateDeployment(deployment.projectId, deployment.id, {
@@ -7728,6 +8174,12 @@ async function startServerDeploymentViaManager(payload: {
   cpuLimit?: string;
   memoryRequest?: string;
   memoryLimit?: string;
+  runtimeKind?: DeploymentRuntimeKind;
+  reservedVmTier?: ReservedVmTier;
+  operationId?: string;
+
+  /** Monotone per Deployment: target runtimeVersion, not the per-lease DB token. */
+  fencingToken?: number;
 
   /**
    * État d'expiration du déploiement, lu par l'appelant. Fourni séparément parce
@@ -7737,7 +8189,13 @@ async function startServerDeploymentViaManager(payload: {
     candidate?: { environmentName?: string; createdAt: string; planKey?: string; expiredAt?: string };
     ttlDays: number | null;
   };
-}): Promise<{ ready: boolean; url: string; name: string; readyReplicas: number }> {
+}): Promise<{
+  ready: boolean;
+  url: string;
+  name: string;
+  readyReplicas: number;
+  appliedFencingToken?: number;
+}> {
   /*
    * BARRIÈRE DE DÉMARRAGE. Point d'étranglement de TOUS les démarrages de
    * workload serveur passant par l'API : redéploiement, réconciliation, reprise.
@@ -7767,14 +8225,254 @@ async function startServerDeploymentViaManager(payload: {
   });
 
   if (!response.ok) {
-    throw Object.assign(new Error(appPublicEnglish('SERVER_DEPLOY_MANAGER_START_FAILED')), {
-      statusCode: 502,
-      code: 'SERVER_DEPLOY_MANAGER_FAILED',
+    const upstream = (await response.json().catch(() => undefined)) as
+      | {
+          code?: string;
+          error?: string;
+          rolledBack?: boolean;
+          persistentStorageDeleted?: boolean;
+          persistentStorageClaimName?: string;
+        }
+      | undefined;
+    const capabilityFailure = upstream?.code?.startsWith('RESERVED_VM_');
+    throw Object.assign(new Error(upstream?.error ?? appPublicEnglish('SERVER_DEPLOY_MANAGER_START_FAILED')), {
+      statusCode: capabilityFailure ? response.status : 502,
+      code: capabilityFailure ? upstream?.code : 'SERVER_DEPLOY_MANAGER_FAILED',
       upstreamStatus: response.status,
+      rolledBack: upstream?.rolledBack === true,
+      persistentStorageDeleted: upstream?.persistentStorageDeleted === true,
+      persistentStorageClaimName: upstream?.persistentStorageClaimName,
     });
   }
 
-  return (await response.json()) as { ready: boolean; url: string; name: string; readyReplicas: number };
+  return (await response.json()) as {
+    ready: boolean;
+    url: string;
+    name: string;
+    readyReplicas: number;
+    appliedFencingToken?: number;
+  };
+}
+
+async function reconfigureServerDeploymentViaManager(payload: {
+  deploymentId: string;
+  runtimeKind: DeploymentRuntimeKind;
+  reservedVmTier?: ReservedVmTier;
+  image?: string;
+  command?: string[];
+  args?: string[];
+  env?: Record<string, string>;
+  healthPath?: string;
+  nixGenerationRef?: string;
+  cpuRequest?: string;
+  cpuLimit?: string;
+  memoryRequest?: string;
+  memoryLimit?: string;
+  operationId: string;
+  fencingToken: number;
+}): Promise<{
+  ready: true;
+  readyReplicas: number;
+  name: string;
+  persistentVolumeClaimName?: string;
+  appliedFencingToken: number;
+}> {
+  const response = await fetch(
+    `${workspaceManagerUrl()}/server-deployments/${encodeURIComponent(payload.deploymentId)}/reconfigure`,
+    {
+      method: 'POST',
+      headers: workspaceManagerControlHeaders(true),
+      body: JSON.stringify({ ...payload, deploymentId: undefined }),
+      signal: AbortSignal.timeout(serverDeployStartTimeoutMs()),
+    },
+  );
+
+  if (!response.ok) {
+    const upstream = (await response.json().catch(() => undefined)) as
+      | { code?: string; error?: string; rolledBack?: boolean }
+      | undefined;
+    throw Object.assign(reservedVmInternalError(upstream?.error ?? 'Server deployment reconfiguration failed.'), {
+      code: upstream?.code ?? 'RESERVED_VM_RECONFIGURE_FAILED',
+      statusCode: response.status >= 400 && response.status < 500 ? response.status : 503,
+      rolledBack: upstream?.rolledBack === true,
+    });
+  }
+
+  return (await response.json()) as {
+    ready: true;
+    readyReplicas: number;
+    name: string;
+    persistentVolumeClaimName?: string;
+    appliedFencingToken: number;
+  };
+}
+
+async function suspendReservedVmDeploymentViaManager(payload: {
+  deploymentId: string;
+  operationId: string;
+  fencingToken: number;
+}): Promise<{
+  suspended: true;
+  persistentVolumeClaimName: string;
+  appliedFencingToken: number;
+}> {
+  const response = await fetch(
+    `${workspaceManagerUrl()}/server-deployments/${encodeURIComponent(payload.deploymentId)}/suspend`,
+    {
+      method: 'POST',
+      headers: workspaceManagerControlHeaders(true),
+      body: JSON.stringify({
+        operationId: payload.operationId,
+        fencingToken: payload.fencingToken,
+        readyTimeoutMs: serverDeployStartTimeoutMs(),
+      }),
+      signal: AbortSignal.timeout(serverDeployStartTimeoutMs() + 30_000),
+    },
+  );
+
+  if (!response.ok) {
+    const upstream = (await response.json().catch(() => undefined)) as { code?: string; error?: string } | undefined;
+    throw Object.assign(reservedVmInternalError(upstream?.code ?? 'RESERVED_VM_SUSPEND_FAILED'), {
+      code: upstream?.code ?? 'RESERVED_VM_SUSPEND_FAILED',
+      statusCode: response.status >= 400 && response.status < 500 ? response.status : 503,
+    });
+  }
+
+  const result = (await response.json()) as {
+    suspended?: unknown;
+    persistentVolumeClaimName?: unknown;
+    appliedFencingToken?: unknown;
+  };
+
+  if (
+    result.suspended !== true ||
+    typeof result.persistentVolumeClaimName !== 'string' ||
+    result.appliedFencingToken !== payload.fencingToken
+  ) {
+    throw Object.assign(reservedVmInternalError('RESERVED_VM_SUSPEND_PROOF_INVALID'), {
+      code: 'RESERVED_VM_SUSPEND_PROOF_INVALID',
+      statusCode: 503,
+    });
+  }
+
+  return result as {
+    suspended: true;
+    persistentVolumeClaimName: string;
+    appliedFencingToken: number;
+  };
+}
+
+async function decommissionReservedVmStorageViaManager(payload: {
+  deploymentId: string;
+  persistentVolumeClaimName: string;
+  operationId: string;
+  fencingToken: number;
+  mode: 'autoscale-decommission' | 'failed-create';
+}): Promise<{
+  decommissioned: true;
+  persistentVolumeClaimName: string;
+  persistentVolumeClaimAbsent: true;
+  appliedFencingToken: number;
+}> {
+  const response = await fetch(
+    `${workspaceManagerUrl()}/server-deployments/${encodeURIComponent(payload.deploymentId)}/decommission-storage`,
+    {
+      method: 'POST',
+      headers: workspaceManagerControlHeaders(true),
+      body: JSON.stringify({
+        persistentVolumeClaimName: payload.persistentVolumeClaimName,
+        operationId: payload.operationId,
+        fencingToken: payload.fencingToken,
+        mode: payload.mode,
+        readyTimeoutMs: serverDeployStartTimeoutMs(),
+      }),
+      signal: AbortSignal.timeout(serverDeployStartTimeoutMs() + 30_000),
+    },
+  );
+
+  if (!response.ok) {
+    const upstream = (await response.json().catch(() => undefined)) as { code?: string; error?: string } | undefined;
+    throw Object.assign(reservedVmInternalError(upstream?.code ?? 'RESERVED_VM_DECOMMISSION_FAILED'), {
+      code: upstream?.code ?? 'RESERVED_VM_DECOMMISSION_FAILED',
+      statusCode: response.status >= 400 && response.status < 500 ? response.status : 503,
+    });
+  }
+
+  const result = (await response.json()) as {
+    decommissioned?: unknown;
+    persistentVolumeClaimName?: unknown;
+    persistentVolumeClaimAbsent?: unknown;
+    appliedFencingToken?: unknown;
+  };
+
+  if (
+    result.decommissioned !== true ||
+    result.persistentVolumeClaimName !== payload.persistentVolumeClaimName ||
+    result.persistentVolumeClaimAbsent !== true ||
+    result.appliedFencingToken !== payload.fencingToken
+  ) {
+    throw Object.assign(reservedVmInternalError('RESERVED_VM_DECOMMISSION_PROOF_INVALID'), {
+      code: 'RESERVED_VM_DECOMMISSION_PROOF_INVALID',
+      statusCode: 503,
+    });
+  }
+
+  return result as {
+    decommissioned: true;
+    persistentVolumeClaimName: string;
+    persistentVolumeClaimAbsent: true;
+    appliedFencingToken: number;
+  };
+}
+
+async function proveFailedReservedVmCreateStorageAbsent(input: {
+  deploymentId: string;
+  operationId: string;
+  fencingToken: number;
+  managerAlreadyProvedClaim?: string;
+}): Promise<string> {
+  const canonicalClaim = `reserved-data-${input.deploymentId}`;
+
+  if (input.managerAlreadyProvedClaim !== undefined) {
+    if (input.managerAlreadyProvedClaim !== canonicalClaim) {
+      throw Object.assign(reservedVmInternalError('RESERVED_VM_CREATE_CLEANUP_UNVERIFIED'), {
+        code: 'RESERVED_VM_CREATE_CLEANUP_UNVERIFIED',
+        statusCode: 503,
+      });
+    }
+
+    return canonicalClaim;
+  }
+
+  await stopServerDeploymentViaManagerStrict(input.deploymentId);
+  const proof = await decommissionReservedVmStorageViaManager({
+    deploymentId: input.deploymentId,
+    persistentVolumeClaimName: canonicalClaim,
+    operationId: input.operationId,
+    fencingToken: input.fencingToken,
+    mode: 'failed-create',
+  });
+
+  return proof.persistentVolumeClaimName;
+}
+
+function reservedVmBillingStore(store: ApiStore): (ApiStore & ReservedVmBillingStore) | undefined {
+  const candidate = store as ApiStore & Partial<ReservedVmBillingStore>;
+
+  return typeof candidate.claimDueReservedVmBillingPeriod === 'function' &&
+    typeof candidate.commitReservedVmBillingPeriod === 'function' &&
+    typeof candidate.failReservedVmBillingPeriod === 'function' &&
+    typeof candidate.claimNextReservedVmComputeStop === 'function' &&
+    typeof candidate.acknowledgeReservedVmComputeStopped === 'function'
+    ? (candidate as ApiStore & ReservedVmBillingStore)
+    : undefined;
+}
+
+function reservedVmBillingGracePeriodMs(): number {
+  const configured = Number(process.env.RESERVED_VM_BILLING_GRACE_MS);
+  return Number.isFinite(configured)
+    ? Math.min(6 * 24 * 60 * 60_000, Math.max(1_000, Math.trunc(configured)))
+    : 3 * 24 * 60 * 60_000;
 }
 
 /* Tear down a server deployment (Deployment/Service/Secret/Ingress) best-effort. */
@@ -9372,6 +10070,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     assertProductionWorkspaceManagerUrl();
+
+    if (process.env.RESERVED_VM_RUNTIME_ENABLED === 'true') {
+      /*
+       * Durable CREATE/REDEPLOY recovery contains user-provided environment
+       * values. Prove the dedicated envelope keyring at boot before accepting
+       * any traffic; discovering a missing/weak key after a worker crash would
+       * strand the paid runtime saga.
+       */
+      reservedVmPayloadKeyring({ production: true });
+    }
   }
 
   const aiGatewayUrl = (options.aiGatewayUrl ?? process.env.AI_GATEWAY_URL ?? 'http://127.0.0.1:3030').replace(
@@ -9508,6 +10216,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         '*.password',
         '*.token',
         '*.secret',
+        'encryptedBuildInput',
+        '*.encryptedBuildInput',
+        '*.*.encryptedBuildInput',
+        '*.*.*.encryptedBuildInput',
+        '*.*.*.*.encryptedBuildInput',
+        '*.*.*.*.*.encryptedBuildInput',
       ],
       serializers: {
         req(request): any {
@@ -9630,8 +10344,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     reply.header('x-correlation-id', correlationId);
   });
   app.addHook('preSerialization', async (request, reply, payload) => {
-    if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-      return payload;
+    const publicPayload = stripReservedVmRecoveryEnvelopes(payload);
+
+    if (!publicPayload || typeof publicPayload !== 'object' || Array.isArray(publicPayload)) {
+      return publicPayload;
     }
 
     const existingContentLanguage = reply.getHeader('content-language');
@@ -9651,10 +10367,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     if (reply.statusCode < 400) {
-      return payload;
+      return publicPayload;
     }
 
-    const errorPayload = payload as Record<string, unknown>;
+    const errorPayload = publicPayload as Record<string, unknown>;
 
     const nestedError =
       errorPayload.error && typeof errorPayload.error === 'object' && !Array.isArray(errorPayload.error)
@@ -9666,7 +10382,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       typeof errorPayload.message !== 'string' &&
       typeof nestedError?.message !== 'string'
     ) {
-      return payload;
+      return publicPayload;
     }
 
     const appLocalized = localizeAppPublicErrorPayload(errorPayload, locale);
@@ -27095,7 +27811,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
       await store.recordProjectActivity({
         projectId: project.id,
-        actorUserId: request.currentUser?.id,
+        actorUserId: request.currentUser!.id,
         action: 'project.checkpoint.restore',
         metadata: { checkpointId: ckpt.id, safetyCheckpointId: safety.checkpointId },
       });
@@ -36322,6 +37038,76 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     secondaryWorkspaceId?: string;
   }): Promise<DeploymentRecord> => {
     const { request, project, queued, body, secondaryWorkspaceId } = params;
+    const reservedVmRedeploy = readReservedVmRedeployMetadata(queued);
+    const isReservedVmRedeploy = Boolean(reservedVmRedeploy);
+
+    if (
+      reservedVmRedeploy &&
+      (queued.provider !== 'server' ||
+        queued.status !== 'READY' ||
+        queued.runtimeKind !== 'reserved-vm' ||
+        body.provider !== 'server' ||
+        body.runtimeKind !== 'reserved-vm' ||
+        body.reservedVmTier !== queued.reservedVmTier)
+    ) {
+      throw Object.assign(reservedVmInternalError('Reserved VM redeploy target no longer matches its durable payload.'), {
+        code: 'RESERVED_VM_REDEPLOY_TARGET_MISMATCH',
+        statusCode: 409,
+      });
+    }
+
+    const failReservedVmRedeploy = async (
+      errorCode: string,
+      errorMessage: string,
+      additionalLogs: StaticBuildLog[] = [],
+    ): Promise<DeploymentRecord> => {
+      if (!reservedVmRedeploy) {
+        throw reservedVmInternalError('unreachable');
+      }
+
+      const ownerToken = randomUUID();
+      const claimed = await store.acquireReservedVmOperation({
+        projectId: project.id,
+        idempotencyKey: reservedVmRedeploy.idempotencyKey,
+        ownerToken,
+        ttlMs: 60_000,
+      });
+
+      if (claimed.operation.kind !== 'REDEPLOY' || claimed.operation.id !== reservedVmRedeploy.operationId) {
+        throw Object.assign(reservedVmInternalError('Reserved VM redeploy operation metadata does not match the ledger saga.'), {
+          code: 'RESERVED_VM_REDEPLOY_METADATA_INVALID',
+          statusCode: 409,
+        });
+      }
+
+      if (claimed.operation.status === 'COMPLETED' || claimed.operation.status === 'FAILED') {
+        return claimed.deployment;
+      }
+
+      if (!claimed.acquired) {
+        throw Object.assign(reservedVmInternalError('Reserved VM redeploy is owned by another worker.'), {
+          code: 'RESERVED_VM_OPERATION_IN_PROGRESS',
+          statusCode: 503,
+        });
+      }
+
+      await store.failReservedVmOperation({
+        operationId: claimed.operation.id,
+        ownerToken,
+        fencingToken: claimed.operation.fencingToken,
+        errorCode,
+        errorMessage,
+      });
+
+      return store.updateDeployment(project.id, queued.id, {
+        status: 'READY',
+        logs: [
+          ...queued.logs,
+          ...additionalLogs,
+          { timestamp: new Date().toISOString(), level: 'error', message: errorMessage },
+        ],
+      });
+    };
 
     /*
      * The queue payload can wait or retry while a collaborator edits the
@@ -36331,8 +37117,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const queuedManifestDigest = (queued.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
 
-      let currentDigest: string | undefined;
-      let failureMessage = appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_DEPLOY');
+    let currentDigest: string | undefined;
+    let failureMessage = appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_DEPLOY');
 
     const manifestBindingValid =
       typeof queuedManifestDigest === 'string' && PROJECT_MANIFEST_DIGEST_PATTERN.test(queuedManifestDigest);
@@ -36358,19 +37144,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       (!manifestBindingValid && !legacyNonServerRow) ||
       (manifestBindingValid && currentDigest !== queuedManifestDigest)
     ) {
-        return store.updateDeployment(project.id, queued.id, {
-          status: 'FAILED',
-          logs: [
-            ...queued.logs,
-            {
-              timestamp: new Date().toISOString(),
-              level: 'error',
-              message: failureMessage,
-            },
-          ],
-          finishedAt: new Date().toISOString(),
-        });
+      if (isReservedVmRedeploy) {
+        return failReservedVmRedeploy('PROJECT_MANIFEST_CHANGED_BEFORE_DEPLOY', failureMessage);
       }
+
+      return store.updateDeployment(project.id, queued.id, {
+        status: 'FAILED',
+        logs: [
+          ...queued.logs,
+          {
+            timestamp: new Date().toISOString(),
+            level: 'error',
+            message: failureMessage,
+          },
+        ],
+        finishedAt: new Date().toISOString(),
+      });
+    }
 
     const expectedManifestDigest = manifestBindingValid
       ? (queuedManifestDigest as string)
@@ -36405,6 +37195,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       flushScheduled = true;
       setTimeout(() => {
         flushScheduled = false;
+        if (isReservedVmRedeploy) {
+          /*
+           * A redeploy deliberately leaves the public READY row serving while
+           * its replacement image builds. Read the latest metadata before the
+           * delayed phase write: using the queued snapshot here could race the
+           * atomic release commit and put the previous image metadata back.
+           * Build logs are committed with the release (or durable failure), so
+           * this heartbeat only advances the phase/updatedAt.
+           */
+          void store
+            .getDeployment(project.id, queued.id)
+            .then((current) =>
+              current
+                ? store.updateDeployment(project.id, queued.id, {
+                    status: 'READY',
+                    metadata: { ...(current.metadata as Record<string, unknown>), phase: livePhase },
+                  })
+                : undefined,
+            )
+            .catch(() => undefined);
+          return;
+        }
+
         void store
           .updateDeployment(project.id, queued.id, {
             status: 'BUILDING',
@@ -36432,7 +37245,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * Returns early — it shares none of the static-build / provider-hook logic.
      */
     if (body.provider === 'server') {
-      const host = serverDeployHost(queued.id);
+      const previousServerDeploy = (queued.metadata as Record<string, unknown> | undefined)?.serverDeploy as
+        | Record<string, unknown>
+        | undefined;
+      const host =
+        typeof previousServerDeploy?.host === 'string' ? previousServerDeploy.host : serverDeployHost(queued.id);
       const nowIso = () => new Date().toISOString();
 
       buildProgress.onPhase('deploying');
@@ -36442,7 +37259,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         message: appPublicEnglish('DEPLOY_SERVER_STARTING_RUNTIME', { host }),
       });
 
-      let started: { ready: boolean; url: string; name: string; readyReplicas: number } | undefined;
+      let started:
+        | {
+            ready: boolean;
+            url: string;
+            name: string;
+            readyReplicas: number;
+            appliedFencingToken?: number;
+          }
+        | undefined;
       let serverError: string | undefined;
 
       /*
@@ -36599,7 +37424,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             if (parsed && typeof parsed.run === 'string' && parsed.run.trim()) {
               deployConfig = {
                 run: parsed.run.trim(),
-                ...(typeof parsed.build === 'string' && parsed.build.trim() ? { build: parsed.build.trim() } : {}),
+                      ...(typeof parsed.build === 'string' && parsed.build.trim()
+                        ? { build: parsed.build.trim() }
+                        : {}),
               };
             }
           } catch {
@@ -36940,6 +37767,49 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         }
       }
 
+      let reservedVmLease: Awaited<ReturnType<ApiStore['acquireReservedVmOperation']>>['operation'] | undefined;
+      let reservedVmOwnerToken: string | undefined;
+
+      if (isReservedVmRedeploy && !serverError && (!serverImage || !imageBuildInfo || !imagePromotion)) {
+        serverError = 'Reserved VM redeploy requires a promoted immutable server image.';
+        imagePromotionErrorCode ??= 'RESERVED_VM_REDEPLOY_IMAGE_REQUIRED';
+      }
+
+      if (isReservedVmRedeploy && serverError) {
+        return failReservedVmRedeploy(
+          imagePromotionErrorCode ?? 'RESERVED_VM_PREPARATION_FAILED',
+          serverError,
+          liveLog,
+        );
+      }
+
+      if (body.runtimeKind === 'reserved-vm' && serverError) {
+        const operationKey = (queued.metadata as Record<string, unknown> | undefined)?.reservedVmOperationKey;
+
+        if (typeof operationKey === 'string') {
+          const ownerToken = randomUUID();
+          const claimed = await store.acquireReservedVmOperation({
+            projectId: project.id,
+            idempotencyKey: operationKey,
+            ownerToken,
+            ttlMs: 60_000,
+          });
+
+          if (claimed.acquired) {
+            await store.failReservedVmOperation({
+              operationId: claimed.operation.id,
+              ownerToken,
+              fencingToken: claimed.operation.fencingToken,
+              errorCode: 'RESERVED_VM_PREPARATION_FAILED',
+              errorMessage: serverError,
+              ...(claimed.operation.kind === 'CREATE'
+                ? { createCleanup: { deletedPersistentStorageClaim: `reserved-data-${queued.id}` } }
+                : {}),
+            });
+          }
+        }
+      }
+
       if ((bootCommand || serverImage) && !serverError) {
         /*
          * Machine size → pod resources. The size key was validated + persisted
@@ -36949,56 +37819,293 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          */
         const deployRateCard = await getActiveRateCard(store);
         const machineSize = machineSizeFromCard(deployRateCard, queued.machineSize);
-
+              const reservedVmOperationKey = (queued.metadata as Record<string, unknown> | undefined)
+                ?.reservedVmOperationKey;
         try {
-              await releaseGuard.assert();
-          started = await startServerDeploymentViaManager({
-            deploymentId: queued.id,
-            expiryCheck: {
-              candidate: {
-                environmentName: queued.environment,
-                createdAt: queued.createdAt,
-                planKey: (await billingState(project.organizationId).catch(() => undefined))?.plan.key,
-                expiredAt: ((queued.metadata ?? {}) as Record<string, unknown>)?.expiredAt as string | undefined,
+          if (body.runtimeKind === 'reserved-vm') {
+            if (typeof reservedVmOperationKey !== 'string') {
+                    throw Object.assign(reservedVmInternalError('Reserved VM operation is missing.'), {
+                code: 'RESERVED_VM_OPERATION_NOT_FOUND',
+              });
+            }
+
+            reservedVmOwnerToken = randomUUID();
+            const claimed = await store.acquireReservedVmOperation({
+              projectId: project.id,
+              idempotencyKey: reservedVmOperationKey,
+              ownerToken: reservedVmOwnerToken,
+              ttlMs: serverDeployStartTimeoutMs() + 60_000,
+            });
+
+            if (!claimed.acquired) {
+              if (claimed.operation.status === 'COMPLETED') {
+                return claimed.deployment;
+              }
+
+              if (claimed.operation.status === 'FAILED') {
+                      throw Object.assign(
+                        reservedVmInternalError(
+                          claimed.operation.errorMessage ?? appPublicEnglish('RESERVED_VM_PROVISIONING_FAILED'),
+                        ),
+                        {
+                  code: claimed.operation.errorCode ?? 'RESERVED_VM_OPERATION_FAILED',
+                        },
+                      );
+              }
+
+              /*
+               * Another worker still owns a live DB-clock lease. Surface a
+               * retryable failure to the durable job instead of returning 2xx:
+               * returning here would acknowledge the job while the deployment
+               * is still QUEUED and leave no actor to resume after lease expiry.
+               */
+                    throw Object.assign(reservedVmInternalError('Reserved VM provisioning is already being applied.'), {
+                code: 'RESERVED_VM_OPERATION_IN_PROGRESS',
+                statusCode: 503,
+              });
+            }
+
+            reservedVmLease = claimed.operation;
+
+            if (
+              isReservedVmRedeploy &&
+              (claimed.operation.kind !== 'REDEPLOY' || claimed.operation.id !== reservedVmRedeploy?.operationId)
+            ) {
+                    throw Object.assign(
+                      reservedVmInternalError('Reserved VM redeploy operation metadata does not match the lease.'),
+                      {
+                code: 'RESERVED_VM_REDEPLOY_METADATA_INVALID',
+                statusCode: 409,
+                      },
+                    );
+            }
+          }
+
+          await releaseGuard.assert();
+
+          if (isReservedVmRedeploy) {
+            if (!reservedVmLease || !serverImage) {
+                    throw Object.assign(reservedVmInternalError('Reserved VM redeploy lease or promoted image is missing.'), {
+                code: 'RESERVED_VM_REDEPLOY_PRECONDITION_FAILED',
+                statusCode: 409,
+              });
+            }
+
+            const runtime = await reconfigureServerDeploymentViaManager({
+              deploymentId: queued.id,
+              ...machineSizeResources(machineSize),
+              runtimeKind: 'reserved-vm',
+              reservedVmTier: body.reservedVmTier,
+              image: serverImage,
+              command: [],
+              args: [],
+              env: serverEnv,
+              healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+              ...(ecodeLock ? { nixGenerationRef: ecodeLock.storeGeneration } : {}),
+              operationId: reservedVmLease.id,
+              fencingToken: reservedVmLease.fencingToken,
+            });
+            started = {
+              ready: true,
+              url: queued.url ?? `https://${host}`,
+              name: runtime.name,
+              readyReplicas: runtime.readyReplicas,
+              appliedFencingToken: runtime.appliedFencingToken,
+            };
+          } else {
+            started = await startServerDeploymentViaManager({
+              deploymentId: queued.id,
+              expiryCheck: {
+                candidate: {
+                  environmentName: queued.environment,
+                  createdAt: queued.createdAt,
+                  planKey: (await billingState(project.organizationId).catch(() => undefined))?.plan.key,
+                        expiredAt: ((queued.metadata ?? {}) as Record<string, unknown>)?.expiredAt as
+                          | string
+                          | undefined,
+                },
+                ttlDays: publishedProjectTtlDays(
+                        toEntitlementPlanKey(
+                          (await billingState(project.organizationId).catch(() => undefined))?.plan.key,
+                ),
+                      ),
               },
-              ttlDays: publishedProjectTtlDays(
-                toEntitlementPlanKey((await billingState(project.organizationId).catch(() => undefined))?.plan.key),
-              ),
-            },
-            ...machineSizeResources(machineSize),
-            image:
-              serverImage ??
-              process.env.SERVER_DEPLOY_IMAGE ??
-              process.env.WORKSPACE_AGENT_IMAGE ??
-              'vibecore/workspace-agent:2026.04.0',
+              ...machineSizeResources(machineSize),
+              image:
+                serverImage ??
+                process.env.SERVER_DEPLOY_IMAGE ??
+                process.env.WORKSPACE_AGENT_IMAGE ??
+                'vibecore/workspace-agent:2026.04.0',
 
-            // Snapshot-image deploys run the image's own baked CMD.
-            ...(serverImage ? {} : { command: bootCommand }),
-            port: serverPort,
-            host,
-            projectId: project.id,
-            orgId: project.organizationId,
-            env: serverEnv,
+              // Snapshot-image deploys run the image's own baked CMD.
+              ...(serverImage ? {} : { command: bootCommand }),
+              port: serverPort,
+              host,
+              projectId: project.id,
+              orgId: project.organizationId,
+              env: serverEnv,
 
-            /*
-             * Real apps rarely expose /health; the readiness probe defaults to `/`,
-             * which every real web app answers (overridable per install).
-             */
-            healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
+              /*
+               * Real apps rarely expose /health; the readiness probe defaults to `/`,
+               * which every real web app answers (overridable per install).
+               */
+              healthPath: process.env.SERVER_DEPLOY_HEALTH_PATH || '/',
 
-            // CTR-RUNTIME-NIX: the runtime pod pins the lock's generation too.
-            ...(ecodeLock ? { nixGenerationRef: ecodeLock.storeGeneration } : {}),
+              // CTR-RUNTIME-NIX: the runtime pod pins the lock's generation too.
+              ...(ecodeLock ? { nixGenerationRef: ecodeLock.storeGeneration } : {}),
 
-            // A Nix-enabled project keeps its /nix toolchain at runtime.
-            nixStorePvcName: nixStorePvcForProject(project.id),
-          });
+              // A Nix-enabled project keeps its /nix toolchain at runtime.
+              nixStorePvcName: nixStorePvcForProject(project.id),
+              runtimeKind: body.runtimeKind,
+              ...(body.runtimeKind === 'reserved-vm' && body.reservedVmTier
+                ? {
+                    reservedVmTier: body.reservedVmTier,
+                    operationId: reservedVmLease?.id,
+                    fencingToken: reservedVmLease?.fencingToken,
+                  }
+                : {}),
+            });
+          }
+
+          if (reservedVmLease && reservedVmOwnerToken) {
+            if (started.appliedFencingToken !== reservedVmLease.fencingToken) {
+                    throw Object.assign(reservedVmInternalError('Reserved VM runtime fence was not applied.'), {
+                code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+              });
+            }
+            const applied = await store.markReservedVmRuntimeApplied({
+              operationId: reservedVmLease.id,
+              ownerToken: reservedVmOwnerToken,
+              fencingToken: reservedVmLease.fencingToken,
+            });
+
+            if (!applied) {
+                    throw Object.assign(reservedVmInternalError('Reserved VM operation ownership was lost.'), {
+                code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+              });
+            }
+          }
         } catch (error) {
           serverError = (error as Error).message ?? 'server deploy failed to start';
+
+          if (reservedVmLease && reservedVmOwnerToken) {
+            if (isReservedVmRedeploy) {
+              if ((error as { rolledBack?: boolean }).rolledBack !== true) {
+                request.log?.error?.(
+                  { err: error, deploymentId: queued.id, operationId: reservedVmLease.id },
+                  'reserved VM redeploy outcome uncertain; operation left recoverable',
+                );
+                throw error;
+              }
+
+              await store.failReservedVmOperation({
+                operationId: reservedVmLease.id,
+                ownerToken: reservedVmOwnerToken,
+                fencingToken: reservedVmLease.fencingToken,
+                errorCode: (error as { code?: string }).code ?? 'RESERVED_VM_REDEPLOY_ROLLED_BACK',
+                errorMessage: serverError,
+              });
+              return store.updateDeployment(project.id, queued.id, {
+                status: 'READY',
+                logs: [...queued.logs, ...liveLog, { timestamp: nowIso(), level: 'error', message: serverError }],
+              });
+            }
+
+            try {
+              const deletedPersistentStorageClaim = await proveFailedReservedVmCreateStorageAbsent({
+                deploymentId: queued.id,
+                operationId: reservedVmLease.id,
+                fencingToken: reservedVmLease.fencingToken,
+                ...((error as { persistentStorageDeleted?: boolean }).persistentStorageDeleted === true
+                  ? {
+                      managerAlreadyProvedClaim: (error as { persistentStorageClaimName?: string })
+                        .persistentStorageClaimName,
+                    }
+                  : {}),
+              });
+              await store.failReservedVmOperation({
+                operationId: reservedVmLease.id,
+                ownerToken: reservedVmOwnerToken,
+                fencingToken: reservedVmLease.fencingToken,
+                errorCode: (error as { code?: string }).code ?? 'RESERVED_VM_RUNTIME_APPLY_FAILED',
+                errorMessage: serverError,
+                createCleanup: { deletedPersistentStorageClaim },
+              });
+            } catch (cleanupError) {
+              request.log?.error?.(
+                { err: cleanupError, deploymentId: queued.id, operationId: reservedVmLease.id },
+                'reserved VM cleanup not proven; operation left recoverable',
+              );
+            }
+          }
         }
       }
 
-      const ok = Boolean(started?.ready);
+      let ok = Boolean(started?.ready);
       const serverUrl = started?.url ?? `https://${host}`;
+      let reservedVmCommittedDeployment: DeploymentRecord | undefined;
+
+      if (ok && body.runtimeKind === 'reserved-vm' && !imageBuildInfo) {
+        const operationKey = (queued.metadata as Record<string, unknown> | undefined)?.reservedVmOperationKey;
+
+        if (reservedVmLease && reservedVmOwnerToken) {
+          reservedVmCommittedDeployment = (
+            await store.commitReservedVmOperation({
+              operationId: reservedVmLease.id,
+              ownerToken: reservedVmOwnerToken,
+              fencingToken: reservedVmLease.fencingToken,
+              response: {
+                ready: true,
+                url: serverUrl,
+                readyReplicas: started?.readyReplicas ?? 0,
+              },
+            })
+          ).deployment;
+        } else if (typeof operationKey === 'string') {
+          const ownerToken = randomUUID();
+          const claimed = await store.acquireReservedVmOperation({
+            projectId: project.id,
+            idempotencyKey: operationKey,
+            ownerToken,
+            ttlMs: 60_000,
+          });
+
+          if (claimed.operation.status === 'COMPLETED') {
+            reservedVmCommittedDeployment = claimed.deployment;
+          } else if (claimed.acquired) {
+            if (claimed.operation.phase !== 'RUNTIME_APPLIED') {
+              const marked = await store.markReservedVmRuntimeApplied({
+                operationId: claimed.operation.id,
+                ownerToken,
+                fencingToken: claimed.operation.fencingToken,
+              });
+              if (!marked) {
+                      throw Object.assign(reservedVmInternalError('Reserved VM operation ownership was lost.'), {
+                  code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+                });
+              }
+            }
+
+            reservedVmCommittedDeployment = (
+              await store.commitReservedVmOperation({
+                operationId: claimed.operation.id,
+                ownerToken,
+                fencingToken: claimed.operation.fencingToken,
+                response: {
+                  ready: true,
+                  url: serverUrl,
+                  readyReplicas: started?.readyReplicas ?? 0,
+                },
+              })
+            ).deployment;
+          } else {
+            // Never expose READY until the exactly-once billing transition has
+            // committed. The current lease owner/reconcile will finish it.
+            started = { ...started!, ready: false };
+            ok = false;
+          }
+        }
+      }
 
       /*
        * Manifests applied (the manager returned a well-formed result) but the
@@ -37031,6 +38138,97 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             : appPublicEnglish('DEPLOY_SERVER_FAILED'),
       });
 
+      const reservedVmReleaseFence: ServerImageReleaseCommitInput['reservedVmFence'] =
+        ok && serverImageRequiresReleaseCommit && reservedVmLease && reservedVmOwnerToken
+          ? {
+              operationId: reservedVmLease.id,
+              ownerToken: reservedVmOwnerToken,
+              fencingToken: reservedVmLease.fencingToken,
+              response: {
+                ready: true,
+                url: serverUrl,
+                readyReplicas: started?.readyReplicas ?? 0,
+                      ...(queued.persistentStorageClaim
+                        ? { persistentVolumeClaimName: queued.persistentStorageClaim }
+                        : {}),
+              },
+            }
+          : undefined;
+
+      if (isReservedVmRedeploy) {
+        if (!ok || !serverImageRequiresReleaseCommit || !reservedVmReleaseFence) {
+                throw Object.assign(
+                  reservedVmInternalError('Reserved VM redeploy did not reach an atomically committable release.'),
+                  {
+            code: 'RESERVED_VM_REDEPLOY_NOT_COMMITTABLE',
+            statusCode: 503,
+                  },
+                );
+        }
+
+        const releaseCandidate: DeploymentRecord = {
+          ...queued,
+          status: 'READY',
+          framework: detectedFramework ?? queued.framework,
+          url: queued.url ?? serverUrl,
+          previewUrl: queued.previewUrl,
+          productionUrl: queued.productionUrl,
+          metadata: {
+            ...(queued.metadata as Record<string, unknown>),
+            serverDeploy: {
+              ...(previousServerDeploy ?? {}),
+              host,
+              ready: true,
+              readyReplicas: started?.readyReplicas ?? 0,
+              applied: true,
+              image: imageBuildInfo,
+              promotion: imagePromotion,
+              releaseConfigDigest: configDigest(body.envVars ?? {}),
+            },
+          },
+          logs: [...queued.logs, ...liveLog],
+        };
+
+        try {
+                await releaseGuard.assert();
+          const committed = await commitPromotedServerImageRelease({
+            store,
+            deployment: releaseCandidate,
+            organizationId: project.organizationId,
+            url: queued.url ?? serverUrl,
+            readyReplicas: started?.readyReplicas ?? 0,
+            readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
+            releaseFence: releaseGuard.fence,
+            reservedVmFence: reservedVmReleaseFence,
+          });
+          await audit(request, store, {
+            organizationId: project.organizationId,
+            action: 'deployment.redeploy',
+            resourceType: 'deployment',
+            resourceId: committed.id,
+            metadata: {
+              operationId: reservedVmReleaseFence.operationId,
+              inPlace: true,
+              promotionId: imagePromotion?.promotionId,
+              runtimeVersion: committed.runtimeVersion,
+            },
+          });
+          return committed;
+        } catch (error) {
+          /*
+           * The manager already proved the new generation Ready, but the DB
+           * release transaction did not commit. Never stop the paid runtime and
+           * never publish partial metadata: leave the fenced saga recoverable.
+           */
+          request.log?.error?.(
+            { err: error, deploymentId: queued.id, operationId: reservedVmReleaseFence.operationId },
+            'reserved VM redeploy release commit uncertain; operation left recoverable',
+          );
+          throw error;
+        }
+      }
+
+      const rowBeforeReady = reservedVmCommittedDeployment ?? queued;
       let readyRow = await store.updateDeployment(project.id, queued.id, {
         /*
          * Every server runtime crosses BUILDING→READY in a store transaction
@@ -37046,12 +38244,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * app whose real run plan the pipeline had already detected and logged as
          * "node". Persist what actually ran.
          */
-        framework: detectedFramework ?? queued.framework,
+        framework: detectedFramework ?? rowBeforeReady.framework,
         url: undefined,
         previewUrl: undefined,
         productionUrl: undefined,
         metadata: {
-          ...(queued.metadata as Record<string, unknown>),
+          ...(rowBeforeReady.metadata as Record<string, unknown>),
           projectManifestDigest: expectedManifestDigest,
           serverDeploy: {
             host,
@@ -37074,7 +38272,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         logs: [
           ...createDeploymentLogs(
             body,
-            { ...queued, url: serverUrl, framework: detectedFramework ?? queued.framework },
+            { ...rowBeforeReady, url: serverUrl, framework: detectedFramework ?? rowBeforeReady.framework },
             project,
           ),
           ...liveLog,
@@ -37100,6 +38298,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               readyReplicas: started?.readyReplicas ?? 0,
               readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
               releaseFence: releaseGuard.fence,
+              reservedVmFence: reservedVmReleaseFence,
             });
           } else {
             readyRow = await store.commitFencedServerReady({
@@ -37121,7 +38320,23 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             });
           }
         } catch (error) {
-          await stopServerDeploymentViaManager(queued.id).catch(() => undefined);
+          if (reservedVmReleaseFence) {
+            const deletedPersistentStorageClaim = await proveFailedReservedVmCreateStorageAbsent({
+              deploymentId: queued.id,
+              operationId: reservedVmReleaseFence.operationId,
+              fencingToken: reservedVmReleaseFence.fencingToken,
+            });
+            await store.failReservedVmOperation({
+              operationId: reservedVmReleaseFence.operationId,
+              ownerToken: reservedVmReleaseFence.ownerToken,
+              fencingToken: reservedVmReleaseFence.fencingToken,
+              errorCode: (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED',
+              errorMessage: (error as Error).message,
+              createCleanup: { deletedPersistentStorageClaim },
+            });
+          } else {
+            await stopServerDeploymentViaManager(queued.id).catch(() => undefined);
+          }
           imagePromotionErrorCode = (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED';
 
           const message = appPublicEnglish(serverImagePromotionErrorCopyKey(imagePromotionErrorCode));
@@ -37212,7 +38427,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       let staticBuild: RunStaticBuildResult;
 
       if (useWorkspacePodBuild) {
-        const workspaceAttempt = await buildStaticInWorkspacePod(request, project, body, queued.id, buildProgress);
+              const workspaceAttempt = await buildStaticInWorkspacePod(
+                request,
+                project,
+                body,
+                queued.id,
+                buildProgress,
+              );
 
         if (workspaceAttempt.handled) {
           workspaceBuildTempDir = workspaceAttempt.tempDir;
@@ -37572,28 +38793,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     /*
-     * A suspended org must not queue new builds (resource consumption) — matches
-     * the workspace create/start routes.
-     */
-    await requireOrganizationNotSuspended(store, project.organizationId);
-
-    /*
      * Replit-parity service-shutdown limit: pause deployments when the org's
      * credits are exhausted and a shutdown cap is set. Inert unless
      * BILLING_CREDITS_ENABLED=true (SHADOW/default never blocks).
      */
-    const deployShutdown = await checkServiceShutdown(store, {
-      organizationId: project.organizationId,
-      nowMs: Date.now(),
-    });
-
-    if (deployShutdown.shutdown) {
-      return reply.code(402).send({
-        error: appPublicEnglish('SERVICE_SHUTDOWN_DEPLOYS_PAUSED'),
-        code: 'SERVICE_SHUTDOWN_LIMIT_REACHED',
-      });
-    }
-
     const parsedDeploymentBody = parse(createDeploymentSchema, request.body);
 
     const body = {
@@ -37607,29 +38810,161 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       envVars: {},
       injectSecrets: [],
       ...parsedDeploymentBody,
+      runtimeKind: parsedDeploymentBody.runtimeKind ?? 'autoscale',
       accessMode: (parsedDeploymentBody.accessMode ??
         (deploymentAccessActivationEnabled(isProduction) ? 'INVITE_ONLY' : 'PUBLIC')) as DeploymentAccessMode,
     };
+    const { accessPassword: _accessPassword, ...safeBuildInput } = body;
+    let reservedVmCreateIdentity: { idempotencyKey: string; requestHash: string } | undefined;
+    let reservedVmAccessIdentityHash: string | undefined;
+
+    if (body.provider === 'server' && body.runtimeKind === 'reserved-vm') {
+      await requireOrg(request, store, project.organizationId, 'billing:manage');
+      const rawIdempotencyKey = request.headers['idempotency-key'];
+      const idempotencyKey = (Array.isArray(rawIdempotencyKey) ? rawIdempotencyKey[0] : rawIdempotencyKey)?.trim();
+
+      if (!idempotencyKey || !/^[A-Za-z0-9._:-]{16,128}$/.test(idempotencyKey)) {
+        return reply.code(400).send({
+          error: appPublicEnglish('RESERVED_VM_IDEMPOTENCY_KEY_REQUIRED'),
+          code: 'RESERVED_VM_IDEMPOTENCY_KEY_REQUIRED',
+        });
+      }
+
+      const identitySecret = requireProductionSecret(
+        'JWT_SECRET',
+        options.jwtSecret ?? process.env.JWT_SECRET,
+        'dev-reserved-vm-idempotency-secret-change-me',
+      );
+      const envVarFingerprints = Object.fromEntries(
+        Object.entries(body.envVars)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([key, value]) => [key, createHmac('sha256', identitySecret).update(value).digest('hex')]),
+      );
+      reservedVmAccessIdentityHash = createHmac('sha256', identitySecret)
+        .update(body.accessPassword ?? '')
+        .digest('hex');
+      reservedVmCreateIdentity = {
+        idempotencyKey,
+        requestHash: reservedVmRequestHash({
+          operation: 'create',
+          projectId: project.id,
+          organizationId: project.organizationId,
+          actorUserId: request.currentUser?.id ?? null,
+          buildInput: {
+            ...safeBuildInput,
+            envVars: envVarFingerprints,
+            accessIdentityHash: reservedVmAccessIdentityHash,
+          },
+        }),
+      };
+    }
+
+    const resolveAcceptedReservedVmCreate = async () => {
+      if (!reservedVmCreateIdentity) return undefined;
+      const operation = await store.getReservedVmOperation(project.id, reservedVmCreateIdentity.idempotencyKey);
+
+      if (!operation) return undefined;
+      if (operation.kind !== 'CREATE' || operation.requestHash !== reservedVmCreateIdentity.requestHash) {
+        return { conflict: true as const };
+      }
+
+      const deployment = await store.getDeployment(project.id, operation.deploymentId);
+
+      if (!deployment) {
+        throw Object.assign(reservedVmInternalError('RESERVED_VM_REPLAY_CORRUPT'), {
+          code: 'RESERVED_VM_REPLAY_CORRUPT',
+          statusCode: 500,
+        });
+      }
+
+      return { conflict: false as const, operation, deployment };
+    };
+    const sendAcceptedReservedVmCreate = (
+      accepted: NonNullable<Awaited<ReturnType<typeof resolveAcceptedReservedVmCreate>>>,
+    ) => {
+      if (accepted.conflict) {
+        return reply.code(409).send({
+          error: appPublicEnglish('RESERVED_VM_IDEMPOTENCY_CONFLICT'),
+          code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
+        });
+      }
+      if (accepted.operation.status === 'FAILED') {
+        return reply.code(409).send({
+          error: accepted.operation.errorMessage ?? appPublicEnglish('RESERVED_VM_OPERATION_FAILED'),
+          code: accepted.operation.errorCode ?? 'RESERVED_VM_OPERATION_FAILED',
+          operation: accepted.operation,
+          deployment: localizeDeploymentRecord(accepted.deployment, transactionalLocaleForRequest(request)),
+        });
+      }
+
+      return reply.code(accepted.operation.status === 'COMPLETED' ? 200 : 202).send({
+        operation: accepted.operation,
+        deployment: localizeDeploymentRecord(accepted.deployment, transactionalLocaleForRequest(request)),
+        ...(accepted.operation.status === 'COMPLETED' ? {} : { retryable: true }),
+      });
+    };
+    const sendLinearizedCreateGateFailure = async (statusCode: number, payload: Record<string, unknown>) => {
+      if (!reservedVmCreateIdentity) return reply.code(statusCode).send(payload);
+
+      const accepted = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, () =>
+        resolveAcceptedReservedVmCreate(),
+      );
+      return accepted ? sendAcceptedReservedVmCreate(accepted) : reply.code(statusCode).send(payload);
+    };
+    const acceptedReservedVmCreate = await resolveAcceptedReservedVmCreate();
+
+    if (acceptedReservedVmCreate) {
+      return sendAcceptedReservedVmCreate(acceptedReservedVmCreate);
+    }
+
+    /*
+     * An accepted idempotent replay is a read of durable state and remains
+     * available while the tenant is suspended. Only a new resource-consuming
+     * mutation crosses this mutable organization gate.
+     */
+    try {
+      await requireOrganizationNotSuspended(store, project.organizationId);
+    } catch (error) {
+      if (reservedVmCreateIdentity) {
+        const accepted = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, () =>
+          resolveAcceptedReservedVmCreate(),
+        );
+        if (accepted) return sendAcceptedReservedVmCreate(accepted);
+      }
+      throw error;
+    }
+
+    const deployShutdown = await checkServiceShutdown(store, {
+      organizationId: project.organizationId,
+      nowMs: Date.now(),
+    });
+
+    if (deployShutdown.shutdown) {
+      return sendLinearizedCreateGateFailure(402, {
+        error: appPublicEnglish('SERVICE_SHUTDOWN_DEPLOYS_PAUSED'),
+        code: 'SERVICE_SHUTDOWN_LIMIT_REACHED',
+      });
+    }
 
     if (
       (body.accessMode === 'PASSWORD_PROTECTED' && !body.accessPassword) ||
       (body.accessMode !== 'PASSWORD_PROTECTED' && body.accessPassword !== undefined)
     ) {
-      return reply.code(400).send({
+      return sendLinearizedCreateGateFailure(400, {
         error: 'A password is required only for password-protected deployments.',
         code: 'DEPLOYMENT_ACCESS_PASSWORD_INVALID',
       });
     }
 
     if (body.accessMode !== 'PUBLIC' && !deploymentAccessActivationEnabled(isProduction)) {
-      return reply.code(503).send({
+      return sendLinearizedCreateGateFailure(503, {
         error: 'Protected deployment access is not activated on every serving edge yet.',
         code: 'DEPLOYMENT_ACCESS_ROLLOUT_NOT_ACTIVE',
       });
     }
 
     if (isProduction && body.accessMode !== 'PUBLIC' && !process.env.DEPLOYMENT_ACCESS_TOKEN_SECRET?.trim()) {
-      return reply.code(503).send({
+      return sendLinearizedCreateGateFailure(503, {
         error: 'Deployment access signing is unavailable.',
         code: 'DEPLOYMENT_ACCESS_SIGNING_UNAVAILABLE',
       });
@@ -37647,7 +38982,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     const deployPlanKey =
       subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status) ? subscription.planKey : 'free';
-    assertDeploymentRequestAllowed(body, deployPlanKey);
+    try {
+      assertDeploymentRequestAllowed(body, deployPlanKey);
+    } catch (error) {
+      if (reservedVmCreateIdentity) {
+        const accepted = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, () =>
+          resolveAcceptedReservedVmCreate(),
+        );
+        if (accepted) return sendAcceptedReservedVmCreate(accepted);
+      }
+      throw error;
+    }
 
     /*
      * Machine size (server deploys): resolve the requested rate-card size and
@@ -37657,14 +39002,101 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      */
     let deployMachineSize: string | undefined;
     let deployMachineVcpu = 0;
+    let reservedVmBilling:
+      | {
+          organizationId: string;
+          actorUserId: string;
+          idempotencyKey: string;
+          requestHash: string;
+          tier: ReservedVmTier;
+          termsVersion: string;
+          monthlyPriceCents: number;
+          rateCardVersion: number;
+        }
+      | undefined;
 
     if (body.provider === 'server') {
       try {
         const rateCard = await getActiveRateCard(store);
-        const resolvedMachineSize = resolveDeployMachineSize(rateCard, body.machineSize, deployPlanKey);
+        const requestedMachineSize = body.runtimeKind === 'reserved-vm' ? body.reservedVmTier : body.machineSize;
+        const resolvedMachineSize = resolveDeployMachineSize(rateCard, requestedMachineSize, deployPlanKey);
         deployMachineSize = resolvedMachineSize.key;
         deployMachineVcpu = resolvedMachineSize.vcpu;
+
+        if (body.runtimeKind === 'reserved-vm') {
+          if (!subscription || !['ACTIVE', 'TRIALING'].includes(subscription.status) || deployPlanKey === 'free') {
+            return sendLinearizedCreateGateFailure(402, {
+              error: appPublicEnglish('RESERVED_VM_PAID_PLAN_REQUIRED'),
+              code: 'RESERVED_VM_PAID_PLAN_REQUIRED',
+            });
+          }
+
+          const capability = await queryReservedVmCapability({
+            managerUrl: workspaceManagerUrl(),
+            managerSecret: process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim(),
+          });
+
+          if (!capability.enabled) {
+            return sendLinearizedCreateGateFailure(503, {
+              error: appPublicEnglish('RESERVED_VM_INFRASTRUCTURE_INACTIVE'),
+              code: capability.reasonCode,
+              retryable: true,
+            });
+          }
+
+          const confirmation = assertReservedVmConfirmation({
+            tier: body.reservedVmTier,
+            confirmation: body.reservedVmConfirmation,
+          });
+
+          if (!capability.availableTiers.includes(confirmation.tier)) {
+            return sendLinearizedCreateGateFailure(503, {
+              error: appPublicEnglish('RESERVED_VM_TIER_CAPACITY_UNAVAILABLE'),
+              code: 'RESERVED_VM_TIER_CAPACITY_UNAVAILABLE',
+              retryable: true,
+            });
+          }
+          const rawIdempotencyKey = request.headers['idempotency-key'];
+          const idempotencyKey = (Array.isArray(rawIdempotencyKey) ? rawIdempotencyKey[0] : rawIdempotencyKey)?.trim();
+
+          if (!idempotencyKey || !/^[A-Za-z0-9._:-]{16,128}$/.test(idempotencyKey)) {
+            return reply.code(400).send({
+              error: appPublicEnglish('RESERVED_VM_IDEMPOTENCY_KEY_REQUIRED'),
+              code: 'RESERVED_VM_IDEMPOTENCY_KEY_REQUIRED',
+            });
+          }
+
+          if (body.machineSize && body.machineSize !== confirmation.tier) {
+            return sendLinearizedCreateGateFailure(400, {
+              error: appPublicEnglish('RESERVED_VM_TIER_CONFLICT'),
+              code: 'RESERVED_VM_TIER_CONFLICT',
+            });
+          }
+
+          const requestHash = reservedVmCreateIdentity!.requestHash;
+          reservedVmBilling = {
+            organizationId: project.organizationId,
+            actorUserId: request.currentUser!.id,
+            idempotencyKey,
+            requestHash,
+            tier: confirmation.tier,
+            termsVersion: RESERVED_VM_TERMS_VERSION,
+            monthlyPriceCents: confirmation.monthlyPriceCents,
+            rateCardVersion: rateCard.version,
+          };
+        } else if (body.reservedVmTier || body.reservedVmConfirmation) {
+          return reply.code(400).send({
+            error: appPublicEnglish('RESERVED_VM_FIELDS_REQUIRE_RESERVED_RUNTIME'),
+            code: 'RESERVED_VM_TARGET_INVALID',
+          });
+        }
       } catch (error) {
+        if (reservedVmCreateIdentity) {
+          const accepted = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, () =>
+            resolveAcceptedReservedVmCreate(),
+          );
+          if (accepted) return sendAcceptedReservedVmCreate(accepted);
+        }
         if (error instanceof MachineSizeError) {
           const locale = transactionalLocaleForRequest(request);
           setAppLocaleResponseHeaders(reply, locale);
@@ -37674,6 +39106,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         throw error;
       }
+    } else if (body.runtimeKind === 'reserved-vm' || body.reservedVmTier || body.reservedVmConfirmation) {
+      return reply.code(400).send({
+        error: appPublicEnglish('RESERVED_VM_SERVER_PROVIDER_REQUIRED'),
+        code: 'RESERVED_VM_SERVER_PROVIDER_REQUIRED',
+      });
     }
 
     /*
@@ -37689,7 +39126,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     );
 
     if (providerConfigError) {
-      return reply.code(400).send(providerConfigError);
+      return sendLinearizedCreateGateFailure(400, providerConfigError);
     }
 
     /*
@@ -37708,7 +39145,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       boundMigrationPlan = await collectPublishMigrationPlan(projectStorage, project.id, secondaryWorkspaceId);
     } catch (error) {
       const code = error instanceof MigrationManifestError ? error.code : 'MIGRATION_TARGET_UNAVAILABLE';
-      return reply.code(error instanceof MigrationManifestError ? 409 : 503).send({
+      return sendLinearizedCreateGateFailure(error instanceof MigrationManifestError ? 409 : 503, {
         error: appPublicCopy(
           code === 'MIGRATION_UNSAFE_PLAN' ? 'MIGRATION_UNSAFE_PLAN' : 'MIGRATION_MANIFEST_INVALID',
           transactionalLocaleForRequest(request),
@@ -37726,6 +39163,27 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * by project+workspace (concurrent same-project builds share the build CWD).
      */
     const createResult = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+      if (reservedVmBilling) {
+        const replay = await store.getReservedVmOperation(project.id, reservedVmBilling.idempotencyKey);
+
+        if (replay) {
+          if (replay.requestHash !== reservedVmBilling.requestHash || replay.kind !== 'CREATE') {
+            return { idempotencyConflict: true as const };
+          }
+
+          const existing = await store.getDeployment(project.id, replay.deploymentId);
+
+          if (!existing) {
+            throw Object.assign(reservedVmInternalError('Reserved VM replay points to a missing deployment.'), {
+              code: 'RESERVED_VM_REPLAY_CORRUPT',
+              statusCode: 500,
+            });
+          }
+
+          return { replayed: { operation: replay, deployment: existing } };
+        }
+      }
+
       await ensureTenantAdmission(
         request,
         project.organizationId,
@@ -37759,6 +39217,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           commitSha: body.commitSha,
           customDomain: body.customDomain,
           machineSize: deployMachineSize,
+          ...(reservedVmBilling ? { reservedVm: reservedVmBilling } : {}),
           accessPolicy: {
             mode: body.accessMode,
             ...(body.accessPassword ? { passwordHash: hashPassword(body.accessPassword) } : {}),
@@ -37777,11 +39236,59 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             githubIntegration: body.githubIntegration,
             envVars: sanitizeDeploymentEnvVars(body.envVars),
             injectedSecrets: body.injectSecrets,
+            ...(reservedVmBilling
+              ? {
+                  reservedVmOperationKey: reservedVmBilling.idempotencyKey,
+                  reservedVmTermsVersion: reservedVmBilling.termsVersion,
+                  reservedVmCreate: {
+                    idempotencyKey: reservedVmBilling.idempotencyKey,
+                    actorUserId: request.currentUser!.id,
+                    inputHash: reservedVmBilling.requestHash,
+                    encryptedBuildInput: encryptReservedVmBuildInput({ ...safeBuildInput, secondaryWorkspaceId }),
+                    projectManifest: {
+                      digest: boundProjectManifest.digest,
+                      manifestVersion: boundProjectManifest.manifest.manifestVersion,
+                      schemaVersion: boundProjectManifest.manifest.schemaVersion,
+                    },
+                    publishMigrationPlan: boundMigrationPlan ?? null,
+                    accessPolicy: {
+                      mode: body.accessMode,
+                      version: 1,
+                      identityHash: reservedVmAccessIdentityHash,
+                    },
+                    payloadHash: reservedVmRequestHash({
+                      buildInput: { ...safeBuildInput, secondaryWorkspaceId },
+                      projectManifest: {
+                        digest: boundProjectManifest.digest,
+                        manifestVersion: boundProjectManifest.manifest.manifestVersion,
+                        schemaVersion: boundProjectManifest.manifest.schemaVersion,
+                      },
+                      publishMigrationPlan: boundMigrationPlan ?? null,
+                      accessPolicy: {
+                        mode: body.accessMode,
+                        version: 1,
+                        identityHash: reservedVmAccessIdentityHash,
+                      },
+                    }),
+                  },
+                }
+              : {}),
           },
           startedAt: new Date().toISOString(),
         }),
       };
     });
+
+    if ('idempotencyConflict' in createResult) {
+      return reply.code(409).send({
+        error: appPublicEnglish('RESERVED_VM_IDEMPOTENCY_CONFLICT'),
+        code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
+      });
+    }
+
+    if ('replayed' in createResult && createResult.replayed) {
+      return sendAcceptedReservedVmCreate({ conflict: false, ...createResult.replayed });
+    }
 
     if ('conflict' in createResult) {
       return reply.code(409).send({
@@ -37815,7 +39322,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * The password was already one-way hashed into the immutable policy.
          * Never serialize the raw secret into BullMQ job data or worker logs.
          */
-        const { accessPassword: _accessPassword, ...safeBuildInput } = body;
         await enqueueDeployJob({
           projectId: project.id,
           deploymentId: queued.id,
@@ -37824,27 +39330,35 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
       } catch (error) {
         /*
-         * Could not reach Redis to enqueue. Don't leave the row stuck at QUEUED —
-         * fail it immediately with a retryable message (the reaper would also
-         * catch it later, but failing now is better UX). Still 202 so the client
-         * tails the SSE log stream and sees the failure.
+         * An enqueue error is ambiguous: Redis may have accepted the stable job
+         * before the response failed. Never terminalize a Reserved VM operation
+         * or release its hold here. Its exact sanitized CREATE payload is
+         * durable on the Deployment and the reaper submits the same job id.
          */
         request.log?.error?.({ err: error, deploymentId: queued.id }, 'deployment build enqueue failed');
 
-        const failedRow = await store
-          .updateDeployment(project.id, queued.id, {
-            status: 'FAILED',
-            finishedAt: new Date().toISOString(),
-            logs: [
-              ...queued.logs,
-              {
-                timestamp: new Date().toISOString(),
-                level: 'error' as const,
-                message: appPublicEnglish('DEPLOYMENT_QUEUE_FAILED'),
-              },
-            ],
-          })
-          .catch(() => ({ ...queued, status: 'FAILED' as const }));
+        if (reservedVmBilling) {
+          const operation = await store.getReservedVmOperation(project.id, reservedVmBilling.idempotencyKey);
+
+          return reply.code(202).send({
+            deployment: localizeDeploymentRecord(queued, transactionalLocaleForRequest(request)),
+            ...(operation ? { operation } : {}),
+            retryable: true,
+          });
+        }
+
+        const failedRow = await store.updateDeployment(project.id, queued.id, {
+          status: 'FAILED',
+          finishedAt: new Date().toISOString(),
+          logs: [
+            ...queued.logs,
+            {
+              timestamp: new Date().toISOString(),
+              level: 'error' as const,
+              message: appPublicEnglish('DEPLOYMENT_QUEUE_FAILED'),
+            },
+          ],
+        });
 
         return reply
           .code(202)
@@ -37867,6 +39381,492 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       .send({ deployment: localizeDeploymentRecord(ready, transactionalLocaleForRequest(request)) });
   });
 
+  const changeDeploymentRuntimeSchema = z.object({
+    expectedRuntimeVersion: z.number().int().nonnegative(),
+    runtimeKind: z.enum(['autoscale', 'reserved-vm']),
+    machineSize: z.string().trim().min(1).max(40).optional(),
+    reservedVmTier: z.enum(['shared-0.5', 'dedicated-1', 'dedicated-2', 'dedicated-4']).optional(),
+    reservedVmConfirmation: z
+      .object({
+        accepted: z.literal(true),
+        termsVersion: z.string().trim().min(1).max(80),
+        monthlyPriceCents: z.number().int().positive(),
+      })
+      .optional(),
+  });
+
+  /*
+   * In-place Autoscale ↔ Reserved VM and tier changes. The manager reapplies
+   * the existing Deployment manifest, so project, image, Service/host and PVC
+   * remain stable. Billing is a DB-clock leased, CAS-fenced saga.
+   */
+  app.patch('/projects/:projectId/deployments/:deploymentId/runtime', async (request, reply) => {
+    const params = parse(deploymentActionParams, request.params);
+    const project = await requireProject(request, store, params.projectId, 'projects:write');
+    await requireOrganizationNotSuspended(store, project.organizationId);
+    const body = parse(changeDeploymentRuntimeSchema, request.body ?? {});
+    const deployment = await store.getDeployment(project.id, params.deploymentId);
+
+    if (!deployment) {
+      return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    if (deployment.provider !== 'server' || deployment.status !== 'READY') {
+      return reply.code(409).send({
+        error: appPublicEnglish('RESERVED_VM_RUNTIME_NOT_READY'),
+        code: 'RESERVED_VM_DEPLOYMENT_NOT_READY',
+      });
+    }
+
+    if (body.runtimeKind === 'reserved-vm' || deployment.runtimeKind === 'reserved-vm') {
+      await requireOrg(request, store, project.organizationId, 'billing:manage');
+    }
+
+    const rawIdempotencyKey = request.headers['idempotency-key'];
+    const idempotencyKey = (Array.isArray(rawIdempotencyKey) ? rawIdempotencyKey[0] : rawIdempotencyKey)?.trim();
+
+    if (!idempotencyKey || !/^[A-Za-z0-9._:-]{16,128}$/.test(idempotencyKey)) {
+      return reply.code(400).send({
+        error: appPublicEnglish('RESERVED_VM_IDEMPOTENCY_KEY_REQUIRED'),
+        code: 'RESERVED_VM_IDEMPOTENCY_KEY_REQUIRED',
+      });
+    }
+
+    const canonicalTargetMachineSize =
+      body.runtimeKind === 'reserved-vm'
+        ? (body.reservedVmTier ?? '')
+        : (body.machineSize ?? deployment.machineSize ?? 'shared-0.5');
+    const canonicalRequestHash = reservedVmRequestHash({
+      operation: 'change',
+      projectId: project.id,
+      deploymentId: deployment.id,
+      actorUserId: request.currentUser?.id ?? null,
+      expectedRuntimeVersion: body.expectedRuntimeVersion,
+      runtimeKind: body.runtimeKind,
+      tier: body.runtimeKind === 'reserved-vm' ? (body.reservedVmTier ?? null) : null,
+      machineSize: canonicalTargetMachineSize,
+      targetPriceCents: body.runtimeKind === 'reserved-vm' ? (body.reservedVmConfirmation?.monthlyPriceCents ?? 0) : 0,
+      termsVersion:
+        body.runtimeKind === 'reserved-vm'
+          ? (body.reservedVmConfirmation?.termsVersion ?? null)
+          : RESERVED_VM_TERMS_VERSION,
+    });
+    const existingOperation = await store.getReservedVmOperation(project.id, idempotencyKey);
+
+    if (existingOperation) {
+      if (existingOperation.kind !== 'CHANGE' || existingOperation.requestHash !== canonicalRequestHash) {
+        return reply.code(409).send({
+          error: appPublicEnglish('RESERVED_VM_IDEMPOTENCY_CONFLICT'),
+          code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
+        });
+      }
+
+      const replayDeployment = await store.getDeployment(project.id, existingOperation.deploymentId);
+
+      if (!replayDeployment) {
+        throw Object.assign(reservedVmInternalError('Reserved VM replay points to a missing deployment.'), {
+          code: 'RESERVED_VM_REPLAY_CORRUPT',
+          statusCode: 500,
+        });
+      }
+
+      if (existingOperation.status === 'COMPLETED') {
+        return { operation: existingOperation, deployment: replayDeployment };
+      }
+
+      if (existingOperation.status === 'FAILED') {
+        return reply.code(409).send({
+          error: existingOperation.errorMessage,
+          code: existingOperation.errorCode ?? 'RESERVED_VM_OPERATION_FAILED',
+          operation: existingOperation,
+        });
+      }
+
+      // A durable recovery worker owns non-terminal replays. Never re-run
+      // mutable plan/rate-card/capability gates for the same accepted request.
+      return reply.code(202).send({ operation: existingOperation, deployment: replayDeployment, retryable: true });
+    }
+
+    const { subscription } = await billingState(project.organizationId);
+    const planKey =
+      subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status) ? subscription.planKey : 'free';
+    const card = await getActiveRateCard(store);
+    let targetTier: ReservedVmTier | undefined;
+    let targetPriceCents = 0;
+    let targetMachineSize: string;
+
+    if (body.runtimeKind === 'reserved-vm') {
+      if (!subscription || !['ACTIVE', 'TRIALING'].includes(subscription.status) || planKey === 'free') {
+        return reply.code(402).send({
+          error: appPublicEnglish('RESERVED_VM_PAID_PLAN_REQUIRED'),
+          code: 'RESERVED_VM_PAID_PLAN_REQUIRED',
+        });
+      }
+
+      const capability = await queryReservedVmCapability({
+        managerUrl: workspaceManagerUrl(),
+        managerSecret: process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim(),
+      });
+
+      if (!capability.enabled) {
+        return reply.code(503).send({
+          error: appPublicEnglish('RESERVED_VM_INFRASTRUCTURE_INACTIVE'),
+          code: capability.reasonCode,
+          retryable: true,
+        });
+      }
+
+      const confirmed = assertReservedVmConfirmation({
+        tier: body.reservedVmTier,
+        confirmation: body.reservedVmConfirmation,
+      });
+
+      if (!capability.availableTiers.includes(confirmed.tier)) {
+        return reply.code(503).send({
+          error: appPublicEnglish('RESERVED_VM_TIER_CAPACITY_UNAVAILABLE'),
+          code: 'RESERVED_VM_TIER_CAPACITY_UNAVAILABLE',
+          retryable: true,
+        });
+      }
+      targetTier = confirmed.tier;
+      targetPriceCents = confirmed.monthlyPriceCents;
+      targetMachineSize = confirmed.tier;
+    } else {
+      if (body.reservedVmTier || body.reservedVmConfirmation) {
+        return reply.code(400).send({
+          error: appPublicEnglish('RESERVED_VM_AUTOSCALE_FIELDS_INVALID'),
+          code: 'RESERVED_VM_TARGET_INVALID',
+        });
+      }
+      targetMachineSize = body.machineSize ?? deployment.machineSize ?? 'shared-0.5';
+    }
+
+    let machineSize;
+
+    try {
+      machineSize = resolveDeployMachineSize(card, targetMachineSize, planKey);
+    } catch (error) {
+      if (error instanceof MachineSizeError) {
+        return reply.code(error.statusCode).send(publicMachineSizeError(error, transactionalLocaleForRequest(request)));
+      }
+      throw error;
+    }
+
+    await ensureTenantAdmission(
+      request,
+      project.organizationId,
+      'deployment.create',
+      tenantDeploymentContext({ provider: 'server', vcpu: machineSize.vcpu }),
+      { capacityIncrement: 0 },
+    );
+
+    const requestHash = canonicalRequestHash;
+    const created = await store.createReservedVmChangeOperation({
+      projectId: project.id,
+      deploymentId: deployment.id,
+      organizationId: project.organizationId,
+      actorUserId: request.currentUser!.id,
+      idempotencyKey,
+      requestHash,
+      expectedRuntimeVersion: body.expectedRuntimeVersion,
+      targetRuntimeKind: body.runtimeKind,
+      targetTier,
+      targetMachineSize: machineSize.key,
+      targetCpuMillicores: machineSize.cpuMillicores,
+      targetMemoryMb: machineSize.ramMb,
+      targetPriceCents,
+      termsVersion: RESERVED_VM_TERMS_VERSION,
+      rateCardVersion: card.version,
+    });
+
+    if (created.operation.status === 'COMPLETED') {
+      return { operation: created.operation, deployment: created.deployment };
+    }
+
+    if (created.operation.status === 'FAILED') {
+      return reply.code(409).send({
+        error: created.operation.errorMessage,
+        code: created.operation.errorCode ?? 'RESERVED_VM_OPERATION_FAILED',
+        operation: created.operation,
+      });
+    }
+
+    const ownerToken = randomUUID();
+    const claimed = await store.acquireReservedVmOperation({
+      projectId: project.id,
+      idempotencyKey,
+      ownerToken,
+      ttlMs: serverDeployStartTimeoutMs() + 60_000,
+    });
+
+    if (!claimed.acquired) {
+      return reply.code(202).send({ operation: created.operation, deployment: claimed.deployment, retryable: true });
+    }
+
+    try {
+      const runtime = await reconfigureServerDeploymentViaManager({
+        deploymentId: deployment.id,
+        runtimeKind: body.runtimeKind,
+        reservedVmTier: targetTier,
+        operationId: claimed.operation.id,
+        fencingToken: claimed.operation.fencingToken,
+        ...machineSizeResources(machineSize),
+      });
+      if (runtime.appliedFencingToken !== claimed.operation.fencingToken) {
+        throw Object.assign(reservedVmInternalError('Reserved VM runtime fence was not applied.'), {
+          code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+          statusCode: 409,
+        });
+      }
+      const marked = await store.markReservedVmRuntimeApplied({
+        operationId: claimed.operation.id,
+        ownerToken,
+        fencingToken: claimed.operation.fencingToken,
+      });
+
+      if (!marked) {
+        throw Object.assign(reservedVmInternalError('Reserved VM operation ownership was lost.'), {
+          code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+          statusCode: 409,
+        });
+      }
+
+      const completed = await store.commitReservedVmOperation({
+        operationId: claimed.operation.id,
+        ownerToken,
+        fencingToken: claimed.operation.fencingToken,
+        response: {
+          ready: true,
+          readyReplicas: runtime.readyReplicas,
+          persistentVolumeClaimName: runtime.persistentVolumeClaimName,
+        },
+      });
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'deployment.runtime.change',
+        resourceType: 'deployment',
+        resourceId: deployment.id,
+        metadata: {
+          fromRuntimeKind: deployment.runtimeKind ?? 'autoscale',
+          toRuntimeKind: body.runtimeKind,
+          tier: targetTier,
+          runtimeVersion: completed.deployment.runtimeVersion,
+        },
+      });
+      return { operation: completed.operation, deployment: completed.deployment };
+    } catch (error) {
+      if ((error as { rolledBack?: boolean }).rolledBack === true) {
+        const failed = await store.failReservedVmOperation({
+          operationId: claimed.operation.id,
+          ownerToken,
+          fencingToken: claimed.operation.fencingToken,
+          errorCode: (error as { code?: string }).code ?? 'RESERVED_VM_RECONFIGURE_FAILED',
+          errorMessage: (error as Error).message,
+        });
+        return reply.code((error as { statusCode?: number }).statusCode ?? 503).send({
+          error: failed.errorMessage,
+          code: failed.errorCode,
+          operation: failed,
+          rolledBack: true,
+          retryable: true,
+        });
+      }
+
+      request.log.error(
+        { err: error, deploymentId: deployment.id, operationId: claimed.operation.id },
+        'reserved VM reconfigure outcome uncertain; operation left recoverable',
+      );
+      return reply.code((error as { statusCode?: number }).statusCode ?? 503).send({
+        error: (error as Error).message,
+        code: (error as { code?: string }).code ?? 'RESERVED_VM_RECONFIGURE_UNCERTAIN',
+        retryable: true,
+      });
+    }
+  });
+
+  const decommissionReservedVmStorageSchema = z.object({
+    expectedRuntimeVersion: z.number().int().nonnegative(),
+    confirmation: z.literal('DELETE_RESERVED_VM_DATA'),
+  });
+
+  /*
+   * The PVC intentionally survives Reserved→Autoscale. Erasing it is a separate
+   * destructive, idempotent and externally-fenced saga so a routine runtime
+   * change, retry or failed rollout can never destroy project data.
+   */
+  app.post('/projects/:projectId/deployments/:deploymentId/reserved-vm/decommission', async (request, reply) => {
+    const params = parse(deploymentActionParams, request.params);
+    const project = await requireProject(request, store, params.projectId, 'projects:write');
+    await requireOrg(request, store, project.organizationId, 'billing:manage');
+    const body = parse(decommissionReservedVmStorageSchema, request.body ?? {});
+    const deployment = await store.getDeployment(project.id, params.deploymentId);
+
+    if (!deployment) {
+      return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    const rawIdempotencyKey = request.headers['idempotency-key'];
+    const idempotencyKey = (Array.isArray(rawIdempotencyKey) ? rawIdempotencyKey[0] : rawIdempotencyKey)?.trim();
+
+    if (!idempotencyKey || !/^[A-Za-z0-9._:-]{16,128}$/.test(idempotencyKey)) {
+      return reply.code(400).send({
+        error: appPublicEnglish('RESERVED_VM_IDEMPOTENCY_KEY_REQUIRED'),
+        code: 'RESERVED_VM_IDEMPOTENCY_KEY_REQUIRED',
+      });
+    }
+
+    const requestHash = reservedVmRequestHash({
+      operation: 'decommission',
+      projectId: project.id,
+      deploymentId: deployment.id,
+      organizationId: project.organizationId,
+      actorUserId: request.currentUser?.id ?? null,
+      expectedRuntimeVersion: body.expectedRuntimeVersion,
+      confirmation: body.confirmation,
+      // The destructive target is deterministic. Hashing the mutable current
+      // field would make an exact replay conflict after the successful commit
+      // clears the claim from Deployment.
+      persistentStorageClaim: `reserved-data-${deployment.id}`,
+    });
+    const existing = await store.getReservedVmOperation(project.id, idempotencyKey);
+
+    if (existing) {
+      if (existing.kind !== 'DECOMMISSION' || existing.requestHash !== requestHash) {
+        return reply.code(409).send({
+          error: appPublicEnglish('RESERVED_VM_IDEMPOTENCY_CONFLICT'),
+          code: 'RESERVED_VM_IDEMPOTENCY_CONFLICT',
+        });
+      }
+
+      const replayDeployment = await store.getDeployment(project.id, existing.deploymentId);
+
+      if (!replayDeployment) {
+        throw Object.assign(reservedVmInternalError('RESERVED_VM_REPLAY_CORRUPT'), {
+          code: 'RESERVED_VM_REPLAY_CORRUPT',
+          statusCode: 500,
+        });
+      }
+
+      if (existing.status === 'COMPLETED') {
+        return { operation: existing, deployment: replayDeployment };
+      }
+
+      if (existing.status === 'FAILED') {
+        return reply.code(409).send({
+          error: existing.errorMessage ?? appPublicEnglish('RESERVED_VM_OPERATION_FAILED'),
+          code: existing.errorCode ?? 'RESERVED_VM_OPERATION_FAILED',
+          operation: existing,
+        });
+      }
+
+      return reply.code(202).send({ operation: existing, deployment: replayDeployment, retryable: true });
+    }
+
+    if (
+      deployment.provider !== 'server' ||
+      deployment.status !== 'READY' ||
+      deployment.runtimeKind !== 'autoscale' ||
+      deployment.persistentStorageClaim !== `reserved-data-${deployment.id}`
+    ) {
+      return reply.code(409).send({
+        error: appPublicEnglish('RESERVED_VM_DECOMMISSION_NOT_READY'),
+        code: 'RESERVED_VM_DECOMMISSION_NOT_READY',
+      });
+    }
+
+    const card = await getActiveRateCard(store);
+    const currentSize = machineSizeFromCard(card, deployment.machineSize);
+    const created = await store.createReservedVmDecommissionOperation({
+      projectId: project.id,
+      deploymentId: deployment.id,
+      organizationId: project.organizationId,
+      actorUserId: request.currentUser!.id,
+      idempotencyKey,
+      requestHash,
+      expectedRuntimeVersion: body.expectedRuntimeVersion,
+      targetMachineSize: currentSize.key,
+      targetCpuMillicores: currentSize.cpuMillicores,
+      targetMemoryMb: currentSize.ramMb,
+    });
+
+    if (created.operation.status === 'COMPLETED') {
+      return { operation: created.operation, deployment: created.deployment };
+    }
+    if (created.operation.status === 'FAILED') {
+      return reply.code(409).send({
+        error: created.operation.errorMessage ?? appPublicEnglish('RESERVED_VM_OPERATION_FAILED'),
+        code: created.operation.errorCode ?? 'RESERVED_VM_OPERATION_FAILED',
+        operation: created.operation,
+      });
+    }
+
+    const ownerToken = randomUUID();
+    const claimed = await store.acquireReservedVmOperation({
+      projectId: project.id,
+      idempotencyKey,
+      ownerToken,
+      ttlMs: serverDeployStartTimeoutMs() + 60_000,
+    });
+
+    if (!claimed.acquired) {
+      return reply.code(202).send({ operation: claimed.operation, deployment: claimed.deployment, retryable: true });
+    }
+
+    try {
+      const proof = await decommissionReservedVmStorageViaManager({
+        deploymentId: deployment.id,
+        persistentVolumeClaimName: deployment.persistentStorageClaim,
+        operationId: claimed.operation.id,
+        fencingToken: claimed.operation.fencingToken,
+        mode: 'autoscale-decommission',
+      });
+      const marked = await store.markReservedVmRuntimeApplied({
+        operationId: claimed.operation.id,
+        ownerToken,
+        fencingToken: claimed.operation.fencingToken,
+      });
+
+      if (!marked) {
+        throw Object.assign(reservedVmInternalError('RESERVED_VM_OPERATION_FENCE_LOST'), {
+          code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+          statusCode: 409,
+        });
+      }
+
+      const committed = await store.commitReservedVmDecommissionOperation({
+        operationId: claimed.operation.id,
+        ownerToken,
+        fencingToken: claimed.operation.fencingToken,
+        deletedPersistentStorageClaim: proof.persistentVolumeClaimName,
+        response: proof,
+      });
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'deployment.reserved_vm.storage.decommission',
+        resourceType: 'deployment',
+        resourceId: deployment.id,
+        metadata: {
+          operationId: claimed.operation.id,
+          persistentVolumeClaimName: proof.persistentVolumeClaimName,
+          runtimeVersion: committed.deployment.runtimeVersion,
+        },
+      });
+
+      return { operation: committed.operation, deployment: committed.deployment };
+    } catch (error) {
+      request.log.error(
+        { err: error, deploymentId: deployment.id, operationId: claimed.operation.id },
+        'reserved VM storage decommission outcome uncertain; operation left recoverable',
+      );
+      return reply.code((error as { statusCode?: number }).statusCode ?? 503).send({
+        error: appPublicEnglish('RESERVED_VM_DECOMMISSION_FAILED'),
+        code: (error as { code?: string }).code ?? 'RESERVED_VM_DECOMMISSION_FAILED',
+        operation: claimed.operation,
+        retryable: true,
+      });
+    }
+  });
+
   /*
    * Worker-triggered build (#26): the deploy worker POSTs here to drive a QUEUED
    * deployment to READY/FAILED off the original request handler. The build spec +
@@ -37877,6 +39877,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const internalDeployBuildSchema = z.object({
     projectId: z.string().min(1),
     deploymentId: z.string().min(1),
+    operationKey: z.string().min(16).max(128).optional(),
     userId: z.string().min(1).optional(),
     buildInput: createDeploymentSchema.extend({ secondaryWorkspaceId: z.string().min(1).optional() }),
   });
@@ -37891,12 +39892,93 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
-    /*
-     * Idempotent: only drive a deployment that is still pending. A terminal row
-     * (READY/FAILED/CANCELED) — e.g. reaped, canceled, or a duplicate job — is a
-     * no-op returned as-is.
-     */
-    if (deployment.status !== 'QUEUED' && deployment.status !== 'BUILDING') {
+    const reservedCreate = readReservedVmCreateMetadata(deployment);
+    const redeploy = readReservedVmRedeployMetadata(deployment);
+    let durableBuildInput = data.buildInput;
+
+    if (reservedCreate) {
+      const operation = await store.getReservedVmOperation(data.projectId, reservedCreate.idempotencyKey);
+
+      if (
+        !operation ||
+        operation.kind !== 'CREATE' ||
+        operation.deploymentId !== deployment.id ||
+        operation.actorUserId !== reservedCreate.actorUserId ||
+        operation.requestHash !== reservedCreate.inputHash ||
+        (data.userId !== undefined && data.userId !== reservedCreate.actorUserId)
+      ) {
+        return reply.code(409).send({
+          error: appPublicEnglish('RESERVED_VM_CREATE_JOB_MISMATCH'),
+          code: 'RESERVED_VM_CREATE_JOB_MISMATCH',
+        });
+      }
+
+      if (operation.errorCode === 'RESERVED_VM_CANCEL_REQUESTED') {
+        return reply.code(202).send({ deployment, cancellationPending: true });
+      }
+
+      if (operation.status === 'COMPLETED' || operation.status === 'FAILED') {
+        return { deployment };
+      }
+
+      if (!['QUEUED', 'BUILDING'].includes(deployment.status)) {
+        return reply.code(409).send({
+          error: appPublicEnglish('RESERVED_VM_CREATE_NOT_BUILDABLE'),
+          code: 'RESERVED_VM_CREATE_NOT_BUILDABLE',
+        });
+      }
+
+      durableBuildInput = parse(
+        createDeploymentSchema.extend({ secondaryWorkspaceId: z.string().min(1).optional() }),
+        reservedCreate.buildInput,
+      );
+      data.userId = reservedCreate.actorUserId;
+    } else if (redeploy) {
+      if (data.operationKey !== redeploy.idempotencyKey) {
+        return reply.code(409).send({
+          error: appPublicEnglish('RESERVED_VM_REDEPLOY_JOB_MISMATCH'),
+          code: 'RESERVED_VM_REDEPLOY_JOB_MISMATCH',
+        });
+      }
+
+      const operation = await store.getReservedVmOperation(data.projectId, redeploy.idempotencyKey);
+      const expectedRequestHash = reservedVmRequestHash({
+        operation: 'redeploy',
+        projectId: data.projectId,
+        deploymentId: data.deploymentId,
+        actorUserId: data.userId ?? null,
+        buildInput: redeploy.buildInput,
+      });
+
+      if (
+        !operation ||
+        operation.id !== redeploy.operationId ||
+        operation.kind !== 'REDEPLOY' ||
+        operation.requestHash !== expectedRequestHash
+      ) {
+        return reply.code(409).send({
+          error: appPublicEnglish('RESERVED_VM_REDEPLOY_PAYLOAD_INTEGRITY_FAILED'),
+          code: 'RESERVED_VM_REDEPLOY_JOB_MISMATCH',
+        });
+      }
+
+      if (operation.status === 'COMPLETED' || operation.status === 'FAILED') {
+        return { deployment };
+      }
+
+      if (deployment.status !== 'READY') {
+        return reply.code(409).send({
+          error: appPublicEnglish('RESERVED_VM_REDEPLOY_NOT_READY'),
+          code: 'RESERVED_VM_REDEPLOY_NOT_READY',
+        });
+      }
+
+      durableBuildInput = parse(
+        createDeploymentSchema.extend({ secondaryWorkspaceId: z.string().min(1).optional() }),
+        redeploy.buildInput,
+      );
+    } else if (deployment.status !== 'QUEUED' && deployment.status !== 'BUILDING') {
+      /* Ordinary duplicate jobs remain terminal no-ops. */
       return { deployment };
     }
 
@@ -37928,8 +40010,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
        * parse() has applied every schema default, so the required fields are all
        * present at runtime; the cast just reconciles zod's input/output typing.
        */
-      body: data.buildInput as CreateDeploymentRequest,
-      secondaryWorkspaceId: data.buildInput.secondaryWorkspaceId,
+      body: durableBuildInput as CreateDeploymentRequest,
+      secondaryWorkspaceId: durableBuildInput.secondaryWorkspaceId,
     });
 
     return { deployment: ready };
@@ -37944,6 +40026,455 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     requireInternalSecret(request);
 
     const reaped = await reapStaleDeployments(store, { timeoutMs: resolveDeployBuildTimeoutMs() });
+    let reservedVmCreateCancellationRecovery:
+      | { claimed: false }
+      | { claimed: true; deploymentId: string; operationId: string; status: 'CANCELED' }
+      | { error: string; code: string; retryable: true };
+
+    try {
+      const claimed = await store.claimNextReservedVmCreateCancellation({
+        ownerToken: randomUUID(),
+        ttlMs: serverDeployStartTimeoutMs() + 60_000,
+      });
+
+      if (!claimed) {
+        reservedVmCreateCancellationRecovery = { claimed: false };
+      } else if (!claimed.operation.leaseOwner) {
+        throw Object.assign(reservedVmInternalError('RESERVED_VM_OPERATION_FENCE_LOST'), {
+          code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+        });
+      } else {
+        const deletedPersistentStorageClaim = await proveFailedReservedVmCreateStorageAbsent({
+          deploymentId: claimed.deployment.id,
+          operationId: claimed.operation.id,
+          fencingToken: claimed.operation.fencingToken,
+        });
+        const timestamp = new Date().toISOString();
+        await store.commitReservedVmCreateCancellation({
+          operationId: claimed.operation.id,
+          ownerToken: claimed.operation.leaseOwner,
+          fencingToken: claimed.operation.fencingToken,
+          deletedPersistentStorageClaim,
+          logs: [
+            ...claimed.deployment.logs,
+            { timestamp, level: 'warn', message: appPublicEnglish('DEPLOYMENT_CANCELED_BY_USER') },
+          ],
+        });
+        reservedVmCreateCancellationRecovery = {
+          claimed: true,
+          deploymentId: claimed.deployment.id,
+          operationId: claimed.operation.id,
+          status: 'CANCELED',
+        };
+      }
+    } catch (error) {
+      reservedVmCreateCancellationRecovery = {
+        error: error instanceof Error ? error.message : String(error),
+        code: (error as { code?: string }).code ?? 'RESERVED_VM_CANCEL_RECOVERY_FAILED',
+        retryable: true,
+      };
+      request.log.error({ err: error }, 'reserved VM cancellation recovery failed');
+    }
+
+    let reservedVmCreateRecovery:
+      | { claimed: false }
+      | { claimed: true; deploymentId: string; operationId: string; jobId: string }
+      | { error: string; code: string; retryable: true };
+
+    try {
+      const recovered = await store.claimNextRecoverableReservedVmOperation({
+        ownerToken: randomUUID(),
+        ttlMs: 1_000,
+        kinds: ['CREATE'],
+      });
+
+      if (!recovered) {
+        reservedVmCreateRecovery = { claimed: false };
+      } else {
+        const metadata = readReservedVmCreateMetadata(recovered.deployment);
+
+        if (
+          !metadata ||
+          recovered.operation.kind !== 'CREATE' ||
+          recovered.operation.requestHash !== metadata.inputHash ||
+          recovered.operation.actorUserId !== metadata.actorUserId
+        ) {
+          throw Object.assign(reservedVmInternalError('RESERVED_VM_CREATE_METADATA_INVALID'), {
+            code: 'RESERVED_VM_CREATE_METADATA_INVALID',
+          });
+        }
+
+        const buildInput = parse(
+          createDeploymentSchema.extend({ secondaryWorkspaceId: z.string().min(1).optional() }),
+          metadata.buildInput,
+        );
+        const jobId = await enqueueDeployJob({
+          projectId: recovered.operation.projectId,
+          deploymentId: recovered.operation.deploymentId,
+          userId: metadata.actorUserId,
+          buildInput: buildInput as DeployBuildJobInput,
+        });
+        reservedVmCreateRecovery = {
+          claimed: true,
+          deploymentId: recovered.operation.deploymentId,
+          operationId: recovered.operation.id,
+          jobId,
+        };
+      }
+    } catch (error) {
+      reservedVmCreateRecovery = {
+        error: error instanceof Error ? error.message : String(error),
+        code: (error as { code?: string }).code ?? 'RESERVED_VM_CREATE_RECOVERY_FAILED',
+        retryable: true,
+      };
+      request.log.error({ err: error }, 'reserved VM create recovery enqueue failed');
+    }
+
+    let reservedVmRedeployRecovery:
+      | { claimed: false }
+      | { claimed: true; deploymentId: string; operationId: string; jobId: string }
+      | { error: string; code: string };
+
+    try {
+      /*
+       * Redis enqueue is not part of the operation-creation transaction. The
+       * sanitized build input lives on the READY deployment, so this sweep can
+       * reconstruct the exact same BullMQ job after either an enqueue failure or
+       * an API crash. Claim only REDEPLOY here: CHANGE recovery is driven by its
+       * separate runtime-effect loop.
+       *
+       * This claim is discovery-only and deliberately short. A worker that wins
+       * the immediate race receives a retryable lease-busy response; BullMQ's
+       * configured retry then reacquires a fresh deployment-global fence. The
+       * stable operation-key job id prevents repeated reaper ticks from creating
+       * a second build.
+       */
+      const recovered = await store.claimNextRecoverableReservedVmOperation({
+        ownerToken: randomUUID(),
+        ttlMs: 1_000,
+        kinds: ['REDEPLOY'],
+      });
+
+      if (!recovered) {
+        reservedVmRedeployRecovery = { claimed: false };
+      } else {
+        const metadata = readReservedVmRedeployMetadata(recovered.deployment);
+
+        if (
+          !metadata ||
+          recovered.operation.kind !== 'REDEPLOY' ||
+          recovered.operation.id !== metadata.operationId ||
+          !recovered.operation.actorUserId
+        ) {
+          throw Object.assign(reservedVmInternalError('Recoverable Reserved VM redeploy metadata is inconsistent.'), {
+            code: 'RESERVED_VM_REDEPLOY_METADATA_INVALID',
+          });
+        }
+
+        const buildInput = parse(
+          createDeploymentSchema.extend({ secondaryWorkspaceId: z.string().min(1).optional() }),
+          metadata.buildInput,
+        );
+        const jobId = await enqueueDeployJob({
+          projectId: recovered.operation.projectId,
+          deploymentId: recovered.operation.deploymentId,
+          operationKey: metadata.idempotencyKey,
+          userId: recovered.operation.actorUserId,
+          buildInput: buildInput as DeployBuildJobInput,
+        });
+        reservedVmRedeployRecovery = {
+          claimed: true,
+          deploymentId: recovered.operation.deploymentId,
+          operationId: recovered.operation.id,
+          jobId,
+        };
+      }
+    } catch (error) {
+      reservedVmRedeployRecovery = {
+        error: error instanceof Error ? error.message : String(error),
+        code: (error as { code?: string }).code ?? 'RESERVED_VM_REDEPLOY_RECOVERY_FAILED',
+      };
+      request.log.error({ err: error }, 'reserved VM redeploy recovery enqueue failed');
+    }
+
+    let reservedVmChangeRecovery:
+      | { claimed: false }
+      | { claimed: true; operationId: string; deploymentId: string; status: 'COMPLETED' | 'ROLLED_BACK' }
+      | { error: string; code: string; retryable: boolean };
+    let claimedChange: Awaited<ReturnType<ApiStore['claimNextRecoverableReservedVmOperation']>> | undefined;
+
+    try {
+      claimedChange = await store.claimNextRecoverableReservedVmOperation({
+        ownerToken: randomUUID(),
+        ttlMs: serverDeployStartTimeoutMs() + 60_000,
+        kinds: ['CHANGE'],
+      });
+
+      if (!claimedChange) {
+        reservedVmChangeRecovery = { claimed: false };
+      } else {
+        const operation = claimedChange.operation;
+
+        if (operation.targetRuntimeKind === 'reserved-vm' && !operation.targetTier) {
+          throw Object.assign(reservedVmInternalError('RESERVED_VM_OPERATION_TARGET_CORRUPT'), {
+            code: 'RESERVED_VM_OPERATION_TARGET_CORRUPT',
+            rolledBack: true,
+          });
+        }
+
+        const runtime = await reconfigureServerDeploymentViaManager({
+          deploymentId: operation.deploymentId,
+          runtimeKind: operation.targetRuntimeKind,
+          reservedVmTier: operation.targetTier,
+          cpuRequest: `${operation.targetCpuMillicores}m`,
+          cpuLimit: `${operation.targetCpuMillicores}m`,
+          memoryRequest: `${operation.targetMemoryMb}Mi`,
+          memoryLimit: `${operation.targetMemoryMb}Mi`,
+          operationId: operation.id,
+          fencingToken: operation.fencingToken,
+        });
+
+        if (runtime.appliedFencingToken !== operation.fencingToken) {
+          throw Object.assign(reservedVmInternalError('RESERVED_VM_RUNTIME_FENCE_NOT_APPLIED'), {
+            code: 'RESERVED_VM_RUNTIME_FENCE_NOT_APPLIED',
+          });
+        }
+
+        const marked = await store.markReservedVmRuntimeApplied({
+          operationId: operation.id,
+          ownerToken: operation.leaseOwner!,
+          fencingToken: operation.fencingToken,
+        });
+
+        if (!marked) {
+          throw Object.assign(reservedVmInternalError('RESERVED_VM_OPERATION_FENCE_LOST'), {
+            code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+          });
+        }
+
+        await store.commitReservedVmOperation({
+          operationId: operation.id,
+          ownerToken: operation.leaseOwner!,
+          fencingToken: operation.fencingToken,
+          response: {
+            ready: true,
+            readyReplicas: runtime.readyReplicas,
+            persistentVolumeClaimName: runtime.persistentVolumeClaimName,
+            appliedFencingToken: runtime.appliedFencingToken,
+            recovered: true,
+          },
+        });
+        reservedVmChangeRecovery = {
+          claimed: true,
+          operationId: operation.id,
+          deploymentId: operation.deploymentId,
+          status: 'COMPLETED',
+        };
+      }
+    } catch (error) {
+      const rolledBack = (error as { rolledBack?: boolean }).rolledBack === true;
+
+      if (rolledBack && claimedChange?.operation.leaseOwner) {
+        await store
+          .failReservedVmOperation({
+            operationId: claimedChange.operation.id,
+            ownerToken: claimedChange.operation.leaseOwner,
+            fencingToken: claimedChange.operation.fencingToken,
+            errorCode: (error as { code?: string }).code ?? 'RESERVED_VM_RECONFIGURE_FAILED',
+            errorMessage: error instanceof Error ? error.message : String(error),
+          })
+          .catch((failure) => request.log.error({ err: failure }, 'reserved VM recovery rollback finalization failed'));
+      }
+
+      reservedVmChangeRecovery =
+        rolledBack && claimedChange
+          ? {
+              claimed: true,
+              operationId: claimedChange.operation.id,
+              deploymentId: claimedChange.operation.deploymentId,
+              status: 'ROLLED_BACK',
+            }
+          : {
+              error: error instanceof Error ? error.message : String(error),
+              code: (error as { code?: string }).code ?? 'RESERVED_VM_CHANGE_RECOVERY_FAILED',
+              retryable: true,
+            };
+      request.log.error({ err: error }, 'reserved VM change recovery failed');
+    }
+
+    let reservedVmDecommissionRecovery:
+      | { claimed: false }
+      | { claimed: true; operationId: string; deploymentId: string; status: 'COMPLETED' }
+      | { error: string; code: string; retryable: true };
+
+    try {
+      const claimed = await store.claimNextRecoverableReservedVmOperation({
+        ownerToken: randomUUID(),
+        ttlMs: serverDeployStartTimeoutMs() + 60_000,
+        kinds: ['DECOMMISSION'],
+      });
+
+      if (!claimed) {
+        reservedVmDecommissionRecovery = { claimed: false };
+      } else {
+        const claimName = claimed.deployment.persistentStorageClaim;
+
+        if (
+          claimed.operation.kind !== 'DECOMMISSION' ||
+          claimed.operation.targetRuntimeKind !== 'autoscale' ||
+          claimName !== `reserved-data-${claimed.deployment.id}` ||
+          !claimed.operation.leaseOwner
+        ) {
+          throw Object.assign(reservedVmInternalError('RESERVED_VM_DECOMMISSION_OPERATION_CORRUPT'), {
+            code: 'RESERVED_VM_DECOMMISSION_OPERATION_CORRUPT',
+          });
+        }
+
+        const proof = await decommissionReservedVmStorageViaManager({
+          deploymentId: claimed.deployment.id,
+          persistentVolumeClaimName: claimName,
+          operationId: claimed.operation.id,
+          fencingToken: claimed.operation.fencingToken,
+          mode: 'autoscale-decommission',
+        });
+        const marked = await store.markReservedVmRuntimeApplied({
+          operationId: claimed.operation.id,
+          ownerToken: claimed.operation.leaseOwner,
+          fencingToken: claimed.operation.fencingToken,
+        });
+
+        if (!marked) {
+          throw Object.assign(reservedVmInternalError('RESERVED_VM_OPERATION_FENCE_LOST'), {
+            code: 'RESERVED_VM_OPERATION_FENCE_LOST',
+          });
+        }
+
+        await store.commitReservedVmDecommissionOperation({
+          operationId: claimed.operation.id,
+          ownerToken: claimed.operation.leaseOwner,
+          fencingToken: claimed.operation.fencingToken,
+          deletedPersistentStorageClaim: proof.persistentVolumeClaimName,
+          response: { ...proof, recovered: true },
+        });
+        reservedVmDecommissionRecovery = {
+          claimed: true,
+          operationId: claimed.operation.id,
+          deploymentId: claimed.operation.deploymentId,
+          status: 'COMPLETED',
+        };
+      }
+    } catch (error) {
+      reservedVmDecommissionRecovery = {
+        error: error instanceof Error ? error.message : String(error),
+        code: (error as { code?: string }).code ?? 'RESERVED_VM_DECOMMISSION_RECOVERY_FAILED',
+        retryable: true,
+      };
+      request.log.error({ err: error }, 'reserved VM storage decommission recovery failed');
+    }
+
+    const billing = reservedVmBillingStore(store);
+    let reservedVmRenewal:
+      | { claimed: false }
+      | { claimed: true; periodId: string; deploymentId: string; status: 'PAID' | 'PAST_DUE' }
+      | { unavailable: true }
+      | { error: string; code: string };
+
+    if (!billing) {
+      reservedVmRenewal = { unavailable: true };
+    } else {
+      try {
+        const ownerToken = randomUUID();
+        const gracePeriodMs = reservedVmBillingGracePeriodMs();
+        const claimed = await billing.claimDueReservedVmBillingPeriod({
+          ownerToken,
+          ttlMs: 60_000,
+          gracePeriodMs,
+        });
+
+        if (!claimed) {
+          reservedVmRenewal = { claimed: false };
+        } else if (claimed.period.status === 'PAST_DUE') {
+          reservedVmRenewal = {
+            claimed: true,
+            periodId: claimed.period.id,
+            deploymentId: claimed.period.deploymentId,
+            status: 'PAST_DUE',
+          };
+        } else {
+          const committed = await billing.commitReservedVmBillingPeriod({
+            periodId: claimed.period.id,
+            ownerToken,
+            fencingToken: claimed.period.fencingToken,
+            gracePeriodMs,
+          });
+          reservedVmRenewal = {
+            claimed: true,
+            periodId: claimed.period.id,
+            deploymentId: claimed.period.deploymentId,
+            status: committed.period.status === 'PAID' ? 'PAID' : 'PAST_DUE',
+          };
+        }
+      } catch (error) {
+        reservedVmRenewal = {
+          error: error instanceof Error ? error.message : String(error),
+          code: (error as { code?: string }).code ?? 'RESERVED_VM_RENEWAL_FAILED',
+        };
+        request.log.error({ err: error }, 'reserved VM monthly renewal failed');
+      }
+    }
+
+    let reservedVmComputeStop:
+      | { claimed: false }
+      | { claimed: true; periodId: string; deploymentId: string; status: 'SUSPENDED' }
+      | { unavailable: true }
+      | { error: string; code: string };
+
+    if (!billing) {
+      reservedVmComputeStop = { unavailable: true };
+    } else {
+      try {
+        const ownerToken = randomUUID();
+        const claimed = await billing.claimNextReservedVmComputeStop({ ownerToken, ttlMs: 5 * 60_000 });
+
+        if (!claimed) {
+          reservedVmComputeStop = { claimed: false };
+        } else {
+          const suspended = await suspendReservedVmDeploymentViaManager({
+            deploymentId: claimed.signal.deploymentId,
+            operationId: claimed.signal.operationId,
+            fencingToken: claimed.signal.fencingToken,
+          });
+
+          if (
+            claimed.signal.persistentStorageClaim &&
+            suspended.persistentVolumeClaimName !== claimed.signal.persistentStorageClaim
+          ) {
+            throw Object.assign(reservedVmInternalError('RESERVED_VM_PVC_OWNERSHIP_CONFLICT'), {
+              code: 'RESERVED_VM_PVC_OWNERSHIP_CONFLICT',
+            });
+          }
+
+          await billing.acknowledgeReservedVmComputeStopped({
+            periodId: claimed.signal.periodId,
+            deploymentId: claimed.signal.deploymentId,
+            ownerToken: claimed.signal.ownerToken,
+            fencingToken: claimed.signal.fencingToken,
+          });
+          reservedVmComputeStop = {
+            claimed: true,
+            periodId: claimed.signal.periodId,
+            deploymentId: claimed.signal.deploymentId,
+            status: 'SUSPENDED',
+          };
+        }
+      } catch (error) {
+        reservedVmComputeStop = {
+          error: error instanceof Error ? error.message : String(error),
+          code: (error as { code?: string }).code ?? 'RESERVED_VM_SUSPEND_FAILED',
+        };
+        request.log.error({ err: error }, 'reserved VM billing suspension failed');
+      }
+    }
 
     /*
      * EXTINCTION 30 j des publications SERVER — la substance derrière le 410.
@@ -38005,7 +40536,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       request.log.error({ err: error }, 'server-deploy runtime metering sweep failed');
     }
 
-    return { ...reaped, runtimeMetering, publicationExpiry };
+    return {
+      ...reaped,
+      runtimeMetering,
+      publicationExpiry,
+      reservedVmCreateCancellationRecovery,
+      reservedVmCreateRecovery,
+      reservedVmRedeployRecovery,
+      reservedVmChangeRecovery,
+      reservedVmDecommissionRecovery,
+      reservedVmRenewal,
+      reservedVmComputeStop,
+    };
   });
 
   /*
@@ -38027,7 +40569,16 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const planKey =
       subscription && ['ACTIVE', 'TRIALING', 'PAST_DUE'].includes(subscription.status) ? subscription.planKey : 'free';
 
-    const card = await getActiveRateCard(store);
+    const [card, reservedVmCapability] = await Promise.all([
+      getActiveRateCard(store),
+      queryReservedVmCapability({
+        managerUrl: workspaceManagerUrl(),
+        managerSecret: process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim(),
+      }),
+    ]);
+    const machineSizes = availableMachineSizes(card, planKey, maxSchedulableVcpu());
+    const machineAvailability = new Map(machineSizes.map((size) => [size.key, size] as const));
+    const operatorTiers = new Set(reservedVmCapability.enabled ? reservedVmCapability.availableTiers : []);
 
     return {
       version: card.version,
@@ -38038,7 +40589,30 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       defaultMachineSize: card.machineSizes.some((size) => size.key === 'shared-0.5')
         ? 'shared-0.5'
         : card.machineSizes[0]?.key,
-      machineSizes: availableMachineSizes(card, planKey, maxSchedulableVcpu()),
+      machineSizes,
+      reservedVm: {
+        enabled: reservedVmCapability.enabled,
+        ...(!reservedVmCapability.enabled ? { reasonCode: reservedVmCapability.reasonCode } : {}),
+        paidPlanEligible:
+          Boolean(subscription) &&
+          ['ACTIVE', 'TRIALING'].includes(subscription!.status) &&
+          subscription!.planKey !== 'free',
+        termsVersion: RESERVED_VM_TERMS_VERSION,
+        tiers: RESERVED_VM_PUBLIC_TIERS.map((tier) => {
+          const size = machineAvailability.get(tier.id);
+          const operatorAvailable = operatorTiers.has(tier.id);
+
+          return {
+            ...tier,
+            available: operatorAvailable && size?.available === true,
+            ...(!operatorAvailable
+              ? { reason: RESERVED_VM_CAPACITY_REASON }
+              : size?.available !== true
+                ? { reason: size?.reason ?? RESERVED_VM_CAPACITY_REASON }
+                : {}),
+          };
+        }),
+      },
     };
   });
 
@@ -38590,6 +41164,96 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
+    const operationKey = (deployment.metadata as Record<string, unknown> | undefined)?.reservedVmOperationKey;
+    const isPendingReservedVmCreate =
+      typeof operationKey === 'string' &&
+      deployment.provider === 'server' &&
+      Boolean(deployment.persistentStorageClaim) &&
+      ['QUEUED', 'BUILDING', 'CANCELED'].includes(deployment.status);
+
+    if (isPendingReservedVmCreate) {
+      await requireOrg(request, store, project.organizationId, 'billing:manage');
+      const existingOperation = await store.getReservedVmOperation(project.id, operationKey);
+
+      if (
+        deployment.status === 'CANCELED' &&
+        existingOperation?.kind === 'CREATE' &&
+        existingOperation.status === 'FAILED' &&
+        existingOperation.errorCode === 'DEPLOYMENT_CANCELED_BY_USER'
+      ) {
+        return { deployment: localizeDeploymentRecord(deployment, transactionalLocaleForRequest(request)) };
+      }
+
+      const ownerToken = randomUUID();
+      let claimed: Awaited<ReturnType<ApiStore['acquireReservedVmCreateCancellation']>>;
+
+      try {
+        claimed = await store.acquireReservedVmCreateCancellation({
+          projectId: project.id,
+          deploymentId: deployment.id,
+          actorUserId: request.currentUser!.id,
+          ownerToken,
+          ttlMs: serverDeployStartTimeoutMs() + 60_000,
+        });
+      } catch (error) {
+        return reply.code((error as { statusCode?: number }).statusCode ?? 409).send({
+          error: appPublicEnglish('DEPLOYMENT_CANNOT_CANCEL_STATUS', { value1: deployment.status }),
+          code: (error as { code?: string }).code ?? 'DEPLOYMENT_NOT_CANCELABLE',
+        });
+      }
+
+      if (!claimed.acquired) {
+        return reply.code(claimed.deployment.status === 'CANCELED' ? 200 : 202).send({
+          deployment: localizeDeploymentRecord(claimed.deployment, transactionalLocaleForRequest(request)),
+          operation: claimed.operation,
+          ...(claimed.deployment.status === 'CANCELED' ? {} : { retryable: true }),
+        });
+      }
+
+      try {
+        const deletedPersistentStorageClaim = await proveFailedReservedVmCreateStorageAbsent({
+          deploymentId: deployment.id,
+          operationId: claimed.operation.id,
+          fencingToken: claimed.operation.fencingToken,
+        });
+        const canceledAt = new Date().toISOString();
+        const completed = await store.commitReservedVmCreateCancellation({
+          operationId: claimed.operation.id,
+          ownerToken,
+          fencingToken: claimed.operation.fencingToken,
+          deletedPersistentStorageClaim,
+          logs: [
+            ...deployment.logs,
+            {
+              timestamp: canceledAt,
+              level: 'warn',
+              message: appPublicEnglish('DEPLOYMENT_CANCELED_BY_USER'),
+            },
+          ],
+        });
+        await audit(request, store, {
+          organizationId: project.organizationId,
+          action: 'deployment.cancel',
+          resourceType: 'deployment',
+          resourceId: deployment.id,
+          metadata: { reservedVmOperationId: claimed.operation.id, storageDeleted: true },
+        });
+
+        return { deployment: localizeDeploymentRecord(completed.deployment, transactionalLocaleForRequest(request)) };
+      } catch (error) {
+        request.log.error(
+          { err: error, deploymentId: deployment.id, operationId: claimed.operation.id },
+          'reserved VM cancellation cleanup uncertain; operation left recoverable',
+        );
+        return reply.code(503).send({
+          error: appPublicEnglish('RESERVED_VM_DECOMMISSION_FAILED'),
+          code: (error as { code?: string }).code ?? 'RESERVED_VM_CANCEL_CLEANUP_UNVERIFIED',
+          operation: claimed.operation,
+          retryable: true,
+        });
+      }
+    }
+
     /*
      * Only an in-progress deployment can be canceled. Without this gate, cancel
      * flipped an already-READY/FAILED/CANCELED deployment to CANCELED (rewriting
@@ -38681,8 +41345,36 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(409).send({
         error: appPublicCopy('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH', locale),
         code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+          });
+        }
+
+        if (
+          source.provider === 'server' &&
+          source.runtimeKind === 'reserved-vm' &&
+          source.environment === 'production'
+        ) {
+          const sourceReleaseManifestId = (source.metadata as Record<string, unknown> | undefined)
+            ?.publishedFromReleaseManifestId;
+
+          if (typeof sourceReleaseManifestId === 'string') {
+            await releaseGuard.assert();
+            const replayed = await store.publishReservedVmInPlace({
+              projectId: project.id,
+              deploymentId: source.id,
+              organizationId: project.organizationId,
+              actorUserId: request.currentUser!.id,
+              expectedRuntimeVersion: source.runtimeVersion ?? 0,
+              productionUrl: source.productionUrl ?? source.url ?? buildDeploymentUrl(project, source),
+              sourceReleaseManifestId,
+              releaseFence: releaseGuard.fence,
       });
+
+            return reply.code(200).send({
+              deployment: localizeDeploymentRecord(replayed, locale),
+              replayed: true,
+            });
     }
+        }
 
     const check = canPublishDeployment(source);
 
@@ -38695,6 +41387,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         code: check.code,
       });
     }
+
+        const reservedVmPublish =
+          source.provider === 'server' && source.runtimeKind === 'reserved-vm'
+            ? await (async () => {
+                await releaseGuard.assert();
+                return store.prepareReservedVmPublish({
+                  projectId: project.id,
+                  deploymentId: source.id,
+                  organizationId: project.organizationId,
+                  actorUserId: request.currentUser!.id,
+                  expectedRuntimeVersion: source.runtimeVersion ?? 0,
+                  releaseFence: releaseGuard.fence,
+                });
+              })()
+            : undefined;
 
     type PublishGate = { ok: true } | { ok: false; response: Record<string, unknown>; status: number };
 
@@ -38883,6 +41590,61 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           retryable: migrationOutcome.retryable,
         });
       }
+    }
+
+        if (reservedVmPublish) {
+      /*
+       * A Reserved VM is already the durable production-capable runtime. Do
+       * not clone it (which would change URL/PVC and double-bill); promote the
+       * same Deployment row/environment under the same org serialization used
+       * by the normal publish gate. The image was already built, tenant-
+       * promoted and release-gated before this row became READY.
+       */
+      const promoted = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+        const gate = await evaluatePublishGate();
+
+        if (!gate.ok) {
+          return gate;
+        }
+
+            await releaseGuard.assert();
+
+        return {
+          ok: true as const,
+              deployment: await store.publishReservedVmInPlace({
+                projectId: project.id,
+                deploymentId: source.id,
+                organizationId: project.organizationId,
+                actorUserId: request.currentUser!.id,
+                expectedRuntimeVersion: reservedVmPublish.deployment.runtimeVersion ?? 0,
+                productionUrl: source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source),
+                sourceReleaseManifestId: reservedVmPublish.releaseSource.id,
+                releaseFence: releaseGuard.fence,
+          }),
+        };
+      });
+
+      if (!promoted.ok) {
+        return reply.code(promoted.status).send(promoted.response);
+      }
+
+      await audit(request, store, {
+        organizationId: project.organizationId,
+        action: 'deployment.publish',
+        resourceType: 'deployment',
+        resourceId: source.id,
+        metadata: {
+          inPlace: true,
+          runtimeKind: 'reserved-vm',
+          reservedVmTier: source.reservedVmTier,
+          persistentStorageClaim: source.persistentStorageClaim,
+              sourceReleaseManifestId: reservedVmPublish.releaseSource.id,
+        },
+      });
+
+      return reply.code(200).send({
+        deployment: localizeDeploymentRecord(promoted.deployment, locale),
+      });
     }
 
     let serverPublishPromotion:
@@ -39434,6 +42196,143 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const sourceMachineVcpu =
       sourceProvider === 'server' ? machineSizeFromCard(await getActiveRateCard(store), source.machineSize).vcpu : 0;
 
+    /* Never replay a persisted redaction marker as a real build-time value. */
+    const sourceEnvVars = Object.fromEntries(
+      Object.entries((sourceMetadata.envVars ?? {}) as Record<string, string>).filter(
+        ([, value]) => value !== '[REDACTED]',
+      ),
+    );
+
+    if (source.provider === 'server' && source.runtimeKind === 'reserved-vm') {
+      await requireOrg(request, store, project.organizationId, 'billing:manage');
+
+      if (source.status !== 'READY' || !source.reservedVmTier || !source.machineSize) {
+        return reply.code(409).send({
+          error: appPublicEnglish('RESERVED_VM_REDEPLOY_NOT_READY'),
+          code: 'RESERVED_VM_REDEPLOY_NOT_READY',
+        });
+      }
+
+      const rawIdempotencyKey = request.headers['idempotency-key'];
+      const idempotencyKey = (Array.isArray(rawIdempotencyKey) ? rawIdempotencyKey[0] : rawIdempotencyKey)?.trim();
+
+      if (!idempotencyKey || !/^[A-Za-z0-9._:-]{16,128}$/.test(idempotencyKey)) {
+        return reply.code(400).send({
+          error: appPublicEnglish('RESERVED_VM_IDEMPOTENCY_KEY_REQUIRED'),
+          code: 'RESERVED_VM_IDEMPOTENCY_KEY_REQUIRED',
+        });
+      }
+
+      const buildInput: DeployBuildJobInput = {
+        provider: 'server',
+        environment: source.environment,
+        ...(source.workspaceId ? { workspaceId: source.workspaceId } : {}),
+        buildCommand: source.buildCommand ?? 'npm run build',
+        outputDirectory: source.outputDirectory ?? 'dist',
+        ...(source.framework ? { framework: source.framework } : {}),
+        ...(source.branch ? { branch: source.branch } : {}),
+        ...(source.commitSha ? { commitSha: source.commitSha } : {}),
+        ...(source.customDomain ? { customDomain: source.customDomain } : {}),
+        previewDeployment: source.environment !== 'production',
+        timeoutSeconds: sourceTimeoutSeconds,
+        artifactSizeLimitMb: sourceArtifactSizeLimitMb,
+        envVars: sourceEnvVars,
+        injectSecrets: [],
+        machineSize: source.machineSize,
+        runtimeKind: 'reserved-vm',
+        reservedVmTier: source.reservedVmTier,
+        ...(secondaryWorkspaceId ? { secondaryWorkspaceId } : {}),
+      };
+      const requestHash = reservedVmRequestHash({
+        operation: 'redeploy',
+        projectId: project.id,
+        deploymentId: source.id,
+        actorUserId: request.currentUser?.id ?? null,
+        buildInput: { ...buildInput },
+      });
+
+      await ensureTenantAdmission(
+        request,
+        project.organizationId,
+        'deployment.create',
+        tenantDeploymentContext({
+          provider: 'server',
+          vcpu: sourceMachineVcpu,
+          artifactSizeMb: sourceArtifactSizeLimitMb,
+          timeoutSeconds: sourceTimeoutSeconds,
+        }),
+        { capacityIncrement: 0 },
+      );
+
+      const created = await store.createReservedVmRedeployOperation({
+        projectId: project.id,
+        deploymentId: source.id,
+        organizationId: project.organizationId,
+        actorUserId: request.currentUser!.id,
+        idempotencyKey,
+        requestHash,
+        expectedRuntimeVersion: source.runtimeVersion ?? 0,
+        encryptedBuildInput: encryptReservedVmBuildInput({ ...buildInput }),
+      });
+
+      if (created.operation.status === 'FAILED') {
+        return reply.code(409).send({
+          error: created.operation.errorMessage,
+          code: created.operation.errorCode ?? 'RESERVED_VM_OPERATION_FAILED',
+          operation: created.operation,
+          deployment: localizeDeploymentRecord(created.deployment, transactionalLocaleForRequest(request)),
+        });
+      }
+
+      if (!created.replayed) {
+        let queued = true;
+
+        try {
+          await enqueueDeployJob({
+            projectId: project.id,
+            deploymentId: source.id,
+            operationKey: idempotencyKey,
+            userId: request.currentUser?.id,
+            buildInput,
+          });
+        } catch (error) {
+          /* The DB operation + payload are durable; the recovery tick will re-enqueue. */
+          queued = false;
+          request.log.error(
+            { err: error, deploymentId: source.id, operationId: created.operation.id },
+            'reserved VM redeploy enqueue deferred to recovery',
+          );
+        }
+
+        await audit(request, store, {
+          organizationId: project.organizationId,
+          action: 'deployment.redeploy',
+          resourceType: 'deployment',
+          resourceId: source.id,
+          metadata: { operationId: created.operation.id, inPlace: true, queued },
+        });
+        await store.recordProjectActivity({
+          projectId: project.id,
+          actorUserId: request.currentUser?.id,
+          action: 'deployment.redeploy',
+          metadata: { deploymentId: source.id, operationId: created.operation.id, inPlace: true, queued },
+        });
+
+        return reply.code(202).send({
+          operation: created.operation,
+          deployment: localizeDeploymentRecord(created.deployment, transactionalLocaleForRequest(request)),
+          queued,
+          retryable: !queued,
+        });
+      }
+
+      return reply.code(created.operation.status === 'COMPLETED' ? 200 : 202).send({
+        operation: created.operation,
+        deployment: localizeDeploymentRecord(created.deployment, transactionalLocaleForRequest(request)),
+        replayed: true,
+      });
+    }
+
     /*
      * Serialize quota + in-flight guard + create at the ORG level, identical to
      * the create route — otherwise concurrent redeploys (or redeploy racing a
@@ -39511,12 +42410,6 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
      * public VITE_ or NEXT_PUBLIC_ var that happened to match). Drop redacted
      * entries so the build sees them as absent rather than the literal placeholder.
      */
-    const sourceEnvVars = Object.fromEntries(
-      Object.entries((sourceMetadata.envVars ?? {}) as Record<string, string>).filter(
-        ([, value]) => value !== '[REDACTED]',
-      ),
-    );
-
     /*
      * Default to the standard 250MB cap when the source metadata doesn't carry a
      * limit — passing undefined disabled the artifact-size check entirely in
@@ -39551,6 +42444,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           envVars: sourceEnvVars,
           injectSecrets: [],
           machineSize: source.machineSize,
+          runtimeKind: 'autoscale',
         },
       });
       await audit(request, store, {
@@ -39792,6 +42686,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(400).send({
         error: appPublicCopy('ROLLBACK_IDEMPOTENCY_KEY_REQUIRED', locale),
         code: 'IDEMPOTENCY_KEY_REQUIRED',
+      });
+    }
+
+    /*
+     * The legacy rollback path creates a new Deployment and resolves runtime
+     * config/secrets from mutable current state. That is never safe for an
+     * identity-stable Reserved VM. Refuse before acquiring rollback authority;
+     * `acquireRollbackOperation` repeats this check under the project lock so a
+     * concurrent runtime change cannot slip between preflight and insertion.
+     */
+    const rollbackPreflightManifests = await store.listReleaseManifests(project.id, environment, { take: 2 });
+    const rollbackPreflightDeployments = await Promise.all(
+      rollbackPreflightManifests.map((manifest) => store.getDeployment(project.id, manifest.deploymentId)),
+    );
+
+    if (
+      rollbackPreflightDeployments.some(
+        (deployment) =>
+          deployment?.runtimeKind === 'reserved-vm' ||
+          Boolean(deployment?.reservedVmTier) ||
+          Boolean(deployment?.persistentStorageClaim),
+      )
+    ) {
+      return reply.code(409).send({
+        error: appPublicCopy('RESERVED_VM_ROLLBACK_UNPINNED', locale),
+        code: 'RESERVED_VM_ROLLBACK_UNPINNED',
       });
     }
 
@@ -40642,6 +43562,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!target) {
       return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    if (target.runtimeKind === 'reserved-vm' || target.reservedVmTier || target.persistentStorageClaim) {
+      return reply.code(409).send({
+        error: appPublicEnglish('RESERVED_VM_ROLLBACK_UNPINNED'),
+        code: 'RESERVED_VM_ROLLBACK_UNPINNED',
+      });
     }
 
     if (!(await deploymentProjectManifestIsCurrent(store, project, target))) {
