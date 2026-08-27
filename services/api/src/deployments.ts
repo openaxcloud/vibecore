@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { appPublicCopy, appPublicEnglish } from './app-public-copy.js';
 import { DEPLOYMENT_ACCESS_MODES } from './deployment-access.js';
 import { hashSnapshotEntries, type SnapshotEntry } from './release-manifest.js';
+import { withStaticDeploymentStorageLock, withStaticDeploymentStorageLocks } from './static-deployment-storage-lock.js';
 import type { DeploymentRecord, ProjectRecord } from './store.js';
 import type { TransactionalLocale } from './transactional-i18n.js';
 
@@ -1375,44 +1376,47 @@ async function directoryByteSize(dir: string): Promise<number> {
  * served under `/static-deployments/<id>/...`. Returns the rewritten
  * `index.html` path for callers that want to surface it in logs.
  */
-export async function snapshotStaticBuild(deploymentId: string, outputDir: string) {
-  const target = staticDeploymentSnapshotDir(deploymentId);
+export async function snapshotStaticBuild(deploymentId: string, outputDir: string, guard?: () => Promise<void>) {
+  return withStaticDeploymentStorageLock(deploymentId, async () => {
+    await guard?.();
+    const target = staticDeploymentSnapshotDir(deploymentId);
 
-  await rm(target, { recursive: true, force: true });
-  await mkdir(target, { recursive: true });
-  await cp(outputDir, target, { recursive: true });
+    await rm(target, { recursive: true, force: true });
+    await mkdir(target, { recursive: true });
+    await cp(outputDir, target, { recursive: true });
 
-  const indexHtmlPath = join(target, 'index.html');
+    const indexHtmlPath = join(target, 'index.html');
 
-  if (await pathExists(indexHtmlPath)) {
-    const original = await readFile(indexHtmlPath, 'utf8');
+    if (await pathExists(indexHtmlPath)) {
+      const original = await readFile(indexHtmlPath, 'utf8');
 
-    /*
-     * BUG-DEPLOY-LIVE. The prefix rewrite below only makes sense for the LEGACY
-     * path-based serving mode (`<api>/static-deployments/<id>/...`). When a
-     * dedicated origin exists (PREVIEW_DOMAIN set — i.e. production and every
-     * real deployment), the snapshot is served at the ROOT of
-     * `s-<id>.preview.<domain>`, so a rewritten `/static-deployments/<id>/assets/x.js`
-     * is looked up as a file INSIDE the snapshot and 404s
-     * (`STATIC_DEPLOY_FILE_NOT_FOUND`) — the document loads but every asset
-     * fails, leaving `<div id="root">` empty: a blank deployed app.
-     *
-     * The legacy path keeps working either way: that route 302-redirects to the
-     * dedicated origin whenever one exists, so the prefix is never needed there.
-     */
-    const rewritten = staticDeployDedicatedOrigin(deploymentId)
-      ? original
-      : rewriteHtmlAbsoluteUrls(original, `/static-deployments/${deploymentId}/`);
+      /*
+       * BUG-DEPLOY-LIVE. The prefix rewrite below only makes sense for the LEGACY
+       * path-based serving mode (`<api>/static-deployments/<id>/...`). When a
+       * dedicated origin exists (PREVIEW_DOMAIN set — i.e. production and every
+       * real deployment), the snapshot is served at the ROOT of
+       * `s-<id>.preview.<domain>`, so a rewritten `/static-deployments/<id>/assets/x.js`
+       * is looked up as a file INSIDE the snapshot and 404s
+       * (`STATIC_DEPLOY_FILE_NOT_FOUND`) — the document loads but every asset
+       * fails, leaving `<div id="root">` empty: a blank deployed app.
+       *
+       * The legacy path keeps working either way: that route 302-redirects to the
+       * dedicated origin whenever one exists, so the prefix is never needed there.
+       */
+      const rewritten = staticDeployDedicatedOrigin(deploymentId)
+        ? original
+        : rewriteHtmlAbsoluteUrls(original, `/static-deployments/${deploymentId}/`);
 
-    if (rewritten !== original) {
-      const { writeFile } = await import('node:fs/promises');
-      await writeFile(indexHtmlPath, rewritten, 'utf8');
+      if (rewritten !== original) {
+        const { writeFile } = await import('node:fs/promises');
+        await writeFile(indexHtmlPath, rewritten, 'utf8');
+      }
+
+      return indexHtmlPath;
     }
 
-    return indexHtmlPath;
-  }
-
-  return undefined;
+    return undefined;
+  });
 }
 
 /**
@@ -1480,8 +1484,10 @@ function rewriteUrl(value: string, normalizedBase: string): string {
 }
 
 export async function removeStaticDeploymentSnapshot(deploymentId: string) {
-  const target = staticDeploymentSnapshotDir(deploymentId);
-  await rm(target, { recursive: true, force: true });
+  return withStaticDeploymentStorageLock(deploymentId, async () => {
+    const target = staticDeploymentSnapshotDir(deploymentId);
+    await rm(target, { recursive: true, force: true });
+  });
 }
 
 /** Recursively collect every regular file under `root` as a root-relative path. */
@@ -1541,47 +1547,57 @@ export async function computeStaticSnapshotDigest(deploymentId: string): Promise
 export async function restoreStaticSnapshotInto(
   fromDeploymentId: string,
   toDeploymentId: string,
+  guard?: () => Promise<void>,
 ): Promise<{ indexHtmlPath?: string }> {
-  const source = staticDeploymentSnapshotDir(fromDeploymentId);
+  return withStaticDeploymentStorageLocks([fromDeploymentId, toDeploymentId], async () => {
+    await guard?.();
+    const source = staticDeploymentSnapshotDir(fromDeploymentId);
 
-  if (!(await pathExists(source))) {
-    throw Object.assign(
-      new Error(appPublicEnglish('ROLLBACK_STATIC_SNAPSHOT_MISSING', { deploymentId: fromDeploymentId })),
-      {
-        statusCode: 409,
-        code: 'ROLLBACK_SNAPSHOT_SOURCE_MISSING',
-      },
-    );
-  }
-
-  const target = staticDeploymentSnapshotDir(toDeploymentId);
-  await rm(target, { recursive: true, force: true });
-  await mkdir(target, { recursive: true });
-  await cp(source, target, { recursive: true });
-
-  const indexHtmlPath = join(target, 'index.html');
-
-  if (await pathExists(indexHtmlPath)) {
-    const original = await readFile(indexHtmlPath, 'utf8');
-
-    /*
-     * The source index.html was rewritten for the OLD id's base path; re-point it
-     * to the new id's base so assets resolve under /static-deployments/<newId>/.
-     */
-    const restored = original.replaceAll(
-      `/static-deployments/${fromDeploymentId}/`,
-      `/static-deployments/${toDeploymentId}/`,
-    );
-
-    if (restored !== original) {
-      const { writeFile } = await import('node:fs/promises');
-      await writeFile(indexHtmlPath, restored, 'utf8');
+    if (!(await pathExists(source))) {
+      throw Object.assign(
+        new Error(appPublicEnglish('ROLLBACK_STATIC_SNAPSHOT_MISSING', { deploymentId: fromDeploymentId })),
+        {
+          statusCode: 409,
+          code: 'ROLLBACK_SNAPSHOT_SOURCE_MISSING',
+        },
+      );
     }
 
-    return { indexHtmlPath };
-  }
+    const target = staticDeploymentSnapshotDir(toDeploymentId);
+    await guard?.();
+    await rm(target, { recursive: true, force: true });
+    await guard?.();
+    await mkdir(target, { recursive: true });
+    await guard?.();
+    await cp(source, target, { recursive: true });
+    await guard?.();
 
-  return {};
+    const indexHtmlPath = join(target, 'index.html');
+
+    if (await pathExists(indexHtmlPath)) {
+      const original = await readFile(indexHtmlPath, 'utf8');
+
+      /*
+       * The source index.html was rewritten for the OLD id's base path; re-point it
+       * to the new id's base so assets resolve under /static-deployments/<newId>/.
+       */
+      const restored = original.replaceAll(
+        `/static-deployments/${fromDeploymentId}/`,
+        `/static-deployments/${toDeploymentId}/`,
+      );
+
+      if (restored !== original) {
+        await guard?.();
+        const { writeFile } = await import('node:fs/promises');
+        await writeFile(indexHtmlPath, restored, 'utf8');
+        await guard?.();
+      }
+
+      return { indexHtmlPath };
+    }
+
+    return {};
+  });
 }
 
 export function createDeploymentLogs(

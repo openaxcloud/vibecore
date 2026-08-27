@@ -1611,6 +1611,14 @@
     "en": "Account purge execution is not authorized. Enable it, confirm it explicitly, and configure the server-side subject allowlist.",
     "fr": "L’exécution de la purge de compte n’est pas autorisée. Activez-la, confirmez-la explicitement et configurez la liste serveur des comptes autorisés."
   },
+  "SESSION_ACCOUNT_PURGE_FENCED": {
+    "en": "This account can no longer create or use sessions because account deletion has started.",
+    "fr": "Ce compte ne peut plus créer ni utiliser de sessions, car sa suppression a commencé."
+  },
+  "UNSAFE_PROJECT_STORAGE_ADAPTER": {
+    "en": "Injected project storage is unavailable in production because account-purge erasure and writers must share the built-in distributed lock.",
+    "fr": "Le stockage de projet injecté est indisponible en production, car la purge de compte et les écritures doivent partager le verrou distribué intégré."
+  },
   "AGENT_MEMORY_NOT_FOUND": {
     "en": "Memory not found",
     "fr": "Mémoire introuvable."

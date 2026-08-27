@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { redactAuditMetadata, type AuditEvent } from '@vibecore/audit';
 import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
@@ -227,6 +229,9 @@ export class TestApiStore implements ApiStore {
   readonly purgeEffects = new Map<string, Record<string, unknown>>();
   readonly purgeFrozenUsers = new Set<string>();
   readonly purgeFrozenOrganizations = new Set<string>();
+  readonly purgePlanUserIds = new Set<string>();
+  readonly purgePlannedProjectIds = new Set<string>();
+  readonly purgePlannedWorkspaceIds = new Set<string>();
   readonly purgeFrozenProjects = new Set<string>();
   readonly emailVerifications = new Map<
     string,
@@ -361,6 +366,24 @@ export class TestApiStore implements ApiStore {
     }
   }
 
+  private async withAccountPurgeSubjectLocks<T>(userIds: string[], fn: () => Promise<T>): Promise<T> {
+    const keys = [...new Set(userIds)].sort().map((userId) => `account-purge:${userId}`);
+    let locked = fn;
+
+    for (const key of [...keys].reverse()) {
+      const next = locked;
+      locked = () => this.withSerializedMutation(key, next);
+    }
+
+    return locked();
+  }
+
+  private isSessionSubjectPurgeFenced(userId: string): boolean {
+    if (this.purgePlanUserIds.has(userId) || this.purgeReceipts.has(userId)) return true;
+    const deletion = (this.users.get(userId)?.preferences?.accountDeletion ?? null) as { purgedAt?: unknown } | null;
+    return typeof deletion?.purgedAt === 'string';
+  }
+
   async createUser(input: {
     email: string;
     name?: string;
@@ -453,16 +476,54 @@ export class TestApiStore implements ApiStore {
       };
     }
     const organizations = await this.listOrganizations(userId);
-    const projectIds = [...this.projects.values()]
+    const organizationIds = new Set(organizations.map((organization) => organization.id));
+    const soleOrganizationIds = new Set(
+      organizations
+        .filter(
+          (organization) =>
+            [...this.memberships.values()].filter(
+              (membership) => membership.organizationId === organization.id && membership.state === 'ACTIVE',
+            ).length === 1,
+        )
+        .map((organization) => organization.id),
+    );
+    const workspaceProjectIds = [...this.projects.values()]
       .filter((project) => organizations.some((organization) => organization.id === project.organizationId))
       .map((project) => project.id);
+    const bucketProjectIds = [...this.projects.values()]
+      .filter(
+        (project) => organizationIds.has(project.organizationId) && soleOrganizationIds.has(project.organizationId),
+      )
+      .map((project) => project.id);
+    const localSnapshotObjects = [...this.snapshots.values()].flatMap((snapshot) =>
+      bucketProjectIds.includes(snapshot.projectId) && snapshot.storageKey
+        ? [{ projectId: snapshot.projectId, storageKey: snapshot.storageKey }]
+        : [],
+    );
+    const staticDeploymentIds = [
+      ...new Set([
+        ...[...this.deployments.values()]
+          .filter((deployment) => bucketProjectIds.includes(deployment.projectId) && deployment.provider === 'static')
+          .map((deployment) => deployment.id),
+        ...this.releaseManifests
+          .filter(
+            (manifest) => bucketProjectIds.includes(manifest.projectId) && manifest.artifactKind === 'static-snapshot',
+          )
+          .map((manifest) => manifest.deploymentId),
+      ]),
+    ];
     return {
       userId,
       status: 'ready_to_purge',
       databaseNow,
       requestedAt: deletion.requestedAt,
       purgeDueAt: purgeDueAt.toISOString(),
-      inventory: { bucketProjectIds: projectIds, workspaceProjectIds: projectIds },
+      inventory: {
+        bucketProjectIds,
+        workspaceProjectIds,
+        localSnapshotObjects,
+        staticDeploymentIds,
+      },
     };
   }
 
@@ -484,7 +545,9 @@ export class TestApiStore implements ApiStore {
     const user = this.users.get(userId);
     if (!user?.preferences?.accountDeletion) return { cancelled: false as const, reason: 'not_requested' as const };
     const receipt = this.purgeReceipts.get(userId);
-    if (receipt) return { cancelled: false as const, reason: 'not_cancellable' as const };
+    if (receipt || this.purgePlanUserIds.has(userId)) {
+      return { cancelled: false as const, reason: 'not_cancellable' as const };
+    }
     const preferences = { ...(user.preferences ?? {}) };
     delete preferences.accountDeletion;
     user.preferences = preferences;
@@ -529,7 +592,8 @@ export class TestApiStore implements ApiStore {
                 checkpoint.barrierExpiresAt &&
                 Date.parse(checkpoint.barrierExpiresAt) > Date.now(),
             )) &&
-          (checkpoint.createdByUserId === input.userId || Boolean(project && soleOrgIds.includes(project.organizationId)))
+          (checkpoint.createdByUserId === input.userId ||
+            Boolean(project && soleOrgIds.includes(project.organizationId)))
         );
       });
       if (activeCheckpoint) {
@@ -583,6 +647,12 @@ export class TestApiStore implements ApiStore {
       this.purgeFrozenUsers.add(input.userId);
       for (const organizationId of subjectOrgIds) this.purgeFrozenOrganizations.add(organizationId);
       for (const projectId of frozenProjectIds) this.purgeFrozenProjects.add(projectId);
+      this.purgePlanUserIds.add(input.userId);
+      for (const projectId of preview.inventory!.bucketProjectIds) this.purgePlannedProjectIds.add(projectId);
+      for (const projectId of preview.inventory!.workspaceProjectIds) {
+        const digest = createHash('sha256').update(`${projectId}:${input.userId}`).digest('hex').slice(0, 16);
+        this.purgePlannedWorkspaceIds.add(`${projectId}:ws-${digest}`);
+      }
       const lease = {
         planId,
         ownerToken,
@@ -653,7 +723,8 @@ export class TestApiStore implements ApiStore {
             job.state = 'FAILED';
             job.version += 1;
           }
-          const target = job.state !== 'COMMITTED' && job.targetProjectId ? this.projects.get(job.targetProjectId) : undefined;
+          const target =
+            job.state !== 'COMMITTED' && job.targetProjectId ? this.projects.get(job.targetProjectId) : undefined;
           if (target?.deletedAt) {
             this.projects.delete(target.id);
             this.projectManifestRevisions.delete(target.id);
@@ -676,7 +747,8 @@ export class TestApiStore implements ApiStore {
             job.state = 'FAILED';
             job.version += 1;
           }
-          const target = job.state !== 'COMPLETED' && job.targetProjectId ? this.projects.get(job.targetProjectId) : undefined;
+          const target =
+            job.state !== 'COMPLETED' && job.targetProjectId ? this.projects.get(job.targetProjectId) : undefined;
           if (target?.deletedAt) {
             this.projects.delete(target.id);
             this.projectManifestRevisions.delete(target.id);
@@ -696,10 +768,7 @@ export class TestApiStore implements ApiStore {
 
         for (const operation of this.rollbackOperations.values()) {
           const project = this.projects.get(operation.projectId);
-          if (
-            operation.actorUserId !== input.userId &&
-            !(project && soleOrgIds.includes(project.organizationId))
-          ) {
+          if (operation.actorUserId !== input.userId && !(project && soleOrgIds.includes(project.organizationId))) {
             continue;
           }
           if (operation.status === 'IN_PROGRESS') {
@@ -727,7 +796,8 @@ export class TestApiStore implements ApiStore {
         }
 
         for (const [tokenHash, session] of this.sessions)
-          if (session.userId === input.userId) this.sessions.delete(tokenHash);
+          if (session.userId === input.userId || session.impersonatedBy === input.userId)
+            this.sessions.delete(tokenHash);
         let deletedDeploymentAccessTickets = 0;
         for (const [tokenHash, ticket] of this.deploymentAccessExchangeTickets) {
           if (ticket.userId === input.userId) {
@@ -775,8 +845,7 @@ export class TestApiStore implements ApiStore {
   }
 
   async reconcilePurgeFreezes() {
-    const reconciled =
-      this.purgeFrozenUsers.size + this.purgeFrozenOrganizations.size + this.purgeFrozenProjects.size;
+    const reconciled = this.purgeFrozenUsers.size + this.purgeFrozenOrganizations.size + this.purgeFrozenProjects.size;
     this.purgeFrozenUsers.clear();
     this.purgeFrozenOrganizations.clear();
     this.purgeFrozenProjects.clear();
@@ -807,6 +876,19 @@ export class TestApiStore implements ApiStore {
       }
     }
     return effect();
+  }
+
+  async assertProjectStorageMutable(projectId: string, workspaceId?: string) {
+    if (
+      this.purgeFrozenProjects.has(projectId) ||
+      this.purgePlannedProjectIds.has(projectId) ||
+      (workspaceId ? this.purgePlannedWorkspaceIds.has(`${projectId}:${workspaceId}`) : false)
+    ) {
+      throw Object.assign(new Error('PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE'), {
+        code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
+        statusCode: 409,
+      });
+    }
   }
 
   async hasPurgeReceipt(userId: string) {
@@ -855,29 +937,57 @@ export class TestApiStore implements ApiStore {
     userAgent?: string;
     impersonatedBy?: string;
   }) {
-    const session = {
-      id: id('session'),
-      userId: input.userId,
-      tokenHash: hashToken(input.token),
-      expiresAt: input.expiresAt.toISOString(),
-      createdAt: now(),
-      ipAddress: input.ipAddress,
-      userAgent: input.userAgent,
-      impersonatedBy: input.impersonatedBy,
-    };
-    this.sessions.set(session.tokenHash, session);
+    const subjectUserIds = [input.userId, ...(input.impersonatedBy ? [input.impersonatedBy] : [])];
 
-    return session;
+    return this.withAccountPurgeSubjectLocks(subjectUserIds, async () => {
+      if (subjectUserIds.some((userId) => this.isSessionSubjectPurgeFenced(userId))) {
+        throw Object.assign(new Error('SESSION_ACCOUNT_PURGE_FENCED'), {
+          code: 'SESSION_ACCOUNT_PURGE_FENCED',
+          statusCode: 409,
+        });
+      }
+
+      const session = {
+        id: id('session'),
+        userId: input.userId,
+        tokenHash: hashToken(input.token),
+        expiresAt: input.expiresAt.toISOString(),
+        createdAt: now(),
+        ipAddress: input.ipAddress,
+        userAgent: input.userAgent,
+        impersonatedBy: input.impersonatedBy,
+      };
+      this.sessions.set(session.tokenHash, session);
+
+      return session;
+    });
   }
 
   async findSessionByToken(token: string) {
-    const session = this.sessions.get(hashToken(token));
+    const tokenHash = hashToken(token);
+    const candidate = this.sessions.get(tokenHash);
 
-    if (!session || session.revokedAt || new Date(session.expiresAt).getTime() < Date.now()) {
-      return undefined;
-    }
+    if (!candidate) return undefined;
 
-    return session;
+    const subjectUserIds = [candidate.userId, ...(candidate.impersonatedBy ? [candidate.impersonatedBy] : [])];
+
+    return this.withAccountPurgeSubjectLocks(subjectUserIds, async () => {
+      if (subjectUserIds.some((userId) => this.isSessionSubjectPurgeFenced(userId))) return undefined;
+      const session = this.sessions.get(tokenHash);
+
+      if (!session || session.revokedAt || new Date(session.expiresAt).getTime() < Date.now()) {
+        return undefined;
+      }
+
+      if (
+        session.userId !== candidate.userId ||
+        (session.impersonatedBy ?? null) !== (candidate.impersonatedBy ?? null)
+      ) {
+        return undefined;
+      }
+
+      return session;
+    });
   }
 
   async listSessions(userId: string) {
@@ -1500,9 +1610,7 @@ export class TestApiStore implements ApiStore {
         (instance) => instance.projectId === project.id && instance.status !== 'DELETED',
       );
       const hasActiveMigration = [...this.migrationExecutions.values()].some(
-        (execution) =>
-          execution.projectId === project.id &&
-          !['COMMITTED', 'FAILED_SAFE'].includes(execution.state),
+        (execution) => execution.projectId === project.id && !['COMMITTED', 'FAILED_SAFE'].includes(execution.state),
       );
       const hasActiveImport = [...this.importJobs.values()].some(
         (job) =>

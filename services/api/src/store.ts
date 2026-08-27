@@ -1771,6 +1771,8 @@ export interface ApiStore {
   isObjectStorageProjectPurgeFrozen(projectId: string): Promise<boolean>;
   withObjectStorageProjectMutation<T>(projectId: string, effect: () => Promise<T>): Promise<T>;
   withObjectStorageProjectMutations<T>(projectIds: string[], effect: () => Promise<T>): Promise<T>;
+  /** Refuse every local/static storage write once project purge fencing begins. */
+  assertProjectStorageMutable(projectId: string, workspaceId?: string): Promise<void>;
   hasPurgeReceipt(userId: string): Promise<boolean>;
   findUserByEmail(email: string): Promise<UserRecord | undefined>;
   findUserById(id: string): Promise<UserRecord | undefined>;

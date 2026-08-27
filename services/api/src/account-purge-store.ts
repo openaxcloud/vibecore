@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { Prisma, type DatabaseClient } from '@vibecore/database';
 import {
   anonymizedEmail,
@@ -57,6 +57,8 @@ interface StorageTopology {
   sharedOrgIds: string[];
   bucketProjectIds: string[];
   workspaceProjectIds: string[];
+  localSnapshotObjects: Array<{ projectId: string; storageKey: string }>;
+  staticDeploymentIds: string[];
   billingSubscriptions: Array<{
     id: string;
     externalId: string | null;
@@ -131,6 +133,11 @@ function validDate(value: string | undefined): Date | undefined {
   return Number.isFinite(date.getTime()) ? date : undefined;
 }
 
+function subjectWorkspaceId(projectId: string, userId: string): string {
+  const digest = createHash('sha256').update(`${projectId}:${userId}`).digest('hex').slice(0, 16);
+  return `ws-${digest}`;
+}
+
 function topologyFingerprint(topology: Omit<StorageTopology, 'fingerprint' | 'sharedOrgIds'>): string {
   const sort = (values: string[]) => [...new Set(values)].sort();
 
@@ -139,6 +146,12 @@ function topologyFingerprint(topology: Omit<StorageTopology, 'fingerprint' | 'sh
     soleOrgIds: sort(topology.soleOrgIds),
     bucketProjectIds: sort(topology.bucketProjectIds),
     workspaceProjectIds: sort(topology.workspaceProjectIds),
+    localSnapshotObjects: topology.localSnapshotObjects
+      .map(({ projectId, storageKey }) => ({ projectId, storageKey }))
+      .sort((left, right) =>
+        `${left.projectId}:${left.storageKey}`.localeCompare(`${right.projectId}:${right.storageKey}`),
+      ),
+    staticDeploymentIds: sort(topology.staticDeploymentIds),
     billingSubscriptions: topology.billingSubscriptions
       .map(({ id, externalId }) => ({ id, externalId }))
       .sort((left, right) => left.id.localeCompare(right.id)),
@@ -291,11 +304,39 @@ export class AccountPurgeStore {
         ...directProjectGrants.map(({ projectId }) => projectId),
       ]),
     ];
+    const localSnapshotObjects = bucketProjectIds.length
+      ? (
+          await tx.projectSnapshot.findMany({
+            where: { projectId: { in: bucketProjectIds }, storageKey: { not: null } },
+            select: { projectId: true, storageKey: true },
+          })
+        ).flatMap(({ projectId, storageKey }) => (storageKey ? [{ projectId, storageKey }] : []))
+      : [];
+    const deploymentIds = bucketProjectIds.length
+      ? await tx.deployment.findMany({
+          where: { projectId: { in: bucketProjectIds }, provider: 'static' },
+          select: { id: true },
+        })
+      : [];
+    const manifestDeploymentIds = bucketProjectIds.length
+      ? await tx.releaseManifest.findMany({
+          where: { projectId: { in: bucketProjectIds }, artifactKind: 'static-snapshot' },
+          select: { deploymentId: true },
+        })
+      : [];
+    const staticDeploymentIds = [
+      ...new Set([
+        ...deploymentIds.map(({ id }) => id),
+        ...manifestDeploymentIds.map(({ deploymentId }) => deploymentId),
+      ]),
+    ];
     const fingerprint = topologyFingerprint({
       orgIds,
       soleOrgIds,
       bucketProjectIds,
       workspaceProjectIds,
+      localSnapshotObjects,
+      staticDeploymentIds,
       billingSubscriptions,
     });
 
@@ -305,6 +346,8 @@ export class AccountPurgeStore {
       sharedOrgIds,
       bucketProjectIds,
       workspaceProjectIds,
+      localSnapshotObjects,
+      staticDeploymentIds,
       billingSubscriptions,
       fingerprint,
     };
@@ -355,6 +398,8 @@ export class AccountPurgeStore {
         inventory: {
           bucketProjectIds: topology.bucketProjectIds,
           workspaceProjectIds: topology.workspaceProjectIds,
+          localSnapshotObjects: topology.localSnapshotObjects,
+          staticDeploymentIds: topology.staticDeploymentIds,
         },
       };
     });
@@ -509,6 +554,44 @@ export class AccountPurgeStore {
     }
   }
 
+  /**
+   * Storage writers are fenced permanently once a sole-owner project appears
+   * in a purge plan inventory. Active PurgeFreeze rows close the pre-plan race;
+   * the durable plan inventory closes delayed build/snapshot writers after the
+   * attempt failed or completed and its transient freezes were released.
+   */
+  async assertProjectStorageMutable(
+    tx: Prisma.TransactionClient,
+    projectId: string,
+    workspaceId?: string,
+  ): Promise<void> {
+    await this.assertProjectMutable(tx, projectId);
+    const rows = await tx.$queryRawUnsafe<Array<{ planned: boolean }>>(
+      `SELECT EXISTS (
+         SELECT 1 FROM "PurgePlan"
+          WHERE COALESCE(inventory->'bucketProjectIds', '[]'::jsonb) ? $1
+       ) AS planned`,
+      projectId,
+    );
+    const workspacePlans = workspaceId
+      ? await tx.$queryRawUnsafe<Array<{ userId: string }>>(
+          `SELECT "userId" FROM "PurgePlan"
+            WHERE COALESCE(inventory->'workspaceProjectIds', '[]'::jsonb) ? $1`,
+          projectId,
+        )
+      : [];
+    const subjectWorkspacePlanned = workspacePlans.some(
+      (plan) => subjectWorkspaceId(projectId, plan.userId) === workspaceId,
+    );
+
+    if (rows[0]?.planned === true || subjectWorkspacePlanned) {
+      throw Object.assign(new Error('PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE'), {
+        code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
+        statusCode: 409,
+      });
+    }
+  }
+
   private async acquire(userId: string, correlationId?: string): Promise<PurgeGuarantee | PurgeUserAccountResult> {
     return this.prisma.$transaction(async (tx) => {
       await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
@@ -595,6 +678,8 @@ export class AccountPurgeStore {
       const inventory = {
         bucketProjectIds: topology.bucketProjectIds,
         workspaceProjectIds: topology.workspaceProjectIds,
+        localSnapshotObjects: topology.localSnapshotObjects,
+        staticDeploymentIds: topology.staticDeploymentIds,
       };
       const billingSubscriptions = topology.billingSubscriptions.filter(
         (subscription): subscription is BillingSubscriptionInventory =>
@@ -965,7 +1050,12 @@ export class AccountPurgeStore {
       }
 
       const physical = await deps.eraseStorage(
-        { bucketProjectIds: guarantee.bucketProjectIds, workspaceProjectIds: guarantee.workspaceProjectIds },
+        {
+          bucketProjectIds: guarantee.bucketProjectIds,
+          workspaceProjectIds: guarantee.workspaceProjectIds,
+          localSnapshotObjects: guarantee.localSnapshotObjects,
+          staticDeploymentIds: guarantee.staticDeploymentIds,
+        },
         leaseContext,
       );
 
@@ -985,7 +1075,12 @@ export class AccountPurgeStore {
       await heartbeat.stop();
       await deps
         .releaseWorkspaceBarrier?.(
-          { bucketProjectIds: guarantee.bucketProjectIds, workspaceProjectIds: guarantee.workspaceProjectIds },
+          {
+            bucketProjectIds: guarantee.bucketProjectIds,
+            workspaceProjectIds: guarantee.workspaceProjectIds,
+            localSnapshotObjects: guarantee.localSnapshotObjects,
+            staticDeploymentIds: guarantee.staticDeploymentIds,
+          },
           guarantee.planId,
           guarantee.ownerToken,
         )

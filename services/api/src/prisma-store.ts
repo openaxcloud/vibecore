@@ -1084,6 +1084,10 @@ export class PrismaApiStore implements ApiStore {
     return this.accountPurge.withObjectStorageMutations(projectIds, effect);
   }
 
+  assertProjectStorageMutable(projectId: string, workspaceId?: string) {
+    return this.prisma.$transaction((tx) => this.accountPurge.assertProjectStorageMutable(tx, projectId, workspaceId));
+  }
+
   hasPurgeReceipt(userId: string) {
     return this.accountPurge.hasReceipt(userId);
   }
@@ -1142,28 +1146,105 @@ export class PrismaApiStore implements ApiStore {
     userAgent?: string;
     impersonatedBy?: string;
   }) {
-    return mapSession(
-      await this.prisma.session.create({
-        data: {
-          userId: input.userId,
-          tokenHash: hashToken(input.token),
-          expiresAt: input.expiresAt,
-          ipAddress: input.ipAddress,
-          userAgent: input.userAgent,
-          impersonatedBy: input.impersonatedBy,
-        },
-      }),
-    );
+    return this.prisma.$transaction(async (tx) => {
+      const subjectUserIds = [
+        ...new Set([input.userId, input.impersonatedBy].filter((id): id is string => Boolean(id))),
+      ].sort();
+      await this.lockSessionPurgeSubjects(tx, subjectUserIds);
+      await this.assertSessionSubjectsNotPurgeFenced(tx, subjectUserIds);
+
+      return mapSession(
+        await tx.session.create({
+          data: {
+            userId: input.userId,
+            tokenHash: hashToken(input.token),
+            expiresAt: input.expiresAt,
+            ipAddress: input.ipAddress,
+            userAgent: input.userAgent,
+            impersonatedBy: input.impersonatedBy,
+          },
+        }),
+      );
+    });
+  }
+
+  private async lockSessionPurgeSubjects(tx: Prisma.TransactionClient, userIds: string[]): Promise<void> {
+    for (const userId of userIds) {
+      await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
+    }
+  }
+
+  private async assertSessionSubjectsNotPurgeFenced(tx: Prisma.TransactionClient, userIds: string[]): Promise<void> {
+    if (userIds.length === 0) return;
+
+    const [plans, receipts, users] = await Promise.all([
+      tx.purgePlan.count({ where: { userId: { in: userIds } } }),
+      tx.purgeReceipt.count({ where: { userId: { in: userIds } } }),
+      tx.user.findMany({ where: { id: { in: userIds } }, select: { preferences: true } }),
+    ]);
+    const hasPurgedAt = users.some((user) => {
+      if (!user.preferences || typeof user.preferences !== 'object' || Array.isArray(user.preferences)) return false;
+      const deletion = (user.preferences as Record<string, unknown>).accountDeletion;
+      return (
+        Boolean(deletion) &&
+        typeof deletion === 'object' &&
+        !Array.isArray(deletion) &&
+        typeof (deletion as Record<string, unknown>).purgedAt === 'string'
+      );
+    });
+
+    if (plans > 0 || receipts > 0 || hasPurgedAt) {
+      throw Object.assign(new Error(appPublicEnglish('SESSION_ACCOUNT_PURGE_FENCED')), {
+        code: 'SESSION_ACCOUNT_PURGE_FENCED',
+        statusCode: 409,
+      });
+    }
   }
 
   async findSessionByToken(token: string) {
-    const session = await this.prisma.session.findUnique({ where: { tokenHash: hashToken(token) } });
+    const tokenHash = hashToken(token);
+    const candidate = await this.prisma.session.findUnique({
+      where: { tokenHash },
+      select: { userId: true, impersonatedBy: true },
+    });
 
-    if (!session || session.revokedAt || session.expiresAt.getTime() < Date.now()) {
-      return undefined;
+    if (!candidate) return undefined;
+
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const subjectUserIds = [candidate.userId, candidate.impersonatedBy]
+          .filter((id): id is string => Boolean(id))
+          .filter((id, index, all) => all.indexOf(id) === index)
+          .sort();
+        await this.lockSessionPurgeSubjects(tx, subjectUserIds);
+        await this.assertSessionSubjectsNotPurgeFenced(tx, subjectUserIds);
+
+        /* The first read discovers the lock subject; only this locked re-read authorizes. */
+        const session = await tx.session.findUnique({ where: { tokenHash } });
+
+        if (!session || session.revokedAt || session.expiresAt.getTime() < Date.now()) {
+          return undefined;
+        }
+
+        /*
+         * Token rows are immutable in normal flows, but delete+recreate must
+         * not let a different target/impersonator borrow locks acquired for the
+         * stale candidate. Refuse the rebinding; a later request may retry and
+         * lock the newly observed subjects.
+         */
+        if (
+          session.userId !== candidate.userId ||
+          (session.impersonatedBy ?? null) !== (candidate.impersonatedBy ?? null)
+        ) {
+          return undefined;
+        }
+
+        return mapSession(session);
+      });
+    } catch (error) {
+      if ((error as { code?: unknown } | null)?.code === 'SESSION_ACCOUNT_PURGE_FENCED') return undefined;
+      throw error;
     }
-
-    return mapSession(session);
   }
 
   async listSessions(userId: string) {

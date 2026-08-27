@@ -11,8 +11,6 @@ import { canonicalizeProjectManifest, projectManifestDigest } from '../project-m
 import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 import { TestApiStore } from './test-api-store.js';
 
-const ROLLBACK_ACTOR_USER_ID = 'rollback-test-actor';
-
 /*
  * P0-V3-08 — DETERMINISTIC static rollback-to-previous (endpoint wiring).
  *
@@ -56,7 +54,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
         organizationName: 'RB Org',
       },
     });
-    const auth = register.json() as { token: string; organization: { id: string } };
+    const auth = register.json() as { token: string; user: { id: string }; organization: { id: string } };
     await store.upsertSubscription({ organizationId: auth.organization.id, planKey: 'pro', status: 'ACTIVE' });
     const project = await app.inject({
       method: 'POST',
@@ -216,7 +214,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       .digest('hex');
     const acquired = await store.acquireRollbackOperation({
       projectId,
-      actorUserId: ROLLBACK_ACTOR_USER_ID,
+      actorUserId: auth.user.id,
       idempotencyKey,
       requestFingerprint,
       environment: 'preview',
@@ -442,7 +440,7 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       .digest('hex');
     const acquired = await store.acquireRollbackOperation({
       projectId,
-      actorUserId: ROLLBACK_ACTOR_USER_ID,
+      actorUserId: auth.user.id,
       idempotencyKey,
       requestFingerprint,
       environment: 'preview',

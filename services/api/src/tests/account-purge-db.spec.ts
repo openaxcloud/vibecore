@@ -1,6 +1,12 @@
+import { createHash } from 'node:crypto';
+import { lstat, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+
 import { createDatabaseClient, Prisma } from '@vibecore/database';
 import { describe, expect, it, vi } from 'vitest';
 
+import { eraseLocalAccountStorage } from '../account-local-storage-purge.js';
 import type { PurgeStorageDeps } from '../account-purge.js';
 import { PrismaApiStore } from '../prisma-store.js';
 
@@ -54,7 +60,303 @@ async function cleanup(
   await prisma.user.deleteMany({ where: { id: { in: userIds } } });
 }
 
+async function createSessionFencePlan(tx: Prisma.TransactionClient, userId: string) {
+  const requestedAt = new Date(Date.now() - 15 * 24 * 60 * 60 * 1_000);
+  return tx.purgePlan.create({
+    data: {
+      userId,
+      ownerToken: `session-fence-${suffix()}`,
+      status: 'ACTIVE',
+      leaseExpiresAt: new Date(Date.now() + 60_000),
+      requestedAt,
+      purgeDueAt: new Date(requestedAt.getTime() + 14 * 24 * 60 * 60 * 1_000),
+      topologyFingerprint: '{}',
+      inventory: {
+        bucketProjectIds: [],
+        workspaceProjectIds: [],
+        localSnapshotObjects: [],
+        staticDeploymentIds: [],
+      },
+    },
+  });
+}
+
 runDbTests('account purge — PostgreSQL multi-client fencing', () => {
+  it('permanently fences only the purged subject workspace in a retained project', async () => {
+    const prisma = createDatabaseClient();
+    const userIds: string[] = [];
+
+    try {
+      const subject = await seedDueUser(prisma);
+      userIds.push(subject.id);
+      const projectId = `retained-project-${suffix()}`;
+      const requestedAt = new Date(Date.now() - 15 * 24 * 60 * 60 * 1_000);
+      await prisma.purgePlan.create({
+        data: {
+          userId: subject.id,
+          ownerToken: `completed-workspace-${suffix()}`,
+          status: 'COMPLETED',
+          leaseExpiresAt: new Date(),
+          requestedAt,
+          purgeDueAt: new Date(requestedAt.getTime() + 14 * 24 * 60 * 60 * 1_000),
+          topologyFingerprint: '{}',
+          completedAt: new Date(),
+          inventory: {
+            bucketProjectIds: [],
+            workspaceProjectIds: [projectId],
+            localSnapshotObjects: [],
+            staticDeploymentIds: [],
+          },
+        },
+      });
+      const store = new PrismaApiStore(prisma);
+      const digest = createHash('sha256').update(`${projectId}:${subject.id}`).digest('hex').slice(0, 16);
+
+      await expect(store.assertProjectStorageMutable(projectId, `ws-${digest}`)).rejects.toMatchObject({
+        code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
+      });
+      await expect(store.assertProjectStorageMutable(projectId, 'ws-other-collaborator')).resolves.toBeUndefined();
+      await expect(store.assertProjectStorageMutable(projectId)).resolves.toBeUndefined();
+    } finally {
+      await cleanup(prisma, userIds).catch(() => undefined);
+      await prisma.$disconnect();
+    }
+  });
+
+  it('linearizes late session INSERT and token lookup behind a newly committed purge plan', async () => {
+    const prismaA = createDatabaseClient();
+    const prismaB = createDatabaseClient();
+    const userIds: string[] = [];
+
+    try {
+      const insertUser = await seedDueUser(prismaA);
+      const lookupUser = await seedDueUser(prismaA);
+      userIds.push(insertUser.id, lookupUser.id);
+      const storeA = new PrismaApiStore(prismaA);
+      const existingToken = `lookup-before-plan-${suffix()}`;
+      await storeA.createSession({
+        userId: lookupUser.id,
+        token: existingToken,
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+
+      const exerciseFence = async (userId: string, operation: () => Promise<unknown>) => {
+        const locked = deferred();
+        const commitPlan = deferred();
+        const blocker = prismaB.$transaction(async (tx) => {
+          await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${userId}`);
+          locked.resolve();
+          await commitPlan.promise;
+          await createSessionFencePlan(tx, userId);
+        });
+
+        await locked.promise;
+        const pending = operation();
+        await new Promise((resolve) => setTimeout(resolve, 40));
+        commitPlan.resolve();
+        await blocker;
+        return pending;
+      };
+
+      const insert = exerciseFence(insertUser.id, () =>
+        storeA.createSession({
+          userId: insertUser.id,
+          token: `login-read-before-plan-${suffix()}`,
+          expiresAt: new Date(Date.now() + 60_000),
+        }),
+      );
+      await expect(insert).rejects.toMatchObject({ code: 'SESSION_ACCOUNT_PURGE_FENCED' });
+      await expect(prismaA.session.count({ where: { userId: insertUser.id } })).resolves.toBe(0);
+
+      const lookup = exerciseFence(lookupUser.id, () => storeA.findSessionByToken(existingToken));
+      await expect(lookup).resolves.toBeUndefined();
+      await expect(prismaA.session.count({ where: { userId: lookupUser.id } })).resolves.toBe(1);
+    } finally {
+      await cleanup(prismaA, userIds).catch(() => undefined);
+      await Promise.all([prismaA.$disconnect(), prismaB.$disconnect()]);
+    }
+  });
+
+  it('refuses a token row rebound after candidate discovery to principals that were not locked', async () => {
+    const prismaA = createDatabaseClient();
+    const prismaB = createDatabaseClient();
+    const prismaC = createDatabaseClient();
+    const userIds: string[] = [];
+    const lockEntered = deferred();
+    const lockRelease = deferred();
+
+    try {
+      const originalTarget = await seedDueUser(prismaA);
+      const reboundTarget = await seedDueUser(prismaA);
+      const reboundImpersonator = await seedDueUser(prismaA);
+      userIds.push(originalTarget.id, reboundTarget.id, reboundImpersonator.id);
+      const store = new PrismaApiStore(prismaA);
+      const token = `session-rebind-${suffix()}`;
+      const session = await store.createSession({
+        userId: originalTarget.id,
+        token,
+        expiresAt: new Date(Date.now() + 60_000),
+      });
+      const blocker = prismaB.$transaction(async (tx) => {
+        await tx.$executeRawUnsafe('SELECT pg_advisory_xact_lock(hashtext($1))', `account-purge:${originalTarget.id}`);
+        lockEntered.resolve();
+        await lockRelease.promise;
+      });
+
+      await lockEntered.promise;
+      const lookup = store.findSessionByToken(token);
+      let lookupWaitingOnOriginalSubject = false;
+
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        const waiting = await prismaC.$queryRaw<Array<{ count: bigint }>>`
+          SELECT COUNT(*)::bigint AS count
+            FROM pg_stat_activity
+           WHERE pid <> pg_backend_pid()
+             AND wait_event = 'advisory'
+             AND query LIKE '%pg_advisory_xact_lock(hashtext(%'
+        `;
+        if ((waiting[0]?.count ?? 0n) > 0n) {
+          lookupWaitingOnOriginalSubject = true;
+          break;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+
+      expect(lookupWaitingOnOriginalSubject).toBe(true);
+      await prismaC.session.update({
+        where: { id: session.id },
+        data: { userId: reboundTarget.id, impersonatedBy: reboundImpersonator.id },
+      });
+      lockRelease.resolve();
+      await blocker;
+
+      await expect(lookup).resolves.toBeUndefined();
+    } finally {
+      lockRelease.resolve();
+      await cleanup(prismaA, userIds).catch(() => undefined);
+      await Promise.all([prismaA.$disconnect(), prismaB.$disconnect(), prismaC.$disconnect()]);
+    }
+  });
+
+  it('persists an exhaustive local filesystem proof and keeps the project writer fenced', async () => {
+    const prisma = createDatabaseClient();
+    const userIds: string[] = [];
+    const organizationIds: string[] = [];
+    const releaseManifestIds: string[] = [];
+    const base = await mkdtemp(join(tmpdir(), 'vibecore-purge-db-fs-'));
+    const projectRoot = join(base, 'projects');
+    const staticRoot = join(base, 'static');
+
+    try {
+      const user = await seedDueUser(prisma);
+      userIds.push(user.id);
+      const role = await prisma.role.upsert({
+        where: { key: 'owner' },
+        create: { key: 'owner', name: 'Owner' },
+        update: {},
+      });
+      const organization = await prisma.organization.create({
+        data: {
+          name: 'Purge local storage org',
+          slug: `purge-local-${suffix()}`,
+          members: { create: { userId: user.id, roleId: role.id } },
+          projects: { create: { name: 'Physical project', slug: 'physical-project' } },
+        },
+        include: { projects: true },
+      });
+      organizationIds.push(organization.id);
+      const project = organization.projects[0];
+      const storageKey = `snapshots/${project.id}/checkpoint.zip`;
+      await prisma.projectSnapshot.create({
+        data: { projectId: project.id, manifest: {}, storageKey, byteLength: 7 },
+      });
+      const deployment = await prisma.deployment.create({
+        data: { projectId: project.id, provider: 'static', status: 'READY' },
+      });
+      const manifestOnlyDeploymentId = `manifest-only-${suffix()}`;
+      const releaseManifest = await prisma.releaseManifest.create({
+        data: {
+          projectId: project.id,
+          deploymentId: manifestOnlyDeploymentId,
+          environment: 'preview',
+          version: 1,
+          provider: 'static',
+          artifactKind: 'static-snapshot',
+          artifactRef: manifestOnlyDeploymentId,
+          artifactDigest: `sha256:${'a'.repeat(64)}`,
+        },
+      });
+      releaseManifestIds.push(releaseManifest.id);
+
+      const files = [
+        join(projectRoot, project.id, 'src', 'secret.ts'),
+        join(projectRoot, '_objects', 'exports', project.id, 'archive.zip'),
+        join(projectRoot, '_objects', 'snapshots', project.id, 'checkpoint.zip'),
+        join(staticRoot, deployment.id, 'index.html'),
+        join(staticRoot, manifestOnlyDeploymentId, 'index.html'),
+      ];
+      for (const path of files) {
+        await mkdir(join(path, '..'), { recursive: true });
+        await writeFile(path, 'subject-data', 'utf8');
+      }
+
+      const store = new PrismaApiStore(prisma, undefined, { ...lease, ttlMs: 5_000 });
+      const result = await store.purgeUserAccount(
+        { userId: user.id },
+        {
+          eraseStorage: async (inventory, purgeLease) => {
+            const local = await eraseLocalAccountStorage(
+              {
+                ownedProjectIds: inventory.bucketProjectIds,
+                workspaceStorage: [],
+                snapshotObjects: inventory.localSnapshotObjects,
+                staticDeploymentIds: inventory.staticDeploymentIds,
+              },
+              { lease: purgeLease, projectRoot, staticRoot },
+            );
+            return { classes: local.classes, verified: local.verified };
+          },
+        },
+      );
+
+      expect(result).toMatchObject({ outcome: 'purged' });
+      if (result.outcome !== 'purged') throw new Error('expected purged outcome');
+      expect(result.proof.verifiedZeroRemaining).toBe(true);
+      const physicalClassNames = [
+        'local_project_storage',
+        'local_project_archives',
+        'local_project_checkpoints',
+        'local_workspace_storage',
+        'static_deployment_snapshots',
+      ];
+      expect(
+        result.proof.classes
+          .map(({ dataClass }) => dataClass)
+          .filter((dataClass) => physicalClassNames.includes(dataClass)),
+      ).toEqual(physicalClassNames);
+      for (const path of files) {
+        await expect(lstat(path)).rejects.toMatchObject({ code: 'ENOENT' });
+      }
+      await expect(store.assertProjectStorageMutable(project.id)).rejects.toMatchObject({
+        code: 'PROJECT_STORAGE_FENCED_FOR_ACCOUNT_PURGE',
+      });
+    } finally {
+      if (userIds[0]) {
+        await prisma.adminAuditLog
+          .deleteMany({
+            where: { action: 'account.purge_completed', metadata: { path: ['userId'], equals: userIds[0] } },
+          })
+          .catch(() => undefined);
+      }
+      if (releaseManifestIds.length) {
+        await prisma.releaseManifest.deleteMany({ where: { id: { in: releaseManifestIds } } }).catch(() => undefined);
+      }
+      await cleanup(prisma, userIds, organizationIds).catch(() => undefined);
+      await prisma.$disconnect();
+      await rm(base, { recursive: true, force: true });
+    }
+  });
+
   it('never reclaims a plan while its row lock encloses an irreversible provider effect', async () => {
     const prismaA = createDatabaseClient();
     const prismaB = createDatabaseClient();
