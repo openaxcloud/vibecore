@@ -671,6 +671,29 @@ export interface ReleaseManifestRecord {
   createdAt: string;
 }
 
+/**
+ * Durable, PostgreSQL-clock release barrier. A publisher renews this lease while
+ * it performs bounded external work; transfer and ProjectManifest append both
+ * observe the same ProjectCheckpoint singleton before mutating ownership.
+ */
+export interface ProjectReleaseBarrierLease {
+  checkpointId: string;
+  projectId: string;
+  barrierId: string;
+  ownerToken: string;
+  fence: number;
+  expiresAt: string;
+}
+
+/** Exact capability revalidated in the READY + ReleaseManifest transaction. */
+export interface ProjectReleaseFence {
+  checkpointId: string;
+  ownerToken: string;
+  fence: number;
+  expectedOrganizationId: string;
+  expectedManifestDigest: string;
+}
+
 export type RollbackOperationStatus = 'IN_PROGRESS' | 'COMPLETED';
 export type RollbackOperationPhase =
   | 'CLAIMED'
@@ -745,6 +768,7 @@ export interface StaticRollbackReleaseCommitInput extends RollbackLeaseFence {
   metadata: Record<string, unknown>;
   logs: DeploymentRecord['logs'];
   finishedAt: string;
+  releaseFence: ProjectReleaseFence;
 }
 
 export interface DeploymentAccessContext {
@@ -793,6 +817,7 @@ export interface ServerImageReleaseCommitInput {
   metadata: Record<string, unknown>;
   logs: DeploymentRecord['logs'];
   finishedAt: string;
+  releaseFence: ProjectReleaseFence;
 
   /** Required for rollback-owned deployments; omitted by ordinary publishes. */
   rollbackFence?: RollbackLeaseFence;
@@ -802,6 +827,19 @@ export interface ServerImageReleaseCommitResult {
   committed: boolean;
   deployment: DeploymentRecord;
   manifest?: ReleaseManifestRecord;
+}
+
+/** Atomic READY transition for legacy server runtimes without a promoted image. */
+export interface FencedServerReadyCommitInput {
+  projectId: string;
+  deploymentId: string;
+  releaseFence: ProjectReleaseFence;
+  url: string;
+  previewUrl?: string;
+  productionUrl?: string;
+  metadata: Record<string, unknown>;
+  logs: DeploymentRecord['logs'];
+  finishedAt: string;
 }
 
 /** P0-EX-08: one immutable, canonical ProjectManifest revision. */
@@ -1985,6 +2023,34 @@ export interface ApiStore {
     retainBarrier?: boolean;
   }): Promise<void>;
   releaseProjectCheckpointBarrier(input: { checkpointId: string; ownerToken: string; fence: number }): Promise<boolean>;
+
+  /** Acquire a release-only checkpoint barrier after locking/revalidating org + manifest. */
+  acquireProjectReleaseBarrier(input: {
+    projectId: string;
+    expectedOrganizationId: string;
+    expectedManifestDigest: string;
+    operationId: string;
+    ownerToken: string;
+    ttlSeconds: number;
+  }): Promise<ProjectReleaseBarrierLease | undefined>;
+
+  /** Fence check at every external-effect boundary and immediately before READY. */
+  assertProjectReleaseBarrier(input: {
+    checkpointId: string;
+    projectId: string;
+    expectedOrganizationId: string;
+    expectedManifestDigest: string;
+    ownerToken: string;
+    fence: number;
+  }): Promise<void>;
+
+  /** Delete only the ephemeral release barrier owned by this exact fence. */
+  releaseProjectReleaseBarrier(input: {
+    checkpointId: string;
+    projectId: string;
+    ownerToken: string;
+    fence: number;
+  }): Promise<boolean>;
   updateProjectCheckpoint(
     id: string,
     patch: {
@@ -3052,6 +3118,8 @@ export interface ApiStore {
   }>;
   /** Atomically append the server-image manifest and transition to READY. */
   commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult>;
+  /** Atomically revalidate org/manifest/fence and publish a legacy server runtime. */
+  commitFencedServerReady(input: FencedServerReadyCommitInput): Promise<DeploymentRecord>;
 
   /** Durable promotion evidence retained independently of a prunable Deployment row. */
   getServerImageReleasePromotion(deploymentId: string): Promise<unknown | undefined>;

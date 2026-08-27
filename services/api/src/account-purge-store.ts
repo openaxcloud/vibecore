@@ -544,6 +544,25 @@ export class AccountPurgeStore {
         userId,
         soleOrganizationIds: topology.soleOrgIds,
       });
+
+      /*
+       * Cloud project bindings are owned by a separate tenant control plane and
+       * restrict Project deletion. Refuse while the topology lock is held,
+       * before issuing a purge guarantee: Stripe cancellation, GCS deletion and
+       * workspace/PVC erasure therefore cannot run and leave an undeletable
+       * half-purged account. A dedicated cloud teardown must remove the binding
+       * first; every binding state is fail-closed here.
+       */
+      const cloudProjectBindingCount = topology.bucketProjectIds.length
+        ? await tx.cloudProjectBinding.count({ where: { projectId: { in: topology.bucketProjectIds } } })
+        : 0;
+
+      if (cloudProjectBindingCount > 0) {
+        throw Object.assign(new Error('ACCOUNT_PURGE_CLOUD_PROJECT_BINDING_ACTIVE'), {
+          code: 'ACCOUNT_PURGE_CLOUD_PROJECT_BINDING_ACTIVE',
+          statusCode: 409,
+        });
+      }
       for (const projectId of [...topology.bucketProjectIds].sort()) {
         await this.lockObjectStorageProject(tx, projectId);
       }

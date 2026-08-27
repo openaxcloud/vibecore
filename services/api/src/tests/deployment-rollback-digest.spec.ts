@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildApiApp, type ApiAppOptions } from '../app.js';
 import type { EmailProvider } from '../email.js';
 import { TestApiStore } from './test-api-store.js';
+import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 
 /*
  * Audit v4 rollback vertical — the WIRING (not just the pure module).
@@ -114,6 +115,9 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
     over: { image?: unknown; secretPolicy?: string } = {},
   ) {
     const project = await store.getProject(projectId);
+    const manifest = await store.getLatestProjectManifest(projectId);
+
+    if (!manifest) throw new Error('TEST_PROJECT_MANIFEST_MISSING');
 
     const promotion = {
       promotionId: 'promo-retained-release',
@@ -145,6 +149,7 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
       status: 'READY',
       url: 'https://d-v1.preview.e-code.ai',
       metadata: {
+        projectManifestDigest: manifest.digest,
         serverDeploy: {
           host: 'd-v1.preview.e-code.ai',
           ready: true,
@@ -188,6 +193,11 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
 
     const commitRelease = async (imageDigest: string, promotionId: string) => {
       const project = await store.getProject(projectId);
+      const release = await acquireTestProjectReleaseFence(store, {
+        projectId,
+        organizationId: project!.organizationId,
+        operationId: `fixture:${promotionId}`,
+      });
 
       const promotion = {
         promotionId,
@@ -216,7 +226,10 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
         provider: 'server',
         environment: 'preview',
         status: 'BUILDING',
-        metadata: { serverDeploy: { image: { imageRef: IMAGE_REF, imageDigest }, promotion } },
+        metadata: {
+          projectManifestDigest: release.digest,
+          serverDeploy: { image: { imageRef: IMAGE_REF, imageDigest }, promotion },
+        },
       });
       await store.commitServerImageRelease({
         projectId,
@@ -230,7 +243,9 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
         metadata: deployment.metadata as Record<string, unknown>,
         logs: [],
         finishedAt: '2026-08-26T00:00:02.000Z',
+        releaseFence: release.releaseFence,
       });
+      await release.release();
 
       return deployment;
     };

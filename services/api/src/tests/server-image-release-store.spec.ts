@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 // eslint-disable-next-line no-restricted-imports -- this service has no ~/ path alias; keep the store spec service-local.
 import type { DeploymentRecord, ServerImageReleaseCommitInput } from '../store.js';
+import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 import { TestApiStore } from './test-api-store.js';
 
 const DIGEST = `sha256:${'a'.repeat(64)}`;
@@ -23,6 +24,10 @@ async function fixture() {
     organizationId: organization.id,
     name: 'Release Project',
     slug: 'release-project',
+  });
+  const release = await acquireTestProjectReleaseFence(store, {
+    projectId: project.id,
+    organizationId: organization.id,
   });
   const promotion = {
     promotionId: 'promo-store-test',
@@ -52,6 +57,7 @@ async function fixture() {
     environment: 'preview',
     status: 'BUILDING',
     metadata: {
+      projectManifestDigest: release.digest,
       serverDeploy: {
         image: { imageRef: IMAGE_REF, imageDigest: DIGEST },
         promotion,
@@ -70,6 +76,7 @@ async function fixture() {
     metadata: deployment.metadata as Record<string, unknown>,
     logs: [],
     finishedAt: '2026-08-26T00:00:02.000Z',
+    releaseFence: release.releaseFence,
   };
 
   return { store, organization, project, deployment, input };

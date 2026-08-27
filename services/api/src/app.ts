@@ -403,6 +403,7 @@ import {
   resolveDefaultObjectStorage,
 } from './object-storage.js';
 import { PrismaApiStore } from './prisma-store.js';
+import { withProjectReleaseBarrier, type ProjectReleaseGuard } from './project-release-barrier.js';
 import {
   canonicalizeProjectManifest,
   createDefaultProjectManifest,
@@ -496,6 +497,7 @@ import {
   type ImportJobRecord,
   type ProjectIdeStateRecord,
   type ProjectRecord,
+  type ProjectReleaseFence,
   type ProviderConfigRecord,
   type RollbackLeaseFence,
   type RuntimeWebSocketEndpoint,
@@ -4299,6 +4301,7 @@ async function commitPromotedServerImageRelease(input: {
   readyMessage: string;
   dbMigrationPoint?: string;
   rollbackFence?: RollbackLeaseFence;
+  releaseFence: ProjectReleaseFence;
 }): Promise<DeploymentRecord> {
   const release = requireCommittedServerImagePromotion(input.deployment, input.organizationId);
 
@@ -4330,6 +4333,7 @@ async function commitPromotedServerImageRelease(input: {
       { timestamp: new Date().toISOString(), level: 'info', message: input.readyMessage },
     ],
     finishedAt: new Date().toISOString(),
+    releaseFence: input.releaseFence,
     ...(input.rollbackFence ? { rollbackFence: input.rollbackFence } : {}),
   });
 
@@ -4403,64 +4407,86 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
           url,
         });
 
-        if (serverMeta.image) {
-          const project = await store.getProject(deployment.projectId);
+        try {
+          /*
+           * Two polling clients can observe the same BUILDING row as ready.
+           * Serialize only the short fence+commit section (the manager I/O is
+           * already complete), then re-read so a waiter returns the winner's
+           * READY row instead of treating its active barrier as a failure.
+           */
+          return await store.withSerializedMutation(`server-release:${deployment.id}`, async () => {
+            const candidate = await store.getDeployment(deployment.projectId, deployment.id);
 
-          try {
-            if (!project) {
+            if (!candidate || candidate.status !== 'BUILDING') return candidate ?? deployment;
+
+            const project = await store.getProject(candidate.projectId);
+            if (!project) throw new ServerImageReleaseGateError('PROMOTION_PROJECT_INVALID');
+
+            const boundDigest = (candidate.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
+            if (typeof boundDigest !== 'string' || !PROJECT_MANIFEST_DIGEST_PATTERN.test(boundDigest)) {
               throw new ServerImageReleaseGateError('PROMOTION_PROJECT_INVALID');
             }
 
-            return await commitPromotedServerImageRelease({
+            return withProjectReleaseBarrier(
               store,
-              deployment,
-              organizationId: project.organizationId,
-              url,
-              readyReplicas: live.readyReplicas,
-              readyMessage,
-            });
-          } catch (error) {
-            /*
-             * A live pod without a committed promotion+manifest is not a
-             * release. Stop it and surface a recoverable FAILED deployment;
-             * never let reconcile manufacture READY from manager readiness.
-             */
-            await stopServerDeploymentViaManager(deployment.id).catch(() => undefined);
-
-            const code = (error as { code?: string }).code ?? 'PROMOTION_NOT_COMMITTED';
-            const message = appPublicEnglish(serverImagePromotionErrorCopyKey(code));
-
-            return store.updateDeployment(deployment.projectId, deployment.id, {
-              status: 'FAILED',
-              metadata: {
-                ...(deployment.metadata as Record<string, unknown>),
-                serverDeploy: { ...serverMeta, ready: false, releaseErrorCode: code },
+              {
+                projectId: project.id,
+                expectedOrganizationId: project.organizationId,
+                expectedManifestDigest: boundDigest,
+                operationId: `reconcile:${candidate.id}`,
               },
-              logs: [...deployment.logs, { timestamp: new Date().toISOString(), level: 'error', message }],
-              finishedAt: new Date().toISOString(),
-            });
-          }
-        }
+              async (releaseGuard) => {
+                await releaseGuard.assert();
 
-        return store.updateDeployment(deployment.projectId, deployment.id, {
-          status: 'READY',
-          url,
-          previewUrl: deployment.environment !== 'production' ? url : undefined,
-          productionUrl: deployment.environment === 'production' ? url : undefined,
-          metadata: {
-            ...(deployment.metadata as Record<string, unknown>),
-            serverDeploy: { ...serverMeta, ready: true, readyReplicas: live.readyReplicas },
-          },
-          logs: [
-            ...deployment.logs,
-            {
-              timestamp: new Date().toISOString(),
-              level: 'info' as const,
-              message: readyMessage,
+                if (serverMeta.image) {
+                  return commitPromotedServerImageRelease({
+                    store,
+                    deployment: candidate,
+                    organizationId: project.organizationId,
+                    url,
+                    readyReplicas: live.readyReplicas,
+                    readyMessage,
+                    releaseFence: releaseGuard.fence,
+                  });
+                }
+
+                return store.commitFencedServerReady({
+                  projectId: candidate.projectId,
+                  deploymentId: candidate.id,
+                  releaseFence: releaseGuard.fence,
+                  url,
+                  previewUrl: candidate.environment !== 'production' ? url : undefined,
+                  productionUrl: candidate.environment === 'production' ? url : undefined,
+                  metadata: {
+                    ...(candidate.metadata as Record<string, unknown>),
+                    serverDeploy: { ...serverMeta, ready: true, readyReplicas: live.readyReplicas },
+                  },
+                  logs: [
+                    ...candidate.logs,
+                    { timestamp: new Date().toISOString(), level: 'info', message: readyMessage },
+                  ],
+                  finishedAt: new Date().toISOString(),
+                });
+              },
+            );
+          });
+        } catch (error) {
+          /* A live pod without a valid release fence is not a release. */
+          await stopServerDeploymentViaManager(deployment.id).catch(() => undefined);
+
+          const code = (error as { code?: string }).code ?? 'PROMOTION_NOT_COMMITTED';
+          const message = appPublicEnglish(serverImagePromotionErrorCopyKey(code));
+
+          return store.updateDeployment(deployment.projectId, deployment.id, {
+            status: 'FAILED',
+            metadata: {
+              ...(deployment.metadata as Record<string, unknown>),
+              serverDeploy: { ...serverMeta, ready: false, releaseErrorCode: code },
             },
-          ],
-          finishedAt: new Date().toISOString(),
-        });
+            logs: [...deployment.logs, { timestamp: new Date().toISOString(), level: 'error', message }],
+            finishedAt: new Date().toISOString(),
+          });
+        }
       }
     }
   }
@@ -9239,7 +9265,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    * refuse les mutations d'arbre sous barrière — garde posée au point
    * d'étranglement et non route par route (checkpoint-barrier-storage.ts).
    */
-  const checkpointBarrierLookup = (projectId: string) => store.getActiveCheckpointBarrier(projectId);
+  const checkpointBarrierLookup = async (projectId: string) => {
+    const barrier = await store.getActiveCheckpointBarrier(projectId);
+
+    /*
+     * RELEASE_BARRIER fences tenant ownership + manifest authority, not source
+     * files. Publish may create its production checkout while that fence is
+     * held, and immutable deployment artifacts do not change when files edit.
+     * Coordinated checkpoint barriers retain the full filesystem quiesce.
+     */
+    return barrier?.barrierId.startsWith('release:') ? undefined : barrier;
+  };
 
   const checkpointMutationGuard = async (projectId: string) => {
     const barrier = await checkpointBarrierLookup(projectId);
@@ -36243,15 +36279,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     /*
      * The queue payload can wait or retry while a collaborator edits the
      * manifest. Never execute a build under relations/scopes other than those
-     * approved when the row was queued. Legacy rows (created before 0092) have
-     * no binding and keep their prior behaviour; every new row is bound.
+     * approved when the row was queued. A row without an immutable binding is
+     * not safe to execute after waiting in the queue; redeploy it to bind one.
      */
     const queuedManifestDigest = (queued.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
 
-    if (typeof queuedManifestDigest === 'string') {
       let currentDigest: string | undefined;
       let failureMessage = appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_DEPLOY');
 
+    const manifestBindingValid =
+      typeof queuedManifestDigest === 'string' && PROJECT_MANIFEST_DIGEST_PATTERN.test(queuedManifestDigest);
+    const legacyNonServerRow = queuedManifestDigest === undefined && body.provider !== 'server';
+
+    if (manifestBindingValid) {
       try {
         currentDigest = (await currentProjectManifest(store, project)).digest;
       } catch (error) {
@@ -36265,8 +36305,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           failureMessage = error.publicMessage;
         }
       }
+    }
 
-      if (currentDigest !== queuedManifestDigest) {
+    if (
+      (!manifestBindingValid && !legacyNonServerRow) ||
+      (manifestBindingValid && currentDigest !== queuedManifestDigest)
+    ) {
         return store.updateDeployment(project.id, queued.id, {
           status: 'FAILED',
           logs: [
@@ -36280,8 +36324,21 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           finishedAt: new Date().toISOString(),
         });
       }
-    }
 
+    const expectedManifestDigest = manifestBindingValid
+      ? (queuedManifestDigest as string)
+      : (await currentProjectManifest(store, project)).digest;
+
+    try {
+      return await withProjectReleaseBarrier(
+        store,
+        {
+          projectId: project.id,
+          expectedOrganizationId: project.organizationId,
+          expectedManifestDigest,
+          operationId: `deployment-build:${queued.id}`,
+        },
+        async (releaseGuard: ProjectReleaseGuard) => {
     /*
      * Incremental log/phase flush (coalesced ~1/s) so the UI streams progress
      * instead of showing a frozen screen while the pod builds. Flushing also keeps
@@ -36589,11 +36646,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             buildProgress.onLog({
               timestamp: nowIso(),
               level: 'info',
-              message: appPublicEnglish(deployConfig ? 'DEPLOY_SERVER_DECLARED_PLAN' : 'DEPLOY_SERVER_DETECTED_PLAN', {
+                  message: appPublicEnglish(
+                    deployConfig ? 'DEPLOY_SERVER_DECLARED_PLAN' : 'DEPLOY_SERVER_DETECTED_PLAN',
+                    {
                 build: runPlan.buildCommand ?? '—',
                 start: runPlan.startCommand,
                 framework: runPlan.framework,
-              }),
+                    },
+                  ),
             });
 
             const objectStorage = (() => {
@@ -36613,7 +36673,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                * boot ⇒ cold start is image pull + exec.
                */
               const imageRepo = process.env.SERVER_DEPLOY_IMAGE_REPO?.trim();
-              const repoMatch = imageRepo ? /^([a-z0-9-]+)-docker\.pkg\.dev\/([^/]+)\/[^/]+$/.exec(imageRepo) : null;
+                  const repoMatch = imageRepo
+                    ? /^([a-z0-9-]+)-docker\.pkg\.dev\/([^/]+)\/[^/]+$/.exec(imageRepo)
+                    : null;
 
               if (!repoMatch) {
                 serverError =
@@ -36648,7 +36710,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                        * (declared via .ecode/deploy.json) drives its own install
                        * through its build command — never a silent npm fallback.
                        */
-                      installCommand: packageJson ? `${runPlan.install.command} ${runPlan.install.args.join(' ')}` : '',
+                          installCommand: packageJson
+                            ? `${runPlan.install.command} ${runPlan.install.args.join(' ')}`
+                            : '',
                       buildCommand: runPlan.buildCommand,
                       nixStorePvcName: nixStorePvcForProject(project.id),
                       nixGenerationRef: ecodeLock?.storeGeneration,
@@ -36669,6 +36733,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                 } else {
                   const imageUri = `${imageRepo}/p-${project.id.toLowerCase()}:${queued.id.toLowerCase()}`;
 
+                      await releaseGuard.assert();
                   const buildResult = await runAppImageBuild(
                     {
                       gcpProject: repoMatch[2],
@@ -36721,16 +36786,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
                     try {
                       buildProgress.onPhase('promoting');
 
-                      const promoted = await store.withSerializedMutation(
-                        `artifact-promotion:${project.organizationId}:${project.id}:${buildResult.digest}`,
-                        () =>
-                          resolveServerImagePromotionRuntime().promote({
-                            organizationId: project.organizationId,
-                            projectId: project.id,
-                            source: { repo: sourceImageRef, digest: buildResult.digest! },
-                          }),
-                        { transactionTimeoutMs: 2 * 60 * 60 * 1_000 },
-                      );
+                      await releaseGuard.assert();
+                      const promoted = await resolveServerImagePromotionRuntime().promote({
+                        organizationId: project.organizationId,
+                        projectId: project.id,
+                        source: { repo: sourceImageRef, digest: buildResult.digest! },
+                      });
+                      await releaseGuard.assert();
 
                       if (
                         !isCommittedPromotionForTenant(
@@ -36842,6 +36904,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const machineSize = machineSizeFromCard(deployRateCard, queued.machineSize);
 
         try {
+              await releaseGuard.assert();
           started = await startServerDeploymentViaManager({
             deploymentId: queued.id,
             expiryCheck: {
@@ -36923,10 +36986,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
       let readyRow = await store.updateDeployment(project.id, queued.id, {
         /*
-         * A server image may only cross BUILDING→READY atomically with its
-         * ReleaseManifest, after its promotion manifest passed every gate.
+         * Every server runtime crosses BUILDING→READY in a store transaction
+         * holding the release fence. Promoted images append their manifest in
+         * that transaction; legacy boot-image runtimes use the same org/digest
+         * fence even though they have no immutable image manifest to append.
          */
-        status: ok && serverImageRequiresReleaseCommit ? 'BUILDING' : serverStatus,
+        status: ok ? 'BUILDING' : serverStatus,
 
         /*
          * The row was created with the STATIC heuristic's guess (outputDirectory
@@ -36935,16 +37000,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * "node". Persist what actually ran.
          */
         framework: detectedFramework ?? queued.framework,
-        url: ok && !serverImageRequiresReleaseCommit ? serverUrl : undefined,
-        previewUrl:
-          ok && !serverImageRequiresReleaseCommit && body.environment !== 'production' ? serverUrl : undefined,
-        productionUrl:
-          ok && !serverImageRequiresReleaseCommit && body.environment === 'production' ? serverUrl : undefined,
+        url: undefined,
+        previewUrl: undefined,
+        productionUrl: undefined,
         metadata: {
           ...(queued.metadata as Record<string, unknown>),
+          projectManifestDigest: expectedManifestDigest,
           serverDeploy: {
             host,
-            ready: ok && !serverImageRequiresReleaseCommit,
+            ready: false,
             readyReplicas: started?.readyReplicas ?? 0,
 
             /*
@@ -36973,19 +37037,42 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
          * A converging (BUILDING) deploy is not finished — leaving finishedAt
          * unset keeps reconcile's stale-timeout clock running from startedAt.
          */
-        finishedAt: converging || (ok && serverImageRequiresReleaseCommit) ? undefined : nowIso(),
+        finishedAt: converging || ok ? undefined : nowIso(),
       });
 
-      if (ok && serverImageRequiresReleaseCommit) {
+      if (ok) {
         try {
-          readyRow = await commitPromotedServerImageRelease({
-            store,
-            deployment: readyRow,
-            organizationId: project.organizationId,
-            url: serverUrl,
-            readyReplicas: started?.readyReplicas ?? 0,
-            readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
-          });
+          await releaseGuard.assert();
+
+          if (serverImageRequiresReleaseCommit) {
+            readyRow = await commitPromotedServerImageRelease({
+              store,
+              deployment: readyRow,
+              organizationId: project.organizationId,
+              url: serverUrl,
+              readyReplicas: started?.readyReplicas ?? 0,
+              readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
+              releaseFence: releaseGuard.fence,
+            });
+          } else {
+            readyRow = await store.commitFencedServerReady({
+              projectId: project.id,
+              deploymentId: readyRow.id,
+              releaseFence: releaseGuard.fence,
+              url: serverUrl,
+              previewUrl: body.environment !== 'production' ? serverUrl : undefined,
+              productionUrl: body.environment === 'production' ? serverUrl : undefined,
+              metadata: {
+                ...(readyRow.metadata as Record<string, unknown>),
+                serverDeploy: {
+                  ...((readyRow.metadata as Record<string, unknown>).serverDeploy as Record<string, unknown>),
+                  ready: true,
+                },
+              },
+              logs: readyRow.logs,
+              finishedAt: nowIso(),
+            });
+          }
         } catch (error) {
           await stopServerDeploymentViaManager(queued.id).catch(() => undefined);
           imagePromotionErrorCode = (error as { code?: string }).code ?? 'SERVER_RELEASE_COMMIT_FAILED';
@@ -37053,6 +37140,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return readyRow;
     }
 
+        await releaseGuard.assert();
     const hookResult = await triggerProviderDeployHook(body.provider);
 
     let staticBuildFailed = false;
@@ -37221,6 +37309,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           ? url
           : undefined;
 
+        await releaseGuard.assert();
     const ready = await store.updateDeployment(project.id, queued.id, {
       status,
       url: resolvedUrl,
@@ -37228,6 +37317,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       productionUrl: isReady && body.environment === 'production' ? resolvedUrl : undefined,
       metadata: {
         ...(queued.metadata as Record<string, unknown>),
+            projectManifestDigest: expectedManifestDigest,
         providerBuildId: hookResult?.buildId,
         hookStatus: hookResult?.status,
         staticBuildOk: body.provider === 'static' ? !staticBuildFailed : undefined,
@@ -37263,7 +37353,12 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       projectId: project.id,
       actorUserId: request.currentUser?.id,
       action: 'deployment.create',
-      metadata: { deploymentId: ready.id, provider: ready.provider, environment: ready.environment, url: ready.url },
+          metadata: {
+            deploymentId: ready.id,
+            provider: ready.provider,
+            environment: ready.environment,
+            url: ready.url,
+          },
     });
 
     /*
@@ -37275,6 +37370,41 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return ready;
+        },
+      );
+    } catch (error) {
+      const current = await store.getDeployment(project.id, queued.id).catch(() => undefined);
+
+      /* A release committed under a live fence stays valid if heartbeat loss is observed afterwards. */
+      if (current?.status === 'READY') return current;
+
+      if (body.provider === 'server') {
+        await stopServerDeploymentViaManager(queued.id).catch(() => undefined);
+      } else if (body.provider === 'static') {
+        await removeStaticDeploymentSnapshot(queued.id).catch(() => undefined);
+      }
+
+      const code = (error as { code?: string }).code ?? 'PROJECT_RELEASE_BARRIER_LOST';
+      return store.updateDeployment(project.id, queued.id, {
+        status: 'FAILED',
+        url: '',
+        previewUrl: '',
+        productionUrl: '',
+        metadata: {
+          ...(current?.metadata as Record<string, unknown> | undefined),
+          releaseErrorCode: code,
+        },
+        logs: [
+          ...(current?.logs ?? queued.logs),
+          {
+            timestamp: new Date().toISOString(),
+            level: 'error',
+            message: appPublicEnglish(serverImagePromotionErrorCopyKey(code)),
+          },
+        ],
+        finishedAt: new Date().toISOString(),
+      });
+    }
   };
 
   /*
@@ -38471,6 +38601,33 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
     }
 
+    const boundManifestDigest = (source.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
+
+    const legacyNonServerPublish = boundManifestDigest === undefined && source.provider !== 'server';
+
+    if (
+      (!legacyNonServerPublish && typeof boundManifestDigest !== 'string') ||
+      (typeof boundManifestDigest === 'string' && !PROJECT_MANIFEST_DIGEST_PATTERN.test(boundManifestDigest))
+    ) {
+      return reply.code(409).send({
+        error: appPublicCopy('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH', locale),
+        code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+      });
+    }
+    const expectedManifestDigest =
+      typeof boundManifestDigest === 'string'
+        ? boundManifestDigest
+        : (await currentProjectManifest(store, project)).digest;
+
+    return withProjectReleaseBarrier(
+      store,
+      {
+        projectId: project.id,
+        expectedOrganizationId: project.organizationId,
+        expectedManifestDigest,
+        operationId: `publish:${source.id}`,
+      },
+      async (releaseGuard) => {
     if (!(await deploymentProjectManifestIsCurrent(store, project, source))) {
       return reply.code(409).send({
         error: appPublicCopy('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH', locale),
@@ -38627,6 +38784,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         backwardCompatible: migrationPlan.backwardCompatible,
         forwardCompatible: migrationPlan.forwardCompatible,
       });
+          await releaseGuard.assert();
       const migrationOutcome = await runPublishMigration({
         store,
         provisioner: databaseProvisioner,
@@ -38712,16 +38870,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       try {
-        const promoted = await store.withSerializedMutation(
-          `artifact-promotion:${project.organizationId}:${project.id}:${sourceImage.imageDigest}`,
-          () =>
-            resolveServerImagePromotionRuntime().promote({
-              organizationId: project.organizationId,
-              projectId: project.id,
-              source: { repo: sourceImageRef, digest: sourceImage.imageDigest! },
-            }),
-          { transactionTimeoutMs: 2 * 60 * 60 * 1_000 },
-        );
+        await releaseGuard.assert();
+        const promoted = await resolveServerImagePromotionRuntime().promote({
+          organizationId: project.organizationId,
+          projectId: project.id,
+          source: { repo: sourceImageRef, digest: sourceImage.imageDigest! },
+        });
+        await releaseGuard.assert();
 
         if (
           !isCommittedPromotionForTenant(
@@ -38791,7 +38946,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     const publishMachineVcpu =
-      source.provider === 'server' ? machineSizeFromCard(await getActiveRateCard(store), source.machineSize).vcpu : 0;
+          source.provider === 'server'
+            ? machineSizeFromCard(await getActiveRateCard(store), source.machineSize).vcpu
+            : 0;
     const publishOutcome = await store.withSerializedMutation(
       `deploy-org:${project.organizationId}`,
       async (): Promise<
@@ -38807,7 +38964,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             vcpu: publishMachineVcpu,
             artifactSizeMb:
               typeof publishMetadata.artifactSizeLimitMb === 'number' ? publishMetadata.artifactSizeLimitMb : 250,
-            timeoutSeconds: typeof publishMetadata.timeoutSeconds === 'number' ? publishMetadata.timeoutSeconds : 600,
+                timeoutSeconds:
+                  typeof publishMetadata.timeoutSeconds === 'number' ? publishMetadata.timeoutSeconds : 600,
           }),
         );
         await ensureQuota(request, project.organizationId, 'deployments.count');
@@ -38818,11 +38976,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           return gate;
         }
 
+            await releaseGuard.assert();
         // Création DANS la section critique : c'est elle qui rend le plafond réel.
         const publishUrl = source.url ?? source.previewUrl ?? buildDeploymentUrl(project, source);
+            const publishedBase = buildPublishedDeploymentInput(source, publishUrl);
 
         const publishedInput = {
-          ...buildPublishedDeploymentInput(source, publishUrl),
+              ...publishedBase,
+              metadata: {
+                ...((publishedBase.metadata ?? {}) as Record<string, unknown>),
+                projectManifestDigest: expectedManifestDigest,
+              },
 
           /*
            * Production has its own monotonic policy namespace. Clone the exact
@@ -38927,6 +39091,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const machineSize = machineSizeFromCard(deployRateCard, published.machineSize);
         const sourceImage = serverPublishPromotion.image as { storeGeneration?: string };
 
+            await releaseGuard.assert();
         const started = await startServerDeploymentViaManager({
           deploymentId: published.id,
           ...machineSizeResources(machineSize),
@@ -38957,6 +39122,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
 
         if (started.ready) {
+              await releaseGuard.assert();
           published = await commitPromotedServerImageRelease({
             store,
             deployment: published,
@@ -38964,6 +39130,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             url,
             readyReplicas: started.readyReplicas,
             readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
+                releaseFence: releaseGuard.fence,
           });
         }
       } catch (error) {
@@ -39076,7 +39243,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       let prodWorkspace = workspaces.find((workspace) => workspace.environment === 'production');
 
       if (!prodWorkspace) {
-        const devTemplate = workspaces.find((workspace) => (workspace.environment ?? 'development') === 'development');
+            const devTemplate = workspaces.find(
+              (workspace) => (workspace.environment ?? 'development') === 'development',
+            );
         prodWorkspace = await store.createWorkspace({
           projectId: project.id,
           name: 'Production',
@@ -39106,6 +39275,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     });
 
     return reply.code(201).send({ deployment: localizeDeploymentRecord(published, locale) });
+      },
+    );
   });
 
   app.post('/projects/:projectId/deployments/:deploymentId/redeploy', async (request, reply) => {
@@ -39115,6 +39286,18 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     if (!source) {
       return reply.code(404).send({ error: appPublicEnglish('DEPLOYMENT_NOT_FOUND'), code: 'DEPLOYMENT_NOT_FOUND' });
+    }
+
+    const redeployManifestDigest = (source.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
+
+    if (
+      (source.provider === 'server' && typeof redeployManifestDigest !== 'string') ||
+      (typeof redeployManifestDigest === 'string' && !PROJECT_MANIFEST_DIGEST_PATTERN.test(redeployManifestDigest))
+    ) {
+      return reply.code(409).send({
+        error: appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH'),
+        code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+      });
     }
 
     if (!(await deploymentProjectManifestIsCurrent(store, project, source))) {
@@ -39840,6 +40023,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const expectedHeadVersion = operation.expectedHeadVersion;
 
+    return withProjectReleaseBarrier(
+      store,
+      {
+        projectId: project.id,
+        expectedOrganizationId: project.organizationId,
+        expectedManifestDigest: liveProjectManifest.digest,
+        operationId: `rollback:${operation.id}`,
+      },
+      async (releaseGuard) => {
     // ---- STATIC: re-materialise + re-verify the previous snapshot bytes. ----
     if (previous.artifactKind === 'static-snapshot') {
       const recomputed = await computeStaticSnapshotDigest(previous.deploymentId);
@@ -39929,6 +40121,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       try {
+            await releaseGuard.assert();
         operation = await store.beginRollbackEffect({
           operationId: operation.id,
           ownerToken,
@@ -39954,6 +40147,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
         const url = buildDeploymentUrl(project, rollback);
 
+            await releaseGuard.assert();
         const release = await store.commitStaticRollbackRelease({
           operationId: operation.id,
           ownerToken,
@@ -39984,6 +40178,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             },
           ],
           finishedAt: new Date().toISOString(),
+              releaseFence: releaseGuard.fence,
         });
 
         return reply.code(201).send({
@@ -40200,12 +40395,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const deployRateCard = await getActiveRateCard(store);
         const machineSize = machineSizeFromCard(deployRateCard, undefined);
 
+            await releaseGuard.assert();
         operation = await store.beginRollbackEffect({
           operationId: operation.id,
           ownerToken,
           fencingToken: operation.fencingToken,
         });
         await leaseManager.guard();
+            await releaseGuard.assert();
         managerStartAttempted = true;
         const started = await startServerDeploymentViaManager({
           deploymentId: rollback.id,
@@ -40271,6 +40468,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           },
         });
 
+            await releaseGuard.assert();
         ready = await commitPromotedServerImageRelease({
           store,
           deployment: ready,
@@ -40278,6 +40476,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           url: rbUrl,
           readyReplicas: started?.readyReplicas ?? 0,
           readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
+              releaseFence: releaseGuard.fence,
           ...(previous.dbMigrationPoint ? { dbMigrationPoint: previous.dbMigrationPoint } : {}),
           rollbackFence: {
             operationId: operation.id,
@@ -40377,6 +40576,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       error: appPublicCopy('ROLLBACK_UNSUPPORTED_KIND', locale, { artifactKind: previous.artifactKind }),
       code: 'ROLLBACK_UNSUPPORTED_KIND',
     });
+      },
+    );
   });
 
   app.post('/projects/:projectId/deployments/:deploymentId/rollback', async (request, reply) => {
@@ -40405,6 +40606,29 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     // A suspended org must not drive new deployment rows / provider rollbacks.
     await requireOrganizationNotSuspended(store, project.organizationId);
 
+    const targetBoundDigest = (target.metadata as Record<string, unknown> | undefined)?.projectManifestDigest;
+
+    if (
+      (target.provider === 'server' && typeof targetBoundDigest !== 'string') ||
+      (typeof targetBoundDigest === 'string' && !PROJECT_MANIFEST_DIGEST_PATTERN.test(targetBoundDigest))
+    ) {
+      return reply.code(409).send({
+        error: appPublicEnglish('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH'),
+        code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+      });
+    }
+    const expectedManifestDigest =
+      typeof targetBoundDigest === 'string' ? targetBoundDigest : (await currentProjectManifest(store, project)).digest;
+
+    return withProjectReleaseBarrier(
+      store,
+      {
+        projectId: project.id,
+        expectedOrganizationId: project.organizationId,
+        expectedManifestDigest,
+        operationId: `legacy-rollback:${target.id}`,
+      },
+      async (releaseGuard) => {
     /*
      * Serialize quota + row creation at the org level (like create/redeploy) so
      * concurrent rollbacks can't bypass deployments.count. Only the fast
@@ -40449,7 +40673,9 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const rollbackMetadata = (target.metadata ?? {}) as Record<string, unknown>;
 
     const rollbackMachineVcpu =
-      target.provider === 'server' ? machineSizeFromCard(await getActiveRateCard(store), target.machineSize).vcpu : 0;
+          target.provider === 'server'
+            ? machineSizeFromCard(await getActiveRateCard(store), target.machineSize).vcpu
+            : 0;
 
     const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
       await ensureTenantAdmission(
@@ -40461,10 +40687,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           vcpu: rollbackMachineVcpu,
           artifactSizeMb:
             typeof rollbackMetadata.artifactSizeLimitMb === 'number' ? rollbackMetadata.artifactSizeLimitMb : 250,
-          timeoutSeconds: typeof rollbackMetadata.timeoutSeconds === 'number' ? rollbackMetadata.timeoutSeconds : 600,
+              timeoutSeconds:
+                typeof rollbackMetadata.timeoutSeconds === 'number' ? rollbackMetadata.timeoutSeconds : 600,
         }),
       );
       await ensureQuota(request, project.organizationId, 'deployments.count');
+
+          await releaseGuard.assert();
 
       return store.createDeployment({
         projectId: project.id,
@@ -40484,6 +40713,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         accessPolicyVersion: target.accessPolicyVersion,
         metadata: {
           ...(target.metadata as Record<string, unknown>),
+              projectManifestDigest: expectedManifestDigest,
           rollbackTargetId: target.id,
           restoredProviderBuildId: (target.metadata as Record<string, unknown>)?.providerBuildId,
         },
@@ -40504,16 +40734,20 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         ],
       });
     });
-    const providerRollback = willTriggerProviderRollback
-      ? await triggerProviderRollback(
+        let providerRollback;
+
+        if (willTriggerProviderRollback) {
+          await releaseGuard.assert();
+          providerRollback = await triggerProviderRollback(
           target.provider as (typeof deploymentProviders)[number],
           (target.metadata as Record<string, unknown>)?.providerBuildId as string | undefined,
-        )
-      : undefined;
+          );
+        }
 
     let finalDeployment = rollback;
 
     if (providerRollback) {
+      await releaseGuard.assert();
       const rollbackFailed = providerRollback.status === 'failed';
       finalDeployment = await store.updateDeployment(project.id, rollback.id, {
         // QUEUED → READY on success / FAILED on failure (allowed by the monotonic guard).
@@ -40586,7 +40820,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           (): Record<string, string> => ({}),
         );
 
-        const secretResolution = resolveRollbackSecrets({ policy: secretPolicy, currentSecrets, pinnedSecrets: null });
+            const secretResolution = resolveRollbackSecrets({
+              policy: secretPolicy,
+              currentSecrets,
+              pinnedSecrets: null,
+            });
 
         if (
           !isCommittedPromotionForTenant(
@@ -40616,6 +40854,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const deployRateCard = await getActiveRateCard(store);
         const machineSize = machineSizeFromCard(deployRateCard, target.machineSize);
 
+            await releaseGuard.assert();
         const started = await startServerDeploymentViaManager({
           deploymentId: rollback.id,
           ...machineSizeResources(machineSize),
@@ -40678,6 +40917,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         });
 
         if (ok) {
+              await releaseGuard.assert();
           finalDeployment = await commitPromotedServerImageRelease({
             store,
             deployment: finalDeployment,
@@ -40685,12 +40925,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
             url: rbUrl,
             readyReplicas: started?.readyReplicas ?? 0,
             readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
+                releaseFence: releaseGuard.fence,
           });
         }
       } catch (error) {
         const code = (error as { code?: string }).code ?? 'ROLLBACK_FAILED';
         const statusCode = (error as { statusCode?: number }).statusCode ?? 502;
-        request.log.error({ err: error, deploymentId: rollback.id, targetDeploymentId: target.id }, 'rollback refused');
+            request.log.error(
+              { err: error, deploymentId: rollback.id, targetDeploymentId: target.id },
+              'rollback refused',
+            );
+
+            /* A lost release fence after manager start must never leave the stale-tenant pod serving. */
+            await stopServerDeploymentViaManager(rollback.id).catch(() => undefined);
 
         /*
          * Refuse loudly (ROLLBACK_NO_RETAINED_DIGEST / ROLLBACK_SECRET_POLICY_UNSATISFIABLE)
@@ -40729,6 +40976,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     return reply
       .code(201)
       .send({ deployment: localizeDeploymentRecord(finalDeployment, transactionalLocaleForRequest(request)) });
+      },
+    );
   });
   app.get('/deployments/:projectId', async (request) => {
     const project = await requireProject(

@@ -1,5 +1,7 @@
 import { createHash } from 'node:crypto';
 import { Prisma, type DatabaseClient } from '@vibecore/database';
+import { AccountPurgeStore } from './account-purge-store.js';
+import { lockProjectMutation } from './project-mutation-lock.js';
 
 export type CloudTenantBoundaryType = 'PERSON' | 'WORKSPACE' | 'LEGAL_ENTITY' | 'BILLING_ACCOUNT';
 export type CloudTenantLifecycle = 'PROVISIONING' | 'ACTIVE' | 'SUSPENDED' | 'MERGED' | 'CLOSED';
@@ -126,7 +128,11 @@ function safeErrorMessage(error: unknown): string {
 type Tx = Prisma.TransactionClient;
 
 export class PrismaCloudGovernanceStore {
-  constructor(readonly prisma: DatabaseClient) {}
+  private readonly accountPurge: AccountPurgeStore;
+
+  constructor(readonly prisma: DatabaseClient) {
+    this.accountPurge = new AccountPurgeStore(prisma);
+  }
 
   private async _lockIdempotency(tx: Tx, key: string): Promise<void> {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`cloud-governance:${key}`}, 0))`;
@@ -346,7 +352,41 @@ export class PrismaCloudGovernanceStore {
 
     try {
       return await this.prisma.$transaction(async (tx) => {
+        /*
+         * Cloud-governance's global idempotency prefix must precede every
+         * tenant/project row lock: lifecycle/merge/split/transfer paths take
+         * the same prefix before CloudTenant. No non-cloud Project mutation
+         * ever waits on this key, so topology follows without an inverse edge.
+         */
         await this._lockIdempotency(tx, input.context.idempotencyKey);
+
+        /*
+         * Global ownership order: account-purge topology -> project checkpoint
+         * -> Project row -> CloudTenant row. Both the project Organization and
+         * tenant Organization are re-read after their rows are locked. This
+         * prevents a bind which read org A from committing behind an A->B
+         * transfer and leaving project B attached to tenant A.
+         */
+        await this.accountPurge.assertProjectMutable(tx, input.projectId);
+        await lockProjectMutation(tx, input.projectId);
+        await tx.$queryRaw`SELECT "id" FROM "CloudTenant" WHERE "id" = ${input.tenantId} FOR UPDATE`;
+
+        const project = await tx.project.findUnique({ where: { id: input.projectId } });
+        if (!project) throw new CloudGovernanceError('PROJECT_NOT_FOUND', 'Vibecore Project not found', 404);
+
+        const tenant = await tx.cloudTenant.findUnique({ where: { id: input.tenantId } });
+        if (!tenant) throw new CloudGovernanceError('TENANT_NOT_FOUND', 'CloudTenant not found', 404);
+
+        if (!tenant.organizationId || project.organizationId !== tenant.organizationId) {
+          throw new CloudGovernanceError(
+            'PROJECT_TENANT_ISOLATION_VIOLATION',
+            'Project and CloudTenant must belong to the same Organization',
+            403,
+          );
+        }
+
+        await this.accountPurge.assertMembershipMutable(tx, tenant.organizationId);
+
         const existing = await this._existingOperation(tx, {
           idempotencyKey: input.context.idempotencyKey,
           kind: 'PROJECT_BIND',
@@ -360,9 +400,6 @@ export class PrismaCloudGovernanceStore {
           return { binding, operation: existing, replayed: true };
         }
 
-        await tx.$queryRaw`SELECT "id" FROM "CloudTenant" WHERE "id" = ${input.tenantId} FOR UPDATE`;
-        const tenant = await tx.cloudTenant.findUnique({ where: { id: input.tenantId } });
-        if (!tenant) throw new CloudGovernanceError('TENANT_NOT_FOUND', 'CloudTenant not found', 404);
         if (tenant.lifecycle !== 'ACTIVE') {
           throw new CloudGovernanceError('TENANT_NOT_ACTIVE', `CloudTenant is ${tenant.lifecycle}`, 409);
         }
@@ -376,16 +413,6 @@ export class PrismaCloudGovernanceStore {
           },
         });
         if (active) throw new CloudGovernanceError('TENANT_OPERATION_ACTIVE', `Operation ${active.id} is active`, 409);
-
-        const project = await tx.project.findUnique({ where: { id: input.projectId } });
-        if (!project) throw new CloudGovernanceError('PROJECT_NOT_FOUND', 'Vibecore Project not found', 404);
-        if (!tenant.organizationId || project.organizationId !== tenant.organizationId) {
-          throw new CloudGovernanceError(
-            'PROJECT_TENANT_ISOLATION_VIOLATION',
-            'Project and CloudTenant must belong to the same Organization',
-            403,
-          );
-        }
 
         const binding = await tx.cloudProjectBinding.create({
           data: {

@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { PrismaApiStore } from '../prisma-store.js';
 // eslint-disable-next-line no-restricted-imports -- this service has no ~/ path alias; keep the DB spec service-local.
 import type { ServerImageReleaseCommitInput } from '../store.js';
+import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 
 const runDbTests = process.env.DATABASE_URL ? describe : describe.skip;
 const DIGEST = `sha256:${'a'.repeat(64)}`;
@@ -34,6 +35,10 @@ runDbTests('server-image release — durable Postgres linearization', () => {
       });
 
       const imageRef = `europe-west9-docker.pkg.dev/tenant-project/releases/p-${project.id.toLowerCase()}`;
+      const release = await acquireTestProjectReleaseFence(storeA, {
+        projectId: project.id,
+        organizationId: organization.id,
+      });
 
       const promotion = {
         promotionId: `promo-${suffix()}`,
@@ -63,7 +68,10 @@ runDbTests('server-image release — durable Postgres linearization', () => {
         environment: 'preview',
         status: 'BUILDING',
         accessPolicy: { mode: 'INVITE_ONLY' },
-        metadata: { serverDeploy: { image: { imageRef, imageDigest: DIGEST }, promotion } },
+        metadata: {
+          projectManifestDigest: release.digest,
+          serverDeploy: { image: { imageRef, imageDigest: DIGEST }, promotion },
+        },
       });
       const input: ServerImageReleaseCommitInput = {
         projectId: project.id,
@@ -77,6 +85,7 @@ runDbTests('server-image release — durable Postgres linearization', () => {
         metadata: deployment.metadata as Record<string, unknown>,
         logs: [],
         finishedAt: '2026-08-26T00:00:02.000Z',
+        releaseFence: release.releaseFence,
       };
 
       const [first, second] = await Promise.all([

@@ -8,6 +8,7 @@ import { computeStaticSnapshotDigest, staticDeploymentSnapshotDir } from '../dep
 import type { EmailProvider } from '../email.js';
 // eslint-disable-next-line no-restricted-imports -- this service has no ~/ path alias; keep the endpoint spec service-local.
 import { canonicalizeProjectManifest, projectManifestDigest } from '../project-manifest.js';
+import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 import { TestApiStore } from './test-api-store.js';
 
 const ROLLBACK_ACTOR_USER_ID = 'rollback-test-actor';
@@ -262,6 +263,11 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       ownerToken: 'committed-owner',
       fencingToken: 1,
     });
+    const project = await store.getProject(projectId);
+    const release = await acquireTestProjectReleaseFence(store, {
+      projectId,
+      organizationId: project!.organizationId,
+    });
     await store.commitStaticRollbackRelease({
       operationId: operation.id,
       ownerToken: 'committed-owner',
@@ -279,7 +285,9 @@ describe('static rollback-to-previous (deterministic, fail-closed)', () => {
       metadata,
       logs: [],
       finishedAt: new Date().toISOString(),
+      releaseFence: release.releaseFence,
     });
+    await release.release();
 
     const changedManifest = canonicalizeProjectManifest({
       ...canonicalizeProjectManifest(projectManifest!.manifest),

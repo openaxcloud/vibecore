@@ -7,6 +7,7 @@ import { PrismaApiStore } from '../prisma-store.js';
 import { createDefaultProjectManifest, projectManifestDigest } from '../project-manifest.js';
 // eslint-disable-next-line no-restricted-imports -- this service has no ~/ path alias; keep the DB spec service-local.
 import type { StaticRollbackReleaseCommitInput } from '../store.js';
+import { acquireTestProjectReleaseFence } from './project-release-barrier-fixture.js';
 
 async function canReachDatabase() {
   if (!process.env.DATABASE_URL) {
@@ -210,6 +211,11 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
         }),
       ).rejects.toThrow('ROLLBACK_OWNERSHIP_LOST');
 
+      const release = await acquireTestProjectReleaseFence(otherStore, {
+        projectId: seeded.project.id,
+        organizationId: seeded.organization.id,
+      });
+
       const commit: StaticRollbackReleaseCommitInput = {
         operationId: operation.id,
         ownerToken: 'owner-recovered',
@@ -227,6 +233,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
         metadata,
         logs: [],
         finishedAt: new Date().toISOString(),
+        releaseFence: release.releaseFence,
       };
       await expect(otherStore.commitStaticRollbackRelease(commit)).rejects.toThrow('STATIC_ROLLBACK_RELEASE_CONFLICT');
       expect(await prismaA.releaseManifest.count({ where: { deploymentId: operation.deploymentId } })).toBe(0);
@@ -339,6 +346,10 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
 
     try {
       seeded = await seedStaticHistory(storeA, 'cas');
+      const release = await acquireTestProjectReleaseFence(storeA, {
+        projectId: seeded.project.id,
+        organizationId: seeded.organization.id,
+      });
 
       const prepare = async (store: PrismaApiStore, key: string, ownerToken: string, deploymentId: string) => {
         const acquired = await store.acquireRollbackOperation({
@@ -406,6 +417,7 @@ runDbTests('rollback operation — real PostgreSQL clock, lease, and release CAS
             metadata,
             logs: [],
             finishedAt: new Date().toISOString(),
+            releaseFence: release.releaseFence,
           } satisfies StaticRollbackReleaseCommitInput,
         };
       };
