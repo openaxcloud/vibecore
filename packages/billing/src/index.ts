@@ -18,6 +18,9 @@ export * from './agent-routing-i18n.js';
  */
 const STRIPE_API_VERSION = '2024-06-20';
 
+/** Internal provider diagnostic; API boundaries expose localized 5xx copy. */
+const STRIPE_CANCELLATION_RESPONSE_UNVERIFIED = 'Stripe cancellation request failed before a verified response';
+
 // Legacy keys (free/pro/team) drive the CURRENT live flat-rate billing and must
 // keep working. The Replit-parity keys (starter/core) are added to the union so
 // the new catalog + migration can reference them; the two catalogs are kept
@@ -849,7 +852,7 @@ export class StripeBillingClient {
       // merely from an ambiguous network error.
       const observed = await this.getSubscription(subscriptionId);
       if (observed?.status === 'canceled') return observed;
-      throw Object.assign(new Error('Stripe cancellation request failed before a verified response'), {
+      throw Object.assign(new Error(STRIPE_CANCELLATION_RESPONSE_UNVERIFIED), {
         statusCode: 502,
         code: 'STRIPE_REQUEST_FAILED',
         cause: error,

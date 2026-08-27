@@ -174,6 +174,27 @@ const DB_MIGRATION_STATE_CORRUPT = 'DB_MIGRATION_STATE_CORRUPT';
 const DB_MIGRATION_PLAN_CORRUPT = 'DB_MIGRATION_PLAN_CORRUPT';
 const DB_MIGRATION_EXECUTION_INSERT_EMPTY = 'DB_MIGRATION_EXECUTION_INSERT_EMPTY';
 
+const ROLLBACK_STORE_FAILURE = {
+  ownershipLost: 'ROLLBACK_OWNERSHIP_LOST',
+  targetConflict: 'ROLLBACK_TARGET_CONFLICT',
+  releaseMoved: 'ROLLBACK_RELEASE_MOVED',
+  serverReleaseFenceConflict: 'SERVER_RELEASE_FENCE_CONFLICT',
+  serverReleaseAccessPolicyInvalid: 'SERVER_RELEASE_ACCESS_POLICY_INVALID',
+} as const;
+
+type DeploymentAccessFailureReason = Extract<DeploymentAccessTicketMutationResult, { ok: false }>['reason'];
+
+const DEPLOYMENT_ACCESS_FAILURE_REASON = {
+  deploymentNotFound: 'DEPLOYMENT_NOT_FOUND',
+  policyInvalid: 'POLICY_INVALID',
+  policyNotPrivate: 'POLICY_NOT_PRIVATE',
+  accessDenied: 'ACCESS_DENIED',
+  ticketNotFound: 'TICKET_NOT_FOUND',
+  ticketReplayed: 'TICKET_REPLAYED',
+  ticketExpired: 'TICKET_EXPIRED',
+  policyChanged: 'POLICY_CHANGED',
+} as const satisfies Readonly<Record<string, DeploymentAccessFailureReason>>;
+
 const COLLABORATION_REASON = {
   membershipNotActive: 'MEMBERSHIP_NOT_ACTIVE',
   groupNotFound: 'GROUP_NOT_FOUND',
@@ -548,8 +569,8 @@ type RollbackFenceIdentity = {
 };
 
 function rollbackOwnershipLost(): Error & { code: string; statusCode: number } {
-  return Object.assign(new Error('ROLLBACK_OWNERSHIP_LOST'), {
-    code: 'ROLLBACK_OWNERSHIP_LOST',
+  return Object.assign(new Error(ROLLBACK_STORE_FAILURE.ownershipLost), {
+    code: ROLLBACK_STORE_FAILURE.ownershipLost,
     statusCode: 409,
   });
 }
@@ -10789,7 +10810,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
 
       if (!deployment || deployment.project.deletedAt || deployment.status !== 'READY') {
-        return { ok: false as const, reason: 'DEPLOYMENT_NOT_FOUND' as const };
+        return { ok: false as const, reason: DEPLOYMENT_ACCESS_FAILURE_REASON.deploymentNotFound };
       }
 
       const policyRow = await tx.deploymentAccessPolicy.findUnique({
@@ -10803,13 +10824,13 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
 
       if (!validDeploymentAccessPolicy(policyRow)) {
-        return { ok: false as const, reason: 'POLICY_INVALID' as const };
+        return { ok: false as const, reason: DEPLOYMENT_ACCESS_FAILURE_REASON.policyInvalid };
       }
 
       const policy = mapDeploymentAccessPolicy(policyRow);
 
       if (policy.mode !== 'WORKSPACE_ONLY' && policy.mode !== 'INVITE_ONLY') {
-        return { ok: false as const, reason: 'POLICY_NOT_PRIVATE' as const };
+        return { ok: false as const, reason: DEPLOYMENT_ACCESS_FAILURE_REASON.policyNotPrivate };
       }
 
       if (
@@ -10819,7 +10840,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           mode: policy.mode,
         }))
       ) {
-        return { ok: false as const, reason: 'ACCESS_DENIED' as const };
+        return { ok: false as const, reason: DEPLOYMENT_ACCESS_FAILURE_REASON.accessDenied };
       }
 
       const rows = await tx.$queryRawUnsafe<Array<{ expiresAt: Date }>>(
@@ -10883,14 +10904,14 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         });
 
         if (!existing || existing.deploymentId !== input.deploymentId) {
-          return { ok: false as const, reason: 'TICKET_NOT_FOUND' as const };
+          return { ok: false as const, reason: DEPLOYMENT_ACCESS_FAILURE_REASON.ticketNotFound };
         }
 
         if (existing.consumedAt) {
-          return { ok: false as const, reason: 'TICKET_REPLAYED' as const };
+          return { ok: false as const, reason: DEPLOYMENT_ACCESS_FAILURE_REASON.ticketReplayed };
         }
 
-        return { ok: false as const, reason: 'TICKET_EXPIRED' as const };
+        return { ok: false as const, reason: DEPLOYMENT_ACCESS_FAILURE_REASON.ticketExpired };
       }
 
       const ticket = consumed[0];
@@ -10908,11 +10929,11 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
 
       if (!deployment || deployment.project.deletedAt || deployment.status !== 'READY') {
-        return { ok: false as const, reason: 'DEPLOYMENT_NOT_FOUND' as const };
+        return { ok: false as const, reason: DEPLOYMENT_ACCESS_FAILURE_REASON.deploymentNotFound };
       }
 
       if (deployment.accessPolicyVersion !== ticket.policyVersion) {
-        return { ok: false as const, reason: 'POLICY_CHANGED' as const };
+        return { ok: false as const, reason: DEPLOYMENT_ACCESS_FAILURE_REASON.policyChanged };
       }
 
       const policyRow = await tx.deploymentAccessPolicy.findUnique({
@@ -10926,7 +10947,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
 
       if (!validDeploymentAccessPolicy(policyRow)) {
-        return { ok: false as const, reason: 'POLICY_INVALID' as const };
+        return { ok: false as const, reason: DEPLOYMENT_ACCESS_FAILURE_REASON.policyInvalid };
       }
 
       const policy = mapDeploymentAccessPolicy(policyRow);
@@ -10935,7 +10956,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
         policy.revision !== ticket.policyRevision ||
         (policy.mode !== 'WORKSPACE_ONLY' && policy.mode !== 'INVITE_ONLY')
       ) {
-        return { ok: false as const, reason: 'POLICY_CHANGED' as const };
+        return { ok: false as const, reason: DEPLOYMENT_ACCESS_FAILURE_REASON.policyChanged };
       }
 
       if (
@@ -10945,7 +10966,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           mode: policy.mode,
         }))
       ) {
-        return { ok: false as const, reason: 'ACCESS_DENIED' as const };
+        return { ok: false as const, reason: DEPLOYMENT_ACCESS_FAILURE_REASON.accessDenied };
       }
 
       return {
@@ -11326,8 +11347,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
           current.previousManifestId !== input.previousManifestId ||
           current.projectManifestDigest !== input.projectManifestDigest
         ) {
-          throw Object.assign(new Error('ROLLBACK_TARGET_CONFLICT'), {
-            code: 'ROLLBACK_TARGET_CONFLICT',
+          throw Object.assign(new Error(ROLLBACK_STORE_FAILURE.targetConflict), {
+            code: ROLLBACK_STORE_FAILURE.targetConflict,
             statusCode: 409,
           });
         }
@@ -11745,8 +11766,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       const observedVersion = latest?.version ?? 0;
 
       if (observedVersion !== input.expectedHeadVersion) {
-        throw Object.assign(new Error('ROLLBACK_RELEASE_MOVED'), {
-          code: 'ROLLBACK_RELEASE_MOVED',
+        throw Object.assign(new Error(ROLLBACK_STORE_FAILURE.releaseMoved), {
+          code: ROLLBACK_STORE_FAILURE.releaseMoved,
           statusCode: 409,
           expectedVersion: input.expectedHeadVersion,
           observedVersion,
@@ -11805,7 +11826,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
 
     return this.prisma.$transaction(async (tx) => {
       if (input.rollbackFence && input.reservedVmFence) {
-        throw new Error('SERVER_RELEASE_FENCE_CONFLICT');
+        throw new Error(ROLLBACK_STORE_FAILURE.serverReleaseFenceConflict);
       }
 
       /* Rollback authority starts at actor; ordinary release starts at topology. */
@@ -11884,7 +11905,7 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       });
 
       if (!validDeploymentAccessPolicy(accessPolicy)) {
-        throw new Error('SERVER_RELEASE_ACCESS_POLICY_INVALID');
+        throw new Error(ROLLBACK_STORE_FAILURE.serverReleaseAccessPolicyInvalid);
       }
 
       if (
@@ -12013,8 +12034,8 @@ export class PrismaApiStore implements ApiStore, ReservedVmBillingStore {
       const observedVersion = latest?.version ?? 0;
 
       if (input.rollbackFence && observedVersion !== input.rollbackFence.expectedHeadVersion) {
-        throw Object.assign(new Error('ROLLBACK_RELEASE_MOVED'), {
-          code: 'ROLLBACK_RELEASE_MOVED',
+        throw Object.assign(new Error(ROLLBACK_STORE_FAILURE.releaseMoved), {
+          code: ROLLBACK_STORE_FAILURE.releaseMoved,
           statusCode: 409,
           expectedVersion: input.rollbackFence.expectedHeadVersion,
           observedVersion,

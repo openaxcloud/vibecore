@@ -11,6 +11,27 @@ import type {
 
 const KNOWN_PLANS: ReadonlySet<WorkspacePlan> = new Set(['free', 'pro', 'team', 'enterprise']);
 
+const WORKSPACE_PURGE_STORE_INVARIANT = {
+  databaseTimeUnavailable: 'WORKSPACE_PURGE_DATABASE_TIME_UNAVAILABLE',
+  frozen: 'WORKSPACE_PURGE_FROZEN',
+  leaseInvalid: 'WORKSPACE_PURGE_LEASE_INVALID',
+  fenceOwned: 'WORKSPACE_PURGE_FENCE_OWNED',
+  fenceLost: 'WORKSPACE_PURGE_FENCE_LOST',
+  effectDescriptorMismatch: 'WORKSPACE_PURGE_EFFECT_DESCRIPTOR_MISMATCH',
+  effectReceiptCorrupt: 'WORKSPACE_PURGE_EFFECT_RECEIPT_CORRUPT',
+} as const;
+
+type WorkspacePurgeStoreInvariantCode =
+  (typeof WORKSPACE_PURGE_STORE_INVARIANT)[keyof typeof WORKSPACE_PURGE_STORE_INVARIANT];
+
+/** Stable persistence invariant; the workspace-manager boundary localizes public copy. */
+function workspacePurgeStoreInvariantError(
+  code: WorkspacePurgeStoreInvariantCode,
+  options: { statusCode?: number } = {},
+): Error & { code: WorkspacePurgeStoreInvariantCode; statusCode?: number } {
+  return Object.assign(new Error(code), { code, ...options });
+}
+
 function purgeErrorCode(error: unknown): string {
   const code = (error as { code?: unknown } | null)?.code;
   if (typeof code === 'string' && /^[A-Z0-9_]{1,100}$/.test(code)) return code;
@@ -157,9 +178,7 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     );
     const databaseNow = rows[0]?.databaseNow;
     if (!(databaseNow instanceof Date)) {
-      throw Object.assign(new Error('WORKSPACE_PURGE_DATABASE_TIME_UNAVAILABLE'), {
-        code: 'WORKSPACE_PURGE_DATABASE_TIME_UNAVAILABLE',
-      });
+      throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.databaseTimeUnavailable);
     }
     return databaseNow;
   }
@@ -255,10 +274,7 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
         await tx.$queryRawUnsafe('SELECT id FROM "WorkspaceRuntime" WHERE id = $1 FOR UPDATE', workspaceId);
         const workspace = await tx.workspaceRuntime.findUnique({ where: { id: workspaceId } });
         if (!workspace || workspace.purgeFrozen) {
-          throw Object.assign(new Error('WORKSPACE_PURGE_FROZEN'), {
-            code: 'WORKSPACE_PURGE_FROZEN',
-            statusCode: 409,
-          });
+          throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.frozen, { statusCode: 409 });
         }
         return effect();
       },
@@ -281,7 +297,7 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
     );
     const plan = rows[0];
     if (!plan || plan.status !== 'ACTIVE' || plan.leaseExpiresAt <= plan.databaseNow) {
-      throw Object.assign(new Error('WORKSPACE_PURGE_LEASE_INVALID'), { code: 'WORKSPACE_PURGE_LEASE_INVALID' });
+      throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.leaseInvalid);
     }
     return plan.databaseNow;
   }
@@ -294,10 +310,7 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
         existing?.purgeFrozen &&
         (existing.purgePlanId !== lease.planId || existing.purgeFenceToken !== lease.ownerToken)
       ) {
-        throw Object.assign(new Error('WORKSPACE_PURGE_FENCE_OWNED'), {
-          code: 'WORKSPACE_PURGE_FENCE_OWNED',
-          statusCode: 409,
-        });
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.fenceOwned, { statusCode: 409 });
       }
       const row = existing
         ? await tx.workspaceRuntime.update({
@@ -363,7 +376,7 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
       });
       const row = rows[0];
       if (!row) {
-        throw Object.assign(new Error('WORKSPACE_PURGE_FENCE_LOST'), { code: 'WORKSPACE_PURGE_FENCE_LOST' });
+        throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.fenceLost);
       }
       return rowToRecord(row as PrismaRuntimeRow);
     });
@@ -384,7 +397,7 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
           workspace.purgePlanId !== lease.planId ||
           workspace.purgeFenceToken !== lease.ownerToken
         ) {
-          throw Object.assign(new Error('WORKSPACE_PURGE_FENCE_LOST'), { code: 'WORKSPACE_PURGE_FENCE_LOST' });
+          throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.fenceLost);
         }
 
         const existing = await tx.purgeEffect.findUnique({
@@ -392,14 +405,10 @@ export class PrismaWorkspaceStore implements WorkspaceStore {
         });
         if (existing?.status === 'SUCCEEDED') {
           if (existing.resourceType !== descriptor.resourceType || existing.resourceId !== descriptor.resourceId) {
-            throw Object.assign(new Error('WORKSPACE_PURGE_EFFECT_DESCRIPTOR_MISMATCH'), {
-              code: 'WORKSPACE_PURGE_EFFECT_DESCRIPTOR_MISMATCH',
-            });
+            throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.effectDescriptorMismatch);
           }
           if (!existing.receipt || typeof existing.receipt !== 'object' || Array.isArray(existing.receipt)) {
-            throw Object.assign(new Error('WORKSPACE_PURGE_EFFECT_RECEIPT_CORRUPT'), {
-              code: 'WORKSPACE_PURGE_EFFECT_RECEIPT_CORRUPT',
-            });
+            throw workspacePurgeStoreInvariantError(WORKSPACE_PURGE_STORE_INVARIANT.effectReceiptCorrupt);
           }
           return { ok: true as const, executed: false, receipt: existing.receipt as T };
         }

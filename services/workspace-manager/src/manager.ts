@@ -49,6 +49,25 @@ function reservedVmManagerError(message: string): Error {
   return new Error(message);
 }
 
+const WORKSPACE_PURGE_INVARIANT = {
+  frozen: 'WORKSPACE_PURGE_FROZEN',
+  fenceLost: 'WORKSPACE_PURGE_FENCE_LOST',
+  resourceRemains: 'WORKSPACE_PURGE_RESOURCE_REMAINS',
+  pvcRemains: 'WORKSPACE_PURGE_PVC_REMAINS',
+  barrierUnverifiable: 'WORKSPACE_PURGE_BARRIER_UNVERIFIABLE',
+  workspaceNotFound: 'WORKSPACE_NOT_FOUND',
+} as const;
+
+type WorkspacePurgeInvariantCode = (typeof WORKSPACE_PURGE_INVARIANT)[keyof typeof WORKSPACE_PURGE_INVARIANT];
+
+/** Machine-only purge failure; the HTTP boundary returns localized public copy. */
+function workspacePurgeInvariantError(
+  code: WorkspacePurgeInvariantCode,
+  options: { cause?: unknown; statusCode?: number } = {},
+): Error & { code: WorkspacePurgeInvariantCode; cause?: unknown; statusCode?: number } {
+  return Object.assign(new Error(code), { code, ...options });
+}
+
 export type ReservedVmCapabilityReasonCode =
   | 'RESERVED_VM_DISABLED'
   | 'RESERVED_VM_OPERATOR_CONFIG_INCOMPLETE'
@@ -282,7 +301,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
   async executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>): Promise<T> {
     const workspace = (await this.read()).get(workspaceId);
     if (!workspace || workspace.purgeFrozen) {
-      throw Object.assign(new Error('WORKSPACE_PURGE_FROZEN'), { code: 'WORKSPACE_PURGE_FROZEN', statusCode: 409 });
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.frozen, { statusCode: 409 });
     }
     return effect();
   }
@@ -349,7 +368,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
       workspace.purgePlanId !== lease.planId ||
       workspace.purgeFenceToken !== lease.ownerToken
     ) {
-      throw Object.assign(new Error('WORKSPACE_PURGE_FENCE_LOST'), { code: 'WORKSPACE_PURGE_FENCE_LOST' });
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.fenceLost);
     }
     const updated = { ...workspace, status, error: undefined };
     workspaces.set(workspaceId, updated);
@@ -369,7 +388,7 @@ export class JsonWorkspaceStore implements WorkspaceStore {
       workspace.purgePlanId !== lease.planId ||
       workspace.purgeFenceToken !== lease.ownerToken
     ) {
-      throw Object.assign(new Error('WORKSPACE_PURGE_FENCE_LOST'), { code: 'WORKSPACE_PURGE_FENCE_LOST' });
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.fenceLost);
     }
     const key = `${lease.planId}:${descriptor.key}`;
     const existing = this.#purgeEffects.get(key) as T | undefined;
@@ -2613,7 +2632,7 @@ export class WorkspaceManager {
     const workspace = await this.requireWorkspace(workspaceId);
 
     if (workspace.purgeFrozen) {
-      throw Object.assign(new Error('WORKSPACE_PURGE_FROZEN'), { code: 'WORKSPACE_PURGE_FROZEN', statusCode: 409 });
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.frozen, { statusCode: 409 });
     }
 
     /*
@@ -2761,7 +2780,7 @@ export class WorkspaceManager {
     const workspace = await this.requireWorkspace(workspaceId);
 
     if (workspace.purgeFrozen) {
-      throw Object.assign(new Error('WORKSPACE_PURGE_FROZEN'), { code: 'WORKSPACE_PURGE_FROZEN', statusCode: 409 });
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.frozen, { statusCode: 409 });
     }
 
     /*
@@ -2825,9 +2844,7 @@ export class WorkspaceManager {
         async () => {
           await this.k8s.delete(target.kind, namespace, target.name);
           if (await this.k8s.get(target.kind, namespace, target.name)) {
-            throw Object.assign(new Error('WORKSPACE_PURGE_RESOURCE_REMAINS'), {
-              code: 'WORKSPACE_PURGE_RESOURCE_REMAINS',
-            });
+            throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.resourceRemains);
           }
           return { kind: target.kind, name: target.name, deleted: true, verifiedAbsent: true };
         },
@@ -2841,7 +2858,7 @@ export class WorkspaceManager {
   async purgeWorkspace(namespace: string, workspaceId: string, lease: WorkspacePurgeLease): Promise<WorkspaceRecord> {
     const workspace = await this.store.get(workspaceId);
     if (!workspace) {
-      throw Object.assign(new Error('WORKSPACE_NOT_FOUND'), { code: 'WORKSPACE_NOT_FOUND', statusCode: 404 });
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.workspaceNotFound, { statusCode: 404 });
     }
 
     const targets: Array<{ kind: string; name: string; type: WorkspacePurgeEffectDescriptor['resourceType'] }> = [
@@ -2863,9 +2880,7 @@ export class WorkspaceManager {
         async () => {
           await this.k8s.delete(target.kind, namespace, target.name);
           if (await this.k8s.get(target.kind, namespace, target.name)) {
-            throw Object.assign(new Error('WORKSPACE_PURGE_RESOURCE_REMAINS'), {
-              code: 'WORKSPACE_PURGE_RESOURCE_REMAINS',
-            });
+            throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.resourceRemains);
           }
           return { kind: target.kind, name: target.name, deleted: true, verifiedAbsent: true };
         },
@@ -2873,7 +2888,7 @@ export class WorkspaceManager {
     }
 
     if (await this.pvcExists(namespace, workspaceId)) {
-      throw Object.assign(new Error('WORKSPACE_PURGE_PVC_REMAINS'), { code: 'WORKSPACE_PURGE_PVC_REMAINS' });
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.pvcRemains);
     }
 
     const deleted = await this.store.completePurgeState(workspaceId, lease, 'DELETED');
@@ -3129,13 +3144,10 @@ export class WorkspaceManager {
     try {
       workspace = await this.store.get(workspaceId);
     } catch (error) {
-      throw Object.assign(new Error('WORKSPACE_PURGE_BARRIER_UNVERIFIABLE'), {
-        code: 'WORKSPACE_PURGE_BARRIER_UNVERIFIABLE',
-        cause: error,
-      });
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.barrierUnverifiable, { cause: error });
     }
     if (workspace?.purgeFrozen) {
-      throw Object.assign(new Error('WORKSPACE_PURGE_FROZEN'), { code: 'WORKSPACE_PURGE_FROZEN', statusCode: 409 });
+      throw workspacePurgeInvariantError(WORKSPACE_PURGE_INVARIANT.frozen, { statusCode: 409 });
     }
   }
 
