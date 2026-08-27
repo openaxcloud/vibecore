@@ -175,10 +175,7 @@ import {
   shouldMountMobileWorkbench,
   type MobileWorkbenchPanelId,
 } from '~/components/chat/mobile-workbench-keepalive';
-import {
-  isRedundantPanelSearchParamUpdate,
-  withPanelSearchParam,
-} from '~/utils/project-ide-panel-url';
+import { isRedundantPanelSearchParamUpdate, withPanelSearchParam } from '~/utils/project-ide-panel-url';
 import {
   IDE_AGENT_PANEL,
   ideMobileTarget,
@@ -3369,7 +3366,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [isModelSettingsCollapsed, setIsModelSettingsCollapsed] = useState(projectIdeMode);
     const [isListening, setIsListening] = useState(false);
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
-    const [transcript, setTranscript] = useState('');
     const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
     const [modelError, setModelError] = useState<string | null>(null);
     const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
@@ -3818,6 +3814,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const pendingProjectSelectedFile = useRef<string | undefined>(undefined);
     const scrollUpdateFrame = useRef<number | null>(null);
     const agentComposerRef = useRef<HTMLDivElement | null>(null);
+
     /*
      * BUG-IDE-PANEL-RESOLUTION-001 — une seule résolution, explicite, pour tout
      * l'IDE. `agent`/`chat` sont acceptés (le dock Agent est un panneau
@@ -3827,6 +3824,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
      */
     const warnedUnknownPanelRef = useRef<string | undefined>(undefined);
     const projectPanelResolution = useMemo(() => resolveIdePanelKey(searchParams.get('panel')), [searchParams]);
+
     const activeProjectPanel =
       projectPanelResolution.status === 'canonical' || projectPanelResolution.status === 'alias'
         ? projectPanelResolution.panel
@@ -6305,8 +6303,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
             .map((result) => result.transcript)
             .join('');
 
-          setTranscript(transcript);
-
           if (handleInputChange) {
             const syntheticEvent = {
               target: { value: transcript },
@@ -6481,7 +6477,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
         if (recognition) {
           recognition.abort(); // Stop current recognition
-          setTranscript(''); // Clear transcript
           setIsListening(false);
 
           // Clear the input by triggering handleInputChange with empty value
@@ -8994,6 +8989,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       activeMobileOpenTabId === 'agent' ||
       activeMobileOpenTabId === 'assistant' ||
       activeMobileOpenTabId === 'actions';
+
     /*
      * L'en-tête dérive du panneau de service RÉSOLU, pas de `activeMobileOpenTabId`
      * (état d'onglet monté plus tard) : c'est ce décalage qui produisait
