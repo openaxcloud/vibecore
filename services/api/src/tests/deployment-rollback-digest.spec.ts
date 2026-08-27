@@ -242,7 +242,7 @@ describe('server rollback re-deploys the retained image by digest (wiring)', () 
     const response = await app.inject({
       method: 'POST',
       url: `/projects/${projectId}/deployments/rollback-to-previous`,
-      headers: { authorization: `Bearer ${auth.token}` },
+      headers: { authorization: `Bearer ${auth.token}`, 'idempotency-key': 'server-pruned-release' },
       payload: { environment: 'preview' },
     });
 

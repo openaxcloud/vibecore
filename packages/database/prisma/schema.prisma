@@ -315,6 +315,7 @@ model Project {
   manifestRevisions       ProjectManifestRevision[]
   storageObjects          ProjectStorageObject[]
   deployments             Deployment[]
+  rollbackOperations      RollbackIdempotencyRequest[]
   fileSnapshots           FileSnapshot[]
   conversations           AiConversation[]
   ideState                ProjectIdeState?
@@ -1008,6 +1009,41 @@ model ReleaseManifest {
   @@unique([projectId, environment, version])
   @@index([projectId, environment])
   @@index([deploymentId])
+}
+
+// Durable execution + response ledger for POST
+// /projects/:projectId/deployments/rollback-to-previous. The row is both the
+// project-scoped idempotency authority and the DB-clock lease/fencing authority
+// for every rollback side effect. A replica may steal an orphan only after the
+// lease expires; the old fence can no longer mutate or publish afterwards.
+model RollbackIdempotencyRequest {
+  id                      String    @id @default(cuid())
+  projectId               String
+  idempotencyKey          String
+  requestFingerprint      String
+  environment             String
+  status                  String    @default("IN_PROGRESS")
+  phase                   String    @default("CLAIMED")
+  leaseOwner              String?
+  leaseExpiresAt          DateTime?
+  fencingToken            Int       @default(1)
+  effectFencingToken      Int?
+  deploymentId            String?   @unique
+  expectedHeadVersion     Int?
+  previousManifestId      String?
+  projectManifestDigest   String?
+  responseStatus          Int?
+  responseContentLanguage String?
+  responseBody            Json?
+  completedAt             DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  project                 Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, idempotencyKey])
+  @@index([status, leaseExpiresAt])
+  @@index([projectId, environment, status])
+  @@index([previousManifestId])
 }
 
 // Versioned Rate Card: the priced catalogue (machine sizes, compute-unit and

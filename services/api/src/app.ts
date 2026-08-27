@@ -432,6 +432,8 @@ import {
 } from './rate-card-service.js';
 import { publicMachineSizeError } from './rate-card-public.js';
 import { resolveRollbackImage, resolveRollbackSecrets, type SecretPolicy } from './release-rollback.js';
+// eslint-disable-next-line import/order -- app.ts has a legacy grouped import graph; keep the rollback module beside release helpers.
+import { RollbackOperationLeaseLostError, RollbackOperationLeaseManager } from './rollback-operation-lease.js';
 import {
   assertArtifactMatchesManifest,
   configDigest,
@@ -502,6 +504,7 @@ import {
   type ProjectIdeStateRecord,
   type ProjectRecord,
   type ProviderConfigRecord,
+  type RollbackLeaseFence,
   type RuntimeWebSocketEndpoint,
   type SessionRecord,
   type SkillAuditEventRecord,
@@ -554,6 +557,14 @@ declare module 'fastify' {
     observability?: { startedAt: number; correlationId: string };
     observabilityMetrics?: {
       increment: (name: string, labels?: Record<string, string | number | boolean | undefined>, value?: number) => void;
+    };
+
+    /** Internal-only durable rollback executor; never serialized to clients. */
+    rollbackOperation?: {
+      operationId: string;
+      ownerToken: string;
+      fencingToken: number;
+      leaseManager: RollbackOperationLeaseManager;
     };
   }
 }
@@ -4267,6 +4278,8 @@ async function commitPromotedServerImageRelease(input: {
   url: string;
   readyReplicas: number;
   readyMessage: string;
+  dbMigrationPoint?: string;
+  rollbackFence?: RollbackLeaseFence;
 }): Promise<DeploymentRecord> {
   const release = requireCommittedServerImagePromotion(input.deployment, input.organizationId);
   const metadata = {
@@ -4287,6 +4300,7 @@ async function commitPromotedServerImageRelease(input: {
     artifactDigest: release.imageDigest,
     ...(release.storeGeneration ? { storeGeneration: release.storeGeneration } : {}),
     ...(release.releaseConfigDigest ? { configDigest: release.releaseConfigDigest } : {}),
+    ...(input.dbMigrationPoint ? { dbMigrationPoint: input.dbMigrationPoint } : {}),
     url: input.url,
     previewUrl: input.deployment.environment !== 'production' ? input.url : undefined,
     productionUrl: input.deployment.environment === 'production' ? input.url : undefined,
@@ -4296,6 +4310,7 @@ async function commitPromotedServerImageRelease(input: {
       { timestamp: new Date().toISOString(), level: 'info', message: input.readyMessage },
     ],
     finishedAt: new Date().toISOString(),
+    ...(input.rollbackFence ? { rollbackFence: input.rollbackFence } : {}),
   });
 
   if (!result.committed || !result.manifest || result.deployment.status !== 'READY') {
@@ -4312,6 +4327,18 @@ async function reconcileDeploymentStatus(store: ApiStore, deployment: Deployment
    */
   if (deployment.status === 'READY' && !deployment.lastMeteredAt) {
     return meterDeploymentOnce(store, deployment);
+  }
+
+  /*
+   * A durable rollback owns its non-terminal row under a DB lease and release-
+   * head CAS. Generic read reconciliation must not publish or tear it down
+   * without that fence; the same Idempotency-Key resumes an orphan instead.
+   */
+  if (
+    ['QUEUED', 'BUILDING'].includes(deployment.status) &&
+    typeof (deployment.metadata as Record<string, unknown> | undefined)?.rollbackOperationId === 'string'
+  ) {
+    return deployment;
   }
 
   /*
@@ -7603,6 +7630,11 @@ async function runAppBuildViaManager(
   return (await response.json()) as { exitCode: number; output: string; timedOut: boolean; phase: string };
 }
 
+function serverDeployStartTimeoutMs(): number {
+  const configured = Number(process.env.SERVER_DEPLOY_START_TIMEOUT_MS);
+  return Number.isFinite(configured) ? Math.min(10 * 60_000, Math.max(1_000, Math.trunc(configured))) : 200_000;
+}
+
 async function startServerDeploymentViaManager(payload: {
   deploymentId: string;
   image: string;
@@ -7662,7 +7694,7 @@ async function startServerDeploymentViaManager(payload: {
       ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}),
     },
     body: JSON.stringify({ tlsSecretName: 'vibecore-preview-wildcard-tls', createIngress: false, ...payload }),
-    signal: AbortSignal.timeout(Number(process.env.SERVER_DEPLOY_START_TIMEOUT_MS) || 200_000),
+    signal: AbortSignal.timeout(serverDeployStartTimeoutMs()),
   });
 
   if (!response.ok) {
@@ -7701,15 +7733,106 @@ async function stopServerDeploymentViaManager(deploymentId: string): Promise<voi
  */
 async function stopServerDeploymentViaManagerStrict(deploymentId: string): Promise<void> {
   const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+  const configuredTimeout = Number(process.env.SERVER_DEPLOY_STOP_TIMEOUT_MS);
+  const timeoutMs = Number.isFinite(configuredTimeout) ? Math.min(30_000, Math.max(10, configuredTimeout)) : 30_000;
 
   const response = await fetch(`${workspaceManagerUrl()}/server-deployments/${encodeURIComponent(deploymentId)}/stop`, {
     method: 'POST',
     headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
-    signal: AbortSignal.timeout(30_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
 
   if (!response.ok) {
     throw new Error(appPublicEnglish('DEPLOY_STOP_MANAGER_REFUSED', { deploymentId, status: response.status }));
+  }
+}
+
+async function getServerDeploymentStatusViaManagerStrict(
+  deploymentId: string,
+): Promise<{ exists: boolean; readyReplicas: number; replicas: number }> {
+  const managerSecret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+  const configuredTimeout = Number(process.env.SERVER_DEPLOY_STOP_TIMEOUT_MS);
+  const timeoutMs = Number.isFinite(configuredTimeout) ? Math.min(30_000, Math.max(10, configuredTimeout)) : 30_000;
+
+  const response = await fetch(
+    `${workspaceManagerUrl()}/server-deployments/${encodeURIComponent(deploymentId)}/status`,
+    {
+      method: 'GET',
+      headers: { accept: 'application/json', ...(managerSecret ? { authorization: `Bearer ${managerSecret}` } : {}) },
+      signal: AbortSignal.timeout(timeoutMs),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error(appPublicEnglish('DEPLOY_STATUS_MANAGER_REFUSED', { deploymentId, status: response.status }));
+  }
+
+  const body = (await response.json()) as { exists?: unknown; readyReplicas?: unknown; replicas?: unknown };
+
+  if (typeof body.exists !== 'boolean') {
+    throw new Error(appPublicEnglish('DEPLOY_STATUS_MANAGER_INVALID', { deploymentId }));
+  }
+
+  return {
+    exists: body.exists,
+    readyReplicas: typeof body.readyReplicas === 'number' ? body.readyReplicas : 0,
+    replicas: typeof body.replicas === 'number' ? body.replicas : 0,
+  };
+}
+
+/**
+ * A rollback that lost release-head CAS must close its database authority and
+ * prove its manager workload absent. A failed stop/timeout is indeterminate, so
+ * both stop and status are retried before the endpoint acknowledges cleanup.
+ */
+async function ensureServerDeploymentAbsentViaManager(deploymentId: string): Promise<void> {
+  const configuredRetries = Number(process.env.SERVER_DEPLOY_CLEANUP_RETRIES);
+  const attempts = Number.isFinite(configuredRetries) ? Math.min(10, Math.max(1, configuredRetries)) : 5;
+  const configuredDelay = Number(process.env.SERVER_DEPLOY_CLEANUP_RETRY_DELAY_MS);
+  const baseDelayMs = Number.isFinite(configuredDelay) ? Math.min(2_000, Math.max(1, configuredDelay)) : 100;
+
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      await stopServerDeploymentViaManagerStrict(deploymentId);
+    } catch (error) {
+      lastError = error;
+    }
+
+    try {
+      const status = await getServerDeploymentStatusViaManagerStrict(deploymentId);
+
+      if (!status.exists) {
+        return;
+      }
+
+      lastError = new Error(appPublicEnglish('ROLLBACK_CLEANUP_STILL_EXISTS', { deploymentId }));
+    } catch (error) {
+      lastError = error;
+    }
+
+    if (attempt < attempts) {
+      await new Promise((resolve) => setTimeout(resolve, baseDelayMs * attempt));
+    }
+  }
+
+  throw Object.assign(new Error(appPublicEnglish('ROLLBACK_CLEANUP_UNCONFIRMED', { deploymentId })), {
+    code: 'ROLLBACK_CLEANUP_UNCONFIRMED',
+    statusCode: 503,
+    cause: lastError,
+  });
+}
+
+/** Delete a failed static rollback and verify that no bytes remain addressable. */
+async function ensureStaticDeploymentSnapshotAbsent(deploymentId: string): Promise<void> {
+  await removeStaticDeploymentSnapshot(deploymentId);
+
+  if ((await computeStaticSnapshotDigest(deploymentId)) !== undefined) {
+    throw Object.assign(new Error(appPublicEnglish('ROLLBACK_CLEANUP_STILL_EXISTS', { deploymentId })), {
+      code: 'ROLLBACK_CLEANUP_UNCONFIRMED',
+      statusCode: 503,
+    });
   }
 }
 
@@ -8720,6 +8843,53 @@ export async function estimateAiTokens(content: string) {
   return Math.max(1, Math.ceil(content.length / 4));
 }
 
+function rollbackIdempotencyKey(request: FastifyRequest): string | undefined {
+  const header = request.headers['idempotency-key'];
+
+  if (typeof header !== 'string') {
+    return undefined;
+  }
+
+  const key = header.trim();
+
+  return key.length >= 1 && key.length <= 200 ? key : undefined;
+}
+
+function rollbackRequestFingerprint(environment: string): string {
+  return createHash('sha256')
+    .update(JSON.stringify({ operation: 'rollback-to-previous', environment }))
+    .digest('hex');
+}
+
+function rollbackLeaseConfiguration(): { leaseDurationMs: number; renewIntervalMs: number; waitMs: number } {
+  /*
+   * If the API process dies after sending `/server-deployments/start`, the
+   * manager may legitimately continue until its bounded HTTP deadline. Do not
+   * let another replica steal the operation while that older external effect
+   * can still finish and recreate resources after cleanup.
+   */
+  const minimumSafeLeaseMs = serverDeployStartTimeoutMs() + 30_000;
+  const configuredLease = Number(process.env.ROLLBACK_OPERATION_LEASE_MS);
+
+  const leaseDurationMs = Number.isFinite(configuredLease)
+    ? Math.min(30 * 60_000, Math.max(minimumSafeLeaseMs, Math.trunc(configuredLease)))
+    : minimumSafeLeaseMs;
+
+  const configuredRenew = Number(process.env.ROLLBACK_OPERATION_RENEW_MS);
+
+  const renewIntervalMs = Number.isFinite(configuredRenew)
+    ? Math.min(leaseDurationMs - 1, Math.max(1, Math.trunc(configuredRenew)))
+    : Math.max(1, Math.floor(leaseDurationMs / 3));
+
+  const configuredWait = Number(process.env.ROLLBACK_IDEMPOTENCY_WAIT_MS);
+
+  const waitMs = Number.isFinite(configuredWait)
+    ? Math.min(210_000, Math.max(100, Math.trunc(configuredWait)))
+    : 205_000;
+
+  return { leaseDurationMs, renewIntervalMs, waitMs };
+}
+
 async function seedBillingPlans(store: ApiStore) {
   /*
    * Admin-managed price IDs (set via /admin/stripe → Plan rows) are AUTHORITATIVE:
@@ -9303,7 +9473,8 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   await app.register(cors, {
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['authorization', 'content-type', 'accept', 'x-org-id', 'x-csrf-token'],
+    allowedHeaders: ['authorization', 'content-type', 'accept', 'x-org-id', 'x-csrf-token', 'idempotency-key'],
+    exposedHeaders: ['idempotency-replayed', 'retry-after'],
     origin(origin, callback) {
       callback(null, assertStrictCorsOrigin(origin, allowedOrigins));
     },
@@ -9402,6 +9573,61 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     }
 
     return localizedPublicErrorPayload(errorPayload, locale);
+  });
+  app.addHook('onSend', async (request, reply, payload) => {
+    const execution = request.rollbackOperation;
+
+    if (!execution) {
+      return payload;
+    }
+
+    /* Avoid recursive completion if persistence itself enters the error path. */
+    request.rollbackOperation = undefined;
+
+    try {
+      await execution.leaseManager.guard();
+
+      const serialized = Buffer.isBuffer(payload)
+        ? payload.toString('utf8')
+        : payload instanceof Uint8Array
+          ? Buffer.from(payload).toString('utf8')
+          : payload;
+
+      const responseBody = typeof serialized === 'string' ? JSON.parse(serialized) : serialized;
+
+      if (!responseBody || typeof responseBody !== 'object') {
+        throw new TypeError('INVALID_ROLLBACK_RESPONSE_BODY');
+      }
+
+      const responseLanguageHeader = reply.getHeader('content-language');
+
+      const responseLanguageValue = Array.isArray(responseLanguageHeader)
+        ? responseLanguageHeader[0]
+        : responseLanguageHeader;
+      const responseContentLanguage =
+        responseLanguageValue === 'en' || responseLanguageValue === 'fr'
+          ? responseLanguageValue
+          : transactionalLocaleForRequest(request);
+
+      await store.completeRollbackOperation({
+        operationId: execution.operationId,
+        ownerToken: execution.ownerToken,
+        fencingToken: execution.fencingToken,
+        responseStatus: reply.statusCode,
+        responseContentLanguage,
+        responseBody,
+      });
+      await execution.leaseManager.stop();
+
+      return payload;
+    } catch (error) {
+      await execution.leaseManager.stop();
+      request.log.error({ err: error }, 'durable rollback response commit failed');
+      throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+        code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
   });
   app.addHook('onResponse', async (request, reply) => {
     const route = request.routeOptions.url ?? request.url.split('?')[0] ?? 'unknown';
@@ -9609,7 +9835,7 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     const owner = await store.getDeploymentOwnerStatus(deploymentId).catch(() => undefined);
 
-    if (!owner || owner.projectDeletedAt || owner.status === 'CANCELED') {
+    if (!owner || owner.projectDeletedAt || owner.status !== 'READY') {
       reply.header('cache-control', 'no-store');
 
       return reply.send({ state: 'not-found' satisfies ServingState });
@@ -9666,12 +9892,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const ownerStatus = await store.getDeploymentOwnerStatus(deploymentId);
 
     /*
-     * Stop serving when the owning project is soft-deleted OR the deployment was
-     * CANCELED. The synchronous static build runs outside any lock, so a cancel
-     * that lands mid-build still produces a snapshot on disk; gate the serve on
-     * the deployment's terminal status so a canceled build isn't publicly served.
+     * Only an atomically committed READY row may expose bytes. This also closes
+     * routing for BUILDING/FAILED rollback rows while cleanup is pending: a
+     * guessed URL must never publish a partial or orphaned external effect.
      */
-    if (!ownerStatus || ownerStatus.projectDeletedAt || ownerStatus.status === 'CANCELED') {
+    if (!ownerStatus || ownerStatus.projectDeletedAt || ownerStatus.status !== 'READY') {
       return reply.code(404).send({
         error: appPublicEnglish('STATIC_DEPLOY_ARTIFACT_NOT_FOUND'),
         code: 'STATIC_DEPLOY_ARTIFACT_NOT_FOUND',
@@ -38906,7 +39131,11 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.get('/projects/:projectId/releases', async (request) => {
     const { projectId } = parse(z.object({ projectId: z.string().min(1) }), request.params);
-    const query = parse(z.object({ environment: z.string().min(1).max(64).optional() }), request.query ?? {});
+
+    const query = parse(
+      z.object({ environment: z.enum(['preview', 'staging', 'production']).optional() }),
+      request.query ?? {},
+    );
     const project = await requireProject(request, store, projectId, 'projects:read');
     const environment = query.environment ?? 'preview';
 
@@ -38925,29 +39154,257 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
    */
   app.post('/projects/:projectId/deployments/rollback-to-previous', async (request, reply) => {
     const { projectId } = parse(z.object({ projectId: z.string().min(1) }), request.params);
-    const body = parse(z.object({ environment: z.string().min(1).max(64).optional() }), request.body ?? {});
+
+    const body = parse(
+      z.object({ environment: z.enum(['preview', 'staging', 'production']).optional() }),
+      request.body ?? {},
+    );
     const project = await requireProject(request, store, projectId, 'projects:write');
     await requireOrganizationNotSuspended(store, project.organizationId);
     const locale = transactionalLocaleForRequest(request);
     setAppLocaleResponseHeaders(reply, locale);
 
     const environment = body.environment ?? 'preview';
-    const manifests = await store.listReleaseManifests(project.id, environment);
+    const idempotencyKey = rollbackIdempotencyKey(request);
 
-    let current;
-    let previous;
+    if (!idempotencyKey) {
+      return reply.code(400).send({
+        error: appPublicCopy('ROLLBACK_IDEMPOTENCY_KEY_REQUIRED', locale),
+        code: 'IDEMPOTENCY_KEY_REQUIRED',
+      });
+    }
 
-    try {
-      ({ current, previous } = selectPreviousRelease(manifests));
-    } catch (error) {
-      if (error instanceof RollbackManifestError) {
-        return reply.code(error.statusCode).send({
-          error: localizeBackendErrorForResponse(error.message, locale, 'ROLLBACK_REQUEST_FAILED'),
-          code: error.code,
+    const requestFingerprint = rollbackRequestFingerprint(environment);
+    const ownerToken = `rollback-owner:${randomUUID()}`;
+    const leaseConfig = rollbackLeaseConfiguration();
+    const acquisitionDeadline = Date.now() + leaseConfig.waitMs;
+
+    let acquisitionDelayMs = 25;
+
+    let acquisition = await store.acquireRollbackOperation({
+      projectId: project.id,
+      idempotencyKey,
+      requestFingerprint,
+      environment,
+      ownerToken,
+      leaseDurationMs: leaseConfig.leaseDurationMs,
+    });
+
+    while (acquisition.kind === 'BUSY' && Date.now() < acquisitionDeadline) {
+      const remainingMs = acquisitionDeadline - Date.now();
+      const jitterMs = Math.floor(Math.random() * Math.max(1, Math.floor(acquisitionDelayMs / 4)));
+      await new Promise((resolve) => setTimeout(resolve, Math.min(remainingMs, acquisitionDelayMs + jitterMs)));
+      acquisition = await store.acquireRollbackOperation({
+        projectId: project.id,
+        idempotencyKey,
+        requestFingerprint,
+        environment,
+        ownerToken,
+        leaseDurationMs: leaseConfig.leaseDurationMs,
+      });
+      acquisitionDelayMs = Math.min(500, Math.ceil(acquisitionDelayMs * 1.7));
+    }
+
+    if (acquisition.kind === 'FINGERPRINT_CONFLICT') {
+      return reply.code(409).send({
+        error: appPublicCopy('ROLLBACK_IDEMPOTENCY_KEY_REUSED', locale),
+        code: 'IDEMPOTENCY_KEY_REUSED',
+      });
+    }
+
+    if (acquisition.kind === 'BUSY') {
+      reply.header('retry-after', '2');
+      return reply.code(409).send({
+        error: appPublicCopy('ROLLBACK_IDEMPOTENCY_IN_PROGRESS', locale),
+        code: 'ROLLBACK_IN_PROGRESS',
+        retryable: true,
+      });
+    }
+
+    if (acquisition.kind === 'REPLAY') {
+      if (
+        typeof acquisition.record.responseStatus !== 'number' ||
+        (acquisition.record.responseContentLanguage !== 'en' && acquisition.record.responseContentLanguage !== 'fr') ||
+        !acquisition.record.responseBody ||
+        typeof acquisition.record.responseBody !== 'object'
+      ) {
+        return reply.code(503).send({
+          error: appPublicCopy('ROLLBACK_IDEMPOTENCY_UNAVAILABLE', locale),
+          code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+          retryable: true,
         });
       }
 
-      throw error;
+      reply.header('idempotency-replayed', 'true');
+      setAppLocaleResponseHeaders(reply, acquisition.record.responseContentLanguage);
+
+      return reply.code(acquisition.record.responseStatus).send(acquisition.record.responseBody);
+    }
+
+    let operation = acquisition.record;
+
+    const leaseManager = new RollbackOperationLeaseManager(
+      store,
+      {
+        operationId: operation.id,
+        ownerToken,
+        fencingToken: operation.fencingToken,
+      },
+      leaseConfig.leaseDurationMs,
+      leaseConfig.renewIntervalMs,
+    );
+    leaseManager.start();
+    request.rollbackOperation = {
+      operationId: operation.id,
+      ownerToken,
+      fencingToken: operation.fencingToken,
+      leaseManager,
+    };
+
+    const manifests = await store.listReleaseManifests(project.id, environment);
+
+    let currentVersion: number;
+    let previous;
+
+    if (operation.previousManifestId && operation.expectedHeadVersion !== undefined) {
+      previous = await store.getReleaseManifest(project.id, operation.previousManifestId);
+      currentVersion = operation.expectedHeadVersion;
+
+      if (!previous) {
+        return reply.code(409).send({
+          error: appPublicCopy('ROLLBACK_PREVIOUS_SNAPSHOT_MISSING', locale, { version: currentVersion - 1 }),
+          code: 'ROLLBACK_TARGET_MANIFEST_MISSING',
+        });
+      }
+    } else {
+      try {
+        const selected = selectPreviousRelease(manifests);
+        currentVersion = selected.current.version;
+        previous = selected.previous;
+      } catch (error) {
+        if (error instanceof RollbackManifestError) {
+          return reply.code(error.statusCode).send({
+            error: localizeBackendErrorForResponse(error.message, locale, 'ROLLBACK_REQUEST_FAILED'),
+            code: error.code,
+          });
+        }
+
+        throw error;
+      }
+    }
+
+    if (operation.phase === 'EFFECT_CLEANED') {
+      return reply.code(409).send({
+        error: appPublicCopy('ROLLBACK_RECOVERED_FAILED_ATTEMPT', locale),
+        code: 'ROLLBACK_RECOVERED_FAILED_ATTEMPT',
+      });
+    }
+
+    if (operation.phase === 'EFFECT_STARTED') {
+      if (!operation.deploymentId) {
+        throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+          code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+          statusCode: 503,
+        });
+      }
+
+      const orphan = await store.getDeployment(project.id, operation.deploymentId);
+
+      if (orphan?.status === 'READY') {
+        throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+          code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+          statusCode: 503,
+        });
+      }
+
+      if (orphan && orphan.status !== 'FAILED' && orphan.status !== 'CANCELED') {
+        await store.updateRollbackDeployment({
+          fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+          projectId: project.id,
+          deploymentId: operation.deploymentId,
+          patch: {
+            status: 'FAILED',
+            url: '',
+            previewUrl: '',
+            productionUrl: '',
+            logs: [
+              ...orphan.logs,
+              {
+                timestamp: new Date().toISOString(),
+                level: 'error',
+                message: appPublicEnglish('ROLLBACK_RECOVERED_FAILED_ATTEMPT'),
+              },
+            ],
+            finishedAt: new Date().toISOString(),
+          },
+        });
+      }
+
+      try {
+        await leaseManager.guard();
+
+        if (previous.artifactKind === 'server-image') {
+          await ensureServerDeploymentAbsentViaManager(operation.deploymentId);
+        } else {
+          await ensureStaticDeploymentSnapshotAbsent(operation.deploymentId);
+        }
+
+        await leaseManager.guard();
+        operation = await store.completeRollbackEffectCleanup({
+          operationId: operation.id,
+          ownerToken,
+          fencingToken: operation.fencingToken,
+        });
+      } catch (cleanupError) {
+        request.log.error(
+          { err: cleanupError, deploymentId: operation.deploymentId },
+          'orphaned rollback cleanup failed',
+        );
+        request.rollbackOperation = undefined;
+        await leaseManager.stop();
+
+        return reply.code(503).send({
+          error: appPublicCopy('ROLLBACK_CLEANUP_UNCONFIRMED', locale, {
+            deploymentId: operation.deploymentId,
+          }),
+          code: 'ROLLBACK_CLEANUP_UNCONFIRMED',
+          retryable: true,
+        });
+      }
+
+      return reply.code(409).send({
+        error: appPublicCopy('ROLLBACK_RECOVERED_FAILED_ATTEMPT', locale),
+        code: 'ROLLBACK_RECOVERED_FAILED_ATTEMPT',
+      });
+    }
+
+    if (operation.phase === 'RELEASE_COMMITTED') {
+      if (!operation.deploymentId || operation.expectedHeadVersion === undefined) {
+        throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+          code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+          statusCode: 503,
+        });
+      }
+
+      const committed = await store.getDeployment(project.id, operation.deploymentId);
+
+      if (!committed || committed.status !== 'READY') {
+        throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+          code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+          statusCode: 503,
+        });
+      }
+
+      const url = committed.url ?? buildDeploymentUrl(project, committed);
+
+      return reply.code(201).send({
+        deployment: localizeDeploymentRecord(committed, locale),
+        restoredFromVersion: previous.version,
+        restoredFromDeploymentId: previous.deploymentId,
+        supersededVersion: currentVersion,
+        verifiedArtifactDigest: previous.artifactDigest,
+        url,
+      });
     }
 
     const previousDeploymentForManifest = await store.getDeployment(project.id, previous.deploymentId);
@@ -38961,31 +39418,37 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       });
     }
 
-    const appendRollbackManifest = async (
-      rollbackId: string,
-      artifactKind: string,
-      artifactRef: string,
-      artifactDigest: string,
-    ) => {
-      await store.withSerializedMutation(`release-manifest:${project.id}:${environment}`, async () => {
-        const latest = await store.listReleaseManifests(project.id, environment, { take: 1 });
-        const nextVersion = (latest[0]?.version ?? 0) + 1;
+    const liveProjectManifest = await currentProjectManifest(store, project);
 
-        await store.createReleaseManifest({
-          projectId: project.id,
-          deploymentId: rollbackId,
-          environment,
-          version: nextVersion,
-          provider: previous.provider,
-          artifactKind: artifactKind as 'static-snapshot' | 'server-image',
-          artifactRef,
-          artifactDigest,
-          ...(previous.storeGeneration ? { storeGeneration: previous.storeGeneration } : {}),
-          ...(previous.configDigest ? { configDigest: previous.configDigest } : {}),
-          ...(previous.dbMigrationPoint ? { dbMigrationPoint: previous.dbMigrationPoint } : {}),
-        });
+    if (operation.projectManifestDigest && operation.projectManifestDigest !== liveProjectManifest.digest) {
+      return reply.code(409).send({
+        error: appPublicCopy('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH', locale),
+        code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
       });
-    };
+    }
+
+    if (!operation.deploymentId) {
+      operation = await store.bindRollbackOperationTarget({
+        operationId: operation.id,
+        ownerToken,
+        fencingToken: operation.fencingToken,
+        deploymentId: randomUUID(),
+        expectedHeadVersion: currentVersion,
+        previousManifestId: previous.id,
+        projectManifestDigest: liveProjectManifest.digest,
+      });
+    }
+
+    const rollbackDeploymentId = operation.deploymentId;
+
+    if (!rollbackDeploymentId || operation.expectedHeadVersion === undefined) {
+      throw Object.assign(new Error(appPublicEnglish('ROLLBACK_IDEMPOTENCY_UNAVAILABLE')), {
+        code: 'ROLLBACK_IDEMPOTENCY_UNAVAILABLE',
+        statusCode: 503,
+      });
+    }
+
+    const expectedHeadVersion = operation.expectedHeadVersion;
 
     // ---- STATIC: re-materialise + re-verify the previous snapshot bytes. ----
     if (previous.artifactKind === 'static-snapshot') {
@@ -39011,41 +39474,156 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         throw error;
       }
 
-      const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
-        await ensureTenantAdmission(
-          request,
-          project.organizationId,
-          'deployment.create',
-          tenantDeploymentContext({ provider: 'static', artifactSizeMb: 250, timeoutSeconds: 600 }),
-        );
-        await ensureQuota(request, project.organizationId, 'deployments.count');
-
-        return store.createDeployment({
-          projectId: project.id,
-          provider: 'static',
-          environment: environment as DeploymentRecord['environment'],
-          status: 'QUEUED',
-          rolledBackFromId: previous.deploymentId,
-          metadata: {
-            rollbackToPrevious: true,
-            restoredFromVersion: previous.version,
-            restoredFromDeploymentId: previous.deploymentId,
-            supersededVersion: current.version,
-            manifestArtifactDigest: previous.artifactDigest,
+      const rollbackMetadata = {
+        rollbackToPrevious: true,
+        rollbackOperationId: operation.id,
+        projectManifestDigest: operation.projectManifestDigest,
+        restoredFromVersion: previous.version,
+        restoredFromDeploymentId: previous.deploymentId,
+        supersededVersion: currentVersion,
+        manifestArtifactDigest: previous.artifactDigest,
+      };
+      const ensureStaticRollback = () =>
+        store.ensureRollbackDeployment({
+          fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+          deployment: {
+            id: rollbackDeploymentId,
+            projectId: project.id,
+            provider: 'static',
+            environment,
+            status: 'QUEUED',
+            rolledBackFromId: previous.deploymentId,
+            metadata: rollbackMetadata,
           },
         });
-      });
+
+      const existingRollback = await store.getDeployment(project.id, rollbackDeploymentId);
+
+      const rollback = existingRollback
+        ? await ensureStaticRollback()
+        : await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+            await ensureTenantAdmission(
+              request,
+              project.organizationId,
+              'deployment.create',
+              tenantDeploymentContext({ provider: 'static', artifactSizeMb: 250, timeoutSeconds: 600 }),
+            );
+            await ensureQuota(request, project.organizationId, 'deployments.count');
+
+            return ensureStaticRollback();
+          });
+
+      if (rollback.status === 'FAILED' || rollback.status === 'CANCELED') {
+        await leaseManager.guard();
+
+        try {
+          await ensureStaticDeploymentSnapshotAbsent(rollback.id);
+        } catch (cleanupError) {
+          request.log.error({ err: cleanupError, deploymentId: rollback.id }, 'rollback snapshot cleanup failed');
+          request.rollbackOperation = undefined;
+          await leaseManager.stop();
+
+          return reply.code(503).send({
+            error: appPublicCopy('ROLLBACK_CLEANUP_UNCONFIRMED', locale, { deploymentId: rollback.id }),
+            code: 'ROLLBACK_CLEANUP_UNCONFIRMED',
+            retryable: true,
+          });
+        }
+        await leaseManager.guard();
+
+        return reply.code(409).send({
+          error: appPublicCopy('ROLLBACK_RECOVERED_FAILED_ATTEMPT', locale),
+          code: 'ROLLBACK_RECOVERED_FAILED_ATTEMPT',
+        });
+      }
 
       try {
+        operation = await store.beginRollbackEffect({
+          operationId: operation.id,
+          ownerToken,
+          fencingToken: operation.fencingToken,
+        });
+        await leaseManager.guard();
         await restoreStaticSnapshotInto(previous.deploymentId, rollback.id);
+        await leaseManager.guard();
+
+        const restoredDigest = await computeStaticSnapshotDigest(rollback.id);
+
+        if (!restoredDigest) {
+          throw Object.assign(
+            new Error(appPublicEnglish('ROLLBACK_STATIC_SNAPSHOT_MISSING', { deploymentId: rollback.id })),
+            {
+              code: 'ROLLBACK_RESTORE_FAILED',
+              statusCode: 500,
+            },
+          );
+        }
+
+        assertArtifactMatchesManifest(restoredDigest, previous);
+
+        const url = buildDeploymentUrl(project, rollback);
+
+        const release = await store.commitStaticRollbackRelease({
+          operationId: operation.id,
+          ownerToken,
+          fencingToken: operation.fencingToken,
+          expectedHeadVersion,
+          projectId: project.id,
+          deploymentId: rollback.id,
+          environment,
+          provider: previous.provider,
+          artifactRef: `static-deployments/${rollback.id}`,
+          artifactDigest: restoredDigest,
+          ...(previous.storeGeneration ? { storeGeneration: previous.storeGeneration } : {}),
+          ...(previous.configDigest ? { configDigest: previous.configDigest } : {}),
+          ...(previous.dbMigrationPoint ? { dbMigrationPoint: previous.dbMigrationPoint } : {}),
+          url,
+          metadata: rollbackMetadata,
+          logs: [
+            ...rollback.logs,
+            {
+              timestamp: new Date().toISOString(),
+              level: 'info',
+              message: appPublicEnglish('ROLLBACK_STATIC_SUCCESS_LOG', {
+                version: previous.version,
+                deploymentId: previous.deploymentId,
+                artifactDigest: previous.artifactDigest,
+              }),
+            },
+          ],
+          finishedAt: new Date().toISOString(),
+        });
+
+        return reply.code(201).send({
+          deployment: localizeDeploymentRecord(release.deployment, locale),
+          restoredFromVersion: previous.version,
+          restoredFromDeploymentId: previous.deploymentId,
+          supersededVersion: currentVersion,
+          verifiedArtifactDigest: previous.artifactDigest,
+          url,
+        });
       } catch (error) {
+        const code = (error as { code?: string }).code ?? 'ROLLBACK_RESTORE_FAILED';
+
+        if (error instanceof RollbackOperationLeaseLostError || code === 'ROLLBACK_OWNERSHIP_LOST') {
+          request.rollbackOperation = undefined;
+          await leaseManager.stop();
+          throw error;
+        }
+
         request.log.error(
           { err: error, deploymentId: rollback.id, sourceDeploymentId: previous.deploymentId },
-          'static rollback restore failed',
+          'static rollback refused',
         );
-        await store
-          .updateDeployment(project.id, rollback.id, {
+        await store.updateRollbackDeployment({
+          fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+          projectId: project.id,
+          deploymentId: rollback.id,
+          patch: {
             status: 'FAILED',
+            url: '',
+            previewUrl: '',
+            productionUrl: '',
             logs: [
               ...rollback.logs,
               {
@@ -39055,55 +39633,51 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               },
             ],
             finishedAt: new Date().toISOString(),
-          })
-          .catch(() => undefined);
+          },
+        });
 
-        const code = (error as { code?: string }).code ?? 'ROLLBACK_RESTORE_FAILED';
+        try {
+          await leaseManager.guard();
+        } catch (ownershipError) {
+          request.rollbackOperation = undefined;
+          await leaseManager.stop();
+          throw ownershipError;
+        }
+
+        try {
+          await ensureStaticDeploymentSnapshotAbsent(rollback.id);
+        } catch (cleanupError) {
+          request.log.error({ err: cleanupError, deploymentId: rollback.id }, 'rollback snapshot cleanup failed');
+          request.rollbackOperation = undefined;
+          await leaseManager.stop();
+
+          return reply.code(503).send({
+            error: appPublicCopy('ROLLBACK_CLEANUP_UNCONFIRMED', locale, { deploymentId: rollback.id }),
+            code: 'ROLLBACK_CLEANUP_UNCONFIRMED',
+            retryable: true,
+          });
+        }
+        await leaseManager.guard();
+        operation = await store.completeRollbackEffectCleanup({
+          operationId: operation.id,
+          ownerToken,
+          fencingToken: operation.fencingToken,
+        });
+
         const statusCode = (error as { statusCode?: number }).statusCode ?? 500;
-
+        const releaseMoveDetails = error as { expectedVersion?: unknown; observedVersion?: unknown };
         return reply.code(statusCode).send({
           error: localizeBackendErrorForResponse((error as Error).message, locale, 'ROLLBACK_REQUEST_FAILED'),
           code,
+          ...(typeof releaseMoveDetails.expectedVersion === 'number' &&
+          typeof releaseMoveDetails.observedVersion === 'number'
+            ? {
+                expectedVersion: releaseMoveDetails.expectedVersion,
+                observedVersion: releaseMoveDetails.observedVersion,
+              }
+            : {}),
         });
       }
-
-      const url = buildDeploymentUrl(project, rollback);
-
-      const ready = await store.updateDeployment(project.id, rollback.id, {
-        status: 'READY',
-        url,
-        previewUrl: environment !== 'production' ? url : undefined,
-        productionUrl: environment === 'production' ? url : undefined,
-        finishedAt: new Date().toISOString(),
-        logs: [
-          ...rollback.logs,
-          {
-            timestamp: new Date().toISOString(),
-            level: 'info',
-            message: appPublicEnglish('ROLLBACK_STATIC_SUCCESS_LOG', {
-              version: previous.version,
-              deploymentId: previous.deploymentId,
-              artifactDigest: previous.artifactDigest,
-            }),
-          },
-        ],
-      });
-
-      /*
-       * The restored copy is a first-class release too — record its OWN manifest
-       * (new monotonic version), digested from the freshly-materialised bytes.
-       */
-      const restoredDigest = (await computeStaticSnapshotDigest(rollback.id)) ?? previous.artifactDigest;
-      await appendRollbackManifest(rollback.id, 'static-snapshot', `static-deployments/${rollback.id}`, restoredDigest);
-
-      return reply.code(201).send({
-        deployment: localizeDeploymentRecord(ready, locale),
-        restoredFromVersion: previous.version,
-        restoredFromDeploymentId: previous.deploymentId,
-        supersededVersion: current.version,
-        verifiedArtifactDigest: previous.artifactDigest,
-        url,
-      });
     }
 
     // ---- SERVER: re-deploy the previous image by its retained digest. ----
@@ -39141,30 +39715,63 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const rollbackDefaultVcpu = machineSizeFromCard(await getActiveRateCard(store), undefined).vcpu;
-      const rollback = await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
-        await ensureTenantAdmission(
-          request,
-          project.organizationId,
-          'deployment.create',
-          tenantDeploymentContext({ provider: 'server', vcpu: rollbackDefaultVcpu, timeoutSeconds: 600 }),
-        );
-        await ensureQuota(request, project.organizationId, 'deployments.count');
 
-        return store.createDeployment({
-          projectId: project.id,
-          provider: 'server',
-          environment: environment as DeploymentRecord['environment'],
-          status: 'QUEUED',
-          rolledBackFromId: previous.deploymentId,
-          metadata: {
-            rollbackToPrevious: true,
-            restoredFromVersion: previous.version,
-            restoredFromDeploymentId: previous.deploymentId,
-            supersededVersion: current.version,
+      const rollbackMetadata = {
+        rollbackToPrevious: true,
+        rollbackOperationId: operation.id,
+        projectManifestDigest: operation.projectManifestDigest,
+        restoredFromVersion: previous.version,
+        restoredFromDeploymentId: previous.deploymentId,
+        supersededVersion: currentVersion,
+      };
+      const ensureServerRollback = () =>
+        store.ensureRollbackDeployment({
+          fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+          deployment: {
+            id: rollbackDeploymentId,
+            projectId: project.id,
+            provider: 'server',
+            environment,
+            status: 'QUEUED',
+            rolledBackFromId: previous.deploymentId,
+            metadata: rollbackMetadata,
           },
         });
-      });
 
+      const existingRollback = await store.getDeployment(project.id, rollbackDeploymentId);
+
+      const rollback = existingRollback
+        ? await ensureServerRollback()
+        : await store.withSerializedMutation(`deploy-org:${project.organizationId}`, async () => {
+            await ensureTenantAdmission(
+              request,
+              project.organizationId,
+              'deployment.create',
+              tenantDeploymentContext({ provider: 'server', vcpu: rollbackDefaultVcpu, timeoutSeconds: 600 }),
+            );
+            await ensureQuota(request, project.organizationId, 'deployments.count');
+
+            return ensureServerRollback();
+          });
+
+      if (rollback.status === 'FAILED') {
+        await leaseManager.guard();
+
+        try {
+          await ensureServerDeploymentAbsentViaManager(rollback.id);
+        } catch (error) {
+          request.rollbackOperation = undefined;
+          await leaseManager.stop();
+          throw error;
+        }
+
+        return reply.code(409).send({
+          error: appPublicCopy('ROLLBACK_RECOVERED_FAILED_ATTEMPT', locale),
+          code: 'ROLLBACK_RECOVERED_FAILED_ATTEMPT',
+        });
+      }
+
+      let managerStartAttempted = false;
       try {
         const plan = resolveRollbackImage(
           {
@@ -39198,6 +39805,13 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
         const deployRateCard = await getActiveRateCard(store);
         const machineSize = machineSizeFromCard(deployRateCard, undefined);
 
+        operation = await store.beginRollbackEffect({
+          operationId: operation.id,
+          ownerToken,
+          fencingToken: operation.fencingToken,
+        });
+        await leaseManager.guard();
+        managerStartAttempted = true;
         const started = await startServerDeploymentViaManager({
           deploymentId: rollback.id,
           ...machineSizeResources(machineSize),
@@ -39211,72 +39825,103 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
           nixStorePvcName: nixStorePvcForProject(project.id),
           ...(plan.storeGeneration ? { nixGenerationRef: plan.storeGeneration } : {}),
         });
+        await leaseManager.guard();
 
         const ok = Boolean(started?.ready);
         const rbUrl = started?.url ?? `https://${rbHost}`;
 
-        let ready = await store.updateDeployment(project.id, rollback.id, {
-          status: 'BUILDING',
-          metadata: {
-            ...(rollback.metadata as Record<string, unknown>),
-            serverDeploy: {
-              host: rbHost,
-              ready: ok,
-              readyReplicas: started?.readyReplicas ?? 0,
-              applied: Boolean(started),
-              rolledBackFromDigest: plan.imageDigest,
-              image: {
-                imageRef: previous.artifactRef,
-                imageUri: plan.pullRef,
-                imageDigest: plan.imageDigest,
-                ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
-              },
-              promotion: previousPromotion,
-              releaseConfigDigest: previous.configDigest ?? configDigest({}),
-            },
-          },
-          logs: [
-            ...rollback.logs,
-            {
-              timestamp: new Date().toISOString(),
-              level: 'info',
-              message: appPublicEnglish('ROLLBACK_SERVER_SUCCESS_LOG', {
-                version: previous.version,
-                pullRef: plan.pullRef,
-              }),
-            },
-          ],
-          finishedAt: undefined,
-        });
-
-        if (ok) {
-          ready = await commitPromotedServerImageRelease({
-            store,
-            deployment: ready,
-            organizationId: project.organizationId,
-            url: rbUrl,
-            readyReplicas: started?.readyReplicas ?? 0,
-            readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
+        if (!ok) {
+          throw Object.assign(new Error(appPublicEnglish('ROLLBACK_SERVER_NOT_READY')), {
+            code: 'ROLLBACK_SERVER_NOT_READY',
+            statusCode: 503,
           });
         }
+
+        let ready = await store.updateRollbackDeployment({
+          fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+          projectId: project.id,
+          deploymentId: rollback.id,
+          patch: {
+            status: 'BUILDING',
+            metadata: {
+              ...(rollback.metadata as Record<string, unknown>),
+              serverDeploy: {
+                host: rbHost,
+                ready: true,
+                readyReplicas: started?.readyReplicas ?? 0,
+                applied: true,
+                rolledBackFromDigest: plan.imageDigest,
+                image: {
+                  imageRef: previous.artifactRef,
+                  imageUri: plan.pullRef,
+                  imageDigest: plan.imageDigest,
+                  ...(plan.storeGeneration ? { storeGeneration: plan.storeGeneration } : {}),
+                },
+                promotion: previousPromotion,
+                ...(previous.configDigest ? { releaseConfigDigest: previous.configDigest } : {}),
+              },
+            },
+            logs: [
+              ...rollback.logs,
+              {
+                timestamp: new Date().toISOString(),
+                level: 'info',
+                message: appPublicEnglish('ROLLBACK_SERVER_SUCCESS_LOG', {
+                  version: previous.version,
+                  pullRef: plan.pullRef,
+                }),
+              },
+            ],
+            finishedAt: undefined,
+          },
+        });
+
+        ready = await commitPromotedServerImageRelease({
+          store,
+          deployment: ready,
+          organizationId: project.organizationId,
+          url: rbUrl,
+          readyReplicas: started?.readyReplicas ?? 0,
+          readyMessage: appPublicEnglish('DEPLOY_SERVER_RELEASE_COMMITTED'),
+          ...(previous.dbMigrationPoint ? { dbMigrationPoint: previous.dbMigrationPoint } : {}),
+          rollbackFence: {
+            operationId: operation.id,
+            ownerToken,
+            fencingToken: operation.fencingToken,
+            expectedHeadVersion,
+          },
+        });
 
         return reply.code(201).send({
           deployment: localizeDeploymentRecord(ready, locale),
           restoredFromVersion: previous.version,
           restoredFromDeploymentId: previous.deploymentId,
-          supersededVersion: current.version,
+          supersededVersion: currentVersion,
           verifiedArtifactDigest: previous.artifactDigest,
           url: rbUrl,
         });
       } catch (error) {
+        const code = (error as { code?: string }).code ?? 'ROLLBACK_FAILED';
+
+        if (error instanceof RollbackOperationLeaseLostError || code === 'ROLLBACK_OWNERSHIP_LOST') {
+          request.rollbackOperation = undefined;
+          await leaseManager.stop();
+          throw error;
+        }
+
         request.log.error(
           { err: error, deploymentId: rollback.id, sourceDeploymentId: previous.deploymentId },
           'server rollback refused',
         );
-        await store
-          .updateDeployment(project.id, rollback.id, {
+        await store.updateRollbackDeployment({
+          fence: { operationId: operation.id, ownerToken, fencingToken: operation.fencingToken },
+          projectId: project.id,
+          deploymentId: rollback.id,
+          patch: {
             status: 'FAILED',
             url: '',
+            previewUrl: '',
+            productionUrl: '',
             logs: [
               ...rollback.logs,
               {
@@ -39286,15 +39931,49 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
               },
             ],
             finishedAt: new Date().toISOString(),
-          })
-          .catch(() => undefined);
+          },
+        });
 
-        const code = (error as { code?: string }).code ?? 'ROLLBACK_FAILED';
+        if (managerStartAttempted) {
+          try {
+            await leaseManager.guard();
+            await ensureServerDeploymentAbsentViaManager(rollback.id);
+          } catch (cleanupError) {
+            request.log.error(
+              { err: cleanupError, deploymentId: rollback.id },
+              'rollback workload cleanup could not prove absence',
+            );
+
+            /* Keep IN_PROGRESS: a retry may steal the expired lease and finish cleanup. */
+            request.rollbackOperation = undefined;
+            await leaseManager.stop();
+
+            return reply.code(503).send({
+              error: appPublicCopy('ROLLBACK_CLEANUP_UNCONFIRMED', locale, { deploymentId: rollback.id }),
+              code: 'ROLLBACK_CLEANUP_UNCONFIRMED',
+              retryable: true,
+            });
+          }
+          await leaseManager.guard();
+          operation = await store.completeRollbackEffectCleanup({
+            operationId: operation.id,
+            ownerToken,
+            fencingToken: operation.fencingToken,
+          });
+        }
+
         const statusCode = (error as { statusCode?: number }).statusCode ?? 502;
-
+        const releaseMoveDetails = error as { expectedVersion?: unknown; observedVersion?: unknown };
         return reply.code(statusCode).send({
           error: localizeBackendErrorForResponse((error as Error).message, locale, 'ROLLBACK_REQUEST_FAILED'),
           code,
+          ...(typeof releaseMoveDetails.expectedVersion === 'number' &&
+          typeof releaseMoveDetails.observedVersion === 'number'
+            ? {
+                expectedVersion: releaseMoveDetails.expectedVersion,
+                observedVersion: releaseMoveDetails.observedVersion,
+              }
+            : {}),
         });
       }
     }

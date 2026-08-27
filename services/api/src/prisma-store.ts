@@ -72,8 +72,12 @@ import type {
   CustomRoleRecord,
   DeploymentRecord,
   ReleaseManifestRecord,
+  RollbackDeploymentCreateInput,
+  RollbackLeaseFence,
+  RollbackOperationRecord,
   ServerImageReleaseCommitInput,
   ServerImageReleaseCommitResult,
+  StaticRollbackReleaseCommitInput,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -163,7 +167,14 @@ function toIso(value: Date | string | null | undefined) {
 }
 
 async function databaseNow(tx: Prisma.TransactionClient): Promise<Date> {
-  const rows = await tx.$queryRaw<Array<{ now: Date }>>`SELECT CURRENT_TIMESTAMP AS "now"`;
+  /*
+   * `CURRENT_TIMESTAMP` is frozen at transaction start in PostgreSQL. A
+   * transaction that waited behind a row lock could therefore validate a lease
+   * against a timestamp from *before* it acquired the lock. `clock_timestamp()`
+   * is still authoritative database time, but reflects the instant of the
+   * actual comparison after the wait.
+   */
+  const rows = await tx.$queryRaw<Array<{ now: Date }>>`SELECT clock_timestamp() AS "now"`;
   const value = rows[0]?.now;
 
   if (!(value instanceof Date)) {
@@ -184,6 +195,104 @@ function databaseDeadline(now: Date, durationMs: number, maximumMs = 24 * 60 * 6
   }
 
   return new Date(now.getTime() + Math.trunc(durationMs));
+}
+
+type RollbackFenceIdentity = {
+  operationId: string;
+  ownerToken: string;
+  fencingToken: number;
+};
+
+function rollbackOwnershipLost(): Error & { code: string; statusCode: number } {
+  return Object.assign(new Error('ROLLBACK_OWNERSHIP_LOST'), {
+    code: 'ROLLBACK_OWNERSHIP_LOST',
+    statusCode: 409,
+  });
+}
+
+function rollbackConflict(code: string): Error & { code: string; statusCode: number } {
+  return Object.assign(new Error(code), { code, statusCode: 409 });
+}
+
+function sameNullable(left: string | null | undefined, right: string | null | undefined): boolean {
+  return (left ?? null) === (right ?? null);
+}
+
+async function requireRollbackSourceManifest(
+  tx: Prisma.TransactionClient,
+  operation: {
+    projectId: string;
+    environment: string;
+    previousManifestId: string | null;
+  },
+) {
+  if (!operation.previousManifestId) {
+    throw rollbackConflict('ROLLBACK_TARGET_NOT_BOUND');
+  }
+
+  const source = await tx.releaseManifest.findFirst({
+    where: {
+      id: operation.previousManifestId,
+      projectId: operation.projectId,
+      environment: operation.environment,
+    },
+  });
+
+  if (!source) {
+    throw rollbackConflict('ROLLBACK_TARGET_MANIFEST_MISSING');
+  }
+
+  return source;
+}
+
+async function requireRollbackLease(tx: Prisma.TransactionClient, input: RollbackFenceIdentity): Promise<any> {
+  await tx.$queryRawUnsafe(
+    'SELECT "id" FROM "RollbackIdempotencyRequest" WHERE "id" = $1 FOR UPDATE',
+    input.operationId,
+  );
+
+  const now = await databaseNow(tx);
+
+  const row = await tx.rollbackIdempotencyRequest.findFirst({
+    where: {
+      id: input.operationId,
+      status: 'IN_PROGRESS',
+      leaseOwner: input.ownerToken,
+      fencingToken: input.fencingToken,
+      leaseExpiresAt: { gt: now },
+    },
+  });
+
+  if (!row) {
+    throw rollbackOwnershipLost();
+  }
+
+  return row;
+}
+
+function deploymentMutationData(
+  input: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>,
+): Record<string, unknown> {
+  return {
+    ...('environment' in input ? { environmentName: input.environment } : {}),
+    status: input.status,
+    url: input.url,
+    previewUrl: input.previewUrl,
+    productionUrl: input.productionUrl,
+    framework: input.framework,
+    buildCommand: input.buildCommand,
+    outputDirectory: input.outputDirectory,
+    branch: input.branch,
+    commitSha: input.commitSha,
+    customDomain: input.customDomain,
+    logs: input.logs as any,
+    metadata: input.metadata as any,
+    rolledBackFromId: input.rolledBackFromId,
+    lastMeteredAt: input.lastMeteredAt ? new Date(input.lastMeteredAt) : undefined,
+    startedAt: input.startedAt ? new Date(input.startedAt) : undefined,
+    finishedAt: input.finishedAt ? new Date(input.finishedAt) : undefined,
+    canceledAt: input.canceledAt ? new Date(input.canceledAt) : undefined,
+  };
 }
 
 type DatabaseMigrationRow = {
@@ -6508,26 +6617,7 @@ export class PrismaApiStore implements ApiStore {
 
     await this.prisma.deployment.updateMany({
       where: { id: deploymentId, projectId, ...statusGuard },
-      data: {
-        ...('environment' in input ? { environmentName: input.environment } : {}),
-        status: input.status,
-        url: input.url,
-        previewUrl: input.previewUrl,
-        productionUrl: input.productionUrl,
-        framework: input.framework,
-        buildCommand: input.buildCommand,
-        outputDirectory: input.outputDirectory,
-        branch: input.branch,
-        commitSha: input.commitSha,
-        customDomain: input.customDomain,
-        logs: input.logs as any,
-        metadata: input.metadata as any,
-        rolledBackFromId: input.rolledBackFromId,
-        lastMeteredAt: input.lastMeteredAt ? new Date(input.lastMeteredAt) : undefined,
-        startedAt: input.startedAt ? new Date(input.startedAt) : undefined,
-        finishedAt: input.finishedAt ? new Date(input.finishedAt) : undefined,
-        canceledAt: input.canceledAt ? new Date(input.canceledAt) : undefined,
-      } as any,
+      data: deploymentMutationData(input) as any,
     });
 
     const deployment = await this.prisma.deployment.findFirstOrThrow({ where: { id: deploymentId, projectId } });
@@ -6606,8 +6696,617 @@ export class PrismaApiStore implements ApiStore {
     ).map(mapReleaseManifest);
   }
 
+  async getReleaseManifest(projectId: string, manifestId: string) {
+    const row = await this.prisma.releaseManifest.findFirst({ where: { id: manifestId, projectId } });
+    return row ? mapReleaseManifest(row) : undefined;
+  }
+
+  async acquireRollbackOperation(input: {
+    projectId: string;
+    idempotencyKey: string;
+    requestFingerprint: string;
+    environment: string;
+    ownerToken: string;
+    leaseDurationMs: number;
+  }): Promise<{
+    kind: 'ACQUIRED' | 'BUSY' | 'REPLAY' | 'FINGERPRINT_CONFLICT';
+    record: RollbackOperationRecord;
+  }> {
+    if (
+      !Number.isFinite(input.leaseDurationMs) ||
+      input.leaseDurationMs < 1_000 ||
+      input.leaseDurationMs > 30 * 60_000
+    ) {
+      throw new TypeError('INVALID_ROLLBACK_LEASE_DURATION');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const operationId = `rollback_${randomUUID()}`;
+
+      const inserted = await tx.$executeRaw`
+        INSERT INTO "RollbackIdempotencyRequest" (
+          "id", "projectId", "idempotencyKey", "requestFingerprint", "environment",
+          "status", "phase", "leaseOwner", "leaseExpiresAt", "fencingToken", "createdAt", "updatedAt"
+        ) VALUES (
+          ${operationId}, ${input.projectId}, ${input.idempotencyKey}, ${input.requestFingerprint}, ${input.environment},
+          'IN_PROGRESS', 'CLAIMED', ${input.ownerToken},
+          clock_timestamp() + (${Math.trunc(input.leaseDurationMs)} * INTERVAL '1 millisecond'),
+          1, clock_timestamp(), clock_timestamp()
+        )
+        ON CONFLICT ("projectId", "idempotencyKey") DO NOTHING
+      `;
+
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "RollbackIdempotencyRequest" WHERE "projectId" = $1 AND "idempotencyKey" = $2 FOR UPDATE',
+        input.projectId,
+        input.idempotencyKey,
+      );
+
+      let row = await tx.rollbackIdempotencyRequest.findUniqueOrThrow({
+        where: {
+          projectId_idempotencyKey: {
+            projectId: input.projectId,
+            idempotencyKey: input.idempotencyKey,
+          },
+        },
+      });
+
+      if (row.requestFingerprint !== input.requestFingerprint || row.environment !== input.environment) {
+        return { kind: 'FINGERPRINT_CONFLICT' as const, record: mapRollbackOperation(row) };
+      }
+
+      if (row.status === 'COMPLETED') {
+        return { kind: 'REPLAY' as const, record: mapRollbackOperation(row) };
+      }
+
+      if (inserted === 1) {
+        return { kind: 'ACQUIRED' as const, record: mapRollbackOperation(row) };
+      }
+
+      const currentDatabaseTime = await databaseNow(tx);
+
+      if (row.leaseExpiresAt && row.leaseExpiresAt > currentDatabaseTime) {
+        return { kind: 'BUSY' as const, record: mapRollbackOperation(row) };
+      }
+
+      await tx.$executeRaw`
+        UPDATE "RollbackIdempotencyRequest"
+        SET "leaseOwner" = ${input.ownerToken},
+            "leaseExpiresAt" = clock_timestamp() + (${Math.trunc(input.leaseDurationMs)} * INTERVAL '1 millisecond'),
+            "fencingToken" = "fencingToken" + 1,
+            "updatedAt" = clock_timestamp()
+        WHERE "id" = ${row.id}
+      `;
+      row = await tx.rollbackIdempotencyRequest.findUniqueOrThrow({ where: { id: row.id } });
+
+      return { kind: 'ACQUIRED' as const, record: mapRollbackOperation(row) };
+    });
+  }
+
+  async getRollbackOperation(projectId: string, idempotencyKey: string) {
+    const row = await this.prisma.rollbackIdempotencyRequest.findUnique({
+      where: { projectId_idempotencyKey: { projectId, idempotencyKey } },
+    });
+    return row ? mapRollbackOperation(row) : undefined;
+  }
+
+  async renewRollbackOperationLease(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    leaseDurationMs: number;
+  }) {
+    if (
+      !Number.isFinite(input.leaseDurationMs) ||
+      input.leaseDurationMs < 1_000 ||
+      input.leaseDurationMs > 30 * 60_000
+    ) {
+      throw new TypeError('INVALID_ROLLBACK_LEASE_DURATION');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      await requireRollbackLease(tx, input);
+      await tx.$executeRaw`
+        UPDATE "RollbackIdempotencyRequest"
+        SET "leaseExpiresAt" = clock_timestamp() + (${Math.trunc(input.leaseDurationMs)} * INTERVAL '1 millisecond'),
+            "updatedAt" = clock_timestamp()
+        WHERE "id" = ${input.operationId}
+      `;
+
+      const row = await tx.rollbackIdempotencyRequest.findUniqueOrThrow({ where: { id: input.operationId } });
+
+      return toIso(row.leaseExpiresAt);
+    });
+  }
+
+  async validateRollbackOperationLease(input: { operationId: string; ownerToken: string; fencingToken: number }) {
+    return this.prisma.$transaction(async (tx) => {
+      const now = await databaseNow(tx);
+      return (
+        (await tx.rollbackIdempotencyRequest.count({
+          where: {
+            id: input.operationId,
+            status: 'IN_PROGRESS',
+            leaseOwner: input.ownerToken,
+            fencingToken: input.fencingToken,
+            leaseExpiresAt: { gt: now },
+          },
+        })) === 1
+      );
+    });
+  }
+
+  async bindRollbackOperationTarget(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    deploymentId: string;
+    expectedHeadVersion: number;
+    previousManifestId: string;
+    projectManifestDigest: string;
+  }) {
+    if (
+      !Number.isSafeInteger(input.expectedHeadVersion) ||
+      input.expectedHeadVersion < 0 ||
+      !input.deploymentId ||
+      !input.previousManifestId ||
+      !/^sha256:[a-f0-9]{64}$/u.test(input.projectManifestDigest)
+    ) {
+      throw new TypeError('INVALID_ROLLBACK_TARGET');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const current = await requireRollbackLease(tx, input);
+      const alreadyBound = current.phase !== 'CLAIMED' || current.deploymentId !== null;
+
+      if (alreadyBound) {
+        if (
+          current.deploymentId !== input.deploymentId ||
+          current.expectedHeadVersion !== input.expectedHeadVersion ||
+          current.previousManifestId !== input.previousManifestId ||
+          current.projectManifestDigest !== input.projectManifestDigest
+        ) {
+          throw Object.assign(new Error('ROLLBACK_TARGET_CONFLICT'), {
+            code: 'ROLLBACK_TARGET_CONFLICT',
+            statusCode: 409,
+          });
+        }
+
+        return mapRollbackOperation(current);
+      }
+
+      return mapRollbackOperation(
+        await tx.rollbackIdempotencyRequest.update({
+          where: { id: input.operationId },
+          data: {
+            phase: 'TARGET_BOUND',
+            deploymentId: input.deploymentId,
+            expectedHeadVersion: input.expectedHeadVersion,
+            previousManifestId: input.previousManifestId,
+            projectManifestDigest: input.projectManifestDigest,
+          },
+        }),
+      );
+    });
+  }
+
+  async ensureRollbackDeployment(input: {
+    fence: Omit<RollbackLeaseFence, 'expectedHeadVersion'>;
+    deployment: RollbackDeploymentCreateInput;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const operation = await requireRollbackLease(tx, input.fence);
+      const source = await requireRollbackSourceManifest(tx, operation);
+      const metadata = input.deployment.metadata;
+
+      const expectedDeploymentProvider =
+        source.artifactKind === 'static-snapshot'
+          ? 'static'
+          : source.artifactKind === 'server-image'
+            ? 'server'
+            : undefined;
+
+      if (
+        operation.projectId !== input.deployment.projectId ||
+        operation.deploymentId !== input.deployment.id ||
+        operation.expectedHeadVersion === null ||
+        operation.phase === 'CLAIMED' ||
+        operation.environment !== input.deployment.environment ||
+        source.deploymentId !== input.deployment.rolledBackFromId ||
+        !expectedDeploymentProvider ||
+        input.deployment.provider !== expectedDeploymentProvider ||
+        metadata.rollbackOperationId !== operation.id ||
+        metadata.projectManifestDigest !== operation.projectManifestDigest ||
+        metadata.restoredFromVersion !== source.version ||
+        metadata.restoredFromDeploymentId !== source.deploymentId ||
+        metadata.supersededVersion !== operation.expectedHeadVersion
+      ) {
+        throw rollbackConflict('ROLLBACK_TARGET_NOT_BOUND');
+      }
+
+      let deployment = await tx.deployment.findUnique({ where: { id: input.deployment.id } });
+
+      if (!deployment) {
+        deployment = await tx.deployment.create({
+          data: {
+            id: input.deployment.id,
+            projectId: input.deployment.projectId,
+            provider: input.deployment.provider,
+            environmentName: input.deployment.environment,
+            status: input.deployment.status,
+            rolledBackFromId: input.deployment.rolledBackFromId,
+            metadata: input.deployment.metadata as Prisma.InputJsonValue,
+            logs: [],
+          },
+        });
+      } else {
+        const persistedMetadata = deployment.metadata as Record<string, unknown> | null;
+
+        if (
+          deployment.projectId !== input.deployment.projectId ||
+          deployment.provider !== input.deployment.provider ||
+          deployment.environmentName !== input.deployment.environment ||
+          deployment.rolledBackFromId !== input.deployment.rolledBackFromId ||
+          persistedMetadata?.rollbackOperationId !== operation.id ||
+          persistedMetadata?.projectManifestDigest !== operation.projectManifestDigest ||
+          persistedMetadata?.restoredFromVersion !== source.version ||
+          persistedMetadata?.restoredFromDeploymentId !== source.deploymentId ||
+          persistedMetadata?.supersededVersion !== operation.expectedHeadVersion
+        ) {
+          throw rollbackConflict('ROLLBACK_DEPLOYMENT_CONFLICT');
+        }
+      }
+
+      if (operation.phase === 'TARGET_BOUND') {
+        await tx.rollbackIdempotencyRequest.update({
+          where: { id: operation.id },
+          data: { phase: 'DEPLOYMENT_CREATED' },
+        });
+      }
+
+      return mapDeployment(deployment);
+    });
+  }
+
+  async updateRollbackDeployment(input: {
+    fence: Omit<RollbackLeaseFence, 'expectedHeadVersion'>;
+    projectId: string;
+    deploymentId: string;
+    patch: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>;
+  }) {
+    return this.prisma.$transaction(async (tx) => {
+      const operation = await requireRollbackLease(tx, input.fence);
+
+      if (operation.projectId !== input.projectId || operation.deploymentId !== input.deploymentId) {
+        throw rollbackOwnershipLost();
+      }
+
+      const statusGuard =
+        input.patch.status !== undefined ? { status: { notIn: ['READY', 'FAILED', 'CANCELED'] as any } } : {};
+      await tx.deployment.updateMany({
+        where: { id: input.deploymentId, projectId: input.projectId, ...statusGuard },
+        data: deploymentMutationData(input.patch) as any,
+      });
+
+      return mapDeployment(
+        await tx.deployment.findFirstOrThrow({ where: { id: input.deploymentId, projectId: input.projectId } }),
+      );
+    });
+  }
+
+  async beginRollbackEffect(input: { operationId: string; ownerToken: string; fencingToken: number }) {
+    return this.prisma.$transaction(async (tx) => {
+      const operation = await requireRollbackLease(tx, input);
+
+      if (operation.phase === 'EFFECT_STARTED') {
+        if (operation.effectFencingToken !== input.fencingToken) {
+          throw rollbackConflict('ROLLBACK_EFFECT_PHASE_CONFLICT');
+        }
+
+        return mapRollbackOperation(operation);
+      }
+
+      if (operation.phase !== 'DEPLOYMENT_CREATED' || !operation.deploymentId) {
+        throw rollbackConflict('ROLLBACK_EFFECT_PHASE_CONFLICT');
+      }
+
+      const deployment = await tx.deployment.findFirst({
+        where: { id: operation.deploymentId, projectId: operation.projectId },
+      });
+
+      const metadata = deployment?.metadata as Record<string, unknown> | null | undefined;
+
+      if (
+        !deployment ||
+        metadata?.rollbackOperationId !== operation.id ||
+        ['READY', 'FAILED', 'CANCELED'].includes(deployment.status)
+      ) {
+        throw rollbackConflict('ROLLBACK_EFFECT_PHASE_CONFLICT');
+      }
+
+      return mapRollbackOperation(
+        await tx.rollbackIdempotencyRequest.update({
+          where: { id: operation.id },
+          data: { phase: 'EFFECT_STARTED', effectFencingToken: operation.fencingToken },
+        }),
+      );
+    });
+  }
+
+  async completeRollbackEffectCleanup(input: { operationId: string; ownerToken: string; fencingToken: number }) {
+    return this.prisma.$transaction(async (tx) => {
+      const operation = await requireRollbackLease(tx, input);
+
+      if (operation.phase === 'EFFECT_CLEANED') {
+        return mapRollbackOperation(operation);
+      }
+
+      if (operation.phase !== 'EFFECT_STARTED' || !operation.deploymentId) {
+        throw rollbackConflict('ROLLBACK_EFFECT_PHASE_CONFLICT');
+      }
+
+      const deployment = await tx.deployment.findFirst({
+        where: { id: operation.deploymentId, projectId: operation.projectId },
+      });
+
+      if (deployment && !['FAILED', 'CANCELED'].includes(deployment.status)) {
+        throw rollbackConflict('ROLLBACK_CLEANUP_UNCONFIRMED');
+      }
+
+      return mapRollbackOperation(
+        await tx.rollbackIdempotencyRequest.update({
+          where: { id: operation.id },
+          data: { phase: 'EFFECT_CLEANED' },
+        }),
+      );
+    });
+  }
+
+  async completeRollbackOperation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    responseStatus: number;
+    responseContentLanguage: 'en' | 'fr';
+    responseBody: unknown;
+  }) {
+    if (
+      !Number.isInteger(input.responseStatus) ||
+      input.responseStatus < 100 ||
+      input.responseStatus > 599 ||
+      !['en', 'fr'].includes(input.responseContentLanguage) ||
+      !input.responseBody ||
+      typeof input.responseBody !== 'object'
+    ) {
+      throw new TypeError('INVALID_ROLLBACK_RESPONSE_BODY');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const operation = await requireRollbackLease(tx, input);
+
+      if (input.responseStatus < 400 && operation.phase !== 'RELEASE_COMMITTED') {
+        throw rollbackConflict('ROLLBACK_RESPONSE_PHASE_CONFLICT');
+      }
+
+      if (operation.phase === 'EFFECT_STARTED') {
+        throw rollbackConflict('ROLLBACK_CLEANUP_UNCONFIRMED');
+      }
+
+      if (operation.phase === 'DEPLOYMENT_CREATED' && operation.deploymentId) {
+        const deployment = await tx.deployment.findFirst({
+          where: { id: operation.deploymentId, projectId: operation.projectId },
+          select: { status: true },
+        });
+
+        if (deployment && !['FAILED', 'CANCELED'].includes(deployment.status)) {
+          if (deployment.status === 'READY' || input.responseStatus < 400) {
+            throw rollbackConflict('ROLLBACK_CLEANUP_UNCONFIRMED');
+          }
+
+          await tx.deployment.updateMany({
+            where: {
+              id: operation.deploymentId,
+              projectId: operation.projectId,
+              status: { notIn: ['READY', 'FAILED', 'CANCELED'] as any },
+            },
+            data: {
+              status: 'FAILED',
+              url: null,
+              previewUrl: null,
+              productionUrl: null,
+              finishedAt: await databaseNow(tx),
+            },
+          });
+        }
+      }
+
+      return mapRollbackOperation(
+        await tx.rollbackIdempotencyRequest.update({
+          where: { id: input.operationId },
+          data: {
+            status: 'COMPLETED',
+            leaseOwner: null,
+            leaseExpiresAt: null,
+            responseStatus: input.responseStatus,
+            responseContentLanguage: input.responseContentLanguage,
+            responseBody: input.responseBody as Prisma.InputJsonValue,
+            completedAt: await databaseNow(tx),
+          },
+        }),
+      );
+    });
+  }
+
+  async commitStaticRollbackRelease(input: StaticRollbackReleaseCommitInput) {
+    return this.prisma.$transaction(async (tx) => {
+      const operation = await requireRollbackLease(tx, input);
+      const source = await requireRollbackSourceManifest(tx, operation);
+
+      if (
+        operation.projectId !== input.projectId ||
+        operation.deploymentId !== input.deploymentId ||
+        operation.expectedHeadVersion !== input.expectedHeadVersion ||
+        operation.phase !== 'EFFECT_STARTED' ||
+        operation.effectFencingToken !== input.fencingToken ||
+        operation.environment !== input.environment ||
+        source.artifactKind !== 'static-snapshot' ||
+        source.provider !== input.provider ||
+        source.artifactDigest !== input.artifactDigest ||
+        input.artifactRef !== `static-deployments/${input.deploymentId}` ||
+        !sameNullable(source.storeGeneration, input.storeGeneration) ||
+        !sameNullable(source.configDigest, input.configDigest) ||
+        !sameNullable(source.dbMigrationPoint, input.dbMigrationPoint)
+      ) {
+        throw rollbackConflict('STATIC_ROLLBACK_RELEASE_CONFLICT');
+      }
+
+      await tx.$queryRawUnsafe(
+        'SELECT "id" FROM "Deployment" WHERE "id" = $1 AND "projectId" = $2 FOR UPDATE',
+        input.deploymentId,
+        input.projectId,
+      );
+
+      const deployment = await tx.deployment.findFirstOrThrow({
+        where: { id: input.deploymentId, projectId: input.projectId },
+      });
+      const existingRows = await tx.releaseManifest.findMany({
+        where: { deploymentId: input.deploymentId },
+        orderBy: { version: 'desc' },
+        take: 2,
+      });
+
+      const existing = existingRows[0];
+
+      if (existing) {
+        if (
+          existingRows.length !== 1 ||
+          existing.projectId !== input.projectId ||
+          existing.environment !== input.environment ||
+          existing.version !== input.expectedHeadVersion + 1 ||
+          existing.provider !== input.provider ||
+          existing.artifactKind !== 'static-snapshot' ||
+          existing.artifactRef !== input.artifactRef ||
+          existing.artifactDigest !== input.artifactDigest ||
+          !sameNullable(existing.storeGeneration, input.storeGeneration) ||
+          !sameNullable(existing.configDigest, input.configDigest) ||
+          !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
+          deployment.status !== 'READY'
+        ) {
+          throw rollbackConflict('STATIC_ROLLBACK_RELEASE_CONFLICT');
+        }
+
+        if (operation.phase !== 'RELEASE_COMMITTED') {
+          await tx.rollbackIdempotencyRequest.update({
+            where: { id: operation.id },
+            data: { phase: 'RELEASE_COMMITTED' },
+          });
+        }
+
+        return { deployment: mapDeployment(deployment), manifest: mapReleaseManifest(existing) };
+      }
+
+      const metadata = deployment.metadata as Record<string, unknown> | null;
+      const releaseMetadata = input.metadata;
+
+      if (
+        metadata?.rollbackOperationId !== operation.id ||
+        releaseMetadata.rollbackOperationId !== operation.id ||
+        releaseMetadata.projectManifestDigest !== operation.projectManifestDigest ||
+        deployment.provider !== 'static' ||
+        deployment.environmentName !== input.environment ||
+        deployment.rolledBackFromId !== source.deploymentId ||
+        ['READY', 'FAILED', 'CANCELED'].includes(deployment.status)
+      ) {
+        throw rollbackConflict('STATIC_ROLLBACK_RELEASE_CONFLICT');
+      }
+
+      const currentProjectManifest = await tx.projectManifestRevision.findFirst({
+        where: { projectId: input.projectId },
+        orderBy: { manifestVersion: 'desc' },
+        select: { digest: true },
+      });
+
+      if (!currentProjectManifest || currentProjectManifest.digest !== operation.projectManifestDigest) {
+        throw Object.assign(new Error('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH'), {
+          code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+          statusCode: 409,
+        });
+      }
+
+      await tx.$executeRawUnsafe(
+        'SELECT pg_advisory_xact_lock(hashtext($1))',
+        `release-manifest:${input.projectId}:${input.environment}`,
+      );
+
+      const latest = await tx.releaseManifest.findFirst({
+        where: { projectId: input.projectId, environment: input.environment },
+        orderBy: { version: 'desc' },
+        select: { version: true },
+      });
+
+      const observedVersion = latest?.version ?? 0;
+
+      if (observedVersion !== input.expectedHeadVersion) {
+        throw Object.assign(new Error('ROLLBACK_RELEASE_MOVED'), {
+          code: 'ROLLBACK_RELEASE_MOVED',
+          statusCode: 409,
+          expectedVersion: input.expectedHeadVersion,
+          observedVersion,
+        });
+      }
+
+      const manifest = await tx.releaseManifest.create({
+        data: {
+          projectId: input.projectId,
+          deploymentId: input.deploymentId,
+          environment: input.environment,
+          version: observedVersion + 1,
+          provider: input.provider,
+          artifactKind: 'static-snapshot',
+          artifactRef: input.artifactRef,
+          artifactDigest: input.artifactDigest,
+          storeGeneration: input.storeGeneration ?? null,
+          configDigest: input.configDigest ?? null,
+          dbMigrationPoint: input.dbMigrationPoint ?? null,
+        },
+      });
+      const transitioned = await tx.deployment.updateMany({
+        where: {
+          id: input.deploymentId,
+          projectId: input.projectId,
+          status: { notIn: ['READY', 'FAILED', 'CANCELED'] as any },
+        },
+        data: {
+          status: 'READY',
+          url: input.url,
+          previewUrl: input.environment !== 'production' ? input.url : null,
+          productionUrl: input.environment === 'production' ? input.url : null,
+          metadata: input.metadata as Prisma.InputJsonValue,
+          logs: input.logs as unknown as Prisma.InputJsonValue,
+          finishedAt: new Date(input.finishedAt),
+        },
+      });
+
+      if (transitioned.count !== 1) {
+        throw rollbackConflict('STATIC_ROLLBACK_RELEASE_CONFLICT');
+      }
+
+      const ready = await tx.deployment.findUniqueOrThrow({ where: { id: input.deploymentId } });
+      await tx.rollbackIdempotencyRequest.update({
+        where: { id: operation.id },
+        data: { phase: 'RELEASE_COMMITTED' },
+      });
+
+      return { deployment: mapDeployment(ready), manifest: mapReleaseManifest(manifest) };
+    });
+  }
+
   async commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult> {
     return this.prisma.$transaction(async (tx) => {
+      const rollbackOperation = input.rollbackFence ? await requireRollbackLease(tx, input.rollbackFence) : undefined;
+
+      const rollbackSource = rollbackOperation ? await requireRollbackSourceManifest(tx, rollbackOperation) : undefined;
+
       /*
        * Linearization point shared with cancel/update: the row lock makes
        * ReleaseManifest creation and READY one atomic publication. A cancel
@@ -6628,6 +7327,7 @@ export class PrismaApiStore implements ApiStore {
         | Record<string, unknown>
         | undefined;
       const image = serverDeploy?.image as Record<string, unknown> | undefined;
+      const rollbackOperationId = (deployment.metadata as Record<string, unknown> | null)?.rollbackOperationId;
 
       if (
         deployment.project.organizationId !== input.organizationId ||
@@ -6645,16 +7345,48 @@ export class PrismaApiStore implements ApiStore {
         throw new Error(SERVER_RELEASE_PROMOTION_NOT_COMMITTED);
       }
 
-      const existing = await tx.releaseManifest.findFirst({
+      if (
+        (typeof rollbackOperationId === 'string' &&
+          (!rollbackOperation || rollbackOperation.id !== rollbackOperationId)) ||
+        (rollbackOperation &&
+          (rollbackOperation.projectId !== input.projectId ||
+            rollbackOperation.deploymentId !== input.deploymentId ||
+            rollbackOperation.expectedHeadVersion !== input.rollbackFence?.expectedHeadVersion ||
+            rollbackOperation.environment !== input.environment ||
+            rollbackOperation.phase !== 'EFFECT_STARTED' ||
+            rollbackOperation.effectFencingToken !== input.rollbackFence?.fencingToken ||
+            rollbackSource?.artifactKind !== 'server-image' ||
+            rollbackSource.provider !== 'server' ||
+            rollbackSource.artifactRef !== input.artifactRef ||
+            rollbackSource.artifactDigest !== input.artifactDigest ||
+            !sameNullable(rollbackSource.storeGeneration, input.storeGeneration) ||
+            !sameNullable(rollbackSource.configDigest, input.configDigest) ||
+            !sameNullable(rollbackSource.dbMigrationPoint, input.dbMigrationPoint)))
+      ) {
+        throw rollbackOwnershipLost();
+      }
+
+      const existingRows = await tx.releaseManifest.findMany({
         where: { deploymentId: input.deploymentId },
         orderBy: { version: 'desc' },
+        take: 2,
       });
+
+      const existing = existingRows[0];
 
       if (existing) {
         if (
+          existingRows.length !== 1 ||
+          existing.projectId !== input.projectId ||
+          existing.environment !== input.environment ||
+          existing.provider !== 'server' ||
           existing.artifactKind !== 'server-image' ||
           existing.artifactRef !== input.artifactRef ||
-          existing.artifactDigest !== input.artifactDigest
+          existing.artifactDigest !== input.artifactDigest ||
+          !sameNullable(existing.storeGeneration, input.storeGeneration) ||
+          !sameNullable(existing.configDigest, input.configDigest) ||
+          !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
+          (rollbackOperation && existing.version !== input.rollbackFence!.expectedHeadVersion + 1)
         ) {
           throw new Error(SERVER_RELEASE_MANIFEST_CONFLICT);
         }
@@ -6663,7 +7395,39 @@ export class PrismaApiStore implements ApiStore {
           throw new Error(SERVER_RELEASE_MANIFEST_WITHOUT_READY);
         }
 
+        if (rollbackOperation && rollbackOperation.phase !== 'RELEASE_COMMITTED') {
+          await tx.rollbackIdempotencyRequest.update({
+            where: { id: rollbackOperation.id },
+            data: { phase: 'RELEASE_COMMITTED' },
+          });
+        }
+
         return { committed: true, deployment: mapDeployment(deployment), manifest: mapReleaseManifest(existing) };
+      }
+
+      if (rollbackOperation) {
+        const rollbackMetadata = input.metadata as Record<string, unknown>;
+
+        if (
+          rollbackMetadata.rollbackOperationId !== rollbackOperation.id ||
+          rollbackMetadata.projectManifestDigest !== rollbackOperation.projectManifestDigest ||
+          deployment.rolledBackFromId !== rollbackSource!.deploymentId
+        ) {
+          throw rollbackOwnershipLost();
+        }
+
+        const currentProjectManifest = await tx.projectManifestRevision.findFirst({
+          where: { projectId: input.projectId },
+          orderBy: { manifestVersion: 'desc' },
+          select: { digest: true },
+        });
+
+        if (!currentProjectManifest || currentProjectManifest.digest !== rollbackOperation.projectManifestDigest) {
+          throw Object.assign(new Error('PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH'), {
+            code: 'PROJECT_MANIFEST_CHANGED_BEFORE_PUBLISH',
+            statusCode: 409,
+          });
+        }
       }
 
       if (['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
@@ -6679,18 +7443,30 @@ export class PrismaApiStore implements ApiStore {
         orderBy: { version: 'desc' },
         select: { version: true },
       });
+
+      const observedVersion = latest?.version ?? 0;
+
+      if (input.rollbackFence && observedVersion !== input.rollbackFence.expectedHeadVersion) {
+        throw Object.assign(new Error('ROLLBACK_RELEASE_MOVED'), {
+          code: 'ROLLBACK_RELEASE_MOVED',
+          statusCode: 409,
+          expectedVersion: input.rollbackFence.expectedHeadVersion,
+          observedVersion,
+        });
+      }
       const manifest = await tx.releaseManifest.create({
         data: {
           projectId: input.projectId,
           deploymentId: input.deploymentId,
           environment: input.environment,
-          version: (latest?.version ?? 0) + 1,
+          version: observedVersion + 1,
           provider: 'server',
           artifactKind: 'server-image',
           artifactRef: input.artifactRef,
           artifactDigest: input.artifactDigest,
           storeGeneration: input.storeGeneration ?? null,
           configDigest: input.configDigest ?? null,
+          dbMigrationPoint: input.dbMigrationPoint ?? null,
         },
       });
       await tx.adminAuditLog.create({
@@ -6717,6 +7493,13 @@ export class PrismaApiStore implements ApiStore {
           finishedAt: new Date(input.finishedAt),
         },
       });
+
+      if (rollbackOperation) {
+        await tx.rollbackIdempotencyRequest.update({
+          where: { id: rollbackOperation.id },
+          data: { phase: 'RELEASE_COMMITTED' },
+        });
+      }
 
       return { committed: true, deployment: mapDeployment(ready), manifest: mapReleaseManifest(manifest) };
     });
@@ -10266,6 +11049,32 @@ function mapReleaseManifest(row: any): ReleaseManifestRecord {
     configDigest: row.configDigest ?? undefined,
     dbMigrationPoint: row.dbMigrationPoint ?? undefined,
     createdAt: toIso(row.createdAt)!,
+  };
+}
+
+function mapRollbackOperation(row: any): RollbackOperationRecord {
+  return {
+    id: row.id,
+    projectId: row.projectId,
+    idempotencyKey: row.idempotencyKey,
+    requestFingerprint: row.requestFingerprint,
+    environment: row.environment,
+    status: row.status,
+    phase: row.phase,
+    leaseOwner: row.leaseOwner ?? undefined,
+    leaseExpiresAt: toIso(row.leaseExpiresAt),
+    fencingToken: row.fencingToken,
+    effectFencingToken: row.effectFencingToken ?? undefined,
+    deploymentId: row.deploymentId ?? undefined,
+    expectedHeadVersion: row.expectedHeadVersion ?? undefined,
+    previousManifestId: row.previousManifestId ?? undefined,
+    projectManifestDigest: row.projectManifestDigest ?? undefined,
+    responseStatus: row.responseStatus ?? undefined,
+    responseContentLanguage: row.responseContentLanguage ?? undefined,
+    responseBody: row.responseBody ?? undefined,
+    completedAt: toIso(row.completedAt),
+    createdAt: toIso(row.createdAt)!,
+    updatedAt: toIso(row.updatedAt)!,
   };
 }
 
