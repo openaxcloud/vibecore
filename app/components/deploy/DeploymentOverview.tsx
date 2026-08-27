@@ -104,7 +104,9 @@ export function DeploymentOverview({
           <AccessIcon className="h-3.5 w-3.5 text-bolt-elements-textTertiary" aria-hidden />
           {accessPresentation.label}
           {deployment.accessPolicy?.version ? (
-            <span className="text-xs text-bolt-elements-textTertiary">· v{deployment.accessPolicy.version}</span>
+            <span className="text-xs text-bolt-elements-textTertiary">
+              {t('idePanels.deployment.accessPolicyVersion', { version: deployment.accessPolicy.version })}
+            </span>
           ) : null}
         </span>
       </Row>
