@@ -1,8 +1,10 @@
 import type { RuntimeAdapter } from '@vibecore/runtime-contract';
 import { atom, map, type MapStore } from 'nanostores';
 import { applyEntryExportReconcile } from './entry-export-reconcile';
+import { ensureEntryImportsResolvable } from './entry-placeholder';
 import { buildSelfRepairPrompt, validateAndFormatHunk, type HunkValidationError } from './hunk-validate';
 import type { ActionCallbackData } from './message-parser';
+import { hasInstalledPreviewDependencies, type PreviewPackageManifest } from './preview-dependencies';
 import { workspaceEvents } from './workspace-events';
 import { formatActionRunnerCopy, getActionRunnerCopy, type ActionRunnerKey } from '~/lib/i18n/catalogs/action-runner';
 import { getI18nInstance } from '~/lib/i18n/runtime';
@@ -275,6 +277,19 @@ class ToolTimeoutError extends Error {
   }
 }
 
+/**
+ * L'action a été annulée par l'utilisateur pendant qu'une entrée-sortie était en
+ * vol. Distincte du dépassement de délai : ce n'est pas une panne, c'est un
+ * arrêt demandé — la boucle de reprise doit s'arrêter net, pas réessayer.
+ */
+class ActionAbortedError extends Error {
+  constructor(actionType: ActionState['type']) {
+    super(`Action ${actionType} aborted by the user`);
+    this.name = 'ActionAbortedError';
+    Object.setPrototypeOf(this, ActionAbortedError.prototype);
+  }
+}
+
 /*
  * Whether a `start` boltAction is launching a DEV SERVER (so it should be handed
  * to the workbench's single tracked launcher) rather than some bespoke long-running
@@ -293,6 +308,43 @@ export function isDevServerStartCommand(command: string): boolean {
     ) ||
     /\bnpm\s+start\b/.test(normalized)
   );
+}
+
+/*
+ * BUG-AGENT-007 (chemin de repli) — la commande de `start` embarque-t-elle DÉJÀ
+ * une installation explicite (`npm install && node server.js`) ? Dans ce cas la
+ * garantie d'installation ci-dessous ne doit pas en préfixer une seconde.
+ * Volontairement plus strict que INSTALL_COMMAND_PATTERN : `npx`/`bunx` ne
+ * comptent PAS comme une installation du projet (ils n'installent que l'outil
+ * invoqué, pas les dépendances de l'app).
+ */
+const EXPLICIT_INSTALL_PATTERN = /(^|[\s;&|])(?:npm|pnpm|yarn|bun)\s+(?:install|ci|i|add)\b/i;
+
+export function startCommandAlreadyInstalls(command: string): boolean {
+  return EXPLICIT_INSTALL_PATTERN.test(command ?? '');
+}
+
+/**
+ * BUG-AGENT-007 (chemin de repli) — quelle commande d'installation précéder au
+ * `start` quand node_modules est vide. Déduite du gestionnaire visible dans la
+ * commande elle-même, sinon du champ `packageManager` du package.json, sinon npm.
+ */
+export function installCommandForStartCommand(command: string, packageManager?: string): string {
+  const source = `${command ?? ''} ${packageManager ?? ''}`.toLowerCase();
+
+  if (/(^|[\s;&|])pnpm[\s@]/.test(`${source} `)) {
+    return 'pnpm install';
+  }
+
+  if (/(^|[\s;&|])yarn[\s@]/.test(`${source} `)) {
+    return 'yarn install';
+  }
+
+  if (/(^|[\s;&|])bunx?[\s@]/.test(`${source} `)) {
+    return 'bun install';
+  }
+
+  return 'npm install';
 }
 
 export class ActionRunner {
@@ -488,7 +540,7 @@ export class ActionRunner {
             break;
           }
           case 'file': {
-            await this.#runFileAction(action, isStreaming);
+            await this.#runFileAction(action, isStreaming, actionId);
             break;
           }
           case 'diff': {
@@ -572,7 +624,15 @@ export class ActionRunner {
         status: isStreaming ? 'running' : action.abortSignal.aborted ? 'aborted' : 'complete',
       });
     } catch (error) {
+      /*
+       * Une annulation doit LAISSER UNE TRACE. Ce `return` silencieux laissait le
+       * statut à « running » : quand l'annulation ne vient pas de `action.abort()`
+       * — qui, lui, pose « aborted » — mais du signal partagé, l'action restait
+       * affichée « En cours » pour toujours, alors même que l'utilisateur venait
+       * d'appuyer sur Arrêter. C'est l'autre moitié du blocage de 68 minutes.
+       */
       if (action.abortSignal.aborted) {
+        this.#updateAction(actionId, { status: 'aborted' });
         return;
       }
 
@@ -638,31 +698,60 @@ export class ActionRunner {
     throw lastError;
   }
 
+  /*
+   * BUG-AGENT-HANG-001 — cette course doit TOUJOURS se dénouer.
+   *
+   * Le délai refusait de rejeter dès que l'action était annulée, en supposant
+   * que « la promesse sous-jacente se dénoue d'elle-même ». Cette hypothèse est
+   * fausse : l'écriture (`#runtime.writeFile`) ne reçoit AUCUN signal
+   * d'annulation, elle poursuit ses quatre tentatives de 30 s et peut relancer
+   * un provisionnement d'espace de travail.
+   *
+   * Enchaînement observé en production, 68 minutes durant : l'utilisateur
+   * appuie sur Arrêter → le drapeau d'annulation bascule → le seul mécanisme
+   * capable de dénouer la course est neutralisé → la course ne se dénoue jamais
+   * → `#executeAction` ne rend jamais la main → `#currentExecutionPromise`, qui
+   * SÉRIALISE toutes les actions, reste en attente → chaque action suivante
+   * reste « En cours » et plus aucun fichier n'apparaît dans l'arbre.
+   *
+   * C'est ce qui explique d'un seul mécanisme les quatre symptômes : le blocage,
+   * l'absence de nouveaux fichiers, l'absence d'erreur, et un « Arrêter » qui
+   * rend le blocage définitif au lieu d'y mettre fin.
+   *
+   * Désormais : l'annulation dénoue la course immédiatement, et le délai rejette
+   * dans tous les cas. Une action ne peut plus rester en attente sans fin.
+   */
   async #withTimeout<T>(action: ActionState, promise: Promise<T>): Promise<T> {
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
 
     const timeoutMs = this.#timeoutMsForAction(action);
 
     const timeout = new Promise<never>((_, reject) => {
-      timeoutId = setTimeout(() => {
-        /*
-         * If the action was already aborted, the underlying promise is settling on
-         * its own; surfacing a timeout here would mask the abort with a misleading
-         * "timed out" error and defeat the retry/abort handling upstream.
-         */
-        if (action.abortSignal.aborted) {
-          return;
-        }
+      timeoutId = setTimeout(() => reject(new ToolTimeoutError(action.type, timeoutMs)), timeoutMs);
+    });
 
-        reject(new ToolTimeoutError(action.type, timeoutMs));
-      }, timeoutMs);
+    const aborted = new Promise<never>((_, reject) => {
+      const rejeter = () => reject(new ActionAbortedError(action.type));
+
+      if (action.abortSignal.aborted) {
+        rejeter();
+        return;
+      }
+
+      onAbort = rejeter;
+      action.abortSignal.addEventListener('abort', rejeter, { once: true });
     });
 
     try {
-      return await Promise.race([promise, timeout]);
+      return await Promise.race([promise, timeout, aborted]);
     } finally {
       if (timeoutId) {
         clearTimeout(timeoutId);
+      }
+
+      if (onAbort) {
+        action.abortSignal.removeEventListener('abort', onAbort);
       }
     }
   }
@@ -764,6 +853,22 @@ export class ActionRunner {
       unreachable('Shell terminal not found');
     }
 
+    /*
+     * BUG-AGENT-007 (chemin de repli) — garantie d'installation AVANT le launch.
+     * Le chemin délégué ci-dessus (onStartDevServer → startPreviewServer) porte
+     * déjà la « bulletproof install guarantee » du workbench ; ce chemin PTY —
+     * commande non reconnue comme dev-server (`node server.js`, script sur
+     * mesure) ou hook non câblé — lançait la commande BRUTE. Sur un workspace
+     * dont node_modules est vide, elle mourait aussitôt (« command not found » /
+     * « Cannot find module ») et l'aperçu restait vide. On sonde node_modules
+     * via le même helper que le workbench et on installe d'abord si besoin.
+     */
+    await this.#ensureStartDependenciesInstalled(action, shell);
+
+    if (action.abortSignal.aborted) {
+      return { exitCode: 0, output: '' };
+    }
+
     const resp = await shell.executeCommand(this.runnerId.get(), action.content, () => {
       logger.debug(`[${action.type}]:Aborting Action\n\n`, action);
       action.abort();
@@ -780,12 +885,117 @@ export class ActionRunner {
     return resp;
   }
 
-  async #runFileAction(action: ActionState, isStreaming: boolean = false) {
+  /*
+   * BUG-AGENT-007 (chemin de repli) — s'assure que les dépendances du projet
+   * sont installées avant qu'un `start` PTY ne lance son serveur. Sonde en
+   * meilleure-intention : impossible de lire package.json → on ne change RIEN au
+   * comportement historique (la commande part telle quelle). Une installation
+   * qui ÉCHOUE, en revanche, fait échouer l'action avec la vraie erreur npm —
+   * strictement plus actionnable que le « command not found » qui suivrait.
+   */
+  async #ensureStartDependenciesInstalled(action: ActionState, shell: BoltShell) {
+    if (startCommandAlreadyInstalls(action.content)) {
+      return;
+    }
+
+    let pkg: PreviewPackageManifest & { packageManager?: string };
+
+    try {
+      const read = await this.#runtime.readFile('package.json');
+      pkg = JSON.parse(read.content) as PreviewPackageManifest & { packageManager?: string };
+    } catch {
+      // Pas de manifeste lisible → rien à garantir.
+      return;
+    }
+
+    let installed = true;
+
+    try {
+      installed = await hasInstalledPreviewDependencies(pkg, (directory) => this.#runtime.listFiles(directory));
+    } catch {
+      // Sonde indisponible : on n'ajoute pas d'installation sur un doute.
+      return;
+    }
+
+    if (installed || action.abortSignal.aborted) {
+      return;
+    }
+
+    const installCommand = installCommandForStartCommand(action.content, pkg.packageManager);
+    logger.debug(`[start]: node_modules incomplet — exécution de « ${installCommand} » avant « ${action.content} »`);
+
+    const resp = await shell.executeCommand(this.runnerId.get(), installCommand, () => {
+      logger.debug('[start]: Aborting dependency install before start', action);
+      action.abort();
+    });
+
+    if (resp?.exitCode !== 0 && !action.abortSignal.aborted) {
+      throw new ActionCommandError(
+        actionRunnerText('actionRunner.error.startFailed'),
+        resp?.output || actionRunnerText('actionRunner.error.noOutputAvailable'),
+      );
+    }
+  }
+
+  /*
+   * BUG-AGENT-001 — mémo des écritures déjà appliquées, pour ne PUT que sur un
+   * changement réel.
+   *
+   * Mesuré en direct le 21/08 sur `web:405b1f369d`, en interceptant `fetch` et
+   * en relevant la TAILLE du corps de chaque écriture :
+   *
+   *   vite.config.ts   20 écritures — 1 SEULE taille distincte (363)
+   *   index.html        8 écritures — 1 SEULE taille distincte (661)
+   *   package.json     96 écritures — 2 tailles distinctes (69 puis 1015)
+   *
+   * Ce sont donc des répétitions À L'IDENTIQUE, pas de la croissance de
+   * streaming. La garde `if (action.executed) return` de `runAction` empêche
+   * déjà de rejouer un MÊME `actionId` : ces écritures portent donc des
+   * actionId différents pour un contenu identique — des actions ré-émises. La
+   * clé doit être (chemin, contenu), pas l'actionId, sinon elle ne dédoublonne
+   * rien de ce qui se passe réellement.
+   *
+   * Ce qui est sauté est exactement une écriture qui produirait, octet pour
+   * octet, ce que ce runner a déjà écrit à ce chemin — sans effet sur le
+   * disque, mais qui coûtait un aller-retour réseau ET, sur le chemin
+   * non-streaming, un tour de self-repair (donc un appel LLM) par répétition.
+   * Un contenu DIFFÉRENT n'est jamais sauté : la transition 69 → 1015 de
+   * package.json passe. L'entrée n'est posée qu'APRÈS une écriture réussie,
+   * donc un échec laisse le chemin réécrivable.
+   */
+  #lastWrittenFingerprint = new Map<string, number>();
+
+  static #contentFingerprint(content: string): number {
+    let h = 5381;
+
+    for (let i = 0; i < content.length; i++) {
+      h = ((h << 5) + h + content.charCodeAt(i)) | 0;
+    }
+
+    // la longueur discrimine les collisions de contenus courts
+    return (h ^ content.length) | 0;
+  }
+
+  async #runFileAction(action: ActionState, isStreaming: boolean = false, actionId?: string) {
     if (action.type !== 'file') {
       unreachable('Expected file action');
     }
 
     const relativePath = this.#toRuntimePath(action.filePath);
+
+    const contentFingerprint = ActionRunner.#contentFingerprint(action.content);
+
+    /*
+     * On compare au DERNIER contenu écrit à ce chemin, pas à l'ensemble des
+     * contenus déjà vus. La nuance est ce qui sépare un dédoublonnage sûr d'une
+     * perte de fichier : avec un ensemble, la séquence A → B → A saute la
+     * troisième écriture et laisse B sur le disque. Un test dédié couvre ce
+     * retour arrière.
+     */
+    if (this.#lastWrittenFingerprint.get(relativePath) === contentFingerprint) {
+      logger.debug(`Skipping byte-identical rewrite of ${relativePath} (action ${actionId ?? 'n/a'})`);
+      return;
+    }
 
     let folder = nodePath.dirname(relativePath);
 
@@ -880,6 +1090,9 @@ export class ActionRunner {
     try {
       await this.#runtime.writeFile(relativePath, payload);
       logger.debug(`File written ${relativePath}`);
+
+      // Après succès seulement : un échec doit laisser le chemin réécrivable.
+      this.#lastWrittenFingerprint.set(relativePath, contentFingerprint);
     } catch (error) {
       logger.error('Failed to write file\n\n', error);
       throw error;
@@ -909,6 +1122,27 @@ export class ActionRunner {
 
         for (const fixedPath of fixed) {
           logger.debug(`Reconciled missing default export in ${fixedPath}`);
+        }
+
+        /*
+         * Et l'inverse : l'entrée qui importe un module PAS ENCORE écrit. L'agent
+         * crée souvent `src/App.tsx` bien après `src/main.tsx`, et Vite répète
+         * « Failed to resolve import "./App" » à chaque requête pendant tout ce
+         * temps — aperçu blanc et compteur d'erreurs qui monte sans fin. Un module
+         * d'attente comble le trou : l'import résout, et l'aperçu montre
+         * « Génération en cours… » au lieu d'un blanc. Il est remplacé dès que
+         * l'agent écrit le vrai fichier.
+         */
+        const combles = await ensureEntryImportsResolvable(
+          {
+            readFile: async (p) => (await this.#runtime.readFile(p)).content,
+            writeFile: (p, content) => this.#runtime.writeFile(p, content),
+          },
+          relativePath,
+        );
+
+        for (const cheminComble of combles) {
+          logger.debug(`Placeholder written for pending entry import: ${cheminComble}`);
         }
       } catch (error) {
         logger.warn('Entry export/import reconcile skipped', error);

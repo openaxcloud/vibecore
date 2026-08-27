@@ -310,6 +310,23 @@ export default class AnthropicProvider extends BaseProvider {
 
   staticModels: ModelInfo[] = [
     {
+      /*
+       * Platform default generation model (agent routing card v3). 1M context,
+       * 128k output. Opus 5 runs ADAPTIVE THINKING BY DEFAULT — unlike Opus 4.8,
+       * omitting the `thinking` param no longer means "no thinking" — and those
+       * thinking tokens share the same `max_tokens` ceiling as the visible answer.
+       * `@ai-sdk/anthropic@0.0.39` exposes no `thinking` knob, so we cannot pin it
+       * off; the declared 128k completion ceiling plus the existing
+       * finishReason:'length' auto-continue is what keeps a long build from
+       * stopping mid-file.
+       */
+      name: 'claude-opus-5',
+      label: 'Claude Opus 5',
+      provider: 'Anthropic',
+      maxTokenAllowed: 1_000_000,
+      maxCompletionTokens: 128000,
+    },
+    {
       name: 'claude-fable-5',
       label: 'Claude Fable 5',
       provider: 'Anthropic',
@@ -403,7 +420,11 @@ export default class AnthropicProvider extends BaseProvider {
 
       if (m.max_input_tokens) {
         contextWindow = m.max_input_tokens;
-      } else if (m.id?.includes('claude-opus-4-8') || m.id?.includes('claude-sonnet-4-6')) {
+      } else if (
+        m.id?.includes('claude-opus-5') ||
+        m.id?.includes('claude-opus-4-8') ||
+        m.id?.includes('claude-sonnet-4-6')
+      ) {
         contextWindow = 1_000_000;
       } else if (m.id?.includes('claude-3-5-sonnet')) {
         contextWindow = 200000; // Claude 3.5 Sonnet has 200k context

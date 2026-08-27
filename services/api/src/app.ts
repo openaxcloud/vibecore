@@ -16708,6 +16708,32 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
 
     return reply.code(204).send();
   });
+  /*
+   * SCR-008 — passe-plat des jauges RAM / CPU / stockage de « Vue d'ensemble ».
+   *
+   * Aucune donnée n'est fabriquée ici : la route relaie ce que l'agent lit dans
+   * les cgroup du conteneur. Si l'agent n'est pas joignable, on rend des jauges
+   * VIDES (`null`) plutôt qu'une erreur — une jauge absente est une information
+   * honnête, une erreur bloquerait l'ouverture de tout le panneau pour une
+   * ligne d'affichage secondaire.
+   */
+  app.get('/api/runtime/workspaces/:workspaceId/resources', async (request) => {
+    const { workspaceId } = parse(workspaceParams, request.params);
+    const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');
+
+    try {
+      return await agentRequest(authorized.workspaceId, '/resources');
+    } catch {
+      return {
+        memory: { used: null, limit: null },
+        cpu: { ratio: null, limitCores: null },
+        storage: { used: null, limit: null },
+        measuredAt: new Date().toISOString(),
+        unavailable: true,
+      };
+    }
+  });
+
   app.get('/api/runtime/workspaces/:workspaceId/ports', async (request) => {
     const { workspaceId } = parse(workspaceParams, request.params);
     const authorized = await authorizeRuntimeWorkspace(request, workspaceId, 'workspaces:read');

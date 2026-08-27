@@ -40,6 +40,7 @@ import { useLoaderData } from 'react-router';
 import { Link } from 'react-router';
 import { ClientOnly } from 'remix-utils/client-only';
 import { buildIdeNotifications, restartWorkspace, type IdeNotificationKind } from './projects.$projectId.ide.helpers';
+import { shouldRevalidateProjectIde } from './projects.$projectId.ide.revalidate';
 import { BaseChat } from '~/components/chat/BaseChat';
 import { ProjectBreadcrumbSeparator } from '~/components/project-ide/ProjectBreadcrumbSeparator';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
@@ -74,45 +75,13 @@ export const meta: MetaFunction<typeof loader> = ({ data, matches }) => {
   ];
 };
 
-const IDE_CLIENT_SEARCH_PARAMS = new Set(['panel', 'commit', 'peWindow']);
-
-function routeKeyWithoutClientIdeParams(url: URL) {
-  const searchParams = new URLSearchParams(url.search);
-
-  for (const param of IDE_CLIENT_SEARCH_PARAMS) {
-    searchParams.delete(param);
-  }
-
-  const search = searchParams.toString();
-
-  return `${url.pathname}${search ? `?${search}` : ''}`;
-}
-
-export const shouldRevalidate = ({
-  currentUrl,
-  nextUrl,
-  formMethod,
-  defaultShouldRevalidate,
-}: {
-  currentUrl: URL;
-  nextUrl: URL;
-  formMethod?: string;
-  defaultShouldRevalidate: boolean;
-}) => {
-  if (formMethod && formMethod.toUpperCase() !== 'GET') {
-    return defaultShouldRevalidate;
-  }
-
-  if (
-    currentUrl.origin === nextUrl.origin &&
-    routeKeyWithoutClientIdeParams(currentUrl) === routeKeyWithoutClientIdeParams(nextUrl) &&
-    currentUrl.search !== nextUrl.search
-  ) {
-    return false;
-  }
-
-  return defaultShouldRevalidate;
-};
+/*
+ * Revalidation policy extracted to projects.$projectId.ide.revalidate.ts (pure,
+ * unit-tested). BUG-IDE-PANEL-RECLICK-REPROVISION-001: it now also skips the
+ * loader on a SAME-URL navigation (re-click of the already-active panel), which
+ * React Router otherwise treats as a refresh and revalidates.
+ */
+export const shouldRevalidate = shouldRevalidateProjectIde;
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) =>
   loadProjectIdeData(request, params.projectId ?? '');
@@ -474,9 +443,32 @@ function IdeProjectTopBar({
                   }}
                 >
                   <span className="bolt-project-breadcrumb-kicker">{copy['projectIde.project.kicker']}</span>
-                  <span className="bolt-project-breadcrumb-value truncate" title={projectTooltip}>
+                  {/*
+                   * SCR-006 — « le clic sur le NOM du projet ouvre la recherche ».
+                   *
+                   * Le nom vit dans le `<summary>` d'un `<details>` dont le rôle est
+                   * d'ouvrir le menu projet (Paramètres, renommage). Remplacer le
+                   * `<summary>` en entier aurait supprimé ces accès. On sépare donc
+                   * les deux gestes : le NOM ouvre la recherche, le chevron garde le
+                   * menu. `preventDefault` empêche le `<details>` de basculer sous le
+                   * clic, `stopPropagation` empêche le `<summary>` de le récupérer.
+                   */}
+                  <button
+                    type="button"
+                    className="bolt-project-breadcrumb-value truncate"
+                    title={projectTooltip}
+                    aria-label={copy['projectIde.project.search']}
+                    data-testid="button-project-name-search"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      window.dispatchEvent(
+                        new CustomEvent('vibecore:open-command-palette', { detail: { mode: 'all' } }),
+                      );
+                    }}
+                  >
                     {projectLabel.display}
-                  </span>
+                  </button>
                   <ChevronDown className="h-3.5 w-3.5" aria-hidden />
                 </summary>
                 {projectMenuOpen && (

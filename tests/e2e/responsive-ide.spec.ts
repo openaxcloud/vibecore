@@ -1270,13 +1270,18 @@ test.describe('responsive IDE shell', () => {
 
     await page.goto(`/projects/${projectId}/ide?panel=settings`, { waitUntil: 'domcontentloaded' });
     await expectMobileServicePanel(page, 'settings');
-    await page.getByTestId('ide-panel-actions').click();
 
-    const panelActions = page.locator('.bolt-project-panel-actions-menu').first();
-    await expect(panelActions).toBeVisible({ timeout: 10_000 });
-    await expectFloatingSurfaceFitsViewport(panelActions, 'service panel actions menu', { minInteractiveHeight: 44 });
-    await page.keyboard.press('Escape');
-    await expect(panelActions).toHaveCount(0);
+    /*
+     * AV-UX point 10 — the "Updated …" chip and the ⋮ refresh menu were
+     * removed from every service panel (refresh is automatic). The header
+     * row itself is hidden on mobile: the panel name already lives in the
+     * frozen mobile header.
+     */
+    await expect(page.getByTestId('ide-panel-actions')).toHaveCount(0);
+    await expect(page.getByTestId('ide-panel-updated-at')).toHaveCount(0);
+    await expect(
+      page.locator('.bolt-workbench-mobile-service .bolt-project-service-panel > .bolt-project-ide-panel-header'),
+    ).toBeHidden();
   });
 
   test('mobile and tablet keep AI provider settings controls responsive', async ({ page }, testInfo) => {

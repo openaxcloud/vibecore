@@ -1058,6 +1058,7 @@ export function AppShell({
   hideTopBar = false,
   mainClassName,
   contentClassName,
+  serverSync = true,
 }: {
   title: string;
   description: string;
@@ -1067,6 +1068,16 @@ export function AppShell({
   hideTopBar?: boolean;
   mainClassName?: string;
   contentClassName?: string;
+
+  /*
+   * Vrai quand la page est servie à un utilisateur AUTHENTIFIÉ. Les routes de
+   * l'espace utilisateur le sont toutes (défaut), mais `AppShell` sert aussi de
+   * coque à des pages publiques — `EnterpriseFormPage` (`/invitations/accept`)
+   * et les frontières d'erreur de `root` — qui doivent passer `false` : sinon le
+   * tour interroge `/api/user/preferences`, reçoit 401, et le navigateur
+   * journalise une erreur que l'audit live EN/FR rejette.
+   */
+  serverSync?: boolean;
 }) {
   const { t } = useTranslation();
   const { sidebarCollapsed, toggleSidebar, drawerOpen, openDrawer, closeDrawer } = useSidebarController();
@@ -1154,7 +1165,7 @@ export function AppShell({
           </div>
         </section>
       </div>
-      {!hideTopBar ? <ProductTour restartToken={tourRestartToken} /> : null}
+      {!hideTopBar ? <ProductTour restartToken={tourRestartToken} serverSync={serverSync} /> : null}
     </main>
   );
 }
@@ -1719,7 +1730,14 @@ function ProjectPreviewFallback({ project }: { project: ProjectCard }) {
  * exactement ce qu'on voyait quand la lecture de vignette côté API attendait un
  * stockage objet injoignable.
  */
-const PREVIEW_IMAGE_DEADLINE_MS = 6_000;
+/*
+ * AV-UX point 12 : 6s était trop court pour la première lecture d'une vignette
+ * réelle (302 vers une URL GCS signée, stockage froid) — la carte basculait sur
+ * « Aucun aperçu » alors qu'un aperçu existait. 15s laisse passer le trajet
+ * froid ; et l'échéance est désormais RÉVERSIBLE : l'image reste montée sous le
+ * repli et le remplace dès que son `onLoad` arrive.
+ */
+const PREVIEW_IMAGE_DEADLINE_MS = 15_000;
 
 export function ProjectPreviewMedia({ project, className }: { project: ProjectCard; className?: string }) {
   const { t } = useTranslation();
@@ -1750,19 +1768,29 @@ export function ProjectPreviewMedia({ project, className }: { project: ProjectCa
     return () => clearTimeout(minuterie);
   }, [url]);
 
-  if (!url || failed || timedOut) {
+  if (!url || failed) {
     return <ProjectPreviewFallback project={project} />;
   }
 
   return (
-    <img
-      ref={imageRef}
-      src={url}
-      alt={t('userArea.project.latestPreview', { name: project.name })}
-      className={className}
-      loading="lazy"
-      onError={() => setFailed(true)}
-    />
+    <>
+      <img
+        ref={imageRef}
+        src={url}
+        alt={t('userArea.project.latestPreview', { name: project.name })}
+        aria-hidden={timedOut || undefined}
+        className={className}
+        loading="lazy"
+        onLoad={() => setTimedOut(false)}
+        onError={() => setFailed(true)}
+      />
+      {/*
+       * Slow-but-successful thumbnails recover: the fallback overlays the
+       * still-mounted image, and the image's onLoad clears the deadline so the
+       * real preview replaces "No preview yet" as soon as it arrives.
+       */}
+      {timedOut ? <ProjectPreviewFallback project={project} /> : null}
+    </>
   );
 }
 
@@ -1834,7 +1862,7 @@ export function TemplateGallery({
               {template.providers.map((provider) => (
                 <span
                   key={provider.name}
-                  className="vc-template-provider-pill rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  className="vc-template-provider-pill rounded-full px-2 py-0.5 text-[11px] font-medium"
                 >
                   {provider.name}
                 </span>
@@ -1854,8 +1882,10 @@ export function TemplateGallery({
             two-line title pushed its CTA 64px below its neighbours' — the
             "Use template" buttons did not line up across a row.
           */}
-          <CardContent className="mt-auto flex items-center justify-between">
-            <span className="text-sm text-bolt-elements-textSecondary">{t('userArea.template.productionStarter')}</span>
+          <CardContent className="mt-auto flex flex-wrap items-center justify-between gap-3">
+            <span className="min-w-0 text-sm text-bolt-elements-textSecondary">
+              {t('userArea.template.productionStarter')}
+            </span>
             {/*
               Authenticated "Use template" creates the project from this template and goes
               straight to the IDE from wherever the card renders (Dashboard included): POST to
@@ -1951,7 +1981,7 @@ export function OnboardingChecklistCard({ steps }: { steps: OnboardingStep[] }) 
           const isCurrent = step.key === currentKey;
 
           return (
-            <li key={step.key} className="flex items-center gap-3">
+            <li key={step.key} className="flex flex-wrap items-center gap-3">
               {step.done ? (
                 <span
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full"
@@ -1976,7 +2006,7 @@ export function OnboardingChecklistCard({ steps }: { steps: OnboardingStep[] }) 
                   {step.title}
                   {step.done ? (
                     <span
-                      className="rounded-full px-1.5 py-0.5 text-[10px] font-semibold leading-none"
+                      className="rounded-full px-1.5 py-0.5 text-[11px] font-semibold leading-none"
                       style={{
                         color: 'var(--status-success-text)',
                         background: 'color-mix(in srgb, var(--vc-ide-accent-success) 12%, transparent)',
@@ -1986,7 +2016,7 @@ export function OnboardingChecklistCard({ steps }: { steps: OnboardingStep[] }) 
                     </span>
                   ) : null}
                 </p>
-                <p className="mt-0.5 truncate text-[13px] text-bolt-elements-textSecondary">{step.description}</p>
+                <p className="mt-0.5 line-clamp-2 text-[13px] text-bolt-elements-textSecondary">{step.description}</p>
               </div>
               {!step.done && step.to ? (
                 <Link
@@ -1994,7 +2024,8 @@ export function OnboardingChecklistCard({ steps }: { steps: OnboardingStep[] }) 
                   className={classNames(
                     'inline-flex h-[44px] shrink-0 items-center justify-center rounded-md px-3 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
                     isCurrent
-                      ? 'bg-[var(--vc-ide-accent-action)] text-white transition-opacity hover:opacity-90'
+                      ? // SCR-007 : `--vc-ide-accent-action` est la marque vive — 2,80:1 sous blanc. Ton renforcé : 5,16:1.
+                        'bg-[var(--vc-action-primary-strong)] text-white transition-opacity hover:opacity-90'
                       : 'border border-bolt-elements-borderColor text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
                   )}
                 >
@@ -2192,12 +2223,12 @@ export function CommandPalettePreview({ projects = [] }: { projects?: ProjectCar
           onKeyDown={handleKeyDown}
         />
         <kbd className="vc-keyboard-shortcut rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-xs text-bolt-elements-textTertiary">
-          K
+          ⌘K
         </kbd>
       </label>
       {query.trim().length === 0 && recentItems.length > 0 ? (
         <div className="mt-3">
-          <p className="vc-sidebar-group-label px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
+          <p className="vc-sidebar-group-label px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
             {t('userArea.command.recent')}
           </p>
           <div className="grid gap-1">
@@ -2281,7 +2312,7 @@ export function LinkButton({
   variant?: 'default' | 'outline' | 'ghost';
 }) {
   const className = classNames(
-    'inline-flex h-[44px] items-center justify-center gap-2 rounded-md px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)]',
+    'inline-flex min-h-[44px] items-center justify-center gap-2 rounded-md px-4 text-center text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-action-primary)]',
     variant === 'default' &&
       'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover',
     variant === 'outline' &&
@@ -2348,7 +2379,7 @@ function TopBar({
       >
         <Command className="h-4 w-4" aria-hidden />
         {t('userArea.topbar.search')}
-        <kbd className="vc-keyboard-shortcut rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] text-bolt-elements-textTertiary">
+        <kbd className="vc-keyboard-shortcut rounded border border-bolt-elements-borderColor px-1.5 py-0.5 text-[11px] text-bolt-elements-textTertiary">
           ⌘K
         </kbd>
       </Link>
@@ -2596,7 +2627,7 @@ function TopBarNotifications() {
           <Bell className="h-4 w-4" aria-hidden />
           {unreadCount > 0 ? (
             <span
-              className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-bolt-elements-item-contentAccent px-1 text-[10px] font-semibold leading-none text-white"
+              className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[var(--vc-action-primary-strong)] px-1 text-[11px] font-semibold leading-none text-white"
               aria-hidden
             >
               {unreadCount > 9 ? '9+' : unreadCount}
@@ -2728,7 +2759,7 @@ function NavSection({ label, items, collapsed }: { label?: string; items: NavIte
     <div className={classNames('w-full', collapsed && 'flex flex-col items-center')}>
       {label ? (
         !collapsed ? (
-          <p className="vc-sidebar-group-label vc-sidebar-fade-label px-3 pb-0.5 text-[10px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
+          <p className="vc-sidebar-group-label vc-sidebar-fade-label px-3 pb-0.5 text-[11px] font-semibold uppercase tracking-[0.5px] text-bolt-elements-textTertiary">
             {label}
           </p>
         ) : (
@@ -2800,7 +2831,7 @@ function NavGroup({ items, collapsed = false }: { items: NavItem[]; collapsed?: 
             />
             {!collapsed ? <span className="vc-sidebar-fade-label flex-1 truncate">{t(item.labelKey)}</span> : null}
             {!collapsed && item.shortcut ? (
-              <kbd className="vc-keyboard-shortcut vc-sidebar-shortcut ml-auto rounded border border-bolt-elements-borderColor px-1 py-0 text-[10px] font-medium leading-4 text-bolt-elements-textTertiary">
+              <kbd className="vc-keyboard-shortcut vc-sidebar-shortcut ml-auto rounded border border-bolt-elements-borderColor px-1 py-0 text-[11px] font-medium leading-4 text-bolt-elements-textTertiary">
                 {item.shortcut}
               </kbd>
             ) : null}

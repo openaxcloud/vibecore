@@ -160,6 +160,48 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
   const toolsMenuRef = React.useRef<HTMLDivElement>(null);
 
   /*
+   * UNIF-04 (audit C4) : le feedback de glisser-déposer vit sur la COQUE
+   * (`data-dragover` + CSS), plus en style inline sur le textarea. L'ancienne
+   * implémentation posait un `border: 2px solid` sur le textarea alors que la
+   * bordure visible appartient à `.bolt-chatbox-input-shell` → double bordure
+   * et saut de mise en page à chaque survol de fichier.
+   */
+  const [isComposerDragOver, setIsComposerDragOver] = React.useState(false);
+
+  const handleComposerDrop = (event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    setIsComposerDragOver(false);
+
+    const files = Array.from(event.dataTransfer.files);
+    files.forEach((file) => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+
+        reader.onload = (loadEvent) => {
+          const base64Image = loadEvent.target?.result as string;
+
+          /*
+           * Functional updaters: dropping several images at once spins up
+           * one FileReader per file, and each `onload` fires asynchronously.
+           * Spreading a render-time snapshot (`props.uploadedFiles`) would
+           * make every async callback start from the same stale array and
+           * clobber the others, so only the last image survived. Updating
+           * from the live `prev` accumulates all dropped images.
+           */
+          props.setUploadedFiles?.((prev) => [...prev, file]);
+          props.setImageDataList?.((prev) => [...prev, base64Image]);
+        };
+
+        reader.onerror = () => {
+          console.error('Failed to read dropped file:', file.name, reader.error);
+          toast.error(getChatBoxDroppedImageError(language, reader.error));
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  };
+
+  /*
    * Per-request agent power controls. Parent-controlled when `props.agentPower`
    * is supplied; otherwise locally managed + persisted to localStorage.
    */
@@ -450,7 +492,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
       {props.selectedElement && (
         <div className="mx-1.5 flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg rounded-b-none border border-b-0 border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary sm:flex-nowrap">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 lowercase">
-            <code className="rounded-4px mr-0.5 max-w-full whitespace-normal break-all bg-accent-500 px-1.5 py-1 text-white">
+            <code className="rounded-4px mr-0.5 max-w-full whitespace-normal break-all bg-[var(--vc-action-primary)] px-1.5 py-1 text-[var(--vc-action-primary-foreground)]">
               {props?.selectedElement?.tagName}
             </code>
             <span className="min-w-0 break-words">{copy['chatBox.inspector.selected']}</span>
@@ -458,7 +500,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           <button
             type="button"
             aria-label={copy['chatBox.inspector.clearAria']}
-            className="pointer-auto min-h-8 shrink-0 bg-transparent px-1 text-accent-500"
+            className="pointer-auto min-h-8 shrink-0 bg-transparent px-1 text-[var(--vc-action-primary)]"
             onClick={() => props.setSelectedElement?.(null)}
           >
             {copy['chatBox.inspector.clear']}
@@ -469,6 +511,24 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         className={classNames(
           'bolt-chatbox-input-shell relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg',
         )}
+        data-dragover={isComposerDragOver ? 'true' : undefined}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          setIsComposerDragOver(true);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsComposerDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+
+          // Ignore les dragleave internes (passage d'un enfant à l'autre).
+          if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
+            setIsComposerDragOver(false);
+          }
+        }}
+        onDrop={handleComposerDrop}
       >
         <div className="bolt-chatbox-input-frame relative">
           <textarea
@@ -484,52 +544,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                */
               props.projectIdeMode ? 'pt-3 pb-10' : 'pt-4 pb-14',
               'transition-all duration-200',
-              'hover:border-bolt-elements-focus',
             )}
-            onDragEnter={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.border = '2px solid var(--bolt-elements-focus)';
-            }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.border = '2px solid var(--bolt-elements-focus)';
-            }}
-            onDragLeave={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-
-              const files = Array.from(e.dataTransfer.files);
-              files.forEach((file) => {
-                if (file.type.startsWith('image/')) {
-                  const reader = new FileReader();
-
-                  reader.onload = (e) => {
-                    const base64Image = e.target?.result as string;
-
-                    /*
-                     * Functional updaters: dropping several images at once spins up
-                     * one FileReader per file, and each `onload` fires asynchronously.
-                     * Spreading a render-time snapshot (`props.uploadedFiles`) would
-                     * make every async callback start from the same stale array and
-                     * clobber the others, so only the last image survived. Updating
-                     * from the live `prev` accumulates all dropped images.
-                     */
-                    props.setUploadedFiles?.((prev) => [...prev, file]);
-                    props.setImageDataList?.((prev) => [...prev, base64Image]);
-                  };
-
-                  reader.onerror = () => {
-                    console.error('Failed to read dropped file:', file.name, reader.error);
-                    toast.error(getChatBoxDroppedImageError(language, reader.error));
-                  };
-                  reader.readAsDataURL(file);
-                }
-              });
-            }}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 if (event.shiftKey) {
@@ -625,7 +640,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
               className="bolt-chatbox-toolbar-button"
               onClick={() => props.handleFileUpload()}
             >
-              <div className="i-ph:paperclip text-xl"></div>
+              <div className="i-ph:paperclip text-lg"></div>
             </IconButton>
 
             {props.uploadedFiles.length > 0 ? (
@@ -674,7 +689,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                 ariaHasPopup="menu"
                 onClick={() => setIsToolsMenuOpen((open) => !open)}
               >
-                <div className="i-ph:dots-three-outline text-xl" />
+                <div className="i-ph:dots-three-outline text-lg" />
               </IconButton>
 
               {isToolsMenuOpen ? (

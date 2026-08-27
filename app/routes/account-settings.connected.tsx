@@ -471,7 +471,7 @@ export default function ConnectedAccountsPage() {
       <div className="min-w-0">
         <h2
           id="connected-accounts-heading"
-          className="break-words text-lg font-semibold text-bolt-elements-textPrimary"
+          className="break-words text-base font-semibold text-bolt-elements-textPrimary"
         >
           {copy['accountSettingsConnected.page.title']}
         </h2>

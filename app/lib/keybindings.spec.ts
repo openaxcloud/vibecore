@@ -108,4 +108,55 @@ describe('keybindings', () => {
       description: 'Activez l’onglet 3 de l’espace de travail.',
     });
   });
+
+  /*
+   * SCR-006 — ⌘K sur les coques mobile et tablette.
+   *
+   * La garde « le terminal possède ⌘K » (sémantique VS Code) se déclenchait AVANT
+   * toute intention de l'utilisateur : mesuré live le 20/08 sur prod, xterm prend
+   * le focus tout seul sur son `textarea.xterm-helper-textarea` dès le chargement
+   * de la coque mobile, donc `focusTarget` valait déjà 'terminal'. Sur téléphone,
+   * ⌘⇧P n'est pas une porte de sortie praticable : ⌘K doit ouvrir la palette.
+   */
+  describe('⌘K sur mobile / tablette (SCR-006)', () => {
+    it('ouvre la palette même quand le terminal a le focus, sur une coque mobile', () => {
+      const binding = findKeybinding(defaultProjectKeybindings, 'cmd+k', {
+        focusTarget: 'terminal',
+        useMobileIde: true,
+        isEditableTarget: true,
+      });
+
+      expect(binding?.action).toBe('command.palette');
+    });
+
+    it('laisse ⌘K au shell quand le terminal a le focus sur le BUREAU (garde conservée)', () => {
+      const binding = findKeybinding(defaultProjectKeybindings, 'cmd+k', {
+        focusTarget: 'terminal',
+        useMobileIde: false,
+        isEditableTarget: true,
+      });
+
+      expect(binding).toBeUndefined();
+    });
+
+    it('ouvre la palette au bureau dès que le terminal n’a plus le focus', () => {
+      const binding = findKeybinding(defaultProjectKeybindings, 'cmd+k', {
+        focusTarget: 'editor',
+        useMobileIde: false,
+        isEditableTarget: false,
+      });
+
+      expect(binding?.action).toBe('command.palette');
+    });
+
+    it('garde ⌘⇧P inconditionnel — c’est lui qui a prouvé le diagnostic en prod', () => {
+      const binding = findKeybinding(defaultProjectKeybindings, 'cmd+shift+p', {
+        focusTarget: 'terminal',
+        useMobileIde: false,
+        isEditableTarget: true,
+      });
+
+      expect(binding?.action).toBe('command.palette');
+    });
+  });
 });

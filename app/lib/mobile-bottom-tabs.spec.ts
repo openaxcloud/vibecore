@@ -74,3 +74,106 @@ describe('mobile bottom tabs', () => {
     expect(countHiddenMobileBottomTabs(tabs, visibleTabs)).toBe(2);
   });
 });
+
+/*
+ * Demande d'Avi du 19/08 : la rangée porte TROIS onglets fixes — Webview, Agent,
+ * Déploiement — et l'éditeur devient un panneau à la demande. Les fixes sont
+ * donc épinglés en tête et le créneau restant va au panneau le plus récent.
+ */
+describe('mobile bottom tabs — trois onglets fixes', () => {
+  const core = ['preview', 'agent', 'deployments'] as const;
+
+  it('garde les trois fixes visibles quand un panneau à la demande est ouvert', () => {
+    const open = [...tabs.slice(0, 3), { id: 'security', name: 'Security' }];
+
+    expect(selectVisibleMobileBottomTabs(open, 'security', 4, core).map((tab) => tab.id)).toEqual([
+      'preview',
+      'agent',
+      'deployments',
+      'security',
+    ]);
+  });
+
+  it('n’évince jamais un fixe au profit d’un panneau à la demande', () => {
+    const open = [...tabs.slice(0, 3), { id: 'security', name: 'Security' }, { id: 'skills', name: 'Skills' }];
+    const visible = selectVisibleMobileBottomTabs(open, 'skills', 4, core).map((tab) => tab.id);
+
+    expect(visible).toEqual(['preview', 'agent', 'deployments', 'skills']);
+    expect(visible).toContain('preview');
+    expect(visible).toContain('agent');
+    expect(visible).toContain('deployments');
+  });
+
+  it('montre toujours le panneau regardé, même plus ancien que la fenêtre', () => {
+    const open = [...tabs.slice(0, 3), { id: 'security', name: 'Security' }, { id: 'skills', name: 'Skills' }];
+    const visible = selectVisibleMobileBottomTabs(open, 'security', 4, core).map((tab) => tab.id);
+
+    expect(visible).toContain('security');
+    expect(visible).toHaveLength(4);
+  });
+
+  /*
+   * Le compromis assumé : trois fixes pour quatre créneaux n'en laissent qu'UN à
+   * la demande, donc le deuxième panneau ouvert masque le premier. Ce test le
+   * FIGE volontairement — non pour bénir le symptôme, mais pour que la pastille
+   * `+N` reste obligatoire : elle est le seul indice que des onglets existent
+   * au-delà de la rangée.
+   */
+  it('ne laisse qu’un créneau à la demande, et le compte des masqués le signale', () => {
+    const open = [...tabs.slice(0, 3), { id: 'security', name: 'Security' }, { id: 'skills', name: 'Skills' }];
+    const visible = selectVisibleMobileBottomTabs(open, 'skills', 4, core);
+
+    expect(visible.map((tab) => tab.id)).not.toContain('security');
+    expect(countHiddenMobileBottomTabs(open, visible)).toBe(1);
+  });
+
+  it('sans liste de fixes, retombe sur le comportement « plus récents »', () => {
+    expect(selectVisibleMobileBottomTabs(tabs, 'database').map((tab) => tab.id)).toEqual([
+      'deployments',
+      'settings',
+      'database',
+    ]);
+  });
+});
+
+/*
+ * Mesuré en PRODUCTION le 19/08 à 390 px, après le déploiement de la rangée à
+ * trois fixes : elle affichait « Webview · Déploiement · Agent » au lieu de
+ * l'ordre demandé « Webview · Agent · Déploiement ». Cause :
+ * `ensureMobileOpenTab('agent')` porte l'Agent en FIN de liste au chargement, et
+ * la sélection recopiait l'ordre de la liste.
+ */
+describe('ordre des onglets fixes', () => {
+  const core = ['preview', 'agent', 'deployments'] as const;
+
+  it('rend les fixes dans l’ordre canonique, pas dans celui de la liste ouverte', () => {
+    // L'Agent est en fin de liste : c'est l'état réel après ensureMobileOpenTab.
+    const open = [
+      { id: 'preview', name: 'Webview' },
+      { id: 'deployments', name: 'Deployments' },
+      { id: 'agent', name: 'AI Agent' },
+      { id: 'security', name: 'Security' },
+    ];
+
+    expect(selectVisibleMobileBottomTabs(open, 'agent', 4, core).map((tab) => tab.id)).toEqual([
+      'preview',
+      'agent',
+      'deployments',
+      'security',
+    ]);
+  });
+
+  it('garde l’onglet à la demande APRÈS les trois fixes', () => {
+    const open = [
+      { id: 'deployments', name: 'Deployments' },
+      { id: 'agent', name: 'AI Agent' },
+      { id: 'preview', name: 'Webview' },
+      { id: 'skills', name: 'Skills' },
+    ];
+
+    const visible = selectVisibleMobileBottomTabs(open, 'skills', 4, core).map((tab) => tab.id);
+
+    expect(visible.slice(0, 3)).toEqual(['preview', 'agent', 'deployments']);
+    expect(visible[3]).toBe('skills');
+  });
+});

@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import { I18nextProvider, initReactI18next } from 'react-i18next';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { PRODUCT_TOUR_STEPS, ProductTour, readProductTourProgress } from './ProductTour';
+import { __resetProductTourServerCache, PRODUCT_TOUR_STEPS, ProductTour, readProductTourProgress } from './ProductTour';
 import {
   formatProductTourStepCounter,
   getProductTourCopy,
@@ -32,7 +32,12 @@ function interpolationTokens(value: string): string[] {
   return [...value.matchAll(/\{\{([A-Za-z_][A-Za-z0-9_]*)\}\}/gu)].map((match) => match[1]).sort();
 }
 
-beforeEach(() => window.localStorage.clear());
+beforeEach(() => {
+  window.localStorage.clear();
+
+  // The server-side tour verdict is memoized per page load; each case starts clean.
+  __resetProductTourServerCache();
+});
 
 afterEach(() => {
   cleanup();
