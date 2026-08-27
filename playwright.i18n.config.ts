@@ -46,19 +46,24 @@ export default defineConfig({
   preserveOutput: 'always',
   /*
    * Zéro reprise, contrairement au reste de la suite E2E (playwright.config.ts
-   * met `retries: 2` en CI). Deux raisons, toutes deux constatées sur le shard
-   * `mobile-390` :
+   * met `retries: 2` en CI). Deux raisons, toutes deux mesurées sur le shard
+   * `mobile-390` du run 33101508960 :
    *
    *   1. Budget. Le describe de l'audit est configuré à 30 min par test. Avec
    *      deux reprises, un test qui dépasse son budget une fois consomme
-   *      30 x 3 = 90 min — exactement le `timeout-minutes` du job. Le job meurt
-   *      donc par timeout AVANT ses étapes `if: always()`, et n'uploade ni la
-   *      preuve ni les logs : la panne efface son propre diagnostic.
+   *      30 x 3 = 90 min — exactement le `timeout-minutes` du job, donc un
+   *      timeout garanti. Le log de l'API archivé par ce run le montre
+   *      directement : le débit de requêtes change de régime à +30 min puis à
+   *      +60 min (~280, puis ~1000, puis ~1450 requêtes par tranche de 5 min,
+   *      les caches se réchauffant à chaque reprise). Trois segments de
+   *      30 minutes, et aucune accalmie : rien ne se bloque, la reprise
+   *      consomme simplement tout le budget du job.
    *   2. Justesse de la preuve. `preserveOutput: 'always'` conserve la sortie
    *      de CHAQUE tentative. Les captures et JSON d'une reprise s'ajoutent
    *      donc à ceux de la tentative initiale, et l'étape « Verify complete
    *      proof set » compare un total à une égalité stricte (282 / 564 / 2).
-   *      Une reprise fait mécaniquement échouer cette vérification.
+   *      Une reprise fait mécaniquement échouer cette vérification, même
+   *      quand l'audit finit par passer.
    *
    * Une reprise n'a par ailleurs pas de sens ici : ce n'est pas un test de
    * fonctionnalité sujet au flake, c'est une collecte de preuve déterministe.
