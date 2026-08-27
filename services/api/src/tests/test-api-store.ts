@@ -67,8 +67,12 @@ import type {
   CustomRoleRecord,
   DeploymentRecord,
   ReleaseManifestRecord,
+  RollbackDeploymentCreateInput,
+  RollbackLeaseFence,
+  RollbackOperationRecord,
   ServerImageReleaseCommitInput,
   ServerImageReleaseCommitResult,
+  StaticRollbackReleaseCommitInput,
   DomainVerificationRecord,
   EmailDeliveryEventRecord,
   EnterpriseSettingsRecord,
@@ -132,6 +136,10 @@ function id(prefix: string) {
 
 function now() {
   return new Date().toISOString();
+}
+
+function sameNullable(left: string | undefined, right: string | undefined) {
+  return (left ?? null) === (right ?? null);
 }
 
 function slugify(value: string) {
@@ -3220,6 +3228,7 @@ export class TestApiStore implements ApiStore {
   }
 
   readonly releaseManifests: ReleaseManifestRecord[] = [];
+  readonly rollbackOperations = new Map<string, RollbackOperationRecord>();
 
   async createReleaseManifest(input: {
     projectId: string;
@@ -3265,8 +3274,512 @@ export class TestApiStore implements ApiStore {
       .slice(0, options?.take ?? 100);
   }
 
+  async getReleaseManifest(projectId: string, manifestId: string) {
+    return this.releaseManifests.find((manifest) => manifest.projectId === projectId && manifest.id === manifestId);
+  }
+
+  private _rollbackOperationKey(projectId: string, idempotencyKey: string) {
+    return `${projectId}:${idempotencyKey}`;
+  }
+
+  private _requireRollbackLease(input: Omit<RollbackLeaseFence, 'expectedHeadVersion'>) {
+    const operation = [...this.rollbackOperations.values()].find((candidate) => candidate.id === input.operationId);
+
+    if (
+      !operation ||
+      operation.status !== 'IN_PROGRESS' ||
+      operation.leaseOwner !== input.ownerToken ||
+      operation.fencingToken !== input.fencingToken ||
+      !operation.leaseExpiresAt ||
+      new Date(operation.leaseExpiresAt).getTime() <= Date.now()
+    ) {
+      throw Object.assign(new Error('ROLLBACK_OWNERSHIP_LOST'), {
+        code: 'ROLLBACK_OWNERSHIP_LOST',
+        statusCode: 409,
+      });
+    }
+
+    return operation;
+  }
+
+  private _requireRollbackSource(operation: RollbackOperationRecord) {
+    const source = this.releaseManifests.find(
+      (manifest) =>
+        manifest.id === operation.previousManifestId &&
+        manifest.projectId === operation.projectId &&
+        manifest.environment === operation.environment,
+    );
+
+    if (!source) {
+      throw new Error('ROLLBACK_TARGET_MANIFEST_MISSING');
+    }
+
+    return source;
+  }
+
+  async acquireRollbackOperation(input: {
+    projectId: string;
+    idempotencyKey: string;
+    requestFingerprint: string;
+    environment: string;
+    ownerToken: string;
+    leaseDurationMs: number;
+  }): Promise<{
+    kind: 'ACQUIRED' | 'BUSY' | 'REPLAY' | 'FINGERPRINT_CONFLICT';
+    record: RollbackOperationRecord;
+  }> {
+    return this.withSerializedMutation(`rollback-operation:${input.projectId}:${input.idempotencyKey}`, async () => {
+      const mapKey = this._rollbackOperationKey(input.projectId, input.idempotencyKey);
+      const existing = this.rollbackOperations.get(mapKey);
+
+      if (!existing) {
+        const timestamp = now();
+
+        const record: RollbackOperationRecord = {
+          id: id('rollback'),
+          projectId: input.projectId,
+          idempotencyKey: input.idempotencyKey,
+          requestFingerprint: input.requestFingerprint,
+          environment: input.environment,
+          status: 'IN_PROGRESS',
+          phase: 'CLAIMED',
+          leaseOwner: input.ownerToken,
+          leaseExpiresAt: new Date(Date.now() + input.leaseDurationMs).toISOString(),
+          fencingToken: 1,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+        };
+        this.rollbackOperations.set(mapKey, record);
+
+        return { kind: 'ACQUIRED' as const, record };
+      }
+
+      if (existing.requestFingerprint !== input.requestFingerprint || existing.environment !== input.environment) {
+        return { kind: 'FINGERPRINT_CONFLICT' as const, record: existing };
+      }
+
+      if (existing.status === 'COMPLETED') {
+        return { kind: 'REPLAY' as const, record: existing };
+      }
+
+      if (existing.leaseExpiresAt && new Date(existing.leaseExpiresAt).getTime() > Date.now()) {
+        return { kind: 'BUSY' as const, record: existing };
+      }
+
+      const recovered: RollbackOperationRecord = {
+        ...existing,
+        leaseOwner: input.ownerToken,
+        leaseExpiresAt: new Date(Date.now() + input.leaseDurationMs).toISOString(),
+        fencingToken: existing.fencingToken + 1,
+        updatedAt: now(),
+      };
+      this.rollbackOperations.set(mapKey, recovered);
+
+      return { kind: 'ACQUIRED' as const, record: recovered };
+    });
+  }
+
+  async getRollbackOperation(projectId: string, idempotencyKey: string) {
+    return this.rollbackOperations.get(this._rollbackOperationKey(projectId, idempotencyKey));
+  }
+
+  async renewRollbackOperationLease(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    leaseDurationMs: number;
+  }) {
+    const operation = this._requireRollbackLease(input);
+    const leaseExpiresAt = new Date(Date.now() + input.leaseDurationMs).toISOString();
+    const updated = { ...operation, leaseExpiresAt, updatedAt: now() };
+    this.rollbackOperations.set(this._rollbackOperationKey(operation.projectId, operation.idempotencyKey), updated);
+
+    return leaseExpiresAt;
+  }
+
+  async validateRollbackOperationLease(input: { operationId: string; ownerToken: string; fencingToken: number }) {
+    try {
+      this._requireRollbackLease(input);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async bindRollbackOperationTarget(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    deploymentId: string;
+    expectedHeadVersion: number;
+    previousManifestId: string;
+    projectManifestDigest: string;
+  }) {
+    if (
+      !Number.isSafeInteger(input.expectedHeadVersion) ||
+      input.expectedHeadVersion < 0 ||
+      !input.deploymentId ||
+      !input.previousManifestId ||
+      !/^sha256:[a-f0-9]{64}$/u.test(input.projectManifestDigest)
+    ) {
+      throw new TypeError('INVALID_ROLLBACK_TARGET');
+    }
+
+    const current = this._requireRollbackLease(input);
+
+    if (current.phase !== 'CLAIMED' || current.deploymentId) {
+      if (
+        current.deploymentId !== input.deploymentId ||
+        current.expectedHeadVersion !== input.expectedHeadVersion ||
+        current.previousManifestId !== input.previousManifestId ||
+        current.projectManifestDigest !== input.projectManifestDigest
+      ) {
+        throw new Error('ROLLBACK_TARGET_CONFLICT');
+      }
+
+      return current;
+    }
+
+    const updated: RollbackOperationRecord = {
+      ...current,
+      phase: 'TARGET_BOUND',
+      deploymentId: input.deploymentId,
+      expectedHeadVersion: input.expectedHeadVersion,
+      previousManifestId: input.previousManifestId,
+      projectManifestDigest: input.projectManifestDigest,
+      updatedAt: now(),
+    };
+    this.rollbackOperations.set(this._rollbackOperationKey(current.projectId, current.idempotencyKey), updated);
+
+    return updated;
+  }
+
+  async ensureRollbackDeployment(input: {
+    fence: Omit<RollbackLeaseFence, 'expectedHeadVersion'>;
+    deployment: RollbackDeploymentCreateInput;
+  }) {
+    const operation = this._requireRollbackLease(input.fence);
+    const source = this._requireRollbackSource(operation);
+    const metadata = input.deployment.metadata;
+
+    const expectedProvider =
+      source.artifactKind === 'static-snapshot'
+        ? 'static'
+        : source.artifactKind === 'server-image'
+          ? 'server'
+          : undefined;
+
+    if (
+      operation.projectId !== input.deployment.projectId ||
+      operation.deploymentId !== input.deployment.id ||
+      operation.expectedHeadVersion === undefined ||
+      operation.phase === 'CLAIMED' ||
+      operation.environment !== input.deployment.environment ||
+      source.deploymentId !== input.deployment.rolledBackFromId ||
+      !expectedProvider ||
+      input.deployment.provider !== expectedProvider ||
+      metadata.rollbackOperationId !== operation.id ||
+      metadata.projectManifestDigest !== operation.projectManifestDigest ||
+      metadata.restoredFromVersion !== source.version ||
+      metadata.restoredFromDeploymentId !== source.deploymentId ||
+      metadata.supersededVersion !== operation.expectedHeadVersion
+    ) {
+      throw new Error('ROLLBACK_TARGET_NOT_BOUND');
+    }
+
+    const existing = this.deployments.get(input.deployment.id);
+
+    if (existing) {
+      const persistedMetadata = existing.metadata as Record<string, unknown>;
+
+      if (
+        existing.projectId !== input.deployment.projectId ||
+        existing.provider !== input.deployment.provider ||
+        existing.environment !== input.deployment.environment ||
+        existing.rolledBackFromId !== input.deployment.rolledBackFromId ||
+        persistedMetadata.rollbackOperationId !== operation.id ||
+        persistedMetadata.projectManifestDigest !== operation.projectManifestDigest ||
+        persistedMetadata.restoredFromVersion !== source.version ||
+        persistedMetadata.restoredFromDeploymentId !== source.deploymentId ||
+        persistedMetadata.supersededVersion !== operation.expectedHeadVersion
+      ) {
+        throw new Error('ROLLBACK_DEPLOYMENT_CONFLICT');
+      }
+
+      return existing;
+    }
+
+    const createdAt = now();
+
+    const deployment: DeploymentRecord = {
+      ...input.deployment,
+      logs: [],
+      createdAt,
+      updatedAt: createdAt,
+    };
+    this.deployments.set(deployment.id, deployment);
+
+    const updated: RollbackOperationRecord = { ...operation, phase: 'DEPLOYMENT_CREATED', updatedAt: now() };
+    this.rollbackOperations.set(this._rollbackOperationKey(operation.projectId, operation.idempotencyKey), updated);
+
+    return deployment;
+  }
+
+  async updateRollbackDeployment(input: {
+    fence: Omit<RollbackLeaseFence, 'expectedHeadVersion'>;
+    projectId: string;
+    deploymentId: string;
+    patch: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>;
+  }) {
+    const operation = this._requireRollbackLease(input.fence);
+
+    if (operation.projectId !== input.projectId || operation.deploymentId !== input.deploymentId) {
+      throw new Error('ROLLBACK_OWNERSHIP_LOST');
+    }
+
+    const deployment = await this.getDeployment(input.projectId, input.deploymentId);
+
+    if (!deployment) {
+      throw new Error(`Deployment not found: ${input.deploymentId}`);
+    }
+
+    if (input.patch.status && ['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
+      return deployment;
+    }
+
+    return this.updateDeployment(input.projectId, input.deploymentId, input.patch);
+  }
+
+  async beginRollbackEffect(input: { operationId: string; ownerToken: string; fencingToken: number }) {
+    const operation = this._requireRollbackLease(input);
+
+    if (operation.phase === 'EFFECT_STARTED') {
+      if (operation.effectFencingToken !== input.fencingToken) {
+        throw new Error('ROLLBACK_EFFECT_PHASE_CONFLICT');
+      }
+
+      return operation;
+    }
+
+    const deployment = operation.deploymentId ? this.deployments.get(operation.deploymentId) : undefined;
+    const metadata = deployment?.metadata as Record<string, unknown> | undefined;
+
+    if (
+      operation.phase !== 'DEPLOYMENT_CREATED' ||
+      !deployment ||
+      metadata?.rollbackOperationId !== operation.id ||
+      ['READY', 'FAILED', 'CANCELED'].includes(deployment.status)
+    ) {
+      throw new Error('ROLLBACK_EFFECT_PHASE_CONFLICT');
+    }
+
+    const updated: RollbackOperationRecord = {
+      ...operation,
+      phase: 'EFFECT_STARTED',
+      effectFencingToken: operation.fencingToken,
+      updatedAt: now(),
+    };
+    this.rollbackOperations.set(this._rollbackOperationKey(operation.projectId, operation.idempotencyKey), updated);
+
+    return updated;
+  }
+
+  async completeRollbackEffectCleanup(input: { operationId: string; ownerToken: string; fencingToken: number }) {
+    const operation = this._requireRollbackLease(input);
+
+    if (operation.phase === 'EFFECT_CLEANED') {
+      return operation;
+    }
+
+    const deployment = operation.deploymentId ? this.deployments.get(operation.deploymentId) : undefined;
+
+    if (
+      operation.phase !== 'EFFECT_STARTED' ||
+      !operation.deploymentId ||
+      (deployment && !['FAILED', 'CANCELED'].includes(deployment.status))
+    ) {
+      throw new Error('ROLLBACK_CLEANUP_UNCONFIRMED');
+    }
+
+    const updated: RollbackOperationRecord = { ...operation, phase: 'EFFECT_CLEANED', updatedAt: now() };
+    this.rollbackOperations.set(this._rollbackOperationKey(operation.projectId, operation.idempotencyKey), updated);
+
+    return updated;
+  }
+
+  async completeRollbackOperation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    responseStatus: number;
+    responseContentLanguage: 'en' | 'fr';
+    responseBody: unknown;
+  }) {
+    if (
+      !Number.isInteger(input.responseStatus) ||
+      input.responseStatus < 100 ||
+      input.responseStatus > 599 ||
+      !['en', 'fr'].includes(input.responseContentLanguage) ||
+      !input.responseBody ||
+      typeof input.responseBody !== 'object'
+    ) {
+      throw new TypeError('INVALID_ROLLBACK_RESPONSE_BODY');
+    }
+
+    const operation = this._requireRollbackLease(input);
+
+    if (input.responseStatus < 400 && operation.phase !== 'RELEASE_COMMITTED') {
+      throw new Error('ROLLBACK_RESPONSE_PHASE_CONFLICT');
+    }
+
+    if (operation.phase === 'EFFECT_STARTED') {
+      throw new Error('ROLLBACK_CLEANUP_UNCONFIRMED');
+    }
+
+    if (operation.phase === 'DEPLOYMENT_CREATED' && operation.deploymentId) {
+      const deployment = this.deployments.get(operation.deploymentId);
+
+      if (deployment && !['FAILED', 'CANCELED'].includes(deployment.status)) {
+        if (deployment.status === 'READY' || input.responseStatus < 400) {
+          throw new Error('ROLLBACK_CLEANUP_UNCONFIRMED');
+        }
+
+        this.deployments.set(deployment.id, {
+          ...deployment,
+          status: 'FAILED',
+          url: undefined,
+          previewUrl: undefined,
+          productionUrl: undefined,
+          finishedAt: now(),
+          updatedAt: now(),
+        });
+      }
+    }
+
+    const completed: RollbackOperationRecord = {
+      ...operation,
+      status: 'COMPLETED',
+      leaseOwner: undefined,
+      leaseExpiresAt: undefined,
+      responseStatus: input.responseStatus,
+      responseContentLanguage: input.responseContentLanguage,
+      responseBody: input.responseBody,
+      completedAt: now(),
+      updatedAt: now(),
+    };
+    this.rollbackOperations.set(this._rollbackOperationKey(operation.projectId, operation.idempotencyKey), completed);
+
+    return completed;
+  }
+
+  async commitStaticRollbackRelease(input: StaticRollbackReleaseCommitInput) {
+    return this.withSerializedMutation(`release-manifest:${input.projectId}:${input.environment}`, async () => {
+      const operation = this._requireRollbackLease(input);
+      const source = this._requireRollbackSource(operation);
+      const deployment = this.deployments.get(input.deploymentId);
+
+      if (
+        !deployment ||
+        operation.projectId !== input.projectId ||
+        operation.deploymentId !== deployment.id ||
+        operation.expectedHeadVersion !== input.expectedHeadVersion ||
+        operation.phase !== 'EFFECT_STARTED' ||
+        operation.effectFencingToken !== input.fencingToken ||
+        operation.environment !== input.environment ||
+        source.artifactKind !== 'static-snapshot' ||
+        source.provider !== input.provider ||
+        source.artifactDigest !== input.artifactDigest ||
+        input.artifactRef !== `static-deployments/${input.deploymentId}` ||
+        !sameNullable(source.storeGeneration, input.storeGeneration) ||
+        !sameNullable(source.configDigest, input.configDigest) ||
+        !sameNullable(source.dbMigrationPoint, input.dbMigrationPoint)
+      ) {
+        throw new Error('STATIC_ROLLBACK_RELEASE_CONFLICT');
+      }
+
+      const existingRows = this.releaseManifests.filter((manifest) => manifest.deploymentId === deployment.id);
+      const existing = existingRows[0];
+
+      if (existing) {
+        if (
+          existingRows.length !== 1 ||
+          existing.projectId !== input.projectId ||
+          existing.environment !== input.environment ||
+          existing.version !== input.expectedHeadVersion + 1 ||
+          existing.provider !== input.provider ||
+          existing.artifactKind !== 'static-snapshot' ||
+          existing.artifactRef !== input.artifactRef ||
+          existing.artifactDigest !== input.artifactDigest ||
+          !sameNullable(existing.storeGeneration, input.storeGeneration) ||
+          !sameNullable(existing.configDigest, input.configDigest) ||
+          !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
+          deployment.status !== 'READY'
+        ) {
+          throw new Error('STATIC_ROLLBACK_RELEASE_CONFLICT');
+        }
+
+        return { deployment, manifest: existing };
+      }
+
+      const metadata = deployment.metadata as Record<string, unknown>;
+
+      if (
+        metadata.rollbackOperationId !== operation.id ||
+        input.metadata.rollbackOperationId !== operation.id ||
+        input.metadata.projectManifestDigest !== operation.projectManifestDigest ||
+        deployment.provider !== 'static' ||
+        deployment.environment !== input.environment ||
+        deployment.rolledBackFromId !== source.deploymentId ||
+        ['READY', 'FAILED', 'CANCELED'].includes(deployment.status)
+      ) {
+        throw new Error('STATIC_ROLLBACK_RELEASE_CONFLICT');
+      }
+
+      const head = this.releaseManifests
+        .filter((manifest) => manifest.projectId === input.projectId && manifest.environment === input.environment)
+        .reduce((version, manifest) => Math.max(version, manifest.version), 0);
+
+      if (head !== input.expectedHeadVersion) {
+        throw Object.assign(new Error('ROLLBACK_RELEASE_MOVED'), {
+          code: 'ROLLBACK_RELEASE_MOVED',
+          statusCode: 409,
+          expectedVersion: input.expectedHeadVersion,
+          observedVersion: head,
+        });
+      }
+
+      const manifest = await this.createReleaseManifest({
+        projectId: input.projectId,
+        deploymentId: input.deploymentId,
+        environment: input.environment,
+        version: head + 1,
+        provider: input.provider,
+        artifactKind: 'static-snapshot',
+        artifactRef: input.artifactRef,
+        artifactDigest: input.artifactDigest,
+        ...(input.storeGeneration ? { storeGeneration: input.storeGeneration } : {}),
+        ...(input.configDigest ? { configDigest: input.configDigest } : {}),
+        ...(input.dbMigrationPoint ? { dbMigrationPoint: input.dbMigrationPoint } : {}),
+      });
+      const ready = await this.updateDeployment(input.projectId, input.deploymentId, {
+        status: 'READY',
+        url: input.url,
+        previewUrl: input.environment !== 'production' ? input.url : undefined,
+        productionUrl: input.environment === 'production' ? input.url : undefined,
+        metadata: input.metadata,
+        logs: input.logs,
+        finishedAt: input.finishedAt,
+      });
+
+      const updated = { ...operation, phase: 'RELEASE_COMMITTED' as const, updatedAt: now() };
+      this.rollbackOperations.set(this._rollbackOperationKey(operation.projectId, operation.idempotencyKey), updated);
+
+      return { deployment: ready, manifest };
+    });
+  }
+
   async commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult> {
-    return this.withSerializedMutation(`server-release:${input.deploymentId}`, async () => {
+    return this.withSerializedMutation(`release-manifest:${input.projectId}:${input.environment}`, async () => {
       const deployment = this.deployments.get(input.deploymentId);
 
       if (!deployment || deployment.projectId !== input.projectId) {
@@ -3276,6 +3789,9 @@ export class TestApiStore implements ApiStore {
       const project = this.projects.get(input.projectId);
       const serverDeploy = input.metadata.serverDeploy as Record<string, unknown> | undefined;
       const image = serverDeploy?.image as Record<string, unknown> | undefined;
+      const rollbackOperationId = (deployment.metadata as Record<string, unknown> | undefined)?.rollbackOperationId;
+      const rollbackOperation = input.rollbackFence ? this._requireRollbackLease(input.rollbackFence) : undefined;
+      const rollbackSource = rollbackOperation ? this._requireRollbackSource(rollbackOperation) : undefined;
 
       if (
         !project ||
@@ -3294,13 +3810,42 @@ export class TestApiStore implements ApiStore {
         throw new Error('SERVER_RELEASE_PROMOTION_NOT_COMMITTED');
       }
 
-      const existing = this.releaseManifests.find((manifest) => manifest.deploymentId === input.deploymentId);
+      if (
+        (typeof rollbackOperationId === 'string' && rollbackOperation?.id !== rollbackOperationId) ||
+        (rollbackOperation &&
+          (rollbackOperation.projectId !== input.projectId ||
+            rollbackOperation.deploymentId !== input.deploymentId ||
+            rollbackOperation.expectedHeadVersion !== input.rollbackFence?.expectedHeadVersion ||
+            rollbackOperation.environment !== input.environment ||
+            rollbackOperation.phase !== 'EFFECT_STARTED' ||
+            rollbackOperation.effectFencingToken !== input.rollbackFence?.fencingToken ||
+            rollbackSource?.artifactKind !== 'server-image' ||
+            rollbackSource.provider !== 'server' ||
+            rollbackSource.artifactRef !== input.artifactRef ||
+            rollbackSource.artifactDigest !== input.artifactDigest ||
+            !sameNullable(rollbackSource.storeGeneration, input.storeGeneration) ||
+            !sameNullable(rollbackSource.configDigest, input.configDigest) ||
+            !sameNullable(rollbackSource.dbMigrationPoint, input.dbMigrationPoint)))
+      ) {
+        throw new Error('ROLLBACK_OWNERSHIP_LOST');
+      }
+
+      const existingRows = this.releaseManifests.filter((manifest) => manifest.deploymentId === input.deploymentId);
+      const existing = existingRows[0];
 
       if (existing) {
         if (
+          existingRows.length !== 1 ||
+          existing.projectId !== input.projectId ||
+          existing.environment !== input.environment ||
+          existing.provider !== 'server' ||
           existing.artifactKind !== 'server-image' ||
           existing.artifactRef !== input.artifactRef ||
-          existing.artifactDigest !== input.artifactDigest
+          existing.artifactDigest !== input.artifactDigest ||
+          !sameNullable(existing.storeGeneration, input.storeGeneration) ||
+          !sameNullable(existing.configDigest, input.configDigest) ||
+          !sameNullable(existing.dbMigrationPoint, input.dbMigrationPoint) ||
+          (rollbackOperation && existing.version !== input.rollbackFence!.expectedHeadVersion + 1)
         ) {
           throw new Error('SERVER_RELEASE_MANIFEST_CONFLICT');
         }
@@ -3309,7 +3854,24 @@ export class TestApiStore implements ApiStore {
           throw new Error('SERVER_RELEASE_MANIFEST_WITHOUT_READY');
         }
 
+        if (rollbackOperation) {
+          const updated = { ...rollbackOperation, phase: 'RELEASE_COMMITTED' as const, updatedAt: now() };
+          this.rollbackOperations.set(
+            this._rollbackOperationKey(rollbackOperation.projectId, rollbackOperation.idempotencyKey),
+            updated,
+          );
+        }
+
         return { committed: true, deployment, manifest: existing };
+      }
+
+      if (
+        rollbackOperation &&
+        (input.metadata.rollbackOperationId !== rollbackOperation.id ||
+          input.metadata.projectManifestDigest !== rollbackOperation.projectManifestDigest ||
+          deployment.rolledBackFromId !== rollbackSource!.deploymentId)
+      ) {
+        throw new Error('ROLLBACK_OWNERSHIP_LOST');
       }
 
       if (['READY', 'FAILED', 'CANCELED'].includes(deployment.status)) {
@@ -3319,6 +3881,15 @@ export class TestApiStore implements ApiStore {
       const latestVersion = this.releaseManifests
         .filter((manifest) => manifest.projectId === input.projectId && manifest.environment === input.environment)
         .reduce((max, manifest) => Math.max(max, manifest.version), 0);
+
+      if (input.rollbackFence && latestVersion !== input.rollbackFence.expectedHeadVersion) {
+        throw Object.assign(new Error('ROLLBACK_RELEASE_MOVED'), {
+          code: 'ROLLBACK_RELEASE_MOVED',
+          statusCode: 409,
+          expectedVersion: input.rollbackFence.expectedHeadVersion,
+          observedVersion: latestVersion,
+        });
+      }
       const manifest: ReleaseManifestRecord = {
         id: `rm-${this.releaseManifests.length + 1}-${input.deploymentId}`,
         projectId: input.projectId,
@@ -3331,6 +3902,7 @@ export class TestApiStore implements ApiStore {
         artifactDigest: input.artifactDigest,
         storeGeneration: input.storeGeneration,
         configDigest: input.configDigest,
+        dbMigrationPoint: input.dbMigrationPoint,
         createdAt: now(),
       };
       const ready: DeploymentRecord = {
@@ -3358,6 +3930,14 @@ export class TestApiStore implements ApiStore {
         createdAt: now(),
       });
       this.deployments.set(ready.id, ready);
+
+      if (rollbackOperation) {
+        const updated = { ...rollbackOperation, phase: 'RELEASE_COMMITTED' as const, updatedAt: now() };
+        this.rollbackOperations.set(
+          this._rollbackOperationKey(rollbackOperation.projectId, rollbackOperation.idempotencyKey),
+          updated,
+        );
+      }
       return { committed: true, deployment: ready, manifest };
     });
   }

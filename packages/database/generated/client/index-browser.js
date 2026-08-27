@@ -631,6 +631,30 @@ exports.Prisma.ReleaseManifestScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.RollbackIdempotencyRequestScalarFieldEnum = {
+  id: 'id',
+  projectId: 'projectId',
+  idempotencyKey: 'idempotencyKey',
+  requestFingerprint: 'requestFingerprint',
+  environment: 'environment',
+  status: 'status',
+  phase: 'phase',
+  leaseOwner: 'leaseOwner',
+  leaseExpiresAt: 'leaseExpiresAt',
+  fencingToken: 'fencingToken',
+  effectFencingToken: 'effectFencingToken',
+  deploymentId: 'deploymentId',
+  expectedHeadVersion: 'expectedHeadVersion',
+  previousManifestId: 'previousManifestId',
+  projectManifestDigest: 'projectManifestDigest',
+  responseStatus: 'responseStatus',
+  responseContentLanguage: 'responseContentLanguage',
+  responseBody: 'responseBody',
+  completedAt: 'completedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.RateCardScalarFieldEnum = {
   id: 'id',
   version: 'version',
@@ -2329,6 +2353,7 @@ exports.Prisma.ModelName = {
   Deployment: 'Deployment',
   DeploymentEnvironment: 'DeploymentEnvironment',
   ReleaseManifest: 'ReleaseManifest',
+  RollbackIdempotencyRequest: 'RollbackIdempotencyRequest',
   RateCard: 'RateCard',
   AuditLog: 'AuditLog',
   SecurityEventResolution: 'SecurityEventResolution',

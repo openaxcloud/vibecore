@@ -640,6 +640,79 @@ export interface ReleaseManifestRecord {
   createdAt: string;
 }
 
+export type RollbackOperationStatus = 'IN_PROGRESS' | 'COMPLETED';
+export type RollbackOperationPhase =
+  | 'CLAIMED'
+  | 'TARGET_BOUND'
+  | 'DEPLOYMENT_CREATED'
+  | 'EFFECT_STARTED'
+  | 'EFFECT_CLEANED'
+  | 'RELEASE_COMMITTED';
+
+/**
+ * Durable rollback execution and response ledger. Lease timestamps are issued
+ * by PostgreSQL; callers must treat `ownerToken` + `fencingToken` as one
+ * inseparable capability and must never expose either value over HTTP.
+ */
+export interface RollbackOperationRecord {
+  id: string;
+  projectId: string;
+  idempotencyKey: string;
+  requestFingerprint: string;
+  environment: string;
+  status: RollbackOperationStatus;
+  phase: RollbackOperationPhase;
+  leaseOwner?: string;
+  leaseExpiresAt?: string;
+  fencingToken: number;
+
+  /** Fence that durably authorized the current external-effect generation. */
+  effectFencingToken?: number;
+  deploymentId?: string;
+  expectedHeadVersion?: number;
+  previousManifestId?: string;
+  projectManifestDigest?: string;
+  responseStatus?: number;
+  responseContentLanguage?: 'en' | 'fr';
+  responseBody?: unknown;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RollbackLeaseFence {
+  operationId: string;
+  ownerToken: string;
+  fencingToken: number;
+  expectedHeadVersion: number;
+}
+
+export interface RollbackDeploymentCreateInput {
+  id: string;
+  projectId: string;
+  provider: string;
+  environment: DeploymentRecord['environment'];
+  status: DeploymentRecord['status'];
+  rolledBackFromId: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface StaticRollbackReleaseCommitInput extends RollbackLeaseFence {
+  projectId: string;
+  deploymentId: string;
+  environment: DeploymentRecord['environment'];
+  provider: string;
+  artifactRef: string;
+  artifactDigest: string;
+  storeGeneration?: string;
+  configDigest?: string;
+  dbMigrationPoint?: string;
+  url: string;
+  metadata: Record<string, unknown>;
+  logs: DeploymentRecord['logs'];
+  finishedAt: string;
+}
+
 /**
  * Atomic READY + ReleaseManifest commit for a promoted server image. The store
  * owns the transaction so a concurrent cancel can never leave an immutable
@@ -654,12 +727,16 @@ export interface ServerImageReleaseCommitInput {
   artifactDigest: string;
   storeGeneration?: string;
   configDigest?: string;
+  dbMigrationPoint?: string;
   url: string;
   previewUrl?: string;
   productionUrl?: string;
   metadata: Record<string, unknown>;
   logs: DeploymentRecord['logs'];
   finishedAt: string;
+
+  /** Required for rollback-owned deployments; omitted by ordinary publishes. */
+  rollbackFence?: RollbackLeaseFence;
 }
 
 export interface ServerImageReleaseCommitResult {
@@ -2709,6 +2786,82 @@ export interface ApiStore {
     environment: string,
     options?: { take?: number },
   ): Promise<ReleaseManifestRecord[]>;
+  getReleaseManifest(projectId: string, manifestId: string): Promise<ReleaseManifestRecord | undefined>;
+
+  /**
+   * Insert, reacquire, or replay a project-scoped operation. `ACQUIRED` is
+   * returned only while the caller owns a live PostgreSQL-clock lease.
+   */
+  acquireRollbackOperation(input: {
+    projectId: string;
+    idempotencyKey: string;
+    requestFingerprint: string;
+    environment: string;
+    ownerToken: string;
+    leaseDurationMs: number;
+  }): Promise<{
+    kind: 'ACQUIRED' | 'BUSY' | 'REPLAY' | 'FINGERPRINT_CONFLICT';
+    record: RollbackOperationRecord;
+  }>;
+  getRollbackOperation(projectId: string, idempotencyKey: string): Promise<RollbackOperationRecord | undefined>;
+  renewRollbackOperationLease(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    leaseDurationMs: number;
+  }): Promise<string | undefined>;
+  validateRollbackOperationLease(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+  }): Promise<boolean>;
+  bindRollbackOperationTarget(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    deploymentId: string;
+    expectedHeadVersion: number;
+    previousManifestId: string;
+    projectManifestDigest: string;
+  }): Promise<RollbackOperationRecord>;
+  ensureRollbackDeployment(input: {
+    fence: Omit<RollbackLeaseFence, 'expectedHeadVersion'>;
+    deployment: RollbackDeploymentCreateInput;
+  }): Promise<DeploymentRecord>;
+  updateRollbackDeployment(input: {
+    fence: Omit<RollbackLeaseFence, 'expectedHeadVersion'>;
+    projectId: string;
+    deploymentId: string;
+    patch: Partial<Omit<DeploymentRecord, 'id' | 'projectId' | 'createdAt'>>;
+  }): Promise<DeploymentRecord>;
+
+  /** Persist intent before the first non-transactional filesystem/Kubernetes effect. */
+  beginRollbackEffect(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+  }): Promise<RollbackOperationRecord>;
+
+  /** Persist that failed external effects were proven absent before replay is finalizable. */
+  completeRollbackEffectCleanup(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+  }): Promise<RollbackOperationRecord>;
+  completeRollbackOperation(input: {
+    operationId: string;
+    ownerToken: string;
+    fencingToken: number;
+    responseStatus: number;
+    responseContentLanguage: 'en' | 'fr';
+    responseBody: unknown;
+  }): Promise<RollbackOperationRecord>;
+
+  /** Atomically append a static rollback manifest and transition to READY. */
+  commitStaticRollbackRelease(input: StaticRollbackReleaseCommitInput): Promise<{
+    deployment: DeploymentRecord;
+    manifest: ReleaseManifestRecord;
+  }>;
   /** Atomically append the server-image manifest and transition to READY. */
   commitServerImageRelease(input: ServerImageReleaseCommitInput): Promise<ServerImageReleaseCommitResult>;
   /** Durable promotion evidence retained independently of a prunable Deployment row. */
