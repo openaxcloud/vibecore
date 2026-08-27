@@ -60,8 +60,8 @@ export const deployRemainingEn = {
   'deployRemaining.alert.dismiss': 'Dismiss',
   'deployRemaining.alert.fixPrompt': '*Fix this deployment error*\n```\n{details}\n```\n',
   'deployRemaining.selector.legend': 'Deployment type',
-  'deployRemaining.selector.soon': 'Soon',
-  'deployRemaining.selector.unavailableTitle': 'Coming soon — requires managed compute infrastructure',
+  'deployRemaining.selector.soon': 'Unavailable',
+  'deployRemaining.selector.unavailableTitle': 'Requires an enabled and verified managed-compute capability',
   'deployRemaining.type.static.name': 'Static',
   'deployRemaining.type.static.tagline': 'Build once, serve the output as a fast static site.',
   'deployRemaining.type.static.description':
@@ -168,8 +168,8 @@ export const deployRemainingFr: DeployRemainingCopy = {
   'deployRemaining.alert.dismiss': 'Fermer',
   'deployRemaining.alert.fixPrompt': '*Corrigez cette erreur de déploiement*\n```\n{details}\n```\n',
   'deployRemaining.selector.legend': 'Type de déploiement',
-  'deployRemaining.selector.soon': 'Bientôt',
-  'deployRemaining.selector.unavailableTitle': 'Bientôt disponible — nécessite une infrastructure de calcul managée',
+  'deployRemaining.selector.soon': 'Indisponible',
+  'deployRemaining.selector.unavailableTitle': 'Nécessite une infrastructure de calcul managée, activée et vérifiée',
   'deployRemaining.type.static.name': 'Statique',
   'deployRemaining.type.static.tagline': 'Compilez une fois, puis servez le résultat comme site statique rapide.',
   'deployRemaining.type.static.description':

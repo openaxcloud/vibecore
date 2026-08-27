@@ -41,6 +41,19 @@ import {
 import { ProjectShell } from '~/components/dashboard/SaaSLayout';
 import { DeploySubNav, type DeployView } from '~/components/deploy/DeploySubNav';
 import { DeploymentOverview } from '~/components/deploy/DeploymentOverview';
+import { DeploymentRuntimeCard } from '~/components/deploy/DeploymentRuntimeCard';
+import {
+  isValidReservedVmSelection,
+  RESERVED_VM_TIER_IDS,
+  ReservedVmConfigurator,
+  validateReservedVmTiers,
+  type ReservedVmTier,
+  type ReservedVmTierId,
+} from '~/components/deploy/ReservedVmConfigurator';
+import {
+  ensureDeploymentIdempotencyKey,
+  resolveDeploymentIdempotencyKey,
+} from '~/components/deploy/deployment-idempotency';
 import { DEFAULT_DEPLOYMENT_TYPE, type DeploymentTypeId } from '~/components/deploy/deployment-types';
 import { Button } from '~/components/ui/Button';
 import { ConfirmationDialog } from '~/components/ui/Dialog';
@@ -82,6 +95,10 @@ type Deployment = {
   branch?: string;
   commitSha?: string;
   customDomain?: string;
+  machineSize?: string;
+  runtimeKind?: 'autoscale' | 'reserved-vm';
+  runtimeVersion?: number;
+  reservedVmTier?: ReservedVmTierId;
   logs: DeploymentLog[];
   accessPolicy?: {
     mode: DeploymentAccessMode;
@@ -140,7 +157,52 @@ export type DeployRateCard = {
     available: boolean;
     reason?: 'plan' | 'capacity';
   }>;
+  reservedVm: {
+    enabled: boolean;
+    reasonCode?: string;
+    paidPlanEligible: boolean;
+    termsVersion: string;
+    tiers: ReservedVmTier[];
+  };
 };
+
+type ReservedVmSubmission = Readonly<{
+  tier: ReservedVmTierId;
+  termsVersion: string;
+  monthlyPriceCents: number;
+}>;
+
+const RESERVED_VM_SUBMISSION_CONFIRMATION = 'confirmation' as const;
+const RESERVED_VM_SUBMISSION_PRICING = 'pricing' as const;
+
+export function parseReservedVmSubmission(
+  body: Readonly<Record<string, string>>,
+): { ok: true; value: ReservedVmSubmission } | { ok: false; reason: 'confirmation' | 'pricing' } {
+  if (body.reservedVmConfirmation !== 'on') {
+    return { ok: false, reason: RESERVED_VM_SUBMISSION_CONFIRMATION };
+  }
+
+  const termsVersion = body.reservedVmTermsVersion?.trim() ?? '';
+  const monthlyPriceCents = Number(body.reservedVmMonthlyPriceCents);
+
+  if (
+    termsVersion.length < 1 ||
+    termsVersion.length > 128 ||
+    !Number.isInteger(monthlyPriceCents) ||
+    !isValidReservedVmSelection(body.reservedVmTier ?? '', monthlyPriceCents)
+  ) {
+    return { ok: false, reason: RESERVED_VM_SUBMISSION_PRICING };
+  }
+
+  return {
+    ok: true,
+    value: {
+      tier: body.reservedVmTier as ReservedVmTierId,
+      termsVersion,
+      monthlyPriceCents,
+    },
+  };
+}
 
 /** ~$ per active hour for a size (compute units/s × 3600 × unit price). */
 export function machineSizeHourlyDollars(
@@ -233,6 +295,23 @@ export const action = (args: EnterpriseActionArgs) =>
   projectAction(args, {
     default: async ({ request, projectId, body }) => {
       const envVars = parseEnvVars(body.envVars ?? '');
+      const reservedVmRequested = body.runtimeKind === 'reserved-vm';
+      const reservedVmSubmission = reservedVmRequested ? parseReservedVmSubmission(body) : null;
+      const idempotencyKey = resolveDeploymentIdempotencyKey(body.idempotencyKey);
+
+      if (reservedVmSubmission && !reservedVmSubmission.ok) {
+        const localizedCopy = getProjectDeploymentsCopy(resolveRequestLocale(request).language);
+
+        return json(
+          {
+            error:
+              reservedVmSubmission.reason === 'confirmation'
+                ? localizedCopy.errors.reservedConfirmationRequired
+                : localizedCopy.errors.reservedPricingInvalid,
+          },
+          { status: 400 },
+        );
+      }
 
       /*
        * Workspace isolation — the deploy POST handler in services/api scopes
@@ -258,6 +337,7 @@ export const action = (args: EnterpriseActionArgs) =>
            * backend build cap so the action waits for the real outcome.
            */
           signal: AbortSignal.timeout(DEPLOY_REQUEST_TIMEOUT_MS),
+          headers: { 'Idempotency-Key': idempotencyKey },
           body: JSON.stringify({
             provider: body.provider || 'static',
             environment: body.environment || 'preview',
@@ -279,6 +359,15 @@ export const action = (args: EnterpriseActionArgs) =>
 
             // Server deploys: rate-card machine size picked in the publish card.
             machineSize: body.machineSize || undefined,
+            runtimeKind: body.provider === 'server' ? (reservedVmRequested ? 'reserved-vm' : 'autoscale') : undefined,
+            reservedVmTier: reservedVmSubmission?.ok ? reservedVmSubmission.value.tier : undefined,
+            reservedVmConfirmation: reservedVmSubmission?.ok
+              ? {
+                  accepted: true,
+                  termsVersion: reservedVmSubmission.value.termsVersion,
+                  monthlyPriceCents: reservedVmSubmission.value.monthlyPriceCents,
+                }
+              : undefined,
             accessMode: body.accessMode || 'INVITE_ONLY',
             accessPassword: body.accessMode === 'PASSWORD_PROTECTED' ? body.accessPassword || undefined : undefined,
           }),
@@ -292,6 +381,81 @@ export const action = (args: EnterpriseActionArgs) =>
       }
 
       const redirectQuery = deploymentsRedirectQuery(request.url, workspaceId);
+
+      return redirect(`/projects/${projectId}/deployments${redirectQuery}`);
+    },
+    runtime: async ({ request, projectId, body }) => {
+      const runtimeKind = body.runtimeKind;
+      const expectedRuntimeVersion = Number(body.expectedRuntimeVersion);
+      const idempotencyKey = resolveDeploymentIdempotencyKey(body.idempotencyKey);
+
+      if (
+        !body.deploymentId ||
+        (runtimeKind !== 'autoscale' && runtimeKind !== 'reserved-vm') ||
+        !body.expectedRuntimeVersion?.trim() ||
+        !Number.isInteger(expectedRuntimeVersion) ||
+        expectedRuntimeVersion < 0
+      ) {
+        return json(
+          { error: getProjectDeploymentsCopy(resolveRequestLocale(request).language).errors.runtimeChangeInvalid },
+          { status: 400 },
+        );
+      }
+
+      const reservedVmSubmission = runtimeKind === 'reserved-vm' ? parseReservedVmSubmission(body) : null;
+
+      if (reservedVmSubmission && !reservedVmSubmission.ok) {
+        const localizedCopy = getProjectDeploymentsCopy(resolveRequestLocale(request).language);
+
+        return json(
+          {
+            error:
+              reservedVmSubmission.reason === 'confirmation'
+                ? localizedCopy.errors.reservedConfirmationRequired
+                : localizedCopy.errors.reservedPricingInvalid,
+          },
+          { status: 400 },
+        );
+      }
+
+      if (runtimeKind === 'autoscale' && !body.machineSize?.trim()) {
+        return json(
+          { error: getProjectDeploymentsCopy(resolveRequestLocale(request).language).errors.runtimeChangeInvalid },
+          { status: 400 },
+        );
+      }
+
+      try {
+        await apiRequest(
+          request,
+          `/projects/${projectId}/deployments/${encodeURIComponent(body.deploymentId)}/runtime`,
+          {
+            method: 'PATCH',
+            headers: { 'Idempotency-Key': idempotencyKey },
+            body: JSON.stringify({
+              expectedRuntimeVersion,
+              runtimeKind,
+              machineSize: runtimeKind === 'autoscale' ? body.machineSize.trim() : undefined,
+              reservedVmTier: reservedVmSubmission?.ok ? reservedVmSubmission.value.tier : undefined,
+              reservedVmConfirmation: reservedVmSubmission?.ok
+                ? {
+                    accepted: true,
+                    termsVersion: reservedVmSubmission.value.termsVersion,
+                    monthlyPriceCents: reservedVmSubmission.value.monthlyPriceCents,
+                  }
+                : undefined,
+            }),
+          },
+        );
+      } catch (error) {
+        if (isReauthRedirect(error)) {
+          throw error;
+        }
+
+        return json({ error: await localizedDeploymentApiError(error, request, 'runtimeChangeFailed') });
+      }
+
+      const redirectQuery = deploymentsRedirectQuery(request.url, body.workspaceId);
 
       return redirect(`/projects/${projectId}/deployments${redirectQuery}`);
     },
@@ -387,7 +551,7 @@ export default function ProjectDeploymentsPage() {
    * from the fetcher — so narrow to it here.
    */
   const { project, data } = useLoaderData() as { project: { id: string }; data: DeploymentsData };
-  const { copy } = useProjectDeploymentsLocale();
+  const { copy, language } = useProjectDeploymentsLocale();
   const actionData = useActionData<{ error?: string; success?: string }>();
   const navigation = useNavigation();
   const revalidator = useRevalidator();
@@ -427,12 +591,7 @@ export default function ProjectDeploymentsPage() {
   const [searchParams] = useSearchParams();
   const workspaceId = searchParams.get('workspace') ?? '';
 
-  /*
-   * Replit-style Publish: the deployment-type selector is the primary choice.
-   * Only `static` is deployable today (the managed backend is static-only), so
-   * the compute tiers render an honest "coming soon" panel instead of a form
-   * that would fail server-side. Default to the one tier that actually ships.
-   */
+  // The overview mirrors the publish card's real, currently selected runtime.
   const [deployType, setDeployType] = useState<DeploymentTypeId>(DEFAULT_DEPLOYMENT_TYPE);
 
   // Replit-style sub-nav: Overview · Logs · Domains · Manage.
@@ -490,6 +649,16 @@ export default function ProjectDeploymentsPage() {
       {view === 'domains' ? <DeployDomainsView deployment={latest} /> : null}
       {view === 'manage' ? (
         <div className="mt-4 grid gap-5">
+          {latest?.provider === 'server' ? (
+            <DeploymentRuntimeCard
+              projectId={project.id}
+              workspaceId={workspaceId}
+              deployment={latest}
+              busy={busy}
+              copy={copy}
+              language={language}
+            />
+          ) : null}
           <DeploymentAccessCard deployment={latest} busy={busy} />
           <DeployHistory deployments={data.deployments} busy={busy} workspaceId={workspaceId} />
         </div>
@@ -541,7 +710,7 @@ export default function ProjectDeploymentsPage() {
             workspaceId={workspaceId}
             busy={busy}
             building={building}
-            onDetectedMode={(mode) => setDeployType(mode === 'server' ? 'autoscale' : 'static')}
+            onDeploymentType={setDeployType}
           />
         </div>
       ) : null}
@@ -557,24 +726,28 @@ export default function ProjectDeploymentsPage() {
  * you override the mode, but guessing is never required, and a detection failure
  * surfaces a clear message instead of a silent wrong-mode deploy.
  */
-function DeployPublishCard({
+type PublishRuntimeMode = 'autoscale' | 'reserved-vm' | 'static' | 'unknown';
+
+export function DeployPublishCard({
   projectId,
   workspaceId,
   busy,
   building,
-  onDetectedMode,
+  onDeploymentType,
 }: {
   projectId: string;
   workspaceId: string;
   busy: boolean;
   building: boolean;
-  onDetectedMode: (mode: 'server' | 'static') => void;
+  onDeploymentType: (mode: Exclude<PublishRuntimeMode, 'unknown'>) => void;
 }) {
   const { copy, language } = useProjectDeploymentsLocale();
   const detectFetcher = useFetcher<{ detected: DeployDetect }>();
   const rateCardFetcher = useFetcher<{ rateCard: DeployRateCard | null }>();
-  const [override, setOverride] = useState<'auto' | 'server' | 'static'>('auto');
+  const [override, setOverride] = useState<'auto' | Exclude<PublishRuntimeMode, 'unknown'>>('auto');
   const [accessMode, setAccessMode] = useState<DeploymentAccessMode>('INVITE_ONLY');
+  const [reservedTierId, setReservedTierId] = useState<ReservedVmTierId>(RESERVED_VM_TIER_IDS[0]);
+  const [reservedConfirmed, setReservedConfirmed] = useState(false);
 
   const detectHref = `/projects/${projectId}/deployments?detect=1${
     workspaceId ? `&workspace=${encodeURIComponent(workspaceId)}` : ''
@@ -591,22 +764,83 @@ function DeployPublishCard({
   }, [projectId]);
 
   const rateCard = rateCardFetcher.data?.rateCard ?? null;
+  const rateCardLoading = rateCardFetcher.state !== 'idle' || rateCardFetcher.data === undefined;
+  const reservedVm = rateCard?.reservedVm;
+  const validReservedTiers = reservedVm ? validateReservedVmTiers(reservedVm.tiers) : null;
+  const reservedTermsVersion = reservedVm?.termsVersion.trim() ?? '';
+
+  const reservedPricingValid = Boolean(
+    validReservedTiers && reservedTermsVersion.length > 0 && reservedTermsVersion.length <= 128,
+  );
+
+  const reservedVmEnabled =
+    reservedVm?.enabled === true && reservedVm.paidPlanEligible === true && reservedPricingValid;
 
   const detected = detectFetcher.data?.detected;
   const detecting = detectFetcher.state !== 'idle' || !detected;
   const detectedMode = detected?.mode ?? 'unknown';
 
-  // The effective mode: an explicit override wins; otherwise the detected mode.
-  const effectiveMode: 'server' | 'static' | 'unknown' = override === 'auto' ? detectedMode : override;
+  /*
+   * Server detection defaults to autoscale. Reserved VM is always an explicit,
+   * priced choice because it creates a fixed monthly reservation.
+   */
+  const detectedRuntime: PublishRuntimeMode =
+    detectedMode === 'server' ? 'autoscale' : detectedMode === 'static' ? 'static' : 'unknown';
+
+  const effectiveMode: PublishRuntimeMode = override === 'auto' ? detectedRuntime : override;
 
   useEffect(() => {
-    if (effectiveMode === 'server' || effectiveMode === 'static') {
-      onDetectedMode(effectiveMode);
+    if (effectiveMode !== 'unknown') {
+      onDeploymentType(effectiveMode);
     }
-  }, [effectiveMode]);
+  }, [effectiveMode, onDeploymentType]);
 
-  const provider = effectiveMode === 'server' ? 'server' : 'static';
-  const canPublish = (effectiveMode === 'server' || effectiveMode === 'static') && !busy && !building;
+  useEffect(() => {
+    if (validReservedTiers && !validReservedTiers.some((tier) => tier.id === reservedTierId)) {
+      setReservedTierId(validReservedTiers[0].id);
+    }
+  }, [reservedTierId, validReservedTiers]);
+
+  useEffect(() => {
+    setReservedConfirmed(false);
+  }, [effectiveMode, reservedTermsVersion, reservedTierId]);
+
+  useEffect(() => {
+    if (override === 'reserved-vm' && !rateCardLoading && !reservedVmEnabled) {
+      setOverride('auto');
+    }
+  }, [override, rateCardLoading, reservedVmEnabled]);
+
+  const provider = effectiveMode === 'autoscale' || effectiveMode === 'reserved-vm' ? 'server' : 'static';
+
+  const computeConfigurationReady =
+    effectiveMode === 'autoscale'
+      ? Boolean(rateCard) && !rateCardLoading
+      : effectiveMode === 'reserved-vm'
+        ? reservedVmEnabled && reservedConfirmed && !rateCardLoading
+        : effectiveMode === 'static';
+
+  const canPublish = effectiveMode !== 'unknown' && computeConfigurationReady && !busy && !building;
+
+  const reservedUnavailableReason = reservedVmUnavailableReason({
+    loading: rateCardLoading,
+    rateCard,
+    pricingValid: reservedPricingValid,
+    copy,
+  });
+
+  const effectiveModeLabel =
+    effectiveMode === 'autoscale'
+      ? copy.publish.serverMode
+      : effectiveMode === 'reserved-vm'
+        ? copy.publish.reservedMode
+        : copy.publish.staticMode;
+  const effectiveModeDescription =
+    effectiveMode === 'autoscale'
+      ? copy.publish.serverDescription
+      : effectiveMode === 'reserved-vm'
+        ? copy.publish.reservedDescription
+        : copy.publish.staticDescription;
 
   return (
     <div className="grid gap-4">
@@ -637,9 +871,7 @@ function DeployPublishCard({
             <span>
               {copy.publish.detected}{' '}
               <span className="font-medium text-bolt-elements-textPrimary">{detected?.framework}</span> →{' '}
-              <span className="font-medium text-bolt-elements-textPrimary">
-                {effectiveMode === 'server' ? copy.publish.serverMode : copy.publish.staticMode}
-              </span>
+              <span className="font-medium text-bolt-elements-textPrimary">{effectiveModeLabel}</span>
               {override !== 'auto' ? ` ${copy.publish.overridden}` : ''}
             </span>
           </p>
@@ -648,14 +880,15 @@ function DeployPublishCard({
 
       <Form
         method="post"
+        onSubmit={(event) => ensureDeploymentIdempotencyKey(event.currentTarget)}
         className="grid gap-4 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-5 shadow-md"
       >
+        <input type="hidden" name="idempotencyKey" defaultValue="" />
         <input type="hidden" name="workspaceId" value={workspaceId} />
         <input type="hidden" name="provider" value={provider} />
+        {provider === 'server' ? <input type="hidden" name="runtimeKind" value={effectiveMode} /> : null}
 
-        <p className="text-xs text-bolt-elements-textSecondary">
-          {effectiveMode === 'server' ? copy.publish.serverDescription : copy.publish.staticDescription}
-        </p>
+        <p className="text-xs leading-5 text-bolt-elements-textSecondary">{effectiveModeDescription}</p>
 
         <div className="grid gap-2 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
           <label className="grid gap-2 text-xs font-medium uppercase tracking-[0.04em] text-bolt-elements-textTertiary">
@@ -706,12 +939,15 @@ function DeployPublishCard({
           <Field label={copy.publish.customDomain} name="customDomain" placeholder={DEPLOYMENT_DOMAIN_PLACEHOLDER} />
         </div>
 
-        {/*
-         * Machine size (server mode) — rendered from the versioned rate card,
-         * never hard-coded. Sizes the plan or current capacity cannot grant stay
-         * visible but disabled, so the ladder is honest about what exists.
-         */}
-        {effectiveMode === 'server' && rateCard ? (
+        {effectiveMode === 'autoscale' && rateCardLoading ? (
+          <ComputeRateCardSkeleton label={copy.publish.rateCardLoading} />
+        ) : effectiveMode === 'autoscale' && !rateCard ? (
+          <ComputeRateCardError
+            message={copy.publish.rateCardUnavailable}
+            retryLabel={copy.publish.retryRateCard}
+            onRetry={() => rateCardFetcher.load(`/projects/${projectId}/deployments?rateCard=1`)}
+          />
+        ) : effectiveMode === 'autoscale' && rateCard ? (
           <div className="grid gap-1.5">
             <Field
               as="select"
@@ -737,6 +973,29 @@ function DeployPublishCard({
           </div>
         ) : null}
 
+        {effectiveMode === 'reserved-vm' && rateCardLoading ? (
+          <ComputeRateCardSkeleton label={copy.publish.rateCardLoading} />
+        ) : effectiveMode === 'reserved-vm' && (!rateCard || !reservedVmEnabled || !validReservedTiers) ? (
+          <ComputeRateCardError
+            message={reservedUnavailableReason.message}
+            retryLabel={copy.publish.retryRateCard}
+            upgradeLabel={reservedUnavailableReason.paidPlan ? copy.publish.reservedVm.upgrade : undefined}
+            onRetry={() => rateCardFetcher.load(`/projects/${projectId}/deployments?rateCard=1`)}
+          />
+        ) : effectiveMode === 'reserved-vm' && validReservedTiers && reservedVm ? (
+          <ReservedVmConfigurator
+            tiers={validReservedTiers}
+            termsVersion={reservedTermsVersion}
+            selectedTierId={reservedTierId}
+            confirmed={reservedConfirmed}
+            copy={copy.publish.reservedVm}
+            language={language}
+            onSelectTier={setReservedTierId}
+            onConfirm={setReservedConfirmed}
+            disabled={busy || building}
+          />
+        ) : null}
+
         <Field
           as="textarea"
           label={copy.publish.environmentVariables}
@@ -748,37 +1007,186 @@ function DeployPublishCard({
           <summary className="cursor-pointer text-xs font-medium text-bolt-elements-textTertiary hover:text-bolt-elements-textSecondary">
             {copy.publish.advanced}
           </summary>
-          <div className="mt-2 grid gap-1.5 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
+          <div className="mt-2 grid gap-1 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
             {(
               [
                 ['auto', copy.publish.modeAuto],
-                ['server', copy.publish.modeServer],
+                ['autoscale', copy.publish.modeServer],
+                ['reserved-vm', copy.publish.modeReservedVm],
                 ['static', copy.publish.modeStatic],
               ] as const
             ).map(([value, label]) => (
               <label
                 key={value}
-                className="flex cursor-pointer items-center gap-2 text-xs text-bolt-elements-textSecondary"
+                className={classNames(
+                  'flex min-h-11 items-center gap-2 rounded-md px-2 text-xs text-bolt-elements-textSecondary focus-within:ring-2 focus-within:ring-bolt-elements-focus',
+                  value === 'reserved-vm' && !reservedVmEnabled
+                    ? 'cursor-not-allowed opacity-60'
+                    : 'cursor-pointer hover:bg-bolt-elements-background-depth-3',
+                )}
               >
                 <input
-                  className="h-3.5 w-3.5 accent-bolt-elements-focus"
+                  className="h-4 w-4 shrink-0 accent-bolt-elements-focus"
                   type="radio"
                   name="deployModeOverride"
                   value={value}
                   checked={override === value}
                   onChange={() => setOverride(value)}
+                  disabled={value === 'reserved-vm' && !reservedVmEnabled}
                 />
-                {label}
+                <span className="min-w-0 break-words">{label}</span>
               </label>
             ))}
+            {reservedUnavailableReason.message ? (
+              <div
+                className="mt-1 grid gap-2 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-3 text-xs leading-5 text-bolt-elements-textSecondary"
+                role={rateCardLoading ? 'status' : 'note'}
+                aria-live="polite"
+              >
+                <span>{reservedUnavailableReason.message}</span>
+                {reservedUnavailableReason.paidPlan ? (
+                  <a
+                    href="/upgrade"
+                    className="inline-flex min-h-11 items-center justify-center justify-self-start rounded-md border border-bolt-elements-borderColor px-3 font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
+                  >
+                    {copy.publish.reservedVm.upgrade}
+                  </a>
+                ) : !rateCardLoading ? (
+                  <button
+                    type="button"
+                    onClick={() => rateCardFetcher.load(`/projects/${projectId}/deployments?rateCard=1`)}
+                    className="inline-flex min-h-11 items-center justify-center justify-self-start rounded-md border border-bolt-elements-borderColor px-3 font-medium text-bolt-elements-item-contentAccent hover:bg-bolt-elements-background-depth-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
+                  >
+                    {copy.publish.retryRateCard}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         </details>
 
-        <Button type="submit" disabled={!canPublish} className="min-h-11 gap-2">
+        <Button type="submit" disabled={!canPublish} aria-busy={busy || building} className="min-h-11 gap-2">
           <Rocket className="h-4 w-4" aria-hidden />
           {busy || building ? copy.publish.publishing : copy.publish.submit}
         </Button>
       </Form>
+    </div>
+  );
+}
+
+type ReservedVmAvailabilityMessage = Readonly<{ message: string; paidPlan: boolean }>;
+
+export function reservedVmUnavailableReason({
+  loading,
+  rateCard,
+  pricingValid,
+  copy,
+}: {
+  loading: boolean;
+  rateCard: DeployRateCard | null;
+  pricingValid: boolean;
+  copy: ProjectDeploymentsCopy;
+}): ReservedVmAvailabilityMessage {
+  if (loading) {
+    return { message: copy.publish.rateCardLoading, paidPlan: false };
+  }
+
+  if (!rateCard) {
+    return { message: copy.publish.rateCardUnavailable, paidPlan: false };
+  }
+
+  const reasonCode = rateCard.reservedVm?.reasonCode?.toUpperCase() ?? '';
+
+  const paidPlan =
+    rateCard.reservedVm?.paidPlanEligible !== true ||
+    rateCard.planKey.trim().toLowerCase() === 'free' ||
+    reasonCode.includes('PLAN');
+
+  if (paidPlan) {
+    return { message: copy.publish.reservedVm.paidPlanRequired, paidPlan: true };
+  }
+
+  if (!pricingValid && rateCard.reservedVm?.enabled === true) {
+    return { message: copy.publish.reservedVm.pricingInvalid, paidPlan: false };
+  }
+
+  if (rateCard.reservedVm?.enabled !== true) {
+    return {
+      message: copy.publish.reservedVm.operatorUnavailable,
+      paidPlan: false,
+    };
+  }
+
+  if (!pricingValid) {
+    return { message: copy.publish.reservedVm.pricingInvalid, paidPlan: false };
+  }
+
+  return { message: '', paidPlan: false };
+}
+
+export function ComputeRateCardSkeleton({ label }: { label: string }) {
+  return (
+    <div
+      className="grid gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+      data-testid="compute-rate-card-skeleton"
+    >
+      <span className="flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
+        <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden />
+        {label}
+      </span>
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2" aria-hidden>
+        {[0, 1, 2, 3].map((index) => (
+          <span
+            key={index}
+            className="h-[72px] animate-pulse rounded-md bg-bolt-elements-background-depth-3 motion-reduce:animate-none"
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function ComputeRateCardError({
+  message,
+  retryLabel,
+  upgradeLabel,
+  onRetry,
+}: {
+  message: string;
+  retryLabel: string;
+  upgradeLabel?: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="grid gap-3 rounded-lg border border-[var(--status-error-border)] bg-[var(--status-error-bg)] p-4 text-xs leading-5 text-[var(--status-error-text)]"
+      data-testid="compute-rate-card-error"
+    >
+      <span className="flex items-start gap-2">
+        <Ban className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+        <span>{message}</span>
+      </span>
+      <span className="flex flex-wrap gap-2">
+        {upgradeLabel ? (
+          <a
+            href="/upgrade"
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-current px-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
+          >
+            {upgradeLabel}
+          </a>
+        ) : null}
+        <button
+          type="button"
+          onClick={onRetry}
+          className="inline-flex min-h-11 items-center justify-center rounded-md border border-current px-3 font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-focus"
+        >
+          {retryLabel}
+        </button>
+      </span>
     </div>
   );
 }
