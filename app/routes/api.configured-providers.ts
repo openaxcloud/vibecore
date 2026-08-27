@@ -1,7 +1,9 @@
 import type { LoaderFunction } from 'react-router';
 import { data as json } from 'react-router';
 import { readSessionToken } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 import { LLMManager } from '~/lib/modules/llm/manager';
+import { readRuntimeEnv } from '~/lib/modules/llm/runtime-env';
 
 interface ConfiguredProvider {
   name: string;
@@ -25,7 +27,7 @@ export const loader: LoaderFunction = async ({ context, request }) => {
    * ones who reach the Connections settings that consume this) may read it.
    */
   if (!readSessionToken(request)) {
-    return json({ error: 'Unauthorized' }, { status: 401 });
+    return remainingApiErrorResponse(request, 'UNAUTHORIZED', 401);
   }
 
   try {
@@ -50,7 +52,15 @@ export const loader: LoaderFunction = async ({ context, request }) => {
         if (config.baseUrlKey) {
           const baseUrlEnvVar = config.baseUrlKey;
           const cloudflareEnv = (context?.cloudflare?.env as Record<string, any>)?.[baseUrlEnvVar];
-          const processEnv = process.env[baseUrlEnvVar];
+
+          /*
+           * `process.env` is shimmed to `{}` by vite-plugin-node-polyfills in the
+           * SSR bundle, so a bare read here always returns undefined and this
+           * route reported "no provider configured" even when the key was set and
+           * working (BUG-QA-PROVIDERS-SSR-ENV-001). `readRuntimeEnv` goes through
+           * `globalThis.process.env`, which carries the real values.
+           */
+          const processEnv = readRuntimeEnv(baseUrlEnvVar);
           const managerEnv = llmManager.env[baseUrlEnvVar];
 
           const envBaseUrl = cloudflareEnv || processEnv || managerEnv;
@@ -79,7 +89,7 @@ export const loader: LoaderFunction = async ({ context, request }) => {
 
           const envApiToken =
             (context?.cloudflare?.env as Record<string, any>)?.[apiTokenEnvVar] ||
-            process.env[apiTokenEnvVar] ||
+            readRuntimeEnv(apiTokenEnvVar) ||
             llmManager.env[apiTokenEnvVar];
 
           // Only consider configured if API key is set and not a placeholder

@@ -2,18 +2,32 @@
  * @vitest-environment jsdom
  */
 
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { I18nextProvider } from 'react-i18next';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { DiffActionRow } from './DiffActionRow';
+import { createI18nInstance } from '~/lib/i18n/runtime';
 import type { DiffApplyMeta } from '~/types/actions';
 
 afterEach(() => cleanup());
 
+function renderRow(props: React.ComponentProps<typeof DiffActionRow>, language: 'en' | 'fr' = 'en') {
+  const i18n = createI18nInstance(language);
+
+  const result = render(
+    <I18nextProvider i18n={i18n}>
+      <DiffActionRow {...props} />
+    </I18nextProvider>,
+  );
+
+  return { ...result, i18n };
+}
+
 describe('DiffActionRow — chat-UI render surface for a diff action', () => {
   it('labels the edit as a targeted patch and opens the file on click', () => {
     const onOpenFile = vi.fn();
-    render(<DiffActionRow filePath="src/BigComponent.tsx" onOpenFile={onOpenFile} />);
+    renderRow({ filePath: 'src/BigComponent.tsx', onOpenFile });
 
     expect(screen.getByText('Edit')).toBeTruthy();
     expect(screen.getByText('(targeted patch)')).toBeTruthy();
@@ -34,7 +48,7 @@ describe('DiffActionRow — chat-UI render surface for a diff action', () => {
       hunkCount: 2,
     };
 
-    const { container } = render(<DiffActionRow filePath="src/big.ts" diffApply={diffApply} />);
+    const { container } = renderRow({ filePath: 'src/big.ts', diffApply });
 
     expect(screen.getByText('+5')).toBeTruthy();
     expect(screen.getByText('−3')).toBeTruthy();
@@ -57,7 +71,7 @@ describe('DiffActionRow — chat-UI render surface for a diff action', () => {
       failureKind: 'apply-failed',
     };
 
-    render(<DiffActionRow filePath="src/answer.ts" diffApply={diffApply} />);
+    renderRow({ filePath: 'src/answer.ts', diffApply });
 
     expect(screen.getByText('Could not apply')).toBeTruthy();
 
@@ -69,10 +83,34 @@ describe('DiffActionRow — chat-UI render surface for a diff action', () => {
   });
 
   it('renders the label with no pill while streaming (diffApply undefined)', () => {
-    render(<DiffActionRow filePath="src/x.ts" />);
+    renderRow({ filePath: 'src/x.ts' });
 
     expect(screen.getByText('Edit')).toBeTruthy();
     expect(screen.getByText('src/x.ts')).toBeTruthy();
     expect(screen.queryByText('Could not apply')).toBeNull();
+  });
+
+  it('renders professional French copy, localized plurals, and switches live without changing the path', async () => {
+    const diffApply: DiffApplyMeta = {
+      status: 'applied',
+      blockCount: 2,
+      addedLines: 1,
+      removedLines: 2,
+      hunkCount: 2,
+    };
+
+    const { i18n } = renderRow({ filePath: 'src/BigComponent.tsx', diffApply }, 'fr');
+
+    expect(screen.getByText('Modifier')).toBeTruthy();
+    expect(screen.getByText('(patch ciblé)')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Ouvrir src/BigComponent.tsx' })).toBeTruthy();
+    expect(screen.getByLabelText('1 ligne ajoutée ; 2 lignes supprimées')).toBeTruthy();
+
+    await act(async () => {
+      await i18n.changeLanguage('en');
+    });
+
+    expect(screen.getByText('Edit')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Open src/BigComponent.tsx' })).toBeTruthy();
   });
 });

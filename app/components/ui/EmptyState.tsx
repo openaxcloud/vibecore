@@ -13,10 +13,10 @@ const VARIANT_STYLES = {
       container: 'mb-3 h-10 w-10',
       size: 'h-5 w-5',
     },
-    title: 'text-[15px] font-semibold',
-    description: 'text-[13px] mt-2',
+    titleClass: 'text-[15px] font-semibold',
+    descriptionClass: 'text-[13px] mt-2',
     actions: 'mt-5',
-    button: 'h-9 px-4 text-sm',
+    buttonClass: 'min-h-11 min-w-11 px-4 py-2 text-sm',
   },
   compact: {
     container: 'p-4 py-4',
@@ -24,10 +24,10 @@ const VARIANT_STYLES = {
       container: 'mb-2 h-10 w-10',
       size: 'h-5 w-5',
     },
-    title: 'text-[15px] font-semibold',
-    description: 'text-[13px] mt-1',
+    titleClass: 'text-[15px] font-semibold',
+    descriptionClass: 'text-[13px] mt-1',
     actions: 'mt-3',
-    button: 'h-8 px-3 text-xs',
+    buttonClass: 'min-h-11 min-w-11 px-3 py-2 text-xs',
   },
 };
 
@@ -66,8 +66,20 @@ interface EmptyStateProps {
   variant?: 'default' | 'compact';
 }
 
-const PRIMARY_CTA_CLASSES =
-  'inline-flex items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-1';
+/*
+ * UNIF lot 4 — source UNIQUE du style « bouton primary » de l'IDE (décision
+ * B2/K1 de docs/UX_UNIFORMIZATION_AUDIT.md) : CTA plein `--vc-ide-accent-action`
+ * + texte blanc. `PanelButton` (project-ide/PanelPrimitives) importe cette
+ * constante ; l'ancien style teinté `bg-bolt-elements-button-primary-*` n'est
+ * plus qu'un alias legacy hors panneaux IDE.
+ */
+export const IDE_PRIMARY_ACCENT_CLASSES =
+  'bg-[var(--vc-cta-accent,var(--vc-ide-accent-action))] text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] focus-visible:ring-offset-1';
+
+const PRIMARY_CTA_CLASSES = classNames(
+  'inline-flex items-center justify-center rounded-md font-medium',
+  IDE_PRIMARY_ACCENT_CLASSES,
+);
 
 const SECONDARY_CTA_CLASSES =
   'inline-flex items-center justify-center rounded-md border border-bolt-elements-borderColor font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]';
@@ -96,11 +108,15 @@ export function EmptyState({
   const primary =
     actionLabel && (to || onAction) ? (
       to ? (
-        <Link to={to} className={classNames(PRIMARY_CTA_CLASSES, styles.button)}>
+        <Link to={to} className={classNames(PRIMARY_CTA_CLASSES, styles.buttonClass, 'whitespace-normal text-center')}>
           {actionLabel}
         </Link>
       ) : (
-        <button type="button" onClick={onAction} className={classNames(PRIMARY_CTA_CLASSES, styles.button)}>
+        <button
+          type="button"
+          onClick={onAction}
+          className={classNames(PRIMARY_CTA_CLASSES, styles.buttonClass, 'whitespace-normal text-center')}
+        >
           {actionLabel}
         </button>
       )
@@ -109,11 +125,18 @@ export function EmptyState({
   const secondary =
     secondaryActionLabel && (secondaryTo || onSecondaryAction) ? (
       secondaryTo ? (
-        <Link to={secondaryTo} className={classNames(SECONDARY_CTA_CLASSES, styles.button)}>
+        <Link
+          to={secondaryTo}
+          className={classNames(SECONDARY_CTA_CLASSES, styles.buttonClass, 'whitespace-normal text-center')}
+        >
           {secondaryActionLabel}
         </Link>
       ) : (
-        <button type="button" onClick={onSecondaryAction} className={classNames(SECONDARY_CTA_CLASSES, styles.button)}>
+        <button
+          type="button"
+          onClick={onSecondaryAction}
+          className={classNames(SECONDARY_CTA_CLASSES, styles.buttonClass, 'whitespace-normal text-center')}
+        >
           {secondaryActionLabel}
         </button>
       )
@@ -140,14 +163,19 @@ export function EmptyState({
           <span className={classNames(icon as string, styles.icon.size, 'text-bolt-elements-textTertiary')} />
         )}
       </span>
-      <h2 className={classNames('text-bolt-elements-textPrimary', styles.title)}>{title}</h2>
+      <h2 className={classNames('break-words text-bolt-elements-textPrimary', styles.titleClass)}>{title}</h2>
       {description ? (
-        <p className={classNames('mx-auto max-w-xl text-bolt-elements-textSecondary', styles.description)}>
+        <p
+          className={classNames(
+            'mx-auto max-w-xl break-words text-bolt-elements-textSecondary',
+            styles.descriptionClass,
+          )}
+        >
           {description}
         </p>
       ) : null}
       {primary || secondary ? (
-        <div className={classNames('flex items-center gap-2', styles.actions)}>
+        <div className={classNames('flex max-w-full flex-wrap items-center justify-center gap-2', styles.actions)}>
           {primary}
           {secondary}
         </div>

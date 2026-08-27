@@ -59,6 +59,7 @@ for (const theme of ['dark', 'light'] as const) {
         const card = window.getComputedStyle(root.querySelector('.vc-auth-card')!);
         const label = window.getComputedStyle(root.querySelector('.vc-auth-label')!);
         const input = window.getComputedStyle(root.querySelector('.vc-auth-input')!);
+
         const darkCardDescendants = [...root.querySelectorAll<HTMLElement>('.vc-auth-card, .vc-auth-card *')]
           .filter((element) => {
             const rect = element.getBoundingClientRect();

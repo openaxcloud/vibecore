@@ -273,8 +273,17 @@ export async function runConnectorTokenHealthCheck(
               body: `Your ${connection.provider} connection${
                 connection.externalAccountLabel ? ` (${connection.externalAccountLabel})` : ''
               } needs to be reconnected — its access was revoked or expired.`,
+              messageKey: 'notifications.connectionReconnectRequired',
+              messageParams: {
+                provider: connection.provider,
+                accountLabel: connection.externalAccountLabel,
+              },
               linkUrl: '/account/connections',
-              metadata: { source: 'reconnection_alert', userConnectionId: connection.id, provider: connection.provider },
+              metadata: {
+                source: 'reconnection_alert',
+                userConnectionId: connection.id,
+                provider: connection.provider,
+              },
             },
           });
         }

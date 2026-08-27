@@ -1,9 +1,10 @@
 import { apiRequest, json, type EnterpriseActionArgs, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 import { forwardIdeStatePut } from '~/lib/persistence/ide-state-proxy.server';
 
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (!params.projectId) {
-    return json({ ok: false, error: 'Project not found' }, { status: 404 });
+    return remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
   }
 
   const payload = await apiRequest(request, `/projects/${params.projectId}/ide-state`);
@@ -13,11 +14,11 @@ export async function loader({ request, params }: EnterpriseLoaderArgs) {
 
 export async function action({ request, params }: EnterpriseActionArgs) {
   if (!params.projectId) {
-    return json({ ok: false, error: 'Project not found' }, { status: 404 });
+    return remainingApiErrorResponse(request, 'PROJECT_NOT_FOUND', 404, { extra: { ok: false } });
   }
 
   if (request.method.toUpperCase() !== 'PUT') {
-    return json({ ok: false, error: 'Method not allowed' }, { status: 405 });
+    return remainingApiErrorResponse(request, 'METHOD_NOT_ALLOWED', 405, { extra: { ok: false } });
   }
 
   /*

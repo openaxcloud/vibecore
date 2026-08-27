@@ -1,3 +1,9 @@
+import {
+  formatProjectIdeCopy,
+  formatProjectIdeCount,
+  formatProjectIdeDateTime,
+  getProjectIdeCopy,
+} from '~/lib/i18n/catalogs/project-ide';
 import type { ProjectLoaderData } from '~/lib/project-ide-loader.server';
 import { withProjectSearch } from '~/utils/project-url';
 
@@ -16,7 +22,7 @@ export type IdeNotification = {
   title: string;
   detail: string;
   timeLabel: string;
-  source: 'Backend activity' | 'Runtime' | 'Preview';
+  source: 'backend' | 'runtime' | 'preview';
   kind: IdeNotificationKind;
   href: string;
   action?: IdeNotificationAction;
@@ -28,30 +34,37 @@ export function buildIdeNotifications({
   projectUrl,
   backendEvents,
   runtimeState,
-  runtimeStatusLabel,
   runtimeError,
   previewPorts,
+  language,
 }: {
   projectUrl: string;
   backendEvents: ProjectLoaderData['notifications'];
   runtimeState: RuntimeState;
-  runtimeStatusLabel: string;
   runtimeError?: string | null;
   previewPorts: number[];
+  language?: string | null;
 }): IdeNotification[] {
+  const copy = getProjectIdeCopy(language);
+  const runtimeStatusKey = `projectIde.status.${runtimeState}` as const;
+
   const runtimeNotification: IdeNotification = {
     id: `runtime-${runtimeState}`,
-    title: `Workspace ${runtimeStatusLabel.toLowerCase()}`,
+    title: formatProjectIdeCopy(copy['projectIde.notifications.workspaceTitle'], {
+      status: copy[runtimeStatusKey].toLocaleLowerCase(language?.startsWith('fr') ? 'fr-FR' : 'en-US'),
+    }),
     detail:
       runtimeState === 'crashed'
-        ? runtimeError || 'The workspace runtime reported an error.'
+        ? language?.toLowerCase().startsWith('fr')
+          ? copy['projectIde.notifications.runtime.crashed']
+          : runtimeError || copy['projectIde.notifications.runtime.crashed']
         : runtimeState === 'running'
-          ? 'The IDE runtime is connected and ready for commands.'
+          ? copy['projectIde.notifications.runtime.running']
           : runtimeState === 'building'
-            ? 'The workspace is starting and preparing project services.'
-            : 'The workspace runtime is currently idle.',
-    timeLabel: 'Live',
-    source: 'Runtime',
+            ? copy['projectIde.notifications.runtime.building']
+            : copy['projectIde.notifications.runtime.stopped'],
+    timeLabel: copy['projectIde.notifications.live'],
+    source: 'runtime',
     kind: runtimeState === 'crashed' ? 'error' : runtimeState === 'building' ? 'warning' : 'info',
     href: withProjectSearch(projectUrl, { panel: 'logs' }),
 
@@ -59,16 +72,24 @@ export function buildIdeNotifications({
      * A crashed runtime is the most common production failure (pod GC'd / boot
      * 502). Surface a real re-provision affordance, not just a link to logs.
      */
-    action: runtimeState === 'crashed' ? { kind: 'restart-workspace', label: 'Restart workspace' } : undefined,
+    action:
+      runtimeState === 'crashed'
+        ? { kind: 'restart-workspace', label: copy['projectIde.notifications.restart'] }
+        : undefined,
   };
 
   const previewNotification: IdeNotification | null = previewPorts.length
     ? {
         id: `preview-${previewPorts.join('-')}`,
-        title: 'Preview server available',
-        detail: `Live preview ${previewPorts.length === 1 ? 'port' : 'ports'}: ${previewPorts.join(', ')}`,
-        timeLabel: 'Live',
-        source: 'Preview',
+        title: copy['projectIde.notifications.previewTitle'],
+        detail: formatProjectIdeCount(
+          copy,
+          'projectIde.notifications.previewPort_one',
+          'projectIde.notifications.previewPort_other',
+          previewPorts.length,
+        ).replace('{ports}', previewPorts.join(', ')),
+        timeLabel: copy['projectIde.notifications.live'],
+        source: 'preview',
         kind: 'success',
         href: withProjectSearch(projectUrl, { panel: 'preview' }),
       }
@@ -79,10 +100,12 @@ export function buildIdeNotifications({
 
     return {
       id: event.id ?? `activity-${event.action}-${event.createdAt ?? index}`,
-      title: formatActivityTitle(event.action),
-      detail: activityDetail(event.action, event.metadata),
-      timeLabel: createdAt ? createdAt.toLocaleString() : 'Recorded by API',
-      source: 'Backend activity' as const,
+      title: formatActivityTitle(event.action, language),
+      detail: activityDetail(event.action, event.metadata, language),
+      timeLabel: createdAt
+        ? formatProjectIdeDateTime(createdAt, language)
+        : copy['projectIde.notifications.recordedByApi'],
+      source: 'backend' as const,
       kind: classifyActivityKind(event.action),
       href: withProjectSearch(projectUrl, { panel: 'activity' }),
     };
@@ -94,40 +117,38 @@ export function buildIdeNotifications({
   );
 }
 
-export function formatActivityTitle(action: string) {
-  return action
-    .replace(/[_:.-]+/g, ' ')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+export function formatActivityTitle(_action: string, language?: string | null) {
+  return getProjectIdeCopy(language)['projectIde.notifications.activityTitle'];
 }
 
-export function activityDetail(action: string, metadata: unknown) {
+export function activityDetail(action: string, metadata: unknown, language?: string | null) {
+  const copy = getProjectIdeCopy(language);
+
   if (metadata && typeof metadata === 'object' && 'message' in metadata && typeof metadata.message === 'string') {
     return metadata.message;
   }
 
   if (action.includes('deploy')) {
-    return 'Deployment activity was recorded by the project API.';
+    return copy['projectIde.notifications.activity.deployment'];
   }
 
   if (action.includes('collaborator') || action.includes('member')) {
-    return 'Team or collaborator access changed.';
+    return copy['projectIde.notifications.activity.collaboration'];
   }
 
   if (action.includes('snapshot')) {
-    return 'A project snapshot event was recorded.';
+    return copy['projectIde.notifications.activity.snapshot'];
   }
 
   if (action.includes('settings')) {
-    return 'Project configuration changed.';
+    return copy['projectIde.notifications.activity.settings'];
   }
 
   if (action.includes('ai.tool')) {
-    return 'An AI tool action changed the workspace.';
+    return copy['projectIde.notifications.activity.aiTool'];
   }
 
-  return 'Project activity recorded by the backend.';
+  return copy['projectIde.notifications.activity.default'];
 }
 
 /*

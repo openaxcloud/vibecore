@@ -1,6 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { IconButton } from '~/components/ui/IconButton';
+import {
+  formatChatBoxWebContent,
+  getChatBoxChildrenCopy,
+  getWebSearchSafeError,
+  type ChatBoxWebContent,
+} from '~/lib/i18n/catalogs/chat-box-children';
 import { classNames } from '~/utils/classNames';
 
 interface WebSearchProps {
@@ -11,12 +18,7 @@ interface WebSearchProps {
   triggerVariant?: 'icon' | 'menu';
 }
 
-interface WebSearchData {
-  title: string;
-  description: string;
-  content: string;
-  sourceUrl: string;
-}
+type WebSearchData = ChatBoxWebContent;
 
 interface WebSearchResponse {
   success: boolean;
@@ -24,35 +26,23 @@ interface WebSearchResponse {
   error?: string;
 }
 
-function formatSearchResult(data: WebSearchData): string {
-  const parts: string[] = [`[Web content from ${data.sourceUrl}]`];
-
-  if (data.title) {
-    parts.push(`Title: ${data.title}`);
-  }
-
-  if (data.description) {
-    parts.push(`Description: ${data.description}`);
-  }
-
-  parts.push('', data.content);
-
-  return parts.join('\n');
-}
-
 export function WebSearch({
   onSearchResult,
   disabled = false,
   triggerClassName,
-  triggerLabel = 'Fetch URL',
+  triggerLabel,
   triggerVariant = 'icon',
 }: WebSearchProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getChatBoxChildrenCopy(language);
   const [isOpen, setIsOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [url, setUrl] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const isMenuTrigger = triggerVariant === 'menu';
+  const resolvedTriggerLabel = triggerLabel ?? copy['chatBoxChildren.web.triggerLabel'];
 
   useEffect(() => {
     if (isOpen) {
@@ -95,15 +85,19 @@ export function WebSearch({
       const result = (await response.json()) as WebSearchResponse;
 
       if (!response.ok || !result.success || !result.data) {
-        throw new Error(result.error || 'Failed to fetch URL content');
+        console.error('Web URL fetch returned an unsuccessful response', result.error);
+        toast.error(getWebSearchSafeError(language, result.error));
+
+        return;
       }
 
-      onSearchResult(formatSearchResult(result.data));
-      toast.success('URL content fetched');
+      onSearchResult(formatChatBoxWebContent(result.data, language));
+      toast.success(copy['chatBoxChildren.web.success']);
       setUrl('');
       setIsOpen(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to fetch URL');
+      console.error('Web URL fetch failed', error);
+      toast.error(getWebSearchSafeError(language, error));
     } finally {
       setIsSearching(false);
     }
@@ -112,8 +106,8 @@ export function WebSearch({
   return (
     <div ref={containerRef} className={classNames('relative', isMenuTrigger ? 'w-full' : undefined)}>
       <IconButton
-        title="Fetch URL content"
-        tooltip="Fetch URL content"
+        title={copy['chatBoxChildren.web.triggerTitle']}
+        tooltip={copy['chatBoxChildren.web.triggerTitle']}
         disabled={disabled || isSearching}
         onClick={() => setIsOpen(!isOpen)}
         className={classNames(isMenuTrigger ? 'bolt-chatbox-tools-menu-item' : 'transition-all', triggerClassName)}
@@ -124,13 +118,19 @@ export function WebSearch({
           ) : (
             <div className="i-ph:globe text-xl" />
           )}
-          {isMenuTrigger ? <span>{triggerLabel}</span> : null}
+          {isMenuTrigger ? (
+            <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
+              {resolvedTriggerLabel}
+            </span>
+          ) : null}
         </>
       </IconButton>
       {isOpen && (
         <div
+          role="group"
+          aria-label={copy['chatBoxChildren.web.triggerTitle']}
           className={classNames(
-            'absolute bottom-full left-0 mb-2 flex w-[min(420px,calc(100vw-40px))] max-w-[calc(100vw-40px)] items-center gap-2',
+            'absolute bottom-full left-0 mb-2 flex w-[min(420px,calc(100vw-24px))] max-w-[calc(100vw-24px)] flex-col items-stretch gap-2 sm:flex-row sm:items-center',
             'rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-2 shadow-lg',
             'bolt-web-url-panel',
           )}
@@ -138,7 +138,7 @@ export function WebSearch({
           <input
             ref={inputRef}
             type="url"
-            aria-label="URL to fetch"
+            aria-label={copy['chatBoxChildren.web.inputAria']}
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => {
@@ -153,7 +153,7 @@ export function WebSearch({
             placeholder="https://example.com"
             disabled={isSearching}
             className={classNames(
-              'min-w-0 flex-1 px-3 py-1.5 text-sm rounded-md',
+              'min-h-11 min-w-0 flex-1 rounded-md px-3 py-2 text-sm',
               'border border-bolt-elements-borderColor',
               'bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary',
               'placeholder-bolt-elements-textTertiary',
@@ -161,16 +161,17 @@ export function WebSearch({
             )}
           />
           <button
+            type="button"
             onClick={handleFetch}
             disabled={isSearching || !url.trim()}
             className={classNames(
-              'px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap',
+              'min-h-11 w-full rounded-md px-3 py-2 text-sm font-medium whitespace-normal break-words leading-snug sm:w-auto',
               'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text',
               'hover:bg-bolt-elements-button-primary-backgroundHover',
               'disabled:opacity-50 disabled:cursor-not-allowed',
             )}
           >
-            {isSearching ? 'Fetching...' : 'Fetch'}
+            {isSearching ? copy['chatBoxChildren.web.fetching'] : copy['chatBoxChildren.web.fetch']}
           </button>
         </div>
       )}

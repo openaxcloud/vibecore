@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router';
 import { EnterpriseFormPage } from '~/components/enterprise/EnterpriseFormPage';
 import {
-  apiErrorMessage,
   apiRequest,
   firstOrganizationOrNull,
   isApiResponse,
@@ -13,26 +13,25 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { formatUserAreaNumber } from '~/lib/i18n/user-area-locale';
+import {
+  billingDisplayName,
+  billingEn,
+  billingFr,
+  formatBillingCurrency,
+  formatBillingNumber,
+  type BillingMessageKey,
+} from '~/lib/i18n/catalogs/billing';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { shouldRethrowActionError } from '~/lib/route-reauth';
 
-export const meta: MetaFunction = () => [{ title: 'Downgrade - E-Code' }];
+export const meta: MetaFunction<typeof loader> = ({ data }) => [
+  { title: (data?.language === 'fr' ? billingFr : billingEn)['downgrade.meta.title'] },
+];
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
 
-/*
- * Statuses for which the org already has a live Stripe subscription. While one
- * is live the checkout endpoint 409s (it refuses to open a second overlapping
- * subscription), so EVERY plan change — including a downgrade — has to go
- * through the billing portal, which schedules/prorates the change at the end of
- * the current period. Only an org with no active subscription (e.g. still on
- * free) starts a paid plan via checkout.
- */
 const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['ACTIVE', 'TRIALING', 'PAST_DUE']);
-
-// Plan keys the checkout endpoint accepts ('free'/'enterprise' are rejected there).
 const CHECKOUTABLE_PLAN_KEYS = new Set(['pro', 'team']);
-
-// Prices are shown in euros with the same figures as the billing/upgrade pages.
-const euros = (cents: number) => `€${(cents / 100).toFixed(0)}`;
+const LIMIT_KEYS = ['projects.count', 'workspaces.active', 'team.members', 'ai.messages', 'storage.gb'] as const;
 
 interface CatalogPlan {
   key: string;
@@ -41,31 +40,17 @@ interface CatalogPlan {
   limits: Record<string, number>;
 }
 
-/*
- * Real, quota-enforced limit keys (the same records the api enforces) with a
- * human label — used to show exactly which quotas shrink on the target plan.
- */
-const LIMIT_LABELS: Array<[string, string]> = [
-  ['projects.count', 'Projects'],
-  ['workspaces.active', 'Active workspaces'],
-  ['team.members', 'Team members'],
-  ['ai.messages', 'AI messages / month'],
-  ['storage.gb', 'Storage (GB)'],
-];
+type DowngradeFeedback = { errorKey?: BillingMessageKey };
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
   const organization = await firstOrganizationOrNull(request);
+  const { language } = resolveRequestLocale(request);
 
   if (!organization) {
     return redirect('/');
   }
 
   try {
-    /*
-     * Real data, the same sources the billing and upgrade pages use:
-     *  - GET /orgs/:orgId/billing → the org's CURRENT (status-gated) plan + subscription.
-     *  - GET /billing/:orgId      → the DB Plan catalog rows (real monthlyCents + limits).
-     */
     const [billing, catalog] = await Promise.all([
       apiRequest<{
         plan: { key: string; name: string; monthlyCents: number };
@@ -84,18 +69,16 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     }));
 
     return json({
+      language,
       plans,
       currentPlanKey: billing.plan.key,
       hasActiveSubscription: ACTIVE_SUBSCRIPTION_STATUSES.has(billing.subscription?.status ?? ''),
       billingAccessLimited: false,
     });
   } catch (error) {
-    /*
-     * Members without billing:read cannot see plan/price state; degrade to an
-     * explanatory message instead of a hard 403. Re-auth redirects propagate.
-     */
     if (isForbiddenApiResponse(error)) {
       return json({
+        language,
         plans: [] as CatalogPlan[],
         currentPlanKey: null,
         hasActiveSubscription: false,
@@ -111,7 +94,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   const organization = await firstOrganizationOrNull(request);
 
   if (!organization) {
-    return json({ error: 'No organization found for your account.' }, { status: 400 });
+    return json<DowngradeFeedback>({ errorKey: 'downgrade.feedback.noOrganization' }, { status: 400 });
   }
 
   const form = await request.formData();
@@ -119,11 +102,6 @@ export async function action({ request }: EnterpriseActionArgs) {
   const planKey = String(form.get('planKey') ?? 'free');
 
   try {
-    /*
-     * Downgrade-to-free and any change for an org with a live subscription go
-     * through the Stripe billing portal (the checkout endpoint 409s otherwise).
-     * Stripe schedules the downgrade at the end of the current billing period.
-     */
     if (intent === 'portal' || planKey === 'free') {
       const portal = await apiRequest<{ portalUrl: string }>(request, `/orgs/${organization.id}/billing/portal`, {
         method: 'POST',
@@ -133,9 +111,8 @@ export async function action({ request }: EnterpriseActionArgs) {
       return redirect(portal.portalUrl);
     }
 
-    // No active subscription: moving onto a paid plan goes through checkout.
     if (!CHECKOUTABLE_PLAN_KEYS.has(planKey)) {
-      return json({ error: 'Choose a plan that supports self-serve checkout.' }, { status: 400 });
+      return json<DowngradeFeedback>({ errorKey: 'downgrade.feedback.invalidPlan' }, { status: 400 });
     }
 
     const checkout = await apiRequest<{ checkoutUrl: string }>(request, `/orgs/${organization.id}/billing/checkout`, {
@@ -149,62 +126,46 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     return redirect(checkout.checkoutUrl);
   } catch (error) {
-    /*
-     * apiRequest throws a real 3xx redirect Response when the session expired or
-     * MFA is required mid-action; those (and 5xx server errors) must be re-thrown
-     * so the framework / error boundary handles them instead of the action
-     * swallowing the redirect into a broken inline error.
-     */
     if (shouldRethrowActionError(error)) {
       throw error;
     }
 
-    if (isApiResponse(error)) {
-      return json(
-        { error: await apiErrorMessage(error, 'The subscription change is unavailable right now.') },
-        { status: error.status },
-      );
-    }
-
-    throw error;
+    return json<DowngradeFeedback>(
+      { errorKey: 'downgrade.feedback.unavailable' },
+      { status: isApiResponse(error) ? error.status : 503 },
+    );
   }
 }
 
-/* Limits that strictly shrink from the current plan to the target plan. */
 function quotaReductions(current: CatalogPlan | undefined, target: CatalogPlan | undefined) {
   if (!current || !target) {
-    return [] as Array<{ label: string; from: number; to: number }>;
+    return [] as Array<{ key: string; from: number; to: number }>;
   }
 
-  return LIMIT_LABELS.flatMap(([key, label]) => {
+  return LIMIT_KEYS.flatMap((key) => {
     const from = current.limits[key];
     const to = target.limits[key];
 
-    if (typeof from === 'number' && typeof to === 'number' && to < from) {
-      return [{ label, from, to }];
-    }
-
-    return [];
+    return typeof from === 'number' && typeof to === 'number' && to < from ? [{ key, from, to }] : [];
   });
 }
 
 export default function DowngradePage() {
-  const actionData = useActionData<typeof action>() as { error?: string } | undefined;
+  const { t } = useTranslation();
+  const actionData = useActionData<typeof action>() as DowngradeFeedback | undefined;
   const data = useLoaderData<typeof loader>();
   const navigation = useNavigation();
-
   const submitting = navigation.state === 'submitting';
+  const actionError = actionData?.errorKey ? t(actionData.errorKey) : undefined;
+  const money = (cents: number) => formatBillingCurrency(cents, 'EUR', data.language, 0);
+
+  const planName = (plan: CatalogPlan) =>
+    billingDisplayName(plan.key || plan.name, data.language, 'billing.label.planAllowance');
 
   const current = useMemo(
     () => data.plans.find((plan) => plan.key === data.currentPlanKey),
     [data.plans, data.currentPlanKey],
   );
-
-  /*
-   * Downgrade targets: every catalog plan cheaper than the current one, plus the
-   * free plan (cancellation). Sorted priciest-first so the closest downgrade is
-   * on top.
-   */
   const targets = useMemo(() => {
     const currentCents = current?.monthlyCents ?? Number.POSITIVE_INFINITY;
 
@@ -219,15 +180,14 @@ export default function DowngradePage() {
   if (data.billingAccessLimited) {
     return (
       <EnterpriseFormPage
-        title="Downgrade"
-        description="Review a lower plan before scheduling a subscription change."
-        error={actionData?.error}
+        title={t('downgrade.page.title')}
+        description={t('downgrade.page.description')}
+        error={actionError}
       >
         <p className="text-sm text-bolt-elements-textSecondary">
-          Plan and price details are available to organization owners and billing administrators only. Ask an owner to
-          change the plan, or check your role on the{' '}
+          {t('downgrade.access.description')}{' '}
           <Link to="/billing" className="underline">
-            billing page
+            {t('downgrade.billingPage')}
           </Link>
           .
         </p>
@@ -236,18 +196,18 @@ export default function DowngradePage() {
   }
 
   if (targets.length === 0) {
+    const currentSuffix = current ? ` (${planName(current)})` : '';
+
     return (
       <EnterpriseFormPage
-        title="Downgrade"
-        description="Review a lower plan before scheduling a subscription change."
-        error={actionData?.error}
+        title={t('downgrade.page.title')}
+        description={t('downgrade.page.description')}
+        error={actionError}
       >
         <p className="text-sm text-bolt-elements-textSecondary">
-          You&rsquo;re already on the lowest available plan
-          {current ? <> ({current.name})</> : null}. There&rsquo;s nothing lower to move to. Manage your subscription on
-          the{' '}
+          {t('downgrade.lowest', { plan: currentSuffix })}{' '}
           <Link to="/billing" className="underline">
-            billing page
+            {t('downgrade.billingPage')}
           </Link>
           .
         </p>
@@ -261,22 +221,25 @@ export default function DowngradePage() {
 
   return (
     <EnterpriseFormPage
-      title="Downgrade"
-      description="Prices and limits below come from the live billing catalog — the same records Stripe charges against."
-      error={actionData?.error}
+      title={t('downgrade.page.title')}
+      description={t('downgrade.page.catalogDescription')}
+      error={actionError}
     >
       <Form method="post" reloadDocument className="space-y-5">
         <label className="grid gap-1.5 text-sm font-medium">
-          <span className="text-bolt-elements-textPrimary">Downgrade to</span>
+          <span className="text-bolt-elements-textPrimary">{t('downgrade.to')}</span>
           <select
             name="planKey"
             value={selectedKey}
             onChange={(event) => setSelectedKey(event.currentTarget.value)}
-            className="h-10 w-full max-w-xs rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
+            className="min-h-[44px] w-full max-w-xs rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm outline-none focus:border-bolt-elements-focus"
           >
             {targets.map((plan) => (
               <option key={plan.key} value={plan.key}>
-                {plan.name} — {plan.monthlyCents === 0 ? 'Free' : `${euros(plan.monthlyCents)}/mo`}
+                {planName(plan)} —{' '}
+                {plan.monthlyCents === 0
+                  ? t('downgrade.free')
+                  : t('downgrade.monthlyPrice', { amount: money(plan.monthlyCents) })}
               </option>
             ))}
           </select>
@@ -285,77 +248,63 @@ export default function DowngradePage() {
         <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-4">
           {current && target ? (
             <>
-              <p className="text-sm text-bolt-elements-textPrimary">
-                <span className="font-medium">{current.name}</span>
+              <p className="break-words text-sm text-bolt-elements-textPrimary">
+                <span className="font-medium">{planName(current)}</span>
                 <span className="text-bolt-elements-textTertiary"> → </span>
-                <span className="font-medium">{target.name}</span>
+                <span className="font-medium">{planName(target)}</span>
               </p>
               <p className="mt-1 text-sm text-bolt-elements-textSecondary">
-                {toFree ? (
-                  <>You&rsquo;ll pay nothing, down from {euros(current.monthlyCents)}/mo.</>
-                ) : (
-                  <>
-                    {euros(target.monthlyCents)}/mo, down from {euros(current.monthlyCents)}/mo
-                    {priceDelta < 0 ? <> — you save {euros(Math.abs(priceDelta))}/mo</> : null}.
-                  </>
-                )}
+                {toFree
+                  ? t('downgrade.freePriceChange', { current: money(current.monthlyCents) })
+                  : t('downgrade.priceChange', {
+                      target: money(target.monthlyCents),
+                      current: money(current.monthlyCents),
+                      saving: priceDelta < 0 ? t('downgrade.saving', { amount: money(Math.abs(priceDelta)) }) : '',
+                    })}
               </p>
 
               <div className="mt-3">
                 <p className="text-xs font-medium uppercase tracking-wide text-bolt-elements-textTertiary">
-                  What you lose
+                  {t('downgrade.losses')}
                 </p>
                 {reductions.length > 0 ? (
                   <ul className="mt-1.5 space-y-1 text-sm text-bolt-elements-textSecondary">
                     {reductions.map((row) => (
-                      <li key={row.label}>
-                        {row.label}: {formatUserAreaNumber(row.from)} → {formatUserAreaNumber(row.to)}
+                      <li key={row.key} className="break-words">
+                        {t('downgrade.reduction', {
+                          label: billingDisplayName(row.key, data.language, 'billing.label.planAllowance'),
+                          from: formatBillingNumber(row.from, data.language),
+                          to: formatBillingNumber(row.to, data.language),
+                        })}
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="mt-1.5 text-sm text-bolt-elements-textSecondary">
-                    No quota reductions versus your current plan.
-                  </p>
+                  <p className="mt-1.5 text-sm text-bolt-elements-textSecondary">{t('downgrade.noReductions')}</p>
                 )}
                 {toFree ? (
-                  <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-                    Paid-only features (priority support, higher limits) end when the change takes effect.
-                  </p>
+                  <p className="mt-2 text-sm text-bolt-elements-textSecondary">{t('downgrade.paidFeaturesEnd')}</p>
                 ) : null}
               </div>
             </>
           ) : (
-            <p className="text-sm text-bolt-elements-textSecondary">Select a plan to preview the change.</p>
+            <p className="text-sm text-bolt-elements-textSecondary">{t('downgrade.selectPreview')}</p>
           )}
         </div>
 
         <p className="text-sm text-bolt-elements-textSecondary">
-          {data.hasActiveSubscription ? (
-            <>
-              This opens the Stripe billing portal to confirm. Your current plan&rsquo;s features stay until the end of
-              the current billing cycle, then the downgrade and any proration take effect.
-            </>
-          ) : (
-            <>
-              You don&rsquo;t have an active paid subscription, so starting a plan opens Stripe Checkout and begins
-              immediately at the price shown.
-            </>
-          )}
+          {t(data.hasActiveSubscription ? 'downgrade.activeSubscription' : 'downgrade.noActiveSubscription')}
         </p>
 
-        {/* Active subscription (or moving to free) → billing portal; otherwise
-            paid checkout. This mirrors the upgrade page so a downgrade never hits
-            the checkout endpoint's 409-on-active-subscription guard. */}
         {data.hasActiveSubscription || toFree ? (
           <button
             type="submit"
             name="intent"
             value="portal"
             disabled={submitting}
-            className="inline-flex h-10 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? 'Opening billing portal…' : 'Schedule change in billing portal'}
+            {t(submitting ? 'downgrade.openingPortal' : 'downgrade.schedule')}
           </button>
         ) : (
           <button
@@ -363,9 +312,9 @@ export default function DowngradePage() {
             name="planKey"
             value={selectedKey}
             disabled={submitting}
-            className="inline-flex h-10 items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-[44px] items-center justify-center rounded-md bg-[var(--vc-ide-accent-action)] px-4 text-sm font-medium text-white transition-opacity hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitting ? 'Opening checkout…' : 'Continue to checkout'}
+            {t(submitting ? 'downgrade.openingCheckout' : 'downgrade.checkout')}
           </button>
         )}
       </Form>

@@ -1,14 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { data as json, type LoaderFunctionArgs } from 'react-router';
 import { useLoaderData } from 'react-router';
+import { getApiRuntimeRoutesCopy } from '~/lib/i18n/catalogs/api-runtime-routes';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 const PREVIEW_CHANNEL = 'preview-updates';
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ params, request }: LoaderFunctionArgs) {
+  const localeResolution = resolveRequestLocale(request);
+  const copy = getApiRuntimeRoutesCopy(localeResolution.language);
+  const headers = localeResponseHeaders(request, localeResolution);
   const previewId = params.id;
 
   if (!previewId) {
-    throw new Response('Preview ID is required', { status: 400 });
+    throw new Response(copy['apiRuntime.preview.idRequired'], { status: 400, headers });
   }
 
   /*
@@ -20,14 +25,14 @@ export async function loader({ params }: LoaderFunctionArgs) {
    * attacker-controlled origin.
    */
   if (!/^[a-z0-9-]+$/.test(previewId)) {
-    throw new Response('Invalid preview ID', { status: 400 });
+    throw new Response(copy['apiRuntime.preview.idInvalid'], { status: 400, headers });
   }
 
-  return json({ previewId });
+  return json({ previewId, frameTitle: copy['apiRuntime.preview.frameTitle'] }, { headers });
 }
 
 export default function WebContainerPreview() {
-  const { previewId } = useLoaderData<typeof loader>();
+  const { previewId, frameTitle } = useLoaderData<typeof loader>();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const broadcastChannelRef = useRef<BroadcastChannel>();
   const [previewUrl, setPreviewUrl] = useState('');
@@ -101,7 +106,7 @@ export default function WebContainerPreview() {
     <div className="w-full h-full">
       <iframe
         ref={iframeRef}
-        title="WebContainer Preview"
+        title={frameTitle}
         className="w-full h-full border-none"
         sandbox="allow-scripts allow-forms allow-popups allow-modals allow-storage-access-by-user-activation allow-same-origin"
         allow="cross-origin-isolated"

@@ -23,6 +23,17 @@ export default defineConfig({
   expect: { timeout: 5_000 },
   fullyParallel: false,
   workers: 1,
+
+  /*
+   * Zero retries meant every flake was a red gate. Across seven consecutive CI
+   * runs of identical code the failing set moved every time — a different
+   * mobile profile, a different IDE theme test, once the gallery-remix spec —
+   * with each offender passing in the other runs. Retries are the right tool
+   * for that: Playwright still reports a retried test as "flaky" rather than
+   * silently green, so the instability stays visible instead of blocking.
+   * Locally we keep 0 so a flake surfaces immediately while you work on it.
+   */
+  retries: process.env.CI ? 2 : 0,
   reporter: [['list']],
   use: {
     baseURL: process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173',

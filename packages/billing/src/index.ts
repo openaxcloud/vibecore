@@ -8,6 +8,7 @@ export * from './rate-card.js';
 export * from './agent-routing.js';
 export * from './starter-entitlements.js';
 export * from './starter-rate-card.js';
+export * from './agent-routing-i18n.js';
 
 /*
  * Pinned Stripe API version. Sent on every request so the request/webhook
@@ -536,7 +537,10 @@ export function verifyStripeSignature(input: {
     return index === -1 ? [part, ''] : [part.slice(0, index), part.slice(index + 1)];
   });
   const timestamp = Number(parts.find(([key]) => key === 't')?.[1]);
-  const signatures = parts.filter(([key]) => key === 'v1').map(([, value]) => value).filter(Boolean);
+  const signatures = parts
+    .filter(([key]) => key === 'v1')
+    .map(([, value]) => value)
+    .filter(Boolean);
 
   if (!timestamp || signatures.length === 0) {
     throw Object.assign(new Error('Invalid Stripe signature header'), {
@@ -675,7 +679,13 @@ export class StripeBillingClient {
     });
   }
 
-  async createRecurringPrice(input: { productId: string; planKey: PlanKey; unitAmountCents: number; currency?: string; interval?: 'month' | 'year' }) {
+  async createRecurringPrice(input: {
+    productId: string;
+    planKey: PlanKey;
+    unitAmountCents: number;
+    currency?: string;
+    interval?: 'month' | 'year';
+  }) {
     return this.postForm('/v1/prices', {
       product: input.productId,
       currency: input.currency ?? 'eur',
@@ -772,12 +782,16 @@ export class StripeBillingClient {
   }
 
   async findProductByPlanKey(planKey: PlanKey) {
-    const response = await this.getJson(`/v1/products/search?query=${encodeURIComponent(`metadata['planKey']:'${planKey}' AND active:'true'`)}`);
+    const response = await this.getJson(
+      `/v1/products/search?query=${encodeURIComponent(`metadata['planKey']:'${planKey}' AND active:'true'`)}`,
+    );
     return (response as { data?: Array<{ id: string; name: string }> }).data?.[0];
   }
 
   async findActivePriceForProduct(productId: string, planKey: PlanKey) {
-    const response = await this.getJson(`/v1/prices/search?query=${encodeURIComponent(`product:'${productId}' AND metadata['planKey']:'${planKey}' AND active:'true'`)}`);
+    const response = await this.getJson(
+      `/v1/prices/search?query=${encodeURIComponent(`product:'${productId}' AND metadata['planKey']:'${planKey}' AND active:'true'`)}`,
+    );
     return (response as { data?: Array<{ id: string; unit_amount: number; currency: string }> }).data?.[0];
   }
 

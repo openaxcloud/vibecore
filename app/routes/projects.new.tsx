@@ -23,6 +23,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useLoaderData, useNavigation, useRouteError, useSubmit } from 'react-router';
 import { AppShell, TemplateGallery } from '~/components/dashboard/SaaSLayout';
@@ -41,7 +42,20 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { formatUserAreaNumber } from '~/lib/i18n/user-area-locale';
+import { localizeModelInfo, localizeProviderInfo, resolveModelApiLanguage } from '~/lib/i18n/catalogs/model-api';
+import {
+  formatProjectCopyPlural,
+  formatProjectPromptCost,
+  formatProjectUserAreaList,
+  formatProjectUserAreaNumber,
+  getProjectCreationCopy,
+  interpolateProjectCopy,
+  projectUserAreaEn,
+  resolveProjectUserAreaLanguage,
+  type ProjectCreationCopy,
+  type ProjectUserAreaLanguage,
+} from '~/lib/i18n/catalogs/project-user-area';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { LLMManager } from '~/lib/modules/llm/manager';
 import { fetchAdminEnabledProviders } from '~/lib/modules/llm/provider-visibility.server';
 import type { ModelInfo } from '~/lib/modules/llm/types';
@@ -57,12 +71,23 @@ import {
   mayHaveCreatedProject,
   type RecoverableProject,
 } from '~/utils/projects-new-recover';
-import { estimatePromptCost, formatEstimatedCost } from '~/utils/prompt-cost';
+import { estimatePromptCost } from '~/utils/prompt-cost';
 import { detectPromptLanguage } from '~/utils/prompt-language';
-import { describeFlaggedCategories, moderateProjectPrompt } from '~/utils/prompt-moderation.server';
-import { PROMPT_MAX_CHARS, validateProjectPrompt } from '~/utils/prompt-validation';
+import { moderateProjectPrompt, type ModerationCategory } from '~/utils/prompt-moderation.server';
+import {
+  PROMPT_MAX_CHARS,
+  PROMPT_MAX_LINES,
+  PROMPT_MIN_WORDS,
+  validateProjectPrompt,
+  type PromptValidationErrorCode,
+  type PromptValidationWarningCode,
+} from '~/utils/prompt-validation';
 
-export const meta: MetaFunction = () => [{ title: 'Create project - E-Code' }];
+export const meta: MetaFunction = ({ matches }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+
+  return [{ title: getProjectCreationCopy(rootData?.language).metaTitle }];
+};
 
 type Project = { id: string; slug?: string };
 type ProjectCreationResult = { project: Project };
@@ -75,177 +100,95 @@ type PendingProjectPrompt = {
   aiFallback?: boolean;
   aiFallbackReason?: string;
 };
+type ArtifactCategoryId = keyof ProjectCreationCopy['artifacts'];
 type ArtifactCategory = {
-  id: string;
+  id: ArtifactCategoryId;
   label: string;
   icon: LucideIcon;
-  prompts: string[];
+  prompts: readonly string[];
   framework: string;
   generationHint: string;
 };
 
-const artifactCategories: ArtifactCategory[] = [
+type ArtifactCategoryDefinition = Omit<ArtifactCategory, 'label' | 'prompts'>;
+
+const artifactCategoryDefinitions: readonly ArtifactCategoryDefinition[] = [
   {
     id: 'web',
-    label: 'Web',
     icon: Globe2,
     framework: 'React + Vite + TypeScript',
     generationHint:
       'Build this as a production React/Vite web application with TypeScript, modular components, realistic data, routing-ready structure, and a live preview that starts with npm run dev.',
-    prompts: [
-      'Build a SaaS dashboard with billing, admin pages, and project analytics',
-      'Create a polished portfolio with case studies, blog posts, and contact forms',
-      'Build an ecommerce storefront with filters, cart, checkout, and order tracking',
-      'Create a booking site with a calendar, availability, and confirmation emails',
-      'Build a help center with searchable articles, categories, and a ticket form',
-      'Create a job board with listings, filters, applications, and an employer portal',
-    ],
   },
   {
     id: 'mobile',
-    label: 'Mobile',
     icon: Smartphone,
     framework: 'Expo + React Native',
     generationHint:
       'Build this as a mobile-first Expo/React Native compatible PWA experience with polished navigation, touch-first interactions, realistic lists, and web preview compatibility.',
-    prompts: [
-      'Build a responsive habit tracker with streaks, reminders, and mobile navigation',
-      'Create a fitness PWA with workout logs, charts, and offline support',
-      'Build a recipe app with saved meals, shopping lists, and mobile-first cards',
-      'Create a budgeting app with accounts, categories, and monthly summaries',
-      'Build a travel planner with itineraries, maps, and packing checklists',
-      'Create a meditation app with timers, streaks, and a daily session picker',
-    ],
   },
   {
     id: 'slides',
-    label: 'Slides',
     icon: Presentation,
     framework: 'Reveal.js-style React deck',
     generationHint:
       'Build this as an executive-grade presentation app with responsive slides, speaker-ready narrative, charts, agenda controls, and polished boardroom visual hierarchy.',
-    prompts: [
-      'Create a startup pitch deck with market, product, traction, and financial slides',
-      'Build a technical presentation with code examples and speaker notes',
-      'Create an investor update deck with charts, timeline, and next milestones',
-      'Build a product launch deck with positioning, demo shots, and pricing tiers',
-      'Create a quarterly business review deck with KPIs, wins, and risks',
-      'Build a conference talk deck with an agenda, live-demo slides, and a summary',
-    ],
   },
   {
     id: 'animation',
-    label: 'Animation',
     icon: Play,
     framework: 'React + CSS motion',
     generationHint:
       'Build this as an interactive animation project with performant CSS/React motion, timeline controls, reduced-motion support, and smooth 60fps interactions.',
-    prompts: [
-      'Build an interactive particle animation playground with exportable presets',
-      'Create a scroll animation showcase with reveal effects and timeline controls',
-      'Build a motion landing page with subtle transitions and responsive sections',
-      'Create an animated data-story page with charts that build in on scroll',
-      'Build a loading/skeleton animation gallery with copyable snippets',
-      'Create an SVG path-drawing animation demo with playback controls',
-    ],
   },
   {
     id: 'design',
-    label: 'Design',
     icon: Palette,
     framework: 'React design canvas',
     generationHint:
       'Build this as a visual design tool or design system with real controls, token panels, accessible component states, export-oriented UI, and premium craft.',
-    prompts: [
-      'Create a design system page with tokens, components, and usage examples',
-      'Build a color palette generator with contrast checks and export tools',
-      'Create a brand kit generator with logos, typography, and social previews',
-      'Build a typography scale explorer with pairings and live preview text',
-      'Create a gradient and shadow studio with copyable CSS output',
-      'Build an icon set browser with search, sizing, and SVG export',
-    ],
   },
   {
     id: 'data',
-    label: 'Data Viz',
     icon: BarChart3,
     framework: 'React + chart components',
     generationHint:
       'Build this as a data visualization app with executive dashboards, charts, filters, import/API-ready data adapters, and explicit loading/empty/error/success states.',
-    prompts: [
-      'Build a real-time analytics dashboard with charts, filters, and alerts',
-      'Create a finance dashboard with category breakdowns and forecast charts',
-      'Build a product metrics dashboard with funnels, cohorts, and retention graphs',
-      'Create a sales pipeline dashboard with stages, forecasts, and win rates',
-      'Build a server monitoring dashboard with time-series charts and thresholds',
-      'Create a survey results explorer with breakdowns, filters, and CSV export',
-    ],
   },
   {
     id: 'automation',
-    label: 'Automation',
     icon: Cog,
     framework: 'Node.js workflow UI',
     generationHint:
       'Build this as an automation workflow app with job states, logs, retries, configuration, auditability, queue health, and operational status views.',
-    prompts: [
-      'Build an automation console for scheduled jobs, logs, retries, and alerts',
-      'Create a file processing workflow with uploads, validation, and status tracking',
-      'Build an email digest generator with settings, previews, and history',
-      'Create a webhook inspector with request logs, replay, and filtering',
-      'Build a data-sync monitor with connectors, run history, and error triage',
-      'Create an approval workflow with steps, assignees, and an audit trail',
-    ],
   },
   {
     id: 'game',
-    label: '3D Game',
     icon: Gamepad2,
     framework: 'Three.js + React',
     generationHint:
       'Build this as an interactive game or 3D scene with working controls, visible gameplay, optimized rendering, responsive canvas sizing, and a clear HUD.',
-    prompts: [
-      'Build a Three.js racing prototype with controls, checkpoints, and lap timing',
-      'Create a tower defense game with waves, upgrades, and a scoreboard',
-      'Build a 3D product configurator with lighting, camera controls, and presets',
-      'Create an endless runner with obstacles, power-ups, and a high-score board',
-      'Build a physics puzzle game with draggable objects and level progression',
-      'Create a 3D solar-system explorer with orbit controls and planet facts',
-    ],
   },
   {
     id: 'document',
-    label: 'Document',
     icon: PenTool,
     framework: 'React document editor',
     generationHint:
       'Build this as a document editor or writing tool with editing, preview, version/status UI, export-oriented controls, and robust empty/error states.',
-    prompts: [
-      'Build a markdown editor with live preview, file tree, and export controls',
-      'Create a resume builder with templates, sections, and PDF export',
-      'Build a collaborative notes app with tags, comments, and version history',
-      'Create an invoice generator with line items, totals, and PDF export',
-      'Build a knowledge base editor with nested pages, search, and backlinks',
-      'Create a contract editor with clause templates, variables, and preview',
-    ],
   },
   {
     id: 'spreadsheet',
-    label: 'Spreadsheet',
     icon: Table2,
     framework: 'React data grid',
     generationHint:
       'Build this as a spreadsheet/data-grid app with editable cells, formulas or table operations, filters, validation, keyboard-friendly controls, and realistic datasets.',
-    prompts: [
-      'Build a budget spreadsheet with formulas, charts, and CSV import',
-      'Create an inventory table with filters, bulk edit, and stock alerts',
-      'Build a project timeline grid with milestones, owners, and progress views',
-      'Create an expense tracker grid with categories, receipts, and monthly totals',
-      'Build a CRM contacts grid with tags, filters, and inline editing',
-      'Create a grading sheet with weighted columns, averages, and CSV export',
-    ],
   },
 ];
+
+const artifactCategories: readonly ArtifactCategory[] = artifactCategoryDefinitions.map((category) => ({
+  ...category,
+  ...projectUserAreaEn.projectUserArea.creation.artifacts[category.id],
+}));
 
 const preferredProviderOrder = [
   'Anthropic',
@@ -287,8 +230,6 @@ const fallbackProvider =
   providerOptions[0];
 const fallbackModel =
   fallbackProvider?.staticModels.find((model) => model.name === DEFAULT_MODEL) ?? fallbackProvider?.staticModels[0];
-const PROJECT_QUOTA_EXCEEDED_MESSAGE =
-  'Your workspace has reached its project limit. Upgrade the plan or ask an admin for a quota override before creating another project.';
 
 function knownProviderForName(providerName?: string) {
   return PROVIDER_LIST.find((provider) => provider.name === providerName) ?? fallbackProvider ?? DEFAULT_PROVIDER;
@@ -300,53 +241,85 @@ type ModelsPayload = {
   defaultProvider: ProviderInfo;
 };
 
-const ROTATING_PLACEHOLDERS = [
-  'Build a SaaS dashboard with…',
-  'Create a portfolio with…',
-  'Generate an e-commerce store with…',
-];
-
-const heroAttachShortcuts: Array<{
+const heroAttachShortcuts: ReadonlyArray<{
   to: string;
   icon: LucideIcon;
-  label: string;
-  hint: string;
+  copyKey: keyof ProjectCreationCopy['attachments'];
 }> = [
   {
     to: '/import-zip',
     icon: Paperclip,
-    label: 'Attach',
-    hint: 'Upload a zip archive (code, screenshots, images)',
+    copyKey: 'archive',
   },
   {
     to: '/import-github',
     icon: Github,
-    label: 'GitHub repo URL',
-    hint: 'Import an existing GitHub repository',
+    copyKey: 'github',
   },
   {
     to: '/import-zip',
     icon: ImagePlus,
-    label: 'Design palette',
-    hint: 'Drop a Figma export or design screenshots inside a zip archive',
+    copyKey: 'design',
   },
   {
     to: '/import',
     icon: Boxes,
-    label: 'All import sources',
-    hint: 'Import from GitHub, Bitbucket, ZIP, a spreadsheet, a builder export, or start empty',
+    copyKey: 'import',
   },
 ];
 
-function projectNameFromPrompt(prompt: string) {
+function projectNameFromPrompt(prompt: string, fallbackName: string) {
   const normalized = prompt
-    .replace(/[^a-zA-Z0-9\s-]/g, ' ')
+    .replace(/[^\p{L}\p{N}\s-]/gu, ' ')
     .trim()
     .split(/\s+/)
     .slice(0, 5)
     .join(' ');
 
-  return normalized || 'AI project';
+  return normalized || fallbackName;
+}
+
+function localizedPromptIssue(
+  code: PromptValidationErrorCode | PromptValidationWarningCode,
+  copy: ProjectCreationCopy,
+  language: ProjectUserAreaLanguage,
+  counts: { characters: number; lines: number },
+): string {
+  const number = (value: number) => formatProjectUserAreaNumber(value, language);
+
+  switch (code) {
+    case 'empty':
+      return copy.validation.empty;
+    case 'too_short':
+      return interpolateProjectCopy(copy.validation.tooShort, { minimum: number(PROMPT_MIN_WORDS) });
+    case 'too_long':
+      return interpolateProjectCopy(copy.validation.tooLong, {
+        maximum: number(PROMPT_MAX_CHARS),
+        characters: number(counts.characters),
+      });
+    case 'too_many_lines':
+      return interpolateProjectCopy(copy.validation.tooManyLines, {
+        lines: number(counts.lines),
+        maximum: number(PROMPT_MAX_LINES),
+      });
+    case 'non_printable_stripped':
+      return copy.validation.nonPrintable;
+    case 'injection_pattern':
+      return copy.validation.injection;
+    default:
+      return copy.validation.empty;
+  }
+}
+
+function localizedModerationCategories(
+  categories: readonly ModerationCategory[],
+  copy: ProjectCreationCopy,
+  language: ProjectUserAreaLanguage,
+): string {
+  return formatProjectUserAreaList(
+    categories.map((category) => copy.moderation.categories[category]),
+    language,
+  );
 }
 
 function projectPromptForArtifact(prompt: string, category: ArtifactCategory) {
@@ -400,14 +373,14 @@ async function queueProjectPrompt(request: Request, projectId: string, pendingPr
   });
 }
 
-async function projectQuotaActionMessage(error: unknown) {
+async function projectQuotaActionMessage(error: unknown, copy: ProjectCreationCopy) {
   if (!isApiResponse(error, 402) && !isApiResponse(error, 429)) {
     return undefined;
   }
 
   const message = await apiErrorMessage(error, '');
 
-  return /quota exceeded for projects\.count/i.test(message) ? PROJECT_QUOTA_EXCEEDED_MESSAGE : undefined;
+  return /quota exceeded for projects\.count/i.test(message) ? copy.errors.projectQuota : undefined;
 }
 
 /*
@@ -430,6 +403,7 @@ async function createProjectOrReturnQuotaError(
   request: Request,
   path: string,
   body: Record<string, unknown>,
+  copy: ProjectCreationCopy,
 ): Promise<{ ok: true; result: ProjectCreationResult } | { ok: false; error: string; quota: true }> {
   try {
     return {
@@ -440,7 +414,7 @@ async function createProjectOrReturnQuotaError(
       }),
     };
   } catch (error) {
-    const quotaMessage = await projectQuotaActionMessage(error);
+    const quotaMessage = await projectQuotaActionMessage(error, copy);
 
     if (quotaMessage) {
       return { ok: false, error: quotaMessage, quota: true };
@@ -477,6 +451,8 @@ async function requireFirstOrganization(request: Request) {
 export async function loader({ request, context }: EnterpriseLoaderArgs) {
   await requireFirstOrganization(request);
 
+  const language = resolveModelApiLanguage(resolveRequestLocale(request).language);
+
   /*
    * The homepage "Describe the app you want to build" form forwards its text as ?prompt=, and the
    * signup flow carries it through to here after registration. Seed the composer with it so a visitor
@@ -490,13 +466,18 @@ export async function loader({ request, context }: EnterpriseLoaderArgs) {
   const allProviders = llmManager.getAllProviders();
   const defaultProvider = llmManager.getDefaultProvider();
 
-  const providers = allProviders.map((provider) => ({
-    name: provider.name,
-    staticModels: provider.staticModels,
-    getApiKeyLink: provider.getApiKeyLink,
-    labelForGetApiKey: provider.labelForGetApiKey,
-    icon: provider.icon,
-  }));
+  const providers = allProviders.map((provider) =>
+    localizeProviderInfo(
+      {
+        name: provider.name,
+        staticModels: provider.staticModels,
+        getApiKeyLink: provider.getApiKeyLink,
+        labelForGetApiKey: provider.labelForGetApiKey,
+        icon: provider.icon,
+      },
+      language,
+    ),
+  );
 
   /*
    * Hide providers an admin disabled (admin visibility toggle). Fail-open: a null
@@ -506,7 +487,7 @@ export async function loader({ request, context }: EnterpriseLoaderArgs) {
   const adminEnabled = await fetchAdminEnabledProviders(request);
   const filteredProviders = adminEnabled ? providers.filter((provider) => adminEnabled.has(provider.name)) : providers;
   const visibleProviders = filteredProviders.length > 0 ? filteredProviders : providers;
-  const fullModelList = llmManager.getStaticModelList();
+  const fullModelList = llmManager.getStaticModelList().map((model) => localizeModelInfo(model, language));
 
   const visibleModelList =
     adminEnabled && filteredProviders.length > 0
@@ -516,19 +497,24 @@ export async function loader({ request, context }: EnterpriseLoaderArgs) {
   return json<ModelsPayload & { initialPrompt: string }>({
     modelList: visibleModelList,
     providers: visibleProviders,
-    defaultProvider: {
-      name: defaultProvider.name,
-      staticModels: defaultProvider.staticModels,
-      getApiKeyLink: defaultProvider.getApiKeyLink,
-      labelForGetApiKey: defaultProvider.labelForGetApiKey,
-      icon: defaultProvider.icon,
-    },
+    defaultProvider: localizeProviderInfo(
+      {
+        name: defaultProvider.name,
+        staticModels: defaultProvider.staticModels,
+        getApiKeyLink: defaultProvider.getApiKeyLink,
+        labelForGetApiKey: defaultProvider.labelForGetApiKey,
+        icon: defaultProvider.icon,
+      },
+      language,
+    ),
     initialPrompt,
   });
 }
 
 export async function action({ request, context }: EnterpriseActionArgs) {
   const organization = await requireFirstOrganization(request);
+  const language = resolveProjectUserAreaLanguage(resolveRequestLocale(request).language);
+  const copy = getProjectCreationCopy(language);
 
   const body = formObject(await request.formData()) as {
     name?: string;
@@ -547,7 +533,12 @@ export async function action({ request, context }: EnterpriseActionArgs) {
   const promptValidation = validateProjectPrompt(body.prompt, { allowEmpty: true });
 
   if (promptValidation.errors.length > 0) {
-    return { error: promptValidation.errors[0].message };
+    return {
+      error: localizedPromptIssue(promptValidation.errors[0].code, copy, language, {
+        characters: promptValidation.characterCount,
+        lines: promptValidation.lineCount,
+      }),
+    };
   }
 
   const prompt = promptValidation.value || undefined;
@@ -567,7 +558,9 @@ export async function action({ request, context }: EnterpriseActionArgs) {
 
   if (moderation && !moderation.allowed) {
     return {
-      error: `Your prompt was flagged for ${describeFlaggedCategories(moderation.flaggedCategories)} and can't be used. Rephrase and try again.`,
+      error: interpolateProjectCopy(copy.moderation.rejected, {
+        categories: localizedModerationCategories(moderation.flaggedCategories, copy, language),
+      }),
       moderation: {
         flaggedCategories: moderation.flaggedCategories,
         checked: moderation.checked,
@@ -595,10 +588,10 @@ export async function action({ request, context }: EnterpriseActionArgs) {
       : '';
 
   const generationPrompt = prompt ? `${languagePrefix}${projectPromptForArtifact(prompt, artifactCategory)}` : '';
-  const name = body.name?.trim() || (prompt ? projectNameFromPrompt(prompt) : '');
+  const name = body.name?.trim() || (prompt ? projectNameFromPrompt(prompt, copy.defaultProjectName) : '');
 
   if (!name) {
-    return { error: 'Project name is required' };
+    return { error: copy.errors.projectNameRequired };
   }
 
   let result: ProjectCreationResult;
@@ -618,14 +611,19 @@ export async function action({ request, context }: EnterpriseActionArgs) {
     const attemptStartedAt = Date.now();
 
     try {
-      const created = await createProjectOrReturnQuotaError(request, `/orgs/${organization.id}/projects/from-ai`, {
-        name,
-        prompt: generationPrompt,
-        artifactType: artifactCategory.id,
-        framework: artifactCategory.framework,
-        provider: selectedProvider,
-        model: selectedModel,
-      });
+      const created = await createProjectOrReturnQuotaError(
+        request,
+        `/orgs/${organization.id}/projects/from-ai`,
+        {
+          name,
+          prompt: generationPrompt,
+          artifactType: artifactCategory.id,
+          framework: artifactCategory.framework,
+          provider: selectedProvider,
+          model: selectedModel,
+        },
+        copy,
+      );
 
       if (!created.ok) {
         return projectCreateActionError(created);
@@ -634,7 +632,8 @@ export async function action({ request, context }: EnterpriseActionArgs) {
       result = created.result;
     } catch (error) {
       aiGenerationFailed = true;
-      aiGenerationError = error instanceof Error ? error.message : 'AI generation failed';
+      console.error('AI project generation failed:', error);
+      aiGenerationError = copy.errors.aiGenerationFailed;
 
       /*
        * `from-ai` creates the project + consumes projects.count + returns 201
@@ -652,7 +651,12 @@ export async function action({ request, context }: EnterpriseActionArgs) {
         result = { project: recovered };
       } else {
         // Fall back to creating an empty project so the user keeps their prompt and can retry inside the IDE.
-        const created = await createProjectOrReturnQuotaError(request, `/orgs/${organization.id}/projects`, { name });
+        const created = await createProjectOrReturnQuotaError(
+          request,
+          `/orgs/${organization.id}/projects`,
+          { name },
+          copy,
+        );
 
         if (!created.ok) {
           return projectCreateActionError(created);
@@ -663,7 +667,7 @@ export async function action({ request, context }: EnterpriseActionArgs) {
       }
     }
   } else {
-    const created = await createProjectOrReturnQuotaError(request, `/orgs/${organization.id}/projects`, { name });
+    const created = await createProjectOrReturnQuotaError(request, `/orgs/${organization.id}/projects`, { name }, copy);
 
     if (!created.ok) {
       return projectCreateActionError(created);
@@ -688,7 +692,8 @@ export async function action({ request, context }: EnterpriseActionArgs) {
     try {
       await queueProjectPrompt(request, result.project.id, pendingPrompt);
     } catch (error) {
-      promptQueueError = error instanceof Error ? error.message : 'Unable to queue the initial prompt';
+      console.error('Initial project prompt queueing failed:', error);
+      promptQueueError = copy.errors.promptQueueFailed;
     }
   }
 
@@ -721,13 +726,16 @@ export async function action({ request, context }: EnterpriseActionArgs) {
 }
 
 export default function NewProjectPage() {
+  const { i18n } = useTranslation();
+  const language = resolveProjectUserAreaLanguage(i18n.resolvedLanguage ?? i18n.language);
+  const copy = getProjectCreationCopy(language);
   const initialModelsPayload = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as ProjectsNewActionError | undefined;
   const navigation = useNavigation();
   const providersSettings = useStore(providersStore);
   const isSubmitting = navigation.state === 'submitting';
   const [prompt, setPrompt] = useState(initialModelsPayload.initialPrompt ?? '');
-  const [selectedCategory, setSelectedCategory] = useState(artifactCategories[0].id);
+  const [selectedCategory, setSelectedCategory] = useState<ArtifactCategoryId>(artifactCategoryDefinitions[0].id);
   const [promptSeed, setPromptSeed] = useState(0);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
@@ -867,8 +875,16 @@ export default function NewProjectPage() {
     }
   }, [initialModelsPayload.modelList]);
 
+  const localizedArtifactCategories = useMemo<readonly ArtifactCategory[]>(
+    () =>
+      artifactCategoryDefinitions.map((category) => ({
+        ...category,
+        ...copy.artifacts[category.id],
+      })),
+    [copy],
+  );
   const activeCategory =
-    artifactCategories.find((category) => category.id === selectedCategory) ?? artifactCategories[0];
+    localizedArtifactCategories.find((category) => category.id === selectedCategory) ?? localizedArtifactCategories[0];
 
   useEffect(() => {
     let cancelled = false;
@@ -881,7 +897,7 @@ export default function NewProjectPage() {
         const response = await fetch('/api/models');
 
         if (!response.ok) {
-          throw new Error(`Failed to load models (${response.status})`);
+          throw new Error();
         }
 
         const payload = (await response.json()) as ModelsPayload;
@@ -890,9 +906,21 @@ export default function NewProjectPage() {
           setModelsPayload(payload);
         }
       } catch (error) {
-        if (!cancelled) {
-          setModelsError(error instanceof Error ? error.message : 'Failed to load models');
+        if (cancelled) {
+          return;
         }
+
+        /*
+         * This request is opportunistic: the SSR payload remains usable and the
+         * localized recovery state is rendered below. Navigation can cancel the
+         * browser fetch before React runs its cleanup, so do not report a handled
+         * refresh failure as an uncaught console error.
+         */
+        console.warn('[projects-new] model catalog refresh unavailable', {
+          errorType: error instanceof Error ? error.name : 'UnknownError',
+        });
+
+        setModelsError(copy.errors.modelsLoadFailed);
       } finally {
         if (!cancelled) {
           setModelsLoading(false);
@@ -905,7 +933,7 @@ export default function NewProjectPage() {
     return () => {
       cancelled = true;
     };
-  }, [providersSettings]);
+  }, [copy.errors.modelsLoadFailed, providersSettings]);
 
   const enabledProviderNames = useMemo(() => {
     return new Set(
@@ -1007,11 +1035,11 @@ export default function NewProjectPage() {
     }
 
     const id = window.setInterval(() => {
-      setPlaceholderIndex((index) => (index + 1) % ROTATING_PLACEHOLDERS.length);
+      setPlaceholderIndex((index) => (index + 1) % copy.placeholders.length);
     }, 3500);
 
     return () => window.clearInterval(id);
-  }, [prompt]);
+  }, [copy.placeholders.length, prompt]);
 
   useEffect(() => {
     if (!activeProvider?.name || selectedProvider === activeProvider.name) {
@@ -1050,21 +1078,19 @@ export default function NewProjectPage() {
 
   return (
     <AppShell
-      title="Create project"
-      description="Describe your idea. E-Code creates a real workspace and opens the IDE."
+      title={copy.shell.title}
+      description={copy.shell.description}
       hideHeader
       mainClassName="vc-new-project-page"
       contentClassName="vc-new-project-content"
     >
       <div className="vc-new-project-hero">
         <header className="vc-new-project-header">
-          <h1 className="vc-new-project-title">What do you want to build?</h1>
-          <p className="vc-new-project-subtitle">
-            Describe your idea. E-Code creates a real workspace and opens the IDE.
-          </p>
+          <h1 className="vc-new-project-title">{copy.heroTitle}</h1>
+          <p className="vc-new-project-subtitle">{copy.shell.description}</p>
         </header>
 
-        <Form method="post" className="vc-new-project-form" aria-label="Create project form">
+        <Form method="post" className="vc-new-project-form" aria-label={copy.formAria}>
           {/* AGM: no model/provider in the create form — the server resolves the default. */}
           <input type="hidden" name="artifactType" value={selectedCategory} />
           <input type="hidden" name="framework" value={activeCategory.framework} />
@@ -1078,10 +1104,10 @@ export default function NewProjectPage() {
                 <div className="vc-new-project-error-actions">
                   <Link to="/billing" className="vc-new-project-submit">
                     <Rocket className="h-4 w-4" aria-hidden />
-                    <span>View billing</span>
+                    <span>{copy.actions.viewBilling}</span>
                   </Link>
                   <Link to="/dashboard" className="vc-new-project-example">
-                    Back to dashboard
+                    {copy.actions.backDashboard}
                   </Link>
                 </div>
               ) : null}
@@ -1120,29 +1146,31 @@ export default function NewProjectPage() {
                 event.preventDefault();
                 event.currentTarget.form?.requestSubmit();
               }}
-              placeholder={ROTATING_PLACEHOLDERS[placeholderIndex]}
+              placeholder={copy.placeholders[placeholderIndex] ?? copy.placeholders[0]}
               rows={6}
               maxLength={PROMPT_MAX_CHARS}
               className="vc-new-project-textarea"
               disabled={isSubmitting}
-              aria-label="Describe your idea"
+              aria-label={copy.prompt.inputAria}
               aria-invalid={promptHasBlockingError || undefined}
               aria-describedby="vc-new-project-prompt-status"
             />
             <div className="vc-new-project-composer-footer">
-              <div className="vc-new-project-attach-row" role="group" aria-label="Attach context">
+              <div className="vc-new-project-attach-row" role="group" aria-label={copy.prompt.attachAria}>
                 {heroAttachShortcuts.map((shortcut) => {
                   const Icon = shortcut.icon;
+                  const shortcutCopy = copy.attachments[shortcut.copyKey];
+
                   return (
                     <Link
-                      key={`${shortcut.label}-${shortcut.to}`}
+                      key={`${shortcut.copyKey}-${shortcut.to}`}
                       to={shortcut.to}
                       className="vc-new-project-attach"
-                      aria-label={shortcut.hint}
-                      title={shortcut.hint}
+                      aria-label={shortcutCopy.hint}
+                      title={shortcutCopy.hint}
                     >
                       <Icon className="h-4 w-4" aria-hidden />
-                      <span className="sr-only">{shortcut.label}</span>
+                      <span className="sr-only">{shortcutCopy.label}</span>
                     </Link>
                   );
                 })}
@@ -1151,16 +1179,16 @@ export default function NewProjectPage() {
                 type="submit"
                 disabled={!canSubmit}
                 className="vc-new-project-submit"
-                aria-label="Create project"
+                aria-label={copy.prompt.createAria}
                 aria-keyshortcuts={isAppleHost ? 'Meta+Enter' : 'Control+Enter'}
-                title="Create project"
+                title={copy.prompt.createAria}
               >
                 {isSubmitting ? (
                   <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
                 ) : (
                   <Sparkles className="h-4 w-4" aria-hidden />
                 )}
-                <span>Create</span>
+                <span>{copy.prompt.create}</span>
                 <kbd className="vc-new-project-submit-shortcut" aria-hidden>
                   {submitShortcutLabel}
                 </kbd>
@@ -1175,40 +1203,66 @@ export default function NewProjectPage() {
           >
             {promptWordCount === 0 ? (
               <>
-                Write a few sentences to unlock Create.
-                <span className="vc-new-project-keyboard-hint"> Press {submitShortcutLabel} to send.</span>
+                {copy.prompt.unlock}
+                <span className="vc-new-project-keyboard-hint">
+                  {' '}
+                  {interpolateProjectCopy(copy.prompt.shortcutHint, { shortcut: submitShortcutLabel })}
+                </span>
               </>
             ) : promptWordCount < 3 ? (
-              `${promptWordCount} word${promptWordCount === 1 ? '' : 's'} — keep going.`
+              formatProjectCopyPlural(language, promptWordCount, {
+                one: copy.prompt.keepGoing_one,
+                other: copy.prompt.keepGoing_other,
+              })
             ) : (
-              `${promptWordCount} words · ${formatUserAreaNumber(promptCharacterCount)}/${formatUserAreaNumber(PROMPT_MAX_CHARS)} chars`
+              formatProjectCopyPlural(
+                language,
+                promptWordCount,
+                { one: copy.prompt.summary_one, other: copy.prompt.summary_other },
+                {
+                  characters: formatProjectUserAreaNumber(promptCharacterCount, language),
+                  maximum: formatProjectUserAreaNumber(PROMPT_MAX_CHARS, language),
+                },
+              )
             )}
             {promptWordCount >= 3 && promptCostEstimate.tokens > 0 ? (
               <span
                 className="vc-new-project-prompt-estimate"
                 title={
                   promptCostEstimate.hasPricing
-                    ? `Estimate: ~${formatUserAreaNumber(promptCostEstimate.tokens)} input tokens`
-                    : 'Token estimate only.'
+                    ? interpolateProjectCopy(copy.prompt.estimateTitle, {
+                        tokens: formatProjectUserAreaNumber(promptCostEstimate.tokens, language),
+                      })
+                    : copy.prompt.estimateOnlyTitle
                 }
               >
                 {' · '}
-                {`~${formatUserAreaNumber(promptCostEstimate.tokens)} tokens`}
+                {interpolateProjectCopy(copy.prompt.tokens, {
+                  tokens: formatProjectUserAreaNumber(promptCostEstimate.tokens, language),
+                })}
                 {promptCostEstimate.hasPricing && promptCostEstimate.inputUsd !== null
-                  ? ` · ~${formatEstimatedCost(promptCostEstimate.inputUsd)} input`
-                  : ' · pricing unknown'}
+                  ? ` · ${interpolateProjectCopy(copy.prompt.inputCost, {
+                      cost: formatProjectPromptCost(promptCostEstimate.inputUsd, language),
+                    })}`
+                  : ` · ${copy.prompt.pricingUnknown}`}
               </span>
             ) : null}
             {promptValidation.errors.map((issue) => (
               <span key={issue.code} className="vc-new-project-prompt-issue" role="alert">
                 {' · '}
-                {issue.message}
+                {localizedPromptIssue(issue.code, copy, language, {
+                  characters: promptValidation.characterCount,
+                  lines: promptValidation.lineCount,
+                })}
               </span>
             ))}
             {promptValidation.warnings.map((issue) => (
               <span key={issue.code} className="vc-new-project-prompt-issue" data-kind="warn">
                 {' · '}
-                {issue.message}
+                {localizedPromptIssue(issue.code, copy, language, {
+                  characters: promptValidation.characterCount,
+                  lines: promptValidation.lineCount,
+                })}
               </span>
             ))}
           </p>
@@ -1217,12 +1271,12 @@ export default function NewProjectPage() {
             type="button"
             className="vc-new-project-advanced-toggle"
             aria-expanded={advancedOpen}
-            aria-controls="vc-new-project-advanced-content vc-new-project-templates"
+            aria-controls="vc-new-project-advanced-content"
             onClick={() => setAdvancedOpen((open) => !open)}
           >
             <span className="vc-new-project-advanced-label">
               <SlidersHorizontal className="h-4 w-4" aria-hidden />
-              Advanced options
+              {copy.advanced.title}
             </span>
             {/* AGM: no model name anywhere — the summary shows the artifact type only. */}
             <span className="vc-new-project-advanced-summary">{activeCategory.label}</span>
@@ -1234,21 +1288,21 @@ export default function NewProjectPage() {
             className="vc-new-project-advanced-content"
             data-open={advancedOpen ? 'true' : 'false'}
           >
-            <section className="vc-new-project-meta" aria-label="Generation context">
+            <section className="vc-new-project-meta" aria-label={copy.advanced.contextAria}>
               <div className="vc-new-project-meta-row">
-                <span className="vc-new-project-meta-label">Artifact</span>
+                <span className="vc-new-project-meta-label">{copy.advanced.artifact}</span>
                 <ToggleGroup
                   type="single"
                   value={selectedCategory}
                   onValueChange={(value) => {
                     if (value) {
-                      setSelectedCategory(value);
+                      setSelectedCategory(value as ArtifactCategoryId);
                     }
                   }}
                   className="vc-new-project-chip-group"
-                  aria-label="Artifact type"
+                  aria-label={copy.advanced.artifactAria}
                 >
-                  {artifactCategories.map((category) => {
+                  {localizedArtifactCategories.map((category) => {
                     const Icon = category.icon;
 
                     return (
@@ -1272,14 +1326,14 @@ export default function NewProjectPage() {
                */}
             </section>
 
-            <section className="vc-new-project-examples" aria-label="Example prompts">
+            <section className="vc-new-project-examples" aria-label={copy.advanced.examplesAria}>
               <header className="vc-new-project-examples-header">
-                <span className="vc-new-project-meta-label">Try an example</span>
+                <span className="vc-new-project-meta-label">{copy.advanced.tryExample}</span>
                 <button
                   type="button"
                   onClick={() => setPromptSeed((value) => value + 1)}
                   className="vc-new-project-refresh"
-                  aria-label="Refresh example prompts"
+                  aria-label={copy.advanced.refreshAria}
                 >
                   <RefreshCw className="h-3.5 w-3.5" aria-hidden />
                 </button>
@@ -1301,18 +1355,13 @@ export default function NewProjectPage() {
         </Form>
       </div>
 
-      <section
-        id="vc-new-project-templates"
-        className="vc-new-project-templates"
-        aria-label="Production templates"
-        data-open={advancedOpen ? 'true' : 'false'}
-      >
+      <section id="vc-new-project-templates" className="vc-new-project-templates" aria-label={copy.templates.aria}>
         <header className="vc-new-project-templates-header">
           <div>
-            <p className="vc-new-project-meta-label">Templates</p>
-            <h2 className="vc-new-project-templates-title">Start from the existing catalog</h2>
+            <p className="vc-new-project-meta-label">{copy.templates.eyebrow}</p>
+            <h2 className="vc-new-project-templates-title">{copy.templates.title}</h2>
           </div>
-          <p className="vc-new-project-templates-subtitle">Choose a curated starter and customize it with the agent.</p>
+          <p className="vc-new-project-templates-subtitle">{copy.templates.description}</p>
         </header>
         <TemplateGallery compact mode="authenticated" />
       </section>
@@ -1320,17 +1369,23 @@ export default function NewProjectPage() {
   );
 }
 
-function ProjectsNewErrorActions({ descriptor }: { descriptor: ProjectsNewErrorDescriptor }) {
+function ProjectsNewErrorActions({
+  descriptor,
+  copy,
+}: {
+  descriptor: ProjectsNewErrorDescriptor;
+  copy: ProjectCreationCopy;
+}) {
   switch (descriptor.kind) {
     case 'auth':
       return (
         <div className="vc-new-project-error-actions">
           <Link to="/login" className="vc-new-project-submit">
             <Sparkles className="h-4 w-4" aria-hidden />
-            <span>Log in</span>
+            <span>{copy.actions.logIn}</span>
           </Link>
           <Link to="/" className="vc-new-project-example">
-            Back to homepage
+            {copy.actions.backHomepage}
           </Link>
         </div>
       );
@@ -1348,10 +1403,10 @@ function ProjectsNewErrorActions({ descriptor }: { descriptor: ProjectsNewErrorD
             }}
           >
             <RefreshCw className="h-4 w-4" aria-hidden />
-            <span>Retry</span>
+            <span>{copy.actions.retry}</span>
           </button>
           <Link to="/" className="vc-new-project-example">
-            Back to homepage
+            {copy.actions.backHomepage}
           </Link>
         </div>
       );
@@ -1361,10 +1416,10 @@ function ProjectsNewErrorActions({ descriptor }: { descriptor: ProjectsNewErrorD
         <div className="vc-new-project-error-actions">
           <Link to="/billing" className="vc-new-project-submit">
             <Rocket className="h-4 w-4" aria-hidden />
-            <span>View billing</span>
+            <span>{copy.actions.viewBilling}</span>
           </Link>
           <Link to="/dashboard" className="vc-new-project-example">
-            Back to dashboard
+            {copy.actions.backDashboard}
           </Link>
         </div>
       );
@@ -1382,10 +1437,10 @@ function ProjectsNewErrorActions({ descriptor }: { descriptor: ProjectsNewErrorD
             }}
           >
             <RefreshCw className="h-4 w-4" aria-hidden />
-            <span>Try again</span>
+            <span>{copy.actions.tryAgain}</span>
           </button>
           <Link to="/" className="vc-new-project-example">
-            Back to homepage
+            {copy.actions.backHomepage}
           </Link>
         </div>
       );
@@ -1404,10 +1459,10 @@ function ProjectsNewErrorActions({ descriptor }: { descriptor: ProjectsNewErrorD
             }}
           >
             <RefreshCw className="h-4 w-4" aria-hidden />
-            <span>Retry</span>
+            <span>{copy.actions.retry}</span>
           </button>
           <Link to="/" className="vc-new-project-example">
-            Back to homepage
+            {copy.actions.backHomepage}
           </Link>
         </div>
       );
@@ -1415,19 +1470,22 @@ function ProjectsNewErrorActions({ descriptor }: { descriptor: ProjectsNewErrorD
 }
 
 export function ErrorBoundary() {
+  const { i18n } = useTranslation();
+  const copy = getProjectCreationCopy(i18n.resolvedLanguage ?? i18n.language);
   const error = useRouteError();
   const descriptor = categorizeProjectsNewError(error);
+  const localizedDescriptor = copy.errors.descriptors[descriptor.kind];
 
   const shellDescription =
     descriptor.kind === 'auth'
-      ? 'Sign in to create a project.'
+      ? copy.errors.shellAuth
       : descriptor.kind === 'quota'
-        ? 'Project quota reached.'
-        : 'Project creation is temporarily unavailable.';
+        ? copy.errors.shellQuota
+        : copy.errors.shellUnavailable;
 
   return (
     <AppShell
-      title="Create project"
+      title={copy.shell.title}
       description={shellDescription}
       hideHeader
       hideTopBar
@@ -1436,10 +1494,10 @@ export function ErrorBoundary() {
     >
       <div className="vc-new-project-hero">
         <header className="vc-new-project-header">
-          <h1 className="vc-new-project-title">{descriptor.title}</h1>
-          <p className="vc-new-project-subtitle">{descriptor.subtitle}</p>
+          <h1 className="vc-new-project-title">{localizedDescriptor.title}</h1>
+          <p className="vc-new-project-subtitle">{localizedDescriptor.subtitle}</p>
         </header>
-        <ProjectsNewErrorActions descriptor={descriptor} />
+        <ProjectsNewErrorActions descriptor={descriptor} copy={copy} />
       </div>
     </AppShell>
   );

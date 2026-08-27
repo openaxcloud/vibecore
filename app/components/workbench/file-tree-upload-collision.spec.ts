@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildOverwritePrompt, findUploadCollisions } from './file-tree-upload-collision';
+import { fileTreeFr } from '~/lib/i18n/catalogs/file-tree';
 import type { FileMap } from '~/lib/stores/files';
 
 const fileMap: FileMap = {
@@ -52,5 +53,20 @@ describe('buildOverwritePrompt', () => {
     expect(prompt).toContain('2 files already exist');
     expect(prompt).toContain('a.txt');
     expect(prompt).toContain('b.txt');
+  });
+
+  it('formats collision prompts in French without changing file names', () => {
+    const prompt = buildOverwritePrompt(
+      [
+        { file: { name: 'logo.png' }, filePath: '/x/logo.png' },
+        { file: { name: 'config.json' }, filePath: '/x/config.json' },
+      ],
+      fileTreeFr.overwrite,
+    );
+
+    expect(prompt).toContain('2 fichiers existent déjà');
+    expect(prompt).toContain('logo.png');
+    expect(prompt).toContain('config.json');
+    expect(prompt).not.toContain('files already exist');
   });
 });

@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { toResponse } from '~/lib/test/rr7-data';
 
 /*
  * The IDE posts here when a preview becomes ready; the route proxies to the API's
@@ -54,8 +55,9 @@ describe('thumbnail refresh (preview-ready) proxy action', () => {
   it('400s a missing url without calling the backend', async () => {
     const { action } = await import('./api.projects.$projectId.thumbnail.refresh');
     const result = await action(actionArgs(null));
+    const response = toResponse(result) as Response;
 
-    expect(result.init.status).toBe(400);
+    expect(response.status).toBe(400);
     expect(apiRequest).not.toHaveBeenCalled();
   });
 

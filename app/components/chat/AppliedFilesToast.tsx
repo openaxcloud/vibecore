@@ -1,4 +1,7 @@
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
+
+import { formatAppliedFilesToastPlural, getAppliedFilesToastCopy } from '~/lib/i18n/catalogs/applied-files-toast';
 
 export const AGENT_APPLIED_TOAST_ID = 'agent-auto-applied-files';
 
@@ -11,38 +14,44 @@ export function AppliedFilesToast({
   onDismissAll: () => void;
   onUndoAll: () => void;
 }) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getAppliedFilesToastCopy(language);
   const visibleFiles = files.slice(0, 8);
   const remainingCount = Math.max(files.length - visibleFiles.length, 0);
 
+  const appliedTitle = formatAppliedFilesToastPlural(language, files.length, {
+    one: copy['appliedFilesToast.title_one'],
+    other: copy['appliedFilesToast.title_other'],
+  });
+  const remainingLabel = formatAppliedFilesToastPlural(language, remainingCount, {
+    one: copy['appliedFilesToast.remaining_one'],
+    other: copy['appliedFilesToast.remaining_other'],
+  });
+
   return (
     <div className="bolt-agent-applied-toast">
-      <div className="bolt-agent-applied-toast-head">
-        <strong>
-          {files.length} file{files.length === 1 ? '' : 's'} applied
-        </strong>
-        <span>Successful agent patches were written.</span>
+      <div className="bolt-agent-applied-toast-head" role="status" aria-live="polite">
+        <strong>{appliedTitle}</strong>
+        <span>{copy['appliedFilesToast.description']}</span>
       </div>
       <details>
-        <summary>View details</summary>
+        <summary>{copy['appliedFilesToast.details']}</summary>
         <ul>
           {visibleFiles.map((file) => (
             <li key={file} title={file}>
               {file}
             </li>
           ))}
-          {remainingCount > 0 ? (
-            <li>
-              {remainingCount} more file{remainingCount === 1 ? '' : 's'}
-            </li>
-          ) : null}
+          {remainingCount > 0 ? <li>{remainingLabel}</li> : null}
         </ul>
       </details>
       <div className="bolt-agent-applied-toast-actions">
         <button type="button" onClick={onUndoAll}>
-          Undo all
+          {copy['appliedFilesToast.undoAll']}
         </button>
         <button type="button" onClick={onDismissAll}>
-          Dismiss all
+          {copy['appliedFilesToast.dismissAll']}
         </button>
       </div>
     </div>

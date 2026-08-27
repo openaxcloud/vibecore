@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Form, useActionData, useLoaderData } from 'react-router';
 import { EnterpriseFormPage, PrimaryButton, TextField } from '~/components/enterprise/EnterpriseFormPage';
 import {
@@ -13,7 +14,9 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
-import { permissionLabel } from '~/lib/rbac-catalog';
+import { getOrganizationAccessCopy } from '~/lib/i18n/catalogs/organization-access';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { ALL_PERMISSIONS, permissionLabel } from '~/lib/rbac-catalog';
 import { isReauthRedirect } from '~/lib/route-reauth';
 
 export async function loader({ request }: EnterpriseLoaderArgs) {
@@ -31,31 +34,14 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   return json({
     orgId: organization.id,
     roles: result.roles,
-    permissions: [
-      'org:read',
-      'org:update',
-      'members:manage',
-      'projects:read',
-      'projects:write',
-      'workspaces:read',
-      'workspaces:write',
-      'billing:read',
-      'billing:manage',
-      'admin:read',
-      'admin:write',
-      'audit:export',
-      'enterprise:read',
-      'enterprise:write',
-      'roles:manage',
-      'scim:manage',
-      'security:manage',
-      'support:write',
-      'usage:read',
-    ],
+    permissions: ALL_PERMISSIONS,
   });
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
+  const language = resolveRequestLocale(request).language;
+  const copy = getOrganizationAccessCopy(language);
+
   const body = formObject(await request.formData()) as {
     orgId?: string;
     key?: string;
@@ -64,7 +50,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   };
 
   if (!body.orgId) {
-    return json({ error: 'Your organization is unavailable. Reload the page and try again.' }, { status: 400 });
+    return json({ error: copy['organizationAccess.common.organizationUnavailable'] }, { status: 400 });
   }
 
   try {
@@ -87,7 +73,12 @@ export async function action({ request }: EnterpriseActionArgs) {
 
     if (isForbiddenApiResponse(error)) {
       return json(
-        { error: await apiErrorMessage(error, 'You cannot manage roles for this organization.') },
+        {
+          error:
+            language === 'fr'
+              ? copy['organizationAccess.simple.forbidden']
+              : await apiErrorMessage(error, copy['organizationAccess.simple.forbidden']),
+        },
         { status: 403 },
       );
     }
@@ -98,16 +89,27 @@ export async function action({ request }: EnterpriseActionArgs) {
      * page root error boundary.
      */
     if (isApiResponse(error)) {
-      return json({ error: await apiErrorMessage(error, 'Could not create role.') }, { status: error.status });
+      return json(
+        {
+          error:
+            language === 'fr'
+              ? copy['organizationAccess.roles.createFailed']
+              : await apiErrorMessage(error, copy['organizationAccess.roles.createFailed']),
+        },
+        { status: error.status },
+      );
     }
 
     throw error;
   }
 
-  return json({ status: 'Custom role created.' });
+  return json({ status: copy['organizationAccess.simple.created'] });
 }
 
 export default function RolesAndPermissionsPage() {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getOrganizationAccessCopy(language);
   const { orgId, roles, permissions } = useLoaderData<typeof loader>();
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
@@ -120,18 +122,25 @@ export default function RolesAndPermissionsPage() {
 
   return (
     <EnterpriseFormPage
-      title="Roles and permissions"
-      description="Create custom roles and choose exactly what each role can do."
+      title={copy['organizationAccess.simple.title']}
+      description={copy['organizationAccess.simple.description']}
       status={actionData?.status}
       error={actionData?.error}
     >
       <Form method="post" className="space-y-4">
         <input type="hidden" name="orgId" value={orgId} />
         <input type="hidden" name="permissions" value={selectedPermissions.join(',')} />
-        <TextField label="Role identifier" name="key" placeholder="e.g. release-manager" required />
-        <TextField label="Role name" name="name" required />
+        <TextField
+          label={copy['organizationAccess.roles.identifier']}
+          name="key"
+          placeholder={copy['organizationAccess.roles.identifierPlaceholder']}
+          required
+        />
+        <TextField label={copy['organizationAccess.simple.roleName']} name="name" required />
         <fieldset className="grid gap-2">
-          <legend className="text-sm font-medium text-bolt-elements-textPrimary">Permissions</legend>
+          <legend className="text-sm font-medium text-bolt-elements-textPrimary">
+            {copy['organizationAccess.roles.permissions']}
+          </legend>
           <div className="grid gap-2 sm:grid-cols-2">
             {permissions.map((permission) => (
               <label
@@ -143,12 +152,14 @@ export default function RolesAndPermissionsPage() {
                   checked={selectedPermissions.includes(permission)}
                   onChange={(event) => setPermission(permission, event.currentTarget.checked)}
                 />
-                <span>{permissionLabel(permission)}</span>
+                <span>{permissionLabel(permission, language)}</span>
               </label>
             ))}
           </div>
         </fieldset>
-        <PrimaryButton disabled={selectedPermissions.length === 0}>Create role</PrimaryButton>
+        <PrimaryButton disabled={selectedPermissions.length === 0}>
+          {copy['organizationAccess.roles.create']}
+        </PrimaryButton>
       </Form>
       <div className="mt-6 overflow-hidden rounded-md border border-bolt-elements-borderColor text-sm">
         {roles.map((role) => (
@@ -157,13 +168,15 @@ export default function RolesAndPermissionsPage() {
             <div className="mt-2 flex flex-wrap gap-2 text-xs text-bolt-elements-textSecondary">
               {role.permissions.map((permission) => (
                 <span key={permission} className="rounded border border-bolt-elements-borderColor px-2 py-1">
-                  {permissionLabel(permission)}
+                  {permissionLabel(permission, language)}
                 </span>
               ))}
             </div>
           </div>
         ))}
-        {roles.length === 0 && <div className="p-3 text-bolt-elements-textSecondary">No custom roles created.</div>}
+        {roles.length === 0 && (
+          <div className="p-3 text-bolt-elements-textSecondary">{copy['organizationAccess.simple.empty']}</div>
+        )}
       </div>
     </EnterpriseFormPage>
   );

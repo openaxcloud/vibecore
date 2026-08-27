@@ -1,4 +1,12 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import {
+  formatRepositorySelectorCopy,
+  formatRepositorySelectorDate,
+  formatRepositorySelectorNumber,
+  formatRepositorySelectorSize,
+  getRepositorySelectorCopy,
+} from '~/lib/i18n/catalogs/repository-selector';
 import type { GitHubRepoInfo } from '~/types/GitHub';
 
 interface GitHubRepositoryCardProps {
@@ -7,6 +15,13 @@ interface GitHubRepositoryCardProps {
 }
 
 export function GitHubRepositoryCard({ repo, onClone }: GitHubRepositoryCardProps) {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language ?? 'en';
+  const copy = getRepositorySelectorCopy(language);
+
+  const text = (template: string, values: Readonly<Record<string, string | number>> = {}) =>
+    formatRepositorySelectorCopy(template, values);
+
   return (
     <a
       key={repo.name}
@@ -24,23 +39,32 @@ export function GitHubRepositoryCard({ repo, onClone }: GitHubRepositoryCardProp
                 {repo.name}
               </h5>
               {repo.private && (
-                <div className="i-ph:lock w-3 h-3 text-bolt-elements-textTertiary" title="Private repository" />
+                <div
+                  className="i-ph:lock w-3 h-3 text-bolt-elements-textTertiary"
+                  title={copy['repositorySelector.card.private']}
+                />
               )}
               {repo.fork && (
-                <div className="i-ph:git-fork w-3 h-3 text-bolt-elements-textTertiary" title="Forked repository" />
+                <div
+                  className="i-ph:git-fork w-3 h-3 text-bolt-elements-textTertiary"
+                  title={copy['repositorySelector.card.forked']}
+                />
               )}
               {repo.archived && (
-                <div className="i-ph:archive w-3 h-3 text-bolt-elements-textTertiary" title="Archived repository" />
+                <div
+                  className="i-ph:archive w-3 h-3 text-bolt-elements-textTertiary"
+                  title={copy['repositorySelector.card.archived']}
+                />
               )}
             </div>
             <div className="flex items-center gap-3 text-xs text-bolt-elements-textSecondary">
-              <span className="flex items-center gap-1" title="Stars">
+              <span className="flex items-center gap-1" title={copy['repositorySelector.card.stars']}>
                 <div className="i-ph:star w-3.5 h-3.5 text-bolt-elements-icon-warning" />
-                {repo.stargazers_count.toLocaleString()}
+                {formatRepositorySelectorNumber(repo.stargazers_count, language)}
               </span>
-              <span className="flex items-center gap-1" title="Forks">
+              <span className="flex items-center gap-1" title={copy['repositorySelector.card.forks']}>
                 <div className="i-ph:git-fork w-3.5 h-3.5 text-bolt-elements-icon-info" />
-                {repo.forks_count.toLocaleString()}
+                {formatRepositorySelectorNumber(repo.forks_count, language)}
               </span>
             </div>
           </div>
@@ -50,23 +74,19 @@ export function GitHubRepositoryCard({ repo, onClone }: GitHubRepositoryCardProp
           )}
 
           <div className="flex items-center gap-3 text-xs text-bolt-elements-textSecondary">
-            <span className="flex items-center gap-1" title="Default Branch">
+            <span className="flex items-center gap-1" title={copy['repositorySelector.card.defaultBranch']}>
               <div className="i-ph:git-branch w-3.5 h-3.5" />
               {repo.default_branch}
             </span>
             {repo.language && (
-              <span className="flex items-center gap-1" title="Primary Language">
+              <span className="flex items-center gap-1" title={copy['repositorySelector.card.primaryLanguage']}>
                 <div className="w-2 h-2 rounded-full bg-current opacity-60" />
                 {repo.language}
               </span>
             )}
-            <span className="flex items-center gap-1" title="Last Updated">
+            <span className="flex items-center gap-1" title={copy['repositorySelector.card.lastUpdated']}>
               <div className="i-ph:clock w-3.5 h-3.5" />
-              {new Date(repo.updated_at).toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-              })}
+              {formatRepositorySelectorDate(repo.updated_at, language)}
             </span>
           </div>
 
@@ -77,20 +97,28 @@ export function GitHubRepositoryCard({ repo, onClone }: GitHubRepositoryCardProp
                 <span
                   key={topic}
                   className="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
-                  title={`Topic: ${topic}`}
+                  title={text(copy['repositorySelector.card.topic'], { topic })}
                 >
                   {topic}
                 </span>
               ))}
               {repo.topics.length > 3 && (
-                <span className="text-bolt-elements-textTertiary">+{repo.topics.length - 3} more</span>
+                <span className="text-bolt-elements-textTertiary">
+                  {text(copy['repositorySelector.card.more'], {
+                    count: formatRepositorySelectorNumber(repo.topics.length - 3, language),
+                  })}
+                </span>
               )}
             </div>
           )}
 
           {/* Repository size if available */}
           {repo.size && (
-            <div className="text-xs text-bolt-elements-textTertiary">Size: {(repo.size / 1024).toFixed(1)} MB</div>
+            <div className="text-xs text-bolt-elements-textTertiary">
+              {text(copy['repositorySelector.card.size'], {
+                size: formatRepositorySelectorSize(repo.size, language),
+              })}
+            </div>
           )}
         </div>
 
@@ -98,7 +126,7 @@ export function GitHubRepositoryCard({ repo, onClone }: GitHubRepositoryCardProp
         <div className="flex items-center justify-between pt-3 mt-auto">
           <span className="flex items-center gap-1 text-xs text-bolt-elements-textSecondary group-hover:text-bolt-elements-item-contentAccent transition-colors">
             <div className="i-ph:arrow-square-out w-3.5 h-3.5" />
-            View
+            {copy['repositorySelector.card.view']}
           </span>
           {onClone && (
             <button
@@ -108,10 +136,10 @@ export function GitHubRepositoryCard({ repo, onClone }: GitHubRepositoryCardProp
                 onClone(repo);
               }}
               className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
-              title="Clone repository"
+              title={copy['repositorySelector.card.cloneTitle']}
             >
               <div className="i-ph:git-branch w-3.5 h-3.5" />
-              Clone
+              {copy['repositorySelector.card.clone']}
             </button>
           )}
         </div>

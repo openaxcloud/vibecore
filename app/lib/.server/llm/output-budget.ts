@@ -18,21 +18,43 @@
  */
 
 /** Per-task-class output ceilings (tokens). Conservative — biased to the larger class when unsure. */
+/*
+ * Output ceilings per task class, tripled on 2026-08-20 for Claude Opus 5.
+ *
+ * WHY: `max_tokens` caps thinking tokens AND the visible answer together. Every
+ * previous default model (Opus 4.8, Sonnet 4.5) did NOT think unless asked, so
+ * the whole budget went to the answer. Opus 5 runs ADAPTIVE THINKING BY DEFAULT
+ * — omitting the `thinking` param no longer means "off" — so reasoning now eats
+ * into the same ceiling. At the old `build: 8192`, a turn that thought hard
+ * could spend most of the budget before emitting a single file and stop with
+ * finishReason:'length' mid-file; the auto-continue would then pay for another
+ * full round-trip to finish work the first call had room for.
+ *
+ * These are CEILINGS, not spend: you are billed for tokens generated, so raising
+ * them costs nothing on turns that stay short. The ×3 keeps a wide margin under
+ * the 128k completion ceiling Opus 5 declares (scaffold 49152 ≈ 38% of it), and
+ * runaway output stays bounded by MAX_RESPONSE_SEGMENTS and the tenant's
+ * ai.outputTokens quota. `clampToModelCeiling` still clamps per model, so a
+ * smaller model (gpt-4.1 at 16384) is unaffected by the scaffold figure.
+ */
 export const OUTPUT_BUDGET = {
   /** Discuss / Ask / Plan — a prose answer, no file writes. */
-  discuss: 2048,
+  discuss: 6144,
 
   /** A one-file, clearly-scoped edit (rename, typo, colour, copy tweak). */
-  smallEdit: 4096,
+  smallEdit: 12288,
 
   /** A normal build turn (a feature, a few files). */
-  build: 8192,
+  build: 24576,
 
   /** A from-scratch / multi-file scaffold. */
-  scaffold: 16384,
+  scaffold: 49152,
 
-  /** Never request fewer than this, even on a tiny model ceiling. */
-  floor: 1024,
+  /**
+   * Never request fewer than this, even on a tiny model ceiling. Raised with the
+   * rest: 1024 leaves a thinking model no room at all for a visible answer.
+   */
+  floor: 4096,
 } as const;
 
 /** Phrases that reliably indicate a large, multi-file generation. */

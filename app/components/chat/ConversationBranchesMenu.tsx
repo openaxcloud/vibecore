@@ -16,6 +16,7 @@
 
 import { forwardRef, memo, useCallback, useEffect, useRef, useState } from 'react';
 import type { ForwardedRef, MutableRefObject } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 
 import { ConfirmationDialog } from '~/components/ui/Dialog';
@@ -38,6 +39,7 @@ interface BranchRowProps {
 }
 
 const BranchRow = memo(({ node, depth, activeId, onSwitch, onRename, onRemove }: BranchRowProps) => {
+  const { t } = useTranslation();
   const isActive = node.conversation.id === activeId;
   const messageCount = node.conversation.messages.length;
   const label = node.conversation.title?.trim() || node.conversation.id;
@@ -53,7 +55,7 @@ const BranchRow = memo(({ node, depth, activeId, onSwitch, onRename, onRemove }:
           type="button"
           className="bolt-branches-row-switch"
           onClick={() => onSwitch(node.conversation.id)}
-          title={`Switch to ${label}`}
+          title={t('branches.row.switch', { label })}
         >
           <span className="bolt-branches-row-icon i-ph:git-branch" aria-hidden />
           <span className="bolt-branches-row-label">{label}</span>
@@ -63,8 +65,8 @@ const BranchRow = memo(({ node, depth, activeId, onSwitch, onRename, onRemove }:
           <button
             type="button"
             className="bolt-branches-row-action"
-            aria-label={`Rename ${label}`}
-            title="Rename branch"
+            aria-label={t('branches.row.rename', { label })}
+            title={t('branches.row.renameTitle')}
             onClick={() => onRename(node.conversation.id, node.conversation.title)}
           >
             <span className="i-ph:pencil-simple" aria-hidden />
@@ -72,8 +74,8 @@ const BranchRow = memo(({ node, depth, activeId, onSwitch, onRename, onRemove }:
           <button
             type="button"
             className="bolt-branches-row-action"
-            aria-label={`Delete ${label}`}
-            title="Delete branch (and descendants)"
+            aria-label={t('branches.row.delete', { label })}
+            title={t('branches.row.deleteTitle')}
             onClick={() => onRemove(node.conversation.id)}
           >
             <span className="i-ph:trash" aria-hidden />
@@ -110,6 +112,7 @@ function assignForwardedRef<T>(ref: ForwardedRef<T>, value: T | null) {
 
 export const ConversationBranchesMenu = memo(
   forwardRef<HTMLDivElement, ConversationBranchesMenuProps>(({ projectId, className }, forwardedRef) => {
+    const { t } = useTranslation();
     const { conversations, tree, switchTo, rename, remove } = useProjectChatBranches(projectId);
     const [isOpen, setIsOpen] = useState(false);
     const [renameTarget, setRenameTarget] = useState<{ id: string; title?: string } | null>(null);
@@ -162,13 +165,13 @@ export const ConversationBranchesMenu = memo(
         const ok = await switchTo(conversationId);
 
         if (ok) {
-          toast.success('Switched conversation');
+          toast.success(t('branches.switchedToast'));
           setIsOpen(false);
         } else {
-          toast.error('Could not switch — conversation missing');
+          toast.error(t('branches.switchFailedToast'));
         }
       },
-      [switchTo],
+      [switchTo, t],
     );
 
     const handleRename = useCallback((conversationId: string, currentTitle: string | undefined) => {
@@ -186,15 +189,15 @@ export const ConversationBranchesMenu = memo(
 
         try {
           await rename(target.id, value.trim());
-        } catch (error) {
+        } catch {
           /*
            * Surface the failure: the rename was optimistic, so without this the
            * user thinks it saved when it didn't.
            */
-          toast.error(error instanceof Error ? `Could not rename branch: ${error.message}` : 'Could not rename branch');
+          toast.error(t('branches.renameFailedToast'));
         }
       },
-      [rename, renameTarget],
+      [rename, renameTarget, t],
     );
 
     const handleRemove = useCallback((conversationId: string) => {
@@ -211,15 +214,11 @@ export const ConversationBranchesMenu = memo(
 
       try {
         await remove(target);
-        toast.success('Branch deleted');
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? `Could not delete branch — changes were not saved: ${error.message}`
-            : 'Could not delete branch — changes were not saved',
-        );
+        toast.success(t('branches.deletedToast'));
+      } catch {
+        toast.error(t('branches.deleteFailedToast'));
       }
-    }, [remove, removeTarget]);
+    }, [remove, removeTarget, t]);
 
     if (conversations.length === 0) {
       return null;
@@ -232,8 +231,8 @@ export const ConversationBranchesMenu = memo(
           className="bolt-branches-menu-trigger"
           aria-haspopup="menu"
           aria-expanded={isOpen}
-          aria-label={`Conversation branches (${conversations.length})`}
-          title="Browse conversation branches"
+          aria-label={t('branches.ariaLabel', { count: conversations.length })}
+          title={t('branches.trigger.title')}
           onClick={() => setIsOpen((open) => !open)}
         >
           <span className="i-ph:git-branch" aria-hidden />
@@ -260,19 +259,19 @@ export const ConversationBranchesMenu = memo(
           isOpen={renameTarget !== null}
           onClose={() => setRenameTarget(null)}
           onSubmit={(value) => void performRename(value)}
-          title="Rename branch"
-          label="Branch title"
+          title={t('branches.renamePrompt')}
+          label={t('branches.renameLabel')}
           initialValue={renameTarget?.title ?? ''}
-          confirmLabel="Rename"
-          validate={(value) => (value.trim() ? undefined : 'Title cannot be empty')}
+          confirmLabel={t('branches.renameAction')}
+          validate={(value) => (value.trim() ? undefined : t('branches.emptyTitleToast'))}
         />
         <ConfirmationDialog
           isOpen={removeTarget !== null}
           onClose={() => setRemoveTarget(null)}
           onConfirm={() => void performRemove()}
-          title="Delete this branch?"
-          description="The branch and any sub-branches are deleted. This cannot be undone."
-          confirmLabel="Delete branch"
+          title={t('branches.deleteConfirm')}
+          description={t('branches.deleteDescription')}
+          confirmLabel={t('branches.deleteAction')}
           variant="destructive"
         />
       </div>

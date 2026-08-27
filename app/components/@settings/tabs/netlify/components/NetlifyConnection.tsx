@@ -15,7 +15,9 @@ import {
 } from '@heroicons/react/24/outline';
 import { useStore } from '@nanostores/react';
 import { formatDistanceToNow } from 'date-fns';
+import { enUS, fr as frLocale } from 'date-fns/locale';
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { Badge } from '~/components/ui/Badge';
 import { Button } from '~/components/ui/Button';
@@ -45,6 +47,26 @@ interface SiteAction {
 }
 
 export default function NetlifyConnection() {
+  const { t, i18n } = useTranslation();
+  const dateLocale = i18n.resolvedLanguage?.startsWith('fr') ? frLocale : enUS;
+
+  const formatRelativeTime = (value: string | number) =>
+    formatDistanceToNow(new Date(value), { addSuffix: true, locale: dateLocale });
+  const formatSiteState = (state: string | null | undefined) => {
+    switch (state?.toLowerCase()) {
+      case 'ready':
+        return t('settings.netlify.status.ready');
+      case 'building':
+      case 'processing':
+        return t('settings.netlify.status.building');
+      case 'error':
+      case 'failed':
+        return t('settings.netlify.status.failed');
+      default:
+        return t('settings.copy.unknown_b764cdc0');
+    }
+  };
+
   console.log('NetlifyConnection component mounted');
 
   const connection = useStore(netlifyConnection);
@@ -73,7 +95,7 @@ export default function NetlifyConnection() {
   // Add site actions
   const siteActions: SiteAction[] = [
     {
-      name: 'Clear Cache',
+      name: t('settings.netlify.action.clearCache'),
       icon: ArrowPathIcon,
       action: async (siteId: string) => {
         try {
@@ -88,11 +110,12 @@ export default function NetlifyConnection() {
             const errorText = await siteResponse.text();
 
             if (siteResponse.status === 404) {
-              toast.error('Site not found. This may be a free account limitation.');
+              toast.error(t('settings.copy.siteNotFoundThisMayBeAFree_1cf06d75'));
               return;
             }
 
-            throw new Error(`Failed to get site details: ${errorText}`);
+            console.error('Failed to get Netlify site details', errorText);
+            throw new Error(t('settings.copy.failedToGetSiteDetails_16e90450'));
           }
 
           const siteData = (await siteResponse.json()) as any;
@@ -115,11 +138,11 @@ export default function NetlifyConnection() {
             });
 
             if (buildResponse.ok) {
-              toast.success('Build triggered with cache clear');
+              toast.success(t('settings.copy.buildTriggeredWithCacheClear_647a358c'));
               return;
             } else if (buildResponse.status === 422) {
               // Often indicates free account limitation
-              toast.warning('Build trigger failed. This feature may not be available on free accounts.');
+              toast.warning(t('settings.copy.buildTriggerFailedThisFeatureMayNotBe_3234ad0d'));
               return;
             }
           }
@@ -135,27 +158,27 @@ export default function NetlifyConnection() {
           if (!cacheResponse.ok) {
             if (cacheResponse.status === 404) {
               if (isFreeAccount) {
-                toast.warning('Cache purge not available on free accounts. Try triggering a build instead.');
+                toast.warning(t('settings.copy.cachePurgeNotAvailableOnFreeAccountsTry_71cc23e3'));
               } else {
-                toast.error('Cache purge endpoint not found. This feature may not be available.');
+                toast.error(t('settings.copy.cachePurgeEndpointNotFoundThisFeatureMay_8c5b9717'));
               }
 
               return;
             }
 
-            const errorText = await cacheResponse.text();
-            throw new Error(`Cache purge failed: ${errorText}`);
+            console.error('Netlify cache purge failed', await cacheResponse.text());
+            throw new Error(t('settings.netlify.cache.clearFailed'));
           }
 
-          toast.success('Site cache cleared successfully');
+          toast.success(t('settings.copy.siteCacheClearedSuccessfully_32a81781'));
         } catch (err: unknown) {
-          const error = err instanceof Error ? err.message : 'Unknown error';
-          toast.error(`Failed to clear site cache: ${error}`);
+          console.error('Failed to clear Netlify site cache', err);
+          toast.error(t('settings.netlify.cache.clearFailed'));
         }
       },
     },
     {
-      name: 'Manage Environment',
+      name: t('settings.netlify.action.manageEnvironment'),
       icon: CogIcon,
       action: async (siteId: string) => {
         try {
@@ -167,7 +190,7 @@ export default function NetlifyConnection() {
           });
 
           if (!siteResponse.ok) {
-            throw new Error('Failed to get site details');
+            throw new Error(t('settings.copy.failedToGetSiteDetails_16e90450'));
           }
 
           const siteData = (await siteResponse.json()) as any;
@@ -182,25 +205,25 @@ export default function NetlifyConnection() {
 
           if (envResponse.ok) {
             const envVars = (await envResponse.json()) as any[];
-            toast.success(`Environment variables loaded: ${envVars.length} variables`);
+            toast.success(t('settings.netlify.environment.loaded', { count: envVars.length }));
           } else if (envResponse.status === 404) {
             if (isFreeAccount) {
-              toast.info('Environment variables management is limited on free accounts');
+              toast.info(t('settings.copy.environmentVariablesManagementIsLimitedOnFreeAccounts_78da50e6'));
             } else {
-              toast.info('Site has no environment variables configured');
+              toast.info(t('settings.copy.siteHasNoEnvironmentVariablesConfigured_c11cf84b'));
             }
           } else {
-            const errorText = await envResponse.text();
-            toast.error(`Failed to load environment variables: ${errorText}`);
+            console.error('Failed to load Netlify environment variables', await envResponse.text());
+            toast.error(t('settings.netlify.environment.loadFailed'));
           }
         } catch (err: unknown) {
-          const error = err instanceof Error ? err.message : 'Unknown error';
-          toast.error(`Failed to load environment variables: ${error}`);
+          console.error('Failed to load Netlify environment variables', err);
+          toast.error(t('settings.netlify.environment.loadFailed'));
         }
       },
     },
     {
-      name: 'Trigger Build',
+      name: t('settings.netlify.action.triggerBuild'),
       icon: RocketLaunchIcon,
       action: async (siteId: string) => {
         try {
@@ -213,19 +236,19 @@ export default function NetlifyConnection() {
           });
 
           if (!buildResponse.ok) {
-            throw new Error('Failed to trigger build');
+            throw new Error(t('settings.copy.failedToTriggerBuild_3deefa99'));
           }
 
           const buildData = (await buildResponse.json()) as any;
-          toast.success(`Build triggered successfully! ID: ${buildData.id}`);
+          toast.success(t('settings.netlify.build.triggeredId', { id: buildData.id }));
         } catch (err: unknown) {
-          const error = err instanceof Error ? err.message : 'Unknown error';
-          toast.error(`Failed to trigger build: ${error}`);
+          console.error('Failed to trigger Netlify build', err);
+          toast.error(t('settings.copy.failedToTriggerBuild_3deefa99'));
         }
       },
     },
     {
-      name: 'View Functions',
+      name: t('settings.netlify.action.viewFunctions'),
       icon: CodeBracketIcon,
       action: async (siteId: string) => {
         try {
@@ -237,7 +260,7 @@ export default function NetlifyConnection() {
           });
 
           if (!siteResponse.ok) {
-            throw new Error('Failed to get site details');
+            throw new Error(t('settings.copy.failedToGetSiteDetails_16e90450'));
           }
 
           const siteData = (await siteResponse.json()) as any;
@@ -251,25 +274,25 @@ export default function NetlifyConnection() {
 
           if (functionsResponse.ok) {
             const functions = (await functionsResponse.json()) as any[];
-            toast.success(`Site has ${functions.length} serverless functions`);
+            toast.success(t('settings.netlify.functions.count', { count: functions.length }));
           } else if (functionsResponse.status === 404) {
             if (isFreeAccount) {
-              toast.info('Functions may be limited or unavailable on free accounts');
+              toast.info(t('settings.copy.functionsMayBeLimitedOrUnavailableOnFree_386a35bb'));
             } else {
-              toast.info('Site has no serverless functions');
+              toast.info(t('settings.copy.siteHasNoServerlessFunctions_6272c79e'));
             }
           } else {
-            const errorText = await functionsResponse.text();
-            toast.error(`Failed to load functions: ${errorText}`);
+            console.error('Failed to load Netlify functions', await functionsResponse.text());
+            toast.error(t('settings.netlify.functions.loadFailed'));
           }
         } catch (err: unknown) {
-          const error = err instanceof Error ? err.message : 'Unknown error';
-          toast.error(`Failed to load functions: ${error}`);
+          console.error('Failed to load Netlify functions', err);
+          toast.error(t('settings.netlify.functions.loadFailed'));
         }
       },
     },
     {
-      name: 'Site Analytics',
+      name: t('settings.netlify.action.siteAnalytics'),
       icon: ChartBarIcon,
       action: async (siteId: string) => {
         try {
@@ -281,7 +304,7 @@ export default function NetlifyConnection() {
           });
 
           if (!siteResponse.ok) {
-            throw new Error('Failed to get site details');
+            throw new Error(t('settings.copy.failedToGetSiteDetails_16e90450'));
           }
 
           const siteData = (await siteResponse.json()) as any;
@@ -296,34 +319,42 @@ export default function NetlifyConnection() {
 
           if (analyticsResponse.ok) {
             await analyticsResponse.json(); // Analytics data received
-            toast.success('Site analytics loaded successfully');
+            toast.success(t('settings.copy.siteAnalyticsLoadedSuccessfully_e3dd029e'));
           } else if (analyticsResponse.status === 404) {
             if (isFreeAccount) {
-              toast.info('Analytics not available on free accounts. Showing basic site info instead.');
+              toast.info(t('settings.copy.analyticsNotAvailableOnFreeAccountsShowingBasic_6f36f0ff'));
             }
 
             // Fallback to basic site info
-            toast.info(`Site: ${siteData.name} - Status: ${siteData.state || 'Unknown'}`);
+            toast.info(
+              t('settings.netlify.analytics.siteStatus', {
+                site: siteData.name,
+                status: formatSiteState(siteData.state),
+              }),
+            );
           } else {
             const errorText = await analyticsResponse.text();
 
             if (isFreeAccount) {
               toast.info(
-                'Analytics unavailable on free accounts. Site info: ' +
-                  `${siteData.name} (${siteData.state || 'Unknown'})`,
+                t('settings.netlify.analytics.freeAccountSiteInfo', {
+                  site: siteData.name,
+                  status: formatSiteState(siteData.state),
+                }),
               );
             } else {
-              toast.error(`Failed to load analytics: ${errorText}`);
+              console.error('Failed to load Netlify analytics', errorText);
+              toast.error(t('settings.netlify.analytics.loadFailed'));
             }
           }
         } catch (err: unknown) {
-          const error = err instanceof Error ? err.message : 'Unknown error';
-          toast.error(`Failed to load site analytics: ${error}`);
+          console.error('Failed to load Netlify site analytics', err);
+          toast.error(t('settings.netlify.analytics.loadFailed'));
         }
       },
     },
     {
-      name: 'Delete Site',
+      name: t('settings.netlify.action.deleteSite'),
       icon: TrashIcon,
       action: async (siteId: string) => {
         try {
@@ -335,14 +366,14 @@ export default function NetlifyConnection() {
           });
 
           if (!response.ok) {
-            throw new Error('Failed to delete site');
+            throw new Error(t('settings.copy.failedToDeleteSite_9b38cf13'));
           }
 
-          toast.success('Site deleted successfully');
+          toast.success(t('settings.copy.siteDeletedSuccessfully_35503110'));
           fetchNetlifyStats(connection.token);
         } catch (err: unknown) {
-          const error = err instanceof Error ? err.message : 'Unknown error';
-          toast.error(`Failed to delete site: ${error}`);
+          console.error('Failed to delete Netlify site', err);
+          toast.error(t('settings.copy.failedToDeleteSite_9b38cf13'));
         }
       },
       requiresConfirmation: true,
@@ -352,6 +383,13 @@ export default function NetlifyConnection() {
 
   // Add deploy management functions
   const handleDeploy = async (siteId: string, deployId: string, action: 'lock' | 'unlock' | 'publish') => {
+    const actionLabel =
+      action === 'lock'
+        ? t('settings.copy.lock_db44b8db')
+        : action === 'unlock'
+          ? t('settings.copy.unlock_4ac709aa')
+          : t('settings.copy.publish_859390eb');
+
     try {
       setIsActionLoading(true);
 
@@ -368,14 +406,14 @@ export default function NetlifyConnection() {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to ${action} deploy`);
+        throw new Error(t('settings.netlify.deploy.actionFailed', { action: actionLabel }));
       }
 
-      toast.success(`Deploy ${action}ed successfully`);
+      toast.success(t('settings.netlify.deploy.actionSucceeded', { action: actionLabel }));
       fetchNetlifyStats(connection.token);
     } catch (err: unknown) {
-      const error = err instanceof Error ? err.message : 'Unknown error';
-      toast.error(`Failed to ${action} deploy: ${error}`);
+      console.error(`Failed to ${action} Netlify deploy`, err);
+      toast.error(t('settings.netlify.deploy.actionFailed', { action: actionLabel }));
     } finally {
       setIsActionLoading(false);
     }
@@ -406,7 +444,7 @@ export default function NetlifyConnection() {
 
   const handleConnect = async () => {
     if (!tokenInput) {
-      toast.error('Please enter a Netlify API token');
+      toast.error(t('settings.copy.pleaseEnterANetlifyApiToken_1570be9c'));
       return;
     }
 
@@ -420,7 +458,7 @@ export default function NetlifyConnection() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
+        throw new Error(t('settings.netlify.connection.failedHttp', { status: response.status }));
       }
 
       const userData = (await response.json()) as NetlifyUser;
@@ -431,13 +469,13 @@ export default function NetlifyConnection() {
         token: tokenInput,
       });
 
-      toast.success('Connected to Netlify successfully');
+      toast.success(t('settings.copy.connectedToNetlifySuccessfully_31cde6c0'));
 
       // Fetch stats after successful connection
       fetchNetlifyStats(tokenInput);
     } catch (error) {
       console.error('Error connecting to Netlify:', error);
-      toast.error(`Failed to connect to Netlify: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('settings.netlify.connection.failed'));
     } finally {
       setIsConnecting(false);
       setTokenInput('');
@@ -453,7 +491,7 @@ export default function NetlifyConnection() {
 
     // Update the store
     updateNetlifyConnection({ user: null, token: '' });
-    toast.success('Disconnected from Netlify');
+    toast.success(t('settings.copy.disconnectedFromNetlify_2077132d'));
   };
 
   const fetchNetlifyStats = async (token: string) => {
@@ -468,7 +506,7 @@ export default function NetlifyConnection() {
       });
 
       if (!sitesResponse.ok) {
-        throw new Error(`Failed to fetch sites: ${sitesResponse.statusText}`);
+        throw new Error(t('settings.netlify.stats.fetchFailed'));
       }
 
       const sitesData = (await sitesResponse.json()) as NetlifySite[];
@@ -525,10 +563,10 @@ export default function NetlifyConnection() {
         },
       });
 
-      toast.success('Netlify stats updated');
+      toast.success(t('settings.copy.netlifyStatsUpdated_1e80d917'));
     } catch (error) {
       console.error('Error fetching Netlify stats:', error);
-      toast.error(`Failed to fetch Netlify stats: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      toast.error(t('settings.netlify.stats.fetchFailed'));
     } finally {
       setFetchingStats(false);
     }
@@ -547,7 +585,7 @@ export default function NetlifyConnection() {
               <div className="flex items-center gap-2">
                 <div className="i-ph:chart-bar w-4 h-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
                 <span className="text-sm font-medium text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-                  Netlify Stats
+                  {t('settings.copy.netlifyStats_9d6b2f8f')}
                 </span>
               </div>
               <div
@@ -566,14 +604,18 @@ export default function NetlifyConnection() {
                   className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                 >
                   <BuildingLibraryIcon className="h-4 w-4 text-bolt-elements-item-contentAccent" />
-                  <span>{connection.stats.totalSites} Sites</span>
+                  <span>
+                    {connection.stats.totalSites} {t('settings.copy.sites_9d769093')}
+                  </span>
                 </Badge>
                 <Badge
                   variant="outline"
                   className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                 >
                   <RocketLaunchIcon className="h-4 w-4 text-bolt-elements-item-contentAccent" />
-                  <span>{deploymentCount} Deployments</span>
+                  <span>
+                    {deploymentCount} {t('settings.copy.deployments_842a4697')}
+                  </span>
                 </Badge>
                 {lastUpdated && (
                   <Badge
@@ -581,7 +623,9 @@ export default function NetlifyConnection() {
                     className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                   >
                     <ClockIcon className="h-4 w-4 text-bolt-elements-item-contentAccent" />
-                    <span>Updated {formatDistanceToNow(new Date(lastUpdated))} ago</span>
+                    <span>
+                      {t('settings.copy.updated_3a5ecca1')} {formatRelativeTime(lastUpdated)}
+                    </span>
                   </Badge>
                 )}
               </div>
@@ -591,7 +635,7 @@ export default function NetlifyConnection() {
                     <div className="flex items-center justify-between mb-4">
                       <h4 className="text-sm font-medium flex items-center gap-2 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
                         <BuildingLibraryIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
-                        Your Sites
+                        {t('settings.copy.yourSites_e20b6fcd')}
                       </h4>
                       <Button
                         variant="outline"
@@ -606,7 +650,7 @@ export default function NetlifyConnection() {
                             { 'animate-spin': fetchingStats },
                           )}
                         />
-                        {fetchingStats ? 'Refreshing...' : 'Refresh'}
+                        {fetchingStats ? t('settings.netlify.refreshing') : t('settings.copy.refresh_0e916101')}
                       </Button>
                     </div>
                     <div className="space-y-3">
@@ -641,7 +685,7 @@ export default function NetlifyConnection() {
                                   <XCircleIcon className="h-4 w-4 text-red-500" />
                                 )}
                                 <span className="text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-                                  {site.published_deploy?.state || 'Unknown'}
+                                  {formatSiteState(site.published_deploy?.state)}
                                 </span>
                               </Badge>
                             </div>
@@ -697,14 +741,15 @@ export default function NetlifyConnection() {
                                   <div className="flex items-center gap-1">
                                     <ClockIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
                                     <span className="text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                                      Published {formatDistanceToNow(new Date(site.published_deploy.published_at))} ago
+                                      {t('settings.copy.published_2ef42ec2')}{' '}
+                                      {formatRelativeTime(site.published_deploy.published_at)}
                                     </span>
                                   </div>
                                   {site.published_deploy.branch && (
                                     <div className="flex items-center gap-1 mt-1">
                                       <CodeBracketIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
                                       <span className="text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                                        Branch: {site.published_deploy.branch}
+                                        {t('settings.copy.branch_b8a50d7f')} {site.published_deploy.branch}
                                       </span>
                                     </div>
                                   )}
@@ -721,7 +766,7 @@ export default function NetlifyConnection() {
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="text-sm font-medium flex items-center gap-2 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
                           <BuildingLibraryIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
-                          Recent Deployments
+                          {t('settings.copy.recentDeployments_37082d43')}
                         </h4>
                       </div>
                       <div className="space-y-2">
@@ -750,19 +795,19 @@ export default function NetlifyConnection() {
                                     <BuildingLibraryIcon className="h-4 w-4 text-bolt-elements-item-contentAccent" />
                                   )}
                                   <span className="text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-                                    {deploy.state}
+                                    {formatSiteState(deploy.state)}
                                   </span>
                                 </Badge>
                               </div>
                               <span className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                                {formatDistanceToNow(new Date(deploy.created_at))} ago
+                                {formatRelativeTime(deploy.created_at)}
                               </span>
                             </div>
                             {deploy.branch && (
                               <div className="mt-2 text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary flex items-center gap-1">
                                 <CodeBracketIcon className="h-3 w-3 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
                                 <span className="text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                                  Branch: {deploy.branch}
+                                  {t('settings.copy.branch_b8a50d7f')} {deploy.branch}
                                 </span>
                               </div>
                             )}
@@ -789,7 +834,7 @@ export default function NetlifyConnection() {
                                 className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                               >
                                 <BuildingLibraryIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
-                                Publish
+                                {t('settings.copy.publish_859390eb')}
                               </Button>
                               {deploy.state === 'ready' ? (
                                 <Button
@@ -800,7 +845,7 @@ export default function NetlifyConnection() {
                                   className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                                 >
                                   <LockClosedIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
-                                  Lock
+                                  {t('settings.copy.lock_db44b8db')}
                                 </Button>
                               ) : (
                                 <Button
@@ -811,7 +856,7 @@ export default function NetlifyConnection() {
                                   className="flex items-center gap-1 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary"
                                 >
                                   <LockOpenIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
-                                  Unlock
+                                  {t('settings.copy.unlock_4ac709aa')}
                                 </Button>
                               )}
                             </div>
@@ -825,7 +870,7 @@ export default function NetlifyConnection() {
                       <div className="flex items-center justify-between mb-3">
                         <h4 className="text-sm font-medium flex items-center gap-2 text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
                           <CodeBracketIcon className="h-4 w-4 text-bolt-elements-item-contentAccent dark:text-bolt-elements-item-contentAccent" />
-                          Recent Builds
+                          {t('settings.copy.recentBuilds_c50ca138')}
                         </h4>
                       </div>
                       <div className="space-y-2">
@@ -850,18 +895,22 @@ export default function NetlifyConnection() {
                                     <CodeBracketIcon className="h-4 w-4" />
                                   )}
                                   <span className="text-bolt-elements-textPrimary dark:text-bolt-elements-textPrimary">
-                                    {build.done ? (build.error ? 'Failed' : 'Completed') : 'In Progress'}
+                                    {build.done
+                                      ? build.error
+                                        ? t('settings.netlify.status.failed')
+                                        : t('settings.netlify.status.completed')
+                                      : t('settings.netlify.status.inProgress')}
                                   </span>
                                 </Badge>
                               </div>
                               <span className="text-xs text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary">
-                                {formatDistanceToNow(new Date(build.created_at))} ago
+                                {formatRelativeTime(build.created_at)}
                               </span>
                             </div>
                             {build.error && (
                               <div className="mt-2 text-xs text-bolt-elements-textDestructive dark:text-bolt-elements-textDestructive flex items-center gap-1">
                                 <XCircleIcon className="h-3 w-3 text-bolt-elements-textDestructive dark:text-bolt-elements-textDestructive" />
-                                Error: {build.error}
+                                {t('settings.netlify.build.failed')}
                               </div>
                             )}
                           </div>
@@ -895,9 +944,13 @@ export default function NetlifyConnection() {
             })();
           }
         }}
-        title={`${pendingSiteAction?.action.name ?? 'Run this action'}?`}
-        description={`Are you sure you want to ${pendingSiteAction?.action.name.toLowerCase() ?? 'run this action'}?`}
-        confirmLabel={pendingSiteAction?.action.name ?? 'Confirm'}
+        title={t('settings.netlify.confirmActionTitle', {
+          action: pendingSiteAction?.action.name ?? t('settings.netlify.action.run'),
+        })}
+        description={t('settings.netlify.confirmActionDescription', {
+          action: pendingSiteAction?.action.name ?? t('settings.netlify.action.run'),
+        })}
+        confirmLabel={pendingSiteAction?.action.name ?? t('settings.netlify.confirm')}
         variant="destructive"
       />
       <div className="p-6">
@@ -906,7 +959,9 @@ export default function NetlifyConnection() {
             <div className="text-[#00AD9F]">
               <NetlifyLogo />
             </div>
-            <h2 className="text-lg font-medium text-bolt-elements-textPrimary">Netlify Connection</h2>
+            <h2 className="text-lg font-medium text-bolt-elements-textPrimary">
+              {t('settings.copy.netlifyConnection_fc3b94f2')}
+            </h2>
           </div>
         </div>
 
@@ -916,14 +971,14 @@ export default function NetlifyConnection() {
               htmlFor="netlify-api-token"
               className="block text-sm text-bolt-elements-textSecondary dark:text-bolt-elements-textSecondary mb-2"
             >
-              API Token
+              {t('settings.copy.apiToken_c85b0e36')}
             </label>
             <input
               id="netlify-api-token"
               type="password"
               value={tokenInput}
               onChange={(e) => setTokenInput(e.target.value)}
-              placeholder="Enter your Netlify API token"
+              placeholder={t('settings.copy.enterYourNetlifyApiToken_066ca0ee')}
               className={classNames(
                 'w-full px-3 py-2 rounded-lg text-sm',
                 'bg-bolt-elements-background-depth-3',
@@ -940,16 +995,22 @@ export default function NetlifyConnection() {
                 rel="noopener noreferrer"
                 className="text-bolt-elements-borderColorActive hover:underline inline-flex items-center gap-1"
               >
-                Get your token
+                {t('settings.copy.getYourToken_41c867bf')}
                 <div className="i-ph:arrow-square-out w-4 h-4" />
               </a>
             </div>
             {/* Debug info — dev-only (was leaking internal token state into the prod UI). */}
             {import.meta.env?.DEV && (
               <div className="mt-2 text-xs text-bolt-elements-textTertiary">
-                <p>Debug: Token present: {connection.token ? '✅' : '❌'}</p>
-                <p>Debug: User present: {connection.user ? '✅' : '❌'}</p>
-                <p>Debug: Env token: {import.meta.env?.VITE_NETLIFY_ACCESS_TOKEN ? '✅' : '❌'}</p>
+                <p>
+                  {t('settings.copy.debugTokenPresent_55c6fdda')} {connection.token ? '✅' : '❌'}
+                </p>
+                <p>
+                  {t('settings.copy.debugUserPresent_b0ff1699')} {connection.user ? '✅' : '❌'}
+                </p>
+                <p>
+                  {t('settings.copy.debugEnvToken_21052265')} {import.meta.env?.VITE_NETLIFY_ACCESS_TOKEN ? '✅' : '❌'}
+                </p>
               </div>
             )}
             <div className="flex gap-2 mt-4">
@@ -967,12 +1028,12 @@ export default function NetlifyConnection() {
                 {isConnecting ? (
                   <>
                     <div className="i-ph:spinner-gap animate-spin" />
-                    Connecting...
+                    {t('settings.copy.connecting_5f04ae9e')}
                   </>
                 ) : (
                   <>
                     <div className="i-ph:plug-charging w-4 h-4" />
-                    Connect
+                    {t('settings.copy.connect_1a2303ed')}
                   </>
                 )}
               </button>
@@ -986,7 +1047,7 @@ export default function NetlifyConnection() {
                   }}
                   className="px-3 py-2 rounded-lg text-xs bg-blue-500 text-white hover:bg-blue-600"
                 >
-                  Test Auto-Connect
+                  {t('settings.copy.testAutoConnect_bf008333')}
                 </button>
               )}
             </div>
@@ -1003,11 +1064,11 @@ export default function NetlifyConnection() {
                 )}
               >
                 <div className="i-ph:plug w-4 h-4" />
-                Disconnect
+                {t('settings.copy.disconnect_acfc5be7')}
               </button>
               <span className="text-sm text-bolt-elements-textSecondary flex items-center gap-1">
                 <div className="i-ph:check-circle w-4 h-4 text-green-500" />
-                Connected to Netlify
+                {t('settings.copy.connectedToNetlify_b158442a')}
               </span>
             </div>
             {renderStats()}

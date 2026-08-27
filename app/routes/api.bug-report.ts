@@ -2,17 +2,16 @@ import { Octokit } from '@octokit/rest';
 import { data as json, type ActionFunctionArgs } from 'react-router';
 import { z } from 'zod';
 import { consumeRateLimit, isRateLimited, resolveBugReportConfig } from '~/lib/bug-report.server';
+import { getApiRuntimeRoutesCopy, type ApiRuntimeRoutesCopy } from '~/lib/i18n/catalogs/api-runtime-routes';
+import { localeResponseHeaders, resolveRequestLocale } from '~/lib/i18n/request-locale';
 
 // Input validation schema
 const bugReportSchema = z.object({
-  title: z.string().min(1, 'Title is required').max(100, 'Title must be 100 characters or less'),
-  description: z
-    .string()
-    .min(10, 'Description must be at least 10 characters')
-    .max(2000, 'Description must be 2000 characters or less'),
-  stepsToReproduce: z.string().max(1000, 'Steps to reproduce must be 1000 characters or less').optional(),
-  expectedBehavior: z.string().max(1000, 'Expected behavior must be 1000 characters or less').optional(),
-  contactEmail: z.string().email('Invalid email address').optional().or(z.literal('')),
+  title: z.string().min(1).max(100),
+  description: z.string().min(10).max(2000),
+  stepsToReproduce: z.string().max(1000).optional(),
+  expectedBehavior: z.string().max(1000).optional(),
+  contactEmail: z.string().email().optional().or(z.literal('')),
   includeEnvironmentInfo: z.boolean().default(false),
   environmentInfo: z
     .object({
@@ -76,32 +75,32 @@ function isSpam(title: string, description: string): boolean {
 }
 
 // Format GitHub issue body
-function formatIssueBody(data: z.infer<typeof bugReportSchema>): string {
-  let body = '**Bug Report** (User Submitted)\n\n';
+function formatIssueBody(data: z.infer<typeof bugReportSchema>, copy: ApiRuntimeRoutesCopy): string {
+  let body = `**${copy['apiRuntime.bug.issue.heading']}**\n\n`;
 
-  body += `**Description:**\n${data.description}\n\n`;
+  body += `**${copy['apiRuntime.bug.issue.description']} :**\n${data.description}\n\n`;
 
   if (data.stepsToReproduce) {
-    body += `**Steps to Reproduce:**\n${data.stepsToReproduce}\n\n`;
+    body += `**${copy['apiRuntime.bug.issue.steps']} :**\n${data.stepsToReproduce}\n\n`;
   }
 
   if (data.expectedBehavior) {
-    body += `**Expected Behavior:**\n${data.expectedBehavior}\n\n`;
+    body += `**${copy['apiRuntime.bug.issue.expected']} :**\n${data.expectedBehavior}\n\n`;
   }
 
   if (data.includeEnvironmentInfo && data.environmentInfo) {
-    body += `**Environment Info:**\n`;
+    body += `**${copy['apiRuntime.bug.issue.environment']} :**\n`;
 
     if (data.environmentInfo.browser) {
-      body += `- Browser: ${data.environmentInfo.browser}\n`;
+      body += `- ${copy['apiRuntime.bug.issue.browser']} : ${data.environmentInfo.browser}\n`;
     }
 
     if (data.environmentInfo.os) {
-      body += `- OS: ${data.environmentInfo.os}\n`;
+      body += `- ${copy['apiRuntime.bug.issue.os']} : ${data.environmentInfo.os}\n`;
     }
 
     if (data.environmentInfo.screenResolution) {
-      body += `- Screen: ${data.environmentInfo.screenResolution}\n`;
+      body += `- ${copy['apiRuntime.bug.issue.screen']} : ${data.environmentInfo.screenResolution}\n`;
     }
 
     if (data.environmentInfo.boltVersion) {
@@ -109,33 +108,45 @@ function formatIssueBody(data: z.infer<typeof bugReportSchema>): string {
     }
 
     if (data.environmentInfo.aiProviders) {
-      body += `- AI Providers: ${data.environmentInfo.aiProviders}\n`;
+      body += `- ${copy['apiRuntime.bug.issue.aiProviders']} : ${data.environmentInfo.aiProviders}\n`;
     }
 
     if (data.environmentInfo.projectType) {
-      body += `- Project Type: ${data.environmentInfo.projectType}\n`;
+      body += `- ${copy['apiRuntime.bug.issue.projectType']} : ${data.environmentInfo.projectType}\n`;
     }
 
     if (data.environmentInfo.currentModel) {
-      body += `- Current Model: ${data.environmentInfo.currentModel}\n`;
+      body += `- ${copy['apiRuntime.bug.issue.currentModel']} : ${data.environmentInfo.currentModel}\n`;
     }
 
     body += '\n';
   }
 
   if (data.contactEmail) {
-    body += `**Contact:** ${data.contactEmail}\n\n`;
+    body += `**${copy['apiRuntime.bug.issue.contact']} :** ${data.contactEmail}\n\n`;
   }
 
-  body += '---\n*Submitted via E-Code bug report feature*';
+  body += `---\n*${copy['apiRuntime.bug.issue.submitted']}*`;
 
   return body;
 }
 
 export async function action({ request, context }: ActionFunctionArgs) {
+  const localeResolution = resolveRequestLocale(request);
+  const copy = getApiRuntimeRoutesCopy(localeResolution.language);
+
+  const localizedJson = (data: unknown, init?: Parameters<typeof json>[1]) => {
+    const responseInit = typeof init === 'number' ? { status: init } : init;
+
+    return json(data, { ...responseInit, headers: localeResponseHeaders(request, localeResolution) });
+  };
+
   // Only allow POST requests
   if (request.method !== 'POST') {
-    return json({ error: 'Method not allowed' }, { status: 405 });
+    return localizedJson(
+      { error: copy['apiRuntime.generic.methodNotAllowed'], code: 'METHOD_NOT_ALLOWED' },
+      { status: 405 },
+    );
   }
 
   try {
@@ -148,7 +159,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
     const clientIP = getClientIP(request);
 
     if (isRateLimited(clientIP)) {
-      return json({ error: 'Rate limit exceeded. Please wait before submitting another report.' }, { status: 429 });
+      return localizedJson({ error: copy['apiRuntime.bug.rateLimit'], code: 'RATE_LIMITED' }, { status: 429 });
     }
 
     // Parse and validate request body
@@ -180,10 +191,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
     // Spam detection
     if (isSpam(sanitizedData.title, sanitizedData.description)) {
-      return json(
-        { error: 'Your report was flagged as potential spam. Please contact support if this is an error.' },
-        { status: 400 },
-      );
+      return localizedJson({ error: copy['apiRuntime.bug.spam'], code: 'POSSIBLE_SPAM' }, { status: 400 });
     }
 
     /*
@@ -196,16 +204,16 @@ export async function action({ request, context }: ActionFunctionArgs) {
     if (!configResult.ok) {
       if (configResult.reason === 'token') {
         console.error('GitHub bug report token not configured');
-        return json(
-          { error: 'Bug reporting is not properly configured. Please contact the administrators.' },
+        return localizedJson(
+          { error: copy['apiRuntime.bug.notConfigured'], code: 'BUG_REPORT_NOT_CONFIGURED' },
           { status: 500 },
         );
       }
 
       console.error('GitHub bug report repository (BUG_REPORT_REPO) not configured or malformed');
 
-      return json(
-        { error: 'Bug reporting is not properly configured. Please contact the administrators.' },
+      return localizedJson(
+        { error: copy['apiRuntime.bug.notConfigured'], code: 'BUG_REPORT_NOT_CONFIGURED' },
         { status: 500 },
       );
     }
@@ -225,39 +233,55 @@ export async function action({ request, context }: ActionFunctionArgs) {
       owner,
       repo,
       title: sanitizedData.title,
-      body: formatIssueBody(sanitizedData),
+      body: formatIssueBody(sanitizedData, copy),
       labels: ['bug', 'user-reported'],
     });
 
-    return json({
+    return localizedJson({
       success: true,
       issueNumber: issue.data.number,
       issueUrl: issue.data.html_url,
-      message: 'Bug report submitted successfully!',
+      message: copy['apiRuntime.bug.success'],
     });
   } catch (error) {
     console.error('Error creating bug report:', error);
 
     // Handle validation errors
     if (error instanceof z.ZodError) {
-      return json({ error: 'Invalid input data', details: error.errors }, { status: 400 });
+      return localizedJson(
+        {
+          error: copy['apiRuntime.bug.invalidInput'],
+          code: 'INVALID_INPUT',
+          details: error.issues.map((issue) => ({ code: issue.code, path: issue.path })),
+        },
+        { status: 400 },
+      );
     }
 
     // Handle GitHub API errors
     if (error && typeof error === 'object' && 'status' in error) {
       if (error.status === 401) {
-        return json({ error: 'GitHub authentication failed. Please contact administrators.' }, { status: 500 });
+        return localizedJson(
+          { error: copy['apiRuntime.bug.githubAuthentication'], code: 'GITHUB_AUTHENTICATION_FAILED' },
+          { status: 500 },
+        );
       }
 
       if (error.status === 403) {
-        return json({ error: 'GitHub rate limit reached. Please try again later.' }, { status: 503 });
+        return localizedJson(
+          { error: copy['apiRuntime.bug.githubRateLimit'], code: 'GITHUB_RATE_LIMITED' },
+          { status: 503 },
+        );
       }
 
       if (error.status === 404) {
-        return json({ error: 'Target repository not found. Please contact administrators.' }, { status: 500 });
+        return localizedJson(
+          { error: copy['apiRuntime.bug.repositoryMissing'], code: 'BUG_REPORT_REPOSITORY_MISSING' },
+          { status: 500 },
+        );
       }
     }
 
-    return json({ error: 'Failed to submit bug report. Please try again later.' }, { status: 500 });
+    return localizedJson({ error: copy['apiRuntime.bug.failed'], code: 'BUG_REPORT_FAILED' }, { status: 500 });
   }
 }

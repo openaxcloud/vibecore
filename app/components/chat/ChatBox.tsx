@@ -1,5 +1,6 @@
 /* eslint-disable import/order */
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { toast } from 'react-toastify';
 import { ClientOnly } from 'remix-utils/client-only';
 import { AgentPowerControls, type AgentModeAvailability, type AgentPowerControlsValue } from './AgentPowerControls';
@@ -29,6 +30,11 @@ import { ColorSchemeDialog } from '~/components/ui/ColorSchemeDialog';
 import { IconButton } from '~/components/ui/IconButton';
 import { ExpoQrModal } from '~/components/workbench/ExpoQrModal';
 import { LOCAL_PROVIDERS } from '~/lib/stores/settings';
+import {
+  formatChatBoxAttachmentSummary,
+  getChatBoxCopy,
+  getChatBoxDroppedImageError,
+} from '~/lib/i18n/catalogs/chat-box';
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
 
@@ -121,6 +127,9 @@ interface ChatBoxProps {
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
+  const { i18n } = useTranslation();
+  const language = i18n.resolvedLanguage ?? i18n.language;
+  const copy = getChatBoxCopy(language);
   const providerList = Array.isArray(props.providerList) ? props.providerList : (PROVIDER_LIST as ProviderInfo[]);
 
   const hasComposerPayload = props.input.trim().length > 0 || props.uploadedFiles.length > 0;
@@ -138,17 +147,59 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
 
   const settingsToggleTitle = props.projectIdeMode
     ? props.isModelSettingsCollapsed
-      ? 'Show agent settings'
-      : 'Hide agent settings'
-    : 'Model Settings';
+      ? copy['chatBox.settings.showAgent']
+      : copy['chatBox.settings.hideAgent']
+    : copy['chatBox.settings.model'];
   const enhancePromptTitle = props.enhancingPrompt
-    ? 'Enhancing your prompt with AI'
+    ? copy['chatBox.enhance.inProgress']
     : props.input.length === 0
-      ? 'Type a prompt to enable AI prompt enhancement'
-      : 'Enhance this prompt with AI before sending';
+      ? copy['chatBox.enhance.emptyHint']
+      : copy['chatBox.enhance.readyHint'];
 
   const [isToolsMenuOpen, setIsToolsMenuOpen] = React.useState(false);
   const toolsMenuRef = React.useRef<HTMLDivElement>(null);
+
+  /*
+   * UNIF-04 (audit C4) : le feedback de glisser-déposer vit sur la COQUE
+   * (`data-dragover` + CSS), plus en style inline sur le textarea. L'ancienne
+   * implémentation posait un `border: 2px solid` sur le textarea alors que la
+   * bordure visible appartient à `.bolt-chatbox-input-shell` → double bordure
+   * et saut de mise en page à chaque survol de fichier.
+   */
+  const [isComposerDragOver, setIsComposerDragOver] = React.useState(false);
+
+  const handleComposerDrop = (event: React.DragEvent<HTMLElement>) => {
+    event.preventDefault();
+    setIsComposerDragOver(false);
+
+    const files = Array.from(event.dataTransfer.files);
+    files.forEach((file) => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+
+        reader.onload = (loadEvent) => {
+          const base64Image = loadEvent.target?.result as string;
+
+          /*
+           * Functional updaters: dropping several images at once spins up
+           * one FileReader per file, and each `onload` fires asynchronously.
+           * Spreading a render-time snapshot (`props.uploadedFiles`) would
+           * make every async callback start from the same stale array and
+           * clobber the others, so only the last image survived. Updating
+           * from the live `prev` accumulates all dropped images.
+           */
+          props.setUploadedFiles?.((prev) => [...prev, file]);
+          props.setImageDataList?.((prev) => [...prev, base64Image]);
+        };
+
+        reader.onerror = () => {
+          console.error('Failed to read dropped file:', file.name, reader.error);
+          toast.error(getChatBoxDroppedImageError(language, reader.error));
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  };
 
   /*
    * Per-request agent power controls. Parent-controlled when `props.agentPower`
@@ -409,11 +460,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                   })}
                   aria-pressed={props.planFirstEnabled ?? false}
                   disabled={props.isStreaming}
-                  title="Plan first: propose a reviewable plan and wait for approval before editing"
+                  title={copy['chatBox.planFirst.title']}
                   onClick={() => props.onPlanFirstChange?.(!(props.planFirstEnabled ?? false))}
                 >
                   <span className="i-ph:list-checks bolt-chatbox-plan-toggle-icon" aria-hidden />
-                  <span className="bolt-chatbox-plan-toggle-label">Plan</span>
+                  <span className="bolt-chatbox-plan-toggle-label">{copy['chatBox.planFirst.label']}</span>
                 </button>
               ) : null}
             </div>
@@ -439,20 +490,20 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         )}
       </ClientOnly>
       {props.selectedElement && (
-        <div className="flex mx-1.5 gap-2 items-center justify-between rounded-lg rounded-b-none border border-b-none border-bolt-elements-borderColor text-bolt-elements-textPrimary flex py-1 px-2.5 font-medium text-xs">
-          <div className="flex gap-2 items-center lowercase">
-            <code className="bg-accent-500 rounded-4px px-1.5 py-1 mr-0.5 text-white">
+        <div className="mx-1.5 flex min-w-0 flex-wrap items-center justify-between gap-2 rounded-lg rounded-b-none border border-b-0 border-bolt-elements-borderColor px-2.5 py-1 text-xs font-medium text-bolt-elements-textPrimary sm:flex-nowrap">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 lowercase">
+            <code className="rounded-4px mr-0.5 max-w-full whitespace-normal break-all bg-[var(--vc-action-primary)] px-1.5 py-1 text-[var(--vc-action-primary-foreground)]">
               {props?.selectedElement?.tagName}
             </code>
-            selected for inspection
+            <span className="min-w-0 break-words">{copy['chatBox.inspector.selected']}</span>
           </div>
           <button
             type="button"
-            aria-label="Clear selected inspected element"
-            className="bg-transparent text-accent-500 pointer-auto"
+            aria-label={copy['chatBox.inspector.clearAria']}
+            className="pointer-auto min-h-8 shrink-0 bg-transparent px-1 text-[var(--vc-action-primary)]"
             onClick={() => props.setSelectedElement?.(null)}
           >
-            Clear
+            {copy['chatBox.inspector.clear']}
           </button>
         </div>
       )}
@@ -460,11 +511,29 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         className={classNames(
           'bolt-chatbox-input-shell relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg',
         )}
+        data-dragover={isComposerDragOver ? 'true' : undefined}
+        onDragEnter={(e) => {
+          e.preventDefault();
+          setIsComposerDragOver(true);
+        }}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsComposerDragOver(true);
+        }}
+        onDragLeave={(e) => {
+          e.preventDefault();
+
+          // Ignore les dragleave internes (passage d'un enfant à l'autre).
+          if (!(e.relatedTarget instanceof Node) || !e.currentTarget.contains(e.relatedTarget)) {
+            setIsComposerDragOver(false);
+          }
+        }}
+        onDrop={handleComposerDrop}
       >
         <div className="bolt-chatbox-input-frame relative">
           <textarea
             ref={props.textareaRef}
-            aria-label={props.projectIdeMode ? 'Agent prompt' : 'Chat prompt'}
+            aria-label={props.projectIdeMode ? copy['chatBox.prompt.agentAria'] : copy['chatBox.prompt.chatAria']}
             className={classNames(
               'block w-full pl-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
 
@@ -475,52 +544,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                */
               props.projectIdeMode ? 'pt-3 pb-10' : 'pt-4 pb-14',
               'transition-all duration-200',
-              'hover:border-bolt-elements-focus',
             )}
-            onDragEnter={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.border = '2px solid var(--bolt-elements-focus)';
-            }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.border = '2px solid var(--bolt-elements-focus)';
-            }}
-            onDragLeave={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-            }}
-            onDrop={(e) => {
-              e.preventDefault();
-              e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-
-              const files = Array.from(e.dataTransfer.files);
-              files.forEach((file) => {
-                if (file.type.startsWith('image/')) {
-                  const reader = new FileReader();
-
-                  reader.onload = (e) => {
-                    const base64Image = e.target?.result as string;
-
-                    /*
-                     * Functional updaters: dropping several images at once spins up
-                     * one FileReader per file, and each `onload` fires asynchronously.
-                     * Spreading a render-time snapshot (`props.uploadedFiles`) would
-                     * make every async callback start from the same stale array and
-                     * clobber the others, so only the last image survived. Updating
-                     * from the live `prev` accumulates all dropped images.
-                     */
-                    props.setUploadedFiles?.((prev) => [...prev, file]);
-                    props.setImageDataList?.((prev) => [...prev, base64Image]);
-                  };
-
-                  reader.onerror = () => {
-                    console.error('Failed to read dropped file:', file.name, reader.error);
-                    toast.error('Failed to read the dropped image. Please try again.');
-                  };
-                  reader.readAsDataURL(file);
-                }
-              });
-            }}
             onKeyDown={(event) => {
               if (event.key === 'Enter') {
                 if (event.shiftKey) {
@@ -557,7 +581,9 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             }}
             placeholder={
               props.placeholder ??
-              (props.chatMode === 'build' ? 'How can E-Code help you today?' : 'What would you like to discuss?')
+              (props.chatMode === 'build'
+                ? copy['chatBox.prompt.buildPlaceholder']
+                : copy['chatBox.prompt.discussPlaceholder'])
             }
             translate="no"
           />
@@ -609,19 +635,19 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         <div className="bolt-chatbox-toolbar" data-vc-composer-toolbar>
           <div className="bolt-chatbox-toolbar-primary">
             <IconButton
-              title="Attach images"
-              tooltip="Attach images"
+              title={copy['chatBox.attachments.attach']}
+              tooltip={copy['chatBox.attachments.attach']}
               className="bolt-chatbox-toolbar-button"
               onClick={() => props.handleFileUpload()}
             >
-              <div className="i-ph:paperclip text-xl"></div>
+              <div className="i-ph:paperclip text-lg"></div>
             </IconButton>
 
             {props.uploadedFiles.length > 0 ? (
               <span
                 className="text-xs text-bolt-elements-textTertiary"
                 aria-live="polite"
-                title={`${props.uploadedFiles.length} of ${MAX_IMAGE_ATTACHMENTS} images attached`}
+                title={formatChatBoxAttachmentSummary(language, props.uploadedFiles.length, MAX_IMAGE_ATTACHMENTS)}
               >
                 {props.uploadedFiles.length}/{MAX_IMAGE_ATTACHMENTS}
               </span>
@@ -656,35 +682,34 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
 
             <div ref={toolsMenuRef} className="bolt-chatbox-tools-menu-anchor">
               <IconButton
-                title="More composer & tools"
-                tooltip="More composer & tools"
+                title={copy['chatBox.tools.more']}
+                tooltip={copy['chatBox.tools.more']}
                 className={classNames('bolt-chatbox-toolbar-button', isToolsMenuOpen ? 'is-active' : undefined)}
                 ariaExpanded={isToolsMenuOpen}
                 ariaHasPopup="menu"
                 onClick={() => setIsToolsMenuOpen((open) => !open)}
               >
-                <div className="i-ph:dots-three-outline text-xl" />
+                <div className="i-ph:dots-three-outline text-lg" />
               </IconButton>
 
               {isToolsMenuOpen ? (
                 <div
                   className="bolt-chatbox-tools-menu"
                   role="menu"
-                  aria-label="Composer tools"
+                  aria-label={copy['chatBox.tools.menuAria']}
                   data-testid="composer-tools-menu"
                 >
                   <ColorSchemeDialog
                     designScheme={props.designScheme}
                     setDesignScheme={props.setDesignScheme}
                     triggerVariant="menu"
-                    triggerLabel="Design palette"
                   />
-                  <McpTools triggerVariant="menu" triggerLabel="MCP tools" />
+                  <McpTools triggerVariant="menu" triggerLabel={copy['chatBox.tools.mcp']} />
                   <WebSearch
                     onSearchResult={(result) => props.onWebSearchResult?.(result)}
                     disabled={props.isStreaming}
                     triggerVariant="menu"
-                    triggerLabel="Fetch URL"
+                    triggerLabel={copy['chatBox.tools.fetchUrl']}
                   />
                   <SupabaseConnection triggerVariant="menu" onOpen={() => setIsToolsMenuOpen(false)} />
                   <IconButton
@@ -700,7 +725,9 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                       ) : (
                         <div className="i-bolt:stars text-xl"></div>
                       )}
-                      <span>Enhance prompt</span>
+                      <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
+                        {copy['chatBox.enhance.action']}
+                      </span>
                     </>
                   </IconButton>
 
@@ -720,14 +747,14 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                       }}
                       disabled={props.isStreaming}
                       triggerVariant="menu"
-                      triggerLabel={props.isListening ? 'Stop speech' : 'Speech'}
+                      triggerLabel={props.isListening ? copy['chatBox.speech.stop'] : copy['chatBox.speech.start']}
                     />
                   ) : null}
 
                   {props.chatStarted && !props.projectIdeMode ? (
                     <IconButton
-                      title="Discuss"
-                      tooltip="Discuss"
+                      title={copy['chatBox.discuss.title']}
+                      tooltip={copy['chatBox.discuss.title']}
                       className={classNames('bolt-chatbox-tools-menu-item', {
                         'is-active': props.chatMode === 'discuss',
                       })}
@@ -735,7 +762,11 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                     >
                       <>
                         <div className="i-ph:chats text-xl" />
-                        <span>{props.chatMode === 'discuss' ? 'Switch to build' : 'Discuss'}</span>
+                        <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
+                          {props.chatMode === 'discuss'
+                            ? copy['chatBox.discuss.switchToBuild']
+                            : copy['chatBox.discuss.title']}
+                        </span>
                       </>
                     </IconButton>
                   ) : null}
@@ -752,7 +783,9 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
                   >
                     <>
                       <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
-                      <span>{settingsToggleTitle}</span>
+                      <span className="min-w-0 !overflow-visible !whitespace-normal break-words leading-snug">
+                        {settingsToggleTitle}
+                      </span>
                     </>
                   </IconButton>
                 </div>
@@ -762,8 +795,8 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
 
           <div className="bolt-chatbox-toolbar-secondary">
             <IconButton
-              title="Composer shortcuts"
-              tooltip="Shift + Return inserts a new line"
+              title={copy['chatBox.shortcuts.title']}
+              tooltip={copy['chatBox.shortcuts.newLine']}
               tooltipLocked
               className="bolt-chatbox-toolbar-button bolt-chatbox-toolbar-info"
             >

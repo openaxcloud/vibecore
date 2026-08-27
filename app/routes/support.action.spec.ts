@@ -39,7 +39,13 @@ function buildRequest(fields: Record<string, string> = {}): Request {
   return new Request('http://localhost/support', { method: 'POST', body: formData });
 }
 
-type ActionResult = { data: { error?: string }; init?: { status?: number } };
+type ActionResult = {
+  data: {
+    errorCode?: 'forbidden' | 'rateLimited' | 'rejected' | 'unavailable';
+    error?: string;
+  };
+  init?: { status?: number };
+};
 
 afterEach(() => {
   apiRequest.mockReset();
@@ -59,32 +65,36 @@ describe('support action — failure handling', () => {
     await expect(action({ request: buildRequest({ subject: 'help' }) } as never)).rejects.toBe(reauthRedirect);
   });
 
-  it('still surfaces a 403 forbidden error inline', async () => {
+  it('still surfaces a 403 forbidden error code inline without leaking backend copy', async () => {
     firstOrganizationOrNull.mockResolvedValueOnce({ id: 'org_1' });
     apiRequest.mockRejectedValueOnce(new Response('{"error":"Not allowed."}', { status: 403 }));
 
     const result = (await action({ request: buildRequest({ subject: 'help' }) } as never)) as ActionResult;
 
     expect(result.init?.status).toBe(403);
-    expect(result.data).toEqual({ error: 'Not allowed.' });
+    expect(result.data).toEqual({ errorCode: 'forbidden' });
+    expect(result.data).not.toHaveProperty('error');
   });
 
-  it('surfaces a backend 500 inline instead of crashing the page', async () => {
+  it('maps a backend 500 to the localized unavailable contract instead of crashing the page', async () => {
     firstOrganizationOrNull.mockResolvedValueOnce({ id: 'org_1' });
     apiRequest.mockRejectedValueOnce(new Response('{"error":"Ticket service down."}', { status: 500 }));
 
     const result = (await action({ request: buildRequest({ subject: 'help' }) } as never)) as ActionResult;
 
     expect(result.init?.status).toBe(500);
-    expect(result.data).toEqual({ error: 'Ticket service down.' });
+    expect(result.data).toEqual({ errorCode: 'unavailable' });
+    expect(result.data).not.toHaveProperty('error');
   });
 
-  it('returns a friendly inline message when the API is unreachable (non-Response error)', async () => {
+  it('returns the localized unavailable contract when the API is unreachable (non-Response error)', async () => {
     firstOrganizationOrNull.mockResolvedValueOnce({ id: 'org_1' });
     apiRequest.mockRejectedValueOnce(new Error('ECONNREFUSED'));
 
     const result = (await action({ request: buildRequest({ subject: 'help' }) } as never)) as ActionResult;
 
-    expect(result.data).toEqual({ error: 'Support is temporarily unavailable. Please try again later.' });
+    expect(result.init?.status).toBe(503);
+    expect(result.data).toEqual({ errorCode: 'unavailable' });
+    expect(result.data).not.toHaveProperty('error');
   });
 });

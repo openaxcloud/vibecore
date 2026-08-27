@@ -1,4 +1,5 @@
 import type { FormEventHandler } from 'react';
+import { useTranslation } from 'react-i18next';
 import { isSshRemoteUrl } from '~/components/git/git-ssh-url';
 import { classNames } from '~/utils/classNames';
 
@@ -49,14 +50,17 @@ export function GitBranchSyncControls({
   onRefresh,
   loading = false,
 }: GitBranchSyncControlsProps) {
+  const { t } = useTranslation();
+
   /*
    * Fixed px (not rem) so the Git pane keeps a true IDE density regardless of the
-   * ecode app-wide responsive root-font scaling (which otherwise shrank these to
-   * ~24px/10px). Standard IDE control density: 30px secondary buttons, 13px text.
+   * ecode app-wide responsive root-font scaling. Controls retain a compact visual
+   * treatment while exposing a 44px touch target on desktop, tablet and mobile.
    */
   const secondaryButton = classNames(
-    'inline-flex h-[32px] w-full items-center justify-center gap-1.5 rounded-[6px] border border-bolt-elements-borderColor',
+    'inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-[6px] border border-bolt-elements-borderColor px-2 py-2',
     'text-[13.3px] font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-60',
+    'whitespace-normal text-center',
     'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus focus:ring-offset-1 focus:ring-offset-bolt-elements-background-depth-2',
   );
 
@@ -67,7 +71,7 @@ export function GitBranchSyncControls({
     >
       <div className="flex items-center justify-between gap-2">
         <h3 id={`${idPrefix}-sync-heading`} className="text-[14px] font-medium text-bolt-elements-textPrimary">
-          Remote Updates
+          {t('idePanels.git.remoteUpdates')}
         </h3>
         {repoUrl ? (
           <span className="inline-flex min-w-0 items-center gap-1.5">
@@ -83,11 +87,11 @@ export function GitBranchSyncControls({
             </a>
             {isSshRemoteUrl(repoUrl) ? (
               <span
-                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary"
-                title="Authenticated with this project's SSH key, run inside the isolated workspace (manage in ⚙ Settings → SSH keys)"
+                className="inline-flex shrink-0 items-center gap-1 rounded-full border border-bolt-elements-borderColor px-1.5 py-0.5 text-[11px] font-medium uppercase tracking-wide text-bolt-elements-textTertiary"
+                title={t('idePanels.git.sshAuthentication')}
               >
                 <span className="i-ph:key text-[11px]" aria-hidden />
-                SSH
+                {t('idePanels.git.sshLabel')}
               </span>
             ) : null}
           </span>
@@ -95,21 +99,21 @@ export function GitBranchSyncControls({
       </div>
 
       <div className="flex items-center justify-between gap-2 text-[12px] text-bolt-elements-textSecondary">
-        <code className="truncate">
-          origin/{branch} <span className="text-bolt-elements-textTertiary">• upstream</span>
-        </code>
+        <code className="truncate">{t('idePanels.git.remoteTracking', { branch })}</code>
         <span className="flex shrink-0 items-center gap-2">
-          {lastFetched ? <span className="hidden sm:inline">last fetched {lastFetched}</span> : null}
+          {lastFetched ? (
+            <span className="hidden sm:inline">{t('idePanels.git.lastFetched', { time: lastFetched })}</span>
+          ) : null}
           {onRefresh ? (
             <button
               type="button"
               data-testid="git-refresh"
               disabled={loading}
               onClick={onRefresh}
-              title="Refresh git status"
-              aria-label="Refresh git status"
+              title={t('idePanels.git.refreshStatus')}
+              aria-label={t('idePanels.git.refreshStatus')}
               className={classNames(
-                'inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-[6px] text-bolt-elements-textSecondary',
+                'inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-[6px] text-bolt-elements-textSecondary',
                 'hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary disabled:opacity-50',
                 'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus focus:ring-offset-1 focus:ring-offset-bolt-elements-background-depth-2',
               )}
@@ -128,13 +132,13 @@ export function GitBranchSyncControls({
           disabled={busy}
           data-testid="git-sync-changes"
           className={classNames(
-            'inline-flex h-[32px] w-full items-center justify-center gap-2 rounded-[6px] text-[13.3px] font-semibold text-white disabled:opacity-60',
+            'inline-flex min-h-11 w-full items-center justify-center gap-2 whitespace-normal rounded-[6px] px-3 py-2 text-center text-[13.3px] font-semibold text-white disabled:opacity-60',
             'focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus focus:ring-offset-2 focus:ring-offset-bolt-elements-background-depth-2',
           )}
           style={{ background: 'var(--ecode-accent, #F26207)' }}
         >
           <span className="i-ph:arrows-clockwise text-base" aria-hidden />
-          Sync Changes
+          {t('idePanels.git.syncChanges')}
         </button>
       </form>
 
@@ -146,11 +150,11 @@ export function GitBranchSyncControls({
             type="submit"
             disabled={busy}
             className={secondaryButton}
-            title={`Pull origin/${branch} into the workspace (clones it on the first pull into an empty tree)`}
-            aria-label={`Pull remote updates from origin/${branch} into this workspace branch`}
+            title={t('idePanels.git.pullTitle', { branch })}
+            aria-label={t('idePanels.git.pullAria', { branch })}
           >
             <span className="i-ph:arrow-down text-sm" aria-hidden />
-            Pull
+            {t('idePanels.git.pull')}
           </button>
         </form>
         <form onSubmit={onSubmit}>
@@ -160,11 +164,11 @@ export function GitBranchSyncControls({
             type="submit"
             disabled={busy}
             className={secondaryButton}
-            title={`Push local commits to origin/${branch}`}
-            aria-label={`Push local commits to origin/${branch}`}
+            title={t('idePanels.git.pushTitle', { branch })}
+            aria-label={t('idePanels.git.pushTitle', { branch })}
           >
             <span className="i-ph:arrow-up text-sm" aria-hidden />
-            Push
+            {t('idePanels.git.push')}
           </button>
         </form>
       </div>

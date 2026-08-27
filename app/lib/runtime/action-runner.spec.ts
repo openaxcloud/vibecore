@@ -29,7 +29,14 @@ vi.mock('./entry-export-reconcile', async () => {
   };
 });
 
-import { ActionRunner, extractSelfRepairContent, isLongRunningInstallCommand } from './action-runner';
+import {
+  ActionRunner,
+  extractSelfRepairContent,
+  isDevServerStartCommand,
+  installCommandForStartCommand,
+  isLongRunningInstallCommand,
+  startCommandAlreadyInstalls,
+} from './action-runner';
 import type { ActionCallbackData } from './message-parser';
 import { workspaceEvents } from './workspace-events';
 
@@ -231,6 +238,272 @@ describe('ActionRunner abort / start finalization', () => {
 
     expect(runner.actions.get()[startData.actionId]?.status).toBe('failed');
   });
+
+  it('UNIFIED LAUNCHER: delegates a dev-server start to the tracked launcher and never opens the untracked PTY dev server', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
+    const onStartDevServer = vi.fn(async () => undefined);
+
+    const runner = new ActionRunner(
+      createRuntime(),
+      () => ({ ...createShell(), executeCommand }) as any,
+      undefined,
+      undefined,
+      undefined,
+      onStartDevServer,
+    );
+
+    const startData: ActionCallbackData = {
+      artifactId: 'artifact-1',
+      messageId: 'message-1',
+      actionId: 'action-start-delegate',
+      action: { type: 'start', content: 'npm run dev' },
+    };
+
+    runner.addAction(startData);
+
+    const runPromise = runner.runAction(startData, false);
+    await vi.advanceTimersByTimeAsync(2_000);
+    await runPromise;
+    await Promise.resolve();
+
+    // The single tracked launcher was used…
+    expect(onStartDevServer).toHaveBeenCalledWith('npm run dev');
+
+    // …and NO PTY dev server was spawned → no untracked phantom racing port 5173.
+    expect(executeCommand).not.toHaveBeenCalled();
+    expect(runner.actions.get()[startData.actionId]?.status).toBe('complete');
+  });
+
+  it('runs a NON-dev start command in the PTY (not delegated) so a bespoke command is never silently dropped', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
+    const onStartDevServer = vi.fn(async () => undefined);
+
+    const runner = new ActionRunner(
+      createRuntime(),
+      () => ({ ...createShell(), executeCommand }) as any,
+      undefined,
+      undefined,
+      undefined,
+      onStartDevServer,
+    );
+
+    const startData: ActionCallbackData = {
+      artifactId: 'artifact-1',
+      messageId: 'message-1',
+      actionId: 'action-start-bespoke',
+      action: { type: 'start', content: 'node worker.js' },
+    };
+
+    runner.addAction(startData);
+
+    const runPromise = runner.runAction(startData, false);
+    await vi.advanceTimersByTimeAsync(2_000);
+    await runPromise;
+    await Promise.resolve();
+
+    expect(onStartDevServer).not.toHaveBeenCalled();
+    expect(executeCommand).toHaveBeenCalled();
+  });
+});
+
+/*
+ * BUG-AGENT-007 (chemin de repli) — un `start` qui passe par le PTY (commande non
+ * reconnue comme dev-server, ou hook onStartDevServer non câblé) doit garantir
+ * l'installation des dépendances AVANT de lancer sa commande. Sans la garantie,
+ * la commande partait brute contre un node_modules vide et mourait aussitôt
+ * (« command not found » / « Cannot find module ») → aperçu vide.
+ */
+describe('BUG-AGENT-007 — install guarantee on the PTY start fallback', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  function startData(actionId: string, content: string): ActionCallbackData {
+    return {
+      artifactId: 'artifact-1',
+      messageId: 'message-1',
+      actionId,
+      action: { type: 'start', content },
+    };
+  }
+
+  function runtimeWithManifest(options: { installed: boolean; packageManager?: string }) {
+    const manifest = {
+      dependencies: { express: '^4.19.0' },
+      ...(options.packageManager ? { packageManager: options.packageManager } : {}),
+    };
+
+    return createRuntime({
+      readFile: vi.fn().mockResolvedValue({ content: JSON.stringify(manifest) }),
+      listFiles: options.installed
+        ? vi.fn().mockResolvedValue([{ name: 'express', type: 'directory' }])
+        : vi.fn().mockRejectedValue(new Error('ENOENT: node_modules does not exist')),
+    } as Partial<RuntimeAdapter>);
+  }
+
+  async function runStart(runner: ActionRunner, data: ActionCallbackData) {
+    runner.addAction(data);
+
+    const runPromise = runner.runAction(data, false);
+    await vi.advanceTimersByTimeAsync(2_000);
+    await runPromise;
+    await Promise.resolve();
+  }
+
+  it('REGRESSION: a PTY start against an empty node_modules runs the install BEFORE the command', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
+
+    const runner = new ActionRunner(
+      runtimeWithManifest({ installed: false }),
+      () => ({ ...createShell(), executeCommand }) as any,
+    );
+
+    await runStart(runner, startData('action-start-install-first', 'node server.js'));
+
+    const commands = executeCommand.mock.calls.map((call: unknown[]) => call[1]);
+    expect(commands).toEqual(['npm install', 'node server.js']);
+    expect(runner.actions.get()['action-start-install-first']?.status).toBe('complete');
+  });
+
+  it('covers a dev-server start too when the onStartDevServer hook is unwired', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
+
+    const runner = new ActionRunner(
+      runtimeWithManifest({ installed: false }),
+      () => ({ ...createShell(), executeCommand }) as any,
+    );
+
+    await runStart(runner, startData('action-start-dev-unwired', 'npm run dev'));
+
+    const commands = executeCommand.mock.calls.map((call: unknown[]) => call[1]);
+    expect(commands).toEqual(['npm install', 'npm run dev']);
+  });
+
+  it('does NOT prepend an install when node_modules is already populated', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
+
+    const runner = new ActionRunner(
+      runtimeWithManifest({ installed: true }),
+      () => ({ ...createShell(), executeCommand }) as any,
+    );
+
+    await runStart(runner, startData('action-start-already-installed', 'node server.js'));
+
+    const commands = executeCommand.mock.calls.map((call: unknown[]) => call[1]);
+    expect(commands).toEqual(['node server.js']);
+  });
+
+  it('does NOT double-install when the start command already chains its own install', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
+
+    const runner = new ActionRunner(
+      runtimeWithManifest({ installed: false }),
+      () => ({ ...createShell(), executeCommand }) as any,
+    );
+
+    await runStart(runner, startData('action-start-chained-install', 'npm install && node server.js'));
+
+    const commands = executeCommand.mock.calls.map((call: unknown[]) => call[1]);
+    expect(commands).toEqual(['npm install && node server.js']);
+  });
+
+  it('fails the action with the real install error when the install itself fails', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async (_id: string, command: string) =>
+      command === 'npm install' ? { exitCode: 1, output: 'npm ERR! ERESOLVE' } : { exitCode: 0, output: '' },
+    );
+
+    const runner = new ActionRunner(
+      runtimeWithManifest({ installed: false }),
+      () => ({ ...createShell(), executeCommand }) as any,
+    );
+
+    await runStart(runner, startData('action-start-install-fails', 'node server.js'));
+
+    const commands = executeCommand.mock.calls.map((call: unknown[]) => call[1]);
+
+    // The dev command must never run against the broken node_modules.
+    expect(commands).toEqual(['npm install']);
+    expect(runner.actions.get()['action-start-install-fails']?.status).toBe('failed');
+  });
+
+  it('leaves the historic behaviour untouched when package.json cannot be read (best-effort probe)', async () => {
+    vi.useFakeTimers();
+
+    const executeCommand = vi.fn(async () => ({ exitCode: 0, output: '' }));
+
+    const runner = new ActionRunner(
+      createRuntime({ readFile: vi.fn().mockRejectedValue(new Error('ENOENT')) } as Partial<RuntimeAdapter>),
+      () => ({ ...createShell(), executeCommand }) as any,
+    );
+
+    await runStart(runner, startData('action-start-no-manifest', 'node server.js'));
+
+    const commands = executeCommand.mock.calls.map((call: unknown[]) => call[1]);
+    expect(commands).toEqual(['node server.js']);
+  });
+});
+
+describe('installCommandForStartCommand / startCommandAlreadyInstalls', () => {
+  it.each([
+    ['node server.js', undefined, 'npm install'],
+    ['pnpm run start:custom', undefined, 'pnpm install'],
+    ['yarn node server.js', undefined, 'yarn install'],
+    ['bun server.ts', undefined, 'bun install'],
+    ['node server.js', 'pnpm@9.14.4', 'pnpm install'],
+    ['node server.js', 'yarn@4.0.0', 'yarn install'],
+  ])('derives the install command for %s (packageManager: %s) → %s', (command, packageManager, expected) => {
+    expect(installCommandForStartCommand(command, packageManager)).toBe(expected);
+  });
+
+  it('detects an explicit chained install', () => {
+    expect(startCommandAlreadyInstalls('npm install && node server.js')).toBe(true);
+    expect(startCommandAlreadyInstalls('pnpm i; pnpm start:worker')).toBe(true);
+    expect(startCommandAlreadyInstalls('node server.js')).toBe(false);
+
+    // npx only installs the invoked TOOL, not the app's dependencies.
+    expect(startCommandAlreadyInstalls('npx serve -s build')).toBe(false);
+  });
+});
+
+describe('isDevServerStartCommand', () => {
+  it.each([
+    'npm run dev',
+    'npm start',
+    'pnpm dev',
+    'pnpm run dev',
+    'yarn dev',
+    'bun run dev',
+    'vite',
+    'vite --host 0.0.0.0',
+    'npx vite',
+    'next dev',
+    'astro dev',
+    'remix dev',
+    'nuxt dev',
+  ])('recognizes %s as a dev-server launch', (command) => {
+    expect(isDevServerStartCommand(command)).toBe(true);
+  });
+
+  it.each(['node worker.js', 'node server.js', 'npm run build', 'echo hi', 'python app.py', 'go run .'])(
+    'does not treat %s as a dev-server launch (kept on the PTY path)',
+    (command) => {
+      expect(isDevServerStartCommand(command)).toBe(false);
+    },
+  );
 });
 
 describe('extractSelfRepairContent', () => {
@@ -847,5 +1120,92 @@ describe('ActionRunner.recoverDiffViaFullFileReemit (diff apply-fail full-file f
     const out = await runner.recoverDiffViaFullFileReemit('src/a.ts', 'base\n', 'diff', freshSignal());
 
     expect(out).toBeNull();
+  });
+});
+
+/*
+ * BUG-AGENT-001 — amplification d'écritures.
+ *
+ * Comportement, pas structure. Le scénario reproduit ce qui a été MESURÉ en
+ * direct le 21/08 sur `web:405b1f369d` : des actions ré-émises, portant des
+ * `actionId` DIFFÉRENTS, réécrivent le même fichier avec un contenu identique
+ * (vite.config.ts : 20 écritures, 1 seule taille distincte).
+ *
+ * Utiliser le même actionId ne testerait RIEN : `runAction` a déjà une garde
+ * `if (action.executed) return` qui l'attrape. C'est précisément la confusion
+ * qui rendait ce bug difficile à cerner.
+ */
+describe('BUG-AGENT-001 — une réécriture octet-pour-octet ne repart pas sur le réseau', () => {
+  beforeEach(() => {
+    validateAndFormatHunkMock.mockReset();
+    validateAndFormatHunkMock.mockResolvedValue({ kind: 'skipped' });
+    buildSelfRepairPromptMock.mockReset();
+    buildSelfRepairPromptMock.mockReturnValue('synthetic-prompt');
+  });
+
+  async function replay(runner: ActionRunner, actionId: string, content: string) {
+    const data = createActionData(actionId);
+    (data.action as { content: string }).content = content;
+    runner.addAction(data);
+    await runner.runAction(data);
+    await runner.waitForIdle();
+  }
+
+  const cssWrites = (runtime: RuntimeAdapter) =>
+    (runtime.writeFile as ReturnType<typeof vi.fn>).mock.calls
+      .filter((c) => String(c[0]).includes('index.css'))
+      .map((c) => String(c[1]));
+
+  it('écrit UNE fois pour vingt ré-émissions identiques (actionId différents)', async () => {
+    const runtime = createRuntime();
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    for (let i = 0; i < 20; i++) {
+      await replay(runner, `action-${i}`, 'body { color: red; }');
+    }
+
+    expect(cssWrites(runtime)).toHaveLength(1);
+  });
+
+  it('laisse passer TOUT changement de contenu — une garde trop large perdrait le fichier', async () => {
+    const runtime = createRuntime();
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    // motif réel de package.json : répétitions, puis un contenu plus complet
+    for (let i = 0; i < 5; i++) {
+      await replay(runner, `a-${i}`, '{"name":"app"}');
+    }
+
+    for (let i = 0; i < 5; i++) {
+      await replay(runner, `b-${i}`, '{"name":"app","dependencies":{"react":"18"}}');
+    }
+
+    const written = cssWrites(runtime);
+
+    // une écriture par contenu distinct, et la version complète a bien atteint le disque
+    expect(written).toEqual(['{"name":"app"}', '{"name":"app","dependencies":{"react":"18"}}']);
+  });
+
+  it('un retour au contenu précédent est bien réécrit (annulation)', async () => {
+    const runtime = createRuntime();
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    await replay(runner, 'v1', 'AAA');
+    await replay(runner, 'v2', 'BBB');
+    await replay(runner, 'v3', 'AAA');
+
+    // Le mémo ne doit pas transformer un retour arrière en no-op silencieux.
+    expect(cssWrites(runtime).at(-1)).toBe('AAA');
+  });
+
+  it('une écriture en ÉCHEC laisse le chemin réécrivable', async () => {
+    const writeFile = vi.fn().mockRejectedValueOnce(new Error('boom')).mockResolvedValue(undefined);
+    const runtime = createRuntime({ writeFile } as Partial<RuntimeAdapter>);
+    const runner = new ActionRunner(runtime, () => createShell() as any);
+
+    await replay(runner, 'r1', 'body { color: red; }');
+    await replay(runner, 'r2', 'body { color: red; }');
+
+    expect(cssWrites(runtime).length).toBeGreaterThanOrEqual(2);
   });
 });

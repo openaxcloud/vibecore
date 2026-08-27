@@ -1,10 +1,10 @@
 import { CheckCircle2, Clock, Copy, Globe, Plus, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
+import type { MetaFunction } from 'react-router';
 import { Form, useActionData, useLoaderData, useNavigation, useRevalidator } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { EnterpriseFormPage, PrimaryButton } from '~/components/enterprise/EnterpriseFormPage';
 import {
-  apiErrorMessage,
   apiRequest,
   firstOrganizationOrNull,
   formObject,
@@ -14,6 +14,13 @@ import {
   type EnterpriseActionArgs,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import {
+  formatOrganizationDomainsCopy,
+  getOrganizationDomainsCopy,
+  resolveOrganizationDomainsLanguage,
+  type OrganizationDomainsCopy,
+} from '~/lib/i18n/catalogs/organization-domains';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { isReauthRedirect, shouldRethrowActionError } from '~/lib/route-reauth';
 import { classNames } from '~/utils/classNames';
 
@@ -43,7 +50,14 @@ type DomainVerification = {
 const TXT_HOST_PREFIX = '_vibecore.';
 const TXT_VALUE_PREFIX = 'vibecore-domain-verification=';
 
+export const meta: MetaFunction = ({ matches }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+
+  return [{ title: getOrganizationDomainsCopy(rootData?.language)['organizationDomains.metaTitle'] }];
+};
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
+  const language = resolveOrganizationDomainsLanguage(resolveRequestLocale(request).language);
   const organization = await firstOrganizationOrNull(request);
 
   if (!organization) {
@@ -51,7 +65,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
   }
 
   let domains: DomainVerification[] = [];
-  let loadError: string | null = null;
+  let loadError = false;
   let loadErrorKind: 'permission' | 'temporary' | null = null;
 
   try {
@@ -63,10 +77,10 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     }
 
     if (isApiResponse(error, 403)) {
-      loadError = "You don't have permission to manage this organization's domains.";
+      loadError = true;
       loadErrorKind = 'permission';
     } else {
-      loadError = 'Verified domains are temporarily unavailable.';
+      loadError = true;
       loadErrorKind = 'temporary';
     }
   }
@@ -77,10 +91,13 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     domains,
     loadError,
     loadErrorKind,
+    language,
   });
 }
 
 export async function action({ request }: EnterpriseActionArgs) {
+  const copy = getOrganizationDomainsCopy(resolveRequestLocale(request).language);
+
   const body = formObject(await request.formData()) as {
     intent?: string;
     orgId?: string;
@@ -90,7 +107,7 @@ export async function action({ request }: EnterpriseActionArgs) {
   };
 
   if (!body.orgId) {
-    return json({ error: 'Your organization is unavailable. Reload the page and try again.' }, { status: 400 });
+    return json({ error: copy['organizationDomains.errors.organizationUnavailable'] }, { status: 400 });
   }
 
   try {
@@ -98,7 +115,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       const domain = (body.domain ?? '').trim().toLowerCase();
 
       if (!domain) {
-        return json({ error: 'Enter a domain, e.g. app.example.com.' }, { status: 400 });
+        return json({ error: copy['organizationDomains.errors.domainRequired'] }, { status: 400 });
       }
 
       await apiRequest(request, `/orgs/${body.orgId}/domains`, {
@@ -110,11 +127,13 @@ export async function action({ request }: EnterpriseActionArgs) {
         }),
       });
 
-      return json({ status: `Domain ${domain} added. Publish the TXT record below, then verify.` });
+      return json({
+        status: formatOrganizationDomainsCopy(copy['organizationDomains.success.added'], { domain }),
+      });
     }
 
     if (!body.domain) {
-      return json({ error: 'Missing domain.' }, { status: 400 });
+      return json({ error: copy['organizationDomains.errors.missingDomain'] }, { status: 400 });
     }
 
     const domainPath = `/orgs/${body.orgId}/domains/${encodeURIComponent(body.domain)}`;
@@ -122,7 +141,11 @@ export async function action({ request }: EnterpriseActionArgs) {
     if (body.intent === 'verify') {
       await apiRequest(request, `${domainPath}/verify`, { method: 'POST', body: JSON.stringify({}) });
 
-      return json({ status: `${body.domain} verified.` });
+      return json({
+        status: formatOrganizationDomainsCopy(copy['organizationDomains.success.verified'], {
+          domain: body.domain,
+        }),
+      });
     }
 
     if (body.intent === 'config') {
@@ -134,28 +157,32 @@ export async function action({ request }: EnterpriseActionArgs) {
         }),
       });
 
-      return json({ status: `${body.domain} settings saved.` });
+      return json({
+        status: formatOrganizationDomainsCopy(copy['organizationDomains.success.saved'], {
+          domain: body.domain,
+        }),
+      });
     }
 
-    return json({ error: 'Unknown action.' }, { status: 400 });
+    return json({ error: copy['organizationDomains.errors.unknownAction'] }, { status: 400 });
   } catch (error) {
     if (isReauthRedirect(error) || shouldRethrowActionError(error)) {
       throw error;
     }
 
     if (isApiResponse(error, 403)) {
-      return json({ error: "You don't have permission to manage this organization's domains." }, { status: 403 });
+      return json({ error: copy['organizationDomains.errors.permission'] }, { status: 403 });
     }
 
     if (isApiResponse(error)) {
-      return json({ error: await apiErrorMessage(error, 'Domain action failed.') }, { status: error.status });
+      return json({ error: copy['organizationDomains.errors.actionFailed'] }, { status: error.status });
     }
 
-    return json({ error: 'This action is temporarily unavailable. Please try again in a moment.' });
+    return json({ error: copy['organizationDomains.errors.temporary'] });
   }
 }
 
-function CopyField(props: { label: string; value: string }) {
+function CopyField(props: { label: string; value: string; copy: OrganizationDomainsCopy }) {
   const [copied, setCopied] = useState(false);
 
   return (
@@ -177,22 +204,24 @@ function CopyField(props: { label: string; value: string }) {
             );
           }}
           className="inline-flex min-h-[44px] shrink-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3"
-          aria-label={`Copy ${props.label}`}
+          aria-label={formatOrganizationDomainsCopy(props.copy['organizationDomains.copy.aria'], {
+            label: props.label,
+          })}
         >
           <Copy className="h-3.5 w-3.5" aria-hidden />
-          {copied ? 'Copied' : 'Copy'}
+          {copied ? props.copy['organizationDomains.copy.copied'] : props.copy['organizationDomains.copy.copy']}
         </button>
       </div>
     </div>
   );
 }
 
-function StatusBadge({ domain }: { domain: DomainVerification }) {
+function StatusBadge({ domain, copy }: { domain: DomainVerification; copy: OrganizationDomainsCopy }) {
   if (domain.sslStatus === 'dns_verified' || domain.verifiedAt) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-[var(--status-success-border)] bg-[var(--status-success-bg)] px-2 py-0.5 text-xs font-medium text-[var(--status-success-text)]">
         <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-        Verified
+        {copy['organizationDomains.status.verified']}
       </span>
     );
   }
@@ -201,7 +230,7 @@ function StatusBadge({ domain }: { domain: DomainVerification }) {
     return (
       <span className="inline-flex items-center gap-1 rounded-full border border-[var(--status-error-border)] bg-[var(--status-error-bg)] px-2 py-0.5 text-xs font-medium text-[var(--status-error-text)]">
         <ShieldAlert className="h-3.5 w-3.5" aria-hidden />
-        Verification failed
+        {copy['organizationDomains.status.failed']}
       </span>
     );
   }
@@ -209,7 +238,7 @@ function StatusBadge({ domain }: { domain: DomainVerification }) {
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs font-medium text-bolt-elements-textSecondary">
       <Clock className="h-3.5 w-3.5" aria-hidden />
-      Pending DNS
+      {copy['organizationDomains.status.pending']}
     </span>
   );
 }
@@ -232,31 +261,46 @@ function CheckboxRow(props: { name: string; label: string; description: string; 
 }
 
 export default function OrganizationDomainsPage() {
-  const { orgId, orgName, domains, loadError, loadErrorKind } = useLoaderData<typeof loader>();
+  const {
+    orgId,
+    orgName,
+    domains,
+    loadError,
+    loadErrorKind,
+    language: loaderLanguage,
+  } = useLoaderData<typeof loader>();
+
+  const language = resolveOrganizationDomainsLanguage(loaderLanguage);
+  const copy = getOrganizationDomainsCopy(language);
   const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
   const navigation = useNavigation();
   const revalidator = useRevalidator();
   const busy = navigation.state !== 'idle';
   const retrying = revalidator.state !== 'idle';
 
+  const description = formatOrganizationDomainsCopy(copy['organizationDomains.description'], {
+    organization: orgName,
+  });
+
   if (loadError) {
     return (
-      <EnterpriseFormPage
-        title="Verified domains"
-        description={`Add and verify custom domains for ${orgName}. Publish a DNS TXT record to prove ownership.`}
-      >
+      <EnterpriseFormPage title={copy['organizationDomains.title']} description={description}>
         {retrying ? (
-          <AsyncPanelSkeleton label="Loading verified domains" rows={4} />
+          <AsyncPanelSkeleton label={copy['organizationDomains.load.loading']} rows={4} />
         ) : (
           <AsyncPanelError
-            title={loadErrorKind === 'permission' ? 'Domain management is restricted' : 'Domains could not load'}
+            title={
+              loadErrorKind === 'permission'
+                ? copy['organizationDomains.load.permissionTitle']
+                : copy['organizationDomains.load.errorTitle']
+            }
             description={
               loadErrorKind === 'permission'
-                ? "You don't have permission to view or change this organization's verified domains."
-                : 'Domain controls are hidden because the latest request failed. No domain was changed.'
+                ? copy['organizationDomains.load.permissionDescription']
+                : copy['organizationDomains.load.errorDescription']
             }
             onRetry={revalidator.revalidate}
-            retryLabel="Reload domains"
+            retryLabel={copy['organizationDomains.load.retry']}
             tone={loadErrorKind === 'permission' ? 'warning' : 'error'}
           />
         )}
@@ -266,22 +310,24 @@ export default function OrganizationDomainsPage() {
 
   return (
     <EnterpriseFormPage
-      title="Verified domains"
-      description={`Add and verify custom domains for ${orgName}. Publish a DNS TXT record to prove ownership.`}
+      title={copy['organizationDomains.title']}
+      description={description}
       status={actionData?.status}
       error={actionData?.error}
     >
       <div className="space-y-8">
         <section>
-          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Add a domain</h2>
+          <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
+            {copy['organizationDomains.add.title']}
+          </h2>
           <Form method="post" className="mt-3 space-y-4">
             <input type="hidden" name="orgId" value={orgId} />
             <input type="hidden" name="intent" value="add" />
             <label className="block text-sm font-medium">
-              Domain
+              {copy['organizationDomains.add.domain']}
               <input
                 name="domain"
-                placeholder="app.example.com"
+                placeholder={copy['organizationDomains.add.placeholder']}
                 required
                 className="mt-2 min-h-[44px] w-full rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 py-2 text-sm outline-none focus:border-bolt-elements-focus"
               />
@@ -289,35 +335,39 @@ export default function OrganizationDomainsPage() {
             <div className="grid gap-3 sm:grid-cols-2">
               <CheckboxRow
                 name="redirectWww"
-                label="Redirect www"
-                description="Redirect www.<domain> to the apex domain."
+                label={copy['organizationDomains.options.redirect.label']}
+                description={copy['organizationDomains.options.redirect.description']}
                 defaultChecked={true}
               />
               <CheckboxRow
                 name="wildcardEnabled"
-                label="Wildcard"
-                description="Cover all subdomains (*.<domain>)."
+                label={copy['organizationDomains.options.wildcard.label']}
+                description={copy['organizationDomains.options.wildcard.description']}
                 defaultChecked={false}
               />
             </div>
             <PrimaryButton disabled={busy}>
-              <span className="inline-flex items-center gap-1.5">
+              <span className="inline-flex flex-wrap items-center justify-center gap-1.5 whitespace-normal text-center">
                 <Plus className="h-4 w-4" aria-hidden />
-                Add domain
+                {copy['organizationDomains.add.submit']}
               </span>
             </PrimaryButton>
           </Form>
         </section>
 
         <section className="border-t border-bolt-elements-borderColor pt-8">
-          <h2 className="text-base font-semibold text-bolt-elements-textPrimary">Domains</h2>
+          <h2 className="break-words text-base font-semibold text-bolt-elements-textPrimary">
+            {copy['organizationDomains.list.title']}
+          </h2>
 
           {domains.length === 0 ? (
             <div className="mt-4 flex flex-col items-center gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-6 py-10 text-center">
               <span className="flex h-12 w-12 items-center justify-center rounded-full bg-bolt-elements-background-depth-3">
                 <Globe className="h-5 w-5 text-bolt-elements-textTertiary" aria-hidden />
               </span>
-              <p className="text-sm text-bolt-elements-textSecondary">No domains yet. Add one above to get started.</p>
+              <p className="break-words text-sm text-bolt-elements-textSecondary">
+                {copy['organizationDomains.list.empty']}
+              </p>
             </div>
           ) : (
             <ul className="mt-4 space-y-4">
@@ -336,16 +386,24 @@ export default function OrganizationDomainsPage() {
                           {domain.domain}
                         </span>
                       </div>
-                      <StatusBadge domain={domain} />
+                      <StatusBadge domain={domain} copy={copy} />
                     </div>
 
                     {!verified ? (
                       <div className="space-y-3 border-b border-bolt-elements-borderColor p-4">
-                        <p className="text-xs text-bolt-elements-textSecondary">
-                          Add this TXT record at your DNS provider, then click Verify once it propagates.
+                        <p className="break-words text-xs text-bolt-elements-textSecondary">
+                          {copy['organizationDomains.dns.instructions']}
                         </p>
-                        <CopyField label="TXT record name / host" value={`${TXT_HOST_PREFIX}${domain.domain}`} />
-                        <CopyField label="TXT record value" value={`${TXT_VALUE_PREFIX}${domain.verificationToken}`} />
+                        <CopyField
+                          copy={copy}
+                          label={copy['organizationDomains.dns.host']}
+                          value={`${TXT_HOST_PREFIX}${domain.domain}`}
+                        />
+                        <CopyField
+                          copy={copy}
+                          label={copy['organizationDomains.dns.value']}
+                          value={`${TXT_VALUE_PREFIX}${domain.verificationToken}`}
+                        />
                         <Form method="post">
                           <input type="hidden" name="orgId" value={orgId} />
                           <input type="hidden" name="intent" value="verify" />
@@ -353,10 +411,10 @@ export default function OrganizationDomainsPage() {
                           <button
                             type="submit"
                             disabled={busy}
-                            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="inline-flex min-h-[44px] items-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-2 text-left text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:cursor-not-allowed disabled:opacity-60"
                           >
                             <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
-                            Verify domain
+                            {copy['organizationDomains.actions.verify']}
                           </button>
                         </Form>
                       </div>
@@ -369,14 +427,14 @@ export default function OrganizationDomainsPage() {
                       <div className="grid gap-3 sm:grid-cols-2">
                         <CheckboxRow
                           name="redirectWww"
-                          label="Redirect www"
-                          description="Redirect www.<domain> to the apex domain."
+                          label={copy['organizationDomains.options.redirect.label']}
+                          description={copy['organizationDomains.options.redirect.description']}
                           defaultChecked={domain.redirectWww}
                         />
                         <CheckboxRow
                           name="wildcardEnabled"
-                          label="Wildcard"
-                          description="Cover all subdomains (*.<domain>)."
+                          label={copy['organizationDomains.options.wildcard.label']}
+                          description={copy['organizationDomains.options.wildcard.description']}
                           defaultChecked={domain.wildcardEnabled}
                         />
                       </div>
@@ -385,11 +443,11 @@ export default function OrganizationDomainsPage() {
                           type="submit"
                           disabled={busy}
                           className={classNames(
-                            'inline-flex min-h-[44px] items-center rounded-md border border-bolt-elements-borderColor px-3 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
+                            'inline-flex min-h-[44px] items-center whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-2 text-left text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3',
                             'disabled:cursor-not-allowed disabled:opacity-60',
                           )}
                         >
-                          Save settings
+                          {copy['organizationDomains.actions.save']}
                         </button>
                       </div>
                     </Form>

@@ -1,7 +1,16 @@
 import { useStore } from '@nanostores/react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { computeInlineDiff, type InlineDiff as InlineDiffData } from './file-history-diff';
-import { fileHistoryStore, type FileVersion } from '~/lib/stores/fileHistory';
+import {
+  fileHistorySourceLabel,
+  formatFileHistoryCopy,
+  formatFileHistoryNumber,
+  formatFileHistoryTimestamp,
+  getFileHistoryCopy,
+  resolveFileHistoryLanguage,
+} from '~/lib/i18n/catalogs/file-history';
+import { fileHistoryStore } from '~/lib/stores/fileHistory';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 
@@ -16,33 +25,13 @@ const PLAYBACK_BASE_INTERVAL_MS = 900;
 
 type ViewMode = 'version' | 'compare';
 
-function formatTimestamp(ts: number): string {
-  try {
-    return new Date(ts).toLocaleString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    });
-  } catch {
-    return new Date(ts).toISOString();
-  }
-}
-
-const SOURCE_LABELS: Record<FileVersion['source'], string> = {
-  initial: 'Baseline',
-  save: 'Saved',
-  agent: 'Agent',
-  restore: 'Restored',
-  external: 'External',
-};
-
 export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: FileHistoryPanelProps) => {
+  const { i18n } = useTranslation();
+  const language = resolveFileHistoryLanguage(i18n?.resolvedLanguage ?? i18n?.language);
+  const copy = getFileHistoryCopy(language);
   const activeFilePath = useStore(fileHistoryStore.activeFilePath);
   const versions = useStore(fileHistoryStore.versions);
   const status = useStore(fileHistoryStore.status);
-  const error = useStore(fileHistoryStore.error);
 
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [viewMode, setViewMode] = useState<ViewMode>('version');
@@ -234,11 +223,11 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
       ref={rootRef}
       role="dialog"
       aria-modal="true"
-      aria-label={`File history for ${fileName}`}
+      aria-label={formatFileHistoryCopy(copy['fileHistory.dialogLabel'], { fileName })}
       tabIndex={-1}
       onKeyDown={handleKeyDown}
       data-testid="file-history-panel"
-      className="absolute inset-0 z-40 flex flex-col bg-bolt-elements-background-depth-1 focus:outline-none"
+      className="absolute inset-0 z-40 flex min-w-0 flex-col overflow-x-hidden bg-bolt-elements-background-depth-1 focus:outline-none"
       style={{
         /*
          * Bulletproof opacity: an explicit solid fill + its own stacking context
@@ -250,18 +239,18 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
       }}
     >
       {/* Header */}
-      <div className="flex items-center gap-2 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2">
+      <div className="flex min-w-0 items-start gap-2 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2">
         <div className="i-ph:clock-counter-clockwise-duotone text-lg text-[var(--vc-ide-accent-action)]" aria-hidden />
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-semibold text-bolt-elements-textPrimary">History — {fileName}</div>
-          <div className="truncate text-xs text-bolt-elements-textTertiary">
-            Independent of Git · append-only versions
+          <div className="break-words text-sm font-semibold text-bolt-elements-textPrimary">
+            {formatFileHistoryCopy(copy['fileHistory.title'], { fileName })}
           </div>
+          <div className="break-words text-xs text-bolt-elements-textTertiary">{copy['fileHistory.subtitle']}</div>
         </div>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Close file history"
+          aria-label={copy['fileHistory.close']}
           className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
         >
           <div className="i-ph:x text-lg" aria-hidden />
@@ -277,7 +266,7 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
           aria-live="polite"
         >
           <div className="i-svg-spinners:90-ring-with-bg text-2xl text-[var(--vc-ide-accent-action)]" aria-hidden />
-          Loading history…
+          {copy['fileHistory.loading']}
         </div>
       ) : status === 'error' ? (
         <div
@@ -286,14 +275,14 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
           role="alert"
         >
           <div className="i-ph:warning-circle-duotone text-3xl text-[var(--status-error-text)]" aria-hidden />
-          <div>{error ?? 'Something went wrong loading the history.'}</div>
+          <div>{copy['fileHistory.error']}</div>
           <button
             type="button"
             onClick={() => void fileHistoryStore.retry(currentContent)}
             className="flex min-h-[44px] items-center gap-2 rounded-md border border-bolt-elements-borderColor px-4 py-2 font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
           >
             <div className="i-ph:arrow-clockwise" aria-hidden />
-            Retry
+            {copy['fileHistory.retry']}
           </button>
         </div>
       ) : versionCount === 0 ? (
@@ -302,14 +291,14 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
           data-testid="file-history-empty"
         >
           <div className="i-ph:clock-counter-clockwise text-3xl text-bolt-elements-textTertiary" aria-hidden />
-          No history yet. Edit and save this file to start capturing versions.
+          {copy['fileHistory.empty']}
         </div>
       ) : (
         <>
           {/* Content viewport */}
           <div className="min-h-0 flex-1 overflow-auto modern-scrollbar" data-testid="file-history-viewport">
             {viewMode === 'compare' && diff ? (
-              <InlineDiff diff={diff} />
+              <InlineDiff diff={diff} identicalCopy={copy['fileHistory.identical']} />
             ) : (
               <pre className="m-0 whitespace-pre-wrap break-words px-4 py-3 font-mono text-xs leading-relaxed text-bolt-elements-textPrimary">
                 {selectedVersion?.content ?? ''}
@@ -319,17 +308,28 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
 
           {/* Meta row */}
           <div className="flex flex-wrap items-center justify-between gap-2 border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-2 text-xs">
-            <div className="flex items-center gap-2 text-bolt-elements-textSecondary" data-testid="file-history-meta">
+            <div
+              className="flex min-w-0 flex-wrap items-center gap-2 text-bolt-elements-textSecondary"
+              data-testid="file-history-meta"
+            >
               <span className="rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 font-medium text-bolt-elements-textPrimary">
-                Version {selectedIndex + 1} / {versionCount}
+                {formatFileHistoryCopy(copy['fileHistory.versionCounter'], {
+                  current: formatFileHistoryNumber(selectedIndex + 1, language),
+                  total: formatFileHistoryNumber(versionCount, language),
+                })}
               </span>
               {selectedVersion && (
                 <>
                   <span className="rounded-full border border-bolt-elements-borderColor px-2 py-0.5">
-                    {SOURCE_LABELS[selectedVersion.source]}
+                    {fileHistorySourceLabel(selectedVersion.source, copy)}
                   </span>
-                  <span>{formatTimestamp(selectedVersion.createdAt)}</span>
-                  {isLatestSelected && <span className="text-[var(--vc-ide-accent-action)]">Latest</span>}
+                  <span>
+                    {formatFileHistoryTimestamp(selectedVersion.createdAt, language) ??
+                      copy['fileHistory.dateUnavailable']}
+                  </span>
+                  {isLatestSelected && (
+                    <span className="text-[var(--vc-ide-accent-action)]">{copy['fileHistory.latest']}</span>
+                  )}
                 </>
               )}
             </div>
@@ -352,7 +352,7 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
                   goPrev();
                 }}
                 disabled={selectedIndex === 0}
-                aria-label="Previous version"
+                aria-label={copy['fileHistory.previous']}
                 className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 disabled:opacity-40 disabled:hover:bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
               >
                 <div className="i-ph:caret-left-bold" aria-hidden />
@@ -368,10 +368,13 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
                   setIsPlaying(false);
                   goTo(Number(event.target.value));
                 }}
-                aria-label="File version"
-                aria-valuetext={`Version ${selectedIndex + 1} of ${versionCount}`}
+                aria-label={copy['fileHistory.slider']}
+                aria-valuetext={formatFileHistoryCopy(copy['fileHistory.versionValue'], {
+                  current: formatFileHistoryNumber(selectedIndex + 1, language),
+                  total: formatFileHistoryNumber(versionCount, language),
+                })}
                 data-testid="file-history-slider"
-                className="vc-file-history-slider min-h-[44px] flex-1 cursor-pointer"
+                className="vc-file-history-slider min-h-[44px] min-w-0 flex-1 cursor-pointer"
               />
 
               <button
@@ -381,7 +384,7 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
                   goNext();
                 }}
                 disabled={isLatestSelected}
-                aria-label="Next version"
+                aria-label={copy['fileHistory.next']}
                 className="flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-md text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 disabled:opacity-40 disabled:hover:bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
               >
                 <div className="i-ph:caret-right-bold" aria-hidden />
@@ -393,22 +396,22 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
               <button
                 type="button"
                 onClick={togglePlayback}
-                aria-label={isPlaying ? 'Pause playback' : 'Play version history'}
+                aria-label={isPlaying ? copy['fileHistory.pausePlayback'] : copy['fileHistory.playHistory']}
                 aria-pressed={isPlaying}
                 data-testid="file-history-play"
                 className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-md bg-[var(--vc-ide-accent-action)] px-3 font-medium text-white hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-[var(--vc-ide-accent-action)]"
               >
                 <div className={isPlaying ? 'i-ph:pause-fill' : 'i-ph:play-fill'} aria-hidden />
-                {isPlaying ? 'Pause' : 'Play'}
+                {isPlaying ? copy['fileHistory.pause'] : copy['fileHistory.play']}
               </button>
 
-              <label className="flex min-h-[44px] items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 text-xs text-bolt-elements-textSecondary">
-                <span className="sr-only">Playback speed</span>
+              <label className="flex min-h-[44px] min-w-0 items-center gap-1 rounded-md border border-bolt-elements-borderColor px-2 text-xs text-bolt-elements-textSecondary">
+                <span className="sr-only">{copy['fileHistory.playbackSpeed']}</span>
                 <div className="i-ph:gauge" aria-hidden />
                 <select
                   value={speed}
                   onChange={(event) => setSpeed(Number(event.target.value) as (typeof PLAYBACK_SPEEDS)[number])}
-                  aria-label="Playback speed"
+                  aria-label={copy['fileHistory.playbackSpeed']}
                   data-testid="file-history-speed"
                   className="cursor-pointer bg-transparent py-1 text-bolt-elements-textPrimary focus:outline-none"
                 >
@@ -426,14 +429,14 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
                 aria-pressed={viewMode === 'compare'}
                 data-testid="file-history-compare"
                 className={classNames(
-                  'flex min-h-[44px] items-center gap-1.5 rounded-md border px-3 text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]',
+                  'flex min-h-[44px] min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-normal rounded-md border px-3 text-center text-sm font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] sm:flex-none',
                   viewMode === 'compare'
                     ? 'border-[var(--vc-ide-accent-action)] text-[var(--vc-ide-accent-action)]'
                     : 'border-bolt-elements-borderColor text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3',
                 )}
               >
                 <div className="i-ph:git-diff" aria-hidden />
-                Compare Latest
+                {copy['fileHistory.compareLatest']}
               </button>
 
               <button
@@ -441,13 +444,13 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
                 onClick={() => void handleRestore()}
                 disabled={isLatestSelected || restoring}
                 data-testid="file-history-restore"
-                className="ml-auto flex min-h-[44px] items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-40 disabled:hover:bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+                className="flex min-h-[44px] min-w-0 flex-1 items-center justify-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 text-center text-sm font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 disabled:opacity-40 disabled:hover:bg-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)] sm:ml-auto sm:flex-none"
               >
                 <div
                   className={restoring ? 'i-svg-spinners:90-ring-with-bg' : 'i-ph:arrow-counter-clockwise'}
                   aria-hidden
                 />
-                {restoring ? 'Restoring…' : 'Restore this version'}
+                {restoring ? copy['fileHistory.restoring'] : copy['fileHistory.restore']}
               </button>
             </div>
           </div>
@@ -459,14 +462,14 @@ export const FileHistoryPanel = memo(({ filePath, currentContent, onClose }: Fil
 
 FileHistoryPanel.displayName = 'FileHistoryPanel';
 
-const InlineDiff = memo(({ diff }: { diff: InlineDiffData }) => {
+const InlineDiff = memo(({ diff, identicalCopy }: { diff: InlineDiffData; identicalCopy: string }) => {
   if (diff.added === 0 && diff.removed === 0) {
     return (
       <div
         className="flex h-full items-center justify-center px-6 text-center text-sm text-bolt-elements-textSecondary"
         data-testid="file-history-nodiff"
       >
-        This version is identical to the latest.
+        {identicalCopy}
       </div>
     );
   }

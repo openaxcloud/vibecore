@@ -29,12 +29,12 @@ describe('resolveConflictContentState', () => {
     const state = resolveConflictContentState('');
     expect(state.content).toBe('');
     expect(state.loading).toBe(false);
-    expect(state.error).toBeTruthy();
+    expect(state.error).toBe('empty-content');
   });
 
   it('flags missing content as an error', () => {
-    expect(resolveConflictContentState(undefined).error).toBeTruthy();
-    expect(resolveConflictContentState(null).error).toBeTruthy();
+    expect(resolveConflictContentState(undefined).error).toBe('empty-content');
+    expect(resolveConflictContentState(null).error).toBe('empty-content');
   });
 });
 
@@ -43,6 +43,6 @@ describe('failedConflictContentState', () => {
     const state = failedConflictContentState();
     expect(state.content).toBe('');
     expect(state.loading).toBe(false);
-    expect(state.error).toBeTruthy();
+    expect(state.error).toBe('load-failed');
   });
 });

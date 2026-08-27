@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatWorkspaceMiscCopy, getWorkspaceMiscCopy } from '~/lib/i18n/catalogs/workspace-misc';
 
 export interface FloatingPaneBounds {
   x: number;
@@ -50,6 +52,8 @@ export function FloatingPaneFrame({
   onFocus,
   children,
 }: FloatingPaneFrameProps) {
+  const { i18n } = useTranslation();
+  const copy = getWorkspaceMiscCopy(i18n.resolvedLanguage ?? i18n.language);
   const frameRef = useRef<HTMLDivElement | null>(null);
   const dragRef = useRef<DragState | null>(null);
   const [dragging, setDragging] = useState(false);
@@ -132,7 +136,7 @@ export function FloatingPaneFrame({
       ref={frameRef}
       className="bolt-project-floating-pane"
       role="dialog"
-      aria-label={`Floating pane: ${title}`}
+      aria-label={formatWorkspaceMiscCopy(copy['workspaceMisc.floatingPane.aria'], { title })}
       data-pane-id={paneId}
       data-active={active ? 'true' : undefined}
       data-testid={`floating-pane-${paneId}`}
@@ -153,22 +157,24 @@ export function FloatingPaneFrame({
         </span>
         <button
           type="button"
-          className="bolt-project-floating-pane-dock"
-          aria-label="Dock pane"
-          title="Dock pane"
+          className="bolt-project-floating-pane-dock min-h-11 max-w-full shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--vc-ide-accent-action)]"
+          aria-label={copy['workspaceMisc.floatingPane.dock.aria']}
+          title={copy['workspaceMisc.floatingPane.dock.aria']}
           data-testid={`dock-floating-pane-${paneId}`}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={onDock}
         >
           <span className="i-ph:sidebar-simple" aria-hidden />
-          Dock
+          <span className="min-w-0 break-words text-center leading-tight">
+            {copy['workspaceMisc.floatingPane.dock.label']}
+          </span>
         </button>
       </div>
       <div className="bolt-project-floating-pane-body">{children}</div>
       <div
-        className="bolt-project-floating-pane-resize"
+        className="bolt-project-floating-pane-resize touch-none after:absolute after:-inset-3.5 after:content-['']"
         role="separator"
-        aria-label="Resize floating pane"
+        aria-label={copy['workspaceMisc.floatingPane.resize.aria']}
         aria-orientation="vertical"
         data-testid={`resize-floating-pane-${paneId}`}
         onPointerDown={beginDrag('resize')}

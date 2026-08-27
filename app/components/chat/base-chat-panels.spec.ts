@@ -40,40 +40,48 @@ describe('panelAuthRedirectTarget', () => {
 
 describe('describeSnapshotRestoreFailure', () => {
   it('maps known backend codes to specific copy', () => {
-    expect(describeSnapshotRestoreFailure(409, { error: { code: 'SNAPSHOT_STORAGE_MISSING' } })).toContain(
+    expect(describeSnapshotRestoreFailure(409, { error: { code: 'SNAPSHOT_STORAGE_MISSING' } }, 'en')).toContain(
       'no longer available',
     );
-    expect(describeSnapshotRestoreFailure(409, { error: { code: 'SNAPSHOT_STORAGE_CHECKSUM_MISMATCH' } })).toContain(
-      'corrupted',
-    );
+    expect(
+      describeSnapshotRestoreFailure(409, { error: { code: 'SNAPSHOT_STORAGE_CHECKSUM_MISMATCH' } }, 'en'),
+    ).toContain('corrupted');
   });
 
-  it('uses the backend message when no code mapping exists', () => {
-    expect(describeSnapshotRestoreFailure(400, { error: { message: 'bad request' } })).toBe(
-      'Rollback failed: bad request',
-    );
+  it('masks an unmapped backend diagnostic instead of leaking English or secrets into French', () => {
+    const message = describeSnapshotRestoreFailure(400, { error: { message: 'bad request secret=raw' } }, 'fr');
+
+    expect(message).toBe('Restauration impossible. Aucune modification n’a été apportée.');
+    expect(message).not.toContain('bad request');
+    expect(message).not.toContain('secret=raw');
   });
 
   it('falls back on status when no payload detail is present', () => {
-    expect(describeSnapshotRestoreFailure(403, undefined)).toContain('permission');
-    expect(describeSnapshotRestoreFailure(500, undefined)).toContain('No changes were made');
-    expect(describeSnapshotRestoreFailure(0, undefined)).toBe('Rollback failed. No changes were made.');
+    expect(describeSnapshotRestoreFailure(403, undefined, 'en')).toContain('permission');
+    expect(describeSnapshotRestoreFailure(500, undefined, 'en')).toContain('No changes were made');
+    expect(describeSnapshotRestoreFailure(0, undefined, 'en')).toBe('Rollback failed. No changes were made.');
   });
 });
 
 describe('describeAutoApplyFailure', () => {
   it('names the file and prompts a review when no error is given', () => {
-    expect(describeAutoApplyFailure('src/App.tsx')).toBe("Couldn't apply src/App.tsx — review the change");
-  });
-
-  it('includes the thrown error message', () => {
-    expect(describeAutoApplyFailure('src/App.tsx', new Error('write denied'))).toBe(
-      "Couldn't apply src/App.tsx — write denied",
+    expect(describeAutoApplyFailure('src/App.tsx', undefined, 'en')).toBe(
+      "Couldn't apply src/App.tsx — review the change.",
     );
   });
 
+  it('maps diagnostics to reviewed reasons without exposing the raw exception', () => {
+    const message = describeAutoApplyFailure('src/App.tsx', new Error('EACCES write denied secret=raw'), 'fr');
+
+    expect(message).toBe('Impossible d’appliquer les modifications à src/App.tsx — l’accès en écriture a été refusé.');
+    expect(message).not.toContain('EACCES');
+    expect(message).not.toContain('secret=raw');
+  });
+
   it('degrades gracefully with an empty path', () => {
-    expect(describeAutoApplyFailure('')).toBe("Couldn't apply the file — review the change");
+    expect(describeAutoApplyFailure('', undefined, 'fr')).toBe(
+      'Impossible d’appliquer les modifications à ce fichier — vérifiez-les.',
+    );
   });
 });
 

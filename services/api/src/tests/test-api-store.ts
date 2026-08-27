@@ -144,6 +144,7 @@ export class TestApiStore implements ApiStore {
   readonly abuseEvents = new Map<string, AbuseEventRecord>();
   readonly securityEventResolutions = new Map<string, SecurityEventResolutionRecord>();
   readonly integrationFeatureRequests = new Map<string, IntegrationFeatureRequestRecord>();
+
   // Keyed `${userId}:${messageId}` — mirrors the prisma @@unique([userId, messageId]).
   readonly aiMessageFeedback = new Map<string, AiMessageFeedbackRecord>();
   readonly systemSettings = new Map<string, SystemSettingRecord>();
@@ -204,18 +205,52 @@ export class TestApiStore implements ApiStore {
     // In-memory store is always reachable.
   }
 
-  async withSerializedMutation<T>(_key: string, fn: () => Promise<T>): Promise<T> {
-    // Single-process test store — no cross-pod lock needed; just run the section.
-    return fn();
+  /**
+   * Chaîne de promesses PAR CLÉ — reflète fidèlement
+   * `pg_advisory_xact_lock(hashtext(key))` de PrismaApiStore : deux sections
+   * critiques de même clé ne s'entrelacent jamais.
+   *
+   * L'implémentation précédente exécutait `fn()` directement. Dans la boucle
+   * d'événements Node, deux requêtes concurrentes s'entrelacent à CHAQUE `await`,
+   * si bien qu'un test « concurrent » lisait deux fois « 0 publication active »
+   * et validait un comportement que la production n'a pas. Sérialiser ici rend le
+   * test concurrent significatif.
+   */
+  readonly #mutationChains = new Map<string, Promise<unknown>>();
+
+  async withSerializedMutation<T>(key: string, fn: () => Promise<T>): Promise<T> {
+    const previous = this.#mutationChains.get(key) ?? Promise.resolve();
+
+    /*
+     * On chaîne sur l'issue (succès OU échec) du précédent : une section qui
+     * échoue doit quand même relâcher le verrou.
+     */
+    const run = previous.then(fn, fn);
+    this.#mutationChains.set(
+      key,
+      run.then(
+        () => undefined,
+        () => undefined,
+      ),
+    );
+
+    return run;
   }
 
-  async createUser(input: { email: string; name?: string; passwordHash: string; platformAdmin?: boolean }) {
+  async createUser(input: {
+    email: string;
+    name?: string;
+    passwordHash: string;
+    platformAdmin?: boolean;
+    language?: string;
+  }) {
     const user = {
       id: id('user'),
       email: input.email.toLowerCase(),
       name: input.name,
       passwordHash: input.passwordHash,
       platformAdmin: input.platformAdmin,
+      language: input.language,
       createdAt: now(),
     };
     this.users.set(user.id, user);
@@ -519,7 +554,18 @@ export class TestApiStore implements ApiStore {
   }
 
   async listMembers(organizationId: string) {
-    return [...this.memberships.values()].filter((member) => member.organizationId === organizationId);
+    /*
+     * Mirror the real store: listMembers joins the user row so userName/userEmail
+     * are populated (single-record paths leave them undefined). Callers rely on
+     * userEmail (e.g. the invite ALREADY_MEMBER guard).
+     */
+    return [...this.memberships.values()]
+      .filter((member) => member.organizationId === organizationId)
+      .map((member) => {
+        const user = this.users.get(member.userId);
+
+        return { ...member, userName: user?.name, userEmail: user?.email };
+      });
   }
 
   async removeMember(organizationId: string, userId: string) {
@@ -635,6 +681,7 @@ export class TestApiStore implements ApiStore {
 
     const ttlDays = input.redirectTtlDays ?? 30;
     const expiresAt = new Date(Date.now() + ttlDays * 24 * 60 * 60 * 1000);
+
     const existing = this.projectSlugRedirects.find(
       (row) => row.projectId === project.id && row.oldSlug === project.slug,
     );
@@ -668,6 +715,7 @@ export class TestApiStore implements ApiStore {
     }
 
     const cutoff = input.now ?? new Date();
+
     const match = this.projectSlugRedirects.find((row) => {
       if (row.oldSlug !== input.oldSlug || row.expiresAt <= cutoff) {
         return false;
@@ -1359,6 +1407,7 @@ export class TestApiStore implements ApiStore {
     }
 
     const now = new Date().toISOString();
+
     const record: InstalledSkillRecord = {
       id: id('iskill'),
       scope: input.scope,
@@ -1560,18 +1609,57 @@ export class TestApiStore implements ApiStore {
   async countPublishedApps(organizationId: string, options: { excludeProjectId?: string } = {}) {
     const projectIds = this.#orgProjectIds(organizationId);
     const published = new Set<string>();
+
     for (const deployment of this.deployments.values()) {
       if (!projectIds.has(deployment.projectId)) {
         continue;
       }
+
       if (options.excludeProjectId && deployment.projectId === options.excludeProjectId) {
         continue;
       }
+
       if (deployment.environment === 'production' && deployment.status === 'READY') {
         published.add(deployment.projectId);
       }
     }
+
     return published.size;
+  }
+
+  async listExpiryCandidateDeployments(options: { take?: number } = {}) {
+    const out: any[] = [];
+
+    for (const deployment of this.deployments.values()) {
+      const project = this.projects.get(deployment.projectId);
+
+      if (!project || project.deletedAt) {
+        continue;
+      }
+
+      if ((deployment as any).environment !== 'production' || deployment.status !== 'READY') {
+        continue;
+      }
+
+      if (deployment.provider !== 'server') {
+        continue;
+      }
+
+      const subscription = this.subscriptions.get(project.organizationId);
+      out.push({
+        id: deployment.id,
+        projectId: deployment.projectId,
+        organizationId: project.organizationId,
+        provider: deployment.provider,
+        environmentName: (deployment as any).environment,
+        status: deployment.status,
+        createdAt: (deployment as any).createdAt ?? now(),
+        planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
+        expiredAt: ((deployment as any).metadata ?? {})?.expiredAt,
+      });
+    }
+
+    return out.slice(0, options.take ?? 500);
   }
 
   async listPublishedProjects(organizationId: string) {
@@ -1882,7 +1970,17 @@ export class TestApiStore implements ApiStore {
 
     const project = this.projects.get(deployment.projectId);
 
-    return { projectId: deployment.projectId, status: deployment.status, projectDeletedAt: project?.deletedAt ?? null };
+    const subscription = project ? this.subscriptions.get(project.organizationId) : undefined;
+
+    return {
+      projectId: deployment.projectId,
+      status: deployment.status,
+      projectDeletedAt: project?.deletedAt ?? null,
+      createdAt: (deployment as any).createdAt ?? now(),
+      environmentName: (deployment as any).environment,
+      organizationId: project?.organizationId,
+      planKey: subscription?.status === 'ACTIVE' ? subscription.planKey : undefined,
+    };
   }
 
   async updateDeployment(
@@ -1953,6 +2051,7 @@ export class TestApiStore implements ApiStore {
       createdAt: new Date().toISOString(),
     };
     this.releaseManifests.push(row);
+
     return row;
   }
 
@@ -2066,6 +2165,7 @@ export class TestApiStore implements ApiStore {
       createdAt: now(),
     };
     this.remixJobs.set(row.id, row);
+
     return { id: row.id, state: row.state };
   }
 
@@ -2124,6 +2224,7 @@ export class TestApiStore implements ApiStore {
     publishedAt?: string;
   }): Promise<GalleryListingRecord> {
     const status = input.status ?? 'PUBLISHED';
+
     const row: GalleryListingRecord = {
       id: id('gallery'),
       slug: input.slug,
@@ -2154,6 +2255,7 @@ export class TestApiStore implements ApiStore {
       publishedAt: input.publishedAt ?? (status === 'PUBLISHED' ? now() : undefined),
     };
     this.galleryListings.set(row.id, row);
+
     return row;
   }
 
@@ -2166,20 +2268,38 @@ export class TestApiStore implements ApiStore {
   }): Promise<GalleryListingRecord[]> {
     const status = opts?.status ?? 'PUBLISHED';
     const query = opts?.query?.trim().toLowerCase();
+
     let rows = [...this.galleryListings.values()].filter((row) => {
-      if (row.status !== status) return false;
-      if (opts?.category && opts.category !== 'all' && row.category !== opts.category) return false;
-      if (opts?.featured !== undefined && row.featured !== opts.featured) return false;
+      if (row.status !== status) {
+        return false;
+      }
+
+      if (opts?.category && opts.category !== 'all' && row.category !== opts.category) {
+        return false;
+      }
+
+      if (opts?.featured !== undefined && row.featured !== opts.featured) {
+        return false;
+      }
+
       if (query) {
         const hay = [row.title, row.description, row.authorName, ...row.tags].join(' ').toLowerCase();
-        if (!hay.includes(query)) return false;
+
+        if (!hay.includes(query)) {
+          return false;
+        }
       }
+
       return true;
     });
     rows = rows.sort((a, b) => {
-      if (a.featured !== b.featured) return a.featured ? -1 : 1;
+      if (a.featured !== b.featured) {
+        return a.featured ? -1 : 1;
+      }
+
       return (b.publishedAt ?? b.createdAt).localeCompare(a.publishedAt ?? a.createdAt);
     });
+
     return opts?.limit ? rows.slice(0, opts.limit) : rows;
   }
 
@@ -2193,12 +2313,18 @@ export class TestApiStore implements ApiStore {
 
   async incrementGalleryListingViews(id: string) {
     const row = this.galleryListings.get(id);
-    if (row) row.viewCount += 1;
+
+    if (row) {
+      row.viewCount += 1;
+    }
   }
 
   async incrementGalleryListingUses(id: string) {
     const row = this.galleryListings.get(id);
-    if (row) row.useCount += 1;
+
+    if (row) {
+      row.useCount += 1;
+    }
   }
 
   importJobs = new Map<
@@ -2241,6 +2367,7 @@ export class TestApiStore implements ApiStore {
       createdAt: now(),
     };
     this.importJobs.set(row.id, row);
+
     return { id: row.id, state: row.state };
   }
 
@@ -2277,6 +2404,7 @@ export class TestApiStore implements ApiStore {
       if (!terminal.has(row.state) && row.expiresAt && new Date(row.expiresAt).getTime() < now) {
         row.state = 'EXPIRED';
         row.error = 'Import staging expired before it was committed.';
+
         // targetProjectId is intentionally left untouched (never mounted).
         ids.push(row.id);
       }
@@ -2556,6 +2684,7 @@ export class TestApiStore implements ApiStore {
       id: existing?.id ?? id('msgfb'),
       userId: input.userId,
       messageId: input.messageId,
+
       // Prisma skips an undefined chatId on update, keeping the stored one.
       chatId: input.chatId ?? existing?.chatId,
       vote: input.vote,
@@ -3165,6 +3294,8 @@ export class TestApiStore implements ApiStore {
     category?: string;
     title: string;
     body?: string;
+    messageKey?: string;
+    messageParams?: Record<string, unknown>;
     linkUrl?: string;
     metadata?: Record<string, unknown>;
   }) {
@@ -3174,6 +3305,8 @@ export class TestApiStore implements ApiStore {
       category: input.category ?? 'system',
       title: input.title,
       body: input.body,
+      messageKey: input.messageKey,
+      messageParams: input.messageParams,
       linkUrl: input.linkUrl,
       metadata: input.metadata,
       readAt: undefined,
@@ -3231,6 +3364,7 @@ export class TestApiStore implements ApiStore {
 
   async markAllNotificationsRead(input: { userId: string; readAt?: Date }) {
     const readAt = (input.readAt ?? new Date()).toISOString();
+
     let count = 0;
 
     for (const notification of this.notifications.values()) {
@@ -3256,6 +3390,7 @@ export class TestApiStore implements ApiStore {
     notifiedAt?: Date;
   }): ReconnectionAlertRecord {
     const connection = this.userConnections.get(input.userConnectionId);
+
     const alert: ReconnectionAlertRecord = {
       id: id('recon'),
       userConnectionId: input.userConnectionId,
@@ -3597,6 +3732,7 @@ export class TestApiStore implements ApiStore {
   async setUserSpendLimit(input: { organizationId: string; userId: string; limitCents: number }) {
     const key = `${input.organizationId}:${input.userId}`;
     const existing = this.userSpendLimits.get(key);
+
     const record: UserSpendLimitRecord = {
       id: existing?.id ?? id('usl'),
       organizationId: input.organizationId,
@@ -3606,6 +3742,7 @@ export class TestApiStore implements ApiStore {
       updatedAt: now(),
     };
     this.userSpendLimits.set(key, record);
+
     return record;
   }
 
@@ -3619,11 +3756,13 @@ export class TestApiStore implements ApiStore {
 
   async sumUserSpendSince(organizationId: string, userId: string, sinceMs: number): Promise<number> {
     let total = 0;
+
     for (const cp of this.agentCheckpoints.values()) {
       if (cp.organizationId === organizationId && cp.userId === userId && new Date(cp.startedAt).getTime() >= sinceMs) {
         total += Math.max(0, cp.creditCents ?? 0);
       }
     }
+
     return total;
   }
 
@@ -3828,10 +3967,13 @@ export class TestApiStore implements ApiStore {
         provider,
         displayName: provider,
         authType: 'oauth',
-        // Matches the prod seed (seed-connector-catalog.ts): every catalogued
-        // connector ships enabled=true, so an un-configured connector still
-        // resolves its INTEGRATION_* env creds (connectorCredentialsFor). Only an
-        // admin explicitly toggling enabled=false blocks it.
+
+        /*
+         * Matches the prod seed (seed-connector-catalog.ts): every catalogued
+         * connector ships enabled=true, so an un-configured connector still
+         * resolves its INTEGRATION_* env creds (connectorCredentialsFor). Only an
+         * admin explicitly toggling enabled=false blocks it.
+         */
         enabled: true,
         clientId: null,
         clientSecretEnc: null,
@@ -3975,6 +4117,7 @@ export class TestApiStore implements ApiStore {
       string,
       { organizationId: string; checkpoints: number; inputTokens: number; outputTokens: number; creditCents: number }
     >();
+
     for (const cp of this.agentCheckpoints.values()) {
       const entry = byOrg.get(cp.organizationId) ?? {
         organizationId: cp.organizationId,
@@ -3989,19 +4132,23 @@ export class TestApiStore implements ApiStore {
       entry.creditCents += cp.creditCents;
       byOrg.set(cp.organizationId, entry);
     }
+
     return [...byOrg.values()].sort((a, b) => b.creditCents - a.creditCents);
   }
 
   async purgeAgentCheckpoints(input: { before: string; dryRun: boolean }) {
     const beforeMs = new Date(input.before).getTime();
+
     const matches = [...this.agentCheckpoints.values()].filter(
       (cp) => new Date(cp.startedAt).getTime() < beforeMs && (cp.status === 'COMPLETED' || cp.status === 'FAILED'),
     );
+
     if (!input.dryRun) {
       for (const cp of matches) {
         this.agentCheckpoints.delete(cp.id);
       }
     }
+
     return { count: matches.length };
   }
 
@@ -4505,6 +4652,7 @@ export class TestApiStore implements ApiStore {
 
   async resolveSecurityEvent(input: { auditLogId: string; note?: string; resolvedByUserId?: string }) {
     const existing = this.securityEventResolutions.get(input.auditLogId);
+
     const record: SecurityEventResolutionRecord = {
       id: existing?.id ?? id('sec_res'),
       auditLogId: input.auditLogId,
@@ -4515,6 +4663,7 @@ export class TestApiStore implements ApiStore {
       createdAt: existing?.createdAt ?? now(),
     };
     this.securityEventResolutions.set(input.auditLogId, record);
+
     return record;
   }
 

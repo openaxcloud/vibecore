@@ -9,6 +9,13 @@ global:
   # manager onto their own subdomains so each can be reached without sharing
   # the application path prefix.
   marketingDomain: ''
+  # Sert `www.<marketingDomain>` et le redirige (308) vers l'apex, chemin et
+  # query préservés. DÉSACTIVÉ par défaut : l'activer ajoute `www.<domaine>`
+  # aux SAN du certificat, ce qui déclenche une RÉÉMISSION du certificat de
+  # l'ingress principal (apex + app + api + workspace-manager) par
+  # cert-manager. À n'activer que sur un environnement dont le DNS `www`
+  # pointe déjà sur le load balancer.
+  marketingWwwRedirect: false
   apiDomain: ''
   workspaceManagerDomain: ''
   dns01:
@@ -37,6 +44,9 @@ platformEnv:
   # `<release>-<chart>-api`, so with `helm install vibecore ...` this is
   # `vibecore-vibecore-platform-api.<ns>.svc.cluster.local:<port>`.
   saasApiUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
+  # Surcharge explicite de l'URL interne utilisée par le worker pour ses jobs
+  # internes. VIDE par défaut : le chart retombe alors sur `saasApiUrl`.
+  apiInternalUrl: ''
   apiBaseUrl: 'http://vibecore-vibecore-platform-api.vibecore.svc.cluster.local:3001'
   publicApiBaseUrl: ''
   platformAdminEmails: ''
@@ -239,6 +249,11 @@ services:
     # server.ts binds SCREENSHOTTER_PORT ?? PORT ?? 3030.
     port: 3030
     replicas: 1
+    # Cap the HPA (templates/hpa.yaml would otherwise default to 5): render
+    # concurrency is held via SCREENSHOTTER_MAX_CONCURRENCY in the pod, not by
+    # fanning out Chromium replicas. Chart-default (not values-prod-only) so the
+    # cap also applies under CD's `helm upgrade --reuse-values`.
+    maxReplicas: 2
     path: ''
     readOnlyRootFilesystem: false
     # Chromium is memory-hungry; give /tmp headroom for its shm/profile writes.

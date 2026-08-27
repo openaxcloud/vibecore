@@ -1,9 +1,52 @@
 import { KeyRound } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { MetaFunction } from 'react-router';
 import { Form, Link, useActionData, useNavigation, useSearchParams } from 'react-router';
 import { AuthField, AuthScreen, AuthSubmit } from '~/components/auth/AuthScreen';
-import { apiRequest, formObject, json, type EnterpriseActionArgs } from '~/lib/enterprise-api.server';
+import {
+  apiRequest,
+  formObject,
+  json,
+  type EnterpriseActionArgs,
+  type EnterpriseLoaderArgs,
+} from '~/lib/enterprise-api.server';
+import type { TranslationKey } from '~/lib/i18n/dictionary';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
+import { translateServerMessage } from '~/lib/i18n/server';
 import { isReauthRedirect } from '~/lib/route-reauth';
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const language = data?.language ?? 'en';
+
+  return [
+    { title: translateServerMessage(language, 'auth.verify.metaTitle') },
+    { name: 'description', content: translateServerMessage(language, 'auth.verify.metaDescription') },
+  ];
+};
+
+type VerifyFeedbackCode =
+  | 'AUTH_EMAIL_ALREADY_VERIFIED'
+  | 'AUTH_VERIFICATION_SENT_DEV'
+  | 'AUTH_VERIFICATION_SENT'
+  | 'AUTH_EMAIL_VERIFIED'
+  | 'AUTH_INVALID_VERIFICATION_TOKEN'
+  | 'AUTH_VERIFICATION_FAILED'
+  | 'AUTH_VERIFICATION_UNAVAILABLE';
+
+const VERIFY_FEEDBACK_KEYS = {
+  AUTH_EMAIL_ALREADY_VERIFIED: 'auth.feedback.emailAlreadyVerified',
+  AUTH_VERIFICATION_SENT_DEV: 'auth.feedback.verificationSentDev',
+  AUTH_VERIFICATION_SENT: 'auth.feedback.verificationSent',
+  AUTH_EMAIL_VERIFIED: 'auth.feedback.emailVerified',
+  AUTH_INVALID_VERIFICATION_TOKEN: 'auth.feedback.invalidVerificationToken',
+  AUTH_VERIFICATION_FAILED: 'auth.feedback.verificationFailed',
+  AUTH_VERIFICATION_UNAVAILABLE: 'auth.feedback.verificationUnavailable',
+} as const satisfies Record<VerifyFeedbackCode, TranslationKey>;
+
+export function loader({ request }: EnterpriseLoaderArgs) {
+  return json({ language: resolveRequestLocale(request).language });
+}
 
 export async function action({ request }: EnterpriseActionArgs) {
   const body = formObject(await request.formData());
@@ -21,14 +64,15 @@ export async function action({ request }: EnterpriseActionArgs) {
       );
 
       if (result.alreadyVerified) {
-        return json({ status: 'This email is already verified — you can continue using E-code.' });
+        return json({ statusCode: 'AUTH_EMAIL_ALREADY_VERIFIED' as const });
       }
 
-      return json({
-        status: result.verificationToken
-          ? `A new verification email was sent. Dev token: ${result.verificationToken}`
-          : 'A new verification email is on its way. Check your inbox (and spam).',
-      });
+      return result.verificationToken
+        ? json({
+            statusCode: 'AUTH_VERIFICATION_SENT_DEV' as const,
+            statusParams: { token: result.verificationToken },
+          })
+        : json({ statusCode: 'AUTH_VERIFICATION_SENT' as const });
     }
 
     await apiRequest(request, '/auth/verify-email', {
@@ -37,7 +81,7 @@ export async function action({ request }: EnterpriseActionArgs) {
       body: JSON.stringify(body),
     });
 
-    return json({ status: 'Email verified. You can close this tab and continue using E-code.' });
+    return json({ statusCode: 'AUTH_EMAIL_VERIFIED' as const });
   } catch (error) {
     /*
      * A 3xx re-auth redirect (e.g. apiRequest throws `redirect('/mfa-setup')` when the
@@ -49,24 +93,36 @@ export async function action({ request }: EnterpriseActionArgs) {
     }
 
     if (error instanceof Response) {
-      let message = 'Verification failed.';
+      let errorCode: VerifyFeedbackCode = 'AUTH_VERIFICATION_FAILED';
 
       try {
-        const payload = (await error.json()) as { error?: string };
-        message = payload.error ?? message;
+        const payload = (await error.json()) as { code?: string };
+
+        if (payload.code === 'AUTH_INVALID_VERIFICATION_TOKEN') {
+          errorCode = 'AUTH_INVALID_VERIFICATION_TOKEN';
+        }
       } catch {
-        message = error.statusText || message;
+        // Never expose transport or API prose; the client translates a stable code.
       }
 
-      return json({ error: message }, { status: error.status });
+      return json({ errorCode }, { status: error.status });
     }
 
-    return json({ error: 'Verification service is not reachable. Please try again in a moment.' }, { status: 503 });
+    return json({ errorCode: 'AUTH_VERIFICATION_UNAVAILABLE' as const }, { status: 503 });
   }
 }
 
 export default function VerifyEmailPage() {
-  const actionData = useActionData<typeof action>() as { status?: string; error?: string } | undefined;
+  const { t } = useTranslation();
+
+  const actionData = useActionData<typeof action>() as
+    | {
+        statusCode?: VerifyFeedbackCode;
+        statusParams?: { token: string };
+        errorCode?: VerifyFeedbackCode;
+      }
+    | undefined;
+
   const navigation = useNavigation();
   const isSubmitting = navigation.state === 'submitting';
 
@@ -99,39 +155,50 @@ export default function VerifyEmailPage() {
 
   const resendSecondsLeft = cooldownEndsAt > nowTs ? Math.ceil((cooldownEndsAt - nowTs) / 1000) : 0;
 
+  const status = actionData?.statusCode
+    ? t(VERIFY_FEEDBACK_KEYS[actionData.statusCode], actionData.statusParams)
+    : undefined;
+
+  const error = actionData?.errorCode ? t(VERIFY_FEEDBACK_KEYS[actionData.errorCode]) : undefined;
+
   return (
     <AuthScreen
-      eyebrow="Verify your email"
-      title="Confirm your email"
-      description="Paste the verification token from the email we sent you, or click the verification link directly."
-      status={actionData?.status}
-      error={actionData?.error}
-      heroEyebrow="One last step"
-      heroTitle="Unlock your full workspace"
-      heroBody="Verifying your email enables team invites, deploy notifications and billing receipts."
+      eyebrow={t('auth.verify.eyebrow')}
+      title={t('auth.verify.title')}
+      description={t('auth.verify.description')}
+      status={status}
+      error={error}
+      heroEyebrow={t('auth.verify.heroEyebrow')}
+      heroTitle={t('auth.verify.heroTitle')}
+      heroBody={t('auth.verify.heroBody')}
       footer={
         <>
-          Didn&apos;t get the email? Use <span className="font-semibold">Resend verification email</span> above, or{' '}
+          {t('auth.verify.footerPrefix')} <span className="font-semibold">{t('auth.verify.footerResend')}</span>{' '}
+          {t('auth.verify.footerMiddle')}{' '}
           <Link to="/login" className="vc-auth-link font-semibold hover:underline">
-            sign in
+            {t('auth.verify.footerSignIn')}
           </Link>{' '}
-          from another device.
+          {t('auth.verify.footerSuffix')}
         </>
       }
     >
       <Form method="post" className="space-y-4 sm:space-y-5">
         <AuthField
-          label="Verification token"
+          label={t('auth.common.verificationToken')}
           name="token"
           required
           minLength={16}
           defaultValue={tokenFromUrl}
-          placeholder="verify_..."
+          placeholder={t('auth.common.verificationTokenPlaceholder')}
           autoComplete="one-time-code"
           icon={<KeyRound className="h-4 w-4" />}
-          hint="The token expires 24 hours after registration."
+          hint={t('auth.verify.tokenHint')}
         />
-        <AuthSubmit label="Verify email" loadingLabel="Verifying..." isSubmitting={isSubmitting} />
+        <AuthSubmit
+          label={t('auth.verify.submit')}
+          loadingLabel={t('auth.verify.submitting')}
+          isSubmitting={isSubmitting}
+        />
       </Form>
       <Form method="post" className="mt-3" onSubmit={() => setCooldownEndsAt(Date.now() + 60_000)}>
         <input type="hidden" name="intent" value="resend" />
@@ -140,7 +207,9 @@ export default function VerifyEmailPage() {
           disabled={isSubmitting || resendSecondsLeft > 0}
           className="vc-auth-link text-sm font-semibold hover:underline disabled:opacity-60"
         >
-          {resendSecondsLeft > 0 ? `Resend available in ${resendSecondsLeft}s` : 'Resend verification email'}
+          {resendSecondsLeft > 0
+            ? t('auth.verify.resendAvailable', { count: resendSecondsLeft })
+            : t('auth.verify.resend')}
         </button>
       </Form>
     </AuthScreen>

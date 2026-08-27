@@ -1477,9 +1477,12 @@ model McpCatalogEntry {
   id                  String       @id @default(cuid())
   slug                String       @unique
   name                String
+  nameFr              String?
   description         String
+  descriptionFr       String?
   domain              McpDomain
   tags                String[]
+  tagsFr              String[]     @default([])
   author              String
   homepageUrl         String?
   iconUrl             String?
@@ -1487,6 +1490,7 @@ model McpCatalogEntry {
   transport           McpTransport
   configTemplate      Json
   configSchema        Json         @default("{}")
+  configSchemaFr      Json         @default("{}")
   installCount        Int          @default(0)
   featured            Boolean      @default(false)
   verified            Boolean      @default(false)
@@ -1856,20 +1860,24 @@ model ReconnectionAlert {
 /// real producer is the connector reconnection alert: when one is raised the
 /// API also drops a Notification so the feed is non-empty in reality.
 model Notification {
-  id        String    @id @default(cuid())
-  userId    String
+  id            String    @id @default(cuid())
+  userId        String
   /// Coarse routing/tone bucket, aligned with the preferences surfaces:
   /// "security" | "billing" | "deployments" | "team" | "system".
-  category  String    @default("system")
-  title     String
-  body      String?
+  category      String    @default("system")
+  title         String
+  body          String?
+  /// Stable i18n descriptor for newly-produced notifications. Nullable keeps
+  /// every historical row and older producer compatible with title/body.
+  messageKey    String?
+  messageParams Json?
   /// Optional in-app link the notification points at (e.g. /account/connections).
-  linkUrl   String?
+  linkUrl       String?
   /// Free-form producer metadata (e.g. the source alert id / provider) so the
   /// feed can be traced back to its origin without extra columns.
-  metadata  Json?
-  readAt    DateTime?
-  createdAt DateTime  @default(now())
+  metadata      Json?
+  readAt        DateTime?
+  createdAt     DateTime  @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

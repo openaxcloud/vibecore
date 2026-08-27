@@ -2,10 +2,12 @@ import type { Message } from 'ai';
 import { Fragment } from 'react';
 import { forwardRef } from 'react';
 import type { ForwardedRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router';
 import { toast } from 'react-toastify';
 import { AssistantMessage } from './AssistantMessage';
 import { UserMessage } from './UserMessage';
+import { getChatResidualsCopy } from '~/lib/i18n/catalogs/chat-residuals';
 import { forkChat } from '~/lib/persistence/db';
 import { db, chatId } from '~/lib/persistence/useChatHistory';
 import type { ProviderInfo } from '~/types/model';
@@ -36,6 +38,8 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
   (props: MessagesProps, ref: ForwardedRef<HTMLDivElement> | undefined) => {
     const { id, isStreaming = false, messages = [] } = props;
     const location = useLocation();
+    const { i18n } = useTranslation();
+    const copy = getChatResidualsCopy(i18n.resolvedLanguage ?? i18n.language);
 
     const handleRewind = (messageId: string) => {
       /*
@@ -56,14 +60,14 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
     const handleFork = async (messageId: string) => {
       try {
         if (!db || !chatId.get()) {
-          toast.error('Chat persistence is not available');
+          toast.error(copy['chatResiduals.messages.persistenceUnavailable']);
           return;
         }
 
         const urlId = await forkChat(db, chatId.get()!, messageId);
         window.location.href = `/chat/${urlId}`;
-      } catch (error) {
-        toast.error('Failed to fork chat: ' + (error as Error).message);
+      } catch {
+        toast.error(copy['chatResiduals.messages.forkFailed']);
       }
     };
 
@@ -122,9 +126,17 @@ export const Messages = forwardRef<HTMLDivElement, MessagesProps>(
             })
           : null}
         {isStreaming && (
-          <div className="text-center w-full  text-bolt-elements-item-contentAccent i-svg-spinners:3-dots-fade text-4xl mt-4"></div>
+          <div
+            className="i-svg-spinners:3-dots-fade mt-4 w-full text-center text-4xl text-bolt-elements-item-contentAccent"
+            role="status"
+            aria-label={copy['chatResiduals.messages.streaming']}
+          >
+            <span className="sr-only">{copy['chatResiduals.messages.streaming']}</span>
+          </div>
         )}
       </div>
     );
   },
 );
+
+Messages.displayName = 'Messages';

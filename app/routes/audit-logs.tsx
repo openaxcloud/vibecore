@@ -1,4 +1,5 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import type { MetaFunction } from 'react-router';
 import { useLoaderData, useRevalidator } from 'react-router';
 import { AsyncPanelError, AsyncPanelSkeleton } from '~/components/dashboard/AsyncPanelState';
 import { EnterpriseFormPage } from '~/components/enterprise/EnterpriseFormPage';
@@ -10,8 +11,18 @@ import {
   redirect,
   type EnterpriseLoaderArgs,
 } from '~/lib/enterprise-api.server';
+import {
+  auditActionLabel,
+  auditResourceLabel,
+  formatAuditEventCount,
+  formatAuditTimestamp,
+  getAuditLogsCopy,
+  resolveAuditLogsLanguage,
+  type AuditLogsCopy,
+  type AuditLogsLanguage,
+} from '~/lib/i18n/catalogs/audit-logs';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { isReauthRedirect } from '~/lib/route-reauth';
-import { userFacingLabel } from '~/lib/user-facing-labels';
 
 /*
  * A stored audit event, matching the columns the API's `auditEventsToCsv` emits
@@ -31,8 +42,72 @@ interface AuditLogRow {
 
 const EXPORT_FORMATS = new Set(['csv', 'json']);
 
+export const meta: MetaFunction = ({ matches }) => {
+  const rootData = matches.find((match) => match.id === 'root')?.data as { language?: string } | undefined;
+  const copy = getAuditLogsCopy(rootData?.language);
+  const title = copy['auditLogs.metaTitle'];
+  const description = copy['auditLogs.metaDescription'];
+
+  return [
+    { title },
+    { name: 'description', content: description },
+    { property: 'og:title', content: title },
+    { property: 'og:description', content: description },
+    { name: 'twitter:title', content: title },
+    { name: 'twitter:description', content: description },
+  ];
+};
+export { UserAreaRouteErrorBoundary as ErrorBoundary } from '~/components/dashboard/UserAreaRouteError';
+
+function pageUrl(language: AuditLogsLanguage, state?: 'forbidden' | 'exportError'): string {
+  const params = new URLSearchParams();
+
+  if (state) {
+    params.set(state, '1');
+  }
+
+  if (language === 'fr') {
+    params.set('lang', 'fr');
+  }
+
+  const query = params.toString();
+
+  return query ? `/audit-logs?${query}` : '/audit-logs';
+}
+
+function exportUrl(format: 'csv' | 'json', language: AuditLogsLanguage): string {
+  const params = new URLSearchParams({ export: format });
+
+  if (language === 'fr') {
+    params.set('lang', 'fr');
+  }
+
+  return `/audit-logs?${params.toString()}`;
+}
+
 export async function loader({ request }: EnterpriseLoaderArgs) {
-  const organization = await firstOrganizationOrNull(request);
+  const language = resolveAuditLogsLanguage(resolveRequestLocale(request).language);
+  const copy = getAuditLogsCopy(language);
+
+  let organization: Awaited<ReturnType<typeof firstOrganizationOrNull>>;
+
+  try {
+    organization = await firstOrganizationOrNull(request);
+  } catch (error) {
+    if (isReauthRedirect(error)) {
+      throw error;
+    }
+
+    return json({
+      orgId: '',
+      auditLogs: [],
+      listError: true,
+      listErrorKind: 'temporary' as const,
+      forbidden: false,
+      exportError: false,
+      language,
+    });
+  }
 
   if (!organization) {
     return redirect('/');
@@ -70,16 +145,20 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
       return new Response(body, {
         headers: {
           'content-type': format === 'csv' ? 'text/csv; charset=utf-8' : 'application/json; charset=utf-8',
-          'content-disposition': `attachment; filename="audit-logs-${stamp}.${format}"`,
+          'content-disposition': `attachment; filename="${copy['auditLogs.export.fileName']}-${stamp}.${format}"`,
           'cache-control': 'no-store',
         },
       });
     } catch (error) {
-      if (isForbiddenApiResponse(error)) {
-        return redirect('/audit-logs?forbidden=1');
+      if (isReauthRedirect(error)) {
+        throw error;
       }
 
-      throw error;
+      if (isForbiddenApiResponse(error)) {
+        return redirect(pageUrl(language, 'forbidden'));
+      }
+
+      return redirect(pageUrl(language, 'exportError'));
     }
   }
 
@@ -94,7 +173,7 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
 
   try {
     const result = await apiRequest<{ auditLogs?: AuditLogRow[] }>(request, `/orgs/${organization.id}/audit-logs`);
-    auditLogs = result.auditLogs ?? [];
+    auditLogs = Array.isArray(result.auditLogs) ? result.auditLogs : [];
   } catch (error) {
     if (isReauthRedirect(error)) {
       throw error;
@@ -107,6 +186,8 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
         listError: true,
         listErrorKind: 'permission' as const,
         forbidden: false,
+        exportError: false,
+        language,
       });
     }
 
@@ -120,37 +201,87 @@ export async function loader({ request }: EnterpriseLoaderArgs) {
     listError,
     listErrorKind,
     forbidden: url.searchParams.get('forbidden') === '1',
+    exportError: url.searchParams.get('exportError') === '1',
+    language,
   });
 }
 
-const auditTimestampFormatter = new Intl.DateTimeFormat('en-GB', {
-  day: '2-digit',
-  month: 'short',
-  year: 'numeric',
-  hour: '2-digit',
-  minute: '2-digit',
-  hourCycle: 'h23',
-  timeZone: 'UTC',
-  timeZoneName: 'short',
-});
+const exportLinkClass =
+  'inline-flex min-h-[44px] min-w-0 items-center justify-center gap-1.5 whitespace-normal rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-center text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3 focus:outline-none focus:ring-2 focus:ring-bolt-elements-focus';
 
-function formatTimestamp(value?: string) {
-  if (!value) {
-    return '—';
+function IdentifierLabel({ raw, label }: { raw: string | undefined; label: string }) {
+  if (raw && raw === label) {
+    return <code className="break-all font-mono text-[0.7rem]">{raw}</code>;
   }
 
-  const date = new Date(value);
-
-  return Number.isNaN(date.getTime()) ? 'Date unavailable' : auditTimestampFormatter.format(date);
+  return <>{label}</>;
 }
 
-const exportLinkClass =
-  'inline-flex min-h-[44px] items-center gap-1.5 rounded-md border border-bolt-elements-borderColor px-3 py-1.5 text-xs font-medium text-bolt-elements-textPrimary transition-colors hover:bg-bolt-elements-background-depth-3';
+function AuditEventCard({
+  row,
+  copy,
+  language,
+}: {
+  row: AuditLogRow;
+  copy: AuditLogsCopy;
+  language: AuditLogsLanguage;
+}) {
+  const action = auditActionLabel(row.action, language);
+  const resource = auditResourceLabel(row.resourceType, language);
+
+  return (
+    <li className="rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-3">
+      <dl className="grid min-w-0 gap-3 text-xs">
+        <div className="min-w-0">
+          <dt className="font-medium text-bolt-elements-textSecondary">{copy['auditLogs.table.time']}</dt>
+          <dd className="mt-1 break-words text-bolt-elements-textPrimary">
+            {formatAuditTimestamp(row.createdAt, language)}
+          </dd>
+        </div>
+        <div className="min-w-0">
+          <dt className="font-medium text-bolt-elements-textSecondary">{copy['auditLogs.table.action']}</dt>
+          <dd className="mt-1 break-words font-medium text-bolt-elements-textPrimary">
+            <IdentifierLabel raw={row.action} label={action} />
+          </dd>
+        </div>
+        <div className="grid min-w-0 grid-cols-2 gap-3">
+          <div className="min-w-0">
+            <dt className="font-medium text-bolt-elements-textSecondary">{copy['auditLogs.table.resource']}</dt>
+            <dd className="mt-1 break-words text-bolt-elements-textPrimary">
+              <IdentifierLabel raw={row.resourceType} label={resource} />
+            </dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="font-medium text-bolt-elements-textSecondary">{copy['auditLogs.table.actor']}</dt>
+            <dd className="mt-1 break-words text-bolt-elements-textPrimary">
+              {row.actorUserId ? copy['auditLogs.actor.member'] : copy['auditLogs.actor.system']}
+            </dd>
+          </div>
+        </div>
+        <div className="min-w-0">
+          <dt className="font-medium text-bolt-elements-textSecondary">{copy['auditLogs.table.ip']}</dt>
+          <dd className="mt-1 break-all font-mono text-bolt-elements-textPrimary">{row.ipAddress ?? '—'}</dd>
+        </div>
+      </dl>
+    </li>
+  );
+}
 
 export default function AuditLogsPage() {
-  const { auditLogs, listError, listErrorKind, forbidden } = useLoaderData<typeof loader>();
+  const {
+    auditLogs,
+    listError,
+    listErrorKind,
+    forbidden,
+    exportError,
+    language: loaderLanguage,
+  } = useLoaderData<typeof loader>();
+
+  const language = resolveAuditLogsLanguage(loaderLanguage);
+  const copy = getAuditLogsCopy(language);
   const revalidator = useRevalidator();
   const retrying = revalidator.state !== 'idle';
+  const [selectedAction, setSelectedAction] = useState('');
 
   /*
    * Distinct action names drive a client-side action filter over the already
@@ -158,28 +289,36 @@ export default function AuditLogsPage() {
    * common "show me only role.update events" narrowing without a new endpoint.
    */
   const actions = useMemo(
-    () => Array.from(new Set(auditLogs.map((row) => row.action).filter(Boolean))).sort() as string[],
-    [auditLogs],
+    () =>
+      Array.from(
+        new Set(auditLogs.map((row) => row.action?.trim()).filter((action): action is string => Boolean(action))),
+      ).sort((left, right) => auditActionLabel(left, language).localeCompare(auditActionLabel(right, language))),
+    [auditLogs, language],
+  );
+  const visibleLogs = useMemo(
+    () => (selectedAction ? auditLogs.filter((row) => row.action === selectedAction) : auditLogs),
+    [auditLogs, selectedAction],
   );
 
   if (listError) {
     return (
-      <EnterpriseFormPage
-        title="Audit logs"
-        description="Review and export security-relevant organization events to CSV or JSON."
-      >
+      <EnterpriseFormPage title={copy['auditLogs.title']} description={copy['auditLogs.description']}>
         {retrying ? (
-          <AsyncPanelSkeleton label="Loading audit logs" rows={6} />
+          <AsyncPanelSkeleton label={copy['auditLogs.load.loading']} rows={6} />
         ) : (
           <AsyncPanelError
-            title={listErrorKind === 'permission' ? 'Audit logs are restricted' : 'Audit logs could not load'}
+            title={
+              listErrorKind === 'permission'
+                ? copy['auditLogs.load.permissionTitle']
+                : copy['auditLogs.load.errorTitle']
+            }
             description={
               listErrorKind === 'permission'
-                ? 'Ask an organization administrator for access to the organization audit trail.'
-                : 'Events and exports are hidden because the latest request failed. No audit data was changed.'
+                ? copy['auditLogs.load.permissionDescription']
+                : copy['auditLogs.load.errorDescription']
             }
             onRetry={revalidator.revalidate}
-            retryLabel="Reload audit logs"
+            retryLabel={copy['auditLogs.load.retry']}
             tone={listErrorKind === 'permission' ? 'warning' : 'error'}
           />
         )}
@@ -189,54 +328,63 @@ export default function AuditLogsPage() {
 
   return (
     <EnterpriseFormPage
-      title="Audit logs"
-      description="Review and export security-relevant organization events to CSV or JSON. Route deliveries to a SIEM from the SIEM webhooks page."
+      title={copy['auditLogs.title']}
+      description={copy['auditLogs.description']}
       error={
         forbidden
-          ? 'You do not have permission to export audit logs. Ask an organization admin for audit log export access.'
-          : undefined
+          ? copy['auditLogs.error.exportForbidden']
+          : exportError
+            ? copy['auditLogs.error.exportFailed']
+            : undefined
       }
     >
-      <div className="flex flex-col gap-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Export</h2>
-            <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-              Download the full audit trail. Your signed-in account is used to prepare the export securely.
+      <div className="flex min-w-0 flex-col gap-6">
+        <section className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="break-words text-sm font-semibold text-bolt-elements-textPrimary">
+              {copy['auditLogs.export.title']}
+            </h2>
+            <p className="mt-1 break-words text-xs text-bolt-elements-textSecondary">
+              {copy['auditLogs.export.description']}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <a className={exportLinkClass} href="/audit-logs?export=csv" download data-testid="audit-export-csv">
+          <div className="grid shrink-0 grid-cols-1 gap-2 min-[420px]:grid-cols-2">
+            <a className={exportLinkClass} href={exportUrl('csv', language)} download data-testid="audit-export-csv">
               <span className="i-ph:file-csv" aria-hidden />
-              Export CSV
+              {copy['auditLogs.export.csv']}
             </a>
-            <a className={exportLinkClass} href="/audit-logs?export=json" download data-testid="audit-export-json">
+            <a className={exportLinkClass} href={exportUrl('json', language)} download data-testid="audit-export-json">
               <span className="i-ph:file-text" aria-hidden />
-              Export JSON
+              {copy['auditLogs.export.json']}
             </a>
           </div>
-        </div>
+        </section>
 
-        <div>
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <h2 className="text-sm font-semibold text-bolt-elements-textPrimary">Recent events</h2>
+        <section className="min-w-0">
+          <div className="mb-3 flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0">
+              <h2 className="break-words text-sm font-semibold text-bolt-elements-textPrimary">
+                {copy['auditLogs.recent.title']}
+              </h2>
+              {auditLogs.length > 0 ? (
+                <p className="mt-1 text-xs text-bolt-elements-textSecondary" aria-live="polite">
+                  {formatAuditEventCount(visibleLogs.length, language)}
+                </p>
+              ) : null}
+            </div>
             {actions.length > 0 ? (
-              <label className="ml-auto flex items-center gap-2 text-xs text-bolt-elements-textSecondary">
-                Action
+              <label className="grid min-w-0 gap-1 text-xs text-bolt-elements-textSecondary sm:w-auto sm:min-w-[220px]">
+                {copy['auditLogs.filter.action']}
                 <select
-                  className="min-h-[44px] rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-xs outline-none focus:border-bolt-elements-focus"
-                  onChange={(event) => {
-                    const value = event.currentTarget.value;
-                    document.querySelectorAll<HTMLTableRowElement>('[data-audit-row]').forEach((row) => {
-                      row.hidden = value !== '' && row.dataset.action !== value;
-                    });
-                  }}
+                  className="min-h-[44px] min-w-0 rounded-md border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-2 py-1 text-xs text-bolt-elements-textPrimary outline-none focus:border-bolt-elements-focus"
+                  value={selectedAction}
+                  onChange={(event) => setSelectedAction(event.currentTarget.value)}
                   data-testid="audit-action-filter"
                 >
-                  <option value="">All actions</option>
+                  <option value="">{copy['auditLogs.filter.all']}</option>
                   {actions.map((action) => (
                     <option key={action} value={action}>
-                      {userFacingLabel(action, 'Recorded action')}
+                      {auditActionLabel(action, language)}
                     </option>
                   ))}
                 </select>
@@ -244,56 +392,80 @@ export default function AuditLogsPage() {
             ) : null}
           </div>
 
-          {auditLogs.length === 0 ? (
+          {auditLogs.length === 0 || visibleLogs.length === 0 ? (
             <p className="rounded-md border border-bolt-elements-borderColor px-3 py-4 text-sm text-bolt-elements-textSecondary">
-              No audit events recorded yet for this organization.
+              {auditLogs.length === 0 ? copy['auditLogs.empty'] : copy['auditLogs.emptyFiltered']}
             </p>
           ) : (
-            <div className="overflow-x-auto rounded-md border border-bolt-elements-borderColor">
-              <table className="w-full min-w-[640px] text-left text-xs">
-                <thead className="bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">Time</th>
-                    <th className="px-3 py-2 font-medium">Action</th>
-                    <th className="px-3 py-2 font-medium">Resource</th>
-                    <th className="px-3 py-2 font-medium">Actor</th>
-                    <th className="px-3 py-2 font-medium">IP</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {auditLogs.map((row, index) => (
-                    <tr
-                      key={`${row.createdAt ?? ''}-${row.action ?? ''}-${index}`}
-                      data-audit-row
-                      data-action={row.action ?? ''}
-                      className="border-t border-bolt-elements-borderColor align-top"
-                    >
-                      <td className="whitespace-nowrap px-3 py-2 text-bolt-elements-textSecondary">
-                        {formatTimestamp(row.createdAt)}
-                      </td>
-                      <td className="px-3 py-2 font-medium text-bolt-elements-textPrimary">
-                        {row.action ? userFacingLabel(row.action, 'Recorded action') : '—'}
-                      </td>
-                      <td className="px-3 py-2 text-bolt-elements-textSecondary">
-                        {row.resourceType ? userFacingLabel(row.resourceType, 'Resource') : '—'}
-                      </td>
-                      <td className="px-3 py-2 text-bolt-elements-textSecondary">
-                        {row.actorUserId ? 'Organization member' : 'System'}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-2 text-bolt-elements-textSecondary">
-                        {row.ipAddress ?? '—'}
-                      </td>
+            <>
+              <ul className="grid gap-3 md:hidden" aria-label={copy['auditLogs.table.aria']}>
+                {visibleLogs.map((row, index) => (
+                  <AuditEventCard
+                    key={`${row.createdAt ?? ''}-${row.action ?? ''}-${index}`}
+                    row={row}
+                    copy={copy}
+                    language={language}
+                  />
+                ))}
+              </ul>
+              <div
+                className="hidden overflow-x-auto rounded-md border border-bolt-elements-borderColor md:block"
+                tabIndex={0}
+                role="region"
+                aria-label={copy['auditLogs.table.aria']}
+              >
+                <table className="w-full min-w-[680px] text-left text-xs">
+                  <caption className="sr-only">{copy['auditLogs.table.aria']}</caption>
+                  <thead className="bg-bolt-elements-background-depth-3 text-bolt-elements-textSecondary">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">{copy['auditLogs.table.time']}</th>
+                      <th className="px-3 py-2 font-medium">{copy['auditLogs.table.action']}</th>
+                      <th className="px-3 py-2 font-medium">{copy['auditLogs.table.resource']}</th>
+                      <th className="px-3 py-2 font-medium">{copy['auditLogs.table.actor']}</th>
+                      <th className="px-3 py-2 font-medium">{copy['auditLogs.table.ip']}</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {visibleLogs.map((row, index) => {
+                      const action = auditActionLabel(row.action, language);
+                      const resource = auditResourceLabel(row.resourceType, language);
+
+                      return (
+                        <tr
+                          key={`${row.createdAt ?? ''}-${row.action ?? ''}-${index}`}
+                          className="border-t border-bolt-elements-borderColor align-top"
+                        >
+                          <td className="whitespace-nowrap px-3 py-2 text-bolt-elements-textSecondary">
+                            {formatAuditTimestamp(row.createdAt, language)}
+                          </td>
+                          <td className="px-3 py-2 font-medium text-bolt-elements-textPrimary">
+                            <IdentifierLabel raw={row.action} label={action} />
+                          </td>
+                          <td className="px-3 py-2 text-bolt-elements-textSecondary">
+                            <IdentifierLabel raw={row.resourceType} label={resource} />
+                          </td>
+                          <td className="px-3 py-2 text-bolt-elements-textSecondary">
+                            {row.actorUserId ? copy['auditLogs.actor.member'] : copy['auditLogs.actor.system']}
+                          </td>
+                          <td className="whitespace-nowrap px-3 py-2 text-bolt-elements-textSecondary">
+                            {row.ipAddress ?? '—'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
-        </div>
+        </section>
 
         <p className="text-xs text-bolt-elements-textSecondary">
-          <a className="underline hover:text-bolt-elements-textPrimary" href="/organization-siem">
-            Configure SIEM webhooks
+          <a
+            className="underline hover:text-bolt-elements-textPrimary"
+            href={language === 'fr' ? '/organization-siem?lang=fr' : '/organization-siem'}
+          >
+            {copy['auditLogs.siem']}
           </a>
         </p>
       </div>

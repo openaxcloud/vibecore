@@ -1,12 +1,26 @@
-import type { MetaFunction } from 'react-router';
+import type { LoaderFunctionArgs, MetaFunction } from 'react-router';
 import StatusPage from '~/components/marketing/ecode-exact/pages/StatusPage';
+import { getMarketingExactStatusDesktopCopy } from '~/lib/i18n/catalogs/marketing-exact-status-desktop';
+import { resolveRequestLocale } from '~/lib/i18n/request-locale';
 import { socialMetaTags } from '~/utils/social-meta';
 
-export const meta: MetaFunction = () => [
-  { title: 'System Status — E-Code' },
-  { name: 'description', content: 'E-Code system status and uptime.' },
-  ...socialMetaTags({ title: 'System Status — E-Code', description: 'E-Code system status and uptime.' }),
-];
+export function loader({ request }: LoaderFunctionArgs) {
+  return { language: resolveRequestLocale(request).language };
+}
+
+export const meta: MetaFunction<typeof loader> = ({ data }) => {
+  const seo = getMarketingExactStatusDesktopCopy(data?.language).exactStatus.seo;
+
+  const social = socialMetaTags(seo).map((tag) => {
+    const identifier = 'property' in tag ? tag.property : 'name' in tag ? tag.name : undefined;
+
+    return identifier === 'og:image:alt' || identifier === 'twitter:image:alt'
+      ? { ...tag, content: seo.imageAlt }
+      : tag;
+  });
+
+  return [{ title: seo.title }, { name: 'description', content: seo.description }, ...social];
+};
 
 export default function StatusRoute() {
   return <StatusPage />;

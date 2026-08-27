@@ -2,6 +2,7 @@ import { Newspaper } from 'lucide-react';
 import { describe, expect, it } from 'vitest';
 
 import { parseBlogSections, toBlogDetailPageDefinition, type BlogDetailInput } from './ecode-blog-detail-page';
+import { getMarketingBlogPostCopy } from '~/lib/i18n/catalogs/marketing-blog-detail';
 
 const samplePost: BlogDetailInput = {
   title: 'Introducing E-Code AI Agent 2.0',
@@ -90,5 +91,23 @@ describe('toBlogDetailPageDefinition', () => {
 
     expect(page.sections).toHaveLength(1);
     expect(page.sections[0].title).toBe('Overview');
+  });
+
+  it('builds a complete French article page from the localized catalog', () => {
+    const copy = getMarketingBlogPostCopy('introducing-e-code', 'fr');
+
+    expect(copy).toBeTruthy();
+
+    const page = toBlogDetailPageDefinition(
+      { ...copy!, readTime: 5, publishedAt: '2026-01-15T00:00:00.000Z' },
+      Newspaper,
+      'fr',
+    );
+
+    expect(page.title).toBe('Découvrez l’agent IA E-Code 2.0');
+    expect(page.secondaryAction).toEqual(['Retour au blog', '/blog']);
+    expect(page.primaryAction).toEqual(['Lire la documentation', '/docs']);
+    expect(page.sections.map((section) => section.title)).toContain('Ce qui change');
+    expect(JSON.stringify(page)).not.toContain('What changed');
   });
 });

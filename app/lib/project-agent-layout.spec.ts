@@ -26,5 +26,7 @@ describe('project agent panel layout', () => {
     expect(projectAgentStopLabel('Anthropic', 'claude-sonnet-4.5')).toBe('Stop Claude');
     expect(projectAgentStopLabel('OpenRouter', 'anthropic/claude-sonnet-4.5')).toBe('Stop Claude');
     expect(projectAgentStopLabel('OpenAI', 'gpt-5.4')).toBe('Stop agent');
+    expect(projectAgentStopLabel('Anthropic', 'claude-sonnet-4.5', 'fr-FR')).toBe('Arrêter Claude');
+    expect(projectAgentStopLabel('OpenAI', 'gpt-5.4', 'fr-FR')).toBe('Arrêter l’agent');
   });
 });

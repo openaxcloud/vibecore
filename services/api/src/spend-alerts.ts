@@ -8,6 +8,11 @@
  * once when spend first crosses a higher rung, and the ladder resets each period.
  */
 import { paygAlertThresholdCrossed } from '@vibecore/billing';
+import {
+  localizedSpendAlertEmailContent,
+  type TransactionalLocale,
+  type TransactionalEmailContent,
+} from './transactional-i18n.js';
 
 /** Threshold the wallet last alerted on, as a whole percent (50 | 80 | 100). */
 export type SpendAlertPct = 50 | 80 | 100;
@@ -58,42 +63,22 @@ export function nextSpendAlertPct(input: {
   return crossedPct > effectiveLastPct ? crossedPct : null;
 }
 
-function formatUsd(cents: number): string {
-  return `$${(cents / 100).toFixed(2)}`;
-}
-
-/** Spend-alert email body (e-code tone, English to match the other system mails). */
+/**
+ * Spend-alert email body. `currency` is the wallet's real ISO 4217 currency;
+ * callers must not relabel an amount merely because the recipient uses French.
+ */
 export function spendAlertEmailContent(input: {
   pct: SpendAlertPct;
   paygSpentCents: number;
   budgetCapCents: number;
-}): { subject: string; text: string; html: string } {
-  const spent = formatUsd(input.paygSpentCents);
-  const cap = formatUsd(input.budgetCapCents);
-  const atCap = input.pct >= 100;
-
-  const subject = atCap
-    ? `You've reached your E-Code usage limit (${cap})`
-    : `You've used ${input.pct}% of your E-Code usage limit`;
-
-  const lead = atCap
-    ? `Your usage-based spend has reached your limit of ${cap}. Usage-based services are paused until you raise the limit.`
-    : `Your usage-based spend is at ${spent} — ${input.pct}% of your ${cap} limit.`;
-
-  const text = [
-    lead,
-    atCap
-      ? 'Raise your usage limit in Billing → Usage limits to resume usage-based services.'
-      : 'You can review or change your usage limit any time in Billing → Usage limits.',
-  ].join('\n\n');
-
-  const html =
-    `<p>${lead}</p>` +
-    `<p>${
-      atCap
-        ? 'Raise your usage limit in <strong>Billing → Usage limits</strong> to resume usage-based services.'
-        : 'You can review or change your usage limit any time in <strong>Billing → Usage limits</strong>.'
-    }</p>`;
-
-  return { subject, text, html };
+  currency?: string;
+  locale?: TransactionalLocale;
+}): TransactionalEmailContent {
+  return localizedSpendAlertEmailContent({
+    pct: input.pct,
+    paygSpentMinor: input.paygSpentCents,
+    budgetCapMinor: input.budgetCapCents,
+    currency: input.currency ?? 'usd',
+    locale: input.locale,
+  });
 }

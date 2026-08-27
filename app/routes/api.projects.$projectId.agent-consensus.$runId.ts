@@ -1,4 +1,5 @@
 import { apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-api.server';
+import { remainingApiErrorResponse } from '~/lib/i18n/catalogs/remaining-api-routes';
 
 /*
  * IDE proxy: full detail of one multi-agent consensus record — the per-agent
@@ -9,7 +10,7 @@ import { apiRequest, json, type EnterpriseLoaderArgs } from '~/lib/enterprise-ap
  */
 export async function loader({ request, params }: EnterpriseLoaderArgs) {
   if (!params.projectId || !params.runId) {
-    return json({ ok: false, error: 'Not found' }, { status: 404 });
+    return remainingApiErrorResponse(request, 'AGENT_CONSENSUS_NOT_FOUND', 404, { extra: { ok: false } });
   }
 
   const payload = await apiRequest(

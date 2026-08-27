@@ -39,4 +39,20 @@ describe('buildOrganizationRows', () => {
     expect(rows[0].title).toBe('No organizations');
     expect(rows[0].detail).toContain('Create an organization');
   });
+
+  it('localizes generated row copy without changing organization names', () => {
+    const loaded = buildOrganizationRows([{ id: 'o1', name: 'OpenAI France' }], 'fr-FR');
+    const empty = buildOrganizationRows([], 'fr');
+
+    expect(loaded).toEqual([
+      {
+        title: 'OpenAI France',
+        detail: 'Organisation disponible via votre adhésion au compte.',
+      },
+    ]);
+    expect(empty[0]).toEqual({
+      title: 'Aucune organisation',
+      detail: 'Créez une organisation pour isoler les projets, la facturation et les contrôles d’accès.',
+    });
+  });
 });

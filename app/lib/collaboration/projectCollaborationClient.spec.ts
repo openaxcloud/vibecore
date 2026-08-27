@@ -119,4 +119,22 @@ describe('ProjectCollaborationClient', () => {
     });
     expect(client.snapshot.status).toBe('connected');
   });
+
+  it('stores a stable error code instead of exposing collaboration ticket details', async () => {
+    const client = new ProjectCollaborationClient({
+      projectId: 'project-1',
+      fetchImpl: vi.fn(async () => ({ ok: false, status: 503 })) as unknown as typeof fetch,
+      WebSocketImpl: FakeWebSocket,
+      sessionId: 'session-1',
+      minReconnectDelayMs: 60_000,
+      maxReconnectDelayMs: 60_000,
+    });
+
+    client.connect();
+
+    await vi.waitFor(() => expect(client.snapshot.status).toBe('error'));
+    expect(client.snapshot).toMatchObject({ errorCode: 'connectionFailed', error: undefined });
+    expect(JSON.stringify(client.snapshot)).not.toContain('503');
+    client.close();
+  });
 });
