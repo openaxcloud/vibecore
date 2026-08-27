@@ -800,17 +800,78 @@ export class StripeBillingClient {
    * subscription item by its price id so usage can be reported against it.
    * Returns undefined on any error (best-effort; never throws into the caller).
    */
-  async getSubscription(
-    subscriptionId: string,
-  ): Promise<{ id: string; items?: { data?: Array<{ id: string; price?: { id?: string } }> } } | undefined> {
+  async getSubscription(subscriptionId: string): Promise<
+    | {
+        id: string;
+        status?: string;
+        items?: { data?: Array<{ id: string; price?: { id?: string } }> };
+      }
+    | undefined
+  > {
     try {
       return (await this.getJson(`/v1/subscriptions/${encodeURIComponent(subscriptionId)}`)) as {
         id: string;
+        status?: string;
         items?: { data?: Array<{ id: string; price?: { id?: string } }> };
       };
     } catch {
       return undefined;
     }
+  }
+
+  /**
+   * Immediately cancel a Stripe subscription. Account erasure passes a stable
+   * idempotency key because a provider success can precede a lost local receipt;
+   * replaying that attempt must return the original Stripe result.
+   */
+  async cancelSubscription(
+    subscriptionId: string,
+    idempotencyKey: string,
+  ): Promise<{ id: string; status?: string; deleted?: boolean }> {
+    let response: Response;
+
+    try {
+      response = await fetch(
+        `${this.input.baseUrl ?? 'https://api.stripe.com'}/v1/subscriptions/${encodeURIComponent(subscriptionId)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            authorization: `Bearer ${this.input.apiKey}`,
+            'stripe-version': STRIPE_API_VERSION,
+            'idempotency-key': idempotencyKey,
+          },
+          signal: AbortSignal.timeout(20_000),
+        },
+      );
+    } catch (error) {
+      // A transport timeout may happen after Stripe committed the cancellation.
+      // Verify the provider state before declaring failure; never infer success
+      // merely from an ambiguous network error.
+      const observed = await this.getSubscription(subscriptionId);
+      if (observed?.status === 'canceled') return observed;
+      throw Object.assign(new Error('Stripe cancellation request failed before a verified response'), {
+        statusCode: 502,
+        code: 'STRIPE_REQUEST_FAILED',
+        cause: error,
+      });
+    }
+
+    const body = await response.json().catch(() => ({}));
+
+    if (!response.ok) {
+      // Retrying after a lost local receipt can reach an already-canceled
+      // subscription after Stripe's idempotency cache window. A provider GET is
+      // authoritative; any other state still fails closed.
+      const observed = await this.getSubscription(subscriptionId);
+      if (observed?.status === 'canceled') return observed;
+      throw Object.assign(new Error(`Stripe request failed: ${response.status}`), {
+        statusCode: 502,
+        code: 'STRIPE_REQUEST_FAILED',
+        stripeError: body,
+      });
+    }
+
+    return body as { id: string; status?: string; deleted?: boolean };
   }
 
   private async postForm(path: string, fields: Record<string, string>, idempotencyKey?: string) {

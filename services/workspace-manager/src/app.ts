@@ -60,6 +60,11 @@ const startSchema = z.object({
   nixStorePvcName: z.string().min(1).optional(),
 });
 
+const accountPurgeLeaseSchema = z.object({
+  planId: z.string().min(1).max(200),
+  ownerToken: z.string().min(16).max(512),
+});
+
 /*
  * Body for POST /app-builds/run — ONE isolated server-deploy build (reproducible
  * pipeline): fetch the project revision, install+build in a throwaway gVisor
@@ -496,6 +501,26 @@ export function buildWorkspaceManagerApp(manager: WorkspaceManager) {
   app.delete('/workspaces/:workspaceId', async (request) =>
     manager.deleteWorkspace(runtimeNamespace(), (request.params as any).workspaceId),
   );
+  app.get('/workspaces/:workspaceId/pvc-exists', async (request) => ({
+    exists: await manager.pvcExists(runtimeNamespace(), (request.params as any).workspaceId),
+  }));
+  app.post('/workspaces/:workspaceId/freeze', async (request) => {
+    const lease = accountPurgeLeaseSchema.parse(request.body);
+    await manager.freezeWorkspace(runtimeNamespace(), (request.params as any).workspaceId, lease);
+    return { frozen: true };
+  });
+  app.post('/workspaces/:workspaceId/purge', async (request) => {
+    const lease = accountPurgeLeaseSchema.parse(request.body);
+    return manager.purgeWorkspace(runtimeNamespace(), (request.params as any).workspaceId, lease);
+  });
+  app.post('/workspaces/:workspaceId/unfreeze', async (request) => {
+    const lease = accountPurgeLeaseSchema.parse(request.body);
+    return manager.unfreezeWorkspace((request.params as any).workspaceId, lease);
+  });
+  app.post('/account-purge/reconcile', async (request) => {
+    const { take } = z.object({ take: z.number().int().min(1).max(500).default(500) }).parse(request.body ?? {});
+    return manager.reconcileAccountPurgeFences(take);
+  });
 
   /*
    * Live cluster-capacity snapshot for the admin Infrastructure view. The manager

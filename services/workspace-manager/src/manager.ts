@@ -55,6 +55,22 @@ export interface WorkspaceRecord {
    */
   lastMeteredAt?: string;
   error?: string;
+  /** Durable barrier owned by one account-purge attempt. */
+  purgeFrozen?: boolean;
+  purgePlanId?: string;
+  purgeFenceToken?: string;
+  purgeFrozenAt?: string;
+}
+
+export interface WorkspacePurgeLease {
+  planId: string;
+  ownerToken: string;
+}
+
+export interface WorkspacePurgeEffectDescriptor {
+  key: string;
+  resourceType: 'workspace_barrier' | 'k8s_service' | 'k8s_pod' | 'k8s_secret' | 'k8s_pvc';
+  resourceId: string;
 }
 
 export interface WorkspaceStore {
@@ -100,6 +116,25 @@ export interface WorkspaceStore {
    * each run GC on the same dead-pod row and otherwise double-bill the window.
    */
   claimMeterWindow(workspaceId: string, expected: string | undefined, next: string): Promise<boolean>;
+  /**
+   * Linearises a normal Kubernetes create/update against account-purge freeze.
+   * Production holds the WorkspaceRuntime row lock for the whole provider call.
+   */
+  executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>): Promise<T>;
+  acquirePurgeFence(workspaceId: string, lease: WorkspacePurgeLease): Promise<WorkspaceRecord>;
+  releasePurgeFence(workspaceId: string, lease: WorkspacePurgeLease): Promise<boolean>;
+  completePurgeState(
+    workspaceId: string,
+    lease: WorkspacePurgeLease,
+    status: Extract<WorkspaceStatus, 'STOPPED' | 'DELETED'>,
+  ): Promise<WorkspaceRecord>;
+  executePurgeEffect<T extends Record<string, unknown>>(
+    workspaceId: string,
+    lease: WorkspacePurgeLease,
+    descriptor: WorkspacePurgeEffectDescriptor,
+    effect: () => Promise<T>,
+  ): Promise<{ executed: boolean; receipt: T }>;
+  reconcilePurgeFences(take?: number): Promise<{ scanned: number; reconciled: number; workspaceIds: string[] }>;
 }
 
 export interface EventBus {
@@ -110,6 +145,8 @@ export class JsonWorkspaceStore implements WorkspaceStore {
   constructor(
     readonly filePath = process.env.WORKSPACE_MANAGER_STORE_PATH ?? '.vibecore/workspace-manager/workspaces.json',
   ) {}
+
+  readonly #purgeEffects = new Map<string, Record<string, unknown>>();
 
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>) {
     const now = new Date().toISOString();
@@ -144,7 +181,12 @@ export class JsonWorkspaceStore implements WorkspaceStore {
     const workspaces = await this.read();
     const existing = workspaces.get(workspaceId);
 
-    if (!existing || existing.status !== expected.status || existing.lastActiveAt !== expected.lastActiveAt) {
+    if (
+      !existing ||
+      existing.purgeFrozen ||
+      existing.status !== expected.status ||
+      existing.lastActiveAt !== expected.lastActiveAt
+    ) {
       return undefined;
     }
 
@@ -167,6 +209,126 @@ export class JsonWorkspaceStore implements WorkspaceStore {
     await this.write(workspaces);
 
     return true;
+  }
+
+  async executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>): Promise<T> {
+    const workspace = (await this.read()).get(workspaceId);
+    if (!workspace || workspace.purgeFrozen) {
+      throw Object.assign(new Error('WORKSPACE_PURGE_FROZEN'), { code: 'WORKSPACE_PURGE_FROZEN', statusCode: 409 });
+    }
+    return effect();
+  }
+
+  async acquirePurgeFence(workspaceId: string, lease: WorkspacePurgeLease) {
+    const workspaces = await this.read();
+    const existing = workspaces.get(workspaceId);
+    const now = new Date().toISOString();
+    const record: WorkspaceRecord = existing ?? {
+      id: workspaceId,
+      orgId: '',
+      projectId: '',
+      plan: 'free',
+      status: 'STOPPED',
+      pvcName: `pvc-${workspaceId}`,
+      podName: `workspace-${workspaceId}`,
+      serviceName: `workspace-${workspaceId}`,
+      agentTokenSecretName: `agent-token-${workspaceId}`,
+      createdAt: now,
+      lastActiveAt: now,
+    };
+    const frozen = {
+      ...record,
+      purgeFrozen: true,
+      purgePlanId: lease.planId,
+      purgeFenceToken: lease.ownerToken,
+      purgeFrozenAt: now,
+    };
+    workspaces.set(workspaceId, frozen);
+    await this.write(workspaces);
+    return frozen;
+  }
+
+  async releasePurgeFence(workspaceId: string, lease: WorkspacePurgeLease) {
+    const workspaces = await this.read();
+    const existing = workspaces.get(workspaceId);
+    if (
+      !existing?.purgeFrozen ||
+      existing.purgePlanId !== lease.planId ||
+      existing.purgeFenceToken !== lease.ownerToken
+    )
+      return false;
+    const released = {
+      ...existing,
+      purgeFrozen: false,
+      purgePlanId: undefined,
+      purgeFenceToken: undefined,
+      purgeFrozenAt: undefined,
+    };
+    workspaces.set(workspaceId, released);
+    await this.write(workspaces);
+    return true;
+  }
+
+  async completePurgeState(
+    workspaceId: string,
+    lease: WorkspacePurgeLease,
+    status: Extract<WorkspaceStatus, 'STOPPED' | 'DELETED'>,
+  ) {
+    const workspaces = await this.read();
+    const workspace = workspaces.get(workspaceId);
+    if (
+      !workspace?.purgeFrozen ||
+      workspace.purgePlanId !== lease.planId ||
+      workspace.purgeFenceToken !== lease.ownerToken
+    ) {
+      throw Object.assign(new Error('WORKSPACE_PURGE_FENCE_LOST'), { code: 'WORKSPACE_PURGE_FENCE_LOST' });
+    }
+    const updated = { ...workspace, status, error: undefined };
+    workspaces.set(workspaceId, updated);
+    await this.write(workspaces);
+    return updated;
+  }
+
+  async executePurgeEffect<T extends Record<string, unknown>>(
+    workspaceId: string,
+    lease: WorkspacePurgeLease,
+    descriptor: WorkspacePurgeEffectDescriptor,
+    effect: () => Promise<T>,
+  ) {
+    const workspace = (await this.read()).get(workspaceId);
+    if (
+      !workspace?.purgeFrozen ||
+      workspace.purgePlanId !== lease.planId ||
+      workspace.purgeFenceToken !== lease.ownerToken
+    ) {
+      throw Object.assign(new Error('WORKSPACE_PURGE_FENCE_LOST'), { code: 'WORKSPACE_PURGE_FENCE_LOST' });
+    }
+    const key = `${lease.planId}:${descriptor.key}`;
+    const existing = this.#purgeEffects.get(key) as T | undefined;
+    if (existing) return { executed: false, receipt: existing };
+    const receipt = await effect();
+    this.#purgeEffects.set(key, receipt);
+    return { executed: true, receipt };
+  }
+
+  async reconcilePurgeFences(take = 500) {
+    const workspaces = await this.read();
+    const workspaceIds = [...workspaces.values()]
+      .filter((workspace) => workspace.purgeFrozen)
+      .slice(0, take)
+      .map((workspace) => workspace.id);
+    for (const workspaceId of workspaceIds) {
+      const workspace = workspaces.get(workspaceId)!;
+      workspaces.set(workspaceId, {
+        ...workspace,
+        purgeFrozen: false,
+        purgePlanId: undefined,
+        purgeFenceToken: undefined,
+        purgeFrozenAt: undefined,
+      });
+    }
+    await this.write(workspaces);
+    return { scanned: workspaceIds.length, reconciled: workspaceIds.length, workspaceIds };
   }
 
   async get(workspaceId: string) {
@@ -543,6 +705,7 @@ export class WorkspaceManager {
   }
 
   async startWorkspace(input: StartWorkspaceInput) {
+    await this.assertNotPurgeFrozen(input.workspaceId);
     const pvcName = `pvc-${input.workspaceId}`;
     const agentTokenSecretName = `agent-token-${input.workspaceId}`;
     const allowedSecrets = input.allowedSecrets ?? {};
@@ -678,15 +841,20 @@ export class WorkspaceManager {
       const existingPvc = await this.k8s.get('PersistentVolumeClaim', input.namespace, pvc.metadata?.name ?? '');
 
       if (!existingPvc) {
-        await this.k8s.apply(pvc);
+        await this.store.executeProvisionEffect(input.workspaceId, () => this.k8s.apply(pvc));
       }
 
-      await this.k8s.apply({
-        ...workspaceAgentSecret(runtimeInput),
-        stringData: { tokenSecret: this.tokenSecret, ...allowedSecrets },
-      });
-      await this.#applyWorkspacePod(workspacePod(runtimeInput), input.namespace, record.podName);
-      await this.k8s.apply(workspaceService(runtimeInput));
+      await this.store.executeProvisionEffect(input.workspaceId, () =>
+        this.k8s.apply({
+          ...workspaceAgentSecret(runtimeInput),
+          stringData: { tokenSecret: this.tokenSecret, ...allowedSecrets },
+        }),
+      );
+      await this.store.executeProvisionEffect(input.workspaceId, () =>
+        this.#applyWorkspacePod(workspacePod(runtimeInput), input.namespace, record.podName),
+      );
+      await this.store.executeProvisionEffect(input.workspaceId, () => this.k8s.apply(workspaceService(runtimeInput)));
+      await this.assertNotPurgeFrozen(input.workspaceId);
       await this.waitForReadiness(input.namespace, record.podName);
 
       /*
@@ -1191,6 +1359,10 @@ export class WorkspaceManager {
   async stopWorkspace(namespace: string, workspaceId: string, guard?: { status?: string; lastActiveAt?: string }) {
     const workspace = await this.requireWorkspace(workspaceId);
 
+    if (workspace.purgeFrozen) {
+      throw Object.assign(new Error('WORKSPACE_PURGE_FROZEN'), { code: 'WORKSPACE_PURGE_FROZEN', statusCode: 409 });
+    }
+
     /*
      * Optional optimistic guard (used by GC): bail if the row changed since the
      * caller observed it — a concurrent reopen flips STOPPED/RUNNING→STARTING and
@@ -1335,6 +1507,10 @@ export class WorkspaceManager {
   async deleteWorkspace(namespace: string, workspaceId: string, guard?: { status?: string; lastActiveAt?: string }) {
     const workspace = await this.requireWorkspace(workspaceId);
 
+    if (workspace.purgeFrozen) {
+      throw Object.assign(new Error('WORKSPACE_PURGE_FROZEN'), { code: 'WORKSPACE_PURGE_FROZEN', statusCode: 409 });
+    }
+
     /*
      * Optional optimistic guard (used by GC): if the row was re-provisioned/
      * touched since the caller observed it, abort — deleting the PVC of a
@@ -1367,6 +1543,98 @@ export class WorkspaceManager {
     await this.publish(deleted, 'workspace.deleted');
 
     return deleted;
+  }
+
+  async pvcExists(namespace: string, workspaceId: string): Promise<boolean> {
+    const workspace = await this.store.get(workspaceId);
+    const pvcName = workspace?.pvcName ?? `pvc-${workspaceId}`;
+    return Boolean(await this.k8s.get('PersistentVolumeClaim', namespace, pvcName));
+  }
+
+  async freezeWorkspace(namespace: string, workspaceId: string, lease: WorkspacePurgeLease): Promise<void> {
+    /* Persist the barrier first. A concurrent start will now fail closed. */
+    const workspace = await this.store.acquirePurgeFence(workspaceId, lease);
+    const targets: Array<{ kind: string; name: string; type: WorkspacePurgeEffectDescriptor['resourceType'] }> = [
+      { kind: 'Service', name: workspace.serviceName, type: 'k8s_service' },
+      { kind: 'Pod', name: workspace.podName, type: 'k8s_pod' },
+      { kind: 'Secret', name: workspace.agentTokenSecretName, type: 'k8s_secret' },
+    ];
+
+    for (const target of targets) {
+      await this.store.executePurgeEffect(
+        workspaceId,
+        lease,
+        {
+          key: `freeze:${target.kind.toLowerCase()}:${target.name}`,
+          resourceType: target.type,
+          resourceId: target.name,
+        },
+        async () => {
+          await this.k8s.delete(target.kind, namespace, target.name);
+          if (await this.k8s.get(target.kind, namespace, target.name)) {
+            throw Object.assign(new Error('WORKSPACE_PURGE_RESOURCE_REMAINS'), {
+              code: 'WORKSPACE_PURGE_RESOURCE_REMAINS',
+            });
+          }
+          return { kind: target.kind, name: target.name, deleted: true, verifiedAbsent: true };
+        },
+      );
+    }
+
+    await this.store.completePurgeState(workspaceId, lease, 'STOPPED');
+    this.lastTouchAt.delete(workspaceId);
+  }
+
+  async purgeWorkspace(namespace: string, workspaceId: string, lease: WorkspacePurgeLease): Promise<WorkspaceRecord> {
+    const workspace = await this.store.get(workspaceId);
+    if (!workspace) {
+      throw Object.assign(new Error('WORKSPACE_NOT_FOUND'), { code: 'WORKSPACE_NOT_FOUND', statusCode: 404 });
+    }
+
+    const targets: Array<{ kind: string; name: string; type: WorkspacePurgeEffectDescriptor['resourceType'] }> = [
+      { kind: 'Service', name: workspace.serviceName, type: 'k8s_service' },
+      { kind: 'Pod', name: workspace.podName, type: 'k8s_pod' },
+      { kind: 'Secret', name: workspace.agentTokenSecretName, type: 'k8s_secret' },
+      { kind: 'PersistentVolumeClaim', name: workspace.pvcName, type: 'k8s_pvc' },
+    ];
+
+    for (const target of targets) {
+      await this.store.executePurgeEffect(
+        workspaceId,
+        lease,
+        {
+          key: `purge:${target.kind.toLowerCase()}:${target.name}`,
+          resourceType: target.type,
+          resourceId: target.name,
+        },
+        async () => {
+          await this.k8s.delete(target.kind, namespace, target.name);
+          if (await this.k8s.get(target.kind, namespace, target.name)) {
+            throw Object.assign(new Error('WORKSPACE_PURGE_RESOURCE_REMAINS'), {
+              code: 'WORKSPACE_PURGE_RESOURCE_REMAINS',
+            });
+          }
+          return { kind: target.kind, name: target.name, deleted: true, verifiedAbsent: true };
+        },
+      );
+    }
+
+    if (await this.pvcExists(namespace, workspaceId)) {
+      throw Object.assign(new Error('WORKSPACE_PURGE_PVC_REMAINS'), { code: 'WORKSPACE_PURGE_PVC_REMAINS' });
+    }
+
+    const deleted = await this.store.completePurgeState(workspaceId, lease, 'DELETED');
+    this.lastTouchAt.delete(workspaceId);
+    await this.publish(deleted, 'workspace.deleted');
+    return deleted;
+  }
+
+  async unfreezeWorkspace(workspaceId: string, lease: WorkspacePurgeLease) {
+    return { released: await this.store.releasePurgeFence(workspaceId, lease) };
+  }
+
+  reconcileAccountPurgeFences(take?: number) {
+    return this.store.reconcilePurgeFences(take);
   }
 
   #gcInFlight = false;
@@ -1601,6 +1869,21 @@ export class WorkspaceManager {
 
   issueAgentToken(workspaceId: string, expiresInMs = 60_000) {
     return signAgentToken({ workspaceId, expiresAt: Date.now() + expiresInMs, secret: this.tokenSecret });
+  }
+
+  private async assertNotPurgeFrozen(workspaceId: string): Promise<void> {
+    let workspace: WorkspaceRecord | undefined;
+    try {
+      workspace = await this.store.get(workspaceId);
+    } catch (error) {
+      throw Object.assign(new Error('WORKSPACE_PURGE_BARRIER_UNVERIFIABLE'), {
+        code: 'WORKSPACE_PURGE_BARRIER_UNVERIFIABLE',
+        cause: error,
+      });
+    }
+    if (workspace?.purgeFrozen) {
+      throw Object.assign(new Error('WORKSPACE_PURGE_FROZEN'), { code: 'WORKSPACE_PURGE_FROZEN', statusCode: 409 });
+    }
   }
 
   /**

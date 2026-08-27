@@ -575,11 +575,30 @@ export class GcsObjectStorage implements ObjectStorage {
 export function guardSharedObjectStorageWrites(
   storage: ObjectStorage,
   isSharedReadOnly: (projectId: string) => Promise<boolean>,
+  withMutationFence?: <T>(projectIds: string[], effect: () => Promise<T>) => Promise<T>,
 ): ObjectStorage {
   const guard = async (projectId: string) => {
     if (await isSharedReadOnly(projectId)) {
       throw new ObjectStorageError(appPublicEnglish('OBJECT_STORAGE_SHARED_READ_ONLY'), 'SHARED_READ_ONLY');
     }
+  };
+
+  const withinMutationFences = async <T>(projectIds: string[], effect: () => Promise<T>): Promise<T> => {
+    if (!withMutationFence) return effect();
+
+    // Clones touch two physical buckets. Acquire every fence in one stable set
+    // so a source purge cannot race a copy-out and opposing clones cannot invert
+    // their lock order.
+    const ids = [...new Set(projectIds)].sort();
+    return withMutationFence(ids, effect);
+  };
+
+  const mutate = async <T>(projectId: string, effect: () => Promise<T>): Promise<T> => {
+    // Resolve the read-only share policy before opening the long-lived provider
+    // transaction; otherwise every mutation would need a second Prisma
+    // connection while the purge-fence connection is held.
+    await guard(projectId);
+    return withinMutationFences([projectId], effect);
   };
 
   return {
@@ -588,37 +607,18 @@ export function guardSharedObjectStorageWrites(
     listObjects: (projectId, opts) => storage.listObjects(projectId, opts),
     createDownloadUrl: (projectId, input) => storage.createDownloadUrl(projectId, input),
     inventoryProjectObjects: (projectId) => storage.inventoryProjectObjects(projectId),
-    ensureBucket: async (projectId) => {
-      await guard(projectId);
-      return storage.ensureBucket(projectId);
-    },
-    createUploadUrl: async (projectId, input) => {
-      await guard(projectId);
-      return storage.createUploadUrl(projectId, input);
-    },
-    putObject: async (projectId, input) => {
-      await guard(projectId);
-      return storage.putObject(projectId, input);
-    },
-    moveObject: async (projectId, input) => {
-      await guard(projectId);
-      return storage.moveObject(projectId, input);
-    },
-    deleteObject: async (projectId, input) => {
-      await guard(projectId);
-      return storage.deleteObject(projectId, input);
-    },
-    deletePrefix: async (projectId, input) => {
-      await guard(projectId);
-      return storage.deletePrefix(projectId, input);
-    },
-    deleteBucket: async (projectId) => {
-      await guard(projectId);
-      return storage.deleteBucket(projectId);
-    },
+    ensureBucket: (projectId) => mutate(projectId, () => storage.ensureBucket(projectId)),
+    createUploadUrl: (projectId, input) => mutate(projectId, () => storage.createUploadUrl(projectId, input)),
+    putObject: (projectId, input) => mutate(projectId, () => storage.putObject(projectId, input)),
+    moveObject: (projectId, input) => mutate(projectId, () => storage.moveObject(projectId, input)),
+    deleteObject: (projectId, input) => mutate(projectId, () => storage.deleteObject(projectId, input)),
+    deletePrefix: (projectId, input) => mutate(projectId, () => storage.deletePrefix(projectId, input)),
+    deleteBucket: (projectId) => mutate(projectId, () => storage.deleteBucket(projectId)),
     cloneProjectObjects: async (sourceProjectId, targetProjectId, inventory, leaseGuard) => {
       await guard(targetProjectId);
-      return storage.cloneProjectObjects(sourceProjectId, targetProjectId, inventory, leaseGuard);
+      return withinMutationFences([sourceProjectId, targetProjectId], () =>
+        storage.cloneProjectObjects(sourceProjectId, targetProjectId, inventory, leaseGuard),
+      );
     },
   };
 }

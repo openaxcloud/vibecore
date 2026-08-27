@@ -190,6 +190,12 @@ import {
   deletionStatus,
   purgeDueAtMs,
 } from './data-deletion.js';
+import type { PurgeClassReport, PurgeLeaseContext, PurgeStorageInventory } from './account-purge.js';
+import {
+  eraseSubjectStorage,
+  type WorkspaceVolumeErasurePort,
+  type WriteBarrierPort,
+} from './account-storage-purge.js';
 import {
   clusterName,
   resolveDatabaseTier,
@@ -566,6 +572,24 @@ export interface ApiAppOptions {
 
   /** Override the per-project object storage backend (tests inject a fake). */
   objectStorage?: ObjectStorage;
+
+  /** Test seam for account purge; production uses real GCS + workspace-manager. */
+  accountStoragePurger?: (
+    inventory: PurgeStorageInventory,
+    userId: string,
+    lease: PurgeLeaseContext,
+  ) => Promise<{ classes: PurgeClassReport[]; verified: boolean }>;
+
+  /** Test seam for the fail-closed external billing step of account purge. */
+  accountPurgeBillingCanceler?: (
+    externalSubscriptionId: string,
+    idempotencyKey: string,
+  ) => Promise<{ canceled: boolean; providerStatus?: string }>;
+
+  /** Test seam for the workspace-manager stale-fence reconciliation call. */
+  accountPurgeWorkspaceReconciler?: (
+    take: number,
+  ) => Promise<{ scanned: number; reconciled: number; workspaceIds: string[] }>;
 
   /** Injectable for tests; defaults to an env-configured (inert-unless-set) capturer. */
   thumbnailCapturer?: ThumbnailCapturer;
@@ -7212,6 +7236,104 @@ function workspaceManagerUrl() {
   return (process.env.WORKSPACE_MANAGER_URL?.trim() || 'http://127.0.0.1:3010').replace(/\/+$/, '');
 }
 
+function workspaceManagerControlHeaders(json = false): Record<string, string> {
+  const secret = process.env.WORKSPACE_MANAGER_SHARED_SECRET?.trim();
+  return {
+    accept: 'application/json',
+    ...(json ? { 'content-type': 'application/json' } : {}),
+    ...(secret ? { authorization: `Bearer ${secret}` } : {}),
+  };
+}
+
+function createAccountPurgeWorkspaceEraser(): WorkspaceVolumeErasurePort {
+  return {
+    async pvcExists(workspaceId) {
+      const response = await fetch(
+        `${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/pvc-exists`,
+        {
+          headers: workspaceManagerControlHeaders(),
+          signal: AbortSignal.timeout(15_000),
+        },
+      );
+      if (response.status === 404) return false;
+      if (!response.ok)
+        throw Object.assign(new Error('ACCOUNT_PURGE_PVC_CHECK_FAILED'), { code: 'ACCOUNT_PURGE_PVC_CHECK_FAILED' });
+      const body = (await response.json()) as { exists?: boolean };
+      return body.exists === true;
+    },
+    async deleteWorkspace(workspaceId, lease) {
+      const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/purge`, {
+        method: 'POST',
+        headers: workspaceManagerControlHeaders(true),
+        body: JSON.stringify({ planId: lease.planId, ownerToken: lease.ownerToken }),
+        signal: AbortSignal.timeout(180_000),
+      });
+      if (!response.ok) {
+        throw Object.assign(new Error('ACCOUNT_PURGE_WORKSPACE_DELETE_FAILED'), {
+          code: 'ACCOUNT_PURGE_WORKSPACE_DELETE_FAILED',
+        });
+      }
+    },
+  };
+}
+
+function createAccountPurgeWriteBarrier(): WriteBarrierPort {
+  return {
+    async freeze(inventory, lease) {
+      for (const workspaceId of inventory.workspaceIds) {
+        const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/freeze`, {
+          method: 'POST',
+          headers: workspaceManagerControlHeaders(true),
+          body: JSON.stringify({ planId: lease.planId, ownerToken: lease.ownerToken }),
+          signal: AbortSignal.timeout(120_000),
+        });
+        if (!response.ok) {
+          throw Object.assign(new Error('ACCOUNT_PURGE_WORKSPACE_FREEZE_FAILED'), {
+            code: 'ACCOUNT_PURGE_WORKSPACE_FREEZE_FAILED',
+          });
+        }
+      }
+    },
+  };
+}
+
+async function releaseAccountPurgeWorkspaceBarriers(
+  workspaceIds: string[],
+  planId: string,
+  ownerToken: string,
+): Promise<void> {
+  for (const workspaceId of workspaceIds) {
+    const response = await fetch(`${workspaceManagerUrl()}/workspaces/${encodeURIComponent(workspaceId)}/unfreeze`, {
+      method: 'POST',
+      headers: workspaceManagerControlHeaders(true),
+      body: JSON.stringify({ planId, ownerToken }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!response.ok && response.status !== 404 && response.status !== 409) {
+      throw Object.assign(new Error('ACCOUNT_PURGE_WORKSPACE_UNFREEZE_FAILED'), {
+        code: 'ACCOUNT_PURGE_WORKSPACE_UNFREEZE_FAILED',
+      });
+    }
+  }
+}
+
+async function reconcileAccountPurgeWorkspaceBarriers(
+  take: number,
+): Promise<{ scanned: number; reconciled: number; workspaceIds: string[] }> {
+  const response = await fetch(`${workspaceManagerUrl()}/account-purge/reconcile`, {
+    method: 'POST',
+    headers: workspaceManagerControlHeaders(true),
+    body: JSON.stringify({ take }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  if (!response.ok) {
+    throw Object.assign(new Error('ACCOUNT_PURGE_WORKSPACE_RECONCILE_FAILED'), {
+      code: 'ACCOUNT_PURGE_WORKSPACE_RECONCILE_FAILED',
+    });
+  }
+  return (await response.json()) as { scanned: number; reconciled: number; workspaceIds: string[] };
+}
+
 /*
  * Platform-provided server-deploy runtime (Replit-parity Lot 1). A dependency-free
  * Node HTTP server that proves the durable runtime + public URL end-to-end: it
@@ -11001,34 +11123,19 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       }
 
       const userId = request.currentUser!.id;
-      const user = await store.findUserById(userId);
+      const deletion = await store.requestAccountDeletion(userId);
 
-      if (!user) {
-        return reply.code(404).send({ error: appPublicEnglish('RESOURCE_NOT_FOUND'), code: 'USER_NOT_FOUND' });
-      }
-
-      const nowMs = Date.now();
-      const existing = readAccountDeletionState(user.preferences);
-
-      // Idempotent: a second request while already in grace just echoes state.
-      if (deletionStatus({ ...existing, nowMs }) !== 'grace_period') {
-        const requestedAt = new Date(nowMs).toISOString();
-        await store.updateUser({
-          userId,
-          preferences: { ...(user.preferences ?? {}), accountDeletion: { requestedAt } },
-        });
-        await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { add: userId });
+      if (!deletion.alreadyRequested) {
         await audit(request, store, {
           action: 'account.deletion_requested',
           resourceType: 'user',
           resourceId: userId,
-          metadata: { purgeDueAt: new Date(purgeDueAtMs(nowMs)).toISOString() },
+          metadata: { purgeDueAt: deletion.purgeDueAt },
         });
-
-        return accountDeletionView({ requestedAtMs: nowMs, purgedAtMs: null }, nowMs);
       }
 
-      return accountDeletionView(existing, nowMs);
+      const requestedAtMs = new Date(deletion.requestedAt).getTime();
+      return accountDeletionView({ requestedAtMs, purgedAtMs: null }, Date.now());
     },
   );
 
@@ -11041,22 +11148,17 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     },
     async (request, reply) => {
       const userId = request.currentUser!.id;
-      const user = await store.findUserById(userId);
-      const state = readAccountDeletionState(user?.preferences);
-      const nowMs = Date.now();
+      const result = await store.cancelAccountDeletion(userId);
 
-      if (!canCancelDeletion({ ...state, nowMs })) {
+      if (!result.cancelled) {
+        const user = await store.findUserById(userId);
+        const state = readAccountDeletionState(user?.preferences);
         return reply.code(409).send({
           error: appPublicEnglish('ACCOUNT_DELETION_CANNOT_CANCEL'),
           code: 'ACCOUNT_DELETION_CANNOT_CANCEL',
-          status: deletionStatus({ ...state, nowMs }),
+          status: deletionStatus({ ...state, nowMs: Date.now() }),
         });
       }
-
-      const preferences = { ...(user!.preferences ?? {}) };
-      delete preferences.accountDeletion;
-      await store.updateUser({ userId, preferences });
-      await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
       await audit(request, store, { action: 'account.deletion_cancelled', resourceType: 'user', resourceId: userId });
 
       return { status: 'none' as const, cancelled: true };
@@ -25535,9 +25637,15 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       {
         store,
         projectStorage,
-        // The orchestrator needs the raw adapter for target-only clone and
-        // compensation. User/background write surfaces use the guarded wrapper.
-        objectStorage: resolveRawObjectStorage(),
+        // Remix bypasses the shared-target read-only policy for its own
+        // target-only clone/compensation, but it must never bypass account-purge
+        // fencing: a source copy racing erasure could otherwise move subject
+        // data outside the captured purge inventory.
+        objectStorage: guardSharedObjectStorageWrites(
+          resolveRawObjectStorage(),
+          async () => false,
+          (projectIds, effect) => store.withObjectStorageProjectMutations(projectIds, effect),
+        ),
         databaseProvisioner,
         ensureProjectQuota: (organizationId) => ensureQuota(params.request, organizationId, 'projects.count'),
         createSourceSnapshot: async ({ remixJobId, sourceProjectId, files, actorUserId, guard }) => {
@@ -28070,6 +28178,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(billingCheckoutSchema, request.body);
     await requireOrg(request, store, orgId, 'billing:manage');
 
+    const accountPurge = await store.previewAccountPurge(request.currentUser!.id);
+    if (accountPurge.status !== 'not_requested') {
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_DELETION_BILLING_FROZEN')), {
+        statusCode: 409,
+        code: 'ACCOUNT_DELETION_BILLING_FROZEN',
+      });
+    }
+
     if (body.planKey === 'free') {
       throw Object.assign(new Error(appPublicEnglish('STRIPE_FREE_NO_CHECKOUT')), {
         statusCode: 400,
@@ -28208,6 +28324,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const body = parse(creditPackCheckoutSchema, request.body);
     await requireOrg(request, store, orgId, 'billing:manage');
 
+    const accountPurge = await store.previewAccountPurge(request.currentUser!.id);
+    if (accountPurge.status !== 'not_requested') {
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_DELETION_BILLING_FROZEN')), {
+        statusCode: 409,
+        code: 'ACCOUNT_DELETION_BILLING_FROZEN',
+      });
+    }
+
     if (process.env.BILLING_CREDITS_ENABLED !== 'true') {
       throw Object.assign(new Error(appPublicEnglish('CREDIT_PACKS_DISABLED')), {
         statusCode: 503,
@@ -28291,6 +28415,14 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     const { orgId } = parse(orgParams, request.params);
     const body = parse(billingPortalSchema, request.body);
     await requireOrg(request, store, orgId, 'billing:manage');
+
+    const accountPurge = await store.previewAccountPurge(request.currentUser!.id);
+    if (accountPurge.status !== 'not_requested') {
+      throw Object.assign(new Error(appPublicEnglish('ACCOUNT_DELETION_BILLING_FROZEN')), {
+        statusCode: 409,
+        code: 'ACCOUNT_DELETION_BILLING_FROZEN',
+      });
+    }
 
     const customer = await store.getBillingCustomer(orgId);
 
@@ -31012,18 +31144,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
     await requireRecentAdminReauth(request);
 
     const { userId } = parse(z.object({ userId: z.string().min(1) }), request.params);
-    const user = await store.findUserById(userId);
-
-    if (user) {
-      const preferences = { ...(user.preferences ?? {}) };
-      delete preferences.accountDeletion;
-      await store.updateUser({ userId, preferences });
-    }
-
-    await store.mutateSystemSettingIds(ACCOUNT_DELETION_PENDING_KEY, { remove: userId });
+    const result = await store.cancelAccountDeletion(userId);
     await recordAdminAction(request, store, { action: 'admin.account_deletion.cancel', metadata: { userId } });
 
-    return { cancelled: true, userId };
+    return { cancelled: result.cancelled, reason: result.reason, userId };
   });
 
   /*
@@ -31299,6 +31423,211 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
       deleted,
       skippedShared,
       exemptPaid,
+    };
+  });
+
+  /*
+   * Physical account purge. Default is a read-only PostgreSQL-clock preview.
+   * Execution needs three independent gates: feature flag, explicit confirmation,
+   * and an exact server-side subject allowlist (comma-separated ids; wildcards
+   * are intentionally rejected for this irreversible operation).
+   */
+  app.post('/internal/account-purge', async (request, reply) => {
+    requireInternalSecret(request);
+    const body = parse(
+      z.object({
+        mode: z.enum(['dry-run', 'execute']).default('dry-run'),
+        confirm: z.literal('PURGE_ACCOUNT_DATA').optional(),
+        userId: z.string().min(1).max(200).optional(),
+        take: z.number().int().positive().max(500).default(100),
+      }),
+      request.body ?? {},
+    );
+    const settings = await store.listSystemSettings();
+    const pending = settings.find((setting) => setting.key === ACCOUNT_DELETION_PENDING_KEY);
+    const queued = Array.isArray(pending?.value)
+      ? (pending.value as unknown[]).filter((value): value is string => typeof value === 'string')
+      : [];
+    const ids = (body.userId ? [body.userId] : queued).slice(0, body.take);
+    const allowlist = new Set(
+      (process.env.ACCOUNT_PURGE_USER_ALLOWLIST ?? '')
+        .split(',')
+        .map((value) => value.trim())
+        .filter((value) => Boolean(value) && value !== '*'),
+    );
+    const executionConfigured = process.env.ACCOUNT_PURGE_ENABLED === 'true';
+    const execute = body.mode === 'execute';
+
+    if (execute && (!executionConfigured || body.confirm !== 'PURGE_ACCOUNT_DATA' || allowlist.size === 0)) {
+      request.observabilityMetrics?.increment?.('account_purge_subjects_total', {
+        mode: 'execute',
+        outcome: 'gate_refused',
+      });
+      await store
+        .recordAdminAudit({
+          action: 'account.purge_execution_refused',
+          metadata: {
+            userId: body.userId,
+            enabled: executionConfigured,
+            confirmed: body.confirm === 'PURGE_ACCOUNT_DATA',
+            allowlistConfigured: allowlist.size > 0,
+            correlationId: request.observability?.correlationId ?? request.id,
+          },
+        })
+        .catch(() => undefined);
+      return reply.code(409).send({
+        error: appPublicEnglish('ACCOUNT_PURGE_EXECUTION_NOT_AUTHORIZED'),
+        code: 'ACCOUNT_PURGE_EXECUTION_NOT_AUTHORIZED',
+        requirements: {
+          enabled: executionConfigured,
+          confirmed: body.confirm === 'PURGE_ACCOUNT_DATA',
+          allowlistConfigured: allowlist.size > 0,
+        },
+      });
+    }
+
+    const reconciled = execute
+      ? {
+          database: await store.reconcilePurgeFreezes(),
+          workspaces: await (options.accountPurgeWorkspaceReconciler ?? reconcileAccountPurgeWorkspaceBarriers)(
+            body.take ?? 100,
+          ),
+        }
+      : {
+          database: { scanned: 0, reconciled: 0, planIds: [] as string[] },
+          workspaces: { scanned: 0, reconciled: 0, workspaceIds: [] as string[] },
+        };
+    const results: Array<Record<string, unknown>> = [];
+    let purged = 0;
+    let failed = 0;
+    let refused = 0;
+
+    for (const userId of ids) {
+      const preview = await store.previewAccountPurge(userId);
+
+      if (!execute) {
+        request.observabilityMetrics?.increment?.('account_purge_subjects_total', {
+          mode: 'dry-run',
+          outcome: preview.status,
+        });
+        results.push(preview as unknown as Record<string, unknown>);
+        continue;
+      }
+
+      if (!allowlist.has(userId)) {
+        refused += 1;
+        request.observabilityMetrics?.increment?.('account_purge_subjects_total', {
+          mode: 'execute',
+          outcome: 'subject_refused',
+        });
+        results.push({ userId, outcome: 'refused', code: 'ACCOUNT_PURGE_SUBJECT_NOT_ALLOWLISTED' });
+        continue;
+      }
+
+      if (preview.status !== 'ready_to_purge') {
+        request.observabilityMetrics?.increment?.('account_purge_subjects_total', {
+          mode: 'execute',
+          outcome: preview.status,
+        });
+        results.push({ userId, outcome: preview.status, purgeDueAt: preview.purgeDueAt });
+        continue;
+      }
+
+      try {
+        const result = await store.purgeUserAccount(
+          { userId, correlationId: request.observability?.correlationId ?? request.id },
+          {
+            cancelExternalBilling:
+              options.accountPurgeBillingCanceler ??
+              (async (externalId, idempotencyKey) => {
+                if (!stripeClient) {
+                  throw Object.assign(new Error('ACCOUNT_PURGE_BILLING_CANCELLER_UNAVAILABLE'), {
+                    code: 'ACCOUNT_PURGE_BILLING_CANCELLER_UNAVAILABLE',
+                  });
+                }
+                const cancellation = await stripeClient.cancelSubscription(externalId, idempotencyKey);
+                const providerStatus = cancellation.status ?? (cancellation.deleted ? 'deleted' : undefined);
+                return {
+                  canceled: cancellation.status === 'canceled' || cancellation.deleted === true,
+                  ...(providerStatus ? { providerStatus } : {}),
+                };
+              }),
+            eraseStorage: async (inventory, lease) =>
+              options.accountStoragePurger
+                ? options.accountStoragePurger(inventory, userId, lease)
+                : eraseSubjectStorage(
+                    {
+                      bucketProjectIds: inventory.bucketProjectIds,
+                      workspaceIds: inventory.workspaceProjectIds.map((projectId) =>
+                        runtimeWorkspaceId(projectId, userId),
+                      ),
+                    },
+                    {
+                      objectStorage: options.objectStorage ?? resolveDefaultObjectStorage(),
+                      workspaceVolumes: createAccountPurgeWorkspaceEraser(),
+                      writeBarrier: createAccountPurgeWriteBarrier(),
+                      lease,
+                      log: app.log as unknown as { warn(object: unknown, message?: string): void },
+                    },
+                  ),
+            releaseWorkspaceBarrier: (inventory, planId, ownerToken) =>
+              releaseAccountPurgeWorkspaceBarriers(
+                inventory.workspaceProjectIds.map((projectId) => runtimeWorkspaceId(projectId, userId)),
+                planId,
+                ownerToken,
+              ),
+          },
+        );
+        if (result.outcome === 'purged') {
+          purged += 1;
+        }
+        request.observabilityMetrics?.increment?.('account_purge_subjects_total', {
+          mode: 'execute',
+          outcome: result.outcome,
+        });
+        results.push({ userId, ...result });
+      } catch (error) {
+        failed += 1;
+        const code = (error as { code?: string } | null)?.code ?? 'ACCOUNT_PURGE_FAILED';
+        request.observabilityMetrics?.increment?.('account_purge_subjects_total', {
+          mode: 'execute',
+          outcome: 'failed',
+          code,
+        });
+        request.log.error({ event: 'account.purge.failed', userId, code }, 'account purge failed');
+        await store
+          .recordAdminAudit({
+            actorUserId: undefined,
+            action: 'account.purge_failed',
+            metadata: { userId, code, correlationId: request.observability?.correlationId ?? request.id },
+          })
+          .catch(() => undefined);
+        results.push({ userId, outcome: 'failed', code });
+      }
+    }
+
+    request.log.info(
+      {
+        event: 'account.purge.batch',
+        mode: body.mode,
+        scanned: ids.length,
+        purged,
+        failed,
+        refused,
+        databaseReconciled: reconciled.database.reconciled,
+        workspaceReconciled: reconciled.workspaces.reconciled,
+      },
+      'account purge batch completed',
+    );
+
+    return {
+      mode: body.mode,
+      scanned: ids.length,
+      purged,
+      failed,
+      refused,
+      reconciled,
+      results,
     };
   });
 
@@ -33674,8 +34003,10 @@ export async function buildApiApp(options: ApiAppOptions = {}): Promise<FastifyI
   const resolveRawObjectStorage = (): ObjectStorage => options.objectStorage ?? resolveDefaultObjectStorage();
   let guardedObjectStorage: ObjectStorage | undefined;
   const resolveObjectStorage = (): ObjectStorage => {
-    guardedObjectStorage ??= guardSharedObjectStorageWrites(resolveRawObjectStorage(), async (projectId) =>
-      Boolean(await store.getRemixStorageShareByTarget(projectId)),
+    guardedObjectStorage ??= guardSharedObjectStorageWrites(
+      resolveRawObjectStorage(),
+      async (projectId) => Boolean(await store.getRemixStorageShareByTarget(projectId)),
+      (projectIds, effect) => store.withObjectStorageProjectMutations(projectIds, effect),
     );
     return guardedObjectStorage;
   };

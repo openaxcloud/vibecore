@@ -13,6 +13,7 @@ const ENV_KEYS = [
 
 class TestWorkspaceStore implements WorkspaceStore {
   readonly workspaces = new Map<string, WorkspaceRecord>();
+  readonly purgeEffects = new Map<string, Record<string, unknown>>();
 
   async create(input: Omit<WorkspaceRecord, 'createdAt' | 'lastActiveAt'>) {
     const now = new Date().toISOString();
@@ -70,6 +71,102 @@ class TestWorkspaceStore implements WorkspaceStore {
     this.workspaces.set(workspaceId, { ...existing, lastMeteredAt: next });
 
     return true;
+  }
+
+  async listByProject(projectId: string) {
+    return [...this.workspaces.values()].filter((workspace) => workspace.projectId === projectId);
+  }
+
+  async executeProvisionEffect<T>(workspaceId: string, effect: () => Promise<T>) {
+    if (this.workspaces.get(workspaceId)?.purgeFrozen) throw new Error('WORKSPACE_PURGE_FROZEN');
+    return effect();
+  }
+
+  async acquirePurgeFence(workspaceId: string, lease: { planId: string; ownerToken: string }) {
+    const existing = this.workspaces.get(workspaceId);
+    const now = new Date().toISOString();
+    const workspace = existing ?? {
+      id: workspaceId,
+      orgId: '',
+      projectId: '',
+      plan: 'free' as const,
+      status: 'STOPPED' as const,
+      pvcName: `pvc-${workspaceId}`,
+      podName: `workspace-${workspaceId}`,
+      serviceName: `workspace-${workspaceId}`,
+      agentTokenSecretName: `agent-token-${workspaceId}`,
+      createdAt: now,
+      lastActiveAt: now,
+    };
+    const frozen = {
+      ...workspace,
+      purgeFrozen: true,
+      purgePlanId: lease.planId,
+      purgeFenceToken: lease.ownerToken,
+      purgeFrozenAt: now,
+    };
+    this.workspaces.set(workspaceId, frozen);
+    return frozen;
+  }
+
+  async releasePurgeFence(workspaceId: string, lease: { planId: string; ownerToken: string }) {
+    const workspace = this.workspaces.get(workspaceId);
+    if (
+      !workspace?.purgeFrozen ||
+      workspace.purgePlanId !== lease.planId ||
+      workspace.purgeFenceToken !== lease.ownerToken
+    )
+      return false;
+    this.workspaces.set(workspaceId, {
+      ...workspace,
+      purgeFrozen: false,
+      purgePlanId: undefined,
+      purgeFenceToken: undefined,
+      purgeFrozenAt: undefined,
+    });
+    return true;
+  }
+
+  async completePurgeState(
+    workspaceId: string,
+    lease: { planId: string; ownerToken: string },
+    status: 'STOPPED' | 'DELETED',
+  ) {
+    const workspace = this.workspaces.get(workspaceId);
+    if (
+      !workspace?.purgeFrozen ||
+      workspace.purgePlanId !== lease.planId ||
+      workspace.purgeFenceToken !== lease.ownerToken
+    )
+      throw new Error('WORKSPACE_PURGE_FENCE_LOST');
+    const updated = { ...workspace, status, error: undefined };
+    this.workspaces.set(workspaceId, updated);
+    return updated;
+  }
+
+  async executePurgeEffect<T extends Record<string, unknown>>(
+    workspaceId: string,
+    lease: { planId: string; ownerToken: string },
+    descriptor: { key: string },
+    effect: () => Promise<T>,
+  ) {
+    const workspace = this.workspaces.get(workspaceId);
+    if (
+      !workspace?.purgeFrozen ||
+      workspace.purgePlanId !== lease.planId ||
+      workspace.purgeFenceToken !== lease.ownerToken
+    )
+      throw new Error('WORKSPACE_PURGE_FENCE_LOST');
+    const key = `${lease.planId}:${descriptor.key}`;
+    const existing = this.purgeEffects.get(key) as T | undefined;
+    if (existing) return { executed: false, receipt: existing };
+    const receipt = await effect();
+    this.purgeEffects.set(key, receipt);
+    return { executed: true, receipt };
+  }
+
+  async reconcilePurgeFences() {
+    return { scanned: 0, reconciled: 0, workspaceIds: [] as string[] };
   }
 }
 
@@ -167,6 +264,59 @@ describe('workspace-manager app', () => {
     expect(stopped.json().code).toBe('WORKSPACE_NOT_FOUND');
 
     await app.close();
+  });
+
+  it('freezes writers and verifies every Service, Pod, Secret and PVC deletion through fenced routes', async () => {
+    process.env.WORKSPACE_RUNTIME_NAMESPACE = 'prod-workspaces';
+    const runtime = manager();
+    const app = buildWorkspaceManagerApp(runtime.manager);
+    const workspaceId = 'workspace-purge-routes';
+    const lease = { planId: 'plan-purge-routes', ownerToken: 'owner-token-purge-routes' };
+
+    try {
+      const started = await app.inject({
+        method: 'POST',
+        url: '/workspaces/start',
+        payload: {
+          namespace: 'ignored-by-manager',
+          orgId: 'org_1',
+          projectId: 'project_1',
+          workspaceId,
+          image: 'agent:test',
+        },
+      });
+      expect(started.statusCode).toBe(200);
+
+      const frozen = await app.inject({
+        method: 'POST',
+        url: `/workspaces/${workspaceId}/freeze`,
+        payload: lease,
+      });
+      expect(frozen.statusCode).toBe(200);
+      expect(runtime.store.workspaces.get(workspaceId)).toMatchObject({
+        status: 'STOPPED',
+        purgeFrozen: true,
+        purgePlanId: lease.planId,
+      });
+      expect(runtime.k8s.objects.has(`prod-workspaces:Service:workspace-${workspaceId}`)).toBe(false);
+      expect(runtime.k8s.objects.has(`prod-workspaces:Pod:workspace-${workspaceId}`)).toBe(false);
+      expect(runtime.k8s.objects.has(`prod-workspaces:Secret:agent-token-${workspaceId}`)).toBe(false);
+      expect(runtime.k8s.objects.has(`prod-workspaces:PersistentVolumeClaim:pvc-${workspaceId}`)).toBe(true);
+
+      const purged = await app.inject({
+        method: 'POST',
+        url: `/workspaces/${workspaceId}/purge`,
+        payload: lease,
+      });
+      expect(purged.statusCode).toBe(200);
+      expect(purged.json()).toMatchObject({ status: 'DELETED', purgeFrozen: true });
+      expect(runtime.k8s.objects.has(`prod-workspaces:PersistentVolumeClaim:pvc-${workspaceId}`)).toBe(false);
+      expect([...runtime.store.purgeEffects.values()]).toEqual(
+        expect.arrayContaining([expect.objectContaining({ deleted: true, verifiedAbsent: true })]),
+      );
+    } finally {
+      await app.close();
+    }
   });
 
   it('negotiates French errors without translating identifiers or payload data', async () => {

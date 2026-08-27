@@ -3,6 +3,15 @@ import { hashToken } from '@vibecore/auth';
 import type { PlanKey, QuotaKey } from '@vibecore/billing';
 import { rolePermissions, type PermissionKey } from '@vibecore/rbac';
 import { appPublicEnglish } from '../app-public-copy.js';
+import {
+  anonymizedEmail,
+  buildErasureProof,
+  type AccountPurgePreview,
+  type ErasureProof,
+  type PurgeStorageDeps,
+  type PurgeUserAccountResult,
+} from '../account-purge.js';
+import { DELETION_GRACE_PERIOD_DAYS } from '../data-deletion.js';
 import { DEFAULT_ENV_VAR_SCOPE } from '../store.js';
 import { isCommittedPromotionForTenant, SERVER_IMAGE_RELEASE_AUDIT_ACTION } from '../server-image-promotion.js';
 import {
@@ -179,6 +188,9 @@ export class TestApiStore implements ApiStore {
   // Keyed `${userId}:${messageId}` — mirrors the prisma @@unique([userId, messageId]).
   readonly aiMessageFeedback = new Map<string, AiMessageFeedbackRecord>();
   readonly systemSettings = new Map<string, SystemSettingRecord>();
+  readonly purgeReceipts = new Map<string, { planId: string; purgedAt: string; proof: ErasureProof }>();
+  readonly purgeEffects = new Map<string, Record<string, unknown>>();
+  readonly purgeFrozenProjects = new Set<string>();
   readonly emailVerifications = new Map<
     string,
     { userId: string; tokenHash: string; expiresAt: string; usedAt?: string; email?: string }
@@ -344,6 +356,212 @@ export class TestApiStore implements ApiStore {
     }
 
     return deleted;
+  }
+
+  async previewAccountPurge(userId: string): Promise<AccountPurgePreview> {
+    const databaseNow = now();
+    const user = this.users.get(userId);
+    if (!user) return { userId, status: 'missing', databaseNow };
+    const deletion = (user.preferences?.accountDeletion ?? null) as { requestedAt?: string; purgedAt?: string } | null;
+    if (deletion?.purgedAt) return { userId, status: 'purged', databaseNow, purgedAt: deletion.purgedAt };
+    if (!deletion?.requestedAt) return { userId, status: 'not_requested', databaseNow };
+    const purgeDueAt = new Date(new Date(deletion.requestedAt).getTime() + DELETION_GRACE_PERIOD_DAYS * 86_400_000);
+    if (Date.now() < purgeDueAt.getTime()) {
+      return {
+        userId,
+        status: 'not_due',
+        databaseNow,
+        requestedAt: deletion.requestedAt,
+        purgeDueAt: purgeDueAt.toISOString(),
+      };
+    }
+    const organizations = await this.listOrganizations(userId);
+    const projectIds = [...this.projects.values()]
+      .filter((project) => organizations.some((organization) => organization.id === project.organizationId))
+      .map((project) => project.id);
+    return {
+      userId,
+      status: 'ready_to_purge',
+      databaseNow,
+      requestedAt: deletion.requestedAt,
+      purgeDueAt: purgeDueAt.toISOString(),
+      inventory: { bucketProjectIds: projectIds, workspaceProjectIds: projectIds },
+    };
+  }
+
+  async requestAccountDeletion(userId: string) {
+    const user = this.users.get(userId);
+    if (!user) throw Object.assign(new Error('USER_NOT_FOUND'), { code: 'USER_NOT_FOUND', statusCode: 404 });
+    const existing = (user.preferences?.accountDeletion ?? null) as { requestedAt?: string; purgedAt?: string } | null;
+    const requestedAt = existing?.requestedAt ?? now();
+    user.preferences = { ...(user.preferences ?? {}), accountDeletion: { requestedAt } };
+    await this.mutateSystemSettingIds('account.pendingDeletionUserIds', { add: userId });
+    return {
+      requestedAt,
+      purgeDueAt: new Date(new Date(requestedAt).getTime() + DELETION_GRACE_PERIOD_DAYS * 86_400_000).toISOString(),
+      alreadyRequested: Boolean(existing?.requestedAt),
+    };
+  }
+
+  async cancelAccountDeletion(userId: string) {
+    const user = this.users.get(userId);
+    if (!user?.preferences?.accountDeletion) return { cancelled: false as const, reason: 'not_requested' as const };
+    const receipt = this.purgeReceipts.get(userId);
+    if (receipt) return { cancelled: false as const, reason: 'not_cancellable' as const };
+    const preferences = { ...(user.preferences ?? {}) };
+    delete preferences.accountDeletion;
+    user.preferences = preferences;
+    await this.mutateSystemSettingIds('account.pendingDeletionUserIds', { remove: userId });
+    return { cancelled: true as const };
+  }
+
+  async purgeUserAccount(
+    input: { userId: string; correlationId?: string },
+    deps: PurgeStorageDeps,
+  ): Promise<PurgeUserAccountResult> {
+    return this.withSerializedMutation(`account-purge:${input.userId}`, async () => {
+      const preview = await this.previewAccountPurge(input.userId);
+      if (preview.status === 'missing' || preview.status === 'not_requested') return { outcome: 'not_requested' };
+      if (preview.status === 'not_due') return { outcome: 'not_due', purgeDueAt: preview.purgeDueAt! };
+      if (preview.status === 'purged') {
+        const receipt = this.purgeReceipts.get(input.userId);
+        return {
+          outcome: 'already_purged',
+          ...(receipt ? { planId: receipt.planId } : {}),
+          purgedAt: preview.purgedAt!,
+        };
+      }
+
+      const planId = `purge-${input.userId}`;
+      const ownerToken = `owner-${input.userId}`;
+      for (const projectId of preview.inventory!.bucketProjectIds) this.purgeFrozenProjects.add(projectId);
+      const lease = {
+        planId,
+        ownerToken,
+        validate: async () => undefined,
+        executeEffect: async <T extends Record<string, unknown>>(
+          descriptor: { key: string },
+          effect: () => Promise<T>,
+        ) => {
+          const key = `${planId}:${descriptor.key}`;
+          const previous = this.purgeEffects.get(key) as T | undefined;
+          if (previous) return { executed: false, receipt: previous };
+          const receipt = await effect();
+          this.purgeEffects.set(key, receipt);
+          return { executed: true, receipt };
+        },
+      };
+      const subjectOrgIds = [...this.memberships.values()]
+        .filter((membership) => membership.userId === input.userId && membership.state === 'ACTIVE')
+        .map((membership) => membership.organizationId);
+      const soleOrgIds = subjectOrgIds.filter(
+        (organizationId) =>
+          [...this.memberships.values()].filter(
+            (membership) => membership.organizationId === organizationId && membership.state === 'ACTIVE',
+          ).length === 1,
+      );
+      const activeSubscriptions = [...this.subscriptions.values()].filter(
+        (subscription) =>
+          soleOrgIds.includes(subscription.organizationId) &&
+          ['TRIALING', 'ACTIVE', 'PAST_DUE', 'UNPAID'].includes(subscription.status),
+      );
+
+      try {
+        for (const subscription of activeSubscriptions) {
+          if (!subscription.externalId) continue;
+          if (!deps.cancelExternalBilling) {
+            throw Object.assign(new Error('ACCOUNT_PURGE_BILLING_CANCELLER_UNAVAILABLE'), {
+              code: 'ACCOUNT_PURGE_BILLING_CANCELLER_UNAVAILABLE',
+            });
+          }
+          await lease.executeEffect({ key: `billing-subscription:${subscription.id}` }, async () => {
+            const receipt = await deps.cancelExternalBilling!(
+              subscription.externalId!,
+              `account-purge-${planId}-${subscription.id}`,
+            );
+            if (!receipt.canceled) {
+              throw Object.assign(new Error('ACCOUNT_PURGE_BILLING_CESSATION_UNVERIFIED'), {
+                code: 'ACCOUNT_PURGE_BILLING_CESSATION_UNVERIFIED',
+              });
+            }
+            return receipt;
+          });
+        }
+        const physical = await deps.eraseStorage(preview.inventory!, lease);
+        if (!physical?.verified)
+          throw Object.assign(new Error('ACCOUNT_PURGE_PHYSICAL_INCOMPLETE'), {
+            code: 'ACCOUNT_PURGE_PHYSICAL_INCOMPLETE',
+          });
+        const user = this.users.get(input.userId)!;
+        const requestedAt = (user.preferences!.accountDeletion as { requestedAt: string }).requestedAt;
+        const purgedAt = now();
+        for (const [tokenHash, session] of this.sessions)
+          if (session.userId === input.userId) this.sessions.delete(tokenHash);
+        for (const [membershipId, membership] of this.memberships)
+          if (membership.userId === input.userId) this.memberships.delete(membershipId);
+        for (const subscription of activeSubscriptions) {
+          subscription.status = 'CANCELED';
+          subscription.cancelAtPeriodEnd = true;
+          subscription.updatedAt = purgedAt;
+        }
+        user.email = anonymizedEmail(input.userId);
+        user.name = undefined;
+        user.passwordHash = undefined;
+        user.preferences = { accountDeletion: { requestedAt, purgedAt } };
+        const proof = buildErasureProof({
+          userId: input.userId,
+          requestedAt,
+          purgedAt,
+          classes: [
+            { dataClass: 'sessions', action: 'deleted', models: {}, remainingAfterPurge: 0 },
+            ...physical.classes,
+            { dataClass: 'profile', action: 'anonymized', reason: 'tombstone_carries_purgedAt', models: { User: 1 } },
+          ],
+        });
+        this.purgeReceipts.set(input.userId, { planId, purgedAt, proof });
+        await this.mutateSystemSettingIds('account.pendingDeletionUserIds', { remove: input.userId });
+        return { outcome: 'purged', planId, proof };
+      } finally {
+        for (const projectId of preview.inventory!.bucketProjectIds) this.purgeFrozenProjects.delete(projectId);
+        await deps.releaseWorkspaceBarrier?.(preview.inventory!, planId, ownerToken);
+      }
+    });
+  }
+
+  async reconcilePurgeFreezes() {
+    const reconciled = this.purgeFrozenProjects.size;
+    this.purgeFrozenProjects.clear();
+    return { scanned: reconciled, reconciled, planIds: [] as string[] };
+  }
+
+  async isObjectStorageProjectPurgeFrozen(projectId: string) {
+    return this.purgeFrozenProjects.has(projectId);
+  }
+
+  async withObjectStorageProjectMutation<T>(projectId: string, effect: () => Promise<T>): Promise<T> {
+    if (this.purgeFrozenProjects.has(projectId)) {
+      throw Object.assign(new Error('OBJECT_STORAGE_PURGE_FROZEN'), {
+        code: 'OBJECT_STORAGE_PURGE_FROZEN',
+        statusCode: 409,
+      });
+    }
+    return effect();
+  }
+
+  async withObjectStorageProjectMutations<T>(projectIds: string[], effect: () => Promise<T>): Promise<T> {
+    for (const projectId of projectIds) {
+      if (this.purgeFrozenProjects.has(projectId)) {
+        throw Object.assign(new Error('OBJECT_STORAGE_PURGE_FROZEN'), {
+          code: 'OBJECT_STORAGE_PURGE_FROZEN',
+          statusCode: 409,
+        });
+      }
+    }
+    return effect();
+  }
+
+  async hasPurgeReceipt(userId: string) {
+    return this.purgeReceipts.has(userId);
   }
 
   async findUserByEmail(email: string) {

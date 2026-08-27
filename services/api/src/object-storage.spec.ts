@@ -489,6 +489,35 @@ describe('GcsObjectStorage', () => {
 });
 
 describe('consented read-only storage snapshots', () => {
+  it('holds source and target purge fences in stable order for a full clone', async () => {
+    const sourceProjectId = 'source-z';
+    const targetProjectId = 'target-a';
+    const storage = new FakeStorage();
+    storage.seed(projectBucketName(sourceProjectId), ['data.json']);
+    const raw = new GcsObjectStorage(storage);
+    const inventory = await raw.inventoryProjectObjects(sourceProjectId);
+    const fenceOrder: string[] = [];
+    const guarded = guardSharedObjectStorageWrites(
+      raw,
+      async () => false,
+      async (projectIds, effect) => {
+        fenceOrder.push(`enter:${projectIds.join(',')}`);
+        try {
+          return await effect();
+        } finally {
+          fenceOrder.push(`leave:${projectIds.join(',')}`);
+        }
+      },
+    );
+
+    await guarded.cloneProjectObjects(sourceProjectId, targetProjectId, inventory);
+
+    expect(fenceOrder).toEqual([
+      `enter:${sourceProjectId},${targetProjectId}`,
+      `leave:${sourceProjectId},${targetProjectId}`,
+    ]);
+  });
+
   it('lists only pinned inventory paths with folder semantics', () => {
     const listed = listPinnedInventoryObjects(
       {

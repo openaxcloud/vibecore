@@ -31,6 +31,11 @@ export const platformMetricDefinitions: MetricDefinition[] = [
     buckets: defaultBuckets,
   },
   { name: 'workspace_failures_total', help: 'Workspace failures.', type: 'counter' },
+  {
+    name: 'account_purge_subjects_total',
+    help: 'Account-purge subjects processed by mode, outcome and stable failure code.',
+    type: 'counter',
+  },
 
   /*
    * Incremented by the api when a workspace start/restart reconciles the runtime
@@ -261,7 +266,6 @@ export class PrometheusRegistry {
       }
 
       const entries = [...this.#samples.entries()].filter(
-
         /*
          * Match the bare name too: a sample recorded with NO labels keys to the
          * plain metric name (labelString({})===''), and `name{`-only filtering
