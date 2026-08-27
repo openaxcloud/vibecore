@@ -23,6 +23,14 @@ fi
 PROBE_WORK_DIR="$(mktemp -d)"
 PROBE_STDOUT="${PROBE_WORK_DIR}/stdout"
 PROBE_STDERR="${PROBE_WORK_DIR}/stderr"
+PROBE_URL="http://${HELM_RELEASE}-vibecore-platform-api.${HELM_NAMESPACE}.svc:3001/projects/sec9-probe/deployments/sec9-probe/access"
+
+# Production enforces the restricted Pod Security profile and a deny-by-default
+# NetworkPolicy. The generated probe must satisfy both policies or it has not
+# measured the deployed API at all. Keep the full container in the override so
+# kubectl cannot drop the security context while merging the generated Pod.
+PROBE_OVERRIDES='{"metadata":{"labels":{"app.kubernetes.io/part-of":"vibecore"}},"spec":{"securityContext":{"runAsNonRoot":true,"runAsUser":65532,"seccompProfile":{"type":"RuntimeDefault"}},"containers":[{"name":"sec9-probe","image":"curlimages/curl:8.10.1","securityContext":{"allowPrivilegeEscalation":false,"capabilities":{"drop":["ALL"]},"runAsNonRoot":true,"seccompProfile":{"type":"RuntimeDefault"}},"command":["curl","-sS","-o","/dev/null","-w","%{http_code}\\n","-m","15","-X","PUT","__PROBE_URL__","-H","content-type: application/json","-d","{\"mode\":\"PASSWORD_PROTECTED\",\"password\":\"sec9-probe-not-a-real-password\",\"expectedVersion\":1}"]}]}}'
+PROBE_OVERRIDES="${PROBE_OVERRIDES/__PROBE_URL__/${PROBE_URL}}"
 
 cleanup() {
   # Delete exactly the pod created by this run attempt. Never widen this to a
@@ -55,11 +63,8 @@ kubectl -n "${HELM_NAMESPACE}" run "${PROBE_POD_NAME}" \
   --quiet \
   --pod-running-timeout=60s \
   --image=curlimages/curl:8.10.1 \
-  --labels="app.kubernetes.io/name=sec9-probe,vibecore.dev/github-run-id=${GITHUB_RUN_ID}" \
-  --command -- curl -sS -o /dev/null -w '%{http_code}\n' -m 15 -X PUT \
-  "http://${HELM_RELEASE}-vibecore-platform-api.${HELM_NAMESPACE}.svc:3001/projects/sec9-probe/deployments/sec9-probe/access" \
-  -H 'content-type: application/json' \
-  -d '{"mode":"PASSWORD_PROTECTED","password":"sec9-probe-not-a-real-password","expectedVersion":1}' \
+  --labels="app.kubernetes.io/name=sec9-probe,app.kubernetes.io/part-of=vibecore,vibecore.dev/github-run-id=${GITHUB_RUN_ID}" \
+  --overrides="${PROBE_OVERRIDES}" \
   >"${PROBE_STDOUT}" 2>"${PROBE_STDERR}"
 PROBE_COMMAND_STATUS=$?
 set -e

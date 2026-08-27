@@ -103,6 +103,31 @@ test('a real non-2xx response is conclusive, armable and cleaned up by exact pod
   assert.equal(hasExactCleanup(result), true);
 });
 
+test('the probe pod satisfies restricted Pod Security and the production NetworkPolicy', () => {
+  const result = runProbe({ stdout: '401\n' });
+  const runCall = result.calls.find((call) => call.includes(' run '));
+
+  assert.ok(runCall, 'kubectl run must be invoked');
+  const overrideText = runCall.match(/--overrides=(\{.*\})$/u)?.[1];
+  assert.ok(overrideText, 'kubectl run must receive a complete JSON Pod override');
+  const overrides = JSON.parse(overrideText);
+  const [container] = overrides.spec.containers;
+
+  assert.match(runCall, /app\.kubernetes\.io\/part-of=vibecore/u);
+  assert.match(runCall, /"allowPrivilegeEscalation":false/u);
+  assert.match(runCall, /"drop":\["ALL"\]/u);
+  assert.match(runCall, /"runAsNonRoot":true/u);
+  assert.match(runCall, /"runAsUser":65532/u);
+  assert.match(runCall, /"seccompProfile":\{"type":"RuntimeDefault"\}/u);
+  assert.match(runCall, /vibecore-platform-api\.vibecore\.svc:3001/u);
+  assert.equal(overrides.metadata.labels['app.kubernetes.io/part-of'], 'vibecore');
+  assert.equal(overrides.spec.securityContext.runAsUser, 65532);
+  assert.equal(container.image, 'curlimages/curl:8.10.1');
+  assert.equal(container.command[0], 'curl');
+  assert.ok(container.command.includes('PUT'));
+  assert.ok(container.command.some((argument) => argument.includes('PASSWORD_PROTECTED')));
+});
+
 test('a real 2xx response is a blocking security failure and never armable', () => {
   const result = runProbe({ stdout: '204\n' });
   assert.notEqual(result.status, 0);
@@ -173,6 +198,20 @@ test('mutation guards prove status capture, 2xx rejection, fail-closed output an
       source: SCRIPT_SOURCE.replace('delete pod "${PROBE_POD_NAME}"', 'delete pod --all'),
       scenario: { stdout: '403\n' },
       accepted: hasExactCleanup,
+    },
+    {
+      name: 'remove the NetworkPolicy identity',
+      source: SCRIPT_SOURCE.replace(',app.kubernetes.io/part-of=vibecore', ''),
+      scenario: { stdout: '403\n' },
+      accepted: (result) =>
+        result.calls.some((call) => call.includes(' run ') && call.includes('app.kubernetes.io/part-of=vibecore')),
+    },
+    {
+      name: 'allow privilege escalation',
+      source: SCRIPT_SOURCE.replace('"allowPrivilegeEscalation":false', '"allowPrivilegeEscalation":true'),
+      scenario: { stdout: '403\n' },
+      accepted: (result) =>
+        result.calls.some((call) => call.includes(' run ') && call.includes('"allowPrivilegeEscalation":false')),
     },
   ];
 
