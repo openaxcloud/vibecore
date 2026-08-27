@@ -13,6 +13,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { buildPreviewProxyApp } from './app.js';
+import { deploymentAccessCookieName } from './deployment-access-gate.js';
 
 const PREVIEW_DOMAIN = 'preview.e-code.test';
 const DEPLOY_ID = 'cmdeployexpired001';
@@ -214,6 +215,94 @@ describe('TEST POSITIF — extinction réelle du chemin SERVER', () => {
         headers: { host: rawUrl.host, 'sec-fetch-dest': 'document' },
       });
       expect(bypass.statusCode).toBe(404);
+    } finally {
+      await proxy.close();
+    }
+  });
+
+  it('revalide le proof privé avant chaque requête raw et refuse sa révocation sans atteindre le workload', async () => {
+    const appHits: string[] = [];
+    const accessProofs: Array<string | null> = [];
+    const cookieName = deploymentAccessCookieName(DEPLOY_ID);
+    let revoked = false;
+    const fetchImpl = vi.fn(async (input: URL | string | Request, init?: RequestInit) => {
+      const url = String(input);
+
+      if (url.includes('/serving-state')) {
+        return new Response(
+          JSON.stringify({
+            state: 'live',
+            planEntitlements: { version: '2026-08-27.1', badgeRequired: true },
+          }),
+          { headers: { 'content-type': 'application/json' } },
+        );
+      }
+
+      if (url.includes('/access/verdict')) {
+        const headers = new Headers(init?.headers);
+        accessProofs.push(headers.get('x-vibecore-deployment-access-cookie'));
+
+        return new Response(
+          JSON.stringify(
+            revoked
+              ? {
+                  decision: 'sign-in-required',
+                  mode: 'INVITE_ONLY',
+                  cookieName,
+                  signInUrl: '/login',
+                }
+              : { decision: 'allow', mode: 'INVITE_ONLY', cookieName },
+          ),
+          { headers: { 'content-type': 'application/json' } },
+        );
+      }
+
+      appHits.push(url);
+      return new Response(APP_BODY, { headers: { 'content-type': 'text/html; charset=utf-8' } });
+    }) as unknown as typeof fetch;
+    const proxy = await buildProxy(fetchImpl, { enforceDeploymentAccess: true });
+
+    try {
+      const privateProof = 'private-release-proof-v1';
+      const shell = await proxy.inject({
+        method: 'GET',
+        url: '/',
+        headers: {
+          host: DEPLOY_HOST,
+          cookie: `${cookieName}=${encodeURIComponent(privateProof)}`,
+          'sec-fetch-dest': 'document',
+        },
+      });
+      expect(shell.statusCode).toBe(200);
+      const rawSource = /<iframe[^>]+src="([^"]+)"/.exec(shell.body)?.[1]?.replaceAll('&amp;', '&');
+      expect(rawSource).toBeTruthy();
+      expect(rawSource).not.toContain(privateProof);
+      expect(accessProofs).toEqual([privateProof]);
+      expect(appHits).toHaveLength(0);
+
+      const rawUrl = new URL(rawSource!);
+      const firstRaw = await proxy.inject({
+        method: 'GET',
+        url: `${rawUrl.pathname}${rawUrl.search}`,
+        headers: { host: rawUrl.host, 'sec-fetch-dest': 'iframe' },
+      });
+      expect(firstRaw.statusCode).toBe(200);
+      expect(firstRaw.body).toBe(APP_BODY);
+      const setCookie = firstRaw.headers['set-cookie'];
+      const frameCookie = (Array.isArray(setCookie) ? setCookie[0] : setCookie)?.split(';', 1)[0];
+      expect(frameCookie).toMatch(/^vc_badge_d_/);
+      expect(accessProofs).toEqual([privateProof, privateProof]);
+      expect(appHits).toHaveLength(1);
+
+      revoked = true;
+      const revokedAsset = await proxy.inject({
+        method: 'GET',
+        url: '/assets/app.js',
+        headers: { host: rawUrl.host, cookie: frameCookie!, 'sec-fetch-dest': 'script' },
+      });
+      expect(revokedAsset.statusCode).toBe(404);
+      expect(accessProofs).toEqual([privateProof, privateProof, privateProof]);
+      expect(appHits).toHaveLength(1);
     } finally {
       await proxy.close();
     }
@@ -477,12 +566,8 @@ describe('refus de publication — copie localisée (régression garde i18n)', (
 
     expect(french.statusCode).toBe(503);
     expect(english.statusCode).toBe(503);
-    expect(french.json().error).toBe(
-      'Impossible de vérifier l’état de cette publication. Réessayez dans un instant.',
-    );
-    expect(english.json().error).toBe(
-      'This publication’s state could not be verified. Please try again in a moment.',
-    );
+    expect(french.json().error).toBe('Impossible de vérifier l’état de cette publication. Réessayez dans un instant.');
+    expect(english.json().error).toBe('This publication’s state could not be verified. Please try again in a moment.');
 
     // Le contrat de reprise ne doit pas être perdu en passant par le catalogue.
     for (const response of [french, english]) {

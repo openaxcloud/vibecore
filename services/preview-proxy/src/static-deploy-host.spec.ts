@@ -5,6 +5,7 @@ import {
   parseServerDeployHost,
   parseStaticDeployHost,
 } from './app.js';
+import { deploymentAccessCookieName } from './deployment-access-gate.js';
 
 /*
  * LAUNCH-BLOCKER 2026-08-01: published static apps rendered BLANK because they
@@ -124,7 +125,7 @@ describe('static published badge edge', () => {
       expect(shell.body).toContain('<iframe');
       expect(shell.body).not.toContain(hostileApp);
       expect(shell.headers['x-frame-options']).toBe('DENY');
-      expect(shell.headers['content-security-policy']).toContain('frame-ancestors \'none\'');
+      expect(shell.headers['content-security-policy']).toContain("frame-ancestors 'none'");
 
       const source = /<iframe[^>]+src="([^"]+)"/.exec(shell.body)?.[1]?.replaceAll('&amp;', '&');
       expect(source).toBeTruthy();
@@ -153,10 +154,96 @@ describe('static published badge edge', () => {
 
       const artifactHits = upstreamHits.filter((hit) => hit.url.includes('/static-deployments/'));
       expect(artifactHits).toHaveLength(1);
-      expect(artifactHits.every((hit) => hit.headers.get('authorization') === 'Bearer published-static-frame-secret')).toBe(
-        true,
-      );
+      expect(
+        artifactHits.every((hit) => hit.headers.get('authorization') === 'Bearer published-static-frame-secret'),
+      ).toBe(true);
       expect(artifactHits[0]?.headers.get('x-vibecore-published-badge-frame')).toBe('1');
+    } finally {
+      await proxy.close();
+    }
+  });
+
+  it('revalidates a private proof from the static frame cookie and blocks assets after revocation', async () => {
+    const deploymentId = 'staticprivate001';
+    const accessCookieName = deploymentAccessCookieName(deploymentId);
+    const privateProof = 'private-static-release-proof-v1';
+    const accessProofs: Array<string | null> = [];
+    const artifactHits: string[] = [];
+    let revoked = false;
+    const fetchImpl = vi.fn(async (input: URL | string | Request, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes('/serving-state')) {
+        return new Response(
+          JSON.stringify({
+            state: 'live',
+            planEntitlements: { version: '2026-08-27.1', badgeRequired: true },
+          }),
+          { headers: { 'content-type': 'application/json' } },
+        );
+      }
+      if (url.includes('/access/verdict')) {
+        const headers = new Headers(init?.headers);
+        accessProofs.push(headers.get('x-vibecore-deployment-access-cookie'));
+        return new Response(
+          JSON.stringify(
+            revoked
+              ? { decision: 'sign-in-required', mode: 'INVITE_ONLY', cookieName: accessCookieName, signInUrl: '/login' }
+              : { decision: 'allow', mode: 'INVITE_ONLY', cookieName: accessCookieName },
+          ),
+          { headers: { 'content-type': 'application/json' } },
+        );
+      }
+      if (url.includes('/static-deployments/')) {
+        artifactHits.push(url);
+        return new Response('PRIVATE_STATIC_BODY', { headers: { 'content-type': 'text/html; charset=utf-8' } });
+      }
+      throw new Error(`Unexpected upstream ${url}`);
+    }) as unknown as typeof fetch;
+    const proxy = await buildPreviewProxyApp({
+      previewDomain: DOMAIN,
+      apiBaseUrl: 'http://api.internal',
+      proxySharedSecret: 'published-static-frame-secret',
+      enforceDeploymentAccess: true,
+      fetchImpl,
+    });
+
+    try {
+      const shell = await proxy.inject({
+        method: 'GET',
+        url: '/',
+        headers: {
+          host: `s-${deploymentId}.${DOMAIN}`,
+          cookie: `${accessCookieName}=${encodeURIComponent(privateProof)}`,
+          'sec-fetch-dest': 'document',
+        },
+      });
+      expect(shell.statusCode).toBe(200);
+      const source = /<iframe[^>]+src="([^"]+)"/.exec(shell.body)?.[1]?.replaceAll('&amp;', '&');
+      const rawUrl = new URL(source!);
+      expect(accessProofs).toEqual([privateProof]);
+      expect(artifactHits).toHaveLength(0);
+
+      const firstRaw = await proxy.inject({
+        method: 'GET',
+        url: `${rawUrl.pathname}${rawUrl.search}`,
+        headers: { host: rawUrl.host, 'sec-fetch-dest': 'iframe' },
+      });
+      expect(firstRaw.statusCode).toBe(200);
+      const setCookie = firstRaw.headers['set-cookie'];
+      const frameCookie = (Array.isArray(setCookie) ? setCookie[0] : setCookie)?.split(';', 1)[0];
+      expect(frameCookie).toMatch(/^vc_badge_s_/);
+      expect(accessProofs).toEqual([privateProof, privateProof]);
+      expect(artifactHits).toHaveLength(1);
+
+      revoked = true;
+      const revokedAsset = await proxy.inject({
+        method: 'GET',
+        url: '/assets/app.js',
+        headers: { host: rawUrl.host, cookie: frameCookie!, 'sec-fetch-dest': 'script' },
+      });
+      expect(revokedAsset.statusCode).toBe(404);
+      expect(accessProofs).toEqual([privateProof, privateProof, privateProof]);
+      expect(artifactHits).toHaveLength(1);
     } finally {
       await proxy.close();
     }

@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
 import { Readable } from 'node:stream';
 import Fastify, { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 
@@ -31,7 +31,11 @@ import { REPORTER_SCRIPT } from './reporter-script.js';
  */
 const MAX_INJECT_BYTES = 4 * 1024 * 1024;
 const DEPLOYMENT_ACCESS_CONFIG_ERROR = 'PREVIEW_DEPLOYMENT_ACCESS_CONFIG_REQUIRED';
+const PUBLISHED_PREVIEW_CONFIG_ERROR =
+  'Published preview routing requires API_BASE_URL and PREVIEW_PROXY_SHARED_SECRET in production.';
 const PUBLISHED_BADGE_MARKER = 'data-vibecore-published-badge';
+const RAW_SERVER_FRAME_PREFIX = 'rd';
+const RAW_STATIC_FRAME_PREFIX = 'rs';
 
 export function publishedBadgeMarkup(label: string, destination = 'https://e-code.ai'): string {
   const escape = (value: string) =>
@@ -470,17 +474,44 @@ function publishedFrameCookieName(kind: PublishedBadgeFrameKind, deploymentId: s
   return `vc_badge_${kind === 'server' ? 'd' : 's'}_${deploymentId}`;
 }
 
+type PublishedFrameAccessMode = Extract<DeploymentAccessVerdict, { decision: 'allow' }>['mode'];
+
+type PublishedFrameClaims = {
+  expiresAtMs: number;
+  accessMode: PublishedFrameAccessMode;
+  accessProof?: string;
+};
+
+function publishedFrameEncryptionKey(secret: string): Buffer {
+  return createHash('sha256').update('vibecore.published-badge-frame.v2\0').update(secret).digest();
+}
+
 function signPublishedFrameToken(input: {
   secret: string;
   kind: PublishedBadgeFrameKind;
   deploymentId: string;
   expiresAtMs: number;
+  accessMode: PublishedFrameAccessMode;
+  accessProof?: string;
 }): string {
-  const payload = `${input.kind}.${input.deploymentId}.${Math.floor(input.expiresAtMs)}`;
-  const signature = base64url(
-    createHmac('sha256', input.secret).update(`vibecore.published-badge-frame.v1\0${payload}`).digest(),
+  const iv = randomBytes(12);
+  const cipher = createCipheriv('aes-256-gcm', publishedFrameEncryptionKey(input.secret), iv);
+  const aad = Buffer.from(`vibecore.published-badge-frame.v2\0${input.kind}\0${input.deploymentId}`);
+  cipher.setAAD(aad);
+  const payload = Buffer.from(
+    JSON.stringify({
+      version: 2,
+      kind: input.kind,
+      deploymentId: input.deploymentId,
+      expiresAtMs: Math.floor(input.expiresAtMs),
+      accessMode: input.accessMode,
+      ...(input.accessProof ? { accessProof: input.accessProof } : {}),
+    }),
   );
-  return `${payload}.${signature}`;
+  const ciphertext = Buffer.concat([cipher.update(payload), cipher.final()]);
+  const authenticationTag = cipher.getAuthTag();
+
+  return `v2.${base64url(iv)}.${base64url(ciphertext)}.${base64url(authenticationTag)}`;
 }
 
 function verifyPublishedFrameToken(input: {
@@ -489,34 +520,57 @@ function verifyPublishedFrameToken(input: {
   kind: PublishedBadgeFrameKind;
   deploymentId: string;
   nowMs?: number;
-}): { expiresAtMs: number } | undefined {
-  if (!input.token || !input.secret || input.token.length > 1024) {
+}): PublishedFrameClaims | undefined {
+  if (!input.token || !input.secret || input.token.length > 4096) {
     return undefined;
   }
   const parts = input.token.split('.');
-  if (parts.length !== 4) {
+  if (parts.length !== 4 || parts[0] !== 'v2') {
     return undefined;
   }
-  const [kind, deploymentId, expiresAtRaw, suppliedSignature] = parts;
-  const expiresAtMs = Number(expiresAtRaw);
-  if (
-    kind !== input.kind ||
-    deploymentId !== input.deploymentId ||
-    !Number.isSafeInteger(expiresAtMs) ||
-    expiresAtMs <= (input.nowMs ?? Date.now())
-  ) {
+  try {
+    const iv = Buffer.from(parts[1]!, 'base64url');
+    const ciphertext = Buffer.from(parts[2]!, 'base64url');
+    const authenticationTag = Buffer.from(parts[3]!, 'base64url');
+    if (iv.length !== 12 || authenticationTag.length !== 16 || ciphertext.length < 1 || ciphertext.length > 3_072) {
+      return undefined;
+    }
+    const decipher = createDecipheriv('aes-256-gcm', publishedFrameEncryptionKey(input.secret), iv);
+    decipher.setAAD(Buffer.from(`vibecore.published-badge-frame.v2\0${input.kind}\0${input.deploymentId}`));
+    decipher.setAuthTag(authenticationTag);
+    const decoded = JSON.parse(Buffer.concat([decipher.update(ciphertext), decipher.final()]).toString('utf8')) as {
+      version?: unknown;
+      kind?: unknown;
+      deploymentId?: unknown;
+      expiresAtMs?: unknown;
+      accessMode?: unknown;
+      accessProof?: unknown;
+    };
+    const expiresAtMs = decoded.expiresAtMs;
+    const accessMode = decoded.accessMode;
+    const accessProof = decoded.accessProof;
+    if (
+      decoded.version !== 2 ||
+      decoded.kind !== input.kind ||
+      decoded.deploymentId !== input.deploymentId ||
+      !Number.isSafeInteger(expiresAtMs) ||
+      Number(expiresAtMs) <= (input.nowMs ?? Date.now()) ||
+      !['PUBLIC', 'PASSWORD_PROTECTED', 'WORKSPACE_ONLY', 'INVITE_ONLY'].includes(String(accessMode)) ||
+      (accessProof !== undefined &&
+        (typeof accessProof !== 'string' || accessProof.length < 1 || accessProof.length > 2048)) ||
+      (accessMode === 'PUBLIC' ? accessProof !== undefined : typeof accessProof !== 'string')
+    ) {
+      return undefined;
+    }
+
+    return {
+      expiresAtMs: Number(expiresAtMs),
+      accessMode: accessMode as PublishedFrameAccessMode,
+      ...(typeof accessProof === 'string' ? { accessProof } : {}),
+    };
+  } catch {
     return undefined;
   }
-  const payload = `${kind}.${deploymentId}.${expiresAtRaw}`;
-  const expectedSignature = base64url(
-    createHmac('sha256', input.secret).update(`vibecore.published-badge-frame.v1\0${payload}`).digest(),
-  );
-  const supplied = Buffer.from(suppliedSignature ?? '');
-  const expected = Buffer.from(expectedSignature);
-  if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) {
-    return undefined;
-  }
-  return { expiresAtMs };
 }
 
 /*
@@ -730,7 +784,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   }
 
   if (isProduction && previewDomain && (!apiBaseUrl || !proxySharedSecret)) {
-    throw new Error('Published preview routing requires API_BASE_URL and PREVIEW_PROXY_SHARED_SECRET in production.');
+    throw new Error(PUBLISHED_PREVIEW_CONFIG_ERROR);
   }
 
   type AllowedDeploymentAccess = Extract<DeploymentAccessVerdict, { decision: 'allow' }>;
@@ -751,14 +805,22 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     if (!/^(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(domain)) {
       return undefined;
     }
-    const label = `${kind === 'server' ? 'rd' : 'rs'}-${deploymentId}`;
+    const label = `${kind === 'server' ? RAW_SERVER_FRAME_PREFIX : RAW_STATIC_FRAME_PREFIX}-${deploymentId}`;
     const origin = `${isProduction ? 'https' : 'http'}://${label}.${domain}`;
     const ttlMs = access.mode === 'PUBLIC' ? 24 * 60 * 60 * 1_000 : 15 * 60 * 1_000;
+    const accessProof = readNamedCookie(request.headers.cookie, access.cookieName);
+
+    if (access.mode !== 'PUBLIC' && !accessProof) {
+      return undefined;
+    }
+
     const token = signPublishedFrameToken({
       secret: proxySharedSecret,
       kind,
       deploymentId,
       expiresAtMs: Date.now() + ttlMs,
+      accessMode: access.mode,
+      ...(accessProof ? { accessProof } : {}),
     });
     const url = new URL(request.url.startsWith('/') ? request.url : `/${request.url}`, origin);
     url.searchParams.set(PUBLISHED_FRAME_TOKEN_PARAMETER, token);
@@ -794,7 +856,15 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
     request: FastifyRequest,
     reply: FastifyReply,
     frame: { deploymentId: string; kind: PublishedBadgeFrameKind },
-  ): { requestUrl: string; parentOrigin: string; cookieName: string } | undefined => {
+  ):
+    | {
+        requestUrl: string;
+        parentOrigin: string;
+        cookieName: string;
+        accessMode: PublishedFrameAccessMode;
+        accessProof?: string;
+      }
+    | undefined => {
     if (!proxySharedSecret || !previewDomain) {
       void sendPreviewProxyError(request, reply, 404, 'PUBLICATION_STATE_UNAVAILABLE');
       return undefined;
@@ -842,6 +912,8 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       requestUrl: `${requestUrl.pathname}${requestUrl.search}`,
       parentOrigin: `${isProduction ? 'https' : 'http'}://${parentLabel}.${normalizedDomain}`,
       cookieName,
+      accessMode: claims.accessMode,
+      ...(claims.accessProof ? { accessProof: claims.accessProof } : {}),
     };
   };
 
@@ -1179,6 +1251,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
   const resolveDeploymentAccessVerdict = async (
     request: FastifyRequest,
     deploymentId: string,
+    proofOverride?: string,
   ): Promise<DeploymentAccessVerdict> => {
     const cookieName = deploymentAccessCookieName(deploymentId);
 
@@ -1186,7 +1259,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
       return { decision: 'allow', mode: 'PUBLIC', cookieName };
     }
 
-    const proof = readNamedCookie(request.headers.cookie, cookieName);
+    const proof = proofOverride ?? readNamedCookie(request.headers.cookie, cookieName);
     const clientKey = deploymentAccessClientKey(request);
 
     try {
@@ -2435,14 +2508,19 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
             .send();
           return;
         }
-        const syntheticAccess: AllowedDeploymentAccess = {
-          decision: 'allow',
-          mode: 'PUBLIC',
-          cookieName: deploymentAccessCookieName(badgeFrame.deploymentId),
-        };
+        const currentAccess = await resolveDeploymentAccessVerdict(
+          request,
+          badgeFrame.deploymentId,
+          frameAccess.accessProof,
+        );
+
+        if (currentAccess.decision !== 'allow' || currentAccess.mode !== frameAccess.accessMode) {
+          reply.code(404).header('cache-control', 'private, no-store').send();
+          return;
+        }
 
         if (badgeFrame.kind === 'server') {
-          await handleServerDeployRequest(request, reply, badgeFrame.deploymentId, verdict, syntheticAccess, {
+          await handleServerDeployRequest(request, reply, badgeFrame.deploymentId, verdict, currentAccess, {
             requestUrl: frameAccess.requestUrl,
             badgeFrame: true,
             parentOrigin: frameAccess.parentOrigin,
@@ -2453,7 +2531,7 @@ export async function buildPreviewProxyApp(options: PreviewProxyOptions = {}): P
             requestUrl: frameAccess.requestUrl,
             badgeFrame: true,
             parentOrigin: frameAccess.parentOrigin,
-            access: syntheticAccess,
+            access: currentAccess,
           });
         }
         return;
