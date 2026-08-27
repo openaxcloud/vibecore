@@ -2749,6 +2749,7 @@ model WorkspacePostMortem {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
 
   @@index([workspaceId, capturedAt])
+}
 
 /// Exécution d'une migration de schéma sur la base d'un projet, au moment du
 /// Publish (P0-V3-11, CTR-DATABASE). Une migration ne doit JAMAIS corrompre les
